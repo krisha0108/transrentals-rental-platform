@@ -175,7 +175,7 @@ export async function GET(
           validityDays: q.validityDays,
           viewCount: q.viewCount,
           status: q.status,
-          vendor: q.vendors,
+          vendors: q.vendors,
           createdAt: q.createdAt,
         };
       }),

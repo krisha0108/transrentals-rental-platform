@@ -52,10 +52,9 @@ export function useDriverWebNotifications() {
             });
             bNotif.onclick = () => {
               window.focus();
-              // Navigate to bookings list if booking-related
-              if (notif.bookingNumber) {
-                window.location.href = `/driver/bookings`;
-              }
+              window.location.href = notif.bookingNumber
+                ? `/driver/bookings/${notif.bookingNumber}`
+                : `/driver/notifications`;
               bNotif.close();
             };
           } catch (_) {

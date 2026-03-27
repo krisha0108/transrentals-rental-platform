@@ -388,6 +388,9 @@ export async function POST(request: NextRequest) {
 
       // Notes
       customerNotes: customerNotes || null,
+
+      // Source tracking (web or app)
+      source: body.source || 'web',
     };
 
     // Add local package details if applicable

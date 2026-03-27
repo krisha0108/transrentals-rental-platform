@@ -85,6 +85,31 @@ export async function GET(
           },
         },
         admin_users: { select: { id: true, name: true, email: true } },
+        vendor_fleets: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            vehicle_models: {
+              select: {
+                id: true,
+                name: true,
+                sideImage: true,
+                fuelType: true,
+                transmission: true,
+                seatingCapacity: true,
+                engineCC: true,
+                brands: { select: { name: true, logo: true } },
+              },
+            },
+            services: { select: { id: true, name: true } },
+            brands: { select: { name: true, logo: true } },
+            chauffeur_vehicle_categories: { select: { name: true } },
+            vendor_fleet_locations: {
+              include: {
+                locations: { select: { name: true } },
+              },
+            },
+          },
+        },
         _count: { select: { vendor_fleets: true } },
       },
     });
@@ -170,6 +195,37 @@ export async function GET(
           ...item,
           service: item.services,
         })),
+        fleets: vendor.vendor_fleets.map((f: any) => {
+          // Parse images safely
+          let images = null;
+          try {
+            if (f.images && typeof f.images === 'string' && f.images !== 'null') {
+              images = JSON.parse(f.images);
+            }
+          } catch {}
+          return {
+            id: f.id,
+            isActive: f.isActive,
+            isAvailable: f.isAvailable,
+            registrationNumber: f.registrationNumber || null,
+            vehicleName: f.vehicle_models?.name || f.vehicleName || 'Unknown',
+            brandName: f.vehicle_models?.brands?.name || f.brands?.name || null,
+            brandLogo: f.vehicle_models?.brands?.logo || f.brands?.logo || null,
+            categoryName: f.chauffeur_vehicle_categories?.name || null,
+            serviceName: f.services?.name || null,
+            sideImage: f.vehicle_models?.sideImage || null,
+            images,
+            fuelType: f.vehicle_models?.fuelType || f.fuelType || null,
+            transmission: f.vehicle_models?.transmission || f.transmission || null,
+            seatingCapacity: f.vehicle_models?.seatingCapacity || f.seatingCapacity || null,
+            engineCC: f.vehicle_models?.engineCC || null,
+            color: f.color || null,
+            yearOfManufacture: f.yearOfManufacture || null,
+            vehicleCondition: f.vehicleCondition || null,
+            createdAt: f.createdAt,
+            locations: f.vendor_fleet_locations.map((fl: any) => fl.locations.name),
+          };
+        }),
         _count: vendor._count,
       },
       managerAccess: {

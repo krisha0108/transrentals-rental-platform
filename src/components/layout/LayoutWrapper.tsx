@@ -19,6 +19,8 @@ const noLayoutRoutes = [
   '/customer/helpdesk',
   '/customer/financials',
   '/customer/login',
+  '/customer/b2b-register',
+  '/customer/forgot-password',
   '/book',
   '/track',
   '/invoice',

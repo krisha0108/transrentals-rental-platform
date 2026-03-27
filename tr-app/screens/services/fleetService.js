@@ -115,7 +115,7 @@ const fleetService = {
    * @returns {object} Created booking with PENDING_PAYMENT status
    */
   createBikeBooking: async (bookingData) => {
-    const response = await api.post('/bike-bookings', bookingData);
+    const response = await api.post('/bike-bookings', { ...bookingData, source: 'app' });
     return response.data;
   },
 
@@ -156,7 +156,7 @@ const fleetService = {
    * @returns {object} Created quote request
    */
   createBikeQuoteRequest: async (requestData) => {
-    const response = await api.post('/bike-quote-requests', requestData);
+    const response = await api.post('/bike-quote-requests', { ...requestData, source: 'app' });
     return response.data;
   },
 
@@ -196,7 +196,7 @@ const fleetService = {
    * @returns {object} Created quote request
    */
   createSelfDriveQuoteRequest: async (requestData) => {
-    const response = await api.post('/self-drive-quote-requests', requestData);
+    const response = await api.post('/self-drive-quote-requests', { ...requestData, source: 'app' });
     return response.data;
   },
 

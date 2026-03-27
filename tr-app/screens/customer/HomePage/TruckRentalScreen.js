@@ -180,6 +180,7 @@ export default function TruckRentalScreen() {
   const [otherDetails, setOtherDetails] = useState('');
   const [isPhoneModal, setIsPhoneModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alertModal, setAlertModal] = useState({ visible: false, type: '', title: '', message: '' });
 
   const [startDate, setStartDate] = useState(new Date());
   const [androidPickerVisible, setAndroidPickerVisible] = useState(false);
@@ -439,17 +440,13 @@ const handleDestinationOutsideClick = () => {
       const response = await bookingService.createTruckQuoteRequest(payload);
 
       if (response.success || response.quoteRequest) {
-        alert('Quote request submitted! ✅\n\nVendors will send quotes within 24-48 hours.');
-        navigation.navigate('MyTruckBookings');
+        setAlertModal({ visible: true, type: 'success', title: 'Request Submitted!', message: 'Your truck booking request has been submitted. Vendors will send quotes within 24-48 hours.', onClose: () => navigation.navigate('MyTruckBookings') });
       } else {
-        alert('Request could not be submitted. Please try again.');
+        setAlertModal({ visible: true, type: 'error', title: 'Error', message: 'Request could not be submitted. Please try again.' });
       }
     } catch (err) {
       console.log('truck booking err', err?.response?.data || err?.message || err);
-      alert(
-        err?.response?.data?.message ||
-          'Failed to submit booking. Please try again.',
-      );
+      setAlertModal({ visible: true, type: 'error', title: 'Error', message: err?.response?.data?.message || 'Failed to submit booking. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -1076,6 +1073,39 @@ const handleDestinationOutsideClick = () => {
         />
       )}
       <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
+
+      {/* Custom Alert Modal */}
+      <Modal visible={alertModal.visible} transparent animationType="fade">
+        <View style={styles.alertOverlay}>
+          <View style={styles.alertCard}>
+            <View style={[styles.alertIconCircle, alertModal.type === 'success' ? { backgroundColor: TEAL_LIGHT } : { backgroundColor: '#FEE2E2' }]}>
+              <Ionicons
+                name={alertModal.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
+                size={wp('12%')}
+                color={alertModal.type === 'success' ? TEAL : '#EF4444'}
+              />
+            </View>
+            <Text style={styles.alertTitle}>{alertModal.title}</Text>
+            <Text style={styles.alertMessage}>{alertModal.message}</Text>
+            <TouchableOpacity
+              style={styles.alertBtn}
+              activeOpacity={0.8}
+              onPress={() => {
+                const cb = alertModal.onClose;
+                setAlertModal({ visible: false, type: '', title: '', message: '' });
+                if (cb) cb();
+              }}
+            >
+              <LinearGradient
+                colors={alertModal.type === 'success' ? [TEAL, '#059669'] : ['#EF4444', '#DC2626']}
+                style={styles.alertBtnGradient}
+              >
+                <Text style={styles.alertBtnText}>OK</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1745,5 +1775,57 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: wp('3.8%'),
+  },
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp('8%'),
+  },
+  alertCard: {
+    backgroundColor: '#FFF',
+    borderRadius: wp('5%'),
+    paddingVertical: hp('3.5%'),
+    paddingHorizontal: wp('6%'),
+    alignItems: 'center',
+    width: '100%',
+  },
+  alertIconCircle: {
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+  },
+  alertTitle: {
+    fontSize: wp('4.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.8%'),
+    textAlign: 'center',
+  },
+  alertMessage: {
+    fontSize: wp('3.3%'),
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
+    lineHeight: wp('5%'),
+    marginBottom: hp('2.5%'),
+  },
+  alertBtn: {
+    width: '100%',
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+  },
+  alertBtnGradient: {
+    paddingVertical: hp('1.5%'),
+    alignItems: 'center',
+    borderRadius: wp('3%'),
+  },
+  alertBtnText: {
+    color: '#FFF',
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
   },
 });

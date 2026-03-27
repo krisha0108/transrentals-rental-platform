@@ -276,13 +276,14 @@ export default function BusRentalFleetScreen() {
   };
 
   const selectLocation = (type, location) => {
+    const trimmedName = (location.name || '').trim();
     if (type === 'from') {
-      setFromLocation(location);
-      setFromSearch(location.name);
+      setFromLocation({ ...location, name: trimmedName });
+      setFromSearch(trimmedName);
       setFromResults([]);
     } else {
-      setToLocation(location);
-      setToSearch(location.name);
+      setToLocation({ ...location, name: trimmedName });
+      setToSearch(trimmedName);
       setToResults([]);
     }
   };
@@ -425,12 +426,12 @@ export default function BusRentalFleetScreen() {
         vehicleCategory: null,
         vehicleCategoryName: 'Standard Bus',
         passengers: parseInt(passengers),
-        pickupCity: fromLocation?.name || fromSearch || null,
-        pickupAddress: fromLocation?.name || fromSearch || null,
+        pickupCity: (fromLocation?.name || fromSearch || '').trim() || null,
+        pickupAddress: (fromLocation?.name || fromSearch || '').trim() || null,
         pickupDate: pickupDate.toISOString().split('T')[0],
         pickupTime,
-        dropCity: toLocation?.name || toSearch || null,
-        dropAddress: toLocation?.name || toSearch || null,
+        dropCity: (toLocation?.name || toSearch || '').trim() || null,
+        dropAddress: (toLocation?.name || toSearch || '').trim() || null,
         returnDate: returnDate ? returnDate.toISOString().split('T')[0] : null,
         returnTime: returnTime || null,
         tripDays,

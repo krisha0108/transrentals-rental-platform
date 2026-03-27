@@ -193,6 +193,7 @@ model bike_bookings {
   vendorNotes                                     String?                     @db.Text
   adminNotes                                      String?                     @db.Text
   cancellationReason                              String?                     @db.Text
+  source                                          String?                     @db.VarChar(20) @default("web")
   createdAt                                       DateTime                    @default(now())
   updatedAt                                       DateTime                    @updatedAt
   lastPaymentError                                String?                     @db.Text
@@ -285,6 +286,7 @@ model bike_quote_requests {
   vehicleCategoryName                                          String?
   vehicleModelId                                               String?
   vehicleModelName                                             String?
+  source                                                       String?                    @db.VarChar(20) @default("web")
   bike_bookings                                                bike_bookings?
   bike_quotes_bike_quote_requests_acceptedQuoteIdTobike_quotes bike_quotes?               @relation("bike_quote_requests_acceptedQuoteIdTobike_quotes", fields: [acceptedQuoteId], references: [id])
   customers                                                    customers?                 @relation(fields: [customerId], references: [id])
@@ -489,6 +491,7 @@ model bus_bookings {
   vehicleRating          Int?
   confirmedAt            DateTime?
   completedAt            DateTime?
+  source                 String?                    @db.VarChar(20) @default("web")
   createdAt              DateTime                   @default(now())
   updatedAt              DateTime                   @updatedAt
   advancePaymentDate     DateTime?
@@ -544,6 +547,7 @@ model bus_quote_requests {
   totalQuotesReceived                                       Int                       @default(0)
   quotesViewed                                              Int                       @default(0)
   acceptedQuoteId                                           String?
+  source                                                    String?                   @db.VarChar(20) @default("web")
   createdAt                                                 DateTime                  @default(now())
   updatedAt                                                 DateTime                  @updatedAt
   bus_bookings                                              bus_bookings?
@@ -693,6 +697,7 @@ model car_bookings {
   cancelledAt                                    DateTime?
   cancelledBy                                    String?
   completedAt                                    DateTime?
+  source                                         String?                    @db.VarChar(20) @default("web")
   createdAt                                      DateTime                   @default(now())
   updatedAt                                      DateTime                   @updatedAt
   advanceAmount                                  Float?
@@ -853,6 +858,7 @@ model chauffeur_bookings {
   localPackageKm                                       Int?
   pickupCity                                           String
   dropCity                                             String?
+  source                                               String?                          @db.VarChar(20) @default("web")
   intermediateStops                                    String?                          @db.Text
   pickupAddress                                        String?                          @db.Text
   dropAddress                                          String?                          @db.Text
@@ -932,9 +938,12 @@ model chauffeur_bookings {
   vendors_chauffeur_bookings_assignedVendorIdTovendors vendors?                         @relation("chauffeur_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])
   customers                                            customers?                       @relation(fields: [customerId], references: [id])
   locations                                            locations                        @relation(fields: [locationId], references: [id])
+  accepted_driver                                      drivers?                         @relation(fields: [acceptedDriverId], references: [id])
+  acceptedDriverId                                     String?
 
   @@index([acceptedVendorId])
   @@index([assignedVendorId])
+  @@index([acceptedDriverId])
   @@index([bookingNumber])
   @@index([createdAt])
   @@index([customerEmail])
@@ -1373,6 +1382,7 @@ model equipment_bookings {
   rating                   Int?
   review                   String?                          @db.Text
   equipmentRating          Int?
+  source                   String?                          @db.VarChar(20) @default("web")
   createdAt                DateTime                         @default(now())
   updatedAt                DateTime                         @updatedAt
   droppedAt                DateTime?
@@ -1420,6 +1430,7 @@ model equipment_quote_requests {
   totalQuotesReceived Int                             @default(0)
   quotesViewed        Int                             @default(0)
   acceptedQuoteId     String?
+  source              String?                         @db.VarChar(20) @default("web")
   createdAt           DateTime                        @default(now())
   updatedAt           DateTime                        @updatedAt
   equipment_bookings  equipment_bookings?
@@ -1918,6 +1929,7 @@ model luxury_bookings {
   driverRating                                      Int?
   vehicleRating                                     Int?
   acceptedAt                                        DateTime?
+  source                                            String?                       @db.VarChar(20) @default("web")
   createdAt                                         DateTime                      @default(now())
   updatedAt                                         DateTime                      @updatedAt
   acceptedQuoteId                                   String?                       @unique
@@ -1995,6 +2007,7 @@ model luxury_quote_requests {
   totalQuotesReceived Int                          @default(0)
   quotesViewed        Int                          @default(0)
   acceptedQuoteId     String?                      @unique
+  source              String?                      @db.VarChar(20) @default("web")
   createdAt           DateTime                     @default(now())
   updatedAt           DateTime                     @updatedAt
   luxury_bookings     luxury_bookings?
@@ -2223,6 +2236,7 @@ model packers_bookings {
   review                 String?                        @db.Text
   teamRating             Int?
   packingRating          Int?
+  source                 String?                        @db.VarChar(20) @default("web")
   createdAt              DateTime                       @default(now())
   updatedAt              DateTime                       @updatedAt
   deliveryOtpSent        Boolean                        @default(false)
@@ -2287,6 +2301,7 @@ model packers_quote_requests {
   totalQuotesReceived Int                           @default(0)
   quotesViewed        Int                           @default(0)
   acceptedQuoteId     String?
+  source              String?                       @db.VarChar(20) @default("web")
   createdAt           DateTime                      @default(now())
   updatedAt           DateTime                      @updatedAt
   packers_bookings    packers_bookings?
@@ -2569,6 +2584,7 @@ model self_drive_quote_requests {
   vehicleModelId                                                                 String?
   vehicleModelName                                                               String?
   vehicleType                                                                    String?
+  source                                                                         String?                          @db.VarChar(20) @default("web")
   car_bookings                                                                   car_bookings?
   self_drive_quotes_self_drive_quote_requests_acceptedQuoteIdToself_drive_quotes self_drive_quotes?               @relation("self_drive_quote_requests_acceptedQuoteIdToself_drive_quotes", fields: [acceptedQuoteId], references: [id])
   customers                                                                      customers?                       @relation(fields: [customerId], references: [id])
@@ -2931,6 +2947,7 @@ model truck_bookings {
   rating                 Int?
   review                 String?                      @db.Text
   driverRating           Int?
+  source                 String?                      @db.VarChar(20) @default("web")
   createdAt              DateTime                     @default(now())
   updatedAt              DateTime                     @updatedAt
   advancePaymentDate     DateTime?
@@ -2997,6 +3014,7 @@ model truck_quote_requests {
   totalQuotesReceived Int                         @default(0)
   quotesViewed        Int                         @default(0)
   acceptedQuoteId     String?
+  source              String?                     @db.VarChar(20) @default("web")
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
   truck_bookings      truck_bookings?
@@ -3603,6 +3621,7 @@ model vendor_staff {
   staff_attendance   staff_attendance[]
   truck_bookings     truck_bookings[]
   assigned_bookings  vendor_direct_bookings[]    @relation("direct_booking_driver")
+  driver_vehicles    driver_vehicles[]
   vendors            vendors                     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@unique([vendorId, phone])
@@ -5721,4 +5740,132 @@ model web_story_reactions {
 
   @@index([storyId])
   @@index([reactionType])
+}
+
+// ─── Independent Driver App ───────────────────────────────────────────────────
+
+model drivers {
+  id                  String               @id @default(cuid())
+  name                String
+  phone               String               @unique
+  email               String               @unique
+  password            String
+
+  // Personal
+  profilePhoto        String?
+  dateOfBirth         DateTime?
+  address             String?              @db.Text
+  city                String?
+  state               String?
+  pincode             String?
+
+  // Role & Employment
+  role                String               @default("DRIVER")
+  status              drivers_status       @default(ACTIVE)
+  joiningDate         DateTime             @default(now())
+  salary              Float                @default(0)
+
+  // Identity
+  aadharNumber        String?
+  aadharDocument      String?
+  panNumber           String?
+  panDocument         String?
+
+  // License
+  licenseNumber       String?
+  licenseType         String?
+  licenseExpiry       DateTime?
+  licenseDocument     String?
+
+  // Bank
+  bankName            String?
+  accountHolderName   String?
+  accountNumber       String?
+  ifscCode            String?
+
+  // Emergency
+  emergencyContact    String?
+  emergencyPhone      String?
+
+  // App
+  fcmToken            String?              @db.Text
+  lastLoginAt         DateTime?
+
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  chauffeur_bookings  chauffeur_bookings[]
+  driver_vehicles     driver_vehicles[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+}
+
+model driver_vehicles {
+  id                  String                    @id @default(cuid())
+  driverId            String?
+  staffId             String?
+  make                String
+  model               String
+  year                Int?
+  registrationNo      String?
+  color               String?
+  category            String?
+  seatingCapacity     Int?
+  fuelType            String?
+  isActive            Boolean                   @default(true)
+
+  // Documents
+  insuranceNumber     String?
+  insuranceExpiry     DateTime?
+  insuranceDocument   String?
+  rcNumber            String?
+  rcExpiry            DateTime?
+  rcDocument          String?
+  fitnessExpiry       DateTime?
+  fitnessDocument     String?
+  permitExpiry        DateTime?
+  permitDocument      String?
+  vehiclePhotos       String?   @db.LongText
+
+  // Service
+  lastServiceDate     DateTime?
+  nextServiceDate     DateTime?
+  currentOdometer     Int?
+
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  driver              drivers?                  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  staff               vendor_staff?             @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  maintenance_logs    driver_maintenance_logs[]
+
+  @@index([driverId])
+  @@index([staffId])
+}
+
+model driver_maintenance_logs {
+  id              String          @id @default(cuid())
+  vehicleId       String
+  type            String
+  description     String?         @db.Text
+  cost            Float           @default(0)
+  date            DateTime
+  odometer        Int?
+  nextDueDate     DateTime?
+  document        String?
+
+  createdAt       DateTime        @default(now())
+
+  vehicle         driver_vehicles @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+enum drivers_status {
+  PENDING
+  ACTIVE
+  INACTIVE
+  SUSPENDED
 }

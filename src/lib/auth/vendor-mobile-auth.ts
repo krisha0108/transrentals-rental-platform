@@ -57,18 +57,21 @@ export async function getVendorAuth(request: NextRequest): Promise<VendorAuthRes
       process.env.NEXTAUTH_SECRET || 'fallback-secret'
     ) as any;
 
-    if (!decoded.id || decoded.userType !== 'vendor') {
+    if (!decoded.id || (decoded.userType !== 'vendor' && decoded.userType !== 'staff')) {
       return {
         authenticated: false,
         error: 'Invalid token - not a vendor token',
       };
     }
 
+    // For staff tokens, vendorId is stored separately in the token
+    const vendorId = decoded.userType === 'staff' ? decoded.vendorId : decoded.id;
+
     return {
       authenticated: true,
-      vendorId: decoded.id,
+      vendorId,
       email: decoded.email,
-      userType: 'vendor',
+      userType: decoded.userType,
     };
   } catch (error: any) {
     if (error.name === 'TokenExpiredError') {

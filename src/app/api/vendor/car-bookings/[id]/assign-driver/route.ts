@@ -69,6 +69,9 @@ export async function POST(
       );
     }
 
+    // Generate trip OTP (driver will send this to customer when ready to start)
+    const tripStartOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
     // Update booking with driver details
     const updatedBooking = await prisma.chauffeur_bookings.update({
       where: { id },
@@ -80,6 +83,7 @@ export async function POST(
         vehicleNumber,
         vehicleModel: vehicleModel || null,
         driverAssignedAt: new Date(),
+        tripStartOtp,
       },
     });
 

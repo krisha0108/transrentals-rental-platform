@@ -156,14 +156,24 @@ export async function GET(
       };
     });
 
-    // Get categories (sub-services) for this service
-    const categories = service.other_services.map((c) => ({
-      id: c.id,
-      name: c.name,
-      slug: c.slug,
-      icon: c.icon,
-      description: c.shortDesc,
-    }));
+    // Build categories from actual fleet data so filters always match
+    const categoryMap = new Map<string, { id: string; name: string; slug: string; icon: string | null; description: string | null }>();
+    for (const v of fleet) {
+      if (v.categorySlug && v.category && v.category !== 'Uncategorized') {
+        if (!categoryMap.has(v.categorySlug)) {
+          // Try to match with a sub-service for icon/description
+          const subService = service.other_services.find((s) => s.slug === v.categorySlug);
+          categoryMap.set(v.categorySlug, {
+            id: subService?.id || v.categorySlug,
+            name: v.category,
+            slug: v.categorySlug,
+            icon: subService?.icon || null,
+            description: subService?.shortDesc || null,
+          });
+        }
+      }
+    }
+    const categories = Array.from(categoryMap.values());
 
     return NextResponse.json({
       success: true,

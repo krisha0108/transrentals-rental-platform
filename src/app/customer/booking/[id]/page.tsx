@@ -568,10 +568,10 @@ export default function BookingDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAF9]">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-green-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading booking details...</p>
+          <Loader2 className="h-10 w-10 animate-spin text-[#09B368] mx-auto mb-3" />
+          <p className="text-gray-500 text-sm">Loading booking details...</p>
         </div>
       </div>
     );
@@ -581,15 +581,15 @@ export default function BookingDetailsPage() {
     return (
       <>
         <CustomerHeader showBackButton backHref="/customer/dashboard" />
-        <main className="min-h-screen bg-gray-50 pt-20 md:pt-24 py-8">
-          <div className="container mx-auto px-4 max-w-4xl">
-            <div className="bg-white rounded-xl shadow-md p-8 text-center">
-              <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+        <main className="min-h-screen bg-[#F8FAF9] pt-20 md:pt-24 py-8">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+              <AlertCircle className="h-14 w-14 text-red-400 mx-auto mb-4" />
               <h1 className="text-xl font-bold text-gray-900 mb-2">Booking Not Found</h1>
-              <p className="text-gray-600 mb-6">{error || 'The booking you are looking for does not exist.'}</p>
+              <p className="text-gray-500 mb-6">{error || 'The booking you are looking for does not exist.'}</p>
               <Link
                 href="/customer/dashboard"
-                className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition"
+                className="inline-flex items-center gap-2 bg-[#09B368] text-white px-6 py-3 rounded-xl font-medium hover:bg-[#078F53] transition"
               >
                 <ArrowLeft className="h-5 w-5" />
                 Back to Dashboard
@@ -613,8 +613,8 @@ export default function BookingDetailsPage() {
         title={`Booking #TR${bookingId}`}
       />
 
-      <main className="min-h-screen bg-gray-50 pt-20 md:pt-24 pb-6 md:pb-8">
-        <div className="container mx-auto px-4 max-w-4xl">
+      <main className="min-h-screen bg-[#F8FAF9] pt-20 md:pt-24 pb-6 md:pb-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div>
             {/* Main Content */}
             <div>
@@ -1175,7 +1175,7 @@ export default function BookingDetailsPage() {
                             ) : (
                               <button
                                 onClick={() => openPaymentModal(quote)}
-                                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 transition shadow-lg"
+                                className="flex-1 flex items-center justify-center gap-2 bg-[#09B368] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#078F53] transition shadow-sm"
                               >
                                 <CreditCard className="h-5 w-5" />
                                 Pay ₹{advanceAmount.toLocaleString('en-IN')} & Confirm Booking
@@ -1224,7 +1224,7 @@ export default function BookingDetailsPage() {
           </div>
 
           {/* Help Section */}
-          <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-2xl p-6 text-white">
+          <div className="bg-[#09B368] rounded-2xl p-6 text-white relative overflow-hidden"><div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle at 80% 50%, #ffffff 0%, transparent 60%)'}} />
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold mb-1">Need Help?</h3>
@@ -1316,7 +1316,7 @@ export default function BookingDetailsPage() {
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl">
             {/* Header */}
-            <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-4 relative">
+            <div className="bg-[#09B368] p-4 relative">
               <button
                 onClick={closePaymentModal}
                 className="absolute top-4 right-4 text-white/80 hover:text-white"
@@ -1354,7 +1354,7 @@ export default function BookingDetailsPage() {
 
                   <button
                     onClick={closePaymentModal}
-                    className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition"
+                    className="w-full bg-[#09B368] text-white py-3 rounded-xl font-semibold hover:bg-[#078F53] transition"
                   >
                     Done
                   </button>

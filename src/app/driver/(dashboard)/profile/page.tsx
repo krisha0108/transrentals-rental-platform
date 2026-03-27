@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   User,
   Phone,
@@ -13,6 +14,7 @@ import {
   LogOut,
   Loader2,
   AlertCircle,
+  Pencil,
 } from 'lucide-react';
 
 interface Driver {
@@ -96,9 +98,17 @@ export default function DriverProfilePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-        <p className="text-gray-600">View your profile information</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
+          <p className="text-gray-600">View your profile information</p>
+        </div>
+        <Link
+          href="/driver/profile/edit"
+          className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition"
+        >
+          <Pencil className="w-4 h-4" /> Edit
+        </Link>
       </div>
 
       {/* Profile Card */}

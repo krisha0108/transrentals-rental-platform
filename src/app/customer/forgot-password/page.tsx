@@ -215,44 +215,88 @@ export default function CustomerForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex">
+
+      {/* LEFT: Brand Panel */}
+      <div className="hidden lg:flex flex-col w-[52%] bg-[#09B368] relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20" style={{backgroundImage: 'radial-gradient(circle at 15% 85%, #ffffff 0%, transparent 55%), radial-gradient(circle at 85% 15%, #ffffff 0%, transparent 45%)'}} />
+        <div className="absolute inset-0 opacity-5" style={{backgroundImage: 'linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)', backgroundSize: '48px 48px'}} />
 
         {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/assets/Logo-favicon.png"
-              alt="TR"
-              width={48}
-              height={48}
-              className="w-10 h-10 border border-gray-200 rounded-md"
-            />
-            <div className="flex flex-col items-start">
-              <Image
-                src="/assets/logo-trans.png"
-                alt="TransRentals"
-                width={140}
-                height={28}
-                className="h-5 md:h-7 w-auto"
-                priority
-              />
-              <span className="text-xs text-gray-500 hidden md:block">Vehicle Rental Marketplace</span>
+        <div className="relative z-10 p-10 pb-0">
+          <Link href="/" className="inline-flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-xl overflow-hidden flex items-center justify-center">
+              <Image src="/assets/Logo-favicon.png" alt="TR" width={32} height={32} className="object-contain" />
             </div>
+            <span className="text-xl font-bold text-white">Trans<span className="text-white/70">Rentals</span></span>
           </Link>
         </div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        {/* Security illustration area */}
+        <div className="relative z-10 flex-1 flex flex-col justify-center px-12 xl:px-16">
+          <div className="w-16 h-16 bg-white/15 rounded-2xl flex items-center justify-center mb-6">
+            {step === 4 ? <CheckCircle2 className="w-8 h-8 text-white" /> :
+             step === 3 ? <Lock className="w-8 h-8 text-white" /> :
+             step === 2 ? <ShieldCheck className="w-8 h-8 text-white" /> :
+             <KeyRound className="w-8 h-8 text-white" />}
+          </div>
+          <p className="text-white/60 text-sm font-medium uppercase tracking-widest mb-3">Account Recovery</p>
+          <h1 className="text-4xl font-bold text-white leading-tight">
+            {step === 4 ? 'Password\nUpdated!' : 'Secure\nPassword\nReset'}
+          </h1>
+          <p className="text-white/75 mt-5 text-base leading-relaxed max-w-xs">
+            {step === 1 && "We'll send a verification code to your registered email address."}
+            {step === 2 && `OTP sent to ${maskEmail(email)}. Check your inbox.`}
+            {step === 3 && 'Almost there! Create a strong password to secure your account.'}
+            {step === 4 && 'Your account is secure again. You can now sign in.'}
+          </p>
+
+          {/* Step progress */}
+          {step !== 4 && (
+            <div className="mt-10 flex items-center gap-3">
+              {[1, 2, 3].map((s) => (
+                <React.Fragment key={s}>
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold border-2 transition-all
+                    ${step === s ? 'bg-white text-[#09B368] border-white' :
+                      step > s ? 'bg-white/30 text-white border-white/30' : 'bg-transparent text-white/40 border-white/20'}`}>
+                    {step > s ? '✓' : s}
+                  </div>
+                  {s < 3 && (
+                    <div className={`flex-1 h-0.5 rounded-full transition-all ${step > s ? 'bg-white/60' : 'bg-white/15'}`} />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="relative z-10 p-10 pt-0">
+          <p className="text-white/40 text-xs">© 2025 TransRentals. All rights reserved.</p>
+        </div>
+      </div>
+
+      {/* RIGHT: Form Panel */}
+      <div className="flex-1 flex flex-col items-center justify-center bg-white px-6 sm:px-10 py-12 min-h-screen">
+
+        {/* Mobile logo */}
+        <div className="lg:hidden mb-8">
+          <Link href="/" className="inline-flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl overflow-hidden border border-gray-100">
+              <Image src="/assets/Logo-favicon.png" alt="TR" width={36} height={36} className="object-contain" />
+            </div>
+            <span className="text-xl font-bold text-gray-900">Trans<span className="text-[#09B368]">Rentals</span></span>
+          </Link>
+        </div>
+
+        <div className="w-full max-w-[360px]">
 
           {/* Header */}
-          <div className="text-center mb-6">
-            <div className="w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center
-              bg-gradient-to-br from-green-400 to-green-600 shadow-lg shadow-green-200">
-              {step === 4 ? <CheckCircle2 className="w-7 h-7 text-white" /> :
-               step === 3 ? <Lock className="w-7 h-7 text-white" /> :
-               step === 2 ? <ShieldCheck className="w-7 h-7 text-white" /> :
-               <KeyRound className="w-7 h-7 text-white" />}
+          <div className="mb-7">
+            <div className="w-12 h-12 bg-[#09B368]/10 rounded-2xl flex items-center justify-center mb-4">
+              {step === 4 ? <CheckCircle2 className="w-6 h-6 text-[#09B368]" /> :
+               step === 3 ? <Lock className="w-6 h-6 text-[#09B368]" /> :
+               step === 2 ? <ShieldCheck className="w-6 h-6 text-[#09B368]" /> :
+               <KeyRound className="w-6 h-6 text-[#09B368]" />}
             </div>
             <h2 className="text-2xl font-bold text-gray-900">
               {step === 1 && 'Forgot Password'}
@@ -268,18 +312,18 @@ export default function CustomerForgotPasswordPage() {
             </p>
           </div>
 
-          {/* Step indicator */}
+          {/* Mobile step indicator */}
           {step !== 4 && (
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex items-center gap-2 mb-6 lg:hidden">
               {[1, 2, 3].map((s) => (
                 <React.Fragment key={s}>
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold transition-all
-                    ${step === s ? 'bg-green-600 text-white shadow shadow-green-200' :
-                      step > s ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                  <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-all
+                    ${step === s ? 'bg-[#09B368] text-white' :
+                      step > s ? 'bg-[#09B368]/80 text-white' : 'bg-gray-100 text-gray-400'}`}>
                     {step > s ? '✓' : s}
                   </div>
                   {s < 3 && (
-                    <div className={`flex-1 h-1 rounded-full transition-all ${step > s ? 'bg-green-400' : 'bg-gray-100'}`} />
+                    <div className={`flex-1 h-0.5 rounded-full transition-all ${step > s ? 'bg-[#09B368]/50' : 'bg-gray-100'}`} />
                   )}
                 </React.Fragment>
               ))}
@@ -288,7 +332,7 @@ export default function CustomerForgotPasswordPage() {
 
           {/* Error */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-5 text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-5 text-sm">
               {error}
             </div>
           )}
@@ -297,7 +341,7 @@ export default function CustomerForgotPasswordPage() {
           {step === 1 && (
             <form onSubmit={handleSendOtp} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
@@ -305,7 +349,7 @@ export default function CustomerForgotPasswordPage() {
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); setError(''); }}
                     placeholder="Enter your email"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/20 focus:border-[#09B368] focus:outline-none transition-colors"
                     required
                     autoFocus
                   />
@@ -315,13 +359,13 @@ export default function CustomerForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-[#09B368] text-white py-3 rounded-xl font-semibold hover:bg-[#078F53] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Sending OTP...</> : 'Send OTP'}
               </button>
 
               <div className="text-center">
-                <Link href="/customer/login" className="text-sm text-green-600 hover:text-green-700 flex items-center justify-center gap-1">
+                <Link href="/customer/login" className="text-sm text-[#09B368] hover:text-[#078F53] flex items-center justify-center gap-1">
                   <ArrowLeft className="h-4 w-4" /> Back to Login
                 </Link>
               </div>
@@ -346,34 +390,33 @@ export default function CustomerForgotPasswordPage() {
                       value={digit}
                       onChange={(e) => handleOtpChange(e.target.value, i)}
                       onKeyDown={(e) => handleOtpKeyDown(e, i)}
-                      className={`w-11 text-center text-xl font-bold border-2 rounded-xl focus:outline-none focus:border-green-500 transition-all
-                        ${digit ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-300 bg-white text-gray-800'}`}
+                      className={`w-11 text-center text-xl font-bold border-2 rounded-xl focus:outline-none transition-all
+                        ${digit ? 'border-[#09B368] bg-[#09B368]/5 text-[#09B368]' : 'border-gray-200 bg-white text-gray-800 focus:border-[#09B368]'}`}
                       style={{ height: '52px' }}
                     />
                   ))}
                 </div>
               </div>
 
-              {/* Resend timer */}
               <div className="text-center text-sm text-gray-500">
                 {canResend ? (
                   <button
                     type="button"
                     onClick={handleResendOtp}
                     disabled={loading}
-                    className="text-green-600 hover:text-green-700 font-medium flex items-center gap-1 mx-auto"
+                    className="text-[#09B368] hover:text-[#078F53] font-medium flex items-center gap-1 mx-auto"
                   >
                     <RefreshCw className="h-4 w-4" /> Resend OTP
                   </button>
                 ) : (
-                  <span>Resend code in <span className="font-semibold text-green-600">{timer}s</span></span>
+                  <span>Resend code in <span className="font-semibold text-[#09B368]">{timer}s</span></span>
                 )}
               </div>
 
               <button
                 type="submit"
                 disabled={otp.join('').length < 6}
-                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-[#09B368] text-white py-3 rounded-xl font-semibold hover:bg-[#078F53] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 Verify OTP
               </button>
@@ -382,7 +425,7 @@ export default function CustomerForgotPasswordPage() {
                 <button
                   type="button"
                   onClick={() => { setStep(1); setError(''); setOtp(['','','','','','']); }}
-                  className="text-sm text-green-600 hover:text-green-700 flex items-center justify-center gap-1 mx-auto"
+                  className="text-sm text-[#09B368] hover:text-[#078F53] flex items-center justify-center gap-1 mx-auto"
                 >
                   <ArrowLeft className="h-4 w-4" /> Change email
                 </button>
@@ -394,7 +437,7 @@ export default function CustomerForgotPasswordPage() {
           {step === 3 && (
             <form onSubmit={handleResetPassword} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">New Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
@@ -402,7 +445,7 @@ export default function CustomerForgotPasswordPage() {
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); setError(''); }}
                     placeholder="Enter new password"
-                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                    className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/20 focus:border-[#09B368] focus:outline-none transition-colors"
                     required
                     autoFocus
                   />
@@ -415,7 +458,6 @@ export default function CustomerForgotPasswordPage() {
                   </button>
                 </div>
 
-                {/* Strength bar */}
                 {password && (
                   <div className="mt-2">
                     <div className="flex gap-1 mb-1">
@@ -429,7 +471,7 @@ export default function CustomerForgotPasswordPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
@@ -437,8 +479,8 @@ export default function CustomerForgotPasswordPage() {
                     value={confirmPassword}
                     onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
                     placeholder="Confirm new password"
-                    className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none
-                      ${confirmPassword && password !== confirmPassword ? 'border-red-300' : 'border-gray-300'}`}
+                    className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-[#09B368]/20 focus:border-[#09B368] focus:outline-none transition-colors
+                      ${confirmPassword && password !== confirmPassword ? 'border-red-300' : 'border-gray-200'}`}
                     required
                   />
                   <button
@@ -457,7 +499,7 @@ export default function CustomerForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-[#09B368] text-white py-3 rounded-xl font-semibold hover:bg-[#078F53] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Resetting...</> : 'Reset Password'}
               </button>
@@ -467,27 +509,26 @@ export default function CustomerForgotPasswordPage() {
           {/* ── STEP 4: Success ── */}
           {step === 4 && (
             <div className="text-center space-y-5">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-10 h-10 text-green-500" />
+              <div className="w-20 h-20 bg-[#09B368]/10 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-10 h-10 text-[#09B368]" />
               </div>
               <p className="text-gray-600 text-sm">
                 Your password has been updated. You can now sign in with your new password.
               </p>
               <button
                 onClick={() => router.push('/customer/login')}
-                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-[#09B368] text-white py-3 rounded-xl font-semibold hover:bg-[#078F53] transition-colors flex items-center justify-center gap-2"
               >
                 Go to Login
               </button>
             </div>
           )}
-        </div>
 
-        {/* Back to home */}
-        <div className="text-center mt-6">
-          <Link href="/" className="text-gray-600 hover:text-gray-800 text-sm flex items-center justify-center gap-1">
-            <ArrowLeft className="h-4 w-4" /> Back to Home
-          </Link>
+          <div className="mt-8 text-center">
+            <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+              <ArrowLeft className="h-3 w-3" /> Back to Home
+            </Link>
+          </div>
         </div>
       </div>
     </div>

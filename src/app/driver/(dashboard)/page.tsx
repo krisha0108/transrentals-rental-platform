@@ -21,6 +21,7 @@ import {
   TrendingUp,
   ArrowRight,
   Loader2,
+  Radio,
 } from 'lucide-react';
 
 interface Booking {
@@ -47,6 +48,10 @@ interface Stats {
   active: number;
   completed: number;
   totalEarnings: number;
+}
+
+interface DriverInfo {
+  userType?: string;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -108,19 +113,33 @@ export default function DriverDashboardPage() {
   const [stats, setStats] = useState<Stats>({ total: 0, active: 0, completed: 0, totalEarnings: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [serviceFilter, setServiceFilter] = useState('all');
+  const [driverInfo, setDriverInfo] = useState<DriverInfo>({});
+  const [availableCount, setAvailableCount] = useState(0);
 
   useEffect(() => {
-    fetchBookings();
+    fetchAll();
   }, []);
 
-  const fetchBookings = async () => {
+  const fetchAll = async () => {
     try {
-      const response = await fetch('/api/driver/bookings?filter=active');
-      const data = await response.json();
+      const [meRes, bookingsRes] = await Promise.all([
+        fetch('/api/driver/auth/me'),
+        fetch('/api/driver/bookings?filter=active'),
+      ]);
+      const meData = await meRes.json();
+      const bookingsData = await bookingsRes.json();
 
-      if (data.success) {
-        setBookings(data.bookings);
-        setStats(data.stats);
+      if (meData.success) setDriverInfo({ userType: meData.driver?.userType });
+      if (bookingsData.success) {
+        setBookings(bookingsData.bookings);
+        setStats(bookingsData.stats);
+      }
+
+      // If independent driver, fetch available count
+      if (meData.driver?.userType === 'independent') {
+        const avail = await fetch('/api/driver/available-bookings');
+        const availData = await avail.json();
+        if (availData.success) setAvailableCount(availData.bookings?.length || 0);
       }
     } catch (error) {
       console.error('Failed to fetch bookings:', error);
@@ -144,6 +163,32 @@ export default function DriverDashboardPage() {
         <h1 className="text-2xl font-bold">Welcome Back!</h1>
         <p className="text-emerald-100 mt-1">Here's your trip summary for today</p>
       </div>
+
+      {/* Available Trips Banner — independent drivers only */}
+      {driverInfo.userType === 'independent' && (
+        <Link
+          href="/driver/available-trips"
+          className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl p-4 hover:bg-blue-100 transition"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Radio className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-blue-900">Available Trips</p>
+              <p className="text-sm text-blue-600">
+                {availableCount > 0 ? `${availableCount} trip${availableCount > 1 ? 's' : ''} waiting for acceptance` : 'Check for new trips near you'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {availableCount > 0 && (
+              <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">{availableCount}</span>
+            )}
+            <ArrowRight className="w-5 h-5 text-blue-500" />
+          </div>
+        </Link>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

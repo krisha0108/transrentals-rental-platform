@@ -40,9 +40,14 @@ import {
   Hash,
   ShieldCheck,
   Compass,
+  Truck,
+  Package,
+  Wrench,
+  Users,
 } from 'lucide-react';
 import B2BDashboard from './B2BDashboard';
 import TourDashboard from './TourDashboard';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -806,15 +811,15 @@ export default function CustomerDashboardPage() {
   const getServiceIcon = (serviceName: string, serviceType?: string) => {
     const name = serviceName.toLowerCase();
     const type = serviceType || '';
-    if (type === 'bike' || name.includes('bike') || name.includes('scooter')) return '🏍️';
-    if (type === 'bus' || name.includes('bus') || name.includes('tempo')) return '🚌';
-    if (type === 'truck' || name.includes('truck') || name.includes('transport')) return '🚛';
-    if (type === 'luxury' || name.includes('luxury')) return '👑';
-    if (type === 'packers' || name.includes('packer') || name.includes('mover')) return '📦';
-    if (type === 'equipment' || name.includes('equipment') || name.includes('jcb') || name.includes('crane')) return '🏗️';
-    if (type === 'car' || name.includes('self') || name.includes('self-drive')) return '🔑';
-    if (type === 'chauffeur' || name.includes('chauffeur') || name.includes('driver')) return '🚖';
-    return '🚗';
+    if (type === 'bike' || name.includes('bike') || name.includes('scooter')) return 'bike';
+    if (type === 'bus' || name.includes('bus') || name.includes('tempo')) return 'bus';
+    if (type === 'truck' || name.includes('truck') || name.includes('transport')) return 'truck';
+    if (type === 'luxury' || name.includes('luxury')) return 'luxury';
+    if (type === 'packers' || name.includes('packer') || name.includes('mover')) return 'packers';
+    if (type === 'equipment' || name.includes('equipment') || name.includes('jcb') || name.includes('crane')) return 'equipment';
+    if (type === 'car' || name.includes('self') || name.includes('self-drive')) return 'selfdrive';
+    if (type === 'chauffeur' || name.includes('chauffeur') || name.includes('driver')) return 'chauffeur';
+    return 'car';
   };
 
   // Get service badge color and label based on service type
@@ -823,30 +828,30 @@ export default function CustomerDashboardPage() {
     const name = serviceName?.toLowerCase() || '';
 
     if (type === 'bike' || name.includes('bike') || name.includes('scooter')) {
-      return { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', label: '🏍️ Bike Rental' };
+      return { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: 'Bike Rental' };
     }
     if (type === 'bus' || name.includes('bus') || name.includes('tempo traveller')) {
-      return { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200', label: '🚌 Bus Rental' };
+      return { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', label: 'Bus Rental' };
     }
     if (type === 'truck' || name.includes('truck') || name.includes('transporter')) {
-      return { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', label: '🚛 Truck Rental' };
+      return { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', label: 'Truck Rental' };
     }
     if (type === 'luxury' || name.includes('luxury')) {
-      return { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200', label: '👑 Luxury Car' };
+      return { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200', label: 'Luxury Car' };
     }
     if (type === 'packers' || name.includes('packer') || name.includes('mover')) {
-      return { bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-200', label: '📦 Packers & Movers' };
+      return { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200', label: 'Packers & Movers' };
     }
     if (type === 'equipment' || name.includes('equipment') || name.includes('jcb') || name.includes('crane')) {
-      return { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', label: '🏗️ Equipment' };
+      return { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', label: 'Equipment' };
     }
     if (type === 'car' || name.includes('self-drive') || name.includes('self drive')) {
-      return { bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-200', label: '🔑 Self Drive' };
+      return { bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200', label: 'Self Drive' };
     }
     if (type === 'chauffeur' || name.includes('chauffeur') || name.includes('outstation') || name.includes('airport') || name.includes('local')) {
-      return { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', label: '🚗 Car Rental' };
+      return { bg: 'bg-[#09B368]/10', text: 'text-[#09B368]', border: 'border-[#09B368]/20', label: 'Car Rental' };
     }
-    return { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200', label: '🚗 Car Rental' };
+    return { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200', label: 'Car Rental' };
   };
 
   const getGreeting = () => {
@@ -939,15 +944,15 @@ export default function CustomerDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAF9]">
         <div className="text-center">
-          <div className="relative">
-            <div className="w-24 h-24 border-4 border-purple-500/30 rounded-full animate-pulse"></div>
+          <div className="relative w-20 h-20 mx-auto">
+            <div className="w-20 h-20 border-4 border-[#09B368]/20 rounded-full"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="h-12 w-12 animate-spin text-purple-400" />
+              <Loader2 className="h-10 w-10 animate-spin text-[#09B368]" />
             </div>
           </div>
-          <p className="text-purple-200 mt-6 font-medium">Loading your dashboard...</p>
+          <p className="text-gray-500 mt-5 font-medium text-sm">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -1011,253 +1016,15 @@ export default function CustomerDashboardPage() {
   const recentExpenses = financials.expenses.slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-      {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 shadow-lg">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            {/* Left: Logo & Home Link */}
-            <div className="flex items-center gap-4">
-              <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/assets/Logo-favicon.png"
-              alt="TR"
-              width={48}
-              height={48}
-              className="w-10 h-10 md:w-11 md:h-11 rounded-md"
-            />
-            <div className="flex flex-col">
-              <Image
-                src="/assets/logo-white.png"
-                alt="TransRentals"
-                width={140}
-                height={28}
-                className="h-5 md:h-6 w-auto"
-              />
-              <span className="text-xs text-white/70 hidden md:block">
-                Vehicle Rental Marketplace
-              </span>
-            </div>
-          </Link>
-            </div>
-
-            {/* Center: User Info (Desktop) */}
-            <div className="hidden md:flex items-center gap-3">
-              <div className="relative group">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
-                  {customer?.avatar || customer?.image ? (
-                    <img
-                      src={customer.avatar || customer.image || ''}
-                      alt={customer.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-lg font-bold text-white">
-                      {customer?.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="text-white">
-                <p className="text-purple-300 text-xs">{getGreeting()}</p>
-                <p className="font-semibold text-sm">{customer?.name || 'Customer'}</p>
-              </div>
-            </div>
-
-            {/* Right: Actions */}
-            <div className="flex items-center gap-2 md:gap-3">
-              {/* Home Link */}
-              <Link
-                href="/"
-                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition hidden sm:flex items-center gap-2"
-                title="Go to Homepage"
-              >
-                <Home className="h-5 w-5" />
-                <span className="text-sm font-medium hidden lg:inline">Home</span>
-              </Link>
-              <Link
-                href="/customer/helpdesk"
-                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition hidden sm:flex items-center gap-2"
-                title="Open Helpdesk"
-              >
-                <Inbox className="h-5 w-5" />
-                <span className="text-sm font-medium hidden lg:inline">Helpdesk</span>
-              </Link>
-
-              {/* Chat Icon with Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowChatDropdown(!showChatDropdown)}
-                  className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition relative"
-                  title="Messages"
-                >
-                  <MessageCircle className="h-5 w-5" />
-                  {totalUnreadChats > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-                      {totalUnreadChats > 9 ? '9+' : totalUnreadChats}
-                    </span>
-                  )}
-                </button>
-
-                {/* Chat Dropdown */}
-                {showChatDropdown && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setShowChatDropdown(false)}
-                    />
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
-                      <div className="p-4 border-b bg-gradient-to-r from-purple-50 to-blue-50">
-                        <h3 className="font-semibold text-gray-900">Vendor Messages</h3>
-                        <p className="text-xs text-gray-500">Chat with vendors about your bookings</p>
-                      </div>
-                      <div className="max-h-80 overflow-y-auto">
-                        {chatBookings.length === 0 ? (
-                          <div className="p-6 text-center text-gray-500">
-                            <MessageCircle className="h-10 w-10 mx-auto mb-2 text-gray-300" />
-                            <p className="text-sm">No active chats</p>
-                            <p className="text-xs text-gray-400">Messages from vendors will appear here</p>
-                          </div>
-                        ) : (
-                          chatBookings.map((chat: any) => (
-                            <Link
-                              key={`chat-${chat.vendor_id}-${chat.booking_id}`}
-                              href={`/customer/booking/${chat.booking_id}`}
-                              onClick={() => setShowChatDropdown(false)}
-                              className="flex items-center gap-3 p-4 hover:bg-gray-50 transition border-b border-gray-50"
-                            >
-                              <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                <User className="h-5 w-5 text-purple-600" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                  <p className="font-medium text-gray-900 text-sm truncate">
-                                    {chat.vendor_name}
-                                  </p>
-                                  {(chat.unread_count || 0) > 0 && (
-                                    <span className="bg-purple-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
-                                      {chat.unread_count}
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-xs text-gray-500 truncate">{chat.last_message}</p>
-                                <p className="text-xs text-purple-600 mt-0.5">
-                                  Booking #{chat.booking_id} • {chat.service_name}
-                                </p>
-                              </div>
-                            </Link>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Refresh */}
-              <button
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition"
-                title="Refresh"
-              >
-                <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </button>
-
-              {/* Edit Profile */}
-              <button
-                onClick={() => setShowProfileModal(true)}
-                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition hidden sm:block"
-                title="Edit Profile"
-              >
-                <Edit3 className="h-5 w-5" />
-              </button>
-
-              {/* Logout */}
-              <button
-                onClick={handleLogout}
-                className="p-2.5 bg-red-500/20 hover:bg-red-500/30 rounded-xl text-red-200 hover:text-white transition hidden sm:block"
-                title="Logout"
-              >
-                <LogOut className="h-5 w-5" />
-              </button>
-
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setShowMobileMenu(!showMobileMenu)}
-                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition sm:hidden"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Menu */}
-          {showMobileMenu && (
-            <div className="sm:hidden pb-4 border-t border-white/10 mt-2 pt-4">
-              <div className="flex items-center gap-3 mb-4 px-2">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                  {customer?.avatar || customer?.image ? (
-                    <img
-                      src={customer.avatar || customer.image || ''}
-                      alt={customer.name}
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-xl font-bold text-white">
-                      {customer?.name?.charAt(0)?.toUpperCase() || 'U'}
-                    </span>
-                  )}
-                </div>
-                <div className="text-white">
-                  <p className="font-semibold">{customer?.name || 'Customer'}</p>
-                  <p className="text-purple-300 text-sm">{customer?.phone}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <Link
-                  href="/"
-                  className="flex flex-col items-center gap-1 p-3 bg-white/10 rounded-xl text-white hover:bg-white/20 transition"
-                >
-                  <Home className="h-5 w-5" />
-                  <span className="text-xs">Home</span>
-                </Link>
-                <Link
-                  href="/customer/helpdesk"
-                  className="flex flex-col items-center gap-1 p-3 bg-white/10 rounded-xl text-white hover:bg-white/20 transition"
-                >
-                  <Inbox className="h-5 w-5" />
-                  <span className="text-xs">Helpdesk</span>
-                </Link>
-                <button
-                  onClick={() => {
-                    setShowProfileModal(true);
-                    setShowMobileMenu(false);
-                  }}
-                  className="flex flex-col items-center gap-1 p-3 bg-white/10 rounded-xl text-white hover:bg-white/20 transition"
-                >
-                  <Edit3 className="h-5 w-5" />
-                  <span className="text-xs">Edit</span>
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="flex flex-col items-center gap-1 p-3 bg-red-500/20 rounded-xl text-red-200 hover:bg-red-500/30 transition"
-                >
-                  <LogOut className="h-5 w-5" />
-                  <span className="text-xs">Logout</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#F8FAF9]">
+      <CustomerHeader onRefresh={handleRefresh} isRefreshing={isRefreshing} />
 
       {/* Main Content with top padding for fixed header */}
-      <div className="pt-16 md:pt-20">
+      <div className="pt-16">
         {/* B2B Approval Pending Banner */}
         {customer?.isB2B && customer?.b2bStatus !== 'APPROVED' && (
           <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200">
-            <div className="container mx-auto px-4 max-w-6xl py-4">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
                   <Clock className="w-5 h-5 text-amber-600" />
@@ -1274,17 +1041,17 @@ export default function CustomerDashboardPage() {
         )}
 
         {/* Dashboard Tab Toggle */}
-        <div className="bg-gradient-to-r from-slate-800 to-slate-900 border-b border-white/10">
-          <div className="container mx-auto px-4 max-w-6xl">
-            <div className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-1">
+        <div className="bg-white border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-0.5">
                 {customer?.isB2B && customer?.b2bStatus === 'APPROVED' && (
                   <button
                     onClick={() => setDashboardView('b2b')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                    className={`px-4 py-3 text-sm font-medium transition flex items-center gap-2 border-b-2 ${
                       dashboardView === 'b2b'
-                        ? 'bg-emerald-600 text-white shadow-lg'
-                        : 'text-gray-300 hover:bg-white/10'
+                        ? 'border-[#09B368] text-[#09B368]'
+                        : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
                     }`}
                   >
                     <Building2 className="w-4 h-4" /> B2B Dashboard
@@ -1292,20 +1059,20 @@ export default function CustomerDashboardPage() {
                 )}
                 <button
                   onClick={() => setDashboardView('personal')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                  className={`px-4 py-3 text-sm font-medium transition flex items-center gap-2 border-b-2 ${
                     dashboardView === 'personal'
-                      ? 'bg-purple-600 text-white shadow-lg'
-                      : 'text-gray-300 hover:bg-white/10'
+                      ? 'border-[#09B368] text-[#09B368]'
+                      : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
                   }`}
                 >
                   <Car className="w-4 h-4" /> {customer?.isB2B ? 'Personal' : 'My Bookings'}
                 </button>
                 <button
                   onClick={() => setDashboardView('tour')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
+                  className={`px-4 py-3 text-sm font-medium transition flex items-center gap-2 border-b-2 ${
                     dashboardView === 'tour'
-                      ? 'bg-indigo-600 text-white shadow-lg'
-                      : 'text-gray-300 hover:bg-white/10'
+                      ? 'border-[#09B368] text-[#09B368]'
+                      : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
                   }`}
                 >
                   <Compass className="w-4 h-4" /> Tours
@@ -1314,7 +1081,7 @@ export default function CustomerDashboardPage() {
               {customer?.isB2B && customer?.b2bStatus === 'APPROVED' && (
                 <button
                   onClick={() => setShowCompanyModal(true)}
-                  className="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 text-amber-300 hover:bg-white/10 border border-amber-500/30"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-[#09B368] hover:bg-[#09B368]/10 border border-[#09B368]/30 transition"
                 >
                   <Edit3 className="w-4 h-4" /> Manage Company
                 </button>
@@ -1325,7 +1092,7 @@ export default function CustomerDashboardPage() {
 
         {/* B2B Dashboard View */}
         {dashboardView === 'b2b' && customer?.isB2B ? (
-          <div className="container mx-auto px-4 max-w-6xl py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
             <B2BDashboard
               customerId={String(customer.id)}
               customerName={customer.name}
@@ -1333,557 +1100,427 @@ export default function CustomerDashboardPage() {
             />
           </div>
         ) : dashboardView === 'tour' ? (
-          <div className="container mx-auto px-4 max-w-6xl py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
             <TourDashboard customerId={String(customer?.id)} />
           </div>
         ) : (
         <>
-        {/* Stats Section */}
-        <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 pb-8 pt-6">
-          <div className="container mx-auto px-4 max-w-6xl">
-            {/* User Welcome (Mobile) */}
-            <div className="md:hidden mb-6 text-center">
-              <p className="text-purple-300 text-sm">{getGreeting()}</p>
-              <h1 className="text-2xl font-bold text-white">{customer?.name || 'Customer'}</h1>
-            </div>
+        {/* ── HERO BANNER ── */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#022B1A] via-[#045030] to-[#09B368]">
+          {/* grid overlay */}
+          <div className="absolute inset-0 opacity-[0.06]"
+            style={{backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px'}} />
+          {/* glow blobs */}
+          <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-[#09B368]/30 blur-3xl" />
+          <div className="absolute bottom-0 left-1/3 w-56 h-56 rounded-full bg-[#056040]/40 blur-2xl" />
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-              {tabConfig.map((stat) => {
-                const Icon = stat.icon;
-                const isActive = activeTab === stat.key;
-                return (
-                  <button
-                    key={stat.key}
-                    onClick={() => handleTabChange(stat.key)}
-                    className={`relative group rounded-2xl p-4 md:p-5 transition-all duration-300 ${
-                      isActive
-                        ? 'bg-white/20 border-2 border-white/30 shadow-lg'
-                        : 'bg-white/5 border border-white/10 hover:bg-white/10'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2 md:mb-3">
-                      <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center ${
-                        isActive ? 'bg-white/20' : 'bg-white/10 group-hover:bg-white/15'
-                      }`}>
-                        <Icon className={`h-4 w-4 md:h-5 md:w-5 ${isActive ? 'text-white' : 'text-purple-200'}`} />
-                      </div>
-                      <span className={`text-2xl md:text-3xl font-bold ${isActive ? 'text-white' : 'text-purple-100'}`}>
-                        {stat.count}
-                      </span>
-                    </div>
-                    <p className={`text-xs md:text-sm font-medium ${isActive ? 'text-white' : 'text-purple-300'}`}>
-                      {stat.label}
-                    </p>
-                    {isActive && (
-                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 md:w-12 h-1 bg-white rounded-full"></div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Tour overview moved to Tours tab */}
-          </div>
-        </div>
-
-        {/* Main Content - Horizontal Layout */}
-        <div className="container mx-auto px-4 max-w-7xl py-6 md:py-8 -mt-4">
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Left Side - My Bookings (Scrollable) */}
-            <div className="flex-1 min-w-0">
-        {/* Bookings Section */}
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
-            {/* Header with Filter */}
-            <div className="p-4 md:p-6 border-b bg-gradient-to-r from-gray-50 to-white">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-lg md:text-xl font-bold text-gray-900">My Bookings</h2>
-                  <p className="text-gray-500 text-xs md:text-sm mt-1">
-                    Showing {filteredBookings.length} of {bookings.length} {activeTab.toLowerCase()} bookings
-                  </p>
-                </div>
-
-                {/* Service + Location Filters */}
-                <div className="flex flex-wrap gap-3">
-                  <div className="relative">
-                    <button
-                      onClick={() => {
-                        setShowServiceFilter((prev) => !prev);
-                        setShowLocationFilter(false);
-                      }}
-                      className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl hover:border-purple-300 transition shadow-sm text-sm"
-                    >
-                      <Filter className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-700 font-medium">
-                        {selectedService === 'all' ? 'All Services' : selectedService}
-                      </span>
-                      <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${showServiceFilter ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {showServiceFilter && (
-                      <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
-                        <div className="p-2 space-y-2">
-                          <input
-                            type="text"
-                            value={serviceSearch}
-                            onChange={(e) => setServiceSearch(e.target.value)}
-                            placeholder="Search services..."
-                            className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
-                          />
-                          <button
-                            onClick={() => {
-                              setSelectedService('all');
-                              setShowServiceFilter(false);
-                              setServiceSearch('');
-                            }}
-                            className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition ${
-                              selectedService === 'all'
-                                ? 'bg-purple-50 text-purple-700 font-medium'
-                                : 'hover:bg-gray-50 text-gray-700'
-                            }`}
-                          >
-                            All Services
-                          </button>
-                          <div className="max-h-60 overflow-y-auto pr-1 space-y-1">
-                            {filteredServiceOptions.length === 0 ? (
-                              <p className="px-4 py-2 text-sm text-gray-400">
-                                {serviceOptions.length === 0
-                                  ? 'No services available yet'
-                                  : 'No services match your search'}
-                              </p>
-                            ) : (
-                              filteredServiceOptions.map((service) => (
-                                <button
-                                  key={service}
-                                  onClick={() => {
-                                    setSelectedService(service);
-                                    setShowServiceFilter(false);
-                                    setServiceSearch('');
-                                  }}
-                                  className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition flex items-center gap-2 ${
-                                    selectedService === service
-                                      ? 'bg-purple-50 text-purple-700 font-medium'
-                                      : 'hover:bg-gray-50 text-gray-700'
-                                  }`}
-                                >
-                                  <span>{getServiceIcon(service)}</span>
-                                  {service}
-                                </button>
-                              ))
-                            )}
-                          </div>
-                        </div>
+          <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+              {/* Left: greeting */}
+              <div className="flex items-center gap-4">
+                <div className="relative flex-shrink-0">
+                  <div className="w-14 h-14 rounded-2xl border-2 border-white/30 bg-white/10 overflow-hidden backdrop-blur-sm shadow-lg">
+                    {customer?.avatar || customer?.image ? (
+                      <img src={customer.avatar || customer.image} className="w-full h-full object-cover" alt="" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-white font-bold text-2xl">{customer?.name?.charAt(0)?.toUpperCase()}</span>
                       </div>
                     )}
                   </div>
-
-                <div className="relative">
-                  <button
-                    onClick={() => {
-                      setShowLocationFilter((prev) => !prev);
-                      setShowServiceFilter(false);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl hover:border-purple-300 transition shadow-sm text-sm"
-                  >
-                    <MapPin className="h-4 w-4 text-gray-500" />
-                    <span className="text-gray-700 font-medium">
-                      {selectedLocation === 'all' ? 'All Locations' : selectedLocation}
-                    </span>
-                    <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${showLocationFilter ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {showLocationFilter && (
-                    <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
-                      <div className="p-2 space-y-2">
-                        <input
-                          type="text"
-                          value={locationSearch}
-                          onChange={(e) => setLocationSearch(e.target.value)}
-                          placeholder="Search locations..."
-                          className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 transition"
-                        />
-                        <button
-                          onClick={() => {
-                            setSelectedLocation('all');
-                            setLocationSearch('');
-                            setShowLocationFilter(false);
-                          }}
-                          className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition ${
-                            selectedLocation === 'all'
-                              ? 'bg-purple-50 text-purple-700 font-medium'
-                              : 'hover:bg-gray-50 text-gray-700'
-                          }`}
-                        >
-                          All Locations
-                        </button>
-                        <div className="max-h-60 overflow-y-auto pr-1">
-                          {filteredLocationOptions.length === 0 ? (
-                            <p className="px-4 py-2 text-sm text-gray-400">
-                              {locationOptions.length === 0
-                                ? 'No locations available yet'
-                                : 'No locations match your search'}
-                            </p>
-                          ) : (
-                            filteredLocationOptions.map((location) => (
-                              <button
-                                key={location}
-                                onClick={() => {
-                                  setSelectedLocation(location);
-                                  setShowLocationFilter(false);
-                                  setLocationSearch('');
-                                }}
-                                className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition ${
-                                  selectedLocation === location
-                                    ? 'bg-purple-50 text-purple-700 font-medium'
-                                    : 'hover:bg-gray-50 text-gray-700'
-                                }`}
-                              >
-                                {location}
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#4ADE80] rounded-full border-2 border-[#022B1A]" />
                 </div>
+                <div>
+                  <p className="text-white/60 text-xs font-medium">{getGreeting()}</p>
+                  <h1 className="text-white font-bold text-xl leading-tight mt-0.5">{customer?.name || 'Customer'}</h1>
+                  <p className="text-white/50 text-xs mt-0.5">Vehicle rental portal</p>
                 </div>
               </div>
+
+              {/* Right: 3 key stats */}
+              <div className="flex items-center gap-3">
+                {[
+                  { label: 'Total Bookings', value: stats?.total ?? 0, icon: Calendar },
+                  { label: 'Active', value: (stats?.open ?? 0) + (stats?.confirmed ?? 0) + (stats?.ongoing ?? 0), icon: Car },
+                  { label: 'Total Spent', value: formatCurrency(financials.totalExpense), icon: IndianRupee, isText: true },
+                ].map(({ label, value, icon: Icon, isText }) => (
+                  <div key={label} className="text-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-4 py-3 min-w-[90px]">
+                    <Icon className="w-3.5 h-3.5 text-white/60 mx-auto mb-1" />
+                    <p className="text-white font-bold text-lg leading-none">{isText ? value : value.toLocaleString()}</p>
+                    <p className="text-white/50 text-[10px] mt-1">{label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
+          </div>
 
-            {/* Bookings List */}
-            <div className="divide-y divide-gray-100">
-              {isLoadingBookings ? (
-                <div className="p-12 md:p-16 text-center">
-                  <div className="relative w-12 h-12 md:w-16 md:h-16 mx-auto mb-4">
-                    <div className="absolute inset-0 border-4 border-purple-100 rounded-full"></div>
-                    <Loader2 className="h-12 w-12 md:h-16 md:w-16 animate-spin text-purple-500" />
-                  </div>
-                  <p className="text-gray-500 font-medium">Loading your bookings...</p>
-                </div>
-              ) : filteredBookings.length === 0 ? (
-                <div className="p-12 md:p-16 text-center">
-                  <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Calendar className="h-10 w-10 md:h-12 md:w-12 text-purple-400" />
-                  </div>
-                  <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">
-                    No {activeTab.toLowerCase()} bookings
-                  </h3>
-                  <p className="text-gray-500 mb-6 md:mb-8 max-w-md mx-auto text-sm md:text-base">
-                    {activeTab === 'Open'
-                      ? "You don't have any bookings waiting for quotes. Create a new booking to get started!"
-                      : activeTab === 'Dropped'
-                      ? "Great news! You don't have any dropped bookings."
-                      : `You don't have any ${activeTab.toLowerCase()} bookings at the moment.`}
-                  </p>
-                  <Link
-                    href="/"
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 md:px-8 py-3 md:py-4 rounded-xl font-medium hover:opacity-90 transition shadow-lg shadow-purple-200 text-sm md:text-base"
-                  >
-                    <Sparkles className="h-5 w-5" />
-                    Create New Booking
-                  </Link>
-                </div>
-              ) : (
-                paginatedBookings.map((booking) => {
-                  const statusConfig = getStatusConfig(booking.status);
-                  const serviceBadge = getServiceBadge(booking.service_type, booking.service_name);
-                  const quoteCount = booking.quotations?.length || 0;
-                  const lowestQuote = booking.quotations?.reduce((min, q) => {
-                    const price = q.price || q.amount || 0;
-                    return price < min ? price : min;
-                  }, Infinity) ?? Infinity;
+        </div>
 
-                  return (
-                    <Link
-                      key={booking.id}
-                      href={getBookingUrl(booking)}
-                      className="block p-4 md:p-6 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-transparent transition-all duration-300 group"
-                    >
-                      <div className="flex items-start gap-3 md:gap-5">
-                        {/* Service Icon */}
-                        <div className="relative">
-                          <div className={`w-12 h-12 md:w-16 md:h-16 ${serviceBadge.bg} border ${serviceBadge.border} rounded-xl md:rounded-2xl flex items-center justify-center text-2xl md:text-3xl flex-shrink-0 group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
-                            {getServiceIcon(booking.service_name, booking.service_type)}
+        {/* ── MAIN CONTENT AREA ── */}
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+
+          {/* KPI stat cards — overlapping hero */}
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 -mt-0 pt-6">
+            {tabConfig.map((stat) => {
+              const Icon = stat.icon;
+              const isActive = activeTab === stat.key;
+              const colorMap: Record<string, { bg: string; text: string; border: string }> = {
+                All:       { bg: 'bg-violet-50',       text: 'text-violet-600',    border: 'border-violet-200' },
+                Open:      { bg: 'bg-amber-50',         text: 'text-amber-600',     border: 'border-amber-200' },
+                Confirmed: { bg: 'bg-[#09B368]/10',     text: 'text-[#09B368]',     border: 'border-[#09B368]/30' },
+                Ongoing:   { bg: 'bg-blue-50',          text: 'text-blue-600',      border: 'border-blue-200' },
+                Completed: { bg: 'bg-gray-100',         text: 'text-gray-600',      border: 'border-gray-200' },
+                Dropped:   { bg: 'bg-red-50',           text: 'text-red-500',       border: 'border-red-200' },
+              };
+              const colors = colorMap[stat.key] || colorMap.All;
+              return (
+                <button
+                  key={stat.key}
+                  onClick={() => handleTabChange(stat.key)}
+                  className={`bg-white border rounded-2xl p-4 text-left transition-all hover:shadow-md ${
+                    isActive
+                      ? `${colors.border} shadow-sm ring-2 ring-[#09B368]/10`
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className={`w-9 h-9 ${isActive ? colors.bg : 'bg-gray-50'} rounded-xl flex items-center justify-center mb-3 transition-colors`}>
+                    <Icon className={`h-4 w-4 ${isActive ? colors.text : 'text-gray-400'}`} />
+                  </div>
+                  <p className={`text-2xl font-bold leading-none ${isActive ? 'text-gray-900' : 'text-gray-700'}`}>{stat.count}</p>
+                  <p className={`text-xs font-semibold mt-1.5 ${isActive ? colors.text : 'text-gray-400'}`}>{stat.label}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ── TWO COLUMN: main + right sidebar ── */}
+          <div className="mt-6 flex gap-6 items-start pb-10">
+
+            {/* ── BOOKINGS TABLE (main, left) ── */}
+            <div className="flex-1 min-w-0">
+
+              <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+                {/* Header */}
+                <div className="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h2 className="font-bold text-gray-900 text-sm">My Bookings</h2>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {filteredBookings.length} {activeTab === 'All' ? 'total' : activeTab.toLowerCase()} booking{filteredBookings.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {/* Service Filter */}
+                    <div className="relative">
+                      <button
+                        onClick={() => { setShowServiceFilter(prev => !prev); setShowLocationFilter(false); }}
+                        className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl hover:border-[#09B368]/50 transition text-xs font-medium text-gray-700 shadow-sm"
+                      >
+                        <Filter className="h-3.5 w-3.5 text-gray-400" />
+                        {selectedService === 'all' ? 'All Services' : selectedService}
+                        <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${showServiceFilter ? 'rotate-180' : ''}`} />
+                      </button>
+                      {showServiceFilter && (
+                        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                          <div className="p-2 space-y-1">
+                            <input type="text" value={serviceSearch} onChange={(e) => setServiceSearch(e.target.value)} placeholder="Search services..."
+                              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#09B368]/40 transition" />
+                            <button onClick={() => { setSelectedService('all'); setShowServiceFilter(false); setServiceSearch(''); }}
+                              className={`w-full text-left px-3 py-2 rounded-lg text-xs transition ${selectedService === 'all' ? 'bg-[#09B368]/10 text-[#09B368] font-medium' : 'hover:bg-[#09B368]/5 text-gray-700'}`}>
+                              All Services
+                            </button>
+                            <div className="max-h-48 overflow-y-auto space-y-0.5">
+                              {filteredServiceOptions.length === 0 ? (
+                                <p className="px-3 py-2 text-xs text-gray-400">{serviceOptions.length === 0 ? 'No services yet' : 'No match'}</p>
+                              ) : filteredServiceOptions.map(service => (
+                                <button key={service} onClick={() => { setSelectedService(service); setShowServiceFilter(false); setServiceSearch(''); }}
+                                  className={`w-full text-left px-3 py-2 rounded-lg text-xs transition ${selectedService === service ? 'bg-[#09B368]/10 text-[#09B368] font-medium' : 'hover:bg-[#09B368]/5 text-gray-700'}`}>
+                                  {service}
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                          <div className={`absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 rounded-full ${statusConfig.dot} border-2 border-white`}></div>
                         </div>
+                      )}
+                    </div>
+                    {/* Location Filter */}
+                    <div className="relative">
+                      <button
+                        onClick={() => { setShowLocationFilter(prev => !prev); setShowServiceFilter(false); }}
+                        className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl hover:border-[#09B368]/50 transition text-xs font-medium text-gray-700 shadow-sm"
+                      >
+                        <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                        {selectedLocation === 'all' ? 'All Cities' : selectedLocation}
+                        <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${showLocationFilter ? 'rotate-180' : ''}`} />
+                      </button>
+                      {showLocationFilter && (
+                        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                          <div className="p-2 space-y-1">
+                            <input type="text" value={locationSearch} onChange={(e) => setLocationSearch(e.target.value)} placeholder="Search cities..."
+                              className="w-full px-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#09B368]/40 transition" />
+                            <button onClick={() => { setSelectedLocation('all'); setLocationSearch(''); setShowLocationFilter(false); }}
+                              className={`w-full text-left px-3 py-2 rounded-lg text-xs transition ${selectedLocation === 'all' ? 'bg-[#09B368]/10 text-[#09B368] font-medium' : 'hover:bg-[#09B368]/5 text-gray-700'}`}>
+                              All Cities
+                            </button>
+                            <div className="max-h-48 overflow-y-auto space-y-0.5">
+                              {filteredLocationOptions.length === 0 ? (
+                                <p className="px-3 py-2 text-xs text-gray-400">{locationOptions.length === 0 ? 'No locations yet' : 'No match'}</p>
+                              ) : filteredLocationOptions.map(location => (
+                                <button key={location} onClick={() => { setSelectedLocation(location); setShowLocationFilter(false); setLocationSearch(''); }}
+                                  className={`w-full text-left px-3 py-2 rounded-lg text-xs transition ${selectedLocation === location ? 'bg-[#09B368]/10 text-[#09B368] font-medium' : 'hover:bg-[#09B368]/5 text-gray-700'}`}>
+                                  {location}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <button onClick={handleRefresh} disabled={isRefreshing}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50 transition shadow-sm">
+                      <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin text-[#09B368]' : ''}`} />
+                    </button>
+                  </div>
+                </div>
 
-                        {/* Booking Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 md:gap-4">
-                            <div className="flex-1">
-                              <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-1 md:mb-2">
-                                {/* Service Badge */}
-                                <span className={`px-2 py-0.5 rounded-md border text-[10px] md:text-xs font-semibold ${serviceBadge.bg} ${serviceBadge.text} ${serviceBadge.border}`}>
-                                  {serviceBadge.label}
-                                </span>
-                                <h3 className="font-bold text-gray-900 text-sm md:text-lg group-hover:text-purple-700 transition-colors">
-                                  {booking.service_name}
-                                </h3>
-                                <span
-                                  className={`flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-semibold ${statusConfig.bg} ${statusConfig.text}`}
-                                >
-                                  <span className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full ${statusConfig.dot}`}></span>
+                {/* Table */}
+                {isLoadingBookings ? (
+                  <div className="py-16 flex flex-col items-center gap-3">
+                    <Loader2 className="h-7 w-7 animate-spin text-[#09B368]" />
+                    <p className="text-gray-400 text-sm">Loading bookings...</p>
+                  </div>
+                ) : filteredBookings.length === 0 ? (
+                  <div className="py-16 flex flex-col items-center gap-3">
+                    <div className="w-14 h-14 bg-[#09B368]/10 rounded-2xl flex items-center justify-center">
+                      <Calendar className="h-6 w-6 text-[#09B368]" />
+                    </div>
+                    <p className="font-semibold text-gray-700 text-sm">No {activeTab.toLowerCase()} bookings</p>
+                    <p className="text-xs text-gray-400 max-w-xs text-center">
+                      {activeTab === 'Open' ? 'Create a new booking to get started!' : `No ${activeTab.toLowerCase()} bookings yet.`}
+                    </p>
+                    <Link href="/" className="mt-1 inline-flex items-center gap-2 bg-[#09B368] text-white px-4 py-2 rounded-xl font-medium hover:bg-[#078F53] transition text-xs">
+                      <Sparkles className="h-3.5 w-3.5" /> Book Now
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-100 bg-gray-50/60">
+                          <th className="px-5 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Service</th>
+                          <th className="px-5 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest hidden md:table-cell">Route</th>
+                          <th className="px-5 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest hidden lg:table-cell">Date</th>
+                          <th className="px-5 py-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-widest">Status</th>
+                          <th className="px-5 py-3 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-widest hidden sm:table-cell">Amount</th>
+                          <th className="px-4 py-3" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedBookings.map((booking) => {
+                          const statusConfig = getStatusConfig(booking.status);
+                          const serviceBadge = getServiceBadge(booking.service_type, booking.service_name);
+                          const quoteCount = booking.quotations?.length || 0;
+                          const lowestQuote = booking.quotations?.reduce((min, q) => {
+                            const price = q.price || q.amount || 0;
+                            return price < min ? price : min;
+                          }, Infinity) ?? Infinity;
+                          return (
+                            <tr key={booking.id}
+                              className="border-b border-gray-50 last:border-0 hover:bg-[#09B368]/[0.02] transition-colors cursor-pointer group"
+                              onClick={() => window.open(getBookingUrl(booking), '_blank')}>
+                              <td className="px-5 py-3.5">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-9 h-9 ${serviceBadge.bg} border ${serviceBadge.border} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                                    {(() => {
+                                      const iconType = getServiceIcon(booking.service_name, booking.service_type);
+                                      const cls = `h-4 w-4 ${serviceBadge.text}`;
+                                      if (iconType === 'truck') return <Truck className={cls} />;
+                                      if (iconType === 'luxury') return <Star className={cls} />;
+                                      if (iconType === 'packers') return <Package className={cls} />;
+                                      if (iconType === 'equipment') return <Wrench className={cls} />;
+                                      if (iconType === 'bus') return <Users className={cls} />;
+                                      return <Car className={cls} />;
+                                    })()}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-gray-900 text-sm truncate group-hover:text-[#09B368] transition-colors">{booking.service_name}</p>
+                                    {booking.booking_number && <p className="text-xs text-gray-400">#{booking.booking_number}</p>}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-5 py-3.5 hidden md:table-cell">
+                                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                  <MapPin className="h-3 w-3 text-gray-300 flex-shrink-0" />
+                                  <span className="truncate max-w-[150px]">
+                                    {booking.location_name}
+                                    {booking.destination && booking.destination !== booking.location_name && (
+                                      <span className="text-gray-300"> → {booking.destination}</span>
+                                    )}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-5 py-3.5 hidden lg:table-cell">
+                                <p className="text-xs text-gray-700">{formatDate(booking.journey_datetime)}</p>
+                                <p className="text-[10px] text-gray-400 mt-0.5">{formatTime(booking.journey_datetime)}</p>
+                              </td>
+                              <td className="px-5 py-3.5">
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${statusConfig.bg} ${statusConfig.text}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`} />
                                   {booking.status}
                                 </span>
                                 {booking.is_quote_request && (
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium bg-yellow-100 text-yellow-700">
-                                    Awaiting Quotes
-                                  </span>
+                                  <p className="text-[9px] text-amber-600 font-medium mt-0.5">Awaiting quotes</p>
                                 )}
-                              </div>
-
-                              {/* Route */}
-                              <div className="flex items-center gap-1 md:gap-2 text-gray-600 mb-2 md:mb-3 text-xs md:text-sm">
-                                <MapPin className="h-3 w-3 md:h-4 md:w-4 text-purple-400 flex-shrink-0" />
-                                <span className="truncate">
-                                  {booking.location_name}
-                                  {booking.destination && booking.destination !== booking.location_name && (
-                                    <>
-                                      <span className="mx-1 md:mx-2 text-purple-400">→</span>
-                                      {booking.destination}
-                                    </>
-                                  )}
-                                </span>
-                              </div>
-
-                              {/* Date & Time */}
-                              <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm">
-                                <span className="flex items-center gap-1 md:gap-1.5 text-gray-500 bg-gray-100 px-2 md:px-3 py-0.5 md:py-1 rounded-full">
-                                  <Calendar className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                                  {formatDate(booking.journey_datetime)}
-                                </span>
-                                <span className="flex items-center gap-1 md:gap-1.5 text-gray-500 bg-gray-100 px-2 md:px-3 py-0.5 md:py-1 rounded-full">
-                                  <Clock className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                                  {formatTime(booking.journey_datetime)}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Quote Info & Arrow */}
-                            <div className="flex items-center gap-2 md:gap-4">
-                              {quoteCount > 0 && (
-                                <div className="text-right bg-gradient-to-br from-green-50 to-emerald-50 px-2 md:px-4 py-1.5 md:py-3 rounded-lg md:rounded-xl border border-green-100">
-                                  <div className="flex items-center gap-0.5 md:gap-1 text-green-600 font-bold text-sm md:text-lg">
-                                    <IndianRupee className="h-3 w-3 md:h-4 md:w-4" />
-                                    {lowestQuote !== Infinity
-                                      ? lowestQuote.toLocaleString('en-IN')
-                                      : '---'}
+                              </td>
+                              <td className="px-5 py-3.5 text-right hidden sm:table-cell">
+                                {quoteCount > 0 ? (
+                                  <div>
+                                    <p className="text-sm font-bold text-[#09B368]">
+                                      ₹{lowestQuote !== Infinity ? lowestQuote.toLocaleString('en-IN') : '—'}
+                                    </p>
+                                    <p className="text-[10px] text-gray-400">{quoteCount} quote{quoteCount !== 1 ? 's' : ''}</p>
                                   </div>
-                                  <p className="text-[10px] md:text-xs text-green-600/70 font-medium">
-                                    {quoteCount} {quoteCount === 1 ? 'quote' : 'quotes'}
-                                  </p>
-                                </div>
-                              )}
-                              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-100 group-hover:bg-purple-100 flex items-center justify-center transition-colors">
-                                <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-gray-400 group-hover:text-purple-600 transition-colors" />
-                              </div>
-                            </div>
-                          </div>
+                                ) : (
+                                  <span className="text-gray-300 text-xs">—</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-[#09B368] transition-colors" />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Pagination */}
+                {filteredBookings.length > 0 && (
+                  <div className="border-t border-gray-100 px-5 py-3 flex items-center justify-between text-xs text-gray-500">
+                    <span>Page {currentPage} of {totalPages} · {paginatedBookings.length} of {filteredBookings.length}</span>
+                    <div className="flex gap-2">
+                      <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition ${currentPage === 1 ? 'border-gray-100 text-gray-300 cursor-not-allowed' : 'border-[#09B368]/30 text-[#09B368] hover:border-[#09B368]'}`}>
+                        Previous
+                      </button>
+                      <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition ${currentPage === totalPages ? 'border-gray-100 text-gray-300 cursor-not-allowed' : 'border-[#09B368]/30 text-[#09B368] hover:border-[#09B368]'}`}>
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* App Download Banner */}
+              <div className="mt-4 bg-gradient-to-r from-[#033D26] to-[#09B368] rounded-2xl p-5 flex items-center justify-between gap-4 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle at 80% 50%, #ffffff 0%, transparent 60%)'}} />
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Gift className="h-4 w-4 text-white/80" />
+                    <span className="text-white/80 text-xs font-semibold uppercase tracking-wide">Earn Rewards</span>
+                  </div>
+                  <h3 className="text-base font-bold text-white">Download the TransRentals App</h3>
+                  <p className="text-white/60 text-xs mt-0.5">Track bookings, chat with vendors & earn ₹50 tokens</p>
+                </div>
+                <a href="https://play.google.com/store/apps/details?id=com.transrentals.customer"
+                  className="relative flex-shrink-0 flex items-center gap-2 bg-white text-[#09B368] hover:bg-white/90 px-4 py-2.5 rounded-xl font-semibold text-xs whitespace-nowrap transition shadow-lg">
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+                    <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.198l2.807 1.626a1 1 0 010 1.73l-2.808 1.626L15.206 12l2.492-2.491zM5.864 2.658L16.8 8.99l-2.302 2.302-8.634-8.634z"/>
+                  </svg>
+                  Google Play
+                </a>
+              </div>
+            </div>
+
+            {/* ── RIGHT SIDEBAR ── */}
+            <aside className="hidden lg:flex flex-col gap-4 w-[280px] flex-shrink-0 sticky top-20">
+
+              {/* Account Card */}
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                <div className="bg-gradient-to-br from-[#056040] to-[#09B368] px-5 py-4 relative overflow-hidden">
+                  <div className="absolute -top-4 -right-4 w-20 h-20 bg-white/10 rounded-full" />
+                  <div className="absolute -bottom-6 -left-2 w-16 h-16 bg-white/10 rounded-full" />
+                  <div className="relative flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl border-2 border-white/40 bg-white/20 overflow-hidden flex-shrink-0">
+                      {customer?.avatar || customer?.image ? (
+                        <img src={customer.avatar || customer.image} className="w-full h-full object-cover" alt="" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-white font-bold text-xl">{customer?.name?.charAt(0)?.toUpperCase()}</span>
                         </div>
-                      </div>
-                    </Link>
-                  );
-                })
-              )}
-            </div>
-            {filteredBookings.length > 0 && (
-              <div className="border-t border-gray-100 bg-gray-50/70 px-4 py-4 sm:px-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-gray-600">
-                <span>
-                  Page {currentPage} of {totalPages} • Showing {paginatedBookings.length} of {filteredBookings.length} {activeTab.toLowerCase()} bookings on this page
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className={`px-4 py-2 rounded-xl border text-xs font-semibold uppercase tracking-wide transition ${
-                      currentPage === 1
-                        ? 'border-gray-200 bg-white text-gray-400 cursor-not-allowed'
-                        : 'border-purple-200 bg-white text-purple-600 hover:border-purple-400'
-                    }`}
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className={`px-4 py-2 rounded-xl border text-xs font-semibold uppercase tracking-wide transition ${
-                      currentPage === totalPages
-                        ? 'border-gray-200 bg-white text-gray-400 cursor-not-allowed'
-                        : 'border-purple-200 bg-white text-purple-600 hover:border-purple-400'
-                    }`}
-                  >
-                    Next
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-white font-bold text-sm truncate">{customer?.name}</p>
+                      <p className="text-white/70 text-xs truncate">{customer?.email}</p>
+                      <p className="text-white/60 text-xs mt-0.5">{customer?.phone}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-3">
+                  <button onClick={() => setShowProfileModal(true)}
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition">
+                    <Edit3 className="w-3.5 h-3.5" /> Edit Profile
                   </button>
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Tour data moved to Tours tab */}
+              {/* Quick Book */}
+              <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Book a Vehicle</p>
+                <div className="grid grid-cols-4 gap-1">
+                  {([
+                    { label: 'Bike', href: '/bike-on-rent', bg: 'bg-blue-50', clr: 'text-blue-600', IconEl: Car },
+                    { label: 'Car', href: '/car-rental', bg: 'bg-[#09B368]/10', clr: 'text-[#09B368]', IconEl: Car },
+                    { label: 'Bus', href: '/bus-rental', bg: 'bg-orange-50', clr: 'text-orange-600', IconEl: Users },
+                    { label: 'Truck', href: '/', bg: 'bg-red-50', clr: 'text-red-500', IconEl: Truck },
+                    { label: 'Luxury', href: '/luxury-car-rental', bg: 'bg-amber-50', clr: 'text-amber-600', IconEl: Star },
+                    { label: 'Equip.', href: '/', bg: 'bg-cyan-50', clr: 'text-cyan-600', IconEl: Wrench },
+                    { label: 'Packers', href: '/', bg: 'bg-teal-50', clr: 'text-teal-600', IconEl: Package },
+                    { label: 'Drive', href: '/', bg: 'bg-sky-50', clr: 'text-sky-600', IconEl: Car },
+                  ] as const).map(({ label, href, bg, clr, IconEl }) => (
+                    <Link key={label} href={href}
+                      className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-gray-50 transition-colors">
+                      <div className={`w-8 h-8 ${bg} rounded-lg flex items-center justify-center`}>
+                        <IconEl className={`w-3.5 h-3.5 ${clr}`} />
+                      </div>
+                      <span className="text-[9px] font-medium text-gray-500 text-center leading-tight">{label}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
 
-          {/* Quick Links */}
-          <div className="mt-6 grid gap-4 grid-cols-1 sm:grid-cols-2">
-            <Link
-              href="/customer/financials"
-              className="group flex items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-white p-4 text-sm font-semibold text-gray-800 transition hover:border-purple-200 hover:shadow-md"
-            >
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-emerald-50 p-2.5">
-                  <IndianRupee className="h-5 w-5 text-emerald-500" />
+              {/* Total Spent */}
+              <Link href="/customer/financials"
+                className="block bg-gradient-to-br from-[#09B368] to-[#056040] rounded-2xl p-4 text-white hover:opacity-95 transition group shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
+                      <IndianRupee className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="text-xs font-semibold text-white/90">Total Spent</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-white/50 group-hover:text-white transition" />
+                </div>
+                <p className="text-2xl font-bold leading-none">{formatCurrency(financials.totalExpense)}</p>
+                <p className="text-white/60 text-[10px] mt-1.5">View full expense report →</p>
+              </Link>
+
+              {/* Help */}
+              <Link href="/customer/helpdesk"
+                className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl p-3.5 hover:border-[#09B368]/40 hover:shadow-sm transition group shadow-sm">
+                <div className="w-9 h-9 bg-sky-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <HelpCircle className="w-4 h-4 text-sky-500" />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">View Expenses</p>
-                  <p className="text-xs text-gray-500">Financial reports</p>
+                  <p className="text-sm font-semibold text-gray-800">Help & Support</p>
+                  <p className="text-xs text-gray-400">Raise a support ticket</p>
                 </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-purple-500" />
-            </Link>
-            <Link
-              href="/customer/helpdesk"
-              className="group flex items-center justify-between gap-4 rounded-2xl border border-gray-100 bg-white p-4 text-sm font-semibold text-gray-800 transition hover:border-purple-200 hover:shadow-md"
-            >
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-sky-50 p-2.5">
-                  <HelpCircle className="h-5 w-5 text-sky-500" />
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-900">Get Help</p>
-                  <p className="text-xs text-gray-500">Customer support</p>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-purple-500" />
-            </Link>
-          </div>
+                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#09B368] ml-auto transition" />
+              </Link>
 
-          {/* Download App CTA - Compact */}
-          <div className="mt-6 bg-gradient-to-r from-slate-900 to-purple-900 rounded-2xl p-5 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl"></div>
-            <div className="relative flex items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Gift className="h-4 w-4 text-amber-400" />
-                  <span className="text-amber-400 text-xs font-semibold">Earn Rewards</span>
-                </div>
-                <h3 className="text-lg font-bold">Get the App</h3>
-                <p className="text-purple-200 text-xs mt-1">Track bookings & earn ₹50 tokens!</p>
-              </div>
-              <a
-                href="https://play.google.com/store/apps/details?id=com.transrentals.customer"
-                className="flex items-center gap-2 bg-white text-gray-900 px-4 py-2.5 rounded-xl font-medium hover:bg-gray-100 transition shadow-lg text-sm whitespace-nowrap"
-              >
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
-                  <path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.198l2.807 1.626a1 1 0 010 1.73l-2.808 1.626L15.206 12l2.492-2.491zM5.864 2.658L16.8 8.99l-2.302 2.302-8.634-8.634z"/>
-                </svg>
-                Google Play
-              </a>
-            </div>
-          </div>
-            </div>
-
-            {/* Right Side - Quick Actions (Sticky) */}
-            <div className="lg:w-80 flex-shrink-0">
-              <div className="lg:sticky lg:top-24 space-y-4">
-                {/* Quick Actions */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-                  <h2 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-purple-500" />
-                    Quick Actions
-                  </h2>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link
-                      href="/"
-                      className="group bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-3 hover:shadow-md transition-all duration-200 border border-purple-100/50"
-                    >
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-105 transition-transform shadow-sm">
-                        <Calendar className="h-5 w-5 text-white" />
-                      </div>
-                      <h3 className="font-semibold text-gray-900 text-xs">New Booking</h3>
-                    </Link>
-                    <Link
-                      href="/bike-on-rent"
-                      className="group bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-3 hover:shadow-md transition-all duration-200 border border-blue-100/50"
-                    >
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-105 transition-transform shadow-sm text-lg">
-                        🏍️
-                      </div>
-                      <h3 className="font-semibold text-gray-900 text-xs">Rent Bike</h3>
-                    </Link>
-                    <Link
-                      href="/car-rental"
-                      className="group bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-xl p-3 hover:shadow-md transition-all duration-200 border border-emerald-100/50"
-                    >
-                      <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-105 transition-transform shadow-sm text-lg">
-                        🚗
-                      </div>
-                      <h3 className="font-semibold text-gray-900 text-xs">Rent Car</h3>
-                    </Link>
-                    <Link
-                      href="/luxury-car-rental"
-                      className="group bg-gradient-to-br from-amber-50 to-amber-100/50 rounded-xl p-3 hover:shadow-md transition-all duration-200 border border-amber-100/50"
-                    >
-                      <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-105 transition-transform shadow-sm">
-                        <Star className="h-5 w-5 text-white" />
-                      </div>
-                      <h3 className="font-semibold text-gray-900 text-xs">Luxury Car</h3>
-                    </Link>
-                    <Link
-                      href="/bus-rental"
-                      className="group bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-xl p-3 hover:shadow-md transition-all duration-200 border border-orange-100/50"
-                    >
-                      <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-105 transition-transform shadow-sm text-lg">
-                        🚌
-                      </div>
-                      <h3 className="font-semibold text-gray-900 text-xs">Rent Bus</h3>
-                    </Link>
-                    <Link
-                      href="/customer/bus-quotes"
-                      className="group bg-gradient-to-br from-teal-50 to-teal-100/50 rounded-xl p-3 hover:shadow-md transition-all duration-200 border border-teal-100/50"
-                    >
-                      <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center mb-2 group-hover:scale-105 transition-transform shadow-sm text-lg">
-                        📋
-                      </div>
-                      <h3 className="font-semibold text-gray-900 text-xs">Bus Quotes</h3>
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Expense Summary Card */}
-                <Link
-                  href="/customer/financials"
-                  className="block bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-4 text-white hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <IndianRupee className="h-5 w-5" />
-                      <span className="font-semibold text-sm">Expense Summary</span>
-                    </div>
-                    <ChevronRight className="h-4 w-4 opacity-70" />
-                  </div>
-                  <p className="text-2xl font-bold">{formatCurrency(financials.totalExpense)}</p>
-                  <p className="text-emerald-100 text-xs mt-1">Total expenses recorded</p>
-                </Link>
-
-                {/* Financials Link */}
-                <Link
-                  href="/customer/financials"
-                  className="flex items-center justify-between gap-3 bg-white rounded-2xl border border-gray-100 p-4 hover:border-purple-200 hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-sky-500 to-indigo-500 rounded-lg flex items-center justify-center">
-                      <BarChart className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900 text-sm">Financial Reports</p>
-                      <p className="text-xs text-gray-500">View detailed expenses</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-gray-400" />
-                </Link>
-              </div>
-            </div>
+            </aside>
           </div>
         </div>
         </>
@@ -1895,11 +1532,11 @@ export default function CustomerDashboardPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 text-white">
+            <div className="bg-[#09B368] p-6 text-white">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold">Edit Profile</h3>
-                  <p className="text-purple-200 text-sm mt-1">Update your personal information</p>
+                  <p className="text-white/80 text-sm mt-1">Update your personal information</p>
                 </div>
                 <button
                   onClick={() => setShowProfileModal(false)}
@@ -1983,7 +1620,7 @@ export default function CustomerDashboardPage() {
                       onChange={(e) =>
                         setProfileForm((prev) => ({ ...prev, name: e.target.value }))
                       }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
                       placeholder="Enter your name"
                     />
                   </div>
@@ -1998,7 +1635,7 @@ export default function CustomerDashboardPage() {
                       onChange={(e) =>
                         setProfileForm((prev) => ({ ...prev, email: e.target.value }))
                       }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
                       placeholder="Enter your email"
                     />
                   </div>
@@ -2013,7 +1650,7 @@ export default function CustomerDashboardPage() {
                       onChange={(e) =>
                         setProfileForm((prev) => ({ ...prev, phone: e.target.value }))
                       }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
                       placeholder="Enter your phone"
                     />
                   </div>
@@ -2031,7 +1668,7 @@ export default function CustomerDashboardPage() {
                       onChange={(e) =>
                         setProfileForm((prev) => ({ ...prev, bank_name: e.target.value }))
                       }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
                       placeholder="Enter your bank"
                     />
                   </div>
@@ -2045,7 +1682,7 @@ export default function CustomerDashboardPage() {
                       onChange={(e) =>
                         setProfileForm((prev) => ({ ...prev, account_number: e.target.value }))
                       }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
                       placeholder="Enter account number"
                     />
                   </div>
@@ -2057,7 +1694,7 @@ export default function CustomerDashboardPage() {
                       onChange={(e) =>
                         setProfileForm((prev) => ({ ...prev, ifsc_code: e.target.value }))
                       }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
                       placeholder="Enter IFSC code"
                     />
                   </div>
@@ -2069,7 +1706,7 @@ export default function CustomerDashboardPage() {
                       onChange={(e) =>
                         setProfileForm((prev) => ({ ...prev, upi_id: e.target.value }))
                       }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
                       placeholder="Enter UPI ID"
                     />
                   </div>
@@ -2088,7 +1725,7 @@ export default function CustomerDashboardPage() {
               <button
                 onClick={handleSaveProfile}
                 disabled={isSavingProfile}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-medium hover:opacity-90 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-6 py-3 bg-[#09B368] hover:bg-[#078F53] text-white rounded-xl font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSavingProfile ? (
                   <>
@@ -2139,13 +1776,13 @@ export default function CustomerDashboardPage() {
       {showCompanyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => { setShowCompanyModal(false); setCompanyDetails(null); }}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-5">
+            <div className="bg-[#09B368] text-white p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Building2 className="w-6 h-6" />
                   <div>
                     <h2 className="font-bold text-lg">Company Details</h2>
-                    <p className="text-emerald-100 text-sm">B2B Corporate Account</p>
+                    <p className="text-white/70 text-sm">B2B Corporate Account</p>
                   </div>
                 </div>
                 <button onClick={() => { setShowCompanyModal(false); setCompanyDetails(null); }} className="p-2 hover:bg-white/20 rounded-full transition">
@@ -2156,19 +1793,19 @@ export default function CustomerDashboardPage() {
             <div className="p-5 space-y-4">
               {isLoadingCompany ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                  <Loader2 className="w-6 h-6 animate-spin text-[#09B368]" />
                 </div>
               ) : (
                 <>
                   {/* Company Name + Status */}
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                  <div className="bg-[#09B368]/8 border border-[#09B368]/20 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                      <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">
+                      <ShieldCheck className="w-4 h-4 text-[#09B368]" />
+                      <span className="text-xs font-semibold text-[#09B368] uppercase tracking-wider">
                         {companyDetails?.b2bStatus || customer?.b2bStatus || 'Approved'}
                       </span>
                       {companyDetails?.b2bApprovedAt && (
-                        <span className="text-[10px] text-emerald-500 ml-auto">
+                        <span className="text-[10px] text-[#09B368]/60 ml-auto">
                           since {new Date(companyDetails.b2bApprovedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
                       )}
@@ -2230,7 +1867,7 @@ export default function CustomerDashboardPage() {
                     <p className="text-sm font-semibold text-blue-800">B2B Corporate — Post-Paid Billing</p>
                   </div>
 
-                  <p className="text-xs text-gray-400 text-center">To update company details, contact support at <a href="mailto:book@transrentals.in" className="text-emerald-600 font-medium">book@transrentals.in</a></p>
+                  <p className="text-xs text-gray-400 text-center">To update company details, contact support at <a href="mailto:book@transrentals.in" className="text-[#09B368] font-medium">book@transrentals.in</a></p>
                 </>
               )}
             </div>

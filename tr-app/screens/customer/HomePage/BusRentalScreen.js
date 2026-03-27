@@ -171,7 +171,7 @@ export default function BusRentalScreen() {
   };
 
   const handleLocationSelect = (loc) => {
-    setPickupLocation(loc.name);
+    setPickupLocation((loc.name || '').trim());
     setPickupLocationId(loc.id);
     setQuery('');
     setShowSuggestions(false);

@@ -23,12 +23,13 @@ export async function GET(request: NextRequest) {
         name: driver.name,
         email: driver.email,
         phone: driver.phone,
-        profilePhoto: driver.profilePhoto,
-        licenseNumber: driver.licenseNumber,
-        licenseType: driver.licenseType,
-        licenseExpiry: driver.licenseExpiry,
+        profilePhoto: (driver as any).profilePhoto,
+        licenseNumber: (driver as any).licenseNumber,
+        licenseType: (driver as any).licenseType,
+        licenseExpiry: (driver as any).licenseExpiry,
         status: driver.status,
-        vendor: driver.vendor,
+        userType: (driver as any).userType,
+        vendor: (driver as any).vendors || null,
       },
     });
   } catch (error: any) {

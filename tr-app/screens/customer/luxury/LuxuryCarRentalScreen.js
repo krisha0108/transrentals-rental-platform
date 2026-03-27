@@ -42,6 +42,7 @@ export default function LuxuryCarRentalScreen() {
 
   // Customer data
   const [showBookingAlert, setShowBookingAlert] = useState(false);
+  const [alertModal, setAlertModal] = useState({ visible: false, type: '', title: '', message: '' });
   const [customerData, setCustomerData] = useState(null);
   const [isB2BCustomer, setIsB2BCustomer] = useState(false);
   const [bookingPurpose, setBookingPurpose] = useState('personal'); // 'personal' | 'company'
@@ -312,22 +313,9 @@ export default function LuxuryCarRentalScreen() {
         const response = await b2bService.createBooking(b2bData);
 
         if (response.status === 'success' || response.booking) {
-          Alert.alert(
-            'B2B Booking Created!',
-            `Your booking ${response.booking?.bookingNumber || ''} has been submitted. Vendors will send quotes soon.`,
-            [
-              {
-                text: 'View Booking',
-                onPress: () => navigation.replace('B2BDashboard'),
-              },
-              {
-                text: 'OK',
-                onPress: () => navigation.goBack(),
-              },
-            ]
-          );
+          setAlertModal({ visible: true, type: 'success', title: 'B2B Booking Created!', message: `Your booking ${response.booking?.bookingNumber || ''} has been submitted. Vendors will send quotes soon.`, onClose: () => navigation.replace('B2BDashboard') });
         } else {
-          Alert.alert('Error', response.error || response.message || 'Failed to create B2B booking');
+          setAlertModal({ visible: true, type: 'error', title: 'Error', message: response.error || response.message || 'Failed to create B2B booking' });
         }
         return;
       }
@@ -356,30 +344,18 @@ export default function LuxuryCarRentalScreen() {
         needChauffeur: true,
         needDecoration,
         decorationType: needDecoration ? decorationType : null,
+        source: 'app',
       };
 
       const response = await api.post('/customer/luxury-quote-requests', requestData);
 
       if (response.data.success) {
         const newRequestId = response.data.quoteRequest?.id;
-        Alert.alert(
-          'Success!',
-          `Quote request submitted successfully!\n\nRequest Number: ${response.data.quoteRequest.requestNumber}\n\nVendors will send you quotes within 24-48 hours.`,
-          [
-            {
-              text: 'View Request',
-              onPress: () => navigation.navigate('LuxuryQuoteDetail', { requestId: newRequestId }),
-            },
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
+        setAlertModal({ visible: true, type: 'success', title: 'Request Submitted!', message: `Quote request submitted successfully!\n\nRequest Number: ${response.data.quoteRequest.requestNumber}\n\nVendors will send you quotes within 24-48 hours.`, onClose: () => navigation.navigate('LuxuryQuoteDetail', { requestId: newRequestId }) });
       }
     } catch (error) {
       console.error('Error submitting luxury quote request:', error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to submit request. Please try again.');
+      setAlertModal({ visible: true, type: 'error', title: 'Error', message: error.response?.data?.message || 'Failed to submit request. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -1196,6 +1172,39 @@ export default function LuxuryCarRentalScreen() {
         </View>
       </Modal>
       <BookingAlertModal visible={showBookingAlert} onClose={() => setShowBookingAlert(false)} />
+
+      {/* Custom Alert Modal */}
+      <Modal visible={alertModal.visible} transparent animationType="fade">
+        <View style={styles.alertOverlay}>
+          <View style={styles.alertCard}>
+            <View style={[styles.alertIconCircle, alertModal.type === 'success' ? { backgroundColor: TEAL_LIGHT } : { backgroundColor: '#FEE2E2' }]}>
+              <Ionicons
+                name={alertModal.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
+                size={wp('12%')}
+                color={alertModal.type === 'success' ? TEAL : '#EF4444'}
+              />
+            </View>
+            <Text style={styles.alertTitle}>{alertModal.title}</Text>
+            <Text style={styles.alertMessage}>{alertModal.message}</Text>
+            <TouchableOpacity
+              style={styles.alertBtn}
+              activeOpacity={0.8}
+              onPress={() => {
+                const cb = alertModal.onClose;
+                setAlertModal({ visible: false, type: '', title: '', message: '' });
+                if (cb) cb();
+              }}
+            >
+              <LinearGradient
+                colors={alertModal.type === 'success' ? [TEAL, '#059669'] : ['#EF4444', '#DC2626']}
+                style={styles.alertBtnGradient}
+              >
+                <Text style={styles.alertBtnText}>OK</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1996,5 +2005,57 @@ const styles = StyleSheet.create({
     fontSize: wp('3%'),
     color: TEAL_DEEP,
     lineHeight: wp('4.2%'),
+  },
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp('8%'),
+  },
+  alertCard: {
+    backgroundColor: '#FFF',
+    borderRadius: wp('5%'),
+    paddingVertical: hp('3.5%'),
+    paddingHorizontal: wp('6%'),
+    alignItems: 'center',
+    width: '100%',
+  },
+  alertIconCircle: {
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: hp('1.5%'),
+  },
+  alertTitle: {
+    fontSize: wp('4.5%'),
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginBottom: hp('0.8%'),
+    textAlign: 'center',
+  },
+  alertMessage: {
+    fontSize: wp('3.3%'),
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
+    lineHeight: wp('5%'),
+    marginBottom: hp('2.5%'),
+  },
+  alertBtn: {
+    width: '100%',
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+  },
+  alertBtnGradient: {
+    paddingVertical: hp('1.5%'),
+    alignItems: 'center',
+    borderRadius: wp('3%'),
+  },
+  alertBtnText: {
+    color: '#FFF',
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
   },
 });

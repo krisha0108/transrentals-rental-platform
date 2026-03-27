@@ -3,16 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
-  Home,
   MessageCircle,
-  RefreshCw,
   LogOut,
   Menu,
   X,
   User,
   ArrowLeft,
+  HelpCircle,
+  BarChart3,
+  Home,
+  ChevronDown,
+  Bell,
 } from 'lucide-react';
 
 interface CustomerHeaderProps {
@@ -40,9 +43,11 @@ export default function CustomerHeader({
   isRefreshing = false,
 }: CustomerHeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [customer, setCustomer] = useState<any>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showChatDropdown, setShowChatDropdown] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [chatBookings, setChatBookings] = useState<ChatBooking[]>([]);
   const [totalUnreadChats, setTotalUnreadChats] = useState(0);
 
@@ -52,37 +57,26 @@ export default function CustomerHeader({
       try {
         const parsed = JSON.parse(customerData);
         setCustomer(parsed);
-        // Fetch live chats after getting customer data
         if (parsed?.phone || parsed?.email) {
           fetchLiveChats(parsed.phone || parsed.email);
         }
-      } catch (e) {
-        console.error('Failed to parse customer data:', e);
-      }
+      } catch (e) {}
     }
   }, []);
 
   const fetchLiveChats = async (identifier: string) => {
     try {
-      // Use local API route (Prisma/trans_cms database)
       const response = await fetch(`/api/customer/chat/live-chats?identifier=${encodeURIComponent(identifier)}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       });
-
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data)) {
           setChatBookings(data);
-          const totalUnread = data.reduce((sum: number, chat: any) => sum + (chat.unread_count || 0), 0);
-          setTotalUnreadChats(totalUnread);
+          setTotalUnreadChats(data.reduce((s: number, c: any) => s + (c.unread_count || 0), 0));
         }
       }
-    } catch (err) {
-      console.error('Failed to fetch live chats:', err);
-    }
+    } catch {}
   };
 
   const handleLogout = () => {
@@ -93,152 +87,127 @@ export default function CustomerHeader({
   };
 
   const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    const h = new Date().getHours();
+    return h < 12 ? 'Good Morning' : h < 17 ? 'Good Afternoon' : 'Good Evening';
   };
 
+  const navLinks = [
+    { href: '/customer/dashboard', label: 'Dashboard', icon: BarChart3 },
+    { href: '/customer/financials', label: 'Financials', icon: BarChart3 },
+    { href: '/customer/helpdesk', label: 'Helpdesk', icon: HelpCircle },
+    { href: '/', label: 'Browse Services', icon: Home },
+  ];
+
+  const isActive = (href: string) => pathname === href;
+
+  const initial = customer?.name?.charAt(0)?.toUpperCase() || 'U';
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 shadow-lg">
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="flex items-center justify-between h-16 md:h-20">
-          {/* Left: Logo with Back Button */}
-          <div className="flex items-center gap-3">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+
+          {/* LEFT: Logo + back */}
+          <div className="flex items-center gap-3 flex-shrink-0">
             {showBackButton && (
               <Link
                 href={backHref}
-                className="flex items-center justify-center w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl text-white transition"
+                className="flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 text-gray-500 hover:border-[#09B368] hover:text-[#09B368] transition-all"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-4 w-4" />
               </Link>
             )}
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-white hover:opacity-90 transition group"
-            >
-              <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform">
-                <Image
-                  src="/assets/Logo-favicon.png"
-                  alt="TransRentals"
-                  fill
-                  className="object-contain p-1"
-                />
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="relative w-8 h-8 rounded-xl overflow-hidden flex-shrink-0">
+                <Image src="/assets/Logo-favicon.png" alt="TransRentals" fill className="object-contain" />
               </div>
-              <span className="font-bold text-lg hidden sm:block">TransRentals</span>
+              <div className="relative h-9 w-36 flex-shrink-0 hidden sm:block">
+                <Image src="/assets/logo-trans.png" alt="TransRentals" fill className="object-contain object-left" />
+              </div>
             </Link>
             {title && (
-              <div className="hidden md:block ml-4 pl-4 border-l border-white/20">
-                <p className="text-white font-semibold text-sm">{title}</p>
+              <div className="hidden md:flex items-center gap-2 pl-3 border-l border-gray-200 ml-1">
+                <span className="text-gray-300">›</span>
+                <span className="text-gray-600 text-sm font-medium">{title}</span>
               </div>
             )}
           </div>
 
-          {/* Center: User Info (Desktop) */}
-          <div className="hidden md:flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center shadow-lg">
-              {customer?.image ? (
-                <img
-                  src={customer.image}
-                  alt={customer?.name}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-              ) : (
-                <span className="text-lg font-bold text-white">
-                  {customer?.name?.charAt(0)?.toUpperCase() || 'U'}
-                </span>
-              )}
-            </div>
-            <div className="text-white">
-              <p className="text-purple-300 text-xs">{getGreeting()}</p>
-              <p className="font-semibold text-sm">{customer?.name || 'Customer'}</p>
-            </div>
-          </div>
-
-          {/* Right: Actions */}
-          <div className="flex items-center gap-2 md:gap-3">
-            {/* Home Link */}
-            <Link
-              href="/"
-              className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition hidden sm:flex items-center gap-2"
-              title="Go to Homepage"
-            >
-              <Home className="h-5 w-5" />
-              <span className="text-sm font-medium hidden lg:inline">Home</span>
-            </Link>
-
-            {/* Dashboard Link */}
-            {showBackButton && (
+          {/* CENTER: Nav links */}
+          <nav className="hidden lg:flex items-center gap-0.5">
+            {navLinks.map((link) => (
               <Link
-                href="/customer/dashboard"
-                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition hidden sm:flex items-center gap-2"
-                title="Dashboard"
+                key={link.href}
+                href={link.href}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                  isActive(link.href)
+                    ? 'bg-[#09B368]/10 text-[#09B368]'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
               >
-                <User className="h-5 w-5" />
-                <span className="text-sm font-medium hidden lg:inline">Dashboard</span>
+                {link.label}
               </Link>
-            )}
+            ))}
+          </nav>
 
-            {/* Chat Icon with Dropdown */}
+          {/* RIGHT: Actions + User */}
+          <div className="flex items-center gap-1.5">
+
+            {/* Messages */}
             <div className="relative">
               <button
-                onClick={() => setShowChatDropdown(!showChatDropdown)}
-                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition relative"
+                onClick={() => { setShowChatDropdown(!showChatDropdown); setShowUserDropdown(false); }}
+                className="relative flex items-center justify-center w-9 h-9 rounded-xl text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-all"
                 title="Messages"
               >
                 <MessageCircle className="h-5 w-5" />
                 {totalUnreadChats > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-                    {totalUnreadChats > 9 ? '9+' : totalUnreadChats}
-                  </span>
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-[#09B368] rounded-full border-2 border-white" />
                 )}
               </button>
 
-              {/* Chat Dropdown */}
               {showChatDropdown && (
                 <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowChatDropdown(false)}
-                  />
-                  <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
-                    <div className="p-4 border-b bg-gradient-to-r from-purple-50 to-blue-50">
-                      <h3 className="font-semibold text-gray-900">Vendor Messages</h3>
-                      <p className="text-xs text-gray-500">Chat with vendors about your bookings</p>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowChatDropdown(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm">Messages</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Vendor conversations</p>
+                      </div>
+                      {totalUnreadChats > 0 && (
+                        <span className="bg-[#09B368] text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
+                          {totalUnreadChats}
+                        </span>
+                      )}
                     </div>
-                    <div className="max-h-80 overflow-y-auto">
+                    <div className="max-h-64 overflow-y-auto">
                       {chatBookings.length === 0 ? (
-                        <div className="p-6 text-center text-gray-500">
-                          <MessageCircle className="h-10 w-10 mx-auto mb-2 text-gray-300" />
-                          <p className="text-sm">No active chats</p>
-                          <p className="text-xs text-gray-400">Messages from vendors will appear here</p>
+                        <div className="p-8 text-center">
+                          <MessageCircle className="h-8 w-8 mx-auto mb-2 text-gray-200" />
+                          <p className="text-sm text-gray-500">No messages yet</p>
                         </div>
                       ) : (
                         chatBookings.map((chat) => (
                           <Link
-                            key={`chat-${chat.vendor_id}-${chat.booking_id}`}
+                            key={`${chat.vendor_id}-${chat.booking_id}`}
                             href={`/customer/booking/${chat.booking_id}`}
                             onClick={() => setShowChatDropdown(false)}
-                            className="flex items-center gap-3 p-4 hover:bg-gray-50 transition border-b border-gray-50"
+                            className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition border-b border-gray-50 last:border-0"
                           >
-                            <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                              <User className="h-5 w-5 text-purple-600" />
+                            <div className="w-8 h-8 bg-[#09B368]/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <User className="h-4 w-4 text-[#09B368]" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <p className="font-medium text-gray-900 text-sm truncate">
-                                  {chat.vendor_name}
-                                </p>
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="font-semibold text-gray-900 text-sm truncate">{chat.vendor_name}</p>
                                 {(chat.unread_count || 0) > 0 && (
-                                  <span className="bg-purple-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
+                                  <span className="bg-[#09B368] text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center flex-shrink-0">
                                     {chat.unread_count}
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-gray-500 truncate">{chat.last_message}</p>
-                              <p className="text-xs text-purple-600 mt-0.5">
-                                Booking #{chat.booking_id} • {chat.service_name}
-                              </p>
+                              <p className="text-xs text-gray-400 truncate mt-0.5">{chat.last_message || 'Tap to view conversation'}</p>
                             </div>
                           </Link>
                         ))
@@ -249,85 +218,106 @@ export default function CustomerHeader({
               )}
             </div>
 
-            {/* Refresh */}
-            {onRefresh && (
+            {/* Divider */}
+            <div className="w-px h-6 bg-gray-200 mx-1 hidden sm:block" />
+
+            {/* User Avatar Dropdown */}
+            <div className="relative hidden sm:block">
               <button
-                onClick={onRefresh}
-                disabled={isRefreshing}
-                className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition"
-                title="Refresh"
+                onClick={() => { setShowUserDropdown(!showUserDropdown); setShowChatDropdown(false); }}
+                className="flex items-center gap-2.5 pl-1 pr-2 py-1.5 rounded-xl hover:bg-gray-50 transition-all"
               >
-                <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-[#09B368] flex items-center justify-center flex-shrink-0 shadow-sm">
+                  {customer?.image ? (
+                    <img src={customer.image} alt={customer?.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-sm font-bold text-white">{initial}</span>
+                  )}
+                </div>
+                <div className="hidden lg:block text-left">
+                  <p className="text-sm font-semibold text-gray-900 leading-tight">{customer?.name || 'Account'}</p>
+                  <p className="text-xs text-gray-400">{getGreeting()}</p>
+                </div>
+                <ChevronDown className="h-3.5 w-3.5 text-gray-400 hidden lg:block" />
               </button>
-            )}
 
-            {/* Logout */}
-            <button
-              onClick={handleLogout}
-              className="p-2.5 bg-red-500/20 hover:bg-red-500/30 rounded-xl text-red-200 hover:text-white transition hidden sm:block"
-              title="Logout"
-            >
-              <LogOut className="h-5 w-5" />
-            </button>
+              {showUserDropdown && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowUserDropdown(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden py-1">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="font-semibold text-gray-900 text-sm">{customer?.name}</p>
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">{customer?.email || customer?.phone}</p>
+                    </div>
+                    <Link href="/customer/dashboard" onClick={() => setShowUserDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                      <BarChart3 className="h-4 w-4 text-gray-400" /> Dashboard
+                    </Link>
+                    <Link href="/customer/financials" onClick={() => setShowUserDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                      <BarChart3 className="h-4 w-4 text-gray-400" /> Financials
+                    </Link>
+                    <Link href="/customer/helpdesk" onClick={() => setShowUserDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                      <HelpCircle className="h-4 w-4 text-gray-400" /> Helpdesk
+                    </Link>
+                    <div className="border-t border-gray-100 mt-1 pt-1">
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition w-full text-left"
+                      >
+                        <LogOut className="h-4 w-4" /> Sign out
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
 
-            {/* Mobile Menu Button */}
+            {/* Mobile Menu */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="p-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white transition sm:hidden"
+              className="flex items-center justify-center w-9 h-9 rounded-xl text-gray-500 hover:bg-gray-100 transition lg:hidden"
             >
               {showMobileMenu ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Mobile Menu */}
-        {showMobileMenu && (
-          <div className="sm:hidden pb-4 border-t border-white/10 mt-2 pt-4">
-            <div className="flex items-center gap-3 mb-4 px-2">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                {customer?.image ? (
-                  <img
-                    src={customer.image}
-                    alt={customer?.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <span className="text-xl font-bold text-white">
-                    {customer?.name?.charAt(0)?.toUpperCase() || 'U'}
-                  </span>
-                )}
-              </div>
-              <div className="text-white">
-                <p className="font-semibold">{customer?.name || 'Customer'}</p>
-                <p className="text-purple-300 text-sm">{customer?.phone}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
+      {/* Mobile Drawer */}
+      {showMobileMenu && (
+        <div className="lg:hidden border-t border-gray-100 bg-white">
+          <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
+            {navLinks.map((link) => (
               <Link
-                href="/"
-                className="flex flex-col items-center gap-1 p-3 bg-white/10 rounded-xl text-white hover:bg-white/20 transition"
+                key={link.href}
+                href={link.href}
+                onClick={() => setShowMobileMenu(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${
+                  isActive(link.href)
+                    ? 'bg-[#09B368]/10 text-[#09B368]'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                <Home className="h-5 w-5" />
-                <span className="text-xs">Home</span>
+                <link.icon className="h-4 w-4" />
+                {link.label}
               </Link>
-              <Link
-                href="/customer/dashboard"
-                className="flex flex-col items-center gap-1 p-3 bg-white/10 rounded-xl text-white hover:bg-white/20 transition"
-              >
-                <User className="h-5 w-5" />
-                <span className="text-xs">Dashboard</span>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="flex flex-col items-center gap-1 p-3 bg-red-500/20 rounded-xl text-red-200 hover:bg-red-500/30 transition"
-              >
-                <LogOut className="h-5 w-5" />
-                <span className="text-xs">Logout</span>
-              </button>
+            ))}
+            <div className="pt-2 border-t border-gray-100 mt-2">
+              <div className="flex items-center gap-3 px-4 py-3">
+                <div className="w-9 h-9 rounded-full bg-[#09B368] flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-bold text-sm">{initial}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm">{customer?.name}</p>
+                  <p className="text-xs text-gray-400 truncate">{customer?.phone}</p>
+                </div>
+                <button onClick={handleLogout} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </header>
   );
 }

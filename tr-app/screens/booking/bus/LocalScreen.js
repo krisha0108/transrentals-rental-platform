@@ -90,9 +90,9 @@ const LocalScreen = () => {
   };
   // Handle location selection
   const handleLocationSelect = (location) => {
-    setPickupLocation(location.name);  // Set pickup location name
-    setPickupLocationId(location.id);  // Set pickup location ID
-    setQuery('');  // Clear query after selecting location
+    setPickupLocation((location.name || '').trim());
+    setPickupLocationId(location.id);
+    setQuery('');
   };
   const nextStep = () => {
     if (step === 0 && (!pickupLocation || !pickupLocationId)) return alert('Please select a pickup location');
@@ -200,12 +200,12 @@ const handleBookingSubmit = async () => {
       tripType: 'local',
       busType: 'standard',
       passengerCount: parseInt(totalPassengers) || 1,
-      pickupCity: pickupLocation,
-      pickupAddress: pickupLocation,
+      pickupCity: pickupLocation.trim(),
+      pickupAddress: pickupLocation.trim(),
       pickupDate: startDate.toISOString().split('T')[0],
       pickupTime: startDate.toTimeString().split(' ')[0].slice(0, 5),
-      dropCity: destination,
-      dropAddress: destination,
+      dropCity: destination.trim(),
+      dropAddress: destination.trim(),
       returnDate: returnDate.toISOString().split('T')[0],
       returnTime: returnDate.toTimeString().split(' ')[0].slice(0, 5),
       requirements: otherDetails,

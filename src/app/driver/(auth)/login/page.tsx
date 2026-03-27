@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Car, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export default function DriverLoginPage() {
@@ -128,6 +129,13 @@ export default function DriverLoginPage() {
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Contact your vendor if you forgot your password
+          </p>
+
+          <p className="text-center text-sm text-gray-500 mt-3">
+            New driver?{' '}
+            <Link href="/driver/register" className="text-emerald-600 font-semibold hover:underline">
+              Register here
+            </Link>
           </p>
         </div>
 
