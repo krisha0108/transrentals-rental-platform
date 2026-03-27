@@ -2,12 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   Alert, ActivityIndicator, ScrollView, Animated, Linking, Modal,
+  KeyboardAvoidingView, Platform, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { startTrip, completeTrip, requestOtp, startTransit, startUnloading, startPackingLoading, startUnpacking, startUse, schedulePickup, confirmReturn } from '../api/client';
 import moment from 'moment';
+
+const SCREEN_W = Dimensions.get('window').width;
 
 const C = {
   primary: '#16A34A', primaryDark: '#15803D', primaryDeep: '#064E3B',
@@ -456,7 +460,12 @@ export default function ActiveTripScreen({ route, navigation }) {
         )}
       </LinearGradient>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={0}
+      >
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 20 }}>
 
         {/* ── Stats Row ── */}
         {isInProgress && (
@@ -1210,6 +1219,7 @@ export default function ActiveTripScreen({ route, navigation }) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* ── Complete Confirmation Modal ── */}
       <Modal visible={showComplete} transparent animationType="slide">
@@ -1323,7 +1333,7 @@ const styles = StyleSheet.create({
 
   // OTP
   otpInfoBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: C.primaryLight, borderRadius: 12, padding: 12, marginBottom: 20 },
-  otpInfoIcon:   { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+  otpInfoIcon:   { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
   otpInfoTitle:  { fontSize: 13, fontWeight: '800', color: C.primaryDeep },
   otpInfoSub:    { fontSize: 11, color: C.primaryDark, marginTop: 3, lineHeight: 16 },
   resendBtn:     { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center', paddingVertical: 10, marginBottom: 4 },
@@ -1331,16 +1341,16 @@ const styles = StyleSheet.create({
 
   otpContainer:  { alignItems: 'center', marginBottom: 20 },
   hiddenInput:   { position: 'absolute', opacity: 0, height: 0, width: 0 },
-  otpBoxRow:     { flexDirection: 'row', gap: 9 },
-  otpBox:        { width: 44, height: 54, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center' },
+  otpBoxRow:     { flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'nowrap' },
+  otpBox:        { width: Math.min(44, Math.floor((SCREEN_W - 96) / 6)), height: 54, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center' },
   otpBoxFilled:  { borderColor: C.primary, backgroundColor: C.primaryLight },
   otpBoxActive:  { borderColor: C.primary, backgroundColor: '#fff', shadowColor: C.primary, shadowOpacity: 0.25, shadowRadius: 6, elevation: 3 },
-  otpDigit:      { fontSize: 22, fontWeight: '900', color: C.text },
-  otpCursor:     { position: 'absolute', bottom: 10, width: 20, height: 2.5, backgroundColor: C.primary, borderRadius: 2 },
+  otpDigit:      { fontSize: 20, fontWeight: '900', color: C.text },
+  otpCursor:     { position: 'absolute', bottom: 10, width: 18, height: 2.5, backgroundColor: C.primary, borderRadius: 2 },
 
   // CTA Button
-  primaryBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.primary, borderRadius: 14, height: 52, marginTop: 6, shadowColor: C.primary, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
-  primaryBtnText:{ color: '#fff', fontSize: 16, fontWeight: '800', flex: 1, textAlign: 'center' },
+  primaryBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.primary, borderRadius: 14, minHeight: 52, paddingVertical: 10, paddingHorizontal: 14, marginTop: 6, shadowColor: C.primary, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  primaryBtnText:{ color: '#fff', fontSize: 15, fontWeight: '800', flexShrink: 1, textAlign: 'center' },
 
   // Complete form
   fieldGroupSub: { fontSize: 12, color: C.sub, marginBottom: 14, lineHeight: 17 },
