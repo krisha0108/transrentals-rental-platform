@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     backgroundColor: BRAND.primary, borderRadius: 14, height: 54,
     shadowColor: BRAND.primary, shadowOpacity: 0.35, shadowRadius: 10, elevation: 5,
   },
-  assignBtnText: { color: '#fff', fontSize: 16, fontWeight: '800', flex: 1, textAlign: 'center' },
+  assignBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
   // Confirm Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
