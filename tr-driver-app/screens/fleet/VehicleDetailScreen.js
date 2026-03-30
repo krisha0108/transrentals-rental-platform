@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { getVehicle, updateVehicle, uploadVehiclePhoto, deleteVehiclePhoto } from '../api/client';
+import { getVehicle, updateVehicle, uploadVehiclePhoto, deleteVehiclePhoto, deleteFuelLog, deleteIncident } from '../api/client';
 import moment from 'moment';
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -113,6 +113,26 @@ export default function VehicleDetailScreen({ route, navigation }) {
           catch { Alert.alert('Error', 'Failed to remove photo'); }
         }
       },
+    ]);
+  }
+
+  async function handleDeleteFuelLog(logId) {
+    Alert.alert('Delete Fuel Log', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try { await deleteFuelLog(vehicleId, logId); reload(); }
+        catch { Alert.alert('Error', 'Failed to delete'); }
+      }},
+    ]);
+  }
+
+  async function handleDeleteIncident(incidentId) {
+    Alert.alert('Delete Incident', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try { await deleteIncident(vehicleId, incidentId); reload(); }
+        catch { Alert.alert('Error', 'Failed to delete'); }
+      }},
     ]);
   }
 
@@ -459,7 +479,12 @@ export default function VehicleDetailScreen({ route, navigation }) {
                             {log.fuelType || 'Fuel'} · {log.liters}L
                           </Text>
                         </View>
-                        <Text style={styles.logDate}>{moment(log.date).format('DD MMM YYYY')}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={styles.logDate}>{moment(log.date).format('DD MMM YYYY')}</Text>
+                          <TouchableOpacity onPress={() => handleDeleteFuelLog(log.id)}>
+                            <Ionicons name="trash-outline" size={14} color={C.danger} />
+                          </TouchableOpacity>
+                        </View>
                       </View>
                       {log.fuelStation ? <Text style={styles.logDesc}>{log.fuelStation}</Text> : null}
                       <View style={styles.logMeta}>
@@ -530,7 +555,12 @@ export default function VehicleDetailScreen({ route, navigation }) {
                           <View style={[styles.typeBadge, { backgroundColor: sevBg }]}>
                             <Text style={[styles.typeBadgeText, { color: sevColor }]}>{inc.type}</Text>
                           </View>
-                          <Text style={styles.logDate}>{moment(inc.date).format('DD MMM YYYY')}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Text style={styles.logDate}>{moment(inc.date).format('DD MMM YYYY')}</Text>
+                            <TouchableOpacity onPress={() => handleDeleteIncident(inc.id)}>
+                              <Ionicons name="trash-outline" size={14} color={C.danger} />
+                            </TouchableOpacity>
+                          </View>
                         </View>
                         {inc.description ? <Text style={styles.logDesc}>{inc.description}</Text> : null}
                         <View style={styles.logMeta}>

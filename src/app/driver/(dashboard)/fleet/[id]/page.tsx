@@ -3,57 +3,52 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
-  ArrowLeft, Car, Wrench, Shield, FileText, Plus,
-  Loader2, AlertTriangle, CheckCircle, Gauge, Calendar,
+  ArrowLeft, Car, Wrench, Shield, Plus,
+  Loader2, Gauge, Calendar,
   Building2, IndianRupee, Pencil, Camera, X,
+  Droplets, AlertTriangle, CheckCircle, Clock,
 } from 'lucide-react';
 
 interface MaintenanceLog {
-  id: string;
-  type: string;
-  description?: string;
-  cost: number;
-  date: string;
-  odometer?: number;
-  nextDueDate?: string;
+  id: string; type: string; description?: string;
+  cost: number; date: string; odometer?: number; nextDueDate?: string;
+}
+interface FuelLog {
+  id: string; date: string; liters: number; pricePerLiter?: number;
+  totalAmount: number; odometer?: number; fuelStation?: string; fuelType?: string; notes?: string;
+}
+interface Incident {
+  id: string; date: string; type: string; description?: string;
+  severity: string; repairCost?: number; repairStatus: string; notes?: string;
+}
+interface Vehicle {
+  id: string; make: string; model: string; year?: number;
+  registrationNo?: string; color?: string; category?: string;
+  fuelType?: string; seatingCapacity?: number; isActive?: boolean; isVendorVehicle?: boolean;
+  insuranceNumber?: string; insuranceExpiry?: string; insuranceDocument?: string;
+  rcNumber?: string; rcExpiry?: string; rcDocument?: string;
+  fitnessExpiry?: string; fitnessDocument?: string;
+  permitExpiry?: string; permitDocument?: string;
+  photoFront?: string; photoBack?: string; photoLeftSide?: string;
+  photoRightSide?: string; photoInterior?: string;
+  currentOdometer?: number; lastServiceDate?: string; nextServiceDate?: string;
+  maintenance_logs?: MaintenanceLog[];
+  fuel_logs?: FuelLog[];
+  incidents?: Incident[];
 }
 
-interface Vehicle {
-  id: string;
-  make: string;
-  model: string;
-  year?: number;
-  registrationNo?: string;
-  color?: string;
-  category?: string;
-  fuelType?: string;
-  seatingCapacity?: number;
-  isActive?: boolean;
-  isVendorVehicle?: boolean;
-  insuranceNumber?: string;
-  insuranceExpiry?: string;
-  insuranceDocument?: string;
-  rcNumber?: string;
-  rcExpiry?: string;
-  rcDocument?: string;
-  fitnessExpiry?: string;
-  fitnessDocument?: string;
-  permitExpiry?: string;
-  permitDocument?: string;
-  vehiclePhotos?: string;
-  currentOdometer?: number;
-  lastServiceDate?: string;
-  nextServiceDate?: string;
-  maintenance_logs?: MaintenanceLog[];
-}
+const PHOTO_SLOTS = [
+  { key: 'photoFront',     type: 'front',     label: 'Front' },
+  { key: 'photoBack',      type: 'back',      label: 'Back' },
+  { key: 'photoLeftSide',  type: 'leftSide',  label: 'Left Side' },
+  { key: 'photoRightSide', type: 'rightSide', label: 'Right Side' },
+  { key: 'photoInterior',  type: 'interior',  label: 'Interior' },
+];
 
 function docStatus(expiry?: string) {
   if (!expiry) return null;
-  const d = new Date(expiry);
-  const now = new Date();
-  const days = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  const days = Math.ceil((new Date(expiry).getTime() - Date.now()) / 86400000);
   if (days <= 0) return { label: 'Expired', cls: 'text-red-600 bg-red-50 border-red-200' };
   if (days <= 7) return { label: `${days}d left`, cls: 'text-red-600 bg-red-50 border-red-200' };
   if (days <= 30) return { label: `${days}d left`, cls: 'text-amber-600 bg-amber-50 border-amber-200' };
@@ -88,15 +83,21 @@ function DocRow({ label, number, expiry, docUrl }: { label: string; number?: str
   );
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  SERVICE: 'bg-emerald-100 text-emerald-700',
-  REPAIR: 'bg-red-100 text-red-700',
-  FUEL: 'bg-blue-100 text-blue-700',
-  INSURANCE: 'bg-purple-100 text-purple-700',
-  TIRE: 'bg-amber-100 text-amber-700',
-  BATTERY: 'bg-yellow-100 text-yellow-700',
-  OIL_CHANGE: 'bg-orange-100 text-orange-700',
-  OTHER: 'bg-gray-100 text-gray-700',
+const MAINT_COLORS: Record<string, string> = {
+  SERVICE: 'bg-emerald-100 text-emerald-700', REPAIR: 'bg-red-100 text-red-700',
+  FUEL: 'bg-blue-100 text-blue-700', INSURANCE: 'bg-purple-100 text-purple-700',
+  TIRE: 'bg-amber-100 text-amber-700', BATTERY: 'bg-yellow-100 text-yellow-700',
+  OIL_CHANGE: 'bg-orange-100 text-orange-700', OTHER: 'bg-gray-100 text-gray-700',
+};
+
+const SEV_COLORS: Record<string, string> = {
+  LOW: 'bg-green-100 text-green-700', MEDIUM: 'bg-amber-100 text-amber-700', HIGH: 'bg-red-100 text-red-700',
+};
+const STATUS_COLORS: Record<string, string> = {
+  PENDING: 'text-gray-500', IN_PROGRESS: 'text-blue-600', RESOLVED: 'text-green-600',
+};
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Pending', IN_PROGRESS: 'In Progress', RESOLVED: 'Resolved',
 };
 
 export default function VehicleDetailPage() {
@@ -106,7 +107,7 @@ export default function VehicleDetailPage() {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState<string | null>(null);
+  const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const load = async () => {
@@ -120,25 +121,42 @@ export default function VehicleDetailPage() {
 
   useEffect(() => { load(); }, [id]);
 
-  const uploadPhoto = async (file: File, type: string) => {
-    setUploadingPhoto(type);
+  const uploadPhoto = async (file: File, slotType: string) => {
+    setUploadingSlot(slotType);
     try {
       const fd = new FormData();
       fd.append('file', file);
-      fd.append('type', type);
+      fd.append('type', slotType);
       const res = await fetch(`/api/driver/fleet/${id}/photos`, { method: 'POST', body: fd });
       const data = await res.json();
       if (data.success) await load();
     } catch {}
-    setUploadingPhoto(null);
+    setUploadingSlot(null);
   };
 
-  const removeVehiclePhoto = async (url: string) => {
+  const deleteFuelLog = async (logId: string) => {
+    if (!confirm('Delete this fuel log?')) return;
+    try {
+      await fetch(`/api/driver/fleet/${id}/fuel/${logId}`, { method: 'DELETE' });
+      await load();
+    } catch {}
+  };
+
+  const deleteIncidentLog = async (incidentId: string) => {
+    if (!confirm('Delete this incident?')) return;
+    try {
+      await fetch(`/api/driver/fleet/${id}/incidents/${incidentId}`, { method: 'DELETE' });
+      await load();
+    } catch {}
+  };
+
+  const removePhoto = async (slotType: string) => {
+    if (!confirm('Remove this photo?')) return;
     try {
       await fetch(`/api/driver/fleet/${id}/photos`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ type: slotType }),
       });
       await load();
     } catch {}
@@ -164,7 +182,6 @@ export default function VehicleDetailPage() {
       <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
     </div>
   );
-
   if (!vehicle) return (
     <div className="text-center py-12">
       <p className="text-red-600">Vehicle not found</p>
@@ -172,7 +189,10 @@ export default function VehicleDetailPage() {
     </div>
   );
 
+  const isVendor = !!vehicle.isVendorVehicle;
   const logs = vehicle.maintenance_logs || [];
+  const fuelLogs = vehicle.fuel_logs || [];
+  const incidents = vehicle.incidents || [];
 
   return (
     <div className="space-y-5 max-w-lg">
@@ -185,6 +205,7 @@ export default function VehicleDetailPage() {
           </button>
         </div>
       )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -196,7 +217,7 @@ export default function VehicleDetailPage() {
             {vehicle.registrationNo && <p className="text-sm text-emerald-700 font-semibold">{vehicle.registrationNo}</p>}
           </div>
         </div>
-        {!vehicle.isVendorVehicle && (
+        {!isVendor && (
           <div className="flex items-center gap-2">
             <Link
               href={`/driver/fleet/${id}/edit`}
@@ -205,13 +226,8 @@ export default function VehicleDetailPage() {
               <Pencil className="w-3.5 h-3.5" /> Edit
             </Link>
             <button
-              onClick={toggleActive}
-              disabled={toggling}
-              className={`text-sm font-semibold px-3 py-1.5 rounded-lg transition ${
-                vehicle.isActive
-                  ? 'text-red-600 bg-red-50 hover:bg-red-100'
-                  : 'text-green-600 bg-green-50 hover:bg-green-100'
-              }`}
+              onClick={toggleActive} disabled={toggling}
+              className={`text-sm font-semibold px-3 py-1.5 rounded-lg transition ${vehicle.isActive ? 'text-red-600 bg-red-50 hover:bg-red-100' : 'text-green-600 bg-green-50 hover:bg-green-100'}`}
             >
               {toggling ? '...' : vehicle.isActive ? 'Deactivate' : 'Activate'}
             </button>
@@ -221,8 +237,8 @@ export default function VehicleDetailPage() {
 
       {/* Hero Card */}
       <div className="bg-white rounded-2xl border shadow-sm p-6 text-center">
-        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3 ${vehicle.isVendorVehicle ? 'bg-blue-100' : 'bg-emerald-100'}`}>
-          {vehicle.isVendorVehicle ? <Building2 className="w-8 h-8 text-blue-600" /> : <Car className="w-8 h-8 text-emerald-600" />}
+        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3 ${isVendor ? 'bg-blue-100' : 'bg-emerald-100'}`}>
+          {isVendor ? <Building2 className="w-8 h-8 text-blue-600" /> : <Car className="w-8 h-8 text-emerald-600" />}
         </div>
         <h2 className="text-xl font-bold text-gray-900">{vehicle.make} {vehicle.model}</h2>
         {vehicle.registrationNo && <p className="text-base font-bold text-emerald-600 mt-1">{vehicle.registrationNo}</p>}
@@ -233,12 +249,8 @@ export default function VehicleDetailPage() {
           {vehicle.seatingCapacity && <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{vehicle.seatingCapacity} seats</span>}
           {vehicle.color && <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">{vehicle.color}</span>}
         </div>
-        {vehicle.isVendorVehicle && (
-          <span className="inline-block mt-2 text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-medium">Vendor Vehicle (Read-only)</span>
-        )}
-        {!vehicle.isActive && (
-          <span className="inline-block mt-2 text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full font-bold">INACTIVE</span>
-        )}
+        {isVendor && <span className="inline-block mt-2 text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-medium">Vendor Vehicle (Read-only)</span>}
+        {!vehicle.isActive && <span className="inline-block mt-2 text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full font-bold">INACTIVE</span>}
       </div>
 
       {/* Documents */}
@@ -255,6 +267,54 @@ export default function VehicleDetailPage() {
           <p className="text-sm text-gray-400 py-2">No document details added</p>
         )}
       </div>
+
+      {/* Vehicle Photos — labeled slots — own vehicles only */}
+      {!isVendor && (
+        <div className="bg-white rounded-xl border p-4">
+          <h2 className="font-semibold text-gray-700 uppercase text-xs tracking-wide mb-3 flex items-center gap-1.5">
+            <Camera className="w-4 h-4" /> Vehicle Photos
+          </h2>
+          <div className="grid grid-cols-3 gap-3">
+            {PHOTO_SLOTS.map(slot => {
+              const url = (vehicle as any)[slot.key] as string | undefined;
+              const isUploading = uploadingSlot === slot.type;
+              return (
+                <div key={slot.key} className="flex flex-col items-center gap-1.5">
+                  <div className="relative w-full aspect-square rounded-xl overflow-hidden border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center">
+                    {isUploading ? (
+                      <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
+                    ) : url ? (
+                      <>
+                        <img
+                          src={url} alt={slot.label}
+                          className="w-full h-full object-cover cursor-pointer"
+                          onClick={() => setLightboxUrl(url)}
+                        />
+                        <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition flex items-end justify-between p-1.5 opacity-0 hover:opacity-100">
+                          <label className="cursor-pointer bg-white/90 rounded-md p-1" title="Replace">
+                            <Camera className="w-3.5 h-3.5 text-gray-700" />
+                            <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f, slot.type); e.target.value = ''; }} />
+                          </label>
+                          <button onClick={() => removePhoto(slot.type)} className="bg-red-500 text-white rounded-md p-1">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <label className="flex flex-col items-center gap-1 cursor-pointer p-3 w-full h-full justify-center">
+                        <Camera className="w-6 h-6 text-gray-300" />
+                        <span className="text-xs text-gray-400">Add</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f, slot.type); e.target.value = ''; }} />
+                      </label>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-500 font-medium">{slot.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Service Info */}
       {(vehicle.currentOdometer || vehicle.lastServiceDate || vehicle.nextServiceDate) && (
@@ -288,102 +348,81 @@ export default function VehicleDetailPage() {
         </div>
       )}
 
-      {/* Vehicle Photos */}
-      {!vehicle.isVendorVehicle && (() => {
-        const photos: string[] = vehicle.vehiclePhotos ? JSON.parse(vehicle.vehiclePhotos) : [];
-        return (
-          <div className="bg-white rounded-xl border p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-gray-700 uppercase text-xs tracking-wide flex items-center gap-1.5">
-                <Camera className="w-4 h-4" /> Vehicle Photos
-              </h2>
-              <label className={`flex items-center gap-1 text-xs font-semibold text-emerald-600 cursor-pointer hover:underline ${uploadingPhoto === 'vehicle' ? 'opacity-50 pointer-events-none' : ''}`}>
-                {uploadingPhoto === 'vehicle' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                Add Photo
-                <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f, 'vehicle'); e.target.value = ''; }} />
-              </label>
-            </div>
-            {photos.length === 0 ? (
-              <label className="flex flex-col items-center gap-2 border-2 border-dashed border-gray-200 rounded-xl p-6 cursor-pointer hover:border-emerald-400 transition">
-                <Camera className="w-8 h-8 text-gray-400" />
-                <span className="text-sm text-gray-500">Tap to add vehicle photos</span>
-                <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f, 'vehicle'); e.target.value = ''; }} />
-              </label>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {photos.map((p, i) => (
-                  <div key={i} className="relative group">
-                    <img
-                      src={p} alt={`Vehicle ${i + 1}`}
-                      className="w-full h-24 object-cover rounded-lg border cursor-pointer"
-                      onClick={() => setLightboxUrl(p)}
-                    />
-                    <button
-                      onClick={() => removeVehiclePhoto(p)}
-                      className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full items-center justify-center text-xs hidden group-hover:flex"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-                <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-emerald-400 transition">
-                  <Plus className="w-5 h-5 text-gray-400" />
-                  <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f, 'vehicle'); e.target.value = ''; }} />
-                </label>
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
       {/* Maintenance Logs */}
-      {!vehicle.isVendorVehicle && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-gray-700 uppercase text-xs tracking-wide flex items-center gap-1.5">
-              <Wrench className="w-4 h-4" /> Maintenance Logs
-            </h2>
-            <Link
-              href={`/driver/fleet/${id}/maintenance/add`}
-              className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:underline"
-            >
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-gray-700 uppercase text-xs tracking-wide flex items-center gap-1.5">
+            <Wrench className="w-4 h-4" /> Maintenance Logs
+          </h2>
+          {!isVendor && (
+            <Link href={`/driver/fleet/${id}/maintenance/add`} className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:underline">
               <Plus className="w-4 h-4" /> Add Log
             </Link>
-          </div>
-
-          {logs.length === 0 ? (
-            <Link
-              href={`/driver/fleet/${id}/maintenance/add`}
-              className="flex items-center gap-3 bg-white rounded-xl border-2 border-dashed border-gray-200 p-5 hover:border-emerald-400 transition"
-            >
+          )}
+        </div>
+        {logs.length === 0 ? (
+          isVendor ? (
+            <div className="flex items-center gap-3 bg-white rounded-xl border p-4 text-sm text-gray-400">No maintenance logs</div>
+          ) : (
+            <Link href={`/driver/fleet/${id}/maintenance/add`} className="flex items-center gap-3 bg-white rounded-xl border-2 border-dashed border-gray-200 p-5 hover:border-emerald-400 transition">
               <Plus className="w-6 h-6 text-emerald-500" />
               <span className="text-sm font-medium text-gray-600">Add first maintenance log</span>
             </Link>
+          )
+        ) : (
+          <div className="space-y-3">
+            {logs.map(log => (
+              <div key={log.id} className="bg-white rounded-xl border p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs font-bold px-2 py-1 rounded-lg ${MAINT_COLORS[log.type] || MAINT_COLORS.OTHER}`}>{log.type.replace(/_/g, ' ')}</span>
+                  <span className="text-xs text-gray-500">{new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                </div>
+                {log.description && <p className="text-sm text-gray-700 mb-2">{log.description}</p>}
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  {log.cost > 0 && <span className="flex items-center gap-0.5 font-semibold text-emerald-700"><IndianRupee className="w-3 h-3" />{log.cost.toLocaleString()}</span>}
+                  {log.odometer && <span className="flex items-center gap-1"><Gauge className="w-3 h-3" />{log.odometer.toLocaleString()} km</span>}
+                  {log.nextDueDate && <span className="flex items-center gap-1 text-amber-600"><Calendar className="w-3 h-3" />Next: {new Date(log.nextDueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Fuel Logs — own vehicles only */}
+      {!isVendor && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-gray-700 uppercase text-xs tracking-wide flex items-center gap-1.5">
+              <Droplets className="w-4 h-4" /> Fuel Logs
+            </h2>
+            <Link href={`/driver/fleet/${id}/fuel/add`} className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:underline">
+              <Plus className="w-4 h-4" /> Add Log
+            </Link>
+          </div>
+          {fuelLogs.length === 0 ? (
+            <Link href={`/driver/fleet/${id}/fuel/add`} className="flex items-center gap-3 bg-white rounded-xl border-2 border-dashed border-gray-200 p-5 hover:border-emerald-400 transition">
+              <Plus className="w-6 h-6 text-emerald-500" />
+              <span className="text-sm font-medium text-gray-600">Add first fuel log</span>
+            </Link>
           ) : (
             <div className="space-y-3">
-              {logs.map(log => (
+              {fuelLogs.map(log => (
                 <div key={log.id} className="bg-white rounded-xl border p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-xs font-bold px-2 py-1 rounded-lg ${TYPE_COLORS[log.type] || TYPE_COLORS.OTHER}`}>
-                      {log.type.replace(/_/g, ' ')}
+                    <span className="text-xs font-bold px-2 py-1 rounded-lg bg-orange-100 text-orange-700">
+                      {log.fuelType || 'Fuel'} · {log.liters}L
                     </span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">{new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      <button onClick={() => deleteFuelLog(log.id)} className="text-red-400 hover:text-red-600 transition" title="Delete"><X className="w-3.5 h-3.5" /></button>
+                    </div>
                   </div>
-                  {log.description && <p className="text-sm text-gray-700 mb-2">{log.description}</p>}
+                  {log.fuelStation && <p className="text-sm text-gray-600 mb-2">{log.fuelStation}</p>}
                   <div className="flex items-center gap-4 text-xs text-gray-500">
-                    {log.cost > 0 && (
-                      <span className="flex items-center gap-0.5 font-semibold text-emerald-700">
-                        <IndianRupee className="w-3 h-3" />{log.cost.toLocaleString()}
-                      </span>
-                    )}
+                    <span className="flex items-center gap-0.5 font-semibold text-emerald-700"><IndianRupee className="w-3 h-3" />{log.totalAmount.toLocaleString()}</span>
+                    {log.pricePerLiter && <span>₹{log.pricePerLiter}/L</span>}
                     {log.odometer && <span className="flex items-center gap-1"><Gauge className="w-3 h-3" />{log.odometer.toLocaleString()} km</span>}
-                    {log.nextDueDate && (
-                      <span className="flex items-center gap-1 text-amber-600">
-                        <Calendar className="w-3 h-3" />Next: {new Date(log.nextDueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                      </span>
-                    )}
                   </div>
                 </div>
               ))}
@@ -391,6 +430,49 @@ export default function VehicleDetailPage() {
           )}
         </div>
       )}
+
+      {/* Incidents — own vehicles only */}
+      {!isVendor && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-gray-700 uppercase text-xs tracking-wide flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4" /> Incidents
+            </h2>
+            <Link href={`/driver/fleet/${id}/incidents/add`} className="flex items-center gap-1 text-sm text-emerald-600 font-semibold hover:underline">
+              <Plus className="w-4 h-4" /> Report
+            </Link>
+          </div>
+          {incidents.length === 0 ? (
+            <Link href={`/driver/fleet/${id}/incidents/add`} className="flex items-center gap-3 bg-white rounded-xl border-2 border-dashed border-gray-200 p-5 hover:border-emerald-400 transition">
+              <Plus className="w-6 h-6 text-emerald-500" />
+              <span className="text-sm font-medium text-gray-600">Report an incident</span>
+            </Link>
+          ) : (
+            <div className="space-y-3">
+              {incidents.map(inc => (
+                <div key={inc.id} className="bg-white rounded-xl border p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-bold px-2 py-1 rounded-lg ${SEV_COLORS[inc.severity] || 'bg-gray-100 text-gray-700'}`}>{inc.type}</span>
+                      <span className={`text-xs font-semibold ${STATUS_COLORS[inc.repairStatus] || 'text-gray-500'}`}>{STATUS_LABELS[inc.repairStatus] || inc.repairStatus}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">{new Date(inc.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      <button onClick={() => deleteIncidentLog(inc.id)} className="text-red-400 hover:text-red-600 transition" title="Delete"><X className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </div>
+                  {inc.description && <p className="text-sm text-gray-700 mb-2">{inc.description}</p>}
+                  {inc.repairCost != null && (
+                    <span className="flex items-center gap-0.5 text-xs text-gray-500"><IndianRupee className="w-3 h-3" />{inc.repairCost.toLocaleString()} repair cost</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="h-8" />
     </div>
   );
 }

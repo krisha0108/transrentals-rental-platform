@@ -273,6 +273,16 @@ export async function addIncident(vehicleId, data) {
   return c.post(`${BASE}/fleet/${vehicleId}/incidents`, data);
 }
 
+export async function deleteFuelLog(vehicleId, logId) {
+  const c = await getClient();
+  return c.delete(`${BASE}/fleet/${vehicleId}/fuel/${logId}`);
+}
+
+export async function deleteIncident(vehicleId, incidentId) {
+  const c = await getClient();
+  return c.delete(`${BASE}/fleet/${vehicleId}/incidents/${incidentId}`);
+}
+
 // ── Earnings ──────────────────────────────────────────────────────────────────
 export async function getEarnings(period = 'all') {
   const c = await getClient();
