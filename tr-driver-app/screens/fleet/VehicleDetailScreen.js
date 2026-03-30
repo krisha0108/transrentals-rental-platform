@@ -16,7 +16,24 @@ const C = {
   primary: '#16A34A', dark: '#064E3B', bg: '#F0F4F8',
   card: '#FFFFFF', border: '#E2EAF4', text: '#0F172A',
   sub: '#64748B', success: '#10B981', warn: '#F59E0B', danger: '#EF4444',
-  blue: '#3B82F6',
+  blue: '#3B82F6', purple: '#7C3AED',
+};
+
+// Photo slots for labeled uploads
+const PHOTO_SLOTS = [
+  { key: 'front',     label: 'Front',     icon: 'car-outline' },
+  { key: 'back',      label: 'Back',      icon: 'car-outline' },
+  { key: 'leftSide',  label: 'Left Side', icon: 'car-outline' },
+  { key: 'rightSide', label: 'Right Side',icon: 'car-outline' },
+  { key: 'interior',  label: 'Interior',  icon: 'grid-outline' },
+];
+
+const FIELD_TO_KEY = {
+  photoFront:     'front',
+  photoBack:      'back',
+  photoLeftSide:  'leftSide',
+  photoRightSide: 'rightSide',
+  photoInterior:  'interior',
 };
 
 function docDays(expiry) {
@@ -32,9 +49,9 @@ function DocCard({ label, number, expiry }) {
   const warning  = days !== null && days > 7  && days <= 30;
   const ok       = days !== null && days > 30;
 
-  const statusColor = expired ? C.danger : urgent ? C.danger : warning ? C.warn : C.success;
-  const statusBg    = expired ? '#FEF2F2' : urgent ? '#FEF2F2' : warning ? '#FFFBEB' : '#F0FDF4';
-  const statusLabel = expired ? 'Expired' : urgent ? `${days}d left` : warning ? `${days}d left` : ok ? `${days}d left` : '—';
+  const statusColor = expired || urgent ? C.danger : warning ? C.warn : C.success;
+  const statusBg    = expired || urgent ? '#FEF2F2' : warning ? '#FFFBEB' : '#F0FDF4';
+  const statusLabel = expired ? 'Expired' : days !== null ? `${days}d left` : '—';
   const statusIcon  = expired || urgent ? 'warning' : warning ? 'alert-circle-outline' : 'checkmark-circle-outline';
 
   return (
@@ -56,11 +73,11 @@ function DocCard({ label, number, expiry }) {
 
 export default function VehicleDetailScreen({ route, navigation }) {
   const { vehicleId } = route.params;
-  const [vehicle, setVehicle]           = useState(null);
-  const [loading, setLoading]           = useState(true);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [lightboxUrl, setLightboxUrl]   = useState(null);
-  const [toggling, setToggling]         = useState(false);
+  const [vehicle, setVehicle]               = useState(null);
+  const [loading, setLoading]               = useState(true);
+  const [uploadingSlot, setUploadingSlot]   = useState(null); // which slot is uploading
+  const [lightboxUrl, setLightboxUrl]       = useState(null);
+  const [toggling, setToggling]             = useState(false);
 
   useEffect(() => {
     getVehicle(vehicleId)
@@ -73,27 +90,29 @@ export default function VehicleDetailScreen({ route, navigation }) {
     getVehicle(vehicleId).then(res => setVehicle(res.data.vehicle)).catch(() => {});
   }
 
-  async function addPhoto() {
+  async function uploadSlot(slotKey) {
     const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8 });
     if (result.didCancel || !result.assets?.[0]) return;
     const asset = result.assets[0];
-    setUploadingPhoto(true);
+    setUploadingSlot(slotKey);
     try {
-      await uploadVehiclePhoto(vehicleId, asset.uri, asset.fileName || 'photo.jpg', asset.type || 'image/jpeg', 'vehicle');
+      await uploadVehiclePhoto(vehicleId, asset.uri, asset.fileName || 'photo.jpg', asset.type || 'image/jpeg', slotKey);
       reload();
     } catch {
       Alert.alert('Error', 'Failed to upload photo');
     }
-    setUploadingPhoto(false);
+    setUploadingSlot(null);
   }
 
-  async function removePhoto(url) {
+  async function removeSlotPhoto(slotKey) {
     Alert.alert('Remove Photo', 'Delete this photo?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-        try { await deleteVehiclePhoto(vehicleId, url, null); reload(); }
-        catch { Alert.alert('Error', 'Failed to remove photo'); }
-      }},
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          try { await deleteVehiclePhoto(vehicleId, null, slotKey); reload(); }
+          catch { Alert.alert('Error', 'Failed to remove photo'); }
+        }
+      },
     ]);
   }
 
@@ -113,9 +132,10 @@ export default function VehicleDetailScreen({ route, navigation }) {
   );
   if (!vehicle) return null;
 
-  let photos = [];
-  try { photos = JSON.parse(vehicle.vehiclePhotos || '[]'); } catch {}
+  const isVendor = !!vehicle.isVendorVehicle;
   const logs = vehicle.maintenance_logs || [];
+  const fuelLogs = vehicle.fuel_logs || [];
+  const incidents = vehicle.incidents || [];
 
   const metaChips = [
     vehicle.year            && { icon: 'calendar-outline',      label: String(vehicle.year) },
@@ -144,13 +164,12 @@ export default function VehicleDetailScreen({ route, navigation }) {
         style={styles.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       >
-        {/* Nav row */}
         <View style={styles.heroNav}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
           <View style={{ flex: 1 }} />
-          {!vehicle.isVendorVehicle && (
+          {!isVendor && (
             <>
               <TouchableOpacity
                 style={styles.editBtn}
@@ -178,7 +197,6 @@ export default function VehicleDetailScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* Vehicle info */}
         <View style={styles.heroBody}>
           <View style={styles.heroIconBox}>
             <Ionicons name="car" size={28} color="#fff" />
@@ -196,7 +214,7 @@ export default function VehicleDetailScreen({ route, navigation }) {
               <Text style={styles.inactiveBadgeText}>INACTIVE</Text>
             </View>
           )}
-          {vehicle.isVendorVehicle && (
+          {isVendor && (
             <View style={styles.vendorBadge}>
               <Ionicons name="business-outline" size={11} color="#93C5FD" />
               <Text style={styles.vendorBadgeText}>Vendor</Text>
@@ -204,7 +222,6 @@ export default function VehicleDetailScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* Meta chips */}
         {metaChips.length > 0 && (
           <View style={styles.heroChips}>
             {metaChips.map((c, i) => (
@@ -235,47 +252,53 @@ export default function VehicleDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* ── Vehicle Photos ── */}
-        {!vehicle.isVendorVehicle && (
+        {/* ── Vehicle Photos (labeled slots) — own vehicles only ── */}
+        {!isVendor && (
           <View style={styles.section}>
             <View style={styles.sectionHead}>
               <View style={[styles.sectionIcon, { backgroundColor: '#FDF4FF' }]}>
                 <Ionicons name="camera-outline" size={13} color="#9333EA" />
               </View>
               <Text style={styles.sectionTitle}>Vehicle Photos</Text>
-              <TouchableOpacity onPress={addPhoto} disabled={uploadingPhoto} style={styles.sectionAction}>
-                {uploadingPhoto
-                  ? <ActivityIndicator size="small" color={C.primary} />
-                  : <>
-                      <Ionicons name="add" size={13} color={C.primary} />
-                      <Text style={styles.sectionActionText}>Add Photo</Text>
-                    </>
-                }
-              </TouchableOpacity>
             </View>
+            <View style={styles.photoSlotGrid}>
+              {PHOTO_SLOTS.map(slot => {
+                const fieldKey = Object.keys(FIELD_TO_KEY).find(k => FIELD_TO_KEY[k] === slot.key);
+                const url = vehicle[fieldKey] || null;
+                const isUploading = uploadingSlot === slot.key;
 
-            {photos.length === 0 ? (
-              <TouchableOpacity style={styles.photoEmpty} onPress={addPhoto}>
-                <Ionicons name="camera-outline" size={26} color={C.primary} />
-                <Text style={styles.photoEmptyText}>Add vehicle photos</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.photoGrid}>
-                {photos.map((p, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    style={styles.photoThumb}
-                    onPress={() => setLightboxUrl(p)}
-                    onLongPress={() => removePhoto(p)}
-                  >
-                    <Image source={{ uri: p }} style={styles.photoImg} resizeMode="cover" />
-                  </TouchableOpacity>
-                ))}
-                <TouchableOpacity style={[styles.photoThumb, styles.photoAddBtn]} onPress={addPhoto}>
-                  <Ionicons name="add" size={22} color={C.primary} />
-                </TouchableOpacity>
-              </View>
-            )}
+                return (
+                  <View key={slot.key} style={styles.photoSlot}>
+                    <TouchableOpacity
+                      style={[styles.photoSlotBox, url && styles.photoSlotFilled]}
+                      onPress={() => url ? setLightboxUrl(url) : uploadSlot(slot.key)}
+                      onLongPress={() => url ? removeSlotPhoto(slot.key) : null}
+                      activeOpacity={0.85}
+                    >
+                      {isUploading ? (
+                        <ActivityIndicator size="small" color={C.primary} />
+                      ) : url ? (
+                        <>
+                          <Image source={{ uri: url }} style={styles.photoSlotImg} resizeMode="cover" />
+                          <TouchableOpacity
+                            style={styles.photoSlotEdit}
+                            onPress={() => uploadSlot(slot.key)}
+                          >
+                            <Ionicons name="camera" size={12} color="#fff" />
+                          </TouchableOpacity>
+                        </>
+                      ) : (
+                        <>
+                          <Ionicons name="camera-outline" size={20} color={C.sub} />
+                          <Text style={styles.photoSlotHint}>Tap to add</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                    <Text style={styles.photoSlotLabel}>{slot.label}</Text>
+                  </View>
+                );
+              })}
+            </View>
           </View>
         )}
 
@@ -324,51 +347,58 @@ export default function VehicleDetailScreen({ route, navigation }) {
         <View style={styles.section}>
           <View style={styles.sectionHead}>
             <View style={[styles.sectionIcon, { backgroundColor: '#F5F3FF' }]}>
-              <Ionicons name="clipboard-outline" size={13} color="#7C3AED" />
+              <Ionicons name="clipboard-outline" size={13} color={C.purple} />
             </View>
             <Text style={styles.sectionTitle}>Maintenance Logs</Text>
-            <TouchableOpacity
-              style={styles.sectionAction}
-              onPress={() => navigation.navigate('AddMaintenance', { vehicleId: vehicle.id })}
-            >
-              <Ionicons name="add" size={13} color={C.primary} />
-              <Text style={styles.sectionActionText}>Add Log</Text>
-            </TouchableOpacity>
+            {!isVendor && (
+              <TouchableOpacity
+                style={styles.sectionAction}
+                onPress={() => navigation.navigate('AddMaintenance', { vehicleId: vehicle.id })}
+              >
+                <Ionicons name="add" size={13} color={C.primary} />
+                <Text style={styles.sectionActionText}>Add Log</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {logs.length === 0 ? (
-            <TouchableOpacity
-              style={styles.logEmpty}
-              onPress={() => navigation.navigate('AddMaintenance', { vehicleId: vehicle.id })}
-            >
-              <Ionicons name="add-circle-outline" size={22} color={C.primary} />
-              <Text style={styles.logEmptyText}>Add first maintenance log</Text>
-            </TouchableOpacity>
+            isVendor ? (
+              <View style={styles.emptyBox}>
+                <Ionicons name="clipboard-outline" size={20} color={C.sub} />
+                <Text style={styles.emptyText}>No maintenance logs</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.emptyBox}
+                onPress={() => navigation.navigate('AddMaintenance', { vehicleId: vehicle.id })}
+              >
+                <Ionicons name="add-circle-outline" size={22} color={C.primary} />
+                <Text style={[styles.emptyText, { color: C.primary }]}>Add first maintenance log</Text>
+              </TouchableOpacity>
+            )
           ) : (
             <View>
               {logs.map((log, i) => (
-                <View key={log.id} style={styles.logItem}>
-                  {/* Timeline connector */}
-                  <View style={styles.logLeft}>
-                    <View style={styles.logDot} />
-                    {i < logs.length - 1 && <View style={styles.logLine} />}
+                <View key={log.id} style={styles.timelineItem}>
+                  <View style={styles.timelineLeft}>
+                    <View style={[styles.timelineDot, { backgroundColor: C.purple }]} />
+                    {i < logs.length - 1 && <View style={styles.timelineLine} />}
                   </View>
-
-                  <View style={styles.logBody}>
+                  <View style={styles.timelineBody}>
                     <View style={styles.logTopRow}>
-                      <View style={styles.logTypeBadge}>
-                        <Text style={styles.logTypeText}>{log.type}</Text>
+                      <View style={[styles.typeBadge, { backgroundColor: '#F5F3FF' }]}>
+                        <Text style={[styles.typeBadgeText, { color: C.purple }]}>{log.type}</Text>
                       </View>
                       <Text style={styles.logDate}>{moment(log.date).format('DD MMM YYYY')}</Text>
                     </View>
                     {log.description ? <Text style={styles.logDesc}>{log.description}</Text> : null}
                     <View style={styles.logMeta}>
-                      {log.cost > 0 ? (
+                      {log.cost > 0 && (
                         <View style={styles.logMetaChip}>
                           <Ionicons name="cash-outline" size={11} color={C.success} />
                           <Text style={[styles.logMetaText, { color: C.success }]}>₹{log.cost.toLocaleString('en-IN')}</Text>
                         </View>
-                      ) : null}
+                      )}
                       {log.odometer ? (
                         <View style={styles.logMetaChip}>
                           <Ionicons name="speedometer-outline" size={11} color={C.sub} />
@@ -388,6 +418,143 @@ export default function VehicleDetailScreen({ route, navigation }) {
             </View>
           )}
         </View>
+
+        {/* ── Fuel Logs — own vehicles only ── */}
+        {!isVendor && (
+          <View style={styles.section}>
+            <View style={styles.sectionHead}>
+              <View style={[styles.sectionIcon, { backgroundColor: '#FFF7ED' }]}>
+                <Ionicons name="water-outline" size={13} color="#EA580C" />
+              </View>
+              <Text style={styles.sectionTitle}>Fuel Logs</Text>
+              <TouchableOpacity
+                style={styles.sectionAction}
+                onPress={() => navigation.navigate('AddFuel', { vehicleId: vehicle.id })}
+              >
+                <Ionicons name="add" size={13} color={C.primary} />
+                <Text style={styles.sectionActionText}>Add Log</Text>
+              </TouchableOpacity>
+            </View>
+
+            {fuelLogs.length === 0 ? (
+              <TouchableOpacity
+                style={styles.emptyBox}
+                onPress={() => navigation.navigate('AddFuel', { vehicleId: vehicle.id })}
+              >
+                <Ionicons name="add-circle-outline" size={22} color={C.primary} />
+                <Text style={[styles.emptyText, { color: C.primary }]}>Add first fuel log</Text>
+              </TouchableOpacity>
+            ) : (
+              <View>
+                {fuelLogs.map((log, i) => (
+                  <View key={log.id} style={styles.timelineItem}>
+                    <View style={styles.timelineLeft}>
+                      <View style={[styles.timelineDot, { backgroundColor: '#EA580C' }]} />
+                      {i < fuelLogs.length - 1 && <View style={styles.timelineLine} />}
+                    </View>
+                    <View style={styles.timelineBody}>
+                      <View style={styles.logTopRow}>
+                        <View style={[styles.typeBadge, { backgroundColor: '#FFF7ED' }]}>
+                          <Text style={[styles.typeBadgeText, { color: '#EA580C' }]}>
+                            {log.fuelType || 'Fuel'} · {log.liters}L
+                          </Text>
+                        </View>
+                        <Text style={styles.logDate}>{moment(log.date).format('DD MMM YYYY')}</Text>
+                      </View>
+                      {log.fuelStation ? <Text style={styles.logDesc}>{log.fuelStation}</Text> : null}
+                      <View style={styles.logMeta}>
+                        <View style={styles.logMetaChip}>
+                          <Ionicons name="cash-outline" size={11} color={C.success} />
+                          <Text style={[styles.logMetaText, { color: C.success }]}>₹{log.totalAmount.toLocaleString('en-IN')}</Text>
+                        </View>
+                        {log.pricePerLiter ? (
+                          <View style={styles.logMetaChip}>
+                            <Ionicons name="pricetag-outline" size={11} color={C.sub} />
+                            <Text style={styles.logMetaText}>₹{log.pricePerLiter}/L</Text>
+                          </View>
+                        ) : null}
+                        {log.odometer ? (
+                          <View style={styles.logMetaChip}>
+                            <Ionicons name="speedometer-outline" size={11} color={C.sub} />
+                            <Text style={styles.logMetaText}>{log.odometer.toLocaleString('en-IN')} km</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* ── Incidents — own vehicles only ── */}
+        {!isVendor && (
+          <View style={styles.section}>
+            <View style={styles.sectionHead}>
+              <View style={[styles.sectionIcon, { backgroundColor: '#FEF2F2' }]}>
+                <Ionicons name="warning-outline" size={13} color={C.danger} />
+              </View>
+              <Text style={styles.sectionTitle}>Incidents</Text>
+              <TouchableOpacity
+                style={styles.sectionAction}
+                onPress={() => navigation.navigate('AddIncident', { vehicleId: vehicle.id })}
+              >
+                <Ionicons name="add" size={13} color={C.primary} />
+                <Text style={styles.sectionActionText}>Report</Text>
+              </TouchableOpacity>
+            </View>
+
+            {incidents.length === 0 ? (
+              <TouchableOpacity
+                style={styles.emptyBox}
+                onPress={() => navigation.navigate('AddIncident', { vehicleId: vehicle.id })}
+              >
+                <Ionicons name="add-circle-outline" size={22} color={C.primary} />
+                <Text style={[styles.emptyText, { color: C.primary }]}>Report an incident</Text>
+              </TouchableOpacity>
+            ) : (
+              <View>
+                {incidents.map((inc, i) => {
+                  const sevColor = inc.severity === 'HIGH' ? C.danger : inc.severity === 'LOW' ? C.success : C.warn;
+                  const sevBg    = inc.severity === 'HIGH' ? '#FEF2F2' : inc.severity === 'LOW' ? '#F0FDF4' : '#FFFBEB';
+                  const statusColor = inc.repairStatus === 'RESOLVED' ? C.success : inc.repairStatus === 'IN_PROGRESS' ? C.blue : C.sub;
+                  return (
+                    <View key={inc.id} style={styles.timelineItem}>
+                      <View style={styles.timelineLeft}>
+                        <View style={[styles.timelineDot, { backgroundColor: sevColor }]} />
+                        {i < incidents.length - 1 && <View style={styles.timelineLine} />}
+                      </View>
+                      <View style={styles.timelineBody}>
+                        <View style={styles.logTopRow}>
+                          <View style={[styles.typeBadge, { backgroundColor: sevBg }]}>
+                            <Text style={[styles.typeBadgeText, { color: sevColor }]}>{inc.type}</Text>
+                          </View>
+                          <Text style={styles.logDate}>{moment(inc.date).format('DD MMM YYYY')}</Text>
+                        </View>
+                        {inc.description ? <Text style={styles.logDesc}>{inc.description}</Text> : null}
+                        <View style={styles.logMeta}>
+                          <View style={styles.logMetaChip}>
+                            <Ionicons name="ellipse" size={8} color={statusColor} />
+                            <Text style={[styles.logMetaText, { color: statusColor }]}>
+                              {inc.repairStatus === 'IN_PROGRESS' ? 'In Progress' : inc.repairStatus === 'RESOLVED' ? 'Resolved' : 'Pending'}
+                            </Text>
+                          </View>
+                          {inc.repairCost ? (
+                            <View style={styles.logMetaChip}>
+                              <Ionicons name="cash-outline" size={11} color={C.sub} />
+                              <Text style={styles.logMetaText}>₹{inc.repairCost.toLocaleString('en-IN')}</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        )}
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -448,25 +615,29 @@ const styles = StyleSheet.create({
   infoLabel:    { flex: 1, fontSize: 13, color: C.sub, fontWeight: '500' },
   infoValue:    { fontSize: 13, color: C.text, fontWeight: '700' },
 
-  // Photos
-  photoEmpty:   { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 14, padding: 20, borderWidth: 1.5, borderColor: C.border, borderStyle: 'dashed' },
-  photoEmptyText: { fontSize: 14, color: C.primary, fontWeight: '600' },
-  photoGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  photoThumb:   { width: (SCREEN_W - 64) / 3, height: (SCREEN_W - 64) / 3, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: C.border },
-  photoImg:     { width: '100%', height: '100%' },
-  photoAddBtn:  { backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed', borderColor: C.primary },
+  // Photo slots
+  photoSlotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  photoSlot:     { width: (SCREEN_W - 64) / 3, alignItems: 'center' },
+  photoSlotBox:  { width: '100%', aspectRatio: 1, borderRadius: 12, backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  photoSlotFilled: { borderStyle: 'solid', borderColor: 'transparent' },
+  photoSlotImg:  { width: '100%', height: '100%' },
+  photoSlotEdit: { position: 'absolute', bottom: 6, right: 6, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center' },
+  photoSlotHint: { fontSize: 10, color: C.sub, marginTop: 4, fontWeight: '600' },
+  photoSlotLabel:{ fontSize: 11, color: C.sub, fontWeight: '700', marginTop: 5, textAlign: 'center' },
 
-  // Maintenance logs
-  logEmpty:     { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 14, padding: 18, borderWidth: 1.5, borderColor: C.border, borderStyle: 'dashed' },
-  logEmptyText: { fontSize: 14, color: C.primary, fontWeight: '600' },
-  logItem:      { flexDirection: 'row', marginBottom: 4 },
-  logLeft:      { width: 28, alignItems: 'center', paddingTop: 14 },
-  logDot:       { width: 10, height: 10, borderRadius: 5, backgroundColor: C.primary, flexShrink: 0 },
-  logLine:      { width: 2, flex: 1, backgroundColor: C.border, marginTop: 4 },
-  logBody:      { flex: 1, backgroundColor: C.card, borderRadius: 12, padding: 13, marginBottom: 8, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
+  // Empty state
+  emptyBox:  { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.card, borderRadius: 14, padding: 18, borderWidth: 1.5, borderColor: C.border, borderStyle: 'dashed' },
+  emptyText: { fontSize: 14, color: C.sub, fontWeight: '600' },
+
+  // Timeline logs
+  timelineItem: { flexDirection: 'row', marginBottom: 4 },
+  timelineLeft: { width: 28, alignItems: 'center', paddingTop: 14 },
+  timelineDot:  { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
+  timelineLine: { width: 2, flex: 1, backgroundColor: C.border, marginTop: 4 },
+  timelineBody: { flex: 1, backgroundColor: C.card, borderRadius: 12, padding: 13, marginBottom: 8, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
   logTopRow:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  logTypeBadge: { backgroundColor: '#F0FDF4', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  logTypeText:  { fontSize: 11, color: C.primary, fontWeight: '800' },
+  typeBadge:    { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  typeBadgeText:{ fontSize: 11, fontWeight: '800' },
   logDate:      { fontSize: 11, color: C.sub },
   logDesc:      { fontSize: 13, color: C.text, marginBottom: 8, lineHeight: 18 },
   logMeta:      { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

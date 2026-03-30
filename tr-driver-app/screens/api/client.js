@@ -253,6 +253,26 @@ export async function deleteVehiclePhoto(vehicleId, url, type) {
   return c.delete(`${BASE}/fleet/${vehicleId}/photos`, { data: { url, type } });
 }
 
+export async function getFuelLogs(vehicleId) {
+  const c = await getClient();
+  return c.get(`${BASE}/fleet/${vehicleId}/fuel`);
+}
+
+export async function addFuelLog(vehicleId, data) {
+  const c = await getClient();
+  return c.post(`${BASE}/fleet/${vehicleId}/fuel`, data);
+}
+
+export async function getIncidents(vehicleId) {
+  const c = await getClient();
+  return c.get(`${BASE}/fleet/${vehicleId}/incidents`);
+}
+
+export async function addIncident(vehicleId, data) {
+  const c = await getClient();
+  return c.post(`${BASE}/fleet/${vehicleId}/incidents`, data);
+}
+
 // ── Earnings ──────────────────────────────────────────────────────────────────
 export async function getEarnings(period = 'all') {
   const c = await getClient();

@@ -31,6 +31,8 @@ import AddVehicleScreen from './screens/fleet/AddVehicleScreen';
 import VehicleDetailScreen from './screens/fleet/VehicleDetailScreen';
 import EditVehicleScreen from './screens/fleet/EditVehicleScreen';
 import AddMaintenanceScreen from './screens/fleet/AddMaintenanceScreen';
+import AddFuelScreen from './screens/fleet/AddFuelScreen';
+import AddIncidentScreen from './screens/fleet/AddIncidentScreen';
 import EarningsScreen from './screens/earnings/EarningsScreen';
 import TripHistoryScreen from './screens/earnings/TripHistoryScreen';
 import ProfileScreen from './screens/profile/ProfileScreen';
@@ -231,6 +233,8 @@ function AppNavigator() {
       <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} />
       <Stack.Screen name="EditVehicle" component={EditVehicleScreen} />
       <Stack.Screen name="AddMaintenance" component={AddMaintenanceScreen} />
+      <Stack.Screen name="AddFuel" component={AddFuelScreen} />
+      <Stack.Screen name="AddIncident" component={AddIncidentScreen} />
       <Stack.Screen name="TripHistory" component={TripHistoryScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
