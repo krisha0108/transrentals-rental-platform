@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator, Platform,
+  TextInput, Alert, ActivityIndicator, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { addFuelLog } from '../api/client';
+import { addFuelLog, updateFuelLog } from '../api/client';
 import moment from 'moment';
 
 const C = {
@@ -16,7 +16,7 @@ const C = {
   sub: '#64748B', danger: '#EF4444',
 };
 
-function Field({ label, icon, iconBg, iconColor, children }) {
+function Field({ label, icon, iconBg, iconColor, children, badge }) {
   return (
     <View style={styles.field}>
       <View style={styles.fieldHead}>
@@ -24,6 +24,12 @@ function Field({ label, icon, iconBg, iconColor, children }) {
           <Ionicons name={icon} size={14} color={iconColor} />
         </View>
         <Text style={styles.fieldLabel}>{label}</Text>
+        {badge ? (
+          <View style={styles.autoBadge}>
+            <Ionicons name="flash" size={9} color="#16A34A" />
+            <Text style={styles.autoBadgeText}>Auto</Text>
+          </View>
+        ) : null}
       </View>
       {children}
     </View>
@@ -31,17 +37,19 @@ function Field({ label, icon, iconBg, iconColor, children }) {
 }
 
 export default function AddFuelScreen({ route, navigation }) {
-  const { vehicleId } = route.params;
+  const { vehicleId, log } = route.params;
+  const isEdit = !!log;
 
-  const [date, setDate]               = useState(new Date());
+  const [date, setDate]               = useState(log?.date ? new Date(log.date) : new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [liters, setLiters]           = useState('');
-  const [pricePerLiter, setPricePerLiter] = useState('');
-  const [totalAmount, setTotalAmount] = useState('');
-  const [odometer, setOdometer]       = useState('');
-  const [fuelStation, setFuelStation] = useState('');
-  const [fuelType, setFuelType]       = useState('');
-  const [notes, setNotes]             = useState('');
+  const [liters, setLiters]           = useState(log?.liters ? String(log.liters) : '');
+  const [pricePerLiter, setPricePerLiter] = useState(log?.pricePerLiter ? String(log.pricePerLiter) : '');
+  const [totalAmount, setTotalAmount] = useState(log?.totalCost ? String(log.totalCost) : '');
+  const [autoCalced, setAutoCalced]   = useState(false);
+  const [odometer, setOdometer]       = useState(log?.odometer ? String(log.odometer) : '');
+  const [fuelStation, setFuelStation] = useState(log?.station || '');
+  const [fuelType, setFuelType]       = useState(log?.fuelType || '');
+  const [notes, setNotes]             = useState(log?.notes || '');
   const [saving, setSaving]           = useState(false);
 
   // Auto-calculate total when liters + pricePerLiter change
@@ -49,7 +57,9 @@ export default function AddFuelScreen({ route, navigation }) {
     setLiters(v);
     if (v && pricePerLiter) {
       const t = (parseFloat(v) * parseFloat(pricePerLiter)).toFixed(2);
-      if (!isNaN(t)) setTotalAmount(t);
+      if (!isNaN(t)) { setTotalAmount(t); setAutoCalced(true); }
+    } else {
+      setAutoCalced(false);
     }
   }
 
@@ -57,8 +67,15 @@ export default function AddFuelScreen({ route, navigation }) {
     setPricePerLiter(v);
     if (liters && v) {
       const t = (parseFloat(liters) * parseFloat(v)).toFixed(2);
-      if (!isNaN(t)) setTotalAmount(t);
+      if (!isNaN(t)) { setTotalAmount(t); setAutoCalced(true); }
+    } else {
+      setAutoCalced(false);
     }
+  }
+
+  function onTotalChange(v) {
+    setTotalAmount(v);
+    setAutoCalced(false);
   }
 
   async function handleSave() {
@@ -68,16 +85,21 @@ export default function AddFuelScreen({ route, navigation }) {
     }
     setSaving(true);
     try {
-      await addFuelLog(vehicleId, {
+      const payload = {
         date: date.toISOString(),
         liters,
         pricePerLiter: pricePerLiter || null,
-        totalAmount,
+        totalCost: totalAmount,
         odometer: odometer || null,
-        fuelStation: fuelStation || null,
+        station: fuelStation || null,
         fuelType: fuelType || null,
         notes: notes || null,
-      });
+      };
+      if (isEdit) {
+        await updateFuelLog(vehicleId, log.id, payload);
+      } else {
+        await addFuelLog(vehicleId, { ...payload, totalAmount });
+      }
       navigation.goBack();
     } catch {
       Alert.alert('Error', 'Failed to save fuel log');
@@ -94,11 +116,15 @@ export default function AddFuelScreen({ route, navigation }) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Add Fuel Log</Text>
-          <View style={{ width: 36 }} />
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <Text style={styles.headerTitle}>{isEdit ? 'Edit Fuel Log' : 'Add Fuel Log'}</Text>
+            <Text style={styles.headerSub}>Vehicle #{vehicleId}</Text>
+          </View>
+          <View style={{ width: 38 }} />
         </View>
       </LinearGradient>
 
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.body}>
 
@@ -144,14 +170,14 @@ export default function AddFuelScreen({ route, navigation }) {
           </Field>
 
           {/* Total Amount */}
-          <Field label="Total Amount (₹) *" icon="cash-outline" iconBg="#F0FDF4" iconColor={C.primary}>
+          <Field label="Total Amount (₹) *" icon="cash-outline" iconBg="#F0FDF4" iconColor={C.primary} badge={autoCalced}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, autoCalced && styles.inputAutoCalced]}
               placeholder="e.g. 2895"
               placeholderTextColor={C.sub}
               keyboardType="decimal-pad"
               value={totalAmount}
-              onChangeText={setTotalAmount}
+              onChangeText={onTotalChange}
             />
           </Field>
 
@@ -213,7 +239,7 @@ export default function AddFuelScreen({ route, navigation }) {
                 ? <ActivityIndicator color="#fff" size="small" />
                 : <>
                     <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
-                    <Text style={styles.saveBtnText}>Save Fuel Log</Text>
+                    <Text style={styles.saveBtnText}>{isEdit ? 'Save Changes' : 'Save Fuel Log'}</Text>
                   </>
               }
             </LinearGradient>
@@ -222,28 +248,34 @@ export default function AddFuelScreen({ route, navigation }) {
           <View style={{ height: 40 }} />
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: C.bg },
-  header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16 },
-  headerNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
+  header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 22 },
+  headerNav:  { flexDirection: 'row', alignItems: 'center' },
+  backBtn:    { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  headerTitle:{ fontSize: 16, fontWeight: '800', color: '#fff' },
+  headerSub:  { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '500', marginTop: 2 },
 
   scroll: { flex: 1 },
   body:   { padding: 16, gap: 12 },
 
-  field:     { backgroundColor: C.card, borderRadius: 14, padding: 14, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 6, elevation: 1 },
-  fieldHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  fieldIcon: { width: 26, height: 26, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  fieldLabel:{ fontSize: 12, fontWeight: '700', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.4 },
+  field:     { backgroundColor: C.card, borderRadius: 14, padding: 14, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  fieldHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  fieldIcon: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  fieldLabel:{ fontSize: 12, fontWeight: '700', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  input:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.bg, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 11, fontSize: 14, color: C.text, fontWeight: '600' },
-  inputText:  { fontSize: 14, color: C.text, fontWeight: '600' },
-  inputMulti: { height: 72, alignItems: 'flex-start', paddingTop: 10, textAlignVertical: 'top' },
+  autoBadge:     { flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 6, backgroundColor: '#F0FDF4', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
+  autoBadgeText: { fontSize: 10, fontWeight: '700', color: '#16A34A' },
+
+  input:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.bg, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 12, fontSize: 14, color: C.text, fontWeight: '600', borderWidth: 1, borderColor: C.border },
+  inputText:     { fontSize: 14, color: C.text, fontWeight: '600' },
+  inputMulti:    { height: 80, alignItems: 'flex-start', paddingTop: 11, textAlignVertical: 'top' },
+  inputAutoCalced: { borderColor: '#16A34A', borderWidth: 1.5, backgroundColor: '#F0FDF4' },
 
   chipRow:  { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip:     { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border },
@@ -252,6 +284,6 @@ const styles = StyleSheet.create({
   chipTextActive: { color: C.primary, fontWeight: '700' },
 
   saveBtn:     { marginTop: 8, borderRadius: 14, overflow: 'hidden' },
-  saveBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15 },
+  saveBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 17 },
   saveBtnText: { fontSize: 15, fontWeight: '800', color: '#fff' },
 });

@@ -238,13 +238,28 @@ export async function addMaintenanceLog(vehicleId, data) {
   return c.post(`${BASE}/fleet/${vehicleId}/maintenance`, data);
 }
 
+export async function deleteMaintenanceLog(vehicleId, logId) {
+  const c = await getClient();
+  return c.delete(`${BASE}/fleet/${vehicleId}/maintenance/${logId}`);
+}
+
 export async function uploadVehiclePhoto(vehicleId, fileUri, fileName, mimeType, type = 'vehicle') {
   const c = await getClient();
+  // Normalize MIME types — Android sometimes returns 'image/jpg', iOS returns 'image/heic'
+  let normalizedMime = mimeType || 'image/jpeg';
+  if (normalizedMime === 'image/jpg') normalizedMime = 'image/jpeg';
+  if (normalizedMime === 'image/heic' || normalizedMime === 'image/heif') normalizedMime = 'image/jpeg';
+  // Normalize file extension to match MIME
+  let normalizedName = fileName || 'photo.jpg';
+  if (normalizedMime === 'image/jpeg' && !normalizedName.match(/\.(jpg|jpeg)$/i)) {
+    normalizedName = normalizedName.replace(/\.[^.]+$/, '') + '.jpg';
+  }
   const fd = new FormData();
-  fd.append('file', { uri: fileUri, name: fileName, type: mimeType });
+  fd.append('file', { uri: fileUri, name: normalizedName, type: normalizedMime });
   fd.append('type', type);
   return c.post(`${BASE}/fleet/${vehicleId}/photos`, fd, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 30000,
   });
 }
 
@@ -281,6 +296,21 @@ export async function deleteFuelLog(vehicleId, logId) {
 export async function deleteIncident(vehicleId, incidentId) {
   const c = await getClient();
   return c.delete(`${BASE}/fleet/${vehicleId}/incidents/${incidentId}`);
+}
+
+export async function updateMaintenanceLog(vehicleId, logId, data) {
+  const c = await getClient();
+  return c.patch(`${BASE}/fleet/${vehicleId}/maintenance/${logId}`, data);
+}
+
+export async function updateFuelLog(vehicleId, logId, data) {
+  const c = await getClient();
+  return c.patch(`${BASE}/fleet/${vehicleId}/fuel/${logId}`, data);
+}
+
+export async function updateIncident(vehicleId, incidentId, data) {
+  const c = await getClient();
+  return c.patch(`${BASE}/fleet/${vehicleId}/incidents/${incidentId}`, data);
 }
 
 // ── Earnings ──────────────────────────────────────────────────────────────────

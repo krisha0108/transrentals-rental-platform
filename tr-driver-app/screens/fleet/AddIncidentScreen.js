@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, ActivityIndicator, Platform,
+  TextInput, Alert, ActivityIndicator, Platform, KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { addIncident } from '../api/client';
+import { addIncident, updateIncident } from '../api/client';
 import moment from 'moment';
 
 const C = {
@@ -32,27 +32,28 @@ function Field({ label, icon, iconBg, iconColor, children }) {
 
 const INCIDENT_TYPES = ['Accident', 'Breakdown', 'Theft', 'Damage', 'Traffic Violation', 'Other'];
 const SEVERITY_OPTIONS = [
-  { value: 'LOW',    label: 'Low',    color: '#16A34A', bg: '#F0FDF4' },
-  { value: 'MEDIUM', label: 'Medium', color: '#D97706', bg: '#FFFBEB' },
-  { value: 'HIGH',   label: 'High',   color: '#DC2626', bg: '#FEF2F2' },
+  { value: 'LOW',    label: 'Low',    color: '#16A34A', bg: '#F0FDF4', borderColor: '#16A34A', icon: 'checkmark-circle-outline' },
+  { value: 'MEDIUM', label: 'Medium', color: '#D97706', bg: '#FFFBEB', borderColor: '#F59E0B', icon: 'alert-circle-outline' },
+  { value: 'HIGH',   label: 'High',   color: '#DC2626', bg: '#FEF2F2', borderColor: '#EF4444', icon: 'warning-outline' },
 ];
 const STATUS_OPTIONS = [
-  { value: 'PENDING',    label: 'Pending' },
-  { value: 'IN_PROGRESS', label: 'In Progress' },
-  { value: 'RESOLVED',   label: 'Resolved' },
+  { value: 'PENDING',     label: 'Pending',     color: '#64748B', bg: '#F1F5F9' },
+  { value: 'IN_PROGRESS', label: 'In Progress', color: '#2563EB', bg: '#EFF6FF' },
+  { value: 'RESOLVED',    label: 'Resolved',    color: '#16A34A', bg: '#F0FDF4' },
 ];
 
 export default function AddIncidentScreen({ route, navigation }) {
-  const { vehicleId } = route.params;
+  const { vehicleId, log } = route.params;
+  const isEdit = !!log;
 
-  const [date, setDate]               = useState(new Date());
+  const [date, setDate]               = useState(log?.date ? new Date(log.date) : new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [type, setType]               = useState('');
-  const [description, setDescription] = useState('');
-  const [severity, setSeverity]       = useState('MEDIUM');
-  const [repairCost, setRepairCost]   = useState('');
-  const [repairStatus, setRepairStatus] = useState('PENDING');
-  const [notes, setNotes]             = useState('');
+  const [type, setType]               = useState(log?.type || '');
+  const [description, setDescription] = useState(log?.description || '');
+  const [severity, setSeverity]       = useState(log?.severity || 'MEDIUM');
+  const [repairCost, setRepairCost]   = useState(log?.repairCost ? String(log.repairCost) : '');
+  const [repairStatus, setRepairStatus] = useState(log?.repairStatus || 'PENDING');
+  const [notes, setNotes]             = useState(log?.notes || '');
   const [saving, setSaving]           = useState(false);
 
   async function handleSave() {
@@ -62,7 +63,7 @@ export default function AddIncidentScreen({ route, navigation }) {
     }
     setSaving(true);
     try {
-      await addIncident(vehicleId, {
+      const payload = {
         date: date.toISOString(),
         type,
         description: description || null,
@@ -70,13 +71,20 @@ export default function AddIncidentScreen({ route, navigation }) {
         repairCost: repairCost || null,
         repairStatus,
         notes: notes || null,
-      });
+      };
+      if (isEdit) {
+        await updateIncident(vehicleId, log.id, payload);
+      } else {
+        await addIncident(vehicleId, payload);
+      }
       navigation.goBack();
     } catch {
       Alert.alert('Error', 'Failed to save incident');
     }
     setSaving(false);
   }
+
+  const currentSeverity = SEVERITY_OPTIONS.find(s => s.value === severity);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -85,11 +93,15 @@ export default function AddIncidentScreen({ route, navigation }) {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Report Incident</Text>
-          <View style={{ width: 36 }} />
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <Text style={styles.headerTitle}>{isEdit ? 'Edit Incident' : 'Report Incident'}</Text>
+            <Text style={styles.headerSub}>Vehicle #{vehicleId}</Text>
+          </View>
+          <View style={{ width: 38 }} />
         </View>
       </LinearGradient>
 
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.body}>
 
@@ -125,16 +137,28 @@ export default function AddIncidentScreen({ route, navigation }) {
             </View>
           </Field>
 
-          {/* Severity */}
+          {/* Severity — full card options */}
           <Field label="Severity" icon="thermometer-outline" iconBg="#FFFBEB" iconColor={C.warn}>
-            <View style={styles.chipRow}>
+            <View style={{ gap: 8 }}>
               {SEVERITY_OPTIONS.map(s => (
                 <TouchableOpacity
                   key={s.value}
-                  style={[styles.chip, severity === s.value && { backgroundColor: s.bg, borderColor: s.color }]}
+                  style={[
+                    styles.severityCard,
+                    { borderLeftColor: s.borderColor, backgroundColor: severity === s.value ? s.bg : C.bg, borderColor: severity === s.value ? s.borderColor : C.border }
+                  ]}
                   onPress={() => setSeverity(s.value)}
+                  activeOpacity={0.8}
                 >
-                  <Text style={[styles.chipText, severity === s.value && { color: s.color, fontWeight: '700' }]}>{s.label}</Text>
+                  <View style={[styles.severityIcon, { backgroundColor: s.bg }]}>
+                    <Ionicons name={s.icon} size={16} color={s.color} />
+                  </View>
+                  <Text style={[styles.severityLabel, { color: s.color }]}>{s.label}</Text>
+                  {severity === s.value ? (
+                    <View style={[styles.severityCheck, { backgroundColor: s.color }]}>
+                      <Ionicons name="checkmark" size={11} color="#fff" />
+                    </View>
+                  ) : null}
                 </TouchableOpacity>
               ))}
             </View>
@@ -171,10 +195,13 @@ export default function AddIncidentScreen({ route, navigation }) {
               {STATUS_OPTIONS.map(s => (
                 <TouchableOpacity
                   key={s.value}
-                  style={[styles.chip, repairStatus === s.value && styles.chipActive]}
+                  style={[styles.chip, repairStatus === s.value && { backgroundColor: s.bg, borderColor: s.color }]}
                   onPress={() => setRepairStatus(s.value)}
                 >
-                  <Text style={[styles.chipText, repairStatus === s.value && styles.chipTextActive]}>{s.label}</Text>
+                  {repairStatus === s.value ? (
+                    <Ionicons name="ellipse" size={8} color={s.color} style={{ marginRight: 4 }} />
+                  ) : null}
+                  <Text style={[styles.chipText, repairStatus === s.value && { color: s.color, fontWeight: '700' }]}>{s.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -200,7 +227,7 @@ export default function AddIncidentScreen({ route, navigation }) {
                 ? <ActivityIndicator color="#fff" size="small" />
                 : <>
                     <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
-                    <Text style={styles.saveBtnText}>Save Incident Report</Text>
+                    <Text style={styles.saveBtnText}>{isEdit ? 'Save Changes' : 'Save Incident Report'}</Text>
                   </>
               }
             </LinearGradient>
@@ -209,38 +236,46 @@ export default function AddIncidentScreen({ route, navigation }) {
           <View style={{ height: 40 }} />
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: C.bg },
-  header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 16 },
-  headerNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
+  header: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 22 },
+  headerNav:  { flexDirection: 'row', alignItems: 'center' },
+  backBtn:    { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  headerTitle:{ fontSize: 16, fontWeight: '800', color: '#fff' },
+  headerSub:  { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '500', marginTop: 2 },
 
   scroll: { flex: 1 },
   body:   { padding: 16, gap: 12 },
 
-  field:     { backgroundColor: C.card, borderRadius: 14, padding: 14, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 6, elevation: 1 },
-  fieldHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  fieldIcon: { width: 26, height: 26, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  fieldLabel:{ fontSize: 12, fontWeight: '700', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.4 },
+  field:     { backgroundColor: C.card, borderRadius: 14, padding: 14, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  fieldHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  fieldIcon: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  fieldLabel:{ fontSize: 12, fontWeight: '700', color: C.sub, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  input:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.bg, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 11, fontSize: 14, color: C.text, fontWeight: '600' },
+  input:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: C.bg, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 12, fontSize: 14, color: C.text, fontWeight: '600', borderWidth: 1, borderColor: C.border },
   inputText:  { fontSize: 14, color: C.text, fontWeight: '600' },
-  inputMulti: { height: 72, alignItems: 'flex-start', paddingTop: 10, textAlignVertical: 'top' },
+  inputMulti: { height: 80, alignItems: 'flex-start', paddingTop: 11, textAlignVertical: 'top' },
 
   chipRow:  { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip:     { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border },
+  chip:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border },
   chipActive: { backgroundColor: '#F0FDF4', borderColor: C.primary },
   chipActiveRed: { backgroundColor: '#FEF2F2', borderColor: C.danger },
   chipText:   { fontSize: 13, color: C.sub, fontWeight: '600' },
   chipTextActive: { color: C.primary, fontWeight: '700' },
   chipTextRed:    { color: C.danger,   fontWeight: '700' },
 
+  // Severity cards
+  severityCard:  { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, borderWidth: 1.5, borderLeftWidth: 4 },
+  severityIcon:  { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  severityLabel: { flex: 1, fontSize: 14, fontWeight: '700' },
+  severityCheck: { width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center' },
+
   saveBtn:     { marginTop: 8, borderRadius: 14, overflow: 'hidden' },
-  saveBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15 },
+  saveBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 17 },
   saveBtnText: { fontSize: 15, fontWeight: '800', color: '#fff' },
 });

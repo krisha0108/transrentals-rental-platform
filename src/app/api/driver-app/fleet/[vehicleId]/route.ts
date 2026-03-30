@@ -50,7 +50,11 @@ export async function GET(request: NextRequest, { params }: { params: { vehicleI
 
   const vehicle = await prisma.driver_vehicles.findFirst({
     where: { id: params.vehicleId, driverId: driver.id },
-    include: { maintenance_logs: { orderBy: { date: 'desc' } } },
+    include: {
+      maintenance_logs: { orderBy: { date: 'desc' } },
+      fuel_logs: { orderBy: { date: 'desc' }, take: 20 },
+      incidents: { orderBy: { date: 'desc' } },
+    },
   });
 
   if (!vehicle) return NextResponse.json({ success: false, error: 'Vehicle not found' }, { status: 404 });

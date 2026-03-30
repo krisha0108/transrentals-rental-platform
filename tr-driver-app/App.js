@@ -3,7 +3,7 @@ import { NavigationContainer, createNavigationContainerRef } from '@react-naviga
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StyleSheet, View, Text, TouchableOpacity, Animated } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
@@ -337,6 +337,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
+        <StatusBar barStyle="light-content" backgroundColor="#043927" translucent={false} />
         <NavigationContainer ref={navigationRef}>
           <AppNavigator />
         </NavigationContainer>

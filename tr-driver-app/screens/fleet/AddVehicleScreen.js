@@ -17,7 +17,7 @@ const BRAND = {
 const CATEGORIES = ['Sedan', 'SUV', 'Hatchback', 'MUV', 'Luxury', 'Tempo Traveller', 'Mini Bus'];
 const FUEL_TYPES = ['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'];
 
-const PHOTO_SLOTS = [
+const VEHICLE_PHOTO_SLOTS = [
   { key: 'front',     label: 'Front' },
   { key: 'back',      label: 'Back' },
   { key: 'leftSide',  label: 'Left Side' },
@@ -55,27 +55,39 @@ export default function AddVehicleScreen({ navigation }) {
   const [fuel, setFuel]         = useState('');
   const [odometer, setOdometer] = useState('');
 
-  const [insuranceExp, setInsuranceExp] = useState(null);
-  const [rcExp, setRcExp]               = useState(null);
-  const [fitnessExp, setFitnessExp]     = useState(null);
-  const [permitExp, setPermitExp]       = useState(null);
-  const [showDatePicker, setShowDatePicker] = useState(null);
+  // Doc fields
+  const [insuranceNumber, setInsuranceNumber] = useState('');
+  const [rcNumber, setRcNumber]               = useState('');
+  const [insuranceExp, setInsuranceExp]       = useState(null);
+  const [rcExp, setRcExp]                     = useState(null);
+  const [fitnessExp, setFitnessExp]           = useState(null);
+  const [permitExp, setPermitExp]             = useState(null);
+  const [showDatePicker, setShowDatePicker]   = useState(null);
 
-  // Photos: { front: { uri, name, type }, ... }
-  const [photos, setPhotos] = useState({});
+  // Doc photos (collected locally, uploaded after vehicle creation)
+  const [docPhotos, setDocPhotos] = useState({ insurance: null, rc: null, fitness: null, permit: null });
+  // Vehicle photos
+  const [vehiclePhotos, setVehiclePhotos] = useState({});
 
   const dateFields = { insuranceExp, rcExp, fitnessExp, permitExp };
   const setDateFields = { insuranceExp: setInsuranceExp, rcExp: setRcExp, fitnessExp: setFitnessExp, permitExp: setPermitExp };
 
-  async function pickPhoto(slotKey) {
+  async function pickDocPhoto(docKey) {
     const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8 });
     if (result.didCancel || !result.assets?.[0]) return;
     const asset = result.assets[0];
-    setPhotos(p => ({ ...p, [slotKey]: { uri: asset.uri, name: asset.fileName || 'photo.jpg', type: asset.type || 'image/jpeg' } }));
+    setDocPhotos(p => ({ ...p, [docKey]: { uri: asset.uri, name: asset.fileName || 'doc.jpg', type: asset.type || 'image/jpeg' } }));
   }
 
-  function removePhoto(slotKey) {
-    setPhotos(p => { const n = { ...p }; delete n[slotKey]; return n; });
+  async function pickVehiclePhoto(slotKey) {
+    const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8 });
+    if (result.didCancel || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    setVehiclePhotos(p => ({ ...p, [slotKey]: { uri: asset.uri, name: asset.fileName || 'photo.jpg', type: asset.type || 'image/jpeg' } }));
+  }
+
+  function removeVehiclePhoto(slotKey) {
+    setVehiclePhotos(p => { const n = { ...p }; delete n[slotKey]; return n; });
   }
 
   async function handleAdd() {
@@ -90,7 +102,9 @@ export default function AddVehicleScreen({ navigation }) {
         year: year || null, registrationNo: regNo.trim() || null,
         color: color || null, category: category || null,
         seatingCapacity: seats || null, fuelType: fuel || null,
+        insuranceNumber: insuranceNumber || null,
         insuranceExpiry: insuranceExp?.toISOString() || null,
+        rcNumber: rcNumber || null,
         rcExpiry: rcExp?.toISOString() || null,
         fitnessExpiry: fitnessExp?.toISOString() || null,
         permitExpiry: permitExp?.toISOString() || null,
@@ -99,15 +113,17 @@ export default function AddVehicleScreen({ navigation }) {
 
       if (res.data.success) {
         const vehicleId = res.data.vehicle.id;
-
-        // Upload photos if any selected
-        const photoEntries = Object.entries(photos);
-        for (const [slotKey, photo] of photoEntries) {
-          try {
-            await uploadVehiclePhoto(vehicleId, photo.uri, photo.name, photo.type, slotKey);
-          } catch {}
+        // Upload doc photos
+        const DOC_TYPE_MAP = { insurance: 'insurance', rc: 'rc', fitness: 'fitness', permit: 'permit' };
+        for (const [key, photo] of Object.entries(docPhotos)) {
+          if (photo) {
+            try { await uploadVehiclePhoto(vehicleId, photo.uri, photo.name, photo.type, DOC_TYPE_MAP[key]); } catch {}
+          }
         }
-
+        // Upload vehicle photos
+        for (const [slotKey, photo] of Object.entries(vehiclePhotos)) {
+          try { await uploadVehiclePhoto(vehicleId, photo.uri, photo.name, photo.type, slotKey); } catch {}
+        }
         Alert.alert('Vehicle Added!', 'Your vehicle has been added to your fleet.', [
           { text: 'OK', onPress: () => navigation.goBack() },
         ]);
@@ -129,8 +145,8 @@ export default function AddVehicleScreen({ navigation }) {
         <View style={{ width: 36 }} />
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
           {/* Vehicle Details */}
           <View style={styles.card}>
@@ -138,37 +154,25 @@ export default function AddVehicleScreen({ navigation }) {
               <Ionicons name="car-outline" size={16} color={BRAND.primary} />
               <Text style={styles.sectionTitle}>Vehicle Details</Text>
             </View>
-
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
-                <Field label="Make / Brand *">
-                  <InputBox placeholder="Maruti, Hyundai..." value={make} onChangeText={setMake} />
-                </Field>
+                <Field label="Make / Brand *"><InputBox placeholder="Maruti, Hyundai..." value={make} onChangeText={setMake} /></Field>
               </View>
               <View style={{ flex: 1 }}>
-                <Field label="Model *">
-                  <InputBox placeholder="Swift Dzire, Innova..." value={model} onChangeText={setModel} />
-                </Field>
+                <Field label="Model *"><InputBox placeholder="Swift, Innova..." value={model} onChangeText={setModel} /></Field>
               </View>
             </View>
-
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
-                <Field label="Year">
-                  <InputBox placeholder="2020" value={year} onChangeText={setYear} keyboardType="numeric" maxLength={4} />
-                </Field>
+                <Field label="Year"><InputBox placeholder="2020" value={year} onChangeText={setYear} keyboardType="numeric" maxLength={4} /></Field>
               </View>
               <View style={{ flex: 1 }}>
-                <Field label="Color">
-                  <InputBox placeholder="White, Black..." value={color} onChangeText={setColor} />
-                </Field>
+                <Field label="Color"><InputBox placeholder="White, Black..." value={color} onChangeText={setColor} /></Field>
               </View>
             </View>
-
             <Field label="Registration Number">
               <InputBox placeholder="MH12AB1234" value={regNo} onChangeText={setRegNo} autoCapitalize="characters" />
             </Field>
-
             <Field label="Category">
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.chipRow}>
@@ -180,54 +184,95 @@ export default function AddVehicleScreen({ navigation }) {
                 </View>
               </ScrollView>
             </Field>
-
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
-                <Field label="Seating Capacity">
-                  <InputBox placeholder="5" value={seats} onChangeText={setSeats} keyboardType="numeric" maxLength={2} />
-                </Field>
+                <Field label="Seating Capacity"><InputBox placeholder="5" value={seats} onChangeText={setSeats} keyboardType="numeric" maxLength={2} /></Field>
               </View>
               <View style={{ flex: 1 }}>
-                <Field label="Fuel Type">
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={styles.chipRow}>
-                      {FUEL_TYPES.map(f => (
-                        <TouchableOpacity key={f} style={[styles.chip, fuel === f && styles.chipActive]} onPress={() => setFuel(f)}>
-                          <Text style={[styles.chipText, fuel === f && styles.chipTextActive]}>{f}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </ScrollView>
-                </Field>
+                <Field label="Odometer (km)"><InputBox placeholder="45000" value={odometer} onChangeText={setOdometer} keyboardType="numeric" /></Field>
               </View>
             </View>
-
-            <Field label="Current Odometer (km)">
-              <InputBox placeholder="e.g. 45000" value={odometer} onChangeText={setOdometer} keyboardType="numeric" />
+            <Field label="Fuel Type">
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.chipRow}>
+                  {FUEL_TYPES.map(f => (
+                    <TouchableOpacity key={f} style={[styles.chip, fuel === f && styles.chipActive]} onPress={() => setFuel(f)}>
+                      <Text style={[styles.chipText, fuel === f && styles.chipTextActive]}>{f}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
             </Field>
           </View>
 
-          {/* Document Expiry */}
+          {/* Documents */}
           <View style={[styles.card, { marginTop: 12 }]}>
             <View style={styles.sectionHeader}>
               <Ionicons name="document-text-outline" size={16} color={BRAND.primary} />
-              <Text style={styles.sectionTitle}>Document Expiry Dates</Text>
+              <Text style={styles.sectionTitle}>Documents</Text>
             </View>
-            {[
-              { field: 'insuranceExp', label: 'Insurance Expiry' },
-              { field: 'rcExp', label: 'RC Expiry' },
-              { field: 'fitnessExp', label: 'Fitness Certificate Expiry' },
-              { field: 'permitExp', label: 'Permit Expiry' },
-            ].map(({ field, label }) => (
-              <Field key={field} label={label}>
-                <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker(field)}>
-                  <Ionicons name="calendar-outline" size={16} color={BRAND.subText} />
-                  <Text style={[styles.dateBtnText, dateFields[field] && { color: BRAND.text }]}>
-                    {formatDate(dateFields[field])}
-                  </Text>
-                </TouchableOpacity>
-              </Field>
-            ))}
+
+            <Field label="Insurance Number">
+              <InputBox placeholder="INS-XXXX" value={insuranceNumber} onChangeText={setInsuranceNumber} />
+            </Field>
+            <Field label="Insurance Expiry">
+              <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker('insuranceExp')}>
+                <Ionicons name="calendar-outline" size={16} color={BRAND.subText} />
+                <Text style={[styles.dateBtnText, insuranceExp && { color: BRAND.text }]}>{formatDate(insuranceExp)}</Text>
+              </TouchableOpacity>
+            </Field>
+            <View style={styles.docPhotoRow}>
+              {docPhotos.insurance && <Image source={{ uri: docPhotos.insurance.uri }} style={styles.docThumb} resizeMode="cover" />}
+              <TouchableOpacity style={styles.docUploadBtn} onPress={() => pickDocPhoto('insurance')}>
+                <Ionicons name="camera-outline" size={15} color={BRAND.primary} />
+                <Text style={styles.docUploadText}>{docPhotos.insurance ? 'Replace Insurance Photo' : 'Upload Insurance Photo'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Field label="RC Number">
+              <InputBox placeholder="RC-XXXX" value={rcNumber} onChangeText={setRcNumber} />
+            </Field>
+            <Field label="RC Expiry">
+              <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker('rcExp')}>
+                <Ionicons name="calendar-outline" size={16} color={BRAND.subText} />
+                <Text style={[styles.dateBtnText, rcExp && { color: BRAND.text }]}>{formatDate(rcExp)}</Text>
+              </TouchableOpacity>
+            </Field>
+            <View style={styles.docPhotoRow}>
+              {docPhotos.rc && <Image source={{ uri: docPhotos.rc.uri }} style={styles.docThumb} resizeMode="cover" />}
+              <TouchableOpacity style={styles.docUploadBtn} onPress={() => pickDocPhoto('rc')}>
+                <Ionicons name="camera-outline" size={15} color={BRAND.primary} />
+                <Text style={styles.docUploadText}>{docPhotos.rc ? 'Replace RC Photo' : 'Upload RC Photo'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Field label="Fitness Certificate Expiry">
+              <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker('fitnessExp')}>
+                <Ionicons name="calendar-outline" size={16} color={BRAND.subText} />
+                <Text style={[styles.dateBtnText, fitnessExp && { color: BRAND.text }]}>{formatDate(fitnessExp)}</Text>
+              </TouchableOpacity>
+            </Field>
+            <View style={styles.docPhotoRow}>
+              {docPhotos.fitness && <Image source={{ uri: docPhotos.fitness.uri }} style={styles.docThumb} resizeMode="cover" />}
+              <TouchableOpacity style={styles.docUploadBtn} onPress={() => pickDocPhoto('fitness')}>
+                <Ionicons name="camera-outline" size={15} color={BRAND.primary} />
+                <Text style={styles.docUploadText}>{docPhotos.fitness ? 'Replace Fitness Photo' : 'Upload Fitness Photo'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Field label="Permit Expiry">
+              <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker('permitExp')}>
+                <Ionicons name="calendar-outline" size={16} color={BRAND.subText} />
+                <Text style={[styles.dateBtnText, permitExp && { color: BRAND.text }]}>{formatDate(permitExp)}</Text>
+              </TouchableOpacity>
+            </Field>
+            <View style={styles.docPhotoRow}>
+              {docPhotos.permit && <Image source={{ uri: docPhotos.permit.uri }} style={styles.docThumb} resizeMode="cover" />}
+              <TouchableOpacity style={styles.docUploadBtn} onPress={() => pickDocPhoto('permit')}>
+                <Ionicons name="camera-outline" size={15} color={BRAND.primary} />
+                <Text style={styles.docUploadText}>{docPhotos.permit ? 'Replace Permit Photo' : 'Upload Permit Photo'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Vehicle Photos */}
@@ -238,22 +283,22 @@ export default function AddVehicleScreen({ navigation }) {
               <Text style={styles.optionalTag}>Optional</Text>
             </View>
             <View style={styles.photoGrid}>
-              {PHOTO_SLOTS.map(slot => {
-                const photo = photos[slot.key];
+              {VEHICLE_PHOTO_SLOTS.map(slot => {
+                const photo = vehiclePhotos[slot.key];
                 return (
                   <View key={slot.key} style={styles.photoSlotWrap}>
                     <TouchableOpacity
                       style={[styles.photoSlot, photo && styles.photoSlotFilled]}
-                      onPress={() => photo ? null : pickPhoto(slot.key)}
+                      onPress={() => !photo && pickVehiclePhoto(slot.key)}
                       activeOpacity={0.8}
                     >
                       {photo ? (
                         <>
                           <Image source={{ uri: photo.uri }} style={styles.photoImg} resizeMode="cover" />
-                          <TouchableOpacity style={styles.photoRemove} onPress={() => removePhoto(slot.key)}>
+                          <TouchableOpacity style={styles.photoRemove} onPress={() => removeVehiclePhoto(slot.key)}>
                             <Ionicons name="close" size={11} color="#fff" />
                           </TouchableOpacity>
-                          <TouchableOpacity style={styles.photoReplace} onPress={() => pickPhoto(slot.key)}>
+                          <TouchableOpacity style={styles.photoReplace} onPress={() => pickVehiclePhoto(slot.key)}>
                             <Ionicons name="camera" size={11} color="#fff" />
                           </TouchableOpacity>
                         </>
@@ -271,17 +316,10 @@ export default function AddVehicleScreen({ navigation }) {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={[styles.addBtn, loading && { opacity: 0.7 }]}
-            onPress={handleAdd}
-            disabled={loading}
-          >
+          <TouchableOpacity style={[styles.addBtn, loading && { opacity: 0.7 }]} onPress={handleAdd} disabled={loading}>
             {loading
               ? <ActivityIndicator color="#fff" />
-              : <>
-                  <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                  <Text style={styles.addBtnText}>Add Vehicle to Fleet</Text>
-                </>
+              : <><Ionicons name="checkmark-circle" size={20} color="#fff" /><Text style={styles.addBtnText}>Add Vehicle to Fleet</Text></>
             }
           </TouchableOpacity>
 
@@ -294,10 +332,7 @@ export default function AddVehicleScreen({ navigation }) {
           value={dateFields[showDatePicker] || new Date()}
           mode="date"
           display="default"
-          onChange={(e, d) => {
-            setShowDatePicker(null);
-            if (d) setDateFields[showDatePicker](d);
-          }}
+          onChange={(e, d) => { setShowDatePicker(null); if (d) setDateFields[showDatePicker](d); }}
         />
       )}
     </SafeAreaView>
@@ -325,8 +360,10 @@ const styles = StyleSheet.create({
   chipTextActive: { color: '#fff' },
   dateBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: BRAND.bg, borderRadius: 10, borderWidth: 1, borderColor: BRAND.border, paddingHorizontal: 12, height: 44 },
   dateBtnText: { fontSize: 14, color: BRAND.subText },
-
-  // Photo slots
+  docPhotoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  docThumb: { width: 48, height: 48, borderRadius: 8, borderWidth: 1, borderColor: BRAND.border },
+  docUploadBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1, borderColor: '#D1FAE5', backgroundColor: '#F0FDF4' },
+  docUploadText: { fontSize: 13, fontWeight: '600', color: BRAND.primary },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   photoSlotWrap: { alignItems: 'center', gap: 5, width: '30%' },
   photoSlot: { width: '100%', aspectRatio: 1, borderRadius: 12, backgroundColor: BRAND.bg, borderWidth: 1.5, borderColor: BRAND.border, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
@@ -336,7 +373,6 @@ const styles = StyleSheet.create({
   photoSlotLabel: { fontSize: 11, color: BRAND.subText, fontWeight: '600', textAlign: 'center' },
   photoRemove: { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'center' },
   photoReplace: { position: 'absolute', bottom: 4, right: 4, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center' },
-
   addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: BRAND.primary, borderRadius: 14, height: 52, marginTop: 16 },
   addBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });
