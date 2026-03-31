@@ -49,6 +49,11 @@ export async function POST(
     rc: 'rcDocument',
     fitness: 'fitnessDocument',
     permit: 'permitDocument',
+    front: 'photoFront',
+    back: 'photoBack',
+    leftSide: 'photoLeftSide',
+    rightSide: 'photoRightSide',
+    interior: 'photoInterior',
   };
 
   if (FIELD_MAP[type]) {
@@ -59,7 +64,7 @@ export async function POST(
     return NextResponse.json({ success: true, url });
   }
 
-  // vehicle photos — append to JSON array
+  // vehicle photos — append to JSON array (legacy/generic)
   const existing: string[] = vehicle.vehiclePhotos ? JSON.parse(vehicle.vehiclePhotos) : [];
   const updated = [...existing, url];
   await prisma.driver_vehicles.update({
@@ -92,6 +97,11 @@ export async function DELETE(
     rc: 'rcDocument',
     fitness: 'fitnessDocument',
     permit: 'permitDocument',
+    front: 'photoFront',
+    back: 'photoBack',
+    leftSide: 'photoLeftSide',
+    rightSide: 'photoRightSide',
+    interior: 'photoInterior',
   };
 
   if (type && FIELD_MAP[type]) {

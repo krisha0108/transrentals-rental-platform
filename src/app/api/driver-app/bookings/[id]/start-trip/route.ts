@@ -238,6 +238,41 @@ export async function POST(
       return NextResponse.json({ success: true, booking: updated });
     }
 
+    // ── B2B TRIP ───────────────────────────────────────────────────────────────
+    if (source === 'b2b') {
+      const trip = await prisma.b2b_trips.findUnique({
+        where: { id: params.id },
+        select: { id: true, vendorId: true, status: true, otp: true, bookingId: true },
+      });
+
+      if (!trip) return NextResponse.json({ success: false, error: 'Trip not found' }, { status: 404 });
+
+      const driverVendorId = (driver as any).vendorId;
+      if (trip.vendorId !== driverVendorId)
+        return NextResponse.json({ success: false, error: 'Not authorized' }, { status: 403 });
+      if (trip.status !== 'DRIVER_ARRIVED')
+        return NextResponse.json({ success: false, error: 'Send OTP to customer first' }, { status: 409 });
+      if (!trip.otp || trip.otp !== otp.toString())
+        return NextResponse.json({ success: false, error: 'Invalid OTP' }, { status: 400 });
+
+      await prisma.b2b_trips.update({
+        where: { id: params.id },
+        data: { status: 'STARTED', startedAt: new Date(), otp: null },
+      });
+
+      // Update booking to IN_PROGRESS if not yet started
+      const b2bBooking = await prisma.b2b_bookings.findUnique({
+        where: { id: trip.bookingId }, select: { status: true },
+      });
+      if (b2bBooking && ['TRIPS_CREATED', 'CONFIRMED'].includes(b2bBooking.status)) {
+        await prisma.b2b_bookings.update({
+          where: { id: trip.bookingId }, data: { status: 'IN_PROGRESS' },
+        });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
     return NextResponse.json({ success: false, error: 'Unsupported booking type' }, { status: 400 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error?.message }, { status: 500 });

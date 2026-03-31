@@ -3,7 +3,7 @@ import { NavigationContainer, createNavigationContainerRef } from '@react-naviga
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StyleSheet, View, Text, TouchableOpacity, Animated } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
@@ -31,6 +31,8 @@ import AddVehicleScreen from './screens/fleet/AddVehicleScreen';
 import VehicleDetailScreen from './screens/fleet/VehicleDetailScreen';
 import EditVehicleScreen from './screens/fleet/EditVehicleScreen';
 import AddMaintenanceScreen from './screens/fleet/AddMaintenanceScreen';
+import AddFuelScreen from './screens/fleet/AddFuelScreen';
+import AddIncidentScreen from './screens/fleet/AddIncidentScreen';
 import EarningsScreen from './screens/earnings/EarningsScreen';
 import TripHistoryScreen from './screens/earnings/TripHistoryScreen';
 import ProfileScreen from './screens/profile/ProfileScreen';
@@ -231,6 +233,8 @@ function AppNavigator() {
       <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} />
       <Stack.Screen name="EditVehicle" component={EditVehicleScreen} />
       <Stack.Screen name="AddMaintenance" component={AddMaintenanceScreen} />
+      <Stack.Screen name="AddFuel" component={AddFuelScreen} />
+      <Stack.Screen name="AddIncident" component={AddIncidentScreen} />
       <Stack.Screen name="TripHistory" component={TripHistoryScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
@@ -333,6 +337,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
+        <StatusBar barStyle="light-content" backgroundColor="#043927" translucent={false} />
         <NavigationContainer ref={navigationRef}>
           <AppNavigator />
         </NavigationContainer>

@@ -53,12 +53,13 @@ export default function LoginScreen({ navigation }) {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          keyboardDismissMode="interactive"
         >
           {/* ── Branding ── */}
           <View style={styles.brand}>
@@ -157,7 +158,7 @@ function Field({ label, icon, error, rightIcon, onRightPress, ...props }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#FFFFFF' },
-  scroll: { flexGrow: 1, paddingHorizontal: 28, paddingTop: 60, paddingBottom: 40 },
+  scroll: { paddingHorizontal: 28, paddingTop: 60, paddingBottom: 120 },
 
   // Branding
   brand: { alignItems: 'center', marginBottom: 40 },

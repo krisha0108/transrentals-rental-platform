@@ -378,6 +378,59 @@ export async function POST(
       return NextResponse.json({ success: true, message: `${otpType} OTP sent to customer` });
     }
 
+    // ── B2B TRIP ───────────────────────────────────────────────────────────────
+    if (source === 'b2b') {
+      const trip = await prisma.b2b_trips.findUnique({
+        where: { id: params.id },
+        include: {
+          booking: { select: { id: true, bookingNumber: true, customerId: true } },
+        },
+      });
+
+      if (!trip) return NextResponse.json({ success: false, error: 'Trip not found' }, { status: 404 });
+      if (trip.vendorId !== (driver as any).vendorId)
+        return NextResponse.json({ success: false, error: 'Not authorized' }, { status: 403 });
+      if (!['PENDING', 'DRIVER_ARRIVED'].includes(trip.status))
+        return NextResponse.json({ success: false, error: 'Cannot send OTP at this stage' }, { status: 409 });
+
+      // B2B uses 4-digit OTP (consistent with web b2b flow)
+      const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
+      await prisma.b2b_trips.update({
+        where: { id: params.id },
+        data: { status: 'DRIVER_ARRIVED', driverArrivedAt: new Date(), otp, otpGeneratedAt: new Date() },
+      });
+
+      // Send OTP to customer via push notification
+      if (trip.booking?.customerId) {
+        try {
+          await sendNotificationToCustomer(
+            trip.booking.customerId,
+            {
+              title: '🔐 Your Trip OTP',
+              body: `Your driver has arrived. Share OTP ${otp} with the driver to start your trip. Booking #${trip.booking.bookingNumber}`,
+            },
+            { type: 'trip_otp', bookingId: trip.bookingId, bookingNumber: trip.booking.bookingNumber, otp }
+          );
+          await prisma.notifications.create({
+            data: prepareNotificationData({
+              customerId: trip.booking.customerId,
+              title: '🔐 Your Trip OTP',
+              body: `Your driver has arrived. Share OTP ${otp} with the driver to start your trip. Booking #${trip.booking.bookingNumber}`,
+              type: 'booking',
+              serviceType: 'b2b',
+              bookingId: trip.bookingId,
+              quoteId: null,
+            }),
+          });
+        } catch (notifErr) {
+          console.error('[request-otp b2b] notification failed:', notifErr);
+        }
+      }
+
+      return NextResponse.json({ success: true, message: 'OTP sent to customer' });
+    }
+
     return NextResponse.json({ success: false, error: 'Unsupported booking type' }, { status: 400 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error?.message }, { status: 500 });
