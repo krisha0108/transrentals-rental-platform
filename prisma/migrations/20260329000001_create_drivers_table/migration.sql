@@ -1,0 +1,47 @@
+-- Create drivers_status enum
+CREATE TABLE IF NOT EXISTS `_prisma_driver_status_placeholder` (dummy INT);
+DROP TABLE IF EXISTS `_prisma_driver_status_placeholder`;
+
+-- Create drivers table
+CREATE TABLE IF NOT EXISTS `drivers` (
+  `id` VARCHAR(191) NOT NULL,
+  `name` VARCHAR(191) NOT NULL,
+  `phone` VARCHAR(191) NOT NULL,
+  `email` VARCHAR(191) NOT NULL,
+  `password` VARCHAR(191) NOT NULL,
+  `profilePhoto` VARCHAR(191) NULL,
+  `dateOfBirth` DATETIME(3) NULL,
+  `address` TEXT NULL,
+  `city` VARCHAR(191) NULL,
+  `state` VARCHAR(191) NULL,
+  `pincode` VARCHAR(191) NULL,
+  `role` VARCHAR(191) NOT NULL DEFAULT 'DRIVER',
+  `status` ENUM('PENDING', 'ACTIVE', 'INACTIVE', 'SUSPENDED') NOT NULL DEFAULT 'ACTIVE',
+  `joiningDate` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `salary` DOUBLE NOT NULL DEFAULT 0,
+  `aadharNumber` VARCHAR(191) NULL,
+  `aadharDocument` VARCHAR(191) NULL,
+  `panNumber` VARCHAR(191) NULL,
+  `panDocument` VARCHAR(191) NULL,
+  `licenseNumber` VARCHAR(191) NULL,
+  `licenseType` VARCHAR(191) NULL,
+  `licenseExpiry` DATETIME(3) NULL,
+  `licenseDocument` VARCHAR(191) NULL,
+  `bankName` VARCHAR(191) NULL,
+  `accountHolderName` VARCHAR(191) NULL,
+  `accountNumber` VARCHAR(191) NULL,
+  `ifscCode` VARCHAR(191) NULL,
+  `emergencyContact` VARCHAR(191) NULL,
+  `emergencyPhone` VARCHAR(191) NULL,
+  `fcmToken` TEXT NULL,
+  `lastLoginAt` DATETIME(3) NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL,
+
+  UNIQUE INDEX `drivers_phone_key` (`phone`),
+  UNIQUE INDEX `drivers_email_key` (`email`),
+  INDEX `drivers_email_idx` (`email`),
+  INDEX `drivers_phone_idx` (`phone`),
+  INDEX `drivers_status_idx` (`status`),
+  PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
