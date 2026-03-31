@@ -246,7 +246,7 @@ export default function VendorQuoteDetailPage() {
             <div className="text-right">
               <p className="text-3xl font-bold text-orange-600">₹{quote.totalAmount.toLocaleString()}</p>
               <p className="text-sm text-gray-500">
-                Valid till {new Date(quote.validTill).toLocaleDateString('en-IN')}
+                Valid till {new Date(quote.validTill).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
               </p>
               {quote.viewCount > 0 && (
                 <p className="text-xs text-purple-600 mt-1">

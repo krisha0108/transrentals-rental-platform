@@ -29,6 +29,7 @@ export default function VendorWanderQuoteDetailPage() {
     extraInclusionInput: '',
     extraExclusionInput: '',
     validUntil: '',
+    validUntilTime: '23:59',
     notes: '',
   });
 
@@ -85,7 +86,7 @@ export default function VendorWanderQuoteDetailPage() {
           perPersonAmount: quoteForm.perPersonAmount || null,
           customInclusions: allInclusions,
           customExclusions: allExclusions,
-          validUntil: quoteForm.validUntil || null,
+          validUntil: quoteForm.validUntil ? new Date(`${quoteForm.validUntil}T${quoteForm.validUntilTime || '23:59'}:00`).toISOString() : null,
           notes: quoteForm.notes,
         }),
       });
@@ -517,12 +518,21 @@ export default function VendorWanderQuoteDetailPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Quote Valid Until</label>
-                <input
-                  type="date"
-                  value={quoteForm.validUntil}
-                  onChange={(e) => setQuoteForm(f => ({ ...f, validUntil: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={quoteForm.validUntil}
+                    onChange={(e) => setQuoteForm(f => ({ ...f, validUntil: e.target.value }))}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <input
+                    type="time"
+                    value={quoteForm.validUntilTime}
+                    onChange={(e) => setQuoteForm(f => ({ ...f, validUntilTime: e.target.value }))}
+                    className="w-[130px] px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
               </div>
             </div>
 

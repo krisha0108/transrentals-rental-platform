@@ -1,8 +1,4 @@
--- Create drivers_status enum
-CREATE TABLE IF NOT EXISTS `_prisma_driver_status_placeholder` (dummy INT);
-DROP TABLE IF EXISTS `_prisma_driver_status_placeholder`;
-
--- Create drivers table
+-- Create drivers table (previously added via db push without migration)
 CREATE TABLE IF NOT EXISTS `drivers` (
   `id` VARCHAR(191) NOT NULL,
   `name` VARCHAR(191) NOT NULL,

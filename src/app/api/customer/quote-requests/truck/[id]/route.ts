@@ -18,7 +18,7 @@ export async function GET(
       include: {
         truck_quotes: {
           where: {
-            status: { in: ['SENT', 'VIEWED'] },
+            status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] },
           },
           include: {
             vendors: {
@@ -73,6 +73,8 @@ export async function GET(
       vehicleType: quote.vehicleName,
       vehicleNumber: quote.vehicleNumber,
       totalAmount: quote.totalAmount,
+      advanceAmount: quote.advanceAmount || 0,
+      advancePercent: quote.advancePercent || 0,
       baseRate: quote.baseAmount || quote.totalAmount,
       loadingCharges: quote.loadingCharges || 0,
       unloadingCharges: quote.unloadingCharges || 0,

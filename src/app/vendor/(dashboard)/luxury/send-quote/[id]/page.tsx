@@ -125,11 +125,18 @@ export default function SendQuotePage() {
   const [extraHourRate, setExtraHourRate] = useState<number | ''>(0);
   const [gstPercent, setGstPercent] = useState(5);
   const [advancePercent, setAdvancePercent] = useState(30);
+  const [advanceMode, setAdvanceMode] = useState<'percent' | 'manual'>('percent');
+  const [customAdvanceAmount, setCustomAdvanceAmount] = useState('');
   const [inclusions, setInclusions] = useState<string[]>(DEFAULT_INCLUSIONS);
   const [exclusions, setExclusions] = useState<string[]>(DEFAULT_EXCLUSIONS);
   const [termsConditions, setTermsConditions] = useState<string[]>(DEFAULT_TERMS);
   const [vendorMessage, setVendorMessage] = useState('');
+  const [quickQuoteMode, setQuickQuoteMode] = useState(false);
+  const [quickTotalPrice, setQuickTotalPrice] = useState('');
   const [validityDays, setValidityDays] = useState(3);
+  const [validityMode, setValidityMode] = useState<'days' | 'custom'>('days');
+  const [customValidDate, setCustomValidDate] = useState('');
+  const [customValidTime, setCustomValidTime] = useState('23:59');
   const [newInclusion, setNewInclusion] = useState('');
   const [newExclusion, setNewExclusion] = useState('');
   const [newTerm, setNewTerm] = useState('');
@@ -183,6 +190,28 @@ export default function SendQuotePage() {
       if (templateData.success) {
         setTemplates(templateData.templates || []);
       }
+      // Check for expired quote to pre-fill (resubmit flow)
+      try {
+        const expiredRes = await fetch(`/api/vendor/luxury-quotes?requestId=${params.id}&expired=true`);
+        const expiredData = await expiredRes.json();
+        if (expiredData.success && expiredData.quote) {
+          const eq = expiredData.quote;
+          if (eq.vehicleName) setVehicleName(eq.vehicleName);
+          if (eq.vehicleNumber) setVehicleNumber(eq.vehicleNumber);
+          if (eq.baseAmount) setBaseAmount(eq.baseAmount);
+          if (eq.chauffeurCharges) setChauffeurCharges(eq.chauffeurCharges);
+          if (eq.decorationCharges) setDecorationCharges(eq.decorationCharges);
+          if (eq.extraKmRate) setExtraKmRate(eq.extraKmRate);
+          if (eq.extraHourRate) setExtraHourRate(eq.extraHourRate);
+          if (eq.gstPercent) setGstPercent(eq.gstPercent);
+          if (eq.advancePercent) setAdvancePercent(eq.advancePercent);
+          if (eq.inclusions) setInclusions(Array.isArray(eq.inclusions) ? eq.inclusions : []);
+          if (eq.exclusions) setExclusions(Array.isArray(eq.exclusions) ? eq.exclusions : []);
+          if (eq.termsConditions) setTermsConditions(Array.isArray(eq.termsConditions) ? eq.termsConditions : []);
+          if (eq.vendorMessage) setVendorMessage(eq.vendorMessage);
+          if (eq.fleetVehicleId) setSelectedFleet(eq.fleetVehicleId);
+        }
+      } catch {}
     } catch (err) {
       setError('Failed to load data');
     } finally {
@@ -220,20 +249,29 @@ export default function SendQuotePage() {
   };
 
   const calculateTotal = () => {
+    if (quickQuoteMode) {
+      const total = parseFloat(quickTotalPrice) || 0;
+      const advance = advanceMode === 'manual' && customAdvanceAmount
+        ? Math.round(parseFloat(customAdvanceAmount) || 0)
+        : Math.round(total * advancePercent / 100);
+      return { subtotal: total, gst: 0, total, advance };
+    }
     const base = Number(baseAmount) || 0;
     const chauffeur = Number(chauffeurCharges) || 0;
     const decoration = Number(decorationCharges) || 0;
     const subtotal = base + chauffeur + decoration;
     const gst = Math.round(subtotal * gstPercent / 100);
     const total = subtotal + gst;
-    const advance = Math.round(total * advancePercent / 100);
+    const advance = advanceMode === 'manual' && customAdvanceAmount
+      ? Math.round(parseFloat(customAdvanceAmount) || 0)
+      : Math.round(total * advancePercent / 100);
     return { subtotal, gst, total, advance };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!vehicleName || !baseAmount) {
-      setError('Please select a vehicle and enter base amount');
+    if (!vehicleName || (!quickQuoteMode && !baseAmount) || (quickQuoteMode && !quickTotalPrice)) {
+      setError('Please select a vehicle and enter pricing');
       return;
     }
 
@@ -253,20 +291,24 @@ export default function SendQuotePage() {
           vehicleNumber,
           vehicleYear: vehicleYear || null,
           fleetId: selectedFleet || null,
-          baseAmount: Number(baseAmount),
-          chauffeurCharges: Number(chauffeurCharges) || 0,
-          decorationCharges: Number(decorationCharges) || 0,
-          extraKmRate: Number(extraKmRate) || 0,
-          extraHourRate: Number(extraHourRate) || 0,
+          baseAmount: quickQuoteMode ? (parseFloat(quickTotalPrice) || 0) : Number(baseAmount),
+          chauffeurCharges: quickQuoteMode ? 0 : (Number(chauffeurCharges) || 0),
+          decorationCharges: quickQuoteMode ? 0 : (Number(decorationCharges) || 0),
+          extraKmRate: quickQuoteMode ? 0 : (Number(extraKmRate) || 0),
+          extraHourRate: quickQuoteMode ? 0 : (Number(extraHourRate) || 0),
           gstAmount: gst,
           totalAmount: total,
           advanceAmount: advance,
-          advancePercent,
+          advancePercent: advanceMode === 'percent' ? advancePercent : 0,
+          customAdvanceAmount: advanceMode === 'manual' ? (parseFloat(customAdvanceAmount) || 0) : undefined,
           inclusions,
           exclusions,
           termsConditions,
           vendorMessage,
-          validityDays,
+          validityDays: validityMode === 'days' ? validityDays : undefined,
+          customValidTill: validityMode === 'custom' && customValidDate
+            ? new Date(`${customValidDate}T${customValidTime || '23:59'}:00`).toISOString()
+            : undefined,
         }),
       });
 
@@ -340,6 +382,7 @@ export default function SendQuotePage() {
   }
 
   const { subtotal, gst, total, advance } = calculateTotal();
+  const advanceExceedsTotal = advance > total && total > 0;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -583,8 +626,37 @@ export default function SendQuotePage() {
 
         {/* Pricing */}
         <div className="bg-white rounded-xl p-6 shadow-sm border">
-          <h3 className="font-semibold text-gray-900 mb-4">Set Your Pricing</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Set Your Pricing</h3>
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+              <button type="button" onClick={() => setQuickQuoteMode(false)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${!quickQuoteMode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'}`}>
+                Itemized
+              </button>
+              <button type="button" onClick={() => setQuickQuoteMode(true)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${quickQuoteMode ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'}`}>
+                Quick Quote
+              </button>
+            </div>
+          </div>
 
+          {quickQuoteMode ? (
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Total Quote Price *</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                <input
+                  type="number"
+                  value={quickTotalPrice}
+                  onChange={(e) => setQuickTotalPrice(e.target.value)}
+                  placeholder="Enter your all-inclusive total price"
+                  className="w-full pl-8 p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-lg font-semibold"
+                  required
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Enter one total price including all charges (base, chauffeur, decoration, GST, etc.)</p>
+            </div>
+          ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Base Amount *</label>
@@ -669,22 +741,57 @@ export default function SendQuotePage() {
                 <option value={18}>18%</option>
               </select>
             </div>
+          </div>
+          )}
+
+          {/* Advance — shown in both modes */}
+          <div className="grid md:grid-cols-2 gap-4 mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Advance %</label>
-              <select
-                value={advancePercent}
-                onChange={(e) => setAdvancePercent(parseInt(e.target.value))}
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500"
-              >
-                <option value={20}>20%</option>
-                <option value={25}>25%</option>
-                <option value={30}>30%</option>
-                <option value={40}>40%</option>
-                <option value={50}>50%</option>
-                <option value={100}>100% (Full Payment)</option>
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Advance Payment
+              </label>
+              <div className="flex gap-1 mb-2 bg-gray-100 rounded-lg p-0.5">
+                <button type="button" onClick={() => setAdvanceMode('percent')}
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'percent' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'}`}>
+                  By Percentage
+                </button>
+                <button type="button" onClick={() => setAdvanceMode('manual')}
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'manual' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500'}`}>
+                  Custom Amount
+                </button>
+              </div>
+              {advanceMode === 'percent' ? (
+                <select
+                  value={advancePercent}
+                  onChange={(e) => setAdvancePercent(parseInt(e.target.value))}
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value={20}>20%</option>
+                  <option value={25}>25%</option>
+                  <option value={30}>30%</option>
+                  <option value={40}>40%</option>
+                  <option value={50}>50%</option>
+                  <option value={100}>100% (Full Payment)</option>
+                </select>
+              ) : (
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                  <input
+                    type="number"
+                    value={customAdvanceAmount}
+                    onChange={(e) => setCustomAdvanceAmount(e.target.value)}
+                    placeholder="Enter advance amount"
+                    min="0"
+                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              )}
             </div>
           </div>
+
+          {advanceExceedsTotal && (
+            <p className="text-xs text-red-600 mt-1 font-medium">Advance amount cannot exceed total price</p>
+          )}
 
           {/* Total */}
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
@@ -702,7 +809,7 @@ export default function SendQuotePage() {
                 <p className="text-xl font-bold text-purple-700">₹{total.toLocaleString()}</p>
               </div>
               <div className="bg-green-100 rounded-lg p-2">
-                <p className="text-sm text-green-700">Advance ({advancePercent}%)</p>
+                <p className="text-sm text-green-700">Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Custom)'}</p>
                 <p className="text-xl font-bold text-green-700">₹{advance.toLocaleString()}</p>
               </div>
             </div>
@@ -819,23 +926,53 @@ export default function SendQuotePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Quote Valid For</label>
-              <select
-                value={validityDays}
-                onChange={(e) => setValidityDays(parseInt(e.target.value))}
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500"
-              >
-                <option value={1}>1 Day</option>
-                <option value={2}>2 Days</option>
-                <option value={3}>3 Days</option>
-                <option value={5}>5 Days</option>
-                <option value={7}>7 Days</option>
-              </select>
-              <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Quote Valid Till</label>
+              <div className="flex gap-1 mb-2 bg-gray-100 rounded-lg p-0.5">
+                <button type="button"
+                  onClick={() => setValidityMode('days')}
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${validityMode === 'days' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                  Quick (Days)
+                </button>
+                <button type="button"
+                  onClick={() => setValidityMode('custom')}
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${validityMode === 'custom' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                  Custom Date & Time
+                </button>
+              </div>
+              {validityMode === 'days' ? (
+                <select
+                  value={validityDays}
+                  onChange={(e) => setValidityDays(parseInt(e.target.value))}
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value={1}>1 Day</option>
+                  <option value={2}>2 Days</option>
+                  <option value={3}>3 Days</option>
+                  <option value={5}>5 Days</option>
+                  <option value={7}>7 Days</option>
+                </select>
+              ) : (
+                <div className="flex gap-2">
+                  <input type="date" value={customValidDate} onChange={(e) => setCustomValidDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
+                    required={validityMode === 'custom'} />
+                  <input type="time" value={customValidTime} onChange={(e) => setCustomValidTime(e.target.value)}
+                    className="w-[130px] p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-sm" />
+                </div>
+              )}
+              <p className="text-xs text-gray-400 mt-1">
+                {validityMode === 'days'
+                  ? `Quote expires in ${validityDays} day${validityDays !== 1 ? 's' : ''} from submission`
+                  : customValidDate
+                    ? `Quote valid till ${new Date(`${customValidDate}T${customValidTime || '23:59'}`).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
+                    : 'Select expiry date and time'}
+              </p>
+              <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <div className="flex items-start gap-2">
                   <Info className="w-4 h-4 text-blue-600 mt-0.5" />
                   <p className="text-xs text-blue-700">
-                    After validity expires, your quote will be marked as expired and customer won't be able to accept it.
+                    After validity expires, your quote will be marked as expired and customer won&apos;t be able to accept it.
                   </p>
                 </div>
               </div>
@@ -853,7 +990,7 @@ export default function SendQuotePage() {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting || !vehicleName || !baseAmount}
+            disabled={isSubmitting || !vehicleName || !baseAmount || advanceExceedsTotal}
             className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
           >
             {isSubmitting ? (
@@ -873,3 +1010,9 @@ export default function SendQuotePage() {
     </div>
   );
 }
+
+
+
+
+
+

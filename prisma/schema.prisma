@@ -1466,6 +1466,8 @@ model equipment_quotes {
   securityDeposit            Float                       @default(0)
   gstAmount                  Float                       @default(0)
   totalAmount                Float
+  advanceAmount              Float                       @default(0)
+  advancePercent             Int                         @default(30)
   inclusions                 String?                     @db.LongText
   exclusions                 String?                     @db.LongText
   termsConditions            String?                     @db.LongText
@@ -2332,6 +2334,8 @@ model packers_quotes {
   insuranceCharges         Float                     @default(0)
   gstAmount                Float                     @default(0)
   totalAmount              Float
+  advanceAmount            Float                     @default(0)
+  advancePercent           Int                       @default(50)
   packingMaterials         String?                   @db.LongText
   materialCharges          Float                     @default(0)
   inclusions               String                    @db.LongText
@@ -3051,6 +3055,8 @@ model truck_quotes {
   tollEstimate           Float                   @default(0)
   gstAmount              Float                   @default(0)
   totalAmount            Float
+  advanceAmount          Float                   @default(0)
+  advancePercent         Int                     @default(50)
   inclusions             String                  @db.LongText
   exclusions             String                  @db.LongText
   termsConditions        String                  @db.LongText

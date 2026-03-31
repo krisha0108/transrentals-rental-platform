@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
           { locationId: null },
         ],
         luxury_quotes: {
-          none: { vendorId: vendor.id },
+          none: { vendorId: vendor.id, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } },
         },
       };
 
@@ -149,12 +149,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (effectiveType === 'quoted' || effectiveType === 'all') {
-      // Fetch requests where vendor has submitted a quote (pending decision)
+      // Fetch requests where vendor has submitted a quote (pending decision or expired)
       const quotedRequestsWhere = {
         ...dateFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         luxury_quotes: {
-          some: { vendorId: vendor.id, status: { in: ['SENT', 'VIEWED'] } },
+          some: { vendorId: vendor.id, status: { in: ['SENT', 'VIEWED', 'EXPIRED'] } },
         },
       };
 
@@ -197,7 +197,8 @@ export async function GET(request: NextRequest) {
         returnDate: r.returnDate,
         needDecoration: r.needDecoration,
         requirements: r.requirements,
-        status: 'QUOTE_SENT',
+        status: r.luxury_quotes[0]?.status === 'EXPIRED' ? 'QUOTE_EXPIRED' : 'QUOTE_SENT',
+        requestStatus: r.status,
         myQuote: r.luxury_quotes[0] || null,
         location: r.locations,
         createdAt: r.createdAt,

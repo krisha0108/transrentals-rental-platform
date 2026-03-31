@@ -29,7 +29,7 @@ export async function GET(
       where: { id },
       include: {
         luxury_quotes: {
-          where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
+          where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] } },
           include: {
             vendors: { select: { id: true, businessName: true, rating: true, phone: true } },
             vendor_fleets: {
@@ -50,7 +50,7 @@ export async function GET(
         where: { requestNumber: id },
         include: {
           luxury_quotes: {
-            where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
+            where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] } },
             include: {
               vendors: { select: { id: true, businessName: true, rating: true, phone: true } },
               vendor_fleets: {

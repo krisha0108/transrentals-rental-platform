@@ -61,6 +61,7 @@ interface LuxuryItem {
   quotesOpenTill: string | null;
   totalQuotesReceived: number | null;
   myQuote: { id: string; quoteNumber: string; totalAmount: number; status: string } | null;
+  requestStatus?: string;
   createdAt: string;
 }
 
@@ -349,9 +350,15 @@ export default function VendorLuxuryBookingsPage() {
                       </span>
                     )}
                     {isQuoted && item.myQuote && (
-                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
-                        Quote: ₹{item.myQuote.totalAmount.toLocaleString()}
-                      </span>
+                      item.myQuote.status === 'EXPIRED' ? (
+                        <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-medium">
+                          Quote Expired
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                          Quote: ₹{item.myQuote.totalAmount.toLocaleString()}
+                        </span>
+                      )
                     )}
                   </div>
                   <div className="flex items-center gap-2">
@@ -501,13 +508,24 @@ export default function VendorLuxuryBookingsPage() {
                       </Link>
                     )}
                     {isQuoted && item.myQuote && (
-                      <Link
-                        href={`/vendor/luxury/quotes/${item.myQuote.id}`}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View Quote
-                      </Link>
+                      <>
+                        <Link
+                          href={`/vendor/luxury/quotes/${item.myQuote.id}`}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View Quote
+                        </Link>
+                        {item.myQuote.status === 'EXPIRED' && item.requestStatus === 'PENDING' && (
+                          <Link
+                            href={`/vendor/luxury/send-quote/${item.id}`}
+                            className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 flex items-center gap-2"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                            Resubmit Quote
+                          </Link>
+                        )}
+                      </>
                     )}
                     {item.type === 'booking' && ['ADVANCE_PAID', 'CONFIRMED'].includes(item.status) && !item.driverName && (
                       <Link

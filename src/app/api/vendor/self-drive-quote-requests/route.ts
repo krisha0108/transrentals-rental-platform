@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
         quotesOpenTill: { gte: new Date() },
         locationId: approvedLocationIds.length > 0 ? { in: approvedLocationIds } : undefined,
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
-          none: { vendorId: vendorId },
+          none: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } },
         },
       };
     } else if (type === 'quoted') {

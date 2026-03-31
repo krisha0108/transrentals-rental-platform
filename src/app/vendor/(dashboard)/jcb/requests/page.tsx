@@ -15,6 +15,8 @@ import {
   Phone,
   Mail,
   User,
+  RefreshCw,
+  XCircle,
 } from 'lucide-react';
 import { JCB_CONFIG } from '@/lib/quote-services';
 
@@ -31,9 +33,11 @@ interface QuoteRequest {
   customerPhone: string;
   customerEmail?: string;
   specialRequirements?: string;
+  status: string;
   quotesReceived: number;
   createdAt: string;
   hasQuoted: boolean;
+  myQuote?: { id: string; quoteNumber: string; totalAmount: number; status: string };
 }
 
 const SAMPLE_REQUESTS: QuoteRequest[] = [
@@ -171,7 +175,12 @@ export default function VendorJCBRequestsPage() {
                       {request.quotesReceived} quotes received
                     </span>
                   )}
-                  {request.hasQuoted ? (
+                  {request.hasQuoted && request.myQuote?.status === 'EXPIRED' ? (
+                    <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full flex items-center gap-1">
+                      <XCircle className="w-3 h-3" />
+                      Quote Expired
+                    </span>
+                  ) : request.hasQuoted ? (
                     <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
                       <CheckCircle className="w-3 h-3" />
                       Quoted
@@ -271,13 +280,24 @@ export default function VendorJCBRequestsPage() {
                       Send Quote
                     </Link>
                   ) : (
-                    <Link
-                      href={`/vendor/jcb/quotes/${request.id}`}
-                      className="px-4 py-2 bg-green-100 text-green-700 text-sm font-semibold rounded-lg hover:bg-green-200 transition flex items-center gap-1"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      View Your Quote
-                    </Link>
+                    <>
+                      <Link
+                        href={`/vendor/jcb/quotes/${request.myQuote?.id || request.id}`}
+                        className="px-4 py-2 bg-green-100 text-green-700 text-sm font-semibold rounded-lg hover:bg-green-200 transition flex items-center gap-1"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        View Your Quote
+                      </Link>
+                      {request.myQuote?.status === 'EXPIRED' && request.status === 'PENDING' && (
+                        <Link
+                          href={`/vendor/jcb/requests/${request.id}/quote`}
+                          className="px-4 py-2 bg-yellow-500 text-white text-sm font-semibold rounded-lg hover:bg-yellow-600 transition flex items-center gap-1"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                          Resubmit Quote
+                        </Link>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

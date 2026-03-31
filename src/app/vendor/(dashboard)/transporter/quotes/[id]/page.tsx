@@ -493,10 +493,13 @@ export default function VendorQuoteDetailPage() {
                 </div>
                 <div>
                   <p className="font-medium">
-                    Valid till {new Date(quote.validTill).toLocaleDateString('en-IN', {
+                    Valid till {new Date(quote.validTill).toLocaleString('en-IN', {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true,
                     })}
                   </p>
                   <p className="text-sm text-gray-500">

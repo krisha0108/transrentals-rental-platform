@@ -254,7 +254,7 @@ export default function VendorTruckQuotesPage() {
                         ₹{quote.totalAmount.toLocaleString()}
                       </p>
                       <p className="text-xs text-gray-500">
-                        Valid until {new Date(quote.validTill).toLocaleDateString('en-IN')}
+                        Valid until {new Date(quote.validTill).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                       </p>
                       {quote.viewCount > 0 && (
                         <p className="text-xs text-purple-600 flex items-center gap-1 justify-end mt-1">
