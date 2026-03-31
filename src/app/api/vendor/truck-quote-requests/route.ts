@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         ...dateFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
-        truck_quotes: { none: { vendorId: vendorId } },
+        truck_quotes: { none: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } } },
       };
     } else if (type === 'quoted') {
       whereClause = {

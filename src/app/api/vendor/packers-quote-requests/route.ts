@@ -73,12 +73,12 @@ export async function GET(request: NextRequest) {
         ...(startDate || endDate ? { createdAt: whereClause.createdAt } : {}),
       };
     } else if (type === 'new') {
-      // Exclude requests already quoted
-      const quotedRequestIds = await prisma.packers_quotes.findMany({
-        where: { vendorId: vendorId },
+      // Exclude requests where vendor has an active (non-expired/withdrawn) quote
+      const activeQuotedRequestIds = await prisma.packers_quotes.findMany({
+        where: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } },
         select: { requestId: true },
       });
-      whereClause.id = { notIn: quotedRequestIds.map((q) => q.requestId) };
+      whereClause.id = { notIn: activeQuotedRequestIds.map((q) => q.requestId) };
     }
 
     const [requests, total] = await Promise.all([

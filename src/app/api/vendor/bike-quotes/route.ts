@@ -37,6 +37,18 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+
+    // Check if fetching expired quote for resubmit prefill
+    const requestIdParam = searchParams.get('requestId');
+    const expiredParam = searchParams.get('expired');
+    if (requestIdParam && expiredParam === 'true') {
+      const expiredQuote = await prisma.bike_quotes.findFirst({
+        where: { requestId: requestIdParam, vendorId, status: 'EXPIRED' },
+        orderBy: { createdAt: 'desc' },
+      });
+      return NextResponse.json({ success: true, quote: expiredQuote });
+    }
+
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
@@ -47,7 +59,8 @@ export async function GET(request: NextRequest) {
 
     const whereClause: any = { vendorId: vendorId };
     if (status && status !== 'all') {
-      whereClause.status = status;
+      const statuses = status.split(',').map(s => s.trim()).filter(Boolean);
+      whereClause.status = statuses.length === 1 ? statuses[0] : { in: statuses };
     }
 
     // DATE FILTERING
@@ -183,6 +196,7 @@ export async function POST(request: NextRequest) {
 
       // Advance Payment (vendor decides)
       advancePercent = 30, // 20-50%
+      customAdvanceAmount,
 
       // Inclusions
       helmetsIncluded = 1,
@@ -192,8 +206,9 @@ export async function POST(request: NextRequest) {
       exclusions,
       termsConditions,
 
-      // Validity (days - vendor decides)
-      validityDays = 3, // 1-7 days
+      // Validity (days or custom date)
+      validityDays,
+      customValidTill,
 
       // Vendor message
       vendorMessage,
@@ -212,17 +227,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate advance percent (20-50%)
-    if (advancePercent < 20 || advancePercent > 50) {
+    if (!customAdvanceAmount && (advancePercent < 20 || advancePercent > 50)) {
       return NextResponse.json(
         { error: 'Advance percentage must be between 20% and 50%' },
         { status: 400 }
       );
     }
 
-    // Validate validity days (1-7)
-    if (validityDays < 1 || validityDays > 7) {
+    // Validate validity: either customValidTill or validityDays
+    const useCustomValidity = customValidTill && !isNaN(new Date(customValidTill).getTime());
+    const finalValidityDays = useCustomValidity ? null : (validityDays || 3);
+
+    if (!useCustomValidity && (finalValidityDays! < 1 || finalValidityDays! > 7)) {
       return NextResponse.json(
         { error: 'Quote validity must be between 1 and 7 days' },
+        { status: 400 }
+      );
+    }
+
+    if (useCustomValidity && new Date(customValidTill) <= new Date()) {
+      return NextResponse.json(
+        { error: 'Custom validity date must be in the future' },
         { status: 400 }
       );
     }
@@ -270,7 +295,7 @@ export async function POST(request: NextRequest) {
       where: {
         requestId,
         vendorId: vendorId,
-        status: { not: 'WITHDRAWN' },
+        status: { notIn: ['WITHDRAWN', 'EXPIRED'] },
       },
       select: {
         id: true,
@@ -292,11 +317,21 @@ export async function POST(request: NextRequest) {
     const totalAmount = dailyRate * totalDays;
     const gstAmount = 0; // No GST for bike rentals
     const grandTotal = totalAmount;
-    const advanceAmount = Math.round(grandTotal * advancePercent / 100);
+    const advanceAmount = customAdvanceAmount > 0
+      ? Math.round(customAdvanceAmount)
+      : Math.round(grandTotal * advancePercent / 100);
 
     // Set validity
-    const validTill = new Date();
-    validTill.setDate(validTill.getDate() + validityDays);
+    let validTill: Date;
+    if (useCustomValidity) {
+      validTill = new Date(customValidTill);
+    } else {
+      validTill = new Date();
+      validTill.setDate(validTill.getDate() + finalValidityDays!);
+    }
+    const storedValidityDays = useCustomValidity
+      ? Math.max(1, Math.ceil((validTill.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : finalValidityDays!;
 
     // Fetch fleet vehicle images if vendorFleetId is provided
     let finalVehicleImages = vehicleImages; // Use provided images if any
@@ -378,7 +413,7 @@ export async function POST(request: NextRequest) {
       termsConditions: termsConditions ? JSON.stringify(termsConditions) : null,
       vendorMessage: vendorMessage || null,
       validTill,
-      validityDays,
+      validityDays: storedValidityDays,
       status: 'SENT',
       sentAt: new Date(),
     };

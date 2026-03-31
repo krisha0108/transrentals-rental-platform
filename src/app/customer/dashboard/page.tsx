@@ -48,6 +48,7 @@ import {
 import B2BDashboard from './B2BDashboard';
 import TourDashboard from './TourDashboard';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import NotificationPanel from '@/components/customer/NotificationPanel';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -1193,6 +1194,11 @@ export default function CustomerDashboardPage() {
             })}
           </div>
 
+          {/* ── NOTIFICATIONS (mobile only) ── */}
+          <div className="mt-6 lg:hidden">
+            <NotificationPanel />
+          </div>
+
           {/* ── TWO COLUMN: main + right sidebar ── */}
           <div className="mt-6 flex gap-6 items-start pb-10">
 
@@ -1465,6 +1471,9 @@ export default function CustomerDashboardPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Notifications */}
+              <NotificationPanel />
 
               {/* Quick Book */}
               <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">

@@ -38,6 +38,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
+    // Check if fetching expired quote for resubmit prefill
+    const requestIdParam = searchParams.get('requestId');
+    const expiredParam = searchParams.get('expired');
+    if (requestIdParam && expiredParam === 'true') {
+      const expiredQuote = await prisma.luxury_quotes.findFirst({
+        where: { requestId: requestIdParam, vendorId, status: 'EXPIRED' },
+        orderBy: { createdAt: 'desc' },
+      });
+      return NextResponse.json({ success: true, quote: expiredQuote });
+    }
+
     // PAGINATION PARAMS
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -224,6 +235,7 @@ export async function POST(request: NextRequest) {
       // Advance Payment
       advanceAmount,
       advancePercent = 30,
+      customAdvanceAmount,
 
       // Extra charges info
       extraKmRate,
@@ -240,8 +252,9 @@ export async function POST(request: NextRequest) {
       // Negotiation
       isNegotiable = false,
 
-      // Validity (days)
-      validityDays = 3,
+      // Validity (days or custom date)
+      validityDays,
+      customValidTill,
     } = body;
 
     // Validate required fields
@@ -299,7 +312,7 @@ export async function POST(request: NextRequest) {
       where: {
         requestId,
         vendorId: vendorId,
-        status: { not: 'WITHDRAWN' },
+        status: { notIn: ['WITHDRAWN', 'EXPIRED'] },
       },
     });
 
@@ -317,8 +330,26 @@ export async function POST(request: NextRequest) {
     const totalAmount = baseAmount + chauffeurCharges + decorationCharges + fuelCharges + tollEstimate + parkingEstimate + nightHaltCharges + gstAmount;
 
     // Set validity
-    const validTill = new Date();
-    validTill.setDate(validTill.getDate() + validityDays);
+    const useCustomValidity = customValidTill && !isNaN(new Date(customValidTill).getTime());
+    const finalValidityDays = useCustomValidity ? null : (validityDays || 3);
+
+    if (useCustomValidity && new Date(customValidTill) <= new Date()) {
+      return NextResponse.json(
+        { error: 'Custom validity date must be in the future' },
+        { status: 400 }
+      );
+    }
+
+    let validTill: Date;
+    if (useCustomValidity) {
+      validTill = new Date(customValidTill);
+    } else {
+      validTill = new Date();
+      validTill.setDate(validTill.getDate() + finalValidityDays!);
+    }
+    const storedValidityDays = useCustomValidity
+      ? Math.max(1, Math.ceil((validTill.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : finalValidityDays!;
 
     // Fetch fleet vehicle images if fleetId is provided
     let finalVehicleImages = vehicleImages; // Use provided images if any
@@ -400,7 +431,9 @@ export async function POST(request: NextRequest) {
       nightHaltCharges,
       gstAmount,
       totalAmount,
-      advanceAmount: advanceAmount || Math.round(totalAmount * advancePercent / 100),
+      advanceAmount: customAdvanceAmount > 0
+        ? Math.round(customAdvanceAmount)
+        : (advanceAmount || Math.round(totalAmount * advancePercent / 100)),
       advancePercent,
       extraKmRate: extraKmRate || null,
       extraHourRate: extraHourRate || null,
@@ -410,7 +443,7 @@ export async function POST(request: NextRequest) {
       vendorMessage: vendorMessage || null,
       isNegotiable,
       validTill,
-      validityDays,
+      validityDays: storedValidityDays,
       status: 'SENT',
       sentAt: new Date(),
     };

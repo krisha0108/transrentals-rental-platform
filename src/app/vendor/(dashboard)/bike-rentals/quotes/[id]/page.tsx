@@ -510,7 +510,7 @@ export default function VendorBikeQuoteDetailPage() {
               <div className="flex justify-between">
                 <span className="text-gray-600">Valid Until</span>
                 <span className="font-medium">
-                  {new Date(quote.validTill).toLocaleDateString('en-IN')}
+                  {new Date(quote.validTill).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                 </span>
               </div>
               <div className="flex justify-between">

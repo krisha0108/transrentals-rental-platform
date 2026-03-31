@@ -120,11 +120,16 @@ export default function SendBikeQuotePage() {
   const [kmLimitPerDay, setKmLimitPerDay] = useState('');
   const [extraKmCharge, setExtraKmCharge] = useState('');
   const [advancePercent, setAdvancePercent] = useState('30');
+  const [advanceMode, setAdvanceMode] = useState<'percent' | 'manual'>('percent');
+  const [customAdvanceAmount, setCustomAdvanceAmount] = useState('');
   const [inclusions, setInclusions] = useState<string[]>(DEFAULT_INCLUSIONS);
   const [exclusions, setExclusions] = useState<string[]>(DEFAULT_EXCLUSIONS);
   const [termsConditions, setTermsConditions] = useState<string[]>(DEFAULT_TERMS);
   const [notes, setNotes] = useState('');
   const [validityDays, setValidityDays] = useState('3');
+  const [validityMode, setValidityMode] = useState<'days' | 'custom'>('days');
+  const [customValidDate, setCustomValidDate] = useState('');
+  const [customValidTime, setCustomValidTime] = useState('23:59');
   const [editMode, setEditMode] = useState<'inclusions' | 'exclusions' | 'terms' | null>(null);
   const [newItem, setNewItem] = useState('');
 
@@ -185,6 +190,29 @@ export default function SendBikeQuotePage() {
       } catch (templatesError) {
         console.error('Failed to fetch templates:', templatesError);
       }
+
+      // Check for expired quote to pre-fill (resubmit flow)
+      try {
+        const expiredRes = await fetch(`/api/vendor/bike-quotes?requestId=${params.id}&expired=true`);
+        const expiredData = await expiredRes.json();
+        if (expiredData.success && expiredData.quote) {
+          const eq = expiredData.quote;
+          if (eq.vehicleName) setVehicleName(eq.vehicleName);
+          if (eq.vehicleBrand) setVehicleBrand(eq.vehicleBrand);
+          if (eq.registrationNumber) setRegistrationNumber(eq.registrationNumber);
+          if (eq.totalPrice) setTotalPrice(String(eq.totalPrice));
+          if (eq.securityDeposit) setSecurityDeposit(String(eq.securityDeposit));
+          if (eq.helmetsIncluded) setHelmetsIncluded(String(eq.helmetsIncluded));
+          if (eq.kmLimitPerDay) setKmLimitPerDay(String(eq.kmLimitPerDay));
+          if (eq.extraKmCharge) setExtraKmCharge(String(eq.extraKmCharge));
+          if (eq.advancePercent) setAdvancePercent(String(eq.advancePercent));
+          if (eq.inclusions) setInclusions(Array.isArray(eq.inclusions) ? eq.inclusions : []);
+          if (eq.exclusions) setExclusions(Array.isArray(eq.exclusions) ? eq.exclusions : []);
+          if (eq.termsConditions) setTermsConditions(Array.isArray(eq.termsConditions) ? eq.termsConditions : []);
+          if (eq.vendorMessage) setNotes(eq.vendorMessage);
+          if (eq.fleetVehicleId) setSelectedFleetId(eq.fleetVehicleId);
+        }
+      } catch {}
     } catch (error) {
       console.error('Failed to fetch request details:', error);
     } finally {
@@ -270,10 +298,15 @@ export default function SendBikeQuotePage() {
   };
 
   const calculateAdvance = () => {
+    if (advanceMode === 'manual' && customAdvanceAmount) {
+      return parseFloat(customAdvanceAmount) || 0;
+    }
     const total = parseFloat(totalPrice) || 0;
     const percent = parseInt(advancePercent) || 30;
     return Math.round((total * percent) / 100);
   };
+
+  const advanceExceedsTotal = calculateAdvance() > (parseFloat(totalPrice) || 0) && (parseFloat(totalPrice) || 0) > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,14 +329,19 @@ export default function SendBikeQuotePage() {
           totalPrice: parseFloat(totalPrice),
           securityDeposit: parseFloat(securityDeposit) || 0,
           helmetsIncluded: parseInt(helmetsIncluded) || 1,
-          kmLimitPerDay: kmLimitPerDay ? parseInt(kmLimitPerDay) : null,
+          kmLimitPerDay: kmLimitPerDay === 'unlimited' ? 0 : (kmLimitPerDay ? parseInt(kmLimitPerDay) : null),
+          unlimitedKm: kmLimitPerDay === 'unlimited',
           extraKmCharge: extraKmCharge ? parseFloat(extraKmCharge) : null,
-          advancePercent: parseInt(advancePercent) || 30,
+          advancePercent: advanceMode === 'percent' ? (parseInt(advancePercent) || 30) : 0,
+          customAdvanceAmount: advanceMode === 'manual' ? (parseFloat(customAdvanceAmount) || 0) : undefined,
           inclusions,
           exclusions,
           termsConditions,
           vendorMessage: notes,
-          validityDays: parseInt(validityDays) || 3,
+          validityDays: validityMode === 'days' ? (parseInt(validityDays) || 3) : undefined,
+          customValidTill: validityMode === 'custom' && customValidDate
+            ? new Date(`${customValidDate}T${customValidTime || '23:59'}:00`).toISOString()
+            : undefined,
         }),
       });
 
@@ -548,6 +586,7 @@ export default function SendBikeQuotePage() {
             Pricing
           </h2>
 
+          {/* Price & Deposit Row */}
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -570,7 +609,7 @@ export default function SendBikeQuotePage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Security Deposit *
+                Security Deposit
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
@@ -580,21 +619,38 @@ export default function SendBikeQuotePage() {
                   onChange={(e) => setSecurityDeposit(e.target.value)}
                   placeholder="2000"
                   className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  required
                 />
               </div>
             </div>
+          </div>
+
+          {/* KM & Extra Charge Row */}
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                KM Limit Per Day (Optional)
+                KM Limit Per Day
               </label>
-              <input
-                type="number"
-                value={kmLimitPerDay}
-                onChange={(e) => setKmLimitPerDay(e.target.value)}
-                placeholder="e.g., 150 (leave empty for unlimited)"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-              />
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  value={kmLimitPerDay === 'unlimited' ? '' : kmLimitPerDay}
+                  onChange={(e) => setKmLimitPerDay(e.target.value)}
+                  placeholder="e.g., 150"
+                  disabled={kmLimitPerDay === 'unlimited'}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:text-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setKmLimitPerDay(kmLimitPerDay === 'unlimited' ? '' : 'unlimited')}
+                  className={`px-3 py-2.5 text-xs font-semibold rounded-lg border transition whitespace-nowrap ${
+                    kmLimitPerDay === 'unlimited'
+                      ? 'bg-orange-100 text-orange-700 border-orange-300'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  Unlimited
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -611,62 +667,142 @@ export default function SendBikeQuotePage() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Advance & Validity Row */}
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Advance Payment Required (20-50%)
+                Advance Payment
               </label>
-              <div className="flex items-center gap-3">
-                <select
-                  value={advancePercent}
-                  onChange={(e) => setAdvancePercent(e.target.value)}
-                  className="w-24 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                >
-                  <option value="20">20%</option>
-                  <option value="25">25%</option>
-                  <option value="30">30%</option>
-                  <option value="40">40%</option>
-                  <option value="50">50%</option>
-                </select>
-                <span className="text-gray-600">
-                  = ₹{calculateAdvance().toLocaleString()} advance
-                </span>
+              <div className="flex gap-1 mb-2 bg-gray-100 rounded-lg p-0.5">
+                <button type="button" onClick={() => setAdvanceMode('percent')}
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'percent' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}>
+                  By Percentage
+                </button>
+                <button type="button" onClick={() => setAdvanceMode('manual')}
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'manual' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}>
+                  Custom Amount
+                </button>
               </div>
+              {advanceMode === 'percent' ? (
+                <div className="flex items-center gap-3">
+                  <select
+                    value={advancePercent}
+                    onChange={(e) => setAdvancePercent(e.target.value)}
+                    className="w-24 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  >
+                    <option value="20">20%</option>
+                    <option value="25">25%</option>
+                    <option value="30">30%</option>
+                    <option value="40">40%</option>
+                    <option value="50">50%</option>
+                  </select>
+                  <span className="text-gray-600">
+                    = ₹{calculateAdvance().toLocaleString()} advance
+                  </span>
+                </div>
+              ) : (
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                  <input
+                    type="number"
+                    value={customAdvanceAmount}
+                    onChange={(e) => setCustomAdvanceAmount(e.target.value)}
+                    placeholder="Enter advance amount"
+                    min="0"
+                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+              )}
+              {advanceExceedsTotal && (
+                <p className="text-xs text-red-600 mt-1 font-medium">Advance amount cannot exceed total price (₹{(parseFloat(totalPrice) || 0).toLocaleString()})</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Quote Valid For (1-7 days)
+                Quote Valid Till
               </label>
-              <select
-                value={validityDays}
-                onChange={(e) => setValidityDays(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-              >
-                <option value="1">1 day</option>
-                <option value="2">2 days</option>
-                <option value="3">3 days</option>
-                <option value="5">5 days</option>
-                <option value="7">7 days</option>
-              </select>
+              <div className="flex gap-1 mb-2 bg-gray-100 rounded-lg p-0.5">
+                <button type="button"
+                  onClick={() => setValidityMode('days')}
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${validityMode === 'days' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                  Quick (Days)
+                </button>
+                <button type="button"
+                  onClick={() => setValidityMode('custom')}
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${validityMode === 'custom' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                  Custom Date & Time
+                </button>
+              </div>
+              {validityMode === 'days' ? (
+                <select
+                  value={validityDays}
+                  onChange={(e) => setValidityDays(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="1">1 day</option>
+                  <option value="2">2 days</option>
+                  <option value="3">3 days</option>
+                  <option value="5">5 days</option>
+                  <option value="7">7 days</option>
+                </select>
+              ) : (
+                <div className="flex gap-2">
+                  <input type="date" value={customValidDate} onChange={(e) => setCustomValidDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 text-sm"
+                    required={validityMode === 'custom'} />
+                  <input type="time" value={customValidTime} onChange={(e) => setCustomValidTime(e.target.value)}
+                    className="w-[120px] px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 text-sm" />
+                </div>
+              )}
+              <p className="text-xs text-gray-400 mt-1">
+                {validityMode === 'days'
+                  ? `Quote expires in ${validityDays} day${validityDays !== '1' ? 's' : ''} from submission`
+                  : customValidDate
+                    ? `Quote valid till ${new Date(`${customValidDate}T${customValidTime || '23:59'}`).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
+                    : 'Select expiry date and time'}
+              </p>
             </div>
           </div>
 
-          {/* Total */}
-          <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-600">Total Price ({request.totalDays} days)</span>
-              <span className="text-2xl font-bold text-orange-600">
-                ₹{(parseFloat(totalPrice) || 0).toLocaleString()}
-              </span>
+          {/* Summary */}
+          <div className="mt-6 rounded-xl border border-orange-200 overflow-hidden">
+            <div className="bg-orange-100 px-4 py-2.5">
+              <h3 className="text-sm font-semibold text-orange-800">Quote Summary</h3>
             </div>
-            <div className="flex items-center justify-between border-t pt-2 mt-2">
-              <span className="font-semibold text-orange-800">Advance ({advancePercent}%)</span>
-              <span className="font-semibold text-orange-600">
-                ₹{calculateAdvance().toLocaleString()}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm text-gray-500 mt-1">
-              <span>Security Deposit (refundable)</span>
-              <span>₹{(parseFloat(securityDeposit) || 0).toLocaleString()}</span>
+            <div className="bg-orange-50 p-4 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Rental Price ({request.totalDays} days)</span>
+                <span className="text-sm font-medium text-gray-800">₹{(parseFloat(totalPrice) || 0).toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Security Deposit (refundable)</span>
+                <span className="text-sm font-medium text-gray-800">₹{(parseFloat(securityDeposit) || 0).toLocaleString()}</span>
+              </div>
+              <div className="border-t border-orange-200 pt-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-gray-900">Total Amount to Pay</span>
+                  <span className="text-lg font-bold text-orange-600">₹{((parseFloat(totalPrice) || 0) + (parseFloat(securityDeposit) || 0)).toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="border-t border-orange-200 pt-2.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-green-700 font-medium">Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Custom)'}</span>
+                  <span className="text-sm font-bold text-green-700">₹{calculateAdvance().toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Remaining at pickup</span>
+                  <span className="text-xs text-gray-500">₹{((parseFloat(totalPrice) || 0) - calculateAdvance() + (parseFloat(securityDeposit) || 0)).toLocaleString()}</span>
+                </div>
+              </div>
+              {kmLimitPerDay && (
+                <div className="text-xs text-gray-500 pt-1.5 border-t border-orange-100">
+                  KM Limit: {kmLimitPerDay === 'unlimited' ? 'Unlimited' : `${kmLimitPerDay} km/day`}
+                  {kmLimitPerDay !== 'unlimited' && extraKmCharge && ` • Extra: ₹${extraKmCharge}/km`}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -862,7 +998,7 @@ export default function SendBikeQuotePage() {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting || !totalPrice || !securityDeposit || !vehicleName}
+            disabled={isSubmitting || !totalPrice || !vehicleName || advanceExceedsTotal}
             className="flex-1 py-3 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (

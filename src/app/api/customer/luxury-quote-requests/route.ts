@@ -220,7 +220,7 @@ export async function GET(request: NextRequest) {
       where: whereClause,
       include: {
         luxury_quotes: {
-          where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
+          where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] } },
           include: {
             vendors: {
               select: {

@@ -308,7 +308,7 @@ export default function VendorSelfDriveQuotesPage() {
                       </p>
                       <p className="text-sm text-gray-600">₹{quote.dailyRate}/day</p>
                       <p className="text-xs text-gray-500">
-                        Valid until {new Date(quote.validTill).toLocaleDateString('en-IN')}
+                        Valid until {new Date(quote.validTill).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                       </p>
                     </div>
                   </div>

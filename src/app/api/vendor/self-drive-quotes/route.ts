@@ -37,6 +37,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
 
+    // Check if fetching expired quote for resubmit prefill
+    const requestIdParam = searchParams.get('requestId');
+    const expiredParam = searchParams.get('expired');
+    if (requestIdParam && expiredParam === 'true') {
+      const expiredQuote = await prisma.self_drive_quotes.findFirst({
+        where: { requestId: requestIdParam, vendorId, status: 'EXPIRED' },
+        orderBy: { createdAt: 'desc' },
+      });
+      return NextResponse.json({ success: true, quote: expiredQuote });
+    }
+
     // PAGINATION PARAMS
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -220,14 +231,16 @@ export async function POST(request: NextRequest) {
 
       // Advance Payment (vendor decides)
       advancePercent = 30, // 20-50%
+      customAdvanceAmount, // Manual advance amount (overrides percent)
 
       // Terms
       inclusions,
       exclusions,
       termsConditions,
 
-      // Validity (days - vendor decides)
-      validityDays = 3, // 1-7 days
+      // Validity (days or custom date)
+      validityDays, // 1-7 days (optional if customValidTill is provided)
+      customValidTill, // ISO date string (optional, overrides validityDays)
 
       // Vendor message
       vendorMessage,
@@ -246,17 +259,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate advance percent (20-50%)
-    if (advancePercent < 20 || advancePercent > 50) {
+    if (!customAdvanceAmount && (advancePercent < 20 || advancePercent > 50)) {
       return NextResponse.json(
         { error: 'Advance percentage must be between 20% and 50%' },
         { status: 400 }
       );
     }
 
-    // Validate validity days (1-7)
-    if (validityDays < 1 || validityDays > 7) {
+    // Validate validity: either customValidTill or validityDays
+    const useCustomValidity = customValidTill && !isNaN(new Date(customValidTill).getTime());
+    const finalValidityDays = useCustomValidity ? null : (validityDays || 3);
+
+    if (!useCustomValidity && (finalValidityDays! < 1 || finalValidityDays! > 7)) {
       return NextResponse.json(
         { error: 'Quote validity must be between 1 and 7 days' },
+        { status: 400 }
+      );
+    }
+
+    if (useCustomValidity && new Date(customValidTill) <= new Date()) {
+      return NextResponse.json(
+        { error: 'Custom validity date must be in the future' },
         { status: 400 }
       );
     }
@@ -304,7 +327,7 @@ export async function POST(request: NextRequest) {
       where: {
         requestId,
         vendorId: vendorId,
-        status: { not: 'WITHDRAWN' },
+        status: { notIn: ['WITHDRAWN', 'EXPIRED'] },
       },
     });
 
@@ -323,11 +346,22 @@ export async function POST(request: NextRequest) {
     const baseAmount = dailyRate * totalDays;
     const gstAmount = 0; // GST removed
     const grandTotal = baseAmount + deliveryCharges + pickupCharges;
-    const advanceAmount = Math.round(grandTotal * advancePercent / 100);
+    const advanceAmount = customAdvanceAmount > 0
+      ? Math.round(customAdvanceAmount)
+      : Math.round(grandTotal * advancePercent / 100);
 
     // Set validity
-    const validTill = new Date();
-    validTill.setDate(validTill.getDate() + validityDays);
+    let validTill: Date;
+    if (useCustomValidity) {
+      validTill = new Date(customValidTill);
+    } else {
+      validTill = new Date();
+      validTill.setDate(validTill.getDate() + finalValidityDays!);
+    }
+    // Calculate validityDays for storage (used by other parts of the system)
+    const storedValidityDays = useCustomValidity
+      ? Math.max(1, Math.ceil((validTill.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : finalValidityDays!;
 
     // Fetch fleet vehicle images if vendorFleetId is provided
     let finalVehicleImages = vehicleImages; // Use provided images if any
@@ -415,7 +449,7 @@ export async function POST(request: NextRequest) {
       termsConditions: termsConditions ? JSON.stringify(termsConditions) : null,
       vendorMessage: vendorMessage || null,
       validTill,
-      validityDays,
+      validityDays: storedValidityDays,
       status: 'SENT',
       sentAt: new Date(),
     };

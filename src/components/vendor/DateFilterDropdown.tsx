@@ -187,10 +187,13 @@ export default function DateFilterDropdown({
         <Calendar className="w-4 h-4" />
         <span>{getDisplayText()}</span>
         {hasActiveFilter ? (
-          <X
-            className="w-4 h-4 hover:text-emerald-900"
-            onClick={handleClearFilter}
-          />
+          <span
+            role="button"
+            className="inline-flex"
+            onClick={(e) => { e.stopPropagation(); handleClearFilter(e); }}
+          >
+            <X className="w-4 h-4 hover:text-emerald-900" />
+          </span>
         ) : (
           <ChevronDown className="w-4 h-4" />
         )}
