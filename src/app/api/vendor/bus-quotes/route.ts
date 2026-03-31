@@ -210,6 +210,7 @@ export async function POST(request: NextRequest) {
       // Advance Payment
       advanceAmount = 0,
       advancePercent = 30,
+      customAdvanceAmount,
 
       // Extra charges info
       extraKmRate,
@@ -225,6 +226,7 @@ export async function POST(request: NextRequest) {
 
       // Validity (days)
       validityDays = 3,
+      validUntil,
     } = body;
 
     // Validate required fields
@@ -269,7 +271,7 @@ export async function POST(request: NextRequest) {
       where: {
         requestId,
         vendorId: vendorId,
-        status: { not: 'WITHDRAWN' },
+        status: { notIn: ['WITHDRAWN', 'EXPIRED'] },
       },
     });
 
@@ -287,8 +289,9 @@ export async function POST(request: NextRequest) {
     const totalAmount = baseAmount + driverAllowance + nightHaltCharges + tollEstimate + permitCharges + parkingEstimate + gstAmount;
 
     // Set validity
-    const validTill = new Date();
-    validTill.setDate(validTill.getDate() + validityDays);
+    const validTill = validUntil && !isNaN(new Date(validUntil).getTime())
+      ? new Date(validUntil)
+      : (() => { const d = new Date(); d.setDate(d.getDate() + validityDays); return d; })();
 
     // Fetch fleet vehicle images if fleetId is provided
     let finalVehicleImages = vehicleImages; // Use provided images if any
@@ -370,7 +373,9 @@ export async function POST(request: NextRequest) {
       parkingEstimate,
       gstAmount,
       totalAmount,
-      advanceAmount: advanceAmount || Math.round(totalAmount * advancePercent / 100),
+      advanceAmount: customAdvanceAmount > 0
+        ? Math.round(customAdvanceAmount)
+        : (advanceAmount || Math.round(totalAmount * advancePercent / 100)),
       advancePercent,
       extraKmRate: extraKmRate || null,
       extraHourRate: extraHourRate || null,

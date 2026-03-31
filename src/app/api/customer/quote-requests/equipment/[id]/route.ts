@@ -18,7 +18,7 @@ export async function GET(
       include: {
         equipment_quotes: {
           where: {
-            status: { in: ['SENT', 'VIEWED'] },
+            status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] },
           },
           include: {
             vendors: {
@@ -59,6 +59,8 @@ export async function GET(
       equipmentModel: quote.equipmentModel,
       equipmentYear: quote.equipmentYear,
       totalAmount: quote.totalAmount,
+      advanceAmount: quote.advanceAmount || 0,
+      advancePercent: quote.advancePercent || 0,
       dailyRate: quote.dailyRate || 0,
       deliveryCharges: quote.deliveryCharges || 0,
       operatorCharges: quote.operatorCharges || 0,

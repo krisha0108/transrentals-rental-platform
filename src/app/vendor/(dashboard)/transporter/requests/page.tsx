@@ -18,6 +18,8 @@ import {
   User,
   ArrowRight,
   Weight,
+  RefreshCw,
+  XCircle,
 } from 'lucide-react';
 import { TRANSPORTER_CONFIG } from '@/lib/quote-services';
 
@@ -176,7 +178,12 @@ export default function VendorTransporterRequestsPage() {
                       {request.totalQuotesReceived} quotes received
                     </span>
                   )}
-                  {request.hasQuoted ? (
+                  {request.hasQuoted && request.myQuote?.status === 'EXPIRED' ? (
+                    <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full flex items-center gap-1">
+                      <XCircle className="w-3 h-3" />
+                      Quote Expired
+                    </span>
+                  ) : request.hasQuoted ? (
                     <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
                       <CheckCircle className="w-3 h-3" />
                       Quoted
@@ -298,13 +305,24 @@ export default function VendorTransporterRequestsPage() {
                       Send Quote
                     </Link>
                   ) : (
-                    <Link
-                      href={`/vendor/transporter/quotes/${request.myQuote?.id}`}
-                      className="px-4 py-2 bg-green-100 text-green-700 text-sm font-semibold rounded-lg hover:bg-green-200 transition flex items-center gap-1"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      View Your Quote
-                    </Link>
+                    <>
+                      <Link
+                        href={`/vendor/transporter/quotes/${request.myQuote?.id}`}
+                        className="px-4 py-2 bg-green-100 text-green-700 text-sm font-semibold rounded-lg hover:bg-green-200 transition flex items-center gap-1"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        View Your Quote
+                      </Link>
+                      {request.myQuote?.status === 'EXPIRED' && request.status === 'PENDING' && (
+                        <Link
+                          href={`/vendor/transporter/requests/${request.id}/quote`}
+                          className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition flex items-center gap-1"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                          Resubmit Quote
+                        </Link>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

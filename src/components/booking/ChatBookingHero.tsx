@@ -1164,7 +1164,7 @@ export function ChatBookingHero({
       `Thank you for choosing TransRentals.`,
       [
         { label: 'Download App', action: 'download-app', value: '' },
-        { label: 'Track on Dashboard', action: 'dashboard', value: redirectTo || '' },
+        { label: 'Track on Dashboard', action: 'dashboard', value: '/customer/dashboard' },
         { label: 'Book Another', action: 'restart', value: '' },
       ],
       1500

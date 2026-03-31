@@ -14,7 +14,11 @@ export async function GET(request: NextRequest, { params }: { params: { vehicleI
     // Try personal vehicle first
     const personal = await prisma.driver_vehicles.findFirst({
       where: { id: params.vehicleId, staffId: driver.id },
-      include: { maintenance_logs: { orderBy: { date: 'desc' } } },
+      include: {
+        maintenance_logs: { orderBy: { date: 'desc' } },
+        fuel_logs: { orderBy: { date: 'desc' }, take: 20 },
+        incidents: { orderBy: { date: 'desc' } },
+      },
     });
     if (personal) return NextResponse.json({ success: true, vehicle: personal });
 
@@ -39,14 +43,18 @@ export async function GET(request: NextRequest, { params }: { params: { vehicleI
         seatingCapacity: v.seatingCapacity, color: v.color, year: v.yearOfManufacture,
         isActive: v.isActive && v.isAvailable, insuranceExpiry: v.insuranceValidity,
         fitnessExpiry: v.fitnessValidity, lastServiceDate: v.lastServiceDate,
-        createdAt: v.createdAt, isVendorVehicle: true, maintenance_logs: [],
+        createdAt: v.createdAt, isVendorVehicle: true, maintenance_logs: [], fuel_logs: [], incidents: [],
       },
     });
   }
 
   const vehicle = await prisma.driver_vehicles.findFirst({
     where: { id: params.vehicleId, driverId: driver.id },
-    include: { maintenance_logs: { orderBy: { date: 'desc' } } },
+    include: {
+      maintenance_logs: { orderBy: { date: 'desc' } },
+      fuel_logs: { orderBy: { date: 'desc' }, take: 20 },
+      incidents: { orderBy: { date: 'desc' } },
+    },
   });
 
   if (!vehicle) return NextResponse.json({ success: false, error: 'Vehicle not found' }, { status: 404 });

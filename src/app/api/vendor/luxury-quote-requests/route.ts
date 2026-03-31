@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
           { locationId: null }, // Requests without specific location
         ],
         luxury_quotes: {
-          none: { vendorId: vendorId },
+          none: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } },
         },
       };
     } else if (type === 'quoted') {

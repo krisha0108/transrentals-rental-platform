@@ -18,7 +18,7 @@ export async function GET(
       include: {
         packers_quotes: {
           where: {
-            status: { in: ['SENT', 'VIEWED'] },
+            status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] },
           },
           include: {
             vendors: {
@@ -88,6 +88,8 @@ export async function GET(
       vendorRating: quote.vendors?.rating || 0,
       vendorTotalTrips: quote.vendors?.totalRatings || 0,
       totalAmount: quote.totalAmount,
+      advanceAmount: quote.advanceAmount || 0,
+      advancePercent: quote.advancePercent || 0,
       packingCharges: quote.packingCharges || 0,
       loadingCharges: quote.loadingCharges || 0,
       transportCharges: quote.transportCharges || 0,

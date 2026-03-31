@@ -163,12 +163,13 @@ export default function RegisterScreen({ navigation }) {
       {/* ── Scrollable form ── */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          keyboardDismissMode="interactive"
         >
 
           {/* ─── Step 1 ──────────────────────────────────────────────────── */}
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
   stepLineDone: { backgroundColor: '#16A34A' },
 
   // Scroll
-  scroll: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 },
+  scroll: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 120 },
   stepHeading: { fontSize: 22, fontWeight: '800', color: '#0F172A', marginBottom: 24 },
 
   // Section label

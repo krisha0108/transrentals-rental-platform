@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
           { locationId: null }, // Requests without specific location
         ],
         bus_quotes_bus_quotes_requestIdTobus_quote_requests: {
-          none: { vendorId: vendorId },
+          none: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } },
         },
         ...(dateFilter ? { createdAt: dateFilter } : {}),
       };

@@ -1466,6 +1466,8 @@ model equipment_quotes {
   securityDeposit            Float                       @default(0)
   gstAmount                  Float                       @default(0)
   totalAmount                Float
+  advanceAmount              Float                       @default(0)
+  advancePercent             Int                         @default(30)
   inclusions                 String?                     @db.LongText
   exclusions                 String?                     @db.LongText
   termsConditions            String?                     @db.LongText
@@ -2332,6 +2334,8 @@ model packers_quotes {
   insuranceCharges         Float                     @default(0)
   gstAmount                Float                     @default(0)
   totalAmount              Float
+  advanceAmount            Float                     @default(0)
+  advancePercent           Int                       @default(50)
   packingMaterials         String?                   @db.LongText
   materialCharges          Float                     @default(0)
   inclusions               String                    @db.LongText
@@ -3051,6 +3055,8 @@ model truck_quotes {
   tollEstimate           Float                   @default(0)
   gstAmount              Float                   @default(0)
   totalAmount            Float
+  advanceAmount          Float                   @default(0)
+  advancePercent         Int                     @default(50)
   inclusions             String                  @db.LongText
   exclusions             String                  @db.LongText
   termsConditions        String                  @db.LongText
@@ -5829,6 +5835,13 @@ model driver_vehicles {
   permitDocument      String?
   vehiclePhotos       String?   @db.LongText
 
+  // Labeled vehicle images
+  photoFront          String?
+  photoBack           String?
+  photoLeftSide       String?
+  photoRightSide      String?
+  photoInterior       String?
+
   // Service
   lastServiceDate     DateTime?
   nextServiceDate     DateTime?
@@ -5840,6 +5853,8 @@ model driver_vehicles {
   driver              drivers?                  @relation(fields: [driverId], references: [id], onDelete: Cascade)
   staff               vendor_staff?             @relation(fields: [staffId], references: [id], onDelete: Cascade)
   maintenance_logs    driver_maintenance_logs[]
+  fuel_logs           driver_fuel_logs[]
+  incidents           driver_incidents[]
 
   @@index([driverId])
   @@index([staffId])
@@ -5859,6 +5874,42 @@ model driver_maintenance_logs {
   createdAt       DateTime        @default(now())
 
   vehicle         driver_vehicles @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+model driver_fuel_logs {
+  id            String          @id @default(cuid())
+  vehicleId     String
+  date          DateTime
+  liters        Float
+  pricePerLiter Float?
+  totalAmount   Float
+  odometer      Int?
+  fuelStation   String?
+  fuelType      String?
+  notes         String?         @db.Text
+  createdAt     DateTime        @default(now())
+
+  vehicle       driver_vehicles @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+model driver_incidents {
+  id            String          @id @default(cuid())
+  vehicleId     String
+  date          DateTime
+  type          String          // ACCIDENT, BREAKDOWN, THEFT, DAMAGE, OTHER
+  description   String?         @db.Text
+  severity      String          @default("MEDIUM")
+  repairCost    Float?
+  repairStatus  String          @default("PENDING")
+  photos        String?         @db.LongText
+  notes         String?         @db.Text
+  createdAt     DateTime        @default(now())
+
+  vehicle       driver_vehicles @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
   @@index([vehicleId])
 }

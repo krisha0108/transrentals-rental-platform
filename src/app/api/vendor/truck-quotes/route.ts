@@ -162,6 +162,10 @@ export async function POST(request: NextRequest) {
       baseAmount, perKmRate, loadingCharges, unloadingCharges, packagingCharges,
       insuranceCharges, tollEstimate, gstAmount, vehicleImages, inclusions, exclusions, termsConditions,
       validityDays = 3,
+      validUntil,
+      advanceAmount: bodyAdvanceAmount,
+      advancePercent = 50,
+      customAdvanceAmount,
     } = body;
 
     // Debug log to see what's being received after destructuring
@@ -201,15 +205,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const existingQuote = await prisma.truck_quotes.findFirst({ where: { requestId, vendorId: vendorId, status: { not: 'WITHDRAWN' } } });
+    const existingQuote = await prisma.truck_quotes.findFirst({ where: { requestId, vendorId: vendorId, status: { notIn: ['WITHDRAWN', 'EXPIRED'] } } });
     if (existingQuote) {
       return NextResponse.json({ error: 'You have already submitted a quote for this request' }, { status: 400 });
     }
 
     const quoteNumber = generateQuoteNumber();
     const totalAmount = (baseAmount || 0) + (labourCharges || 0) + (loadingCharges || 0) + (unloadingCharges || 0) + (packagingCharges || 0) + (insuranceCharges || 0) + (tollEstimate || 0) + (gstAmount || 0);
-    const validTill = new Date();
-    validTill.setDate(validTill.getDate() + validityDays);
+    const validTill = validUntil && !isNaN(new Date(validUntil).getTime())
+      ? new Date(validUntil)
+      : (() => { const d = new Date(); d.setDate(d.getDate() + validityDays); return d; })();
 
     // Fetch fleet vehicle images if vendorFleetId is provided and no manual images
     let finalVehicleImages = vehicleImages; // Use provided images if any
@@ -286,6 +291,12 @@ export async function POST(request: NextRequest) {
       tollEstimate: tollEstimate || 0,
       gstAmount: gstAmount || 0,
       totalAmount,
+      advanceAmount: customAdvanceAmount > 0
+        ? Math.round(customAdvanceAmount)
+        : bodyAdvanceAmount > 0
+        ? Math.round(bodyAdvanceAmount)
+        : Math.round(totalAmount * advancePercent / 100),
+      advancePercent: customAdvanceAmount > 0 ? 0 : advancePercent,
       inclusions: Array.isArray(inclusions) ? JSON.stringify(inclusions) : (inclusions || '[]'),
       exclusions: Array.isArray(exclusions) ? JSON.stringify(exclusions) : (exclusions || '[]'),
       termsConditions: Array.isArray(termsConditions) ? JSON.stringify(termsConditions) : (termsConditions || '[]'),

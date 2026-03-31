@@ -432,7 +432,8 @@ export function CarRentalBookingForm() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Number of Vehicles *</label>
-                    <input type="number" value={formData.numberOfVehicles} onChange={(e) => updateFormData('numberOfVehicles', e.target.value)}
+                    <input type="number" value={formData.numberOfVehicles} onChange={(e) => updateFormData('numberOfVehicles', e.target.
+                    value)}
                       placeholder="e.g. 10" min="1" max="500" className="w-full text-gray-900 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-teal-500 focus:outline-none" />
                   </div>
                   <div>

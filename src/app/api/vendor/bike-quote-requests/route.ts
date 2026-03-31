@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
         locationId: { in: approvedLocationIds },
         ...dateFilter,
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
-          none: { vendorId: vendorId },
+          none: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } },
         },
       };
     } else if (type === 'quoted') {

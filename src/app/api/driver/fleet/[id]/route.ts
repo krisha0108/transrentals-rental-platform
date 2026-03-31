@@ -18,7 +18,11 @@ export async function GET(
     // Try personal vehicle first
     const personal = await prisma.driver_vehicles.findFirst({
       where: { id, staffId: driver.id },
-      include: { maintenance_logs: { orderBy: { date: 'desc' } } },
+      include: {
+      maintenance_logs: { orderBy: { date: 'desc' } },
+      fuel_logs: { orderBy: { date: 'desc' }, take: 20 },
+      incidents: { orderBy: { date: 'desc' } },
+    },
     });
     if (personal) return NextResponse.json({ success: true, vehicle: personal });
 
@@ -42,14 +46,18 @@ export async function GET(
         seatingCapacity: v.seatingCapacity, color: v.color, year: v.yearOfManufacture,
         isActive: v.isActive && v.isAvailable, insuranceExpiry: v.insuranceValidity,
         fitnessExpiry: v.fitnessValidity, lastServiceDate: v.lastServiceDate,
-        isVendorVehicle: true, maintenance_logs: [],
+        isVendorVehicle: true, maintenance_logs: [], fuel_logs: [], incidents: [],
       },
     });
   }
 
   const vehicle = await prisma.driver_vehicles.findFirst({
     where: { id, driverId: driver.id },
-    include: { maintenance_logs: { orderBy: { date: 'desc' } } },
+    include: {
+      maintenance_logs: { orderBy: { date: 'desc' } },
+      fuel_logs: { orderBy: { date: 'desc' }, take: 20 },
+      incidents: { orderBy: { date: 'desc' } },
+    },
   });
   if (!vehicle) return NextResponse.json({ success: false, error: 'Vehicle not found' }, { status: 404 });
   return NextResponse.json({ success: true, vehicle });
