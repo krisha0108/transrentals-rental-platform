@@ -16,13 +16,30 @@ import {
 const CANVAS_W = 390;
 const CANVAS_H = 693;
 
+const GOOGLE_FONTS_URL = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&family=Raleway:wght@400;700&family=Playfair+Display:wght@400;700&family=Oswald:wght@400;700&family=Lobster&family=Dancing+Script:wght@400;700&family=Pacifico&family=Quicksand:wght@400;700&family=Nunito:wght@400;700&family=Lato:wght@400;700&family=Merriweather:wght@400;700&family=Ubuntu:wght@400;700&family=Bebas+Neue&family=Inter:wght@400;700&display=swap';
+
 const FONTS = [
   { label: 'Default', value: 'inherit' },
   { label: 'Arial', value: 'Arial, sans-serif' },
   { label: 'Georgia', value: 'Georgia, serif' },
   { label: 'Impact', value: 'Impact, sans-serif' },
+  { label: 'Inter', value: 'Inter, sans-serif' },
   { label: 'Roboto', value: 'Roboto, sans-serif' },
   { label: 'Poppins', value: 'Poppins, sans-serif' },
+  { label: 'Montserrat', value: 'Montserrat, sans-serif' },
+  { label: 'Open Sans', value: 'Open Sans, sans-serif' },
+  { label: 'Raleway', value: 'Raleway, sans-serif' },
+  { label: 'Nunito', value: 'Nunito, sans-serif' },
+  { label: 'Lato', value: 'Lato, sans-serif' },
+  { label: 'Quicksand', value: 'Quicksand, sans-serif' },
+  { label: 'Ubuntu', value: 'Ubuntu, sans-serif' },
+  { label: 'Oswald', value: 'Oswald, sans-serif' },
+  { label: 'Bebas Neue', value: 'Bebas Neue, sans-serif' },
+  { label: 'Playfair', value: 'Playfair Display, serif' },
+  { label: 'Merriweather', value: 'Merriweather, serif' },
+  { label: 'Lobster', value: 'Lobster, cursive' },
+  { label: 'Dancing', value: 'Dancing Script, cursive' },
+  { label: 'Pacifico', value: 'Pacifico, cursive' },
   { label: 'Courier', value: 'Courier New, monospace' },
 ];
 
@@ -53,6 +70,15 @@ const ANIMATIONS = [
   { name: 'Spin', value: 'spin-in' },
 ];
 
+const EASINGS = [
+  { label: 'Ease', value: 'ease' },
+  { label: 'Linear', value: 'linear' },
+  { label: 'Ease In', value: 'ease-in' },
+  { label: 'Ease Out', value: 'ease-out' },
+  { label: 'Smooth', value: 'ease-in-out' },
+  { label: 'Bounce', value: 'cubic-bezier(0.175,0.885,0.32,1.275)' },
+];
+
 type EType = 'text' | 'image' | 'shape' | 'button';
 type ShapeType = 'rect' | 'circle' | 'triangle' | 'diamond' | 'star' | 'hexagon';
 
@@ -62,8 +88,10 @@ interface CE {
   rot: number; z: number; opacity: number;
   flipX?: boolean; flipY?: boolean;
   filterCss?: string;
-  animation?: string; animationDuration?: number;
+  animation?: string; animationDuration?: number; animationEasing?: string;
   locked?: boolean;
+  letterSpacing?: number;
+  textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
   content?: string; fontSize?: number; fontFamily?: string;
   bold?: boolean; italic?: boolean; underline?: boolean;
   align?: 'left' | 'center' | 'right';
@@ -89,6 +117,8 @@ interface SD {
   bgColor: string | null; bgGradient: string | null;
   bgImage: string | null; bgVideo: string | null;
   bgImageOpacity?: number; bgImageFit?: 'cover' | 'contain' | 'fill'; bgImagePosition?: string;
+  bgBlur?: number;
+  bgOverlayColor?: string; bgOverlayOpacity?: number;
   elements: CE[];
 }
 
@@ -156,9 +186,13 @@ function SlideBg({ s, children }: { s: SD; children?: React.ReactNode }) {
     <div className="absolute inset-0 overflow-hidden" style={slideBgStyle(s)}>
       {s.bgType === 'IMAGE' && s.bgImage && (
         <img src={s.bgImage} alt="" className="absolute inset-0 w-full h-full"
-          style={{ objectFit: s.bgImageFit || 'cover', objectPosition: s.bgImagePosition || 'center', opacity: s.bgImageOpacity ?? 1 }} />
+          style={{ objectFit: s.bgImageFit || 'cover', objectPosition: s.bgImagePosition || 'center', opacity: s.bgImageOpacity ?? 1, filter: s.bgBlur ? `blur(${s.bgBlur}px)` : undefined, transform: s.bgBlur ? 'scale(1.05)' : undefined }} />
       )}
       {s.bgType === 'VIDEO' && s.bgVideo && <video src={s.bgVideo} className="absolute inset-0 w-full h-full object-cover" autoPlay muted loop playsInline />}
+      {/* Color overlay */}
+      {s.bgOverlayColor && (s.bgOverlayOpacity ?? 0) > 0 && (
+        <div className="absolute inset-0" style={{ backgroundColor: s.bgOverlayColor, opacity: s.bgOverlayOpacity ?? 0.5 }} />
+      )}
       {children}
     </div>
   );
@@ -176,7 +210,7 @@ function renderElInner(el: CE): React.ReactNode {
       : undefined;
     return (
       <div className="w-full h-full flex items-center justify-center overflow-hidden" style={{ filter: el.filterCss || undefined, backgroundColor: isBtn ? toRgba(el.bgColor || '#ffffff', el.bgAlpha ?? 1) : 'transparent', borderRadius: el.borderRadius ?? (isBtn ? 50 : 0), border: bw > 0 ? `${bw}px solid ${el.borderColor || '#fff'}` : undefined, boxSizing: 'border-box', boxShadow }}>
-        <div style={{ fontSize: el.fontSize || (isBtn ? 16 : 24), fontFamily: el.fontFamily || 'inherit', fontWeight: el.bold ? 'bold' : 'normal', fontStyle: el.italic ? 'italic' : 'normal', textDecoration: el.underline ? 'underline' : 'none', textAlign: el.align || 'center', color: toRgba(el.color || '#ffffff', el.colorAlpha ?? 1), lineHeight: el.lineHeight || 1.3, padding: isBtn ? '0 16px' : 0, wordBreak: 'break-word', whiteSpace: 'pre-wrap', width: '100%', WebkitTextStroke: el.textStrokeWidth ? `${el.textStrokeWidth}px ${el.textStrokeColor || '#000'}` : undefined, textShadow: !isBtn ? buildTextShadow(el) : undefined } as React.CSSProperties}>
+        <div style={{ fontSize: el.fontSize || (isBtn ? 16 : 24), fontFamily: el.fontFamily || 'inherit', fontWeight: el.bold ? 'bold' : 'normal', fontStyle: el.italic ? 'italic' : 'normal', textDecoration: el.underline ? 'underline' : 'none', textAlign: el.align || 'center', color: toRgba(el.color || '#ffffff', el.colorAlpha ?? 1), lineHeight: el.lineHeight || 1.3, letterSpacing: el.letterSpacing ? `${el.letterSpacing}px` : undefined, textTransform: el.textTransform || 'none', padding: isBtn ? '0 16px' : 0, wordBreak: 'break-word', whiteSpace: 'pre-wrap', width: '100%', WebkitTextStroke: el.textStrokeWidth ? `${el.textStrokeWidth}px ${el.textStrokeColor || '#000'}` : undefined, textShadow: !isBtn ? buildTextShadow(el) : undefined } as React.CSSProperties}>
           {el.content || (isBtn ? 'Button' : 'Double-click to edit')}
         </div>
       </div>
@@ -222,9 +256,24 @@ function CanvasEl({ el, selected, scale, canvasRef, onSelect, onChange, onDblCli
     e.preventDefault(); e.stopPropagation(); onSelect();
     onSnapshot?.();
     const sx = e.clientX, sy = e.clientY, ox = el.x, oy = el.y;
+    const SNAP = 8;
+    const snapX = (x: number) => {
+      if (Math.abs(x) < SNAP) return 0;
+      if (Math.abs(x + el.w - CANVAS_W) < SNAP) return CANVAS_W - el.w;
+      if (Math.abs(x + el.w / 2 - CANVAS_W / 2) < SNAP) return CANVAS_W / 2 - el.w / 2;
+      return x;
+    };
+    const snapY = (y: number) => {
+      if (Math.abs(y) < SNAP) return 0;
+      if (Math.abs(y + el.h - CANVAS_H) < SNAP) return CANVAS_H - el.h;
+      if (Math.abs(y + el.h / 2 - CANVAS_H / 2) < SNAP) return CANVAS_H / 2 - el.h / 2;
+      return y;
+    };
     let lastEl = el;
     const move = (ev: MouseEvent) => {
-      lastEl = { ...el, x: ox + (ev.clientX - sx) / scale, y: oy + (ev.clientY - sy) / scale };
+      const rawX = ox + (ev.clientX - sx) / scale;
+      const rawY = oy + (ev.clientY - sy) / scale;
+      lastEl = { ...el, x: ev.altKey ? rawX : snapX(rawX), y: ev.altKey ? rawY : snapY(rawY) };
       onChange(lastEl);
       if (onDragMove) onDragMove(lastEl);
     };
@@ -423,6 +472,23 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
           <input type="range" min={0} max={1} step={0.05} value={el.colorAlpha ?? 1}
             onChange={e => onChange({ ...el, colorAlpha: Number(e.target.value) })}
             className="w-12 accent-indigo-500" />
+          <div className="w-px h-4 bg-white/10 mx-0.5" />
+          {/* Letter spacing */}
+          <div className="flex items-center gap-1" title="Letter Spacing">
+            <span className="text-[10px] text-gray-500">LS</span>
+            <input type="range" min={-5} max={20} step={0.5} value={el.letterSpacing ?? 0}
+              onChange={e => onChange({ ...el, letterSpacing: Number(e.target.value) })}
+              className="w-14 accent-indigo-500" />
+            <span className="text-[9px] text-gray-500 w-5">{el.letterSpacing ?? 0}</span>
+          </div>
+          <div className="w-px h-4 bg-white/10 mx-0.5" />
+          {/* Text Transform */}
+          {(['none','uppercase','lowercase','capitalize'] as const).map(t => (
+            <button key={t} onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, textTransform: t }); }}
+              className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition ${(el.textTransform || 'none') === t ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-white/10 text-gray-500'}`}>
+              {t === 'none' ? 'Aa' : t === 'uppercase' ? 'AA' : t === 'lowercase' ? 'aa' : 'Abc'}
+            </button>
+          ))}
         </div>
       )}
 
@@ -575,15 +641,28 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
                 ))}
               </div>
               {el.animation && (
-                <div className="border-t border-white/10 pt-2 space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-[10px] text-gray-400">Speed</span>
-                    <span className="text-[10px] text-gray-300">{(el.animationDuration ?? 0.6).toFixed(1)}s</span>
+                <div className="border-t border-white/10 pt-2 space-y-2">
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-[10px] text-gray-400">Speed</span>
+                      <span className="text-[10px] text-gray-300">{(el.animationDuration ?? 0.6).toFixed(1)}s</span>
+                    </div>
+                    <input type="range" min={0.1} max={3} step={0.1} value={el.animationDuration ?? 0.6}
+                      onMouseDown={ev => ev.stopPropagation()}
+                      onChange={ev => onChange({ ...el, animationDuration: Number(ev.target.value) })}
+                      className="w-full accent-indigo-500" />
                   </div>
-                  <input type="range" min={0.1} max={3} step={0.1} value={el.animationDuration ?? 0.6}
-                    onMouseDown={ev => ev.stopPropagation()}
-                    onChange={ev => onChange({ ...el, animationDuration: Number(ev.target.value) })}
-                    className="w-full accent-indigo-500" />
+                  <div>
+                    <span className="text-[10px] text-gray-400 block mb-1">Easing</span>
+                    <div className="grid grid-cols-3 gap-1">
+                      {EASINGS.map(ez => (
+                        <button key={ez.value} onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, animationEasing: ez.value }); }}
+                          className={`px-1 py-1 rounded text-[9px] font-medium transition ${(el.animationEasing || 'ease') === ez.value ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/15'}`}>
+                          {ez.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -677,9 +756,18 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
         id: s.id || uid(), order: i, duration: s.duration || 7,
         bgType: s.bgType || 'COLOR', bgColor: s.bgColor || '#1a1a2e',
         bgGradient: s.bgGradient || null, bgImage: s.bgImage || null, bgVideo: s.bgVideo || null,
-        elements: s.canvasData
-          ? (typeof s.canvasData === 'string' ? JSON.parse(s.canvasData) : s.canvasData)
-          : [],
+        ...(() => {
+          const raw = s.canvasData
+            ? (typeof s.canvasData === 'string' ? JSON.parse(s.canvasData) : s.canvasData)
+            : null;
+          const isNew = raw && !Array.isArray(raw) && raw.elements !== undefined;
+          const cfg: any = isNew ? (raw.config || {}) : {};
+          return {
+            elements: isNew ? raw.elements : (raw || []),
+            bgImageOpacity: cfg.bgImageOpacity, bgImageFit: cfg.bgImageFit, bgImagePosition: cfg.bgImagePosition,
+            bgBlur: cfg.bgBlur, bgOverlayColor: cfg.bgOverlayColor, bgOverlayOpacity: cfg.bgOverlayOpacity,
+          };
+        })(),
       }));
     }
     return [blankSlide(0)];
@@ -693,6 +781,10 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [showGrid, setShowGrid] = useState(false);
+  const [savedColors, setSavedColors] = useState<string[]>(() => {
+    try { return JSON.parse(typeof window !== 'undefined' ? (localStorage.getItem('ws_palette') || '[]') : '[]'); } catch { return []; }
+  });
   const [scale, setScale] = useState(1);
   const [uploading, setUploading] = useState(false);
   const [gallery, setGallery] = useState<string[]>([]);
@@ -775,6 +867,43 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   const addElement = (el: CE) => { snapshot(); updateSlide(s => ({ ...s, elements: [...s.elements, el] })); setSelectedId(el.id); };
   const deleteElement = (id: string) => { snapshot(); updateSlide(s => ({ ...s, elements: s.elements.filter(e => e.id !== id) })); setSelectedId(null); };
   const clearAll = () => { snapshot(); updateSlide(s => ({ ...s, elements: [] })); setSelectedId(null); };
+
+  const distributeH = () => {
+    const els = [...activeSlide.elements].sort((a, b) => a.x - b.x);
+    if (els.length < 3) return;
+    snapshot();
+    const leftmost = els[0].x, rightmost = els[els.length - 1].x + els[els.length - 1].w;
+    const totalW = els.reduce((s, e) => s + e.w, 0);
+    const gap = (rightmost - leftmost - totalW) / (els.length - 1);
+    let x = leftmost;
+    const updated = els.map(e => { const ne = { ...e, x: Math.round(x) }; x += e.w + gap; return ne; });
+    updateSlide(s => ({ ...s, elements: s.elements.map(e => updated.find(u => u.id === e.id) || e) }));
+  };
+
+  const distributeV = () => {
+    const els = [...activeSlide.elements].sort((a, b) => a.y - b.y);
+    if (els.length < 3) return;
+    snapshot();
+    const topmost = els[0].y, bottommost = els[els.length - 1].y + els[els.length - 1].h;
+    const totalH = els.reduce((s, e) => s + e.h, 0);
+    const gap = (bottommost - topmost - totalH) / (els.length - 1);
+    let y = topmost;
+    const updated = els.map(e => { const ne = { ...e, y: Math.round(y) }; y += e.h + gap; return ne; });
+    updateSlide(s => ({ ...s, elements: s.elements.map(e => updated.find(u => u.id === e.id) || e) }));
+  };
+
+  const saveColor = (color: string) => {
+    if (!color || savedColors.includes(color)) return;
+    const next = [color, ...savedColors].slice(0, 20);
+    setSavedColors(next);
+    try { localStorage.setItem('ws_palette', JSON.stringify(next)); } catch {}
+  };
+
+  const removeColor = (color: string) => {
+    const next = savedColors.filter(c => c !== color);
+    setSavedColors(next);
+    try { localStorage.setItem('ws_palette', JSON.stringify(next)); } catch {}
+  };
 
   const duplicateElement = (id: string) => {
     const el = activeSlide.elements.find(e => e.id === id);
@@ -879,7 +1008,13 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     slides: slides.map((s, i) => ({
       id: s.id.startsWith('_') ? undefined : s.id, order: i, duration: s.duration, bgType: s.bgType,
       bgImage: s.bgImage || null, bgVideo: s.bgVideo || null, bgColor: s.bgColor || null, bgGradient: s.bgGradient || null,
-      canvasData: JSON.stringify(s.elements), heading: null, subtext: null, ctaText: null, ctaUrl: null,
+      canvasData: JSON.stringify({
+        config: {
+          bgImageOpacity: s.bgImageOpacity, bgImageFit: s.bgImageFit, bgImagePosition: s.bgImagePosition,
+          bgBlur: s.bgBlur, bgOverlayColor: s.bgOverlayColor, bgOverlayOpacity: s.bgOverlayOpacity,
+        },
+        elements: s.elements,
+      }), heading: null, subtext: null, ctaText: null, ctaUrl: null,
     })),
   });
 
@@ -945,6 +1080,18 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
       // Duplicate
       if (e.key === 'd' && (e.ctrlKey || e.metaKey) && selectedId) { e.preventDefault(); duplicateElement(selectedId); return; }
 
+      // Layer order
+      if (e.key === ']' && (e.ctrlKey || e.metaKey) && selectedId) { e.preventDefault(); changeLayer(selectedId, 'up'); return; }
+      if (e.key === '[' && (e.ctrlKey || e.metaKey) && selectedId) { e.preventDefault(); changeLayer(selectedId, 'down'); return; }
+
+      // Lock/Unlock
+      if (e.key === 'l' && (e.ctrlKey || e.metaKey) && selectedId) {
+        e.preventDefault();
+        const el = activeSlide.elements.find(el => el.id === selectedId);
+        if (el) updateElement({ ...el, locked: !el.locked });
+        return;
+      }
+
       // Save
       if (e.key === 's' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleSave(); return; }
 
@@ -977,6 +1124,10 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
 
   return (
     <div className="h-screen flex flex-col bg-[#1a1a1a] overflow-hidden" style={{ fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
+      {/* Google Fonts */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link href={GOOGLE_FONTS_URL} rel="stylesheet" />
       <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleAddImage} />
       <input ref={bgImgInputRef} type="file" accept="image/*,video/mp4,video/webm" className="hidden" onChange={handleBgUpload} />
       <input ref={shapeImgInputRef} type="file" accept="image/*" className="hidden" onChange={handleShapeImgUpload} />
@@ -1000,6 +1151,10 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
         <div className="flex items-center gap-2">
           {msg && <span className={`text-xs font-medium px-2 py-1 rounded-full ${msg.type === 'ok' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{msg.text}</span>}
           <span className={`text-xs font-bold ${seoColor}`}>SEO {seo}</span>
+          <button onClick={() => setShowGrid(v => !v)} title="Toggle Grid"
+            className={`px-2 py-1.5 text-xs rounded-lg transition ${showGrid ? 'bg-white/20 text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white'}`}>
+            ⊞ Grid
+          </button>
           <button onClick={() => window.open(`/admin/web-stories/preview/${initialData?.id || ''}`, '_blank')} disabled={mode === 'create'}
             className="flex items-center gap-1.5 px-3 py-1.5 text-gray-300 hover:text-white text-xs rounded-lg hover:bg-white/10 transition disabled:opacity-30">
             <Eye className="w-3.5 h-3.5" /> Preview
@@ -1085,6 +1240,42 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 </button>
               </div>
 
+              {/* Distribute */}
+              {activeSlide.elements.length >= 3 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Distribute</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={distributeH} className="py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs text-gray-300 transition">⟷ Horizontal</button>
+                    <button onClick={distributeV} className="py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs text-gray-300 transition">⟸⟹ Vertical</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Saved Colors Palette */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Color Palette</p>
+                  {selectedEl?.color && (
+                    <button onClick={() => saveColor(selectedEl.color!)} className="text-[10px] text-indigo-400 hover:text-indigo-300">+ Save current</button>
+                  )}
+                </div>
+                {savedColors.length === 0
+                  ? <p className="text-[11px] text-gray-600 text-center py-2">Select element color then click Save</p>
+                  : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {savedColors.map(c => (
+                        <div key={c} className="relative group">
+                          <button
+                            onClick={() => selectedEl && updateElement({ ...selectedEl, color: c })}
+                            className="w-7 h-7 rounded-lg border border-white/20 hover:ring-2 hover:ring-white/40 transition"
+                            style={{ backgroundColor: c }} title={c} />
+                          <button onClick={() => removeColor(c)} className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full text-white text-[8px] hidden group-hover:flex items-center justify-center">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+              </div>
+
               {activeSlide.elements.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1152,6 +1343,15 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                         onChange={e => updateSlide(s => ({ ...s, bgImageOpacity: Number(e.target.value) }))}
                         className="w-full accent-indigo-500" />
                     </div>
+                    {/* Blur */}
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                        <span>Blur</span><span>{activeSlide.bgBlur ?? 0}px</span>
+                      </div>
+                      <input type="range" min={0} max={20} step={1} value={activeSlide.bgBlur ?? 0}
+                        onChange={e => updateSlide(s => ({ ...s, bgBlur: Number(e.target.value) }))}
+                        className="w-full accent-indigo-500" />
+                    </div>
                     {/* Fit */}
                     <div>
                       <p className="text-[10px] text-gray-400 mb-1.5">Fit</p>
@@ -1193,6 +1393,27 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                   </button>
                 </div>
               )}
+              {/* Color Overlay (works on all bg types) */}
+              <div className="border-t border-white/10 pt-4 space-y-2">
+                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest">Color Overlay</p>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={activeSlide.bgOverlayColor || '#000000'}
+                    onChange={e => updateSlide(s => ({ ...s, bgOverlayColor: e.target.value, bgOverlayOpacity: s.bgOverlayOpacity ?? 0.3 }))}
+                    className="w-8 h-8 rounded-lg border-0 cursor-pointer p-0.5 bg-transparent" />
+                  <div className="flex-1">
+                    <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                      <span>Opacity</span><span>{Math.round((activeSlide.bgOverlayOpacity ?? 0) * 100)}%</span>
+                    </div>
+                    <input type="range" min={0} max={1} step={0.05} value={activeSlide.bgOverlayOpacity ?? 0}
+                      onChange={e => updateSlide(s => ({ ...s, bgOverlayOpacity: Number(e.target.value) }))}
+                      className="w-full accent-indigo-500" />
+                  </div>
+                  {(activeSlide.bgOverlayOpacity ?? 0) > 0 && (
+                    <button onClick={() => updateSlide(s => ({ ...s, bgOverlayOpacity: 0 }))} className="text-[10px] text-red-400 hover:text-red-300">Clear</button>
+                  )}
+                </div>
+              </div>
+
               <div className="border-t border-white/10 pt-4 space-y-1.5">
                 <div className="flex justify-between text-xs"><span className="text-gray-400">Slide Duration</span><span className="text-white font-medium">{activeSlide.duration}s</span></div>
                 <input type="range" min={3} max={30} value={activeSlide.duration} onChange={e => updateSlide(s => ({ ...s, duration: Number(e.target.value) }))} className="w-full accent-indigo-500" />
@@ -1245,6 +1466,14 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                     onDragMove={handleElementDrag} onDragEnd={handleDragEnd}
                     dropHighlight={dropTargetId === el.id} onSnapshot={snapshot} />
                 ))}
+                {/* Grid overlay */}
+                {showGrid && (
+                  <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 9000, backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '30px 30px' }}>
+                    {/* Center guides */}
+                    <div className="absolute" style={{ left: CANVAS_W/2 - 0.5, top: 0, width: 1, height: '100%', background: 'rgba(99,102,241,0.4)' }} />
+                    <div className="absolute" style={{ top: CANVAS_H/2 - 0.5, left: 0, height: 1, width: '100%', background: 'rgba(99,102,241,0.4)' }} />
+                  </div>
+                )}
               </div>
               {/* FloatingToolbar outside scaled canvas — positioned in visual pixels */}
               {selectedEl && (
