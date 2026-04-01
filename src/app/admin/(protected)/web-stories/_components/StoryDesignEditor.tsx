@@ -960,6 +960,8 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const [servicesList, setServicesList] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [locationsList, setLocationsList] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [locationSearch, setLocationSearch] = useState('');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -1769,8 +1771,16 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                   {servicesList.length === 0 ? (
                     <p className="text-[10px] text-gray-600 italic">Loading...</p>
                   ) : (
+                    <>
+                      <input
+                        type="text"
+                        placeholder="Search services..."
+                        value={serviceSearch}
+                        onChange={e => setServiceSearch(e.target.value)}
+                        className="w-full bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 placeholder-gray-600 mb-1.5"
+                      />
                     <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
-                      {servicesList.map((svc: any) => (
+                      {servicesList.filter((s: any) => s.name.toLowerCase().includes(serviceSearch.toLowerCase())).map((svc: any) => (
                         <label key={svc.id} className="flex items-center gap-2 cursor-pointer group">
                           <input type="checkbox"
                             checked={meta.targetServices.includes(svc.slug)}
@@ -1785,6 +1795,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                         </label>
                       ))}
                     </div>
+                    </>
                   )}
                 </div>
 
@@ -1812,8 +1823,16 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                   {locationsList.length === 0 ? (
                     <p className="text-[10px] text-gray-600 italic">Loading...</p>
                   ) : (
+                    <>
+                      <input
+                        type="text"
+                        placeholder="Search locations..."
+                        value={locationSearch}
+                        onChange={e => setLocationSearch(e.target.value)}
+                        className="w-full bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 placeholder-gray-600 mb-1.5"
+                      />
                     <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
-                      {locationsList.map((loc: any) => (
+                      {locationsList.filter((l: any) => l.name.toLowerCase().includes(locationSearch.toLowerCase())).map((loc: any) => (
                         <label key={loc.id} className="flex items-center gap-2 cursor-pointer group">
                           <input type="checkbox"
                             checked={meta.targetLocations.includes(loc.slug)}
@@ -1828,6 +1847,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                         </label>
                       ))}
                     </div>
+                    </>
                   )}
                 </div>
               </div>
