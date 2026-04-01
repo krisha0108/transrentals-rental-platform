@@ -72,7 +72,6 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(homepageSchema) }}
       />
       <HeroSectionDynamic />
-      <StoriesStrip />
       <FeaturesSection />
       <ServicesGridDynamic />
       <PopularDestinationsDynamic />
@@ -82,6 +81,7 @@ export default function HomePage() {
       <AppDownloadSection />
       <BlogSectionDynamic />
       <CTASectionDynamic />
+      <StoriesStrip />
     </div>
   );
 }
