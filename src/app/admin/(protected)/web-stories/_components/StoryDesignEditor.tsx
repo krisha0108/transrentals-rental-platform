@@ -128,6 +128,7 @@ interface Meta {
   title: string; slug: string; description: string; metaDescription: string;
   category: string; publisherName: string; publisherLogo: string;
   coverImage: string; coverImageSquare: string; expiresAt: string;
+  targetServices: string[]; targetLocations: string[];
 }
 
 type Tab = 'insert' | 'style' | 'document';
@@ -912,6 +913,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     category: initialData?.category || '', publisherName: initialData?.publisherName || '',
     publisherLogo: initialData?.publisherLogo || '', coverImage: initialData?.coverImage || '',
     coverImageSquare: initialData?.coverImageSquare || '', expiresAt: initialData?.expiresAt || '',
+    targetServices: initialData?.targetServices || [], targetLocations: initialData?.targetLocations || [],
   }));
 
   const [slides, setSlides] = useState<SD[]>(() => {
@@ -956,6 +958,8 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [dragSlideIdx, setDragSlideIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const [servicesList, setServicesList] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [locationsList, setLocationsList] = useState<{ id: string; name: string; slug: string }[]>([]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -1011,6 +1015,14 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     if (containerRef.current) ro.observe(containerRef.current);
     return () => ro.disconnect();
   }, []);
+
+  // Load services + locations for targeting (when document tab opens)
+  useEffect(() => {
+    if (tab === 'document' && servicesList.length === 0) {
+      fetch('/api/services').then(r => r.json()).then(d => setServicesList(d?.services || [])).catch(() => {});
+      fetch('/api/locations?type=CITY').then(r => r.json()).then(d => setLocationsList(d?.locations || [])).catch(() => {});
+    }
+  }, [tab]);
 
   // Load gallery when insert tab opens
   useEffect(() => {
@@ -1235,6 +1247,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     coverImage: meta.coverImage || null, coverImageSquare: meta.coverImageSquare || null,
     publisherName: meta.publisherName.trim() || null, publisherLogo: meta.publisherLogo || null,
     category: meta.category.trim() || null, expiresAt: meta.expiresAt || null,
+    targetServices: meta.targetServices, targetLocations: meta.targetLocations,
     slides: slides.map((s, i) => ({
       id: s.id.startsWith('_') ? undefined : s.id, order: i, duration: s.duration, bgType: s.bgType,
       bgImage: s.bgImage || null, bgVideo: s.bgVideo || null, bgColor: s.bgColor || null, bgGradient: s.bgGradient || null,
@@ -1726,6 +1739,73 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 <label className="text-xs text-gray-400 mb-1 block">Cover Image</label>
                 {meta.coverImage && <img src={meta.coverImage} alt="" className="w-full h-24 object-cover rounded-xl mb-2" />}
                 <button onClick={() => coverInputRef.current?.click()} className="w-full py-2 border border-dashed border-white/20 text-gray-400 hover:text-white rounded-xl text-xs flex items-center justify-center gap-1.5 transition"><Upload className="w-3 h-3" /> Upload Cover</button>
+              </div>
+
+              {/* Targeting */}
+              <div className="pt-2 border-t border-white/10">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Targeting <span className="text-[10px] font-normal text-gray-600 normal-case">(optional)</span></p>
+
+                {/* Services */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs text-gray-400">Services</label>
+                    {meta.targetServices.length > 0 && (
+                      <button onClick={() => setMeta(m => ({ ...m, targetServices: [] }))} className="text-[10px] text-gray-500 hover:text-red-400 transition">Clear</button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-gray-600 mb-2">{meta.targetServices.length === 0 ? 'All services (default)' : `${meta.targetServices.length} selected`}</p>
+                  {servicesList.length === 0 ? (
+                    <p className="text-[10px] text-gray-600 italic">Loading...</p>
+                  ) : (
+                    <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+                      {servicesList.map((svc: any) => (
+                        <label key={svc.id} className="flex items-center gap-2 cursor-pointer group">
+                          <input type="checkbox"
+                            checked={meta.targetServices.includes(svc.slug)}
+                            onChange={e => setMeta(m => ({
+                              ...m,
+                              targetServices: e.target.checked
+                                ? [...m.targetServices, svc.slug]
+                                : m.targetServices.filter(s => s !== svc.slug)
+                            }))}
+                            className="accent-indigo-500 w-3 h-3 flex-shrink-0" />
+                          <span className="text-[11px] text-gray-300 group-hover:text-white transition truncate">{svc.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Locations */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs text-gray-400">Locations</label>
+                    {meta.targetLocations.length > 0 && (
+                      <button onClick={() => setMeta(m => ({ ...m, targetLocations: [] }))} className="text-[10px] text-gray-500 hover:text-red-400 transition">Clear</button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-gray-600 mb-2">{meta.targetLocations.length === 0 ? 'All locations (default)' : `${meta.targetLocations.length} selected`}</p>
+                  {locationsList.length === 0 ? (
+                    <p className="text-[10px] text-gray-600 italic">Loading...</p>
+                  ) : (
+                    <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+                      {locationsList.map((loc: any) => (
+                        <label key={loc.id} className="flex items-center gap-2 cursor-pointer group">
+                          <input type="checkbox"
+                            checked={meta.targetLocations.includes(loc.slug)}
+                            onChange={e => setMeta(m => ({
+                              ...m,
+                              targetLocations: e.target.checked
+                                ? [...m.targetLocations, loc.slug]
+                                : m.targetLocations.filter(l => l !== loc.slug)
+                            }))}
+                            className="accent-indigo-500 w-3 h-3 flex-shrink-0" />
+                          <span className="text-[11px] text-gray-300 group-hover:text-white transition truncate">{loc.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

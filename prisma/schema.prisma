@@ -5691,6 +5691,8 @@ model web_stories {
   displayOrder     Int                  @default(0)
   expiresAt        DateTime?
   publishedAt      DateTime?
+  targetServices   String?              @db.Text
+  targetLocations  String?              @db.Text
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
   slides           web_story_slides[]
