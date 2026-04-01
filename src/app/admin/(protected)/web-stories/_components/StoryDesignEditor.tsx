@@ -90,6 +90,7 @@ interface CE {
   filterCss?: string;
   animation?: string; animationDuration?: number; animationEasing?: string;
   locked?: boolean;
+  groupId?: string;
   letterSpacing?: number;
   textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
   content?: string; fontSize?: number; fontFamily?: string;
@@ -108,6 +109,7 @@ interface CE {
   objectFit?: 'cover' | 'contain' | 'fill';
   objectPosition?: string;
   src?: string;
+  tintColor?: string; tintOpacity?: number;
   href?: string;
 }
 
@@ -167,6 +169,95 @@ function buildTextShadow(el: CE): string | undefined {
   return `${el.shadowX ?? 0}px ${el.shadowY ?? 4}px ${el.shadowBlur ?? 8}px ${shadowRgba(el)}`;
 }
 
+// ─── Templates ────────────────────────────────────────────────────────────────
+const TEMPLATES: {
+  name: string; icon: string;
+  bg: Pick<SD, 'bgType' | 'bgColor' | 'bgGradient' | 'bgImage' | 'bgVideo'>;
+  elements: Partial<CE>[];
+}[] = [
+  {
+    name: 'Title Slide', icon: '📌',
+    bg: { bgType: 'COLOR', bgColor: '#1a1a2e', bgGradient: null, bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'text', x: 20, y: 210, w: 350, h: 110, content: 'Your Headline', fontSize: 46, bold: true, align: 'center', color: '#ffffff', colorAlpha: 1, lineHeight: 1.15, fontFamily: 'inherit' },
+      { type: 'text', x: 40, y: 340, w: 310, h: 60, content: 'Your subtitle goes here', fontSize: 17, align: 'center', color: '#c4c4e0', colorAlpha: 0.85, lineHeight: 1.5, fontFamily: 'inherit' },
+    ],
+  },
+  {
+    name: 'CTA', icon: '🎯',
+    bg: { bgType: 'GRADIENT', bgColor: null, bgGradient: 'linear-gradient(160deg,#0f0c29,#302b63,#24243e)', bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'text', x: 20, y: 190, w: 350, h: 110, content: 'Big Bold Headline', fontSize: 44, bold: true, align: 'center', color: '#ffffff', colorAlpha: 1, lineHeight: 1.1, fontFamily: 'inherit' },
+      { type: 'text', x: 40, y: 320, w: 310, h: 50, content: 'Supporting text goes here', fontSize: 16, align: 'center', color: '#ffffff', colorAlpha: 0.7, lineHeight: 1.5, fontFamily: 'inherit' },
+      { type: 'button', x: 95, y: 500, w: 200, h: 52, content: 'Tap to Learn More', fontSize: 15, bold: true, color: '#1a1a2e', colorAlpha: 1, bgColor: '#ffffff', bgAlpha: 1, borderRadius: 50 },
+    ],
+  },
+  {
+    name: 'Quote', icon: '💬',
+    bg: { bgType: 'GRADIENT', bgColor: null, bgGradient: 'linear-gradient(135deg,#667eea,#764ba2)', bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'shape', x: 165, y: 140, w: 60, h: 60, shapeType: 'circle', bgColor: '#ffffff', bgAlpha: 0.15, filled: true },
+      { type: 'text', x: 30, y: 240, w: 330, h: 200, content: '"A great insight that resonates with your audience and inspires action."', fontSize: 24, italic: true, align: 'center', color: '#ffffff', colorAlpha: 1, lineHeight: 1.55, fontFamily: 'inherit' },
+      { type: 'text', x: 80, y: 455, w: 230, h: 40, content: '— Author Name', fontSize: 15, align: 'center', color: '#ffffff', colorAlpha: 0.72, lineHeight: 1.3, fontFamily: 'inherit' },
+    ],
+  },
+  {
+    name: 'Stats', icon: '📊',
+    bg: { bgType: 'COLOR', bgColor: '#0d0d0d', bgGradient: null, bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'text', x: 20, y: 90, w: 350, h: 55, content: 'Key Numbers', fontSize: 26, bold: true, align: 'center', color: '#ffffff', colorAlpha: 1, lineHeight: 1.2, fontFamily: 'inherit' },
+      { type: 'text', x: 20, y: 210, w: 165, h: 90, content: '99%', fontSize: 54, bold: true, align: 'center', color: '#818cf8', colorAlpha: 1, lineHeight: 1, fontFamily: 'inherit' },
+      { type: 'text', x: 20, y: 308, w: 165, h: 38, content: 'Satisfaction', fontSize: 14, align: 'center', color: '#9ca3af', colorAlpha: 1, lineHeight: 1.3, fontFamily: 'inherit' },
+      { type: 'text', x: 205, y: 210, w: 165, h: 90, content: '5K+', fontSize: 54, bold: true, align: 'center', color: '#f472b6', colorAlpha: 1, lineHeight: 1, fontFamily: 'inherit' },
+      { type: 'text', x: 205, y: 308, w: 165, h: 38, content: 'Customers', fontSize: 14, align: 'center', color: '#9ca3af', colorAlpha: 1, lineHeight: 1.3, fontFamily: 'inherit' },
+    ],
+  },
+  {
+    name: 'Announcement', icon: '📣',
+    bg: { bgType: 'GRADIENT', bgColor: null, bgGradient: 'linear-gradient(160deg,#f093fb,#f5576c)', bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'shape', x: 145, y: 140, w: 100, h: 100, shapeType: 'star', bgColor: '#ffffff', bgAlpha: 0.25, filled: true },
+      { type: 'text', x: 20, y: 270, w: 350, h: 80, content: 'Big Announcement!', fontSize: 38, bold: true, align: 'center', color: '#ffffff', colorAlpha: 1, lineHeight: 1.1, fontFamily: 'inherit' },
+      { type: 'text', x: 40, y: 368, w: 310, h: 70, content: 'Share details about your exciting news here.', fontSize: 17, align: 'center', color: '#ffffff', colorAlpha: 0.88, lineHeight: 1.45, fontFamily: 'inherit' },
+    ],
+  },
+  {
+    name: 'Split', icon: '✂️',
+    bg: { bgType: 'COLOR', bgColor: '#f9fafb', bgGradient: null, bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'shape', x: 0, y: 0, w: 390, h: 350, shapeType: 'rect', bgColor: '#1a1a2e', bgAlpha: 1, filled: true, borderRadius: 0 },
+      { type: 'text', x: 20, y: 380, w: 350, h: 70, content: 'Your Heading Here', fontSize: 30, bold: true, align: 'center', color: '#111827', colorAlpha: 1, lineHeight: 1.2, fontFamily: 'inherit' },
+      { type: 'text', x: 30, y: 460, w: 330, h: 80, content: 'Supporting description. Keep it short and engaging.', fontSize: 15, align: 'center', color: '#6b7280', colorAlpha: 1, lineHeight: 1.55, fontFamily: 'inherit' },
+    ],
+  },
+  {
+    name: 'Product', icon: '🛍️',
+    bg: { bgType: 'COLOR', bgColor: '#f8f9fa', bgGradient: null, bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'shape', x: 35, y: 55, w: 320, h: 310, shapeType: 'rect', bgColor: '#e5e7eb', bgAlpha: 1, filled: true, borderRadius: 20 },
+      { type: 'text', x: 20, y: 390, w: 350, h: 60, content: 'Product Name', fontSize: 28, bold: true, align: 'center', color: '#111827', colorAlpha: 1, lineHeight: 1.2, fontFamily: 'inherit' },
+      { type: 'text', x: 40, y: 460, w: 310, h: 45, content: '₹999 · Limited Time Offer', fontSize: 19, align: 'center', color: '#6366f1', colorAlpha: 1, lineHeight: 1.3, fontFamily: 'inherit' },
+      { type: 'button', x: 95, y: 555, w: 200, h: 52, content: 'Shop Now', fontSize: 16, bold: true, color: '#ffffff', colorAlpha: 1, bgColor: '#6366f1', bgAlpha: 1, borderRadius: 50 },
+    ],
+  },
+  {
+    name: 'Steps', icon: '📋',
+    bg: { bgType: 'COLOR', bgColor: '#18181b', bgGradient: null, bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'text', x: 20, y: 55, w: 350, h: 55, content: 'How It Works', fontSize: 28, bold: true, align: 'center', color: '#ffffff', colorAlpha: 1, lineHeight: 1.2, fontFamily: 'inherit' },
+      { type: 'shape', x: 28, y: 150, w: 48, h: 48, shapeType: 'circle', bgColor: '#6366f1', bgAlpha: 1, filled: true },
+      { type: 'text', x: 28, y: 155, w: 48, h: 38, content: '1', fontSize: 22, bold: true, align: 'center', color: '#fff', colorAlpha: 1, lineHeight: 1, fontFamily: 'inherit' },
+      { type: 'text', x: 92, y: 152, w: 272, h: 44, content: 'Step one: First action here', fontSize: 15, align: 'left', color: '#e5e7eb', colorAlpha: 1, lineHeight: 1.45, fontFamily: 'inherit' },
+      { type: 'shape', x: 28, y: 288, w: 48, h: 48, shapeType: 'circle', bgColor: '#ec4899', bgAlpha: 1, filled: true },
+      { type: 'text', x: 28, y: 293, w: 48, h: 38, content: '2', fontSize: 22, bold: true, align: 'center', color: '#fff', colorAlpha: 1, lineHeight: 1, fontFamily: 'inherit' },
+      { type: 'text', x: 92, y: 290, w: 272, h: 44, content: 'Step two: Second action here', fontSize: 15, align: 'left', color: '#e5e7eb', colorAlpha: 1, lineHeight: 1.45, fontFamily: 'inherit' },
+      { type: 'shape', x: 28, y: 426, w: 48, h: 48, shapeType: 'circle', bgColor: '#10b981', bgAlpha: 1, filled: true },
+      { type: 'text', x: 28, y: 431, w: 48, h: 38, content: '3', fontSize: 22, bold: true, align: 'center', color: '#fff', colorAlpha: 1, lineHeight: 1, fontFamily: 'inherit' },
+      { type: 'text', x: 92, y: 428, w: 272, h: 44, content: 'Step three: Final result', fontSize: 15, align: 'left', color: '#e5e7eb', colorAlpha: 1, lineHeight: 1.45, fontFamily: 'inherit' },
+    ],
+  },
+];
+
 function blankSlide(order: number): SD {
   return { id: uid(), order, duration: 7, bgType: 'COLOR', bgColor: '#1a1a2e', bgGradient: null, bgImage: null, bgVideo: null, elements: [] };
 }
@@ -220,7 +311,14 @@ function renderElInner(el: CE): React.ReactNode {
   if (el.type === 'image') {
     const bw = el.borderWidth || 0;
     return el.src
-      ? <img src={el.src} alt="" className="w-full h-full" style={{ objectFit: el.objectFit || 'cover', objectPosition: el.objectPosition || 'center center', borderRadius: el.borderRadius ?? 0, filter: combinedFilter, border: bw > 0 ? `${bw}px solid ${el.borderColor || '#fff'}` : undefined, boxSizing: 'border-box' }} />
+      ? (
+        <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: el.borderRadius ?? 0, overflow: 'hidden', border: bw > 0 ? `${bw}px solid ${el.borderColor || '#fff'}` : undefined, boxSizing: 'border-box' }}>
+          <img src={el.src} alt="" className="w-full h-full" style={{ objectFit: el.objectFit || 'cover', objectPosition: el.objectPosition || 'center center', filter: combinedFilter, display: 'block' }} />
+          {el.tintColor && (el.tintOpacity ?? 0) > 0 && (
+            <div style={{ position: 'absolute', inset: 0, backgroundColor: el.tintColor, opacity: el.tintOpacity, pointerEvents: 'none' }} />
+          )}
+        </div>
+      )
       : <div className="w-full h-full bg-gray-700 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-600"><ImageIcon className="w-8 h-8 text-gray-400" /></div>;
   }
 
@@ -242,19 +340,25 @@ function renderElInner(el: CE): React.ReactNode {
 }
 
 // ─── CanvasEl with Rotation Handle ───────────────────────────────────────────
-function CanvasEl({ el, selected, scale, canvasRef, onSelect, onChange, onDblClick, onDragMove, onDragEnd, dropHighlight, onSnapshot }: {
-  el: CE; selected: boolean; scale: number;
+function CanvasEl({ el, selected, multiSelected, scale, canvasRef, onSelect, onShiftSelect, onChange, onDblClick, onDragMove, onDragEnd, dropHighlight, onSnapshot, onMultiDragStart, onMultiMove }: {
+  el: CE; selected: boolean; multiSelected?: boolean; scale: number;
   canvasRef: React.RefObject<HTMLDivElement | null>;
-  onSelect: () => void; onChange: (e: CE) => void; onDblClick: () => void;
+  onSelect: () => void; onShiftSelect?: () => void; onChange: (e: CE) => void; onDblClick: () => void;
   onDragMove?: (el: CE) => void;
   onDragEnd?: (finalEl: CE) => void;
   dropHighlight?: boolean;
   onSnapshot?: () => void;
+  onMultiDragStart?: () => void;
+  onMultiMove?: (dx: number, dy: number) => void;
 }) {
   const handleDrag = (e: React.MouseEvent) => {
-    if (el.locked) { onSelect(); return; }
-    e.preventDefault(); e.stopPropagation(); onSelect();
+    if (el.locked) { if (e.shiftKey && onShiftSelect) onShiftSelect(); else onSelect(); return; }
+    e.preventDefault(); e.stopPropagation();
+    // Shift+click = toggle selection only, skip drag
+    if (e.shiftKey && onShiftSelect) { onShiftSelect(); return; }
+    onSelect();
     onSnapshot?.();
+    if (multiSelected && onMultiDragStart) onMultiDragStart();
     const sx = e.clientX, sy = e.clientY, ox = el.x, oy = el.y;
     const SNAP = 8;
     const snapX = (x: number) => {
@@ -271,16 +375,21 @@ function CanvasEl({ el, selected, scale, canvasRef, onSelect, onChange, onDblCli
     };
     let lastEl = el;
     const move = (ev: MouseEvent) => {
-      const rawX = ox + (ev.clientX - sx) / scale;
-      const rawY = oy + (ev.clientY - sy) / scale;
-      lastEl = { ...el, x: ev.altKey ? rawX : snapX(rawX), y: ev.altKey ? rawY : snapY(rawY) };
-      onChange(lastEl);
-      if (onDragMove) onDragMove(lastEl);
+      const dx = (ev.clientX - sx) / scale;
+      const dy = (ev.clientY - sy) / scale;
+      if (multiSelected && onMultiMove) {
+        onMultiMove(dx, dy);
+      } else {
+        const rawX = ox + dx, rawY = oy + dy;
+        lastEl = { ...el, x: ev.altKey ? rawX : snapX(rawX), y: ev.altKey ? rawY : snapY(rawY) };
+        onChange(lastEl);
+        if (onDragMove) onDragMove(lastEl);
+      }
     };
     const up = () => {
       document.removeEventListener('mousemove', move);
       document.removeEventListener('mouseup', up);
-      if (onDragEnd) onDragEnd(lastEl);
+      if (!multiSelected && onDragEnd) onDragEnd(lastEl);
     };
     document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
   };
@@ -338,9 +447,9 @@ function CanvasEl({ el, selected, scale, canvasRef, onSelect, onChange, onDblCli
 
   return (
     <div
-      style={{ position: 'absolute', left: el.x, top: el.y, width: el.w, height: el.h, transform: `rotate(${el.rot}deg)${flipStr}`, zIndex: el.z, opacity: el.opacity, cursor: el.locked ? 'not-allowed' : 'move', outline: dropHighlight ? '3px solid #22c55e' : selected ? (el.locked ? '2px solid #f59e0b' : '2px solid #818cf8') : 'none', outlineOffset: dropHighlight ? 3 : 1, userSelect: 'none', transition: 'outline 0.1s' }}
+      style={{ position: 'absolute', left: el.x, top: el.y, width: el.w, height: el.h, transform: `rotate(${el.rot}deg)${flipStr}`, zIndex: el.z, opacity: el.opacity, cursor: el.locked ? 'not-allowed' : 'move', outline: dropHighlight ? '3px solid #22c55e' : selected ? (el.locked ? '2px solid #f59e0b' : '2px solid #818cf8') : multiSelected ? '2px dashed #818cf8' : 'none', outlineOffset: dropHighlight ? 3 : 1, userSelect: 'none', transition: 'outline 0.1s' }}
       onMouseDown={handleDrag}
-      onClick={e => { e.stopPropagation(); onSelect(); }}
+      onClick={e => { e.stopPropagation(); if (!e.shiftKey) onSelect(); }}
       onDoubleClick={e => { e.stopPropagation(); onDblClick(); }}
     >
       {renderElInner(el)}
@@ -423,6 +532,12 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
   const [showFilters, setShowFilters] = useState(false);
   const [showAnim, setShowAnim] = useState(false);
   const [showShadow, setShowShadow] = useState(false);
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // Reset position when a different element is selected
+  useEffect(() => { setDragPos(null); }, [el.id]);
+
   if (!canvasRef.current) return null;
 
   // All positions are in visual pixels (scale already applied)
@@ -430,20 +545,51 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
   const toolbarW = Math.min(420, canvasVisualW);
   const elTopPx = el.y * scale;
   const elBottomPx = (el.y + el.h) * scale;
-  let left = el.x * scale + (el.w * scale) / 2 - toolbarW / 2;
-  left = Math.max(0, Math.min(canvasVisualW - toolbarW, left));
-
-  // Show above: anchor toolbar BOTTOM to element TOP using translateY(-100%)
-  // This way browser handles the toolbar height — no guessing needed.
-  // Show below only if element is very near the top (< 100px from top).
+  let autoLeft = el.x * scale + (el.w * scale) / 2 - toolbarW / 2;
+  autoLeft = Math.max(0, Math.min(canvasVisualW - toolbarW, autoLeft));
   const showAbove = elTopPx >= 100;
-  const posStyle: React.CSSProperties = showAbove
+  const autoStyle: React.CSSProperties = showAbove
     ? { top: elTopPx - 6, transform: 'translateY(-100%)' }
     : { top: elBottomPx + 8 };
 
+  const finalStyle: React.CSSProperties = dragPos
+    ? { left: dragPos.x, top: dragPos.y, transform: 'none', width: toolbarW }
+    : { left: autoLeft, width: toolbarW, ...autoStyle };
+
+  const handleGripDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!toolbarRef.current) return;
+    const rect = toolbarRef.current.getBoundingClientRect();
+    const wrapper = canvasRef.current?.parentElement;
+    if (!wrapper) return;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const startMouseX = e.clientX;
+    const startMouseY = e.clientY;
+    const origX = rect.left - wrapperRect.left;
+    const origY = rect.top - wrapperRect.top;
+    const move = (ev: MouseEvent) => {
+      setDragPos({ x: origX + ev.clientX - startMouseX, y: origY + ev.clientY - startMouseY });
+    };
+    const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  };
+
   return (
-    <div className="absolute z-50 bg-[#2a2a2a] border border-white/10 rounded-xl shadow-2xl overflow-visible"
-      style={{ left, width: toolbarW, ...posStyle }} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+    <div ref={toolbarRef} className="absolute z-50 bg-[#2a2a2a] border border-white/10 rounded-xl shadow-2xl overflow-visible"
+      style={finalStyle} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+
+      {/* Drag handle */}
+      <div
+        className="flex items-center justify-center gap-1 py-1 cursor-grab active:cursor-grabbing border-b border-white/10 select-none"
+        onMouseDown={handleGripDrag}
+        title="Drag to reposition toolbar"
+      >
+        <GripVertical className="w-3.5 h-3.5 text-gray-600" />
+        <span className="text-[9px] text-gray-700 uppercase tracking-widest">drag</span>
+        <GripVertical className="w-3.5 h-3.5 text-gray-600" />
+      </div>
 
       {/* ROW 1: Text formatting */}
       {(el.type === 'text' || el.type === 'button') && (
@@ -550,6 +696,24 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
               className="w-8 text-xs text-center bg-white/10 text-white border border-white/10 rounded px-1 py-0.5 outline-none" />
             <input type="color" value={el.textStrokeColor || '#000000'} onChange={e => onChange({ ...el, textStrokeColor: e.target.value })}
               className="w-6 h-6 rounded cursor-pointer border border-white/20 p-0.5 bg-transparent" />
+          </div>
+        )}
+        {/* Image tint overlay */}
+        {el.type === 'image' && el.src && (
+          <div className="flex items-center gap-1.5 w-full border-t border-white/10 pt-1.5 mt-0.5">
+            <span className="text-[10px] text-gray-500 flex-shrink-0">Tint</span>
+            <input type="color" value={el.tintColor || '#0044ff'}
+              onChange={e => onChange({ ...el, tintColor: e.target.value, tintOpacity: el.tintOpacity ?? 0.3 })}
+              className="w-6 h-6 rounded cursor-pointer border border-white/20 p-0.5 bg-transparent flex-shrink-0" title="Tint color" />
+            <input type="range" min={0} max={1} step={0.05} value={el.tintOpacity ?? 0}
+              onMouseDown={ev => ev.stopPropagation()}
+              onChange={e => onChange({ ...el, tintOpacity: Number(e.target.value) })}
+              className="flex-1 accent-indigo-500" />
+            <span className="text-[9px] text-gray-400 w-7 flex-shrink-0">{Math.round((el.tintOpacity ?? 0) * 100)}%</span>
+            {(el.tintOpacity ?? 0) > 0 && (
+              <button onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, tintOpacity: 0 }); }}
+                className="text-[10px] text-red-400 hover:text-red-300 px-1.5 py-0.5 bg-red-500/10 rounded-lg flex-shrink-0">Clear</button>
+            )}
           </div>
         )}
         {/* Shape image fill */}
@@ -774,7 +938,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   });
 
   const [activeIdx, setActiveIdx] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [tab, setTab] = useState<Tab>('insert');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panImageId, setPanImageId] = useState<string | null>(null);
@@ -795,6 +959,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const multiDragOriginsRef = useRef<{ [id: string]: { x: number; y: number } }>({});
   const imgInputRef = useRef<HTMLInputElement>(null);
   const bgImgInputRef = useRef<HTMLInputElement>(null);
   const shapeImgInputRef = useRef<HTMLInputElement>(null);
@@ -806,7 +971,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   useEffect(() => { slidesRef.current = slides; }, [slides]);
   const pastRef = useRef<SD[][]>([]);
   const futureRef = useRef<SD[][]>([]);
-  const clipboardRef = useRef<CE | null>(null);
+  const clipboardRef = useRef<CE[] | null>(null);
 
   const snapshot = useCallback(() => {
     const copy = JSON.parse(JSON.stringify(slidesRef.current));
@@ -820,7 +985,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     const prev = pastRef.current.pop()!;
     futureRef.current.unshift(JSON.parse(JSON.stringify(slidesRef.current)));
     setSlides(JSON.parse(JSON.stringify(prev)));
-    setSelectedId(null);
+    setSelectedIds([]);
   }, []);
 
   const redo = useCallback(() => {
@@ -828,10 +993,11 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     const next = futureRef.current.shift()!;
     pastRef.current.push(JSON.parse(JSON.stringify(slidesRef.current)));
     setSlides(JSON.parse(JSON.stringify(next)));
-    setSelectedId(null);
+    setSelectedIds([]);
   }, []);
 
   const activeSlide = slides[activeIdx] || slides[0];
+  const selectedId = selectedIds[selectedIds.length - 1] ?? null;
   const selectedEl = activeSlide?.elements.find(e => e.id === selectedId) || null;
 
   useEffect(() => {
@@ -864,9 +1030,10 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     updateSlide(s => ({ ...s, elements: s.elements.map(e => e.id === updated.id ? updated : e) }));
   }, [updateSlide]);
 
-  const addElement = (el: CE) => { snapshot(); updateSlide(s => ({ ...s, elements: [...s.elements, el] })); setSelectedId(el.id); };
-  const deleteElement = (id: string) => { snapshot(); updateSlide(s => ({ ...s, elements: s.elements.filter(e => e.id !== id) })); setSelectedId(null); };
-  const clearAll = () => { snapshot(); updateSlide(s => ({ ...s, elements: [] })); setSelectedId(null); };
+  const addElement = (el: CE) => { snapshot(); updateSlide(s => ({ ...s, elements: [...s.elements, el] })); setSelectedIds([el.id]); };
+  const deleteElement = (id: string) => { snapshot(); updateSlide(s => ({ ...s, elements: s.elements.filter(e => e.id !== id) })); setSelectedIds([]); };
+  const deleteElements = useCallback((ids: string[]) => { snapshot(); updateSlide(s => ({ ...s, elements: s.elements.filter(e => !ids.includes(e.id)) })); setSelectedIds([]); }, [snapshot, updateSlide]);
+  const clearAll = () => { snapshot(); updateSlide(s => ({ ...s, elements: [] })); setSelectedIds([]); };
 
   const distributeH = () => {
     const els = [...activeSlide.elements].sort((a, b) => a.x - b.x);
@@ -915,8 +1082,71 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     const src = slides[idx];
     const copy: SD = { ...src, id: uid(), order: slides.length, elements: src.elements.map(e => ({ ...e, id: uid() })) };
     setSlides(prev => [...prev.slice(0, idx + 1), copy, ...prev.slice(idx + 1)]);
-    setActiveIdx(idx + 1); setSelectedId(null);
+    setActiveIdx(idx + 1); setSelectedIds([]);
   };
+
+  // ─── Multi-select & Group helpers ────────────────────────────────────────────
+  const selectOne = useCallback((id: string) => setSelectedIds([id]), []);
+  const toggleSelect = useCallback((id: string) => setSelectedIds(prev =>
+    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+  ), []);
+
+  const handleMultiDragStart = useCallback(() => {
+    const map: { [id: string]: { x: number; y: number } } = {};
+    for (const id of selectedIds) {
+      const el = activeSlide.elements.find(e => e.id === id);
+      if (el) map[id] = { x: el.x, y: el.y };
+    }
+    multiDragOriginsRef.current = map;
+  }, [selectedIds, activeSlide.elements]);
+
+  const handleMultiMove = useCallback((dx: number, dy: number) => {
+    const origins = multiDragOriginsRef.current;
+    updateSlide(s => ({
+      ...s,
+      elements: s.elements.map(e => {
+        const orig = origins[e.id];
+        if (!orig) return e;
+        return { ...e, x: Math.round(orig.x + dx), y: Math.round(orig.y + dy) };
+      }),
+    }));
+  }, [updateSlide]);
+
+  const groupSelected = useCallback(() => {
+    if (selectedIds.length < 2) return;
+    snapshot();
+    const gid = uid();
+    updateSlide(s => ({
+      ...s,
+      elements: s.elements.map(e => selectedIds.includes(e.id) ? { ...e, groupId: gid } : e),
+    }));
+  }, [selectedIds, snapshot, updateSlide]);
+
+  const ungroupSelected = useCallback(() => {
+    const gid = selectedEl?.groupId;
+    if (!gid) return;
+    snapshot();
+    updateSlide(s => ({
+      ...s,
+      elements: s.elements.map(e => e.groupId === gid ? { ...e, groupId: undefined } : e),
+    }));
+  }, [selectedEl, snapshot, updateSlide]);
+
+  const selectGroup = useCallback((groupId: string) => {
+    const gIds = activeSlide.elements.filter(e => e.groupId === groupId).map(e => e.id);
+    setSelectedIds(gIds);
+  }, [activeSlide.elements]);
+
+  const applyTemplate = useCallback((tpl: typeof TEMPLATES[0]) => {
+    snapshot();
+    const els: CE[] = tpl.elements.map((e, i) => ({
+      rot: 0, z: i + 1, opacity: 1,
+      ...e,
+      id: uid(),
+    } as CE));
+    updateSlide(s => ({ ...s, ...tpl.bg, elements: els }));
+    setSelectedIds([]);
+  }, [snapshot, updateSlide]);
 
   // When an image element is dragged, highlight shape under it and merge on drop
   const handleElementDrag = useCallback((draggedEl: CE) => {
@@ -947,7 +1177,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
         .filter(e => e.id !== draggedEl.id)
         .map(e => e.id === targetShape.id ? { ...e, bgImage: draggedEl.src, filled: true } : e),
     }));
-    setSelectedId(targetShape.id);
+    setSelectedIds([targetShape.id]);
   }, [activeSlide.elements, updateSlide]);
 
   const changeLayer = (id: string, dir: 'up' | 'down') => {
@@ -1052,40 +1282,71 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
-      // Undo / Redo
-      if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) { e.preventDefault(); undo(); return; }
-      if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) { e.preventDefault(); redo(); return; }
+      // Normalize key — Shift changes letter case, so always compare lowercase
+      const k = e.key.toLowerCase();
 
-      // Copy
-      if (e.key === 'c' && (e.ctrlKey || e.metaKey) && selectedId) {
-        const el = activeSlide.elements.find(el => el.id === selectedId);
-        if (el) { clipboardRef.current = el; e.preventDefault(); }
+      // Undo / Redo
+      if (k === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) { e.preventDefault(); undo(); return; }
+      if ((k === 'y' && (e.ctrlKey || e.metaKey)) || (k === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) { e.preventDefault(); redo(); return; }
+
+      // Group / Ungroup
+      if (k === 'g' && (e.ctrlKey || e.metaKey) && !e.shiftKey) { e.preventDefault(); groupSelected(); return; }
+      if (k === 'g' && (e.ctrlKey || e.metaKey) && e.shiftKey) { e.preventDefault(); ungroupSelected(); return; }
+
+      // Select All
+      if (k === 'a' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setSelectedIds(activeSlide.elements.map(el => el.id));
         return;
       }
-      // Paste
-      if (e.key === 'v' && (e.ctrlKey || e.metaKey) && clipboardRef.current) {
+
+      // Copy — copies all selected elements (supports group & multi-select)
+      if (k === 'c' && (e.ctrlKey || e.metaKey) && selectedIds.length > 0) {
+        const els = activeSlide.elements.filter(el => selectedIds.includes(el.id));
+        if (els.length > 0) { clipboardRef.current = els; e.preventDefault(); }
+        return;
+      }
+      // Paste — pastes all copied elements with new IDs, preserving group relationship
+      if (k === 'v' && (e.ctrlKey || e.metaKey) && clipboardRef.current) {
         e.preventDefault();
-        const src = clipboardRef.current;
+        const srcs = clipboardRef.current;
         const newMaxZ = activeSlide.elements.length ? Math.max(...activeSlide.elements.map(el => el.z)) + 1 : 1;
-        addElement({ ...src, id: uid(), x: Math.min(src.x + 20, CANVAS_W - src.w), y: Math.min(src.y + 20, CANVAS_H - src.h), z: newMaxZ });
+        // If all copied elements share the same groupId, assign a new groupId to the paste
+        const sharedGroup = srcs.length > 1 && srcs[0].groupId && srcs.every(e => e.groupId === srcs[0].groupId);
+        const newGroupId = sharedGroup ? uid() : undefined;
+        const newEls: CE[] = srcs.map((src, i) => ({
+          ...src,
+          id: uid(),
+          x: Math.min(src.x + 20, CANVAS_W - src.w),
+          y: Math.min(src.y + 20, CANVAS_H - src.h),
+          z: newMaxZ + i,
+          groupId: newGroupId,
+        }));
+        snapshot();
+        updateSlide(s => ({ ...s, elements: [...s.elements, ...newEls] }));
+        setSelectedIds(newEls.map(e => e.id));
         return;
       }
 
       // Delete / Backspace
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) { deleteElement(selectedId); return; }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length > 0) {
+        if (selectedIds.length > 1) deleteElements(selectedIds);
+        else if (selectedId) deleteElement(selectedId);
+        return;
+      }
 
       // Escape
-      if (e.key === 'Escape') { setSelectedId(null); return; }
+      if (e.key === 'Escape') { setSelectedIds([]); return; }
 
       // Duplicate
-      if (e.key === 'd' && (e.ctrlKey || e.metaKey) && selectedId) { e.preventDefault(); duplicateElement(selectedId); return; }
+      if (k === 'd' && (e.ctrlKey || e.metaKey) && selectedId) { e.preventDefault(); duplicateElement(selectedId); return; }
 
       // Layer order
       if (e.key === ']' && (e.ctrlKey || e.metaKey) && selectedId) { e.preventDefault(); changeLayer(selectedId, 'up'); return; }
       if (e.key === '[' && (e.ctrlKey || e.metaKey) && selectedId) { e.preventDefault(); changeLayer(selectedId, 'down'); return; }
 
       // Lock/Unlock
-      if (e.key === 'l' && (e.ctrlKey || e.metaKey) && selectedId) {
+      if (k === 'l' && (e.ctrlKey || e.metaKey) && selectedId) {
         e.preventDefault();
         const el = activeSlide.elements.find(el => el.id === selectedId);
         if (el) updateElement({ ...el, locked: !el.locked });
@@ -1093,22 +1354,32 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
       }
 
       // Save
-      if (e.key === 's' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleSave(); return; }
+      if (k === 's' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleSave(); return; }
 
-      // Arrow key nudge
-      if (selectedId && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+      // Arrow key nudge (moves all selected)
+      if (selectedIds.length > 0 && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
         e.preventDefault();
         const step = e.shiftKey ? 10 : 1;
-        const el = activeSlide.elements.find(el => el.id === selectedId);
-        if (!el || el.locked) return;
         const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
         const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
-        updateElement({ ...el, x: el.x + dx, y: el.y + dy });
+        if (selectedIds.length > 1) {
+          updateSlide(s => ({
+            ...s,
+            elements: s.elements.map(el => {
+              if (!selectedIds.includes(el.id) || el.locked) return el;
+              return { ...el, x: el.x + dx, y: el.y + dy };
+            }),
+          }));
+        } else if (selectedId) {
+          const el = activeSlide.elements.find(el => el.id === selectedId);
+          if (!el || el.locked) return;
+          updateElement({ ...el, x: el.x + dx, y: el.y + dy });
+        }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedId, activeSlide, undo, redo]);
+  }, [selectedIds, selectedId, activeSlide, undo, redo, groupSelected, ungroupSelected, deleteElements, updateSlide]);
 
   const seo = calcSeo(meta, slides);
   const seoColor = seo >= 80 ? 'text-green-400' : seo >= 50 ? 'text-yellow-400' : 'text-red-400';
@@ -1240,6 +1511,20 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 </button>
               </div>
 
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Templates</p>
+                <p className="text-[10px] text-gray-600 mb-2">Replaces current slide elements</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {TEMPLATES.map(tpl => (
+                    <button key={tpl.name} onClick={() => applyTemplate(tpl)}
+                      className="flex flex-col items-center gap-1.5 py-3 bg-white/5 hover:bg-indigo-500/20 hover:border-indigo-500/40 border border-transparent rounded-xl transition text-center">
+                      <span className="text-lg">{tpl.icon}</span>
+                      <span className="text-[10px] text-gray-400">{tpl.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Distribute */}
               {activeSlide.elements.length >= 3 && (
                 <div>
@@ -1284,10 +1569,12 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                   </div>
                   <div className="space-y-1">
                     {[...activeSlide.elements].sort((a, b) => b.z - a.z).map(el => (
-                      <div key={el.id} onClick={() => setSelectedId(el.id)}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-xs transition ${selectedId === el.id ? 'bg-indigo-600/30 text-indigo-200' : 'hover:bg-white/5 text-gray-400'}`}>
+                      <div key={el.id}
+                        onClick={ev => { if (ev.shiftKey) toggleSelect(el.id); else if (el.groupId) selectGroup(el.groupId); else selectOne(el.id); }}
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-xs transition ${selectedId === el.id ? 'bg-indigo-600/30 text-indigo-200' : selectedIds.includes(el.id) ? 'bg-indigo-600/15 text-indigo-300' : 'hover:bg-white/5 text-gray-400'}`}>
                         {(el.type === 'text' || el.type === 'button') ? <Type className="w-3 h-3" /> : el.type === 'image' ? <ImageIcon className="w-3 h-3" /> : <Square className="w-3 h-3" />}
                         <span className="truncate flex-1">{(el.type === 'text' || el.type === 'button') ? (el.content?.slice(0, 16) || el.type) : (el.shapeType || el.type)}</span>
+                        {el.groupId && <span className="text-[8px] text-amber-400/80 border border-amber-400/30 rounded px-0.5 flex-shrink-0">G</span>}
                         {el.animation && <Sparkles className="w-2.5 h-2.5 text-indigo-400" />}
                         <button onClick={e => { e.stopPropagation(); deleteElement(el.id); }} className="hover:text-red-400">×</button>
                       </div>
@@ -1446,7 +1733,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
 
         {/* Center Canvas */}
         <div className="flex-1 flex flex-col overflow-hidden bg-[#1e1e1e]">
-          <div ref={containerRef} className="flex-1 flex items-center justify-center overflow-hidden" onClick={() => setSelectedId(null)}>
+          <div ref={containerRef} className="flex-1 flex items-center justify-center overflow-hidden" onClick={() => setSelectedIds([])}>
             <div style={{ position: 'relative', width: CANVAS_W * scale, height: CANVAS_H * scale, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
               <div ref={canvasRef} className="overflow-visible shadow-2xl rounded-sm"
                 style={{ width: CANVAS_W, height: CANVAS_H, transform: `scale(${scale})`, transformOrigin: 'top left' }}
@@ -1456,16 +1743,36 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                   <SlideBg s={activeSlide} />
                 </div>
                 {activeSlide.elements.sort((a, b) => a.z - b.z).map(el => (
-                  <CanvasEl key={el.id} el={el} selected={selectedId === el.id} scale={scale}
+                  <CanvasEl key={el.id} el={el}
+                    selected={selectedIds.length === 1 && selectedId === el.id}
+                    multiSelected={selectedIds.length > 1 && selectedIds.includes(el.id)}
+                    scale={scale}
                     canvasRef={canvasRef}
-                    onSelect={() => setSelectedId(el.id)} onChange={updateElement}
+                    onSelect={() => { if (el.groupId) selectGroup(el.groupId); else selectOne(el.id); }}
+                    onShiftSelect={() => toggleSelect(el.id)}
+                    onChange={updateElement}
                     onDblClick={() => {
                       if (el.type === 'text' || el.type === 'button') setEditingId(el.id);
                       else if (el.type === 'image' && el.src) setPanImageId(el.id);
                     }}
                     onDragMove={handleElementDrag} onDragEnd={handleDragEnd}
-                    dropHighlight={dropTargetId === el.id} onSnapshot={snapshot} />
+                    dropHighlight={dropTargetId === el.id} onSnapshot={snapshot}
+                    onMultiDragStart={selectedIds.length > 1 ? handleMultiDragStart : undefined}
+                    onMultiMove={selectedIds.length > 1 ? handleMultiMove : undefined} />
                 ))}
+                {/* Multi-select bounding box */}
+                {selectedIds.length > 1 && (() => {
+                  const els = activeSlide.elements.filter(e => selectedIds.includes(e.id));
+                  if (!els.length) return null;
+                  const pad = 8;
+                  const minX = Math.min(...els.map(e => e.x)) - pad;
+                  const minY = Math.min(...els.map(e => e.y)) - pad;
+                  const maxX = Math.max(...els.map(e => e.x + e.w)) + pad;
+                  const maxY = Math.max(...els.map(e => e.y + e.h)) + pad;
+                  return (
+                    <div style={{ position: 'absolute', left: minX, top: minY, width: maxX - minX, height: maxY - minY, border: '1.5px dashed #818cf8', borderRadius: 6, pointerEvents: 'none', zIndex: 9990 }} />
+                  );
+                })()}
                 {/* Grid overlay */}
                 {showGrid && (
                   <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 9000, backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '30px 30px' }}>
@@ -1476,7 +1783,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 )}
               </div>
               {/* FloatingToolbar outside scaled canvas — positioned in visual pixels */}
-              {selectedEl && (
+              {selectedEl && selectedIds.length === 1 && (
                 <FloatingToolbar el={selectedEl} scale={scale} onChange={updateElement} canvasRef={canvasRef} onShapeImageFill={() => shapeImgInputRef.current?.click()} onSnapshot={snapshot} />
               )}
             </div>
@@ -1508,12 +1815,12 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                   className={`transition-all ${dragOverIdx === i && dragSlideIdx !== i ? 'ring-2 ring-indigo-400 rounded-lg scale-95' : ''}`}
                 >
                   <SlideThumbnail s={s} idx={i} selected={i === activeIdx}
-                    onClick={() => { setActiveIdx(i); setSelectedId(null); }}
-                    onDelete={() => { if (slides.length <= 1) return; snapshot(); setSlides(prev => prev.filter((_, idx) => idx !== i)); setActiveIdx(Math.max(0, i - 1)); setSelectedId(null); }}
+                    onClick={() => { setActiveIdx(i); setSelectedIds([]); }}
+                    onDelete={() => { if (slides.length <= 1) return; snapshot(); setSlides(prev => prev.filter((_, idx) => idx !== i)); setActiveIdx(Math.max(0, i - 1)); setSelectedIds([]); }}
                     onDuplicate={() => duplicateSlide(i)} />
                 </div>
               ))}
-              <button onClick={() => { setSlides(prev => [...prev, blankSlide(prev.length)]); setActiveIdx(slides.length); setSelectedId(null); }}
+              <button onClick={() => { setSlides(prev => [...prev, blankSlide(prev.length)]); setActiveIdx(slides.length); setSelectedIds([]); }}
                 className="flex-shrink-0 w-[72px] h-[128px] border-2 border-dashed border-white/20 hover:border-indigo-400 text-white/30 hover:text-indigo-400 rounded-lg flex items-center justify-center transition">
                 <Plus className="w-6 h-6" />
               </button>
@@ -1527,6 +1834,14 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
             <>
               <button onClick={() => duplicateElement(selectedEl.id)} title="Duplicate (Ctrl+D)"
                 className="w-9 h-9 hover:bg-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white transition"><Copy className="w-4 h-4" /></button>
+              {selectedIds.length >= 2 && (
+                <button onClick={groupSelected} title="Group selection (Ctrl+G)"
+                  className="w-9 h-9 hover:bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400 hover:text-indigo-200 transition text-[10px] font-bold border border-indigo-500/30">G</button>
+              )}
+              {selectedEl?.groupId && (
+                <button onClick={ungroupSelected} title="Ungroup (Ctrl+Shift+G)"
+                  className="w-9 h-9 hover:bg-amber-500/20 rounded-xl flex items-center justify-center text-amber-400 hover:text-amber-200 transition text-[10px] font-bold border border-amber-500/30">UG</button>
+              )}
               <button onClick={() => changeLayer(selectedEl.id, 'up')} title="Forward (Ctrl+])"
                 className="w-9 h-9 hover:bg-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white transition"><ArrowUp className="w-4 h-4" /></button>
               <button onClick={() => changeLayer(selectedEl.id, 'down')} title="Back (Ctrl+[)"
@@ -1549,7 +1864,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 <FlipVertical className="w-4 h-4" />
               </button>
               <div className="w-6 h-px bg-white/10 my-0.5" />
-              <button onClick={() => deleteElement(selectedEl.id)} title="Delete (Del)"
+              <button onClick={() => selectedIds.length > 1 ? deleteElements(selectedIds) : deleteElement(selectedEl.id)} title="Delete (Del)"
                 className="w-9 h-9 hover:bg-red-500/20 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-400 transition"><Trash2 className="w-4 h-4" /></button>
               <div className="mt-auto px-1 w-full flex flex-col items-center gap-1 pb-2">
                 <span className="text-[9px] text-gray-500 uppercase tracking-wide">Opacity</span>

@@ -156,6 +156,9 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
                 objectFit: el.objectFit || 'cover',
                 objectPosition: el.objectPosition || 'center center',
               }} />
+              {el.tintColor && (el.tintOpacity ?? 0) > 0 && (
+                <div style={{ position: 'absolute', inset: 0, backgroundColor: el.tintColor, opacity: el.tintOpacity, pointerEvents: 'none' }} />
+              )}
             </div>
           );
         }
