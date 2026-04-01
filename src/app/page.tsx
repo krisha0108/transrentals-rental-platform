@@ -76,12 +76,12 @@ export default function HomePage() {
       <ServicesGridDynamic />
       <PopularDestinationsDynamic />
       <HowItWorks />
+      <StoriesStrip />
       <Testimonials />
       <BackrTokenSection />
       <AppDownloadSection />
       <BlogSectionDynamic />
       <CTASectionDynamic />
-      <StoriesStrip />
     </div>
   );
 }
