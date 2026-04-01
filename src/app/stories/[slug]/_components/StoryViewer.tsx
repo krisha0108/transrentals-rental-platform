@@ -49,17 +49,22 @@ function getClipPath(shapeType: string): string {
   }
 }
 
-// Keys must match the values saved by the editor's ANIMATIONS constant
-const ANIM_CSS: Record<string, string> = {
-  'fade-in':    'ws-fadeIn 0.6s ease forwards',
-  'slide-up':   'ws-slideUp 0.6s ease forwards',
-  'slide-down': 'ws-slideDown 0.6s ease forwards',
-  'slide-left': 'ws-slideLeft 0.6s ease forwards',
-  'slide-right':'ws-slideRight 0.6s ease forwards',
-  'zoom-in':    'ws-zoomIn 0.6s ease forwards',
-  'pop':        'ws-pop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards',
-  'spin-in':    'ws-spin 0.8s ease forwards',
-};
+// Build animation CSS with custom duration
+function getAnimCss(key: string, duration: number = 0.6): string {
+  const d = `${duration}s`;
+  switch (key) {
+    case 'fade-in':    return `ws-fadeIn ${d} ease forwards`;
+    case 'slide-up':   return `ws-slideUp ${d} ease forwards`;
+    case 'slide-down': return `ws-slideDown ${d} ease forwards`;
+    case 'slide-left': return `ws-slideLeft ${d} ease forwards`;
+    case 'slide-right':return `ws-slideRight ${d} ease forwards`;
+    case 'zoom-in':    return `ws-zoomIn ${d} ease forwards`;
+    case 'pop':        return `ws-pop ${d} cubic-bezier(0.175,0.885,0.32,1.275) forwards`;
+    case 'spin-in':    return `ws-spin ${d} ease forwards`;
+    default: return '';
+  }
+}
+const ANIM_KEYS = new Set(['fade-in','slide-up','slide-down','slide-left','slide-right','zoom-in','pop','spin-in']);
 
 function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKey: string }) {
   if (!elements?.length) return null;
@@ -84,7 +89,7 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
           zIndex: (el.z || 0) + 5,
           opacity: el.opacity ?? 1,
           filter: combinedFilter,
-          animation: el.animation && ANIM_CSS[el.animation] ? ANIM_CSS[el.animation] : undefined,
+          animation: el.animation && ANIM_KEYS.has(el.animation) ? getAnimCss(el.animation, el.animationDuration) : undefined,
         };
 
         // Text/image/shape get filter via `s`. Text also gets textShadow on inner div.
@@ -97,14 +102,14 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
             ? toRgba(el.bgColor, el.bgAlpha)
             : undefined;
           return (
-            <div key={el.id} style={{ ...s, display: 'flex', alignItems: 'flex-start' }}>
+            <div key={el.id} style={{ ...s, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{
                 fontSize: `${(el.fontSize || 24) / CANVAS_W * 100}cqw`,
                 fontFamily: el.fontFamily || 'inherit',
                 fontWeight: el.bold ? 'bold' : 'normal',
                 fontStyle: el.italic ? 'italic' : 'normal',
                 textDecoration: el.underline ? 'underline' : 'none',
-                textAlign: el.align || 'left',
+                textAlign: el.align || 'center',
                 color: textColor,
                 lineHeight: el.lineHeight || 1.3,
                 wordBreak: 'break-word',
@@ -126,16 +131,18 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
 
         // ── Image ─────────────────────────────────────────────────────────────
         if (el.type === 'image' && el.src) {
-          const borderStyle: React.CSSProperties = el.borderWidth && el.borderColor
-            ? { border: `${el.borderWidth}px solid ${el.borderColor}` }
-            : {};
+          const hasBorder = el.borderWidth && el.borderColor;
           return (
-            <div key={el.id} style={s}>
+            <div key={el.id} style={{
+              ...s,
+              borderRadius: el.borderRadius || 0,
+              overflow: 'hidden',
+              boxSizing: 'border-box',
+              ...(hasBorder ? { border: `${el.borderWidth}px solid ${el.borderColor}` } : {}),
+            }}>
               <img src={el.src} alt="" className="w-full h-full" style={{
                 objectFit: el.objectFit || 'cover',
                 objectPosition: el.objectPosition || 'center center',
-                borderRadius: el.borderRadius || 0,
-                ...borderStyle,
               }} />
             </div>
           );
