@@ -135,10 +135,14 @@ export async function GET(request: NextRequest) {
       const b2bBase = { vendorId: (driver as any).vendorId, OR: [{ driverStaffId: driver.id }, { driverPhone: staffPhone }] };
       const b2bRows = await prisma.b2b_trips.findMany({
         where: { ...b2bBase, status: 'COMPLETED', ...df },
-        select: { id: true, tripCode: true, vehicleName: true, pickupLocation: true, scheduledDate: true, completedAt: true, updatedAt: true },
+        include: { booking: { select: { serviceType: true, companyName: true, customerName: true } } },
         orderBy: { completedAt: 'desc' },
       });
-      history = [...history, ...b2bRows.map(b => ({ ...b, source: 'b2b', bookingNumber: b.tripCode, serviceType: 'B2B Trip', customerName: 'Corporate Client', pickupCity: b.pickupLocation, carCategoryName: b.vehicleName, earnings: 0, isVendorAssigned: true, pickupDate: b.scheduledDate, completedAt: b.completedAt || b.updatedAt }))];
+      history = [...history, ...b2bRows.map(b => {
+        const svcRaw = b.booking?.serviceType;
+        const svcLabel = svcRaw ? (svcRaw === 'self-drive' ? 'B2B Self Drive' : `B2B ${svcRaw.charAt(0).toUpperCase() + svcRaw.slice(1)}`) : 'B2B';
+        return { ...b, source: 'b2b', bookingNumber: b.tripCode, serviceType: svcLabel, customerName: b.booking?.companyName || b.booking?.customerName || 'Corporate Client', pickupCity: b.pickupLocation, carCategoryName: b.vehicleName, earnings: 0, isVendorAssigned: true, pickupDate: b.scheduledDate, completedAt: b.completedAt || b.updatedAt };
+      })];
       totalTripsAll += await prisma.b2b_trips.count({ where: b2bBase });
       completedTripsAll += await prisma.b2b_trips.count({ where: { ...b2bBase, status: 'COMPLETED' } });
       activeTripsAll += await prisma.b2b_trips.count({ where: { ...b2bBase, status: { in: ['PENDING', 'DRIVER_ARRIVED', 'STARTED'] } } });

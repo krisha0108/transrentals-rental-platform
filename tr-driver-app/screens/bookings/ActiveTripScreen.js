@@ -2,12 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   Alert, ActivityIndicator, ScrollView, Animated, Linking, Modal,
+  KeyboardAvoidingView, Platform, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { startTrip, completeTrip, requestOtp, startTransit, startUnloading, startPackingLoading, startUnpacking, startUse, schedulePickup, confirmReturn } from '../api/client';
+import { startTrip, completeTrip, requestOtp, startTransit, startUnloading, startPackingLoading, startUnpacking, startUse, schedulePickup, confirmReturn, b2bMarkArrival, b2bEndTrip } from '../api/client';
 import moment from 'moment';
+
+const SCREEN_W = Dimensions.get('window').width;
 
 const C = {
   primary: '#16A34A', primaryDark: '#15803D', primaryDeep: '#064E3B',
@@ -118,16 +122,19 @@ export default function ActiveTripScreen({ route, navigation }) {
   }, [isInProgress]);
 
   async function handleStartTrip() {
-    if (otp.length !== 6) {
-      Alert.alert('Invalid OTP', 'Please enter the 6-digit OTP provided by the customer');
+    const otpDigits = booking.source === 'b2b' ? 4 : 6;
+    if (otp.length !== otpDigits) {
+      Alert.alert('Invalid OTP', `Please enter the ${otpDigits}-digit OTP provided by the customer`);
       return;
     }
     setLoading(true);
     try {
       const res = await startTrip(booking.id, otp, booking.source || 'chauffeur');
       if (res.data.success) {
+        // B2B trips use 'STARTED' status, all others use 'IN_PROGRESS'
+        const nextStatus = booking.source === 'b2b' ? 'STARTED' : 'IN_PROGRESS';
         navigation.replace('ActiveTrip', {
-          booking: { ...booking, status: 'IN_PROGRESS', tripStartedAt: new Date() },
+          booking: { ...booking, status: nextStatus, tripStartedAt: new Date() },
         });
       }
     } catch (err) {
@@ -343,6 +350,19 @@ export default function ActiveTripScreen({ route, navigation }) {
     } finally { setLoading(false); }
   }
 
+  // ── B2B handlers ─────────────────────────────────────────────────────────────
+  async function handleB2bEndTrip() {
+    setLoading(true);
+    try {
+      const res = await b2bEndTrip(booking.id);
+      if (res.data.success) {
+        navigation.navigate('BookingDetail', { booking: { ...booking, status: 'COMPLETED' } });
+      }
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'Failed to end trip');
+    } finally { setLoading(false); }
+  }
+
   async function confirmComplete() {
     setShowComplete(false);
     setLoading(true);
@@ -403,6 +423,10 @@ export default function ActiveTripScreen({ route, navigation }) {
                   : booking.status === 'PICKUP_SCHEDULED' ? 'Pickup Scheduled'
                   : booking.status === 'RETURNED' ? 'Equipment Returned'
                   : 'Deliver Equipment'
+                : booking.source === 'b2b'
+                ? booking.status === 'STARTED' ? `${booking.serviceType || 'B2B'} In Progress`
+                  : booking.status === 'DRIVER_ARRIVED' ? 'Enter Customer OTP'
+                  : `${booking.serviceType || 'B2B'} — Send OTP`
                 : isInProgress ? 'Trip In Progress' : 'Start Trip'}
             </Text>
             <Text style={styles.heroSub}>{booking.bookingNumber}</Text>
@@ -456,7 +480,12 @@ export default function ActiveTripScreen({ route, navigation }) {
         )}
       </LinearGradient>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={0}
+      >
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 20 }}>
 
         {/* ── Stats Row ── */}
         {isInProgress && (
@@ -1070,8 +1099,36 @@ export default function ActiveTripScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* ── OTP Entry (DRIVER_ASSIGNED / VEHICLE_ASSIGNED) ── */}
-        {!isInProgress && !['truck', 'packers', 'equipment'].includes(booking.source) && (
+        {/* ── B2B End Trip (STARTED status) ── */}
+        {booking.source === 'b2b' && booking.status === 'STARTED' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Step 2: End Trip</Text>
+            <View style={styles.card}>
+              <View style={styles.otpInfoBanner}>
+                <View style={[styles.otpInfoIcon, { backgroundColor: '#DCFCE7' }]}>
+                  <Ionicons name="checkmark-done-circle" size={20} color={C.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.otpInfoTitle}>Trip In Progress</Text>
+                  <Text style={styles.otpInfoSub}>Trip has started. Tap End Trip when you reach the destination.</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: C.primaryDeep }, loading && { opacity: 0.6 }]}
+                onPress={handleB2bEndTrip}
+                disabled={loading}
+                activeOpacity={0.85}
+              >
+                {loading ? <ActivityIndicator color="#fff" /> : (
+                  <><Ionicons name="flag" size={20} color="#fff" /><Text style={styles.primaryBtnText}>End Trip</Text></>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* ── OTP Entry (chauffeur/bus/luxury/b2b) ── */}
+        {!isInProgress && booking.status !== 'STARTED' && !['truck', 'packers', 'equipment'].includes(booking.source) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Verify Customer OTP</Text>
             <View style={styles.card}>
@@ -1112,12 +1169,12 @@ export default function ActiveTripScreen({ route, navigation }) {
                       <Ionicons name="shield-checkmark" size={20} color={C.primary} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.otpInfoTitle}>Enter the 6-digit OTP</Text>
+                      <Text style={styles.otpInfoTitle}>Enter the {booking.source === 'b2b' ? '4' : '6'}-digit OTP</Text>
                       <Text style={styles.otpInfoSub}>Ask the customer for the OTP sent to their phone. This confirms you're with the right customer.</Text>
                     </View>
                   </View>
 
-                  <OtpInput value={otp} onChange={setOtp} />
+                  <OtpInput value={otp} onChange={setOtp} maxDigits={booking.source === 'b2b' ? 4 : 6} />
 
                   {/* Resend option */}
                   <TouchableOpacity
@@ -1133,9 +1190,9 @@ export default function ActiveTripScreen({ route, navigation }) {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.primaryBtn, (loading || otp.length < 6) && { opacity: 0.5 }]}
+                    style={[styles.primaryBtn, (loading || otp.length < (booking.source === 'b2b' ? 4 : 6)) && { opacity: 0.5 }]}
                     onPress={handleStartTrip}
-                    disabled={loading || otp.length < 6}
+                    disabled={loading || otp.length < (booking.source === 'b2b' ? 4 : 6)}
                     activeOpacity={0.85}
                   >
                     {loading ? (
@@ -1155,7 +1212,7 @@ export default function ActiveTripScreen({ route, navigation }) {
         )}
 
         {/* ── Complete Trip ── */}
-        {isInProgress && !['truck', 'packers', 'equipment'].includes(booking.source) && (
+        {isInProgress && !['truck', 'packers', 'equipment', 'b2b'].includes(booking.source) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Trip Details</Text>
             <View style={styles.card}>
@@ -1210,6 +1267,7 @@ export default function ActiveTripScreen({ route, navigation }) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* ── Complete Confirmation Modal ── */}
       <Modal visible={showComplete} transparent animationType="slide">
@@ -1323,7 +1381,7 @@ const styles = StyleSheet.create({
 
   // OTP
   otpInfoBanner: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: C.primaryLight, borderRadius: 12, padding: 12, marginBottom: 20 },
-  otpInfoIcon:   { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
+  otpInfoIcon:   { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
   otpInfoTitle:  { fontSize: 13, fontWeight: '800', color: C.primaryDeep },
   otpInfoSub:    { fontSize: 11, color: C.primaryDark, marginTop: 3, lineHeight: 16 },
   resendBtn:     { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center', paddingVertical: 10, marginBottom: 4 },
@@ -1331,16 +1389,16 @@ const styles = StyleSheet.create({
 
   otpContainer:  { alignItems: 'center', marginBottom: 20 },
   hiddenInput:   { position: 'absolute', opacity: 0, height: 0, width: 0 },
-  otpBoxRow:     { flexDirection: 'row', gap: 9 },
-  otpBox:        { width: 44, height: 54, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center' },
+  otpBoxRow:     { flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'nowrap' },
+  otpBox:        { width: Math.min(44, Math.floor((SCREEN_W - 96) / 6)), height: 54, borderRadius: 12, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center' },
   otpBoxFilled:  { borderColor: C.primary, backgroundColor: C.primaryLight },
   otpBoxActive:  { borderColor: C.primary, backgroundColor: '#fff', shadowColor: C.primary, shadowOpacity: 0.25, shadowRadius: 6, elevation: 3 },
-  otpDigit:      { fontSize: 22, fontWeight: '900', color: C.text },
-  otpCursor:     { position: 'absolute', bottom: 10, width: 20, height: 2.5, backgroundColor: C.primary, borderRadius: 2 },
+  otpDigit:      { fontSize: 20, fontWeight: '900', color: C.text },
+  otpCursor:     { position: 'absolute', bottom: 10, width: 18, height: 2.5, backgroundColor: C.primary, borderRadius: 2 },
 
   // CTA Button
-  primaryBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.primary, borderRadius: 14, height: 52, marginTop: 6, shadowColor: C.primary, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
-  primaryBtnText:{ color: '#fff', fontSize: 16, fontWeight: '800', flex: 1, textAlign: 'center' },
+  primaryBtn:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.primary, borderRadius: 14, minHeight: 52, paddingVertical: 10, paddingHorizontal: 14, marginTop: 6, shadowColor: C.primary, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  primaryBtnText:{ color: '#fff', fontSize: 15, fontWeight: '800', flexShrink: 1, textAlign: 'center' },
 
   // Complete form
   fieldGroupSub: { fontSize: 12, color: C.sub, marginBottom: 14, lineHeight: 17 },

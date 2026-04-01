@@ -8,8 +8,9 @@ export async function GET(request: NextRequest, { params }: { params: { vehicleI
   const driver = await getDriverAppUser(request);
   if (!driver) return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
 
+  const isStaff = (driver as any).userType === 'vendor_staff';
   const vehicle = await prisma.driver_vehicles.findFirst({
-    where: { id: params.vehicleId, driverId: driver.id },
+    where: isStaff ? { id: params.vehicleId, staffId: driver.id } : { id: params.vehicleId, driverId: driver.id },
   });
   if (!vehicle) return NextResponse.json({ success: false, error: 'Vehicle not found' }, { status: 404 });
 
@@ -25,8 +26,9 @@ export async function POST(request: NextRequest, { params }: { params: { vehicle
   const driver = await getDriverAppUser(request);
   if (!driver) return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
 
+  const isStaff = (driver as any).userType === 'vendor_staff';
   const vehicle = await prisma.driver_vehicles.findFirst({
-    where: { id: params.vehicleId, driverId: driver.id },
+    where: isStaff ? { id: params.vehicleId, staffId: driver.id } : { id: params.vehicleId, driverId: driver.id },
   });
   if (!vehicle) return NextResponse.json({ success: false, error: 'Vehicle not found' }, { status: 404 });
 

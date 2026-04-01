@@ -144,6 +144,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Save targeting fields via raw SQL
+    const targetServices = Array.isArray(body.targetServices) && body.targetServices.length > 0
+      ? JSON.stringify(body.targetServices) : null;
+    const targetLocations = Array.isArray(body.targetLocations) && body.targetLocations.length > 0
+      ? JSON.stringify(body.targetLocations) : null;
+    await prisma.$executeRawUnsafe(
+      'UPDATE web_stories SET targetServices = ?, targetLocations = ? WHERE id = ?',
+      targetServices, targetLocations, storyId
+    );
+
     // Save slides if provided
     if (Array.isArray(body.slides) && body.slides.length > 0) {
       // Generate IDs upfront so we can update canvasData via raw SQL
