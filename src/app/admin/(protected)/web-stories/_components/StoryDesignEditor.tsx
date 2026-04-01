@@ -1019,7 +1019,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   // Load services + locations for targeting (when document tab opens)
   useEffect(() => {
     if (tab === 'document' && servicesList.length === 0) {
-      fetch('/api/services').then(r => r.json()).then(d => setServicesList(d?.services || [])).catch(() => {});
+      fetch('/api/services?parentsOnly=true').then(r => r.json()).then(d => setServicesList(d?.services || [])).catch(() => {});
       fetch('/api/locations?type=CITY').then(r => r.json()).then(d => setLocationsList(d?.locations || [])).catch(() => {});
     }
   }, [tab]);
@@ -1749,11 +1749,23 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 <div className="mb-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs text-gray-400">Services</label>
-                    {meta.targetServices.length > 0 && (
-                      <button onClick={() => setMeta(m => ({ ...m, targetServices: [] }))} className="text-[10px] text-gray-500 hover:text-red-400 transition">Clear</button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {servicesList.length > 0 && (
+                        <button
+                          onClick={() => setMeta(m => ({
+                            ...m,
+                            targetServices: m.targetServices.length === servicesList.length ? [] : servicesList.map((s: any) => s.slug)
+                          }))}
+                          className="text-[10px] text-indigo-400 hover:text-indigo-300 transition">
+                          {meta.targetServices.length === servicesList.length ? 'Deselect All' : 'Select All'}
+                        </button>
+                      )}
+                      {meta.targetServices.length > 0 && meta.targetServices.length < servicesList.length && (
+                        <button onClick={() => setMeta(m => ({ ...m, targetServices: [] }))} className="text-[10px] text-gray-500 hover:text-red-400 transition">Clear</button>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-[10px] text-gray-600 mb-2">{meta.targetServices.length === 0 ? 'All services (default)' : `${meta.targetServices.length} selected`}</p>
+                  <p className="text-[10px] text-gray-600 mb-2">{meta.targetServices.length === 0 ? 'All services (default)' : `${meta.targetServices.length} of ${servicesList.length} selected`}</p>
                   {servicesList.length === 0 ? (
                     <p className="text-[10px] text-gray-600 italic">Loading...</p>
                   ) : (
@@ -1780,11 +1792,23 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs text-gray-400">Locations</label>
-                    {meta.targetLocations.length > 0 && (
-                      <button onClick={() => setMeta(m => ({ ...m, targetLocations: [] }))} className="text-[10px] text-gray-500 hover:text-red-400 transition">Clear</button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {locationsList.length > 0 && (
+                        <button
+                          onClick={() => setMeta(m => ({
+                            ...m,
+                            targetLocations: m.targetLocations.length === locationsList.length ? [] : locationsList.map((l: any) => l.slug)
+                          }))}
+                          className="text-[10px] text-indigo-400 hover:text-indigo-300 transition">
+                          {meta.targetLocations.length === locationsList.length ? 'Deselect All' : 'Select All'}
+                        </button>
+                      )}
+                      {meta.targetLocations.length > 0 && meta.targetLocations.length < locationsList.length && (
+                        <button onClick={() => setMeta(m => ({ ...m, targetLocations: [] }))} className="text-[10px] text-gray-500 hover:text-red-400 transition">Clear</button>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-[10px] text-gray-600 mb-2">{meta.targetLocations.length === 0 ? 'All locations (default)' : `${meta.targetLocations.length} selected`}</p>
+                  <p className="text-[10px] text-gray-600 mb-2">{meta.targetLocations.length === 0 ? 'All locations (default)' : `${meta.targetLocations.length} of ${locationsList.length} selected`}</p>
                   {locationsList.length === 0 ? (
                     <p className="text-[10px] text-gray-600 italic">Loading...</p>
                   ) : (
