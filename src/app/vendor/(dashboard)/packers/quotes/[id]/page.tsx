@@ -268,10 +268,13 @@ export default function ViewPackersQuotePage() {
             <div className="text-right">
               <p className="text-sm text-gray-600">Valid Till</p>
               <p className={`font-semibold ${expired ? 'text-red-600' : 'text-green-600'}`}>
-                {new Date(quote.validTill).toLocaleDateString('en-IN', {
+                {new Date(quote.validTill).toLocaleString('en-IN', {
                   day: 'numeric',
                   month: 'short',
                   year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true,
                 })}
               </p>
             </div>

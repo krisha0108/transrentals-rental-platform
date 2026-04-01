@@ -388,10 +388,13 @@ export default function VendorEquipmentQuotesPage() {
 
                   {/* Valid Till */}
                   <p className="text-xs text-gray-500 mb-4">
-                    Valid until: {new Date(quote.validTill).toLocaleDateString('en-IN', {
+                    Valid until: {new Date(quote.validTill).toLocaleString('en-IN', {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true,
                     })}
                   </p>
 

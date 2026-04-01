@@ -37,7 +37,7 @@ export async function GET(
         where: { id },
         include: {
           bus_quotes_bus_quotes_requestIdTobus_quote_requests: {
-            where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
+            where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] } },
             include: {
               vendors: {
                 select: {
@@ -67,7 +67,7 @@ export async function GET(
           where: { requestNumber: id },
           include: {
             bus_quotes: {
-              where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
+              where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] } },
               include: {
                 vendors: {
                   select: {

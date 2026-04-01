@@ -28,7 +28,7 @@ export async function GET(
       where: { id },
       include: {
         packers_quotes: {
-          where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
+          where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] } },
           include: {
             vendors: { select: { id: true, businessName: true, rating: true, phone: true } },
           },
@@ -43,7 +43,7 @@ export async function GET(
         where: { requestNumber: id },
         include: {
           packers_quotes: {
-            where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
+            where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] } },
             include: {
               vendors: { select: { id: true, businessName: true, rating: true, phone: true } },
             },

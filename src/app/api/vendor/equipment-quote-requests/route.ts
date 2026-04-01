@@ -93,12 +93,12 @@ export async function GET(request: NextRequest) {
         status: { in: ['PENDING', 'QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] },
       };
     } else if (type === 'new') {
-      // Exclude requests already quoted
-      const quotedRequestIds = await prisma.equipment_quotes.findMany({
-        where: { vendorId: vendorId },
+      // Exclude requests where vendor has an active (non-expired/withdrawn) quote
+      const activeQuotedRequestIds = await prisma.equipment_quotes.findMany({
+        where: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } },
         select: { requestId: true },
       });
-      whereClause.id = { notIn: quotedRequestIds.map((q) => q.requestId) };
+      whereClause.id = { notIn: activeQuotedRequestIds.map((q) => q.requestId) };
     }
 
     const [requests, total] = await Promise.all([

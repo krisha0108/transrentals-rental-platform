@@ -25,6 +25,8 @@ import {
   ChevronUp,
   IndianRupee,
   FileText,
+  RefreshCw,
+  XCircle,
 } from 'lucide-react';
 import { EQUIPMENT_CONFIG } from '@/lib/quote-services';
 import Pagination from '@/components/vendor/Pagination';
@@ -236,12 +238,22 @@ export default function VendorEquipmentRequestsPage() {
                       {request.totalQuotesReceived} quotes received
                     </span>
                   )}
-                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full flex items-center gap-1 ${
-                    hasQuoted ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {hasQuoted ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-                    {hasQuoted ? 'Quoted' : 'New'}
-                  </span>
+                  {hasQuoted && request.myQuote?.status === 'EXPIRED' ? (
+                    <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full flex items-center gap-1">
+                      <XCircle className="w-3 h-3" />
+                      Quote Expired
+                    </span>
+                  ) : hasQuoted ? (
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      Quoted
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      New
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -440,13 +452,24 @@ export default function VendorEquipmentRequestsPage() {
                       Send Quote
                     </Link>
                   ) : (
-                    <Link
-                      href={`/vendor/equipment/quotes/${request.myQuote?.id}`}
-                      className="px-4 py-2 bg-green-100 text-green-700 text-sm font-semibold rounded-lg hover:bg-green-200 flex items-center gap-1"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      View Quote
-                    </Link>
+                    <>
+                      <Link
+                        href={`/vendor/equipment/quotes/${request.myQuote?.id}`}
+                        className="px-4 py-2 bg-green-100 text-green-700 text-sm font-semibold rounded-lg hover:bg-green-200 flex items-center gap-1"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        View Quote
+                      </Link>
+                      {request.myQuote?.status === 'EXPIRED' && request.status === 'PENDING' && (
+                        <Link
+                          href={`/vendor/equipment/requests/${request.id}/quote`}
+                          className="px-4 py-2 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-700 flex items-center gap-1"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                          Resubmit Quote
+                        </Link>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

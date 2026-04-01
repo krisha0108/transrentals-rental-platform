@@ -21,6 +21,8 @@ import {
   Fuel,
   Users,
   Truck,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import { formatBookingDuration } from '@/lib/utils/duration';
@@ -71,6 +73,7 @@ interface VendorQuote {
   advancePercent: number;
   advanceAmount: number;
   kmLimitPerDay?: number;
+  unlimitedKm?: boolean;
   extraKmRate?: number;
   deliveryCharge?: number;
   inclusions?: string;
@@ -100,6 +103,9 @@ export default function CustomerSelfDriveQuoteDetailPage() {
   const [selectedQuote, setSelectedQuote] = useState<string | null>(null);
   const [expandedQuote, setExpandedQuote] = useState<string | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [isReRequesting, setIsReRequesting] = useState(false);
+  const [reRequestSuccess, setReRequestSuccess] = useState<string | null>(null);
+  const [remainingAttempts, setRemainingAttempts] = useState(3);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -111,7 +117,16 @@ export default function CustomerSelfDriveQuoteDetailPage() {
     }
 
     fetchQuoteRequest();
+    fetchReRequestCount();
   }, [authLoading, isAuthenticated, customer, params.id]);
+
+  const fetchReRequestCount = async () => {
+    try {
+      const res = await fetch(`/api/customer/re-request-quotes?serviceType=self-drive&requestId=${params.id}`);
+      const data = await res.json();
+      setRemainingAttempts(data.remainingAttempts ?? 3);
+    } catch {}
+  };
 
   const fetchQuoteRequest = async () => {
     try {
@@ -152,6 +167,13 @@ export default function CustomerSelfDriveQuoteDetailPage() {
 
   const handleAcceptQuote = async () => {
     if (!selectedQuote) return;
+    // Check if selected quote has expired
+    const selected = quotes.find(q => q.id === selectedQuote);
+    if (selected?.validTill && new Date(selected.validTill).getTime() < Date.now()) {
+      setError('This quote has expired. Please select another quote.');
+      setSelectedQuote(null);
+      return;
+    }
     setIsAccepting(true);
     setError(null);
 
@@ -180,6 +202,48 @@ export default function CustomerSelfDriveQuoteDetailPage() {
     }
   };
 
+  const handleReRequestQuotes = async () => {
+    if (!customer) return;
+    setIsReRequesting(true);
+    setError(null);
+    setReRequestSuccess(null);
+
+    try {
+      const response = await fetch('/api/customer/re-request-quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceType: 'self-drive',
+          requestId: params.id,
+          customerId: customer.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setReRequestSuccess(data.message);
+        if (data.remainingAttempts !== undefined) setRemainingAttempts(data.remainingAttempts);
+        // Refresh quotes data after short delay
+        setTimeout(() => fetchQuoteRequest(), 3000);
+      } else {
+        setError(data.message || 'Failed to re-request quotes');
+      }
+    } catch {
+      setError('Failed to re-request quotes. Please try again.');
+    } finally {
+      setIsReRequesting(false);
+    }
+  };
+
+  // Check if all quotes are expired and booking date is still in future
+  const allQuotesExpired = quotes.length > 0 && quotes.every(q => {
+    if (!q.validTill) return q.status === 'EXPIRED';
+    return new Date(q.validTill).getTime() < Date.now();
+  });
+  const bookingDateInFuture = request?.pickupDate && new Date(request.pickupDate) > new Date();
+  const canReRequestQuotes = allQuotesExpired && bookingDateInFuture && request?.status !== 'BOOKED' && remainingAttempts > 0;
+
   const parseJsonSafe = (str: string | undefined | null): string[] => {
     if (!str) return [];
     try {
@@ -189,8 +253,14 @@ export default function CustomerSelfDriveQuoteDetailPage() {
     }
   };
 
-  const sortedQuotes = [...quotes].sort((a, b) => a.grandTotal - b.grandTotal);
-  const lowestPrice = sortedQuotes[0]?.grandTotal;
+  const sortedQuotes = [...quotes].sort((a, b) => {
+    const aExpired = a.validTill && new Date(a.validTill).getTime() < Date.now() ? 1 : 0;
+    const bExpired = b.validTill && new Date(b.validTill).getTime() < Date.now() ? 1 : 0;
+    if (aExpired !== bExpired) return aExpired - bExpired; // active first
+    return a.grandTotal - b.grandTotal;
+  });
+  const activeQuotes = sortedQuotes.filter(q => !(q.validTill && new Date(q.validTill).getTime() < Date.now()));
+  const lowestPrice = activeQuotes[0]?.grandTotal ?? sortedQuotes[0]?.grandTotal;
 
   if (authLoading || isLoading) {
     return (
@@ -347,8 +417,9 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                 const isExpanded = expandedQuote === quote.id;
                 const isSelected = selectedQuote === quote.id;
                 const isLowestPrice = quote.grandTotal === lowestPrice;
+                const isExpired = quote.validTill && new Date(quote.validTill).getTime() < Date.now();
                 const isExpiringSoon =
-                  new Date(quote.validTill).getTime() - Date.now() < 24 * 3600000;
+                  !isExpired && new Date(quote.validTill).getTime() - Date.now() < 24 * 3600000;
                 const inclusions = parseJsonSafe(quote.inclusions);
                 const exclusions = parseJsonSafe(quote.exclusions);
                 const terms = parseJsonSafe(quote.termsConditions);
@@ -356,17 +427,22 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                 return (
                   <div
                     key={quote.id}
-                    className={`bg-white rounded-xl shadow-sm border-2 overflow-hidden transition ${
-                      isSelected ? 'border-blue-500 ring-2 ring-blue-100' : 'border-transparent'
+                    className={`rounded-xl shadow-sm border-2 overflow-hidden transition ${
+                      isExpired ? 'bg-gray-50 opacity-75 border-gray-200' : isSelected ? 'bg-white border-blue-500 ring-2 ring-blue-100' : 'bg-white border-transparent'
                     }`}
                   >
                     {/* Badges */}
-                    {isLowestPrice && (
+                    {isExpired ? (
+                      <div className="px-4 py-1.5 bg-red-500 text-white text-xs font-medium flex items-center gap-2">
+                        <XCircle className="w-3 h-3" />
+                        Quote Expired
+                      </div>
+                    ) : isLowestPrice ? (
                       <div className="px-4 py-1.5 bg-green-500 text-white text-xs font-medium flex items-center gap-2">
                         <ThumbsUp className="w-3 h-3" />
                         Best Price
                       </div>
-                    )}
+                    ) : null}
 
                     <div className="p-4">
                       {/* Vendor Info */}
@@ -446,12 +522,10 @@ export default function CustomerSelfDriveQuoteDetailPage() {
 
                       {/* Quick Info */}
                       <div className="flex flex-wrap gap-3 text-sm text-gray-500 mb-4">
-                        {quote.kmLimitPerDay && (
-                          <span className="flex items-center gap-1">
-                            <Gauge className="w-4 h-4 text-blue-500" />
-                            {quote.kmLimitPerDay} km/day
-                          </span>
-                        )}
+                        <span className="flex items-center gap-1">
+                          <Gauge className="w-4 h-4 text-blue-500" />
+                          {quote.unlimitedKm || quote.kmLimitPerDay === 0 ? 'Unlimited KM' : quote.kmLimitPerDay ? `${quote.kmLimitPerDay} km/day` : 'No KM limit set'}
+                        </span>
                         {quote.extraKmRate && (
                           <span>+₹{quote.extraKmRate}/extra km</span>
                         )}
@@ -492,27 +566,35 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                                 <span>Rental ({request.totalDays} days)</span>
                                 <span>₹{quote.totalAmount.toLocaleString()}</span>
                               </div>
-                              {quote.deliveryCharge && quote.deliveryCharge > 0 && (
+                              {quote.deliveryCharge > 0 && (
                                 <div className="flex justify-between">
                                   <span>Delivery Charge</span>
                                   <span>₹{quote.deliveryCharge.toLocaleString()}</span>
                                 </div>
                               )}
-                              <div className="flex justify-between">
-                                <span>GST (18%)</span>
-                                <span>₹{quote.gstAmount.toLocaleString()}</span>
-                              </div>
+                              {quote.gstAmount > 0 && (
+                                <div className="flex justify-between">
+                                  <span>GST</span>
+                                  <span>₹{quote.gstAmount.toLocaleString()}</span>
+                                </div>
+                              )}
+                              {quote.securityDeposit > 0 && (
+                                <div className="flex justify-between">
+                                  <span>Security Deposit (Refundable)</span>
+                                  <span>₹{quote.securityDeposit.toLocaleString()}</span>
+                                </div>
+                              )}
                               <div className="flex justify-between font-semibold border-t pt-1 mt-1">
-                                <span>Total</span>
-                                <span>₹{quote.grandTotal.toLocaleString()}</span>
+                                <span>Total Amount to Pay</span>
+                                <span>₹{(quote.grandTotal + (quote.securityDeposit || 0)).toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between text-blue-600">
-                                <span>Advance ({quote.advancePercent}%)</span>
+                                <span>Advance {quote.advancePercent > 0 ? `(${quote.advancePercent}%)` : ''}</span>
                                 <span>₹{quote.advanceAmount.toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between text-gray-500">
-                                <span>Security Deposit (Refundable)</span>
-                                <span>₹{quote.securityDeposit.toLocaleString()}</span>
+                                <span>Remaining at pickup</span>
+                                <span>₹{(quote.grandTotal + (quote.securityDeposit || 0) - quote.advanceAmount).toLocaleString()}</span>
                               </div>
                             </div>
                           </div>
@@ -590,12 +672,15 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                             </div>
                           )}
 
-                          <div className="text-xs text-gray-500">
-                            Valid until:{' '}
-                            {new Date(quote.validTill).toLocaleDateString('en-IN', {
+                          <div className={`text-xs ${isExpired ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                            {isExpired ? 'Expired on: ' : 'Valid until: '}
+                            {new Date(quote.validTill).toLocaleString('en-IN', {
                               day: 'numeric',
                               month: 'short',
                               year: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true,
                             })}
                           </div>
                         </div>
@@ -609,16 +694,22 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                         >
                           {isExpanded ? 'Show Less' : 'View Details'}
                         </button>
-                        <button
-                          onClick={() => setSelectedQuote(quote.id)}
-                          className={`flex-1 py-2 font-medium rounded-lg transition text-sm ${
-                            isSelected
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                          }`}
-                        >
-                          {isSelected ? '✓ Selected' : 'Select This Quote'}
-                        </button>
+                        {isExpired ? (
+                          <div className="flex-1 py-2 text-center font-medium rounded-lg text-sm bg-red-50 text-red-500 cursor-not-allowed">
+                            Quote Expired
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setSelectedQuote(quote.id)}
+                            className={`flex-1 py-2 font-medium rounded-lg transition text-sm ${
+                              isSelected
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            }`}
+                          >
+                            {isSelected ? '✓ Selected' : 'Select This Quote'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -626,6 +717,83 @@ export default function CustomerSelfDriveQuoteDetailPage() {
               })}
             </div>
           </>
+        )}
+
+        {/* Re-Request Quotes Banner */}
+        {allQuotesExpired && bookingDateInFuture && request?.status !== 'BOOKED' && !reRequestSuccess && (
+          <div className="mt-6 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl overflow-hidden border border-amber-200">
+            <div className="p-5">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-5 h-5 text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900">All quotes have expired</h4>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Your booking date is still upcoming. You can re-open this request so vendors can send fresh quotes.
+                  </p>
+                  {remainingAttempts > 0 ? (
+                    <button
+                      onClick={handleReRequestQuotes}
+                      disabled={isReRequesting}
+                      className="mt-3 inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 transition disabled:opacity-50 shadow-sm"
+                    >
+                      {isReRequesting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Sending request...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4" />
+                          Request Fresh Quotes
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <p className="mt-3 text-sm font-medium text-red-600">
+                      You have used all 3 re-request attempts. Please create a new quote request.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+            {remainingAttempts > 0 && (
+              <div className="px-5 py-2.5 bg-amber-100/60 border-t border-amber-200 flex items-center justify-between">
+                <span className="text-xs text-amber-700">
+                  {remainingAttempts} of 3 re-request{remainingAttempts !== 1 ? 's' : ''} remaining
+                </span>
+                <div className="flex gap-1">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className={`w-2 h-2 rounded-full ${i <= (3 - remainingAttempts) ? 'bg-amber-500' : 'bg-amber-300'}`} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {reRequestSuccess && (
+          <div className="mt-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl overflow-hidden border border-green-200">
+            <div className="p-5">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-green-800">Request sent successfully!</h4>
+                  <p className="text-sm text-green-700 mt-1">{reRequestSuccess}</p>
+                </div>
+              </div>
+            </div>
+            {remainingAttempts > 0 && (
+              <div className="px-5 py-2.5 bg-green-100/60 border-t border-green-200">
+                <span className="text-xs text-green-700">
+                  {remainingAttempts} re-request{remainingAttempts !== 1 ? 's' : ''} remaining
+                </span>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Help */}

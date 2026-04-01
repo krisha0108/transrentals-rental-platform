@@ -197,6 +197,10 @@ export async function POST(request: NextRequest) {
       termsConditions,
       validityDays,
       notes,
+      validUntil,
+      advanceAmount: bodyAdvanceAmount,
+      advancePercent = 50,
+      customAdvanceAmount,
     } = body;
 
     if (!requestId) {
@@ -222,7 +226,7 @@ export async function POST(request: NextRequest) {
 
     // Check if vendor already submitted a quote
     const existingQuote = await prisma.packers_quotes.findFirst({
-      where: { requestId, vendorId: vendorId, status: { not: 'WITHDRAWN' } },
+      where: { requestId, vendorId: vendorId, status: { notIn: ['WITHDRAWN', 'EXPIRED'] } },
     });
 
     if (existingQuote) {
@@ -246,8 +250,9 @@ export async function POST(request: NextRequest) {
     }
 
     const quoteNumber = generateQuoteNumber();
-    const validTill = new Date();
-    validTill.setDate(validTill.getDate() + (validityDays || 7));
+    const validTill = validUntil && !isNaN(new Date(validUntil).getTime())
+      ? new Date(validUntil)
+      : (() => { const d = new Date(); d.setDate(d.getDate() + (validityDays || 7)); return d; })();
 
     // Get vehicle type from fleet if fleetVehicleId provided, otherwise use form value
     let finalVehicleType = vehicleType || '';
@@ -339,6 +344,12 @@ export async function POST(request: NextRequest) {
       materialCharges: materialCharges || 0,
       gstAmount: gstAmount || 0,
       totalAmount,
+      advanceAmount: customAdvanceAmount > 0
+        ? Math.round(customAdvanceAmount)
+        : bodyAdvanceAmount > 0
+        ? Math.round(bodyAdvanceAmount)
+        : Math.round(totalAmount * advancePercent / 100),
+      advancePercent: customAdvanceAmount > 0 ? 0 : advancePercent,
       teamSize: teamSize || 3,
       vehicleType: finalVehicleType,
       vehicleImages: finalVehicleImages ? JSON.stringify(finalVehicleImages) : null,

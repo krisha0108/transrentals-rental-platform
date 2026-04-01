@@ -94,11 +94,16 @@ export default function SendTransporterQuotePage() {
   const [packagingCharges, setPackagingCharges] = useState('');
   const [insuranceCharges, setInsuranceCharges] = useState('');
   const [advancePercent, setAdvancePercent] = useState('50');
+  const [advanceMode, setAdvanceMode] = useState<'percent' | 'manual'>('percent');
+  const [customAdvanceAmount, setCustomAdvanceAmount] = useState('');
   const [inclusions, setInclusions] = useState<string[]>(TRANSPORTER_CONFIG.defaultInclusions);
   const [exclusions, setExclusions] = useState<string[]>(TRANSPORTER_CONFIG.defaultExclusions);
   const [termsConditions, setTermsConditions] = useState<string[]>(TRANSPORTER_CONFIG.defaultTerms);
   const [notes, setNotes] = useState('');
+  const [quickQuoteMode, setQuickQuoteMode] = useState(false);
+  const [quickTotalPrice, setQuickTotalPrice] = useState('');
   const [validUntil, setValidUntil] = useState('');
+  const [validUntilTime, setValidUntilTime] = useState('23:59');
   const [editMode, setEditMode] = useState<'inclusions' | 'exclusions' | 'terms' | null>(null);
   const [newItem, setNewItem] = useState('');
 
@@ -246,6 +251,7 @@ export default function SendTransporterQuotePage() {
   };
 
   const calculateTotal = () => {
+    if (quickQuoteMode) return parseFloat(quickTotalPrice) || 0;
     const base = parseFloat(baseAmount) || 0;
     const loading = parseFloat(loadingCharges) || 0;
     const unloading = parseFloat(unloadingCharges) || 0;
@@ -257,10 +263,15 @@ export default function SendTransporterQuotePage() {
   };
 
   const calculateAdvance = () => {
+    if (advanceMode === 'manual' && customAdvanceAmount) {
+      return parseFloat(customAdvanceAmount) || 0;
+    }
     const total = calculateTotal();
     const percent = parseInt(advancePercent) || 50;
     return Math.round((total * percent) / 100);
   };
+
+  const advanceExceedsTotal = calculateAdvance() > calculateTotal() && calculateTotal() > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,20 +292,22 @@ export default function SendTransporterQuotePage() {
           labourIncluded,
           labourCount: labourIncluded ? parseInt(labourCount) || 0 : 0,
           labourCharges: labourIncluded ? parseFloat(labourCharges) || 0 : 0,
-          baseAmount: parseFloat(baseAmount) || 0,
-          perKmRate: perKmRate ? parseFloat(perKmRate) : null,
-          loadingCharges: parseFloat(loadingCharges) || 0,
-          unloadingCharges: parseFloat(unloadingCharges) || 0,
-          tollEstimate: parseFloat(tollCharges) || 0,
-          packagingCharges: parseFloat(packagingCharges) || 0,
-          insuranceCharges: parseFloat(insuranceCharges) || 0,
+          baseAmount: quickQuoteMode ? (parseFloat(quickTotalPrice) || 0) : (parseFloat(baseAmount) || 0),
+          perKmRate: quickQuoteMode ? null : (perKmRate ? parseFloat(perKmRate) : null),
+          loadingCharges: quickQuoteMode ? 0 : (parseFloat(loadingCharges) || 0),
+          unloadingCharges: quickQuoteMode ? 0 : (parseFloat(unloadingCharges) || 0),
+          tollEstimate: quickQuoteMode ? 0 : (parseFloat(tollCharges) || 0),
+          packagingCharges: quickQuoteMode ? 0 : (parseFloat(packagingCharges) || 0),
+          insuranceCharges: quickQuoteMode ? 0 : (parseFloat(insuranceCharges) || 0),
           advanceAmount: calculateAdvance(),
-          advancePercent: parseInt(advancePercent) || 50,
+          advancePercent: advanceMode === 'percent' ? (parseInt(advancePercent) || 50) : 0,
+          customAdvanceAmount: advanceMode === 'manual' ? (parseFloat(customAdvanceAmount) || 0) : undefined,
           inclusions,
           exclusions,
           termsConditions,
           vendorMessage: notes,
-          validityDays: Math.ceil((new Date(validUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+          validityDays: Math.ceil((new Date(`${validUntil}T${validUntilTime || '23:59'}:00`).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+          validUntil: new Date(`${validUntil}T${validUntilTime || '23:59'}:00`).toISOString(),
         }),
       });
 
@@ -548,11 +561,40 @@ export default function SendTransporterQuotePage() {
 
         {/* Pricing */}
         <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <IndianRupee className="w-5 h-5 text-indigo-500" />
-            Pricing
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-lg flex items-center gap-2">
+              <IndianRupee className="w-5 h-5 text-indigo-500" />
+              Pricing
+            </h2>
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+              <button type="button" onClick={() => setQuickQuoteMode(false)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${!quickQuoteMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}>
+                Itemized
+              </button>
+              <button type="button" onClick={() => setQuickQuoteMode(true)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${quickQuoteMode ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}>
+                Quick Quote
+              </button>
+            </div>
+          </div>
 
+          {quickQuoteMode ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Total Quote Price *</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                <input
+                  type="number"
+                  value={quickTotalPrice}
+                  onChange={(e) => setQuickTotalPrice(e.target.value)}
+                  placeholder="Enter your all-inclusive total price"
+                  className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 text-lg font-semibold"
+                  required
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Enter one total price including all charges (base fare, loading, unloading, toll, etc.)</p>
+            </div>
+          ) : (
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Base Fare *</label>
@@ -620,22 +662,59 @@ export default function SendTransporterQuotePage() {
                 />
               </div>
             </div>
+          </div>
+          )}
+
+          {/* Advance & Validity — shown in both modes */}
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Advance (%)</label>
-              <div className="flex items-center gap-3">
-                <select
-                  value={advancePercent}
-                  onChange={(e) => setAdvancePercent(e.target.value)}
-                  className="w-24 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="30">30%</option>
-                  <option value="50">50%</option>
-                  <option value="100">100%</option>
-                </select>
-                <span className="text-gray-600">= ₹{calculateAdvance().toLocaleString()}</span>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Advance Payment
+              </label>
+              <div className="flex gap-1 mb-2 bg-gray-100 rounded-lg p-0.5">
+                <button type="button" onClick={() => setAdvanceMode('percent')}
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'percent' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}>
+                  By Percentage
+                </button>
+                <button type="button" onClick={() => setAdvanceMode('manual')}
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'manual' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}>
+                  Custom Amount
+                </button>
               </div>
+              {advanceMode === 'percent' ? (
+                <div className="flex items-center gap-3">
+                  <select
+                    value={advancePercent}
+                    onChange={(e) => setAdvancePercent(e.target.value)}
+                    className="w-24 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="30">30%</option>
+                    <option value="50">50%</option>
+                    <option value="100">100%</option>
+                  </select>
+                  <span className="text-gray-600">
+                    = ₹{calculateAdvance().toLocaleString()} advance
+                  </span>
+                </div>
+              ) : (
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                  <input
+                    type="number"
+                    value={customAdvanceAmount}
+                    onChange={(e) => setCustomAdvanceAmount(e.target.value)}
+                    placeholder="Enter advance amount"
+                    min="0"
+                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              )}
             </div>
           </div>
+
+          {advanceExceedsTotal && (
+            <p className="text-xs text-red-600 mt-1 font-medium">Advance amount cannot exceed total price</p>
+          )}
 
           <div className="mt-6 p-4 bg-indigo-50 rounded-lg border border-indigo-100">
             <div className="flex items-center justify-between mb-2">
@@ -643,7 +722,7 @@ export default function SendTransporterQuotePage() {
               <span className="text-2xl font-bold text-indigo-600">₹{calculateTotal().toLocaleString()}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-indigo-700">Advance ({advancePercent}%)</span>
+              <span className="text-indigo-700">Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Custom)'}</span>
               <span className="font-semibold text-indigo-600">₹{calculateAdvance().toLocaleString()}</span>
             </div>
           </div>
@@ -804,14 +883,22 @@ export default function SendTransporterQuotePage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Quote Valid Until *</label>
-              <input
-                type="date"
-                value={validUntil}
-                onChange={(e) => setValidUntil(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                required
-              />
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={validUntil}
+                  onChange={(e) => setValidUntil(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+                <input
+                  type="time"
+                  value={validUntilTime}
+                  onChange={(e) => setValidUntilTime(e.target.value)}
+                  className="w-[130px] px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -826,7 +913,7 @@ export default function SendTransporterQuotePage() {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting || !baseAmount || calculateTotal() === 0}
+            disabled={isSubmitting || calculateTotal() === 0 || advanceExceedsTotal}
             className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (

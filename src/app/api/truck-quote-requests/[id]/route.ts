@@ -28,7 +28,7 @@ export async function GET(
       where: { id },
       include: {
         truck_quotes: {
-          where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
+          where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] } },
           include: {
             vendors: {
               select: {
@@ -51,7 +51,7 @@ export async function GET(
         where: { requestNumber: id },
         include: {
           truck_quotes: {
-            where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] } },
+            where: { status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] } },
             include: {
               vendors: {
                 select: {

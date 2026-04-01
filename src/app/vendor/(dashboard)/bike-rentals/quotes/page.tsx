@@ -84,9 +84,9 @@ export default function VendorBikeQuotesPage() {
     try {
       const params = new URLSearchParams();
       let status = '';
-      if (filter === 'active') status = 'SENT';
+      if (filter === 'active') status = 'SENT,VIEWED';
       else if (filter === 'accepted') status = 'ACCEPTED';
-      else if (filter === 'expired') status = 'EXPIRED';
+      else if (filter === 'expired') status = 'EXPIRED,REJECTED,WITHDRAWN';
 
       if (status) params.set('status', status);
 
@@ -297,7 +297,7 @@ export default function VendorBikeQuotesPage() {
                         ₹{quote.grandTotal.toLocaleString()}
                       </p>
                       <p className="text-xs text-gray-500">
-                        Valid until {new Date(quote.validTill).toLocaleDateString('en-IN')}
+                        Valid until {new Date(quote.validTill).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
                       </p>
                     </div>
                   </div>

@@ -194,8 +194,6 @@ export async function POST(request: NextRequest) {
       securityDeposit,
       gstAmount,
       totalAmount: providedTotal,
-      advanceAmount,
-      advancePercent,
       rentalStartDate,
       rentalEndDate,
       rentalDays: providedRentalDays,
@@ -206,6 +204,10 @@ export async function POST(request: NextRequest) {
       validityDays,
       notes,
       vendorMessage,
+      validUntil,
+      advanceAmount: bodyAdvanceAmount,
+      advancePercent = 30,
+      customAdvanceAmount,
     } = body;
 
     if (!requestId) {
@@ -231,7 +233,7 @@ export async function POST(request: NextRequest) {
 
     // Check if vendor already submitted a quote
     const existingQuote = await prisma.equipment_quotes.findFirst({
-      where: { requestId, vendorId: vendorId, status: { not: 'WITHDRAWN' } },
+      where: { requestId, vendorId: vendorId, status: { notIn: ['WITHDRAWN', 'EXPIRED'] } },
     });
 
     if (existingQuote) {
@@ -277,8 +279,9 @@ export async function POST(request: NextRequest) {
     const finalEquipmentName = equipmentName || quoteRequest.equipmentType || 'Equipment';
 
     const quoteNumber = generateQuoteNumber();
-    const validTill = new Date();
-    validTill.setDate(validTill.getDate() + (validityDays || 7));
+    const validTill = validUntil && !isNaN(new Date(validUntil).getTime())
+      ? new Date(validUntil)
+      : (() => { const d = new Date(); d.setDate(d.getDate() + (validityDays || 7)); return d; })();
 
     // Update template usage count if template was used
     if (templateId) {
@@ -359,6 +362,12 @@ export async function POST(request: NextRequest) {
       securityDeposit: securityDeposit || 0,
       gstAmount: gstAmount || 0,
       totalAmount,
+      advanceAmount: customAdvanceAmount > 0
+        ? Math.round(customAdvanceAmount)
+        : bodyAdvanceAmount > 0
+        ? Math.round(bodyAdvanceAmount)
+        : Math.round(totalAmount * advancePercent / 100),
+      advancePercent: customAdvanceAmount > 0 ? 0 : advancePercent,
       inclusions: Array.isArray(inclusions) ? JSON.stringify(inclusions) : (inclusions || null),
       exclusions: Array.isArray(exclusions) ? JSON.stringify(exclusions) : (exclusions || null),
       termsConditions: Array.isArray(termsConditions) ? JSON.stringify(termsConditions) : (termsConditions || null),

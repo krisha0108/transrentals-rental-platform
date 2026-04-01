@@ -20,7 +20,7 @@ export async function GET(
         locations: { select: { id: true, name: true, slug: true } },
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
           where: {
-            status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] },
+            status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] },
           },
           include: {
             vendors: {
@@ -165,6 +165,7 @@ export async function GET(
           advancePercent: q.advancePercent,
           advanceAmount: q.advanceAmount,
           kmLimitPerDay: q.kmLimitPerDay,
+          unlimitedKm: q.kmLimitPerDay === 0 || q.kmLimitPerDay === null,
           extraKmRate: q.extraKmRate,
           deliveryCharge: q.deliveryCharges,
           inclusions: q.inclusions,

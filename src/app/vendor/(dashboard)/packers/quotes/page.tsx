@@ -315,9 +315,12 @@ export default function VendorPackersQuotesPage() {
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className={expired ? 'text-red-500' : 'text-green-500'}>
-                        Valid till: {new Date(quote.validTill).toLocaleDateString('en-IN', {
+                        Valid till: {new Date(quote.validTill).toLocaleString('en-IN', {
                           day: 'numeric',
                           month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true,
                         })}
                       </span>
                     </div>

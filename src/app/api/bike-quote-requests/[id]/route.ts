@@ -20,7 +20,7 @@ export async function GET(
         locations: { select: { id: true, name: true, slug: true } },
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
           where: {
-            status: { in: ['SENT', 'VIEWED', 'ACCEPTED'] },
+            status: { in: ['SENT', 'VIEWED', 'ACCEPTED', 'EXPIRED'] },
           },
           select: {
             id: true,
@@ -164,6 +164,7 @@ export async function GET(
           advanceAmount: q.advanceAmount,
           helmetsIncluded: q.helmetsIncluded,
           kmLimitPerDay: q.kmLimitPerDay,
+          unlimitedKm: q.kmLimitPerDay === 0 || q.kmLimitPerDay === null,
           extraKmCharge: q.extraKmCharge,
           inclusions: q.inclusions,
           exclusions: q.exclusions,
