@@ -114,7 +114,9 @@ export async function PATCH(
         }
 
         const bookingNumber = generateBookingNumber();
-        const advanceAmount = Math.round(quote.totalAmount * 0.3);
+        const advanceAmount = (quote.advanceAmount != null && quote.advanceAmount > 0)
+          ? quote.advanceAmount
+          : Math.round(quote.totalAmount * 0.3);
         const balanceAmount = quote.totalAmount - advanceAmount;
 
         const result = await prisma.$transaction(async (tx) => {

@@ -99,6 +99,7 @@ interface Booking {
   created_at: string;
   quotations?: Quotation[];
   is_quote_request?: boolean;
+  all_quotes_expired?: boolean;
   passengers?: number;
   trip_type?: string;
   total_amount?: number;
@@ -197,6 +198,7 @@ export default function CustomerDashboardPage() {
   const [serviceOptions, setServiceOptions] = useState<string[]>([]);
   const [showServiceFilter, setShowServiceFilter] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [showExpiredQuotesOnly, setShowExpiredQuotesOnly] = useState(false);
   const [locationOptions, setLocationOptions] = useState<string[]>([]);
   const [showLocationFilter, setShowLocationFilter] = useState(false);
   const [locationSearch, setLocationSearch] = useState('');
@@ -382,8 +384,12 @@ export default function CustomerDashboardPage() {
       );
     }
 
+    if (showExpiredQuotesOnly) {
+      filtered = filtered.filter((b) => b.is_quote_request && b.all_quotes_expired);
+    }
+
     setFilteredBookings(filtered);
-  }, [selectedService, selectedLocation, bookings]);
+  }, [selectedService, selectedLocation, showExpiredQuotesOnly, bookings]);
 
   // Extract unique services from bookings, always include Luxury Car Rental
   useEffect(() => {
@@ -1281,6 +1287,14 @@ export default function CustomerDashboardPage() {
                         </div>
                       )}
                     </div>
+                    {/* Quotes Expired Filter */}
+                    <button
+                      onClick={() => setShowExpiredQuotesOnly(prev => !prev)}
+                      className={`flex items-center gap-1.5 px-3 py-2 border rounded-xl text-xs font-medium transition shadow-sm ${showExpiredQuotesOnly ? 'bg-red-50 border-red-300 text-red-600' : 'bg-white border-gray-200 text-gray-700 hover:border-red-300'}`}
+                    >
+                      <Clock className="h-3.5 w-3.5" />
+                      Quotes Expired
+                    </button>
                     <button onClick={handleRefresh} disabled={isRefreshing}
                       className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50 transition shadow-sm">
                       <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin text-[#09B368]' : ''}`} />

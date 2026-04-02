@@ -65,6 +65,26 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // SEARCH FILTER
+    const search = searchParams.get('search')?.trim();
+    if (search) {
+      whereClause.OR = [
+        { quoteNumber: { contains: search } },
+        { equipmentModel: { contains: search } },
+        {
+          equipment_quote_requests: {
+            OR: [
+              { requestNumber: { contains: search } },
+              { customerName: { contains: search } },
+              { deliveryCity: { contains: search } },
+              { equipmentCategory: { contains: search } },
+              { equipmentName: { contains: search } },
+            ],
+          },
+        },
+      ];
+    }
+
     const [quotes, total] = await Promise.all([
       prisma.equipment_quotes.findMany({
         where: whereClause,
@@ -205,9 +225,6 @@ export async function POST(request: NextRequest) {
       notes,
       vendorMessage,
       validUntil,
-      advanceAmount: bodyAdvanceAmount,
-      advancePercent = 30,
-      customAdvanceAmount,
     } = body;
 
     if (!requestId) {
@@ -364,8 +381,8 @@ export async function POST(request: NextRequest) {
       totalAmount,
       advanceAmount: customAdvanceAmount > 0
         ? Math.round(customAdvanceAmount)
-        : bodyAdvanceAmount > 0
-        ? Math.round(bodyAdvanceAmount)
+        : advanceAmount > 0
+        ? Math.round(advanceAmount)
         : Math.round(totalAmount * advancePercent / 100),
       advancePercent: customAdvanceAmount > 0 ? 0 : advancePercent,
       inclusions: Array.isArray(inclusions) ? JSON.stringify(inclusions) : (inclusions || null),

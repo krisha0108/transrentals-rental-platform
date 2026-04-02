@@ -57,6 +57,8 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
+    const search = searchParams.get('search')?.trim();
+
     const whereClause: any = { vendorId: vendorId };
     if (status && status !== 'all') {
       const statuses = status.split(',').map(s => s.trim()).filter(Boolean);
@@ -75,6 +77,24 @@ export async function GET(request: NextRequest) {
         endDateTime.setHours(23, 59, 59, 999);
         whereClause.createdAt.lte = endDateTime;
       }
+    }
+
+    // SEARCH FILTER
+    if (search) {
+      whereClause.OR = [
+        { quoteNumber: { contains: search } },
+        { vehicleName: { contains: search } },
+        { vehicleBrand: { contains: search } },
+        {
+          bike_quote_requests_bike_quotes_requestIdTobike_quote_requests: {
+            OR: [
+              { requestNumber: { contains: search } },
+              { customerName: { contains: search } },
+              { locationName: { contains: search } },
+            ],
+          },
+        },
+      ];
     }
 
     const [quotes, total] = await Promise.all([

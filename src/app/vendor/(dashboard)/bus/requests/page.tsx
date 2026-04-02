@@ -21,6 +21,8 @@ import {
   User,
   RefreshCw,
   XCircle,
+  Search,
+  X,
 } from 'lucide-react';
 import { BUS_CATEGORIES, BUS_TRIP_TYPES } from '@/lib/bus-categories';
 import Pagination from '@/components/vendor/Pagination';
@@ -68,12 +70,16 @@ export default function VendorBusRequestsPage() {
     end: null,
   });
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+
   useEffect(() => {
     if (sessionStatus === 'loading') return;
     if (sessionStatus === 'unauthenticated') return;
 
     fetchRequests();
-  }, [sessionStatus, filter, currentPage, dateFilter]);
+  }, [sessionStatus, filter, currentPage, dateFilter, searchQuery]);
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -89,6 +95,9 @@ export default function VendorBusRequestsPage() {
       // DATE FILTER PARAMS
       if (dateFilter.start) params.set('startDate', dateFilter.start);
       if (dateFilter.end) params.set('endDate', dateFilter.end);
+
+      // SEARCH PARAM
+      if (searchQuery) params.set('search', searchQuery);
 
       const response = await fetch(`/api/vendor/bus-quote-requests?${params}`);
       const data = await response.json();
@@ -149,7 +158,32 @@ export default function VendorBusRequestsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <form
+            onSubmit={(e) => { e.preventDefault(); setSearchQuery(searchInput); setCurrentPage(1); }}
+            className="flex items-center gap-1"
+          >
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search requests..."
+                className="pl-8 pr-8 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 w-48"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={() => { setSearchInput(''); setSearchQuery(''); setCurrentPage(1); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </form>
+
           <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
             {[
               { value: 'new', label: 'New Requests' },

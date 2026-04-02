@@ -101,6 +101,23 @@ export async function GET(request: NextRequest) {
       whereClause.id = { notIn: activeQuotedRequestIds.map((q) => q.requestId) };
     }
 
+    // SEARCH FILTER
+    const search = searchParams.get('search')?.trim();
+    if (search) {
+      whereClause.AND = [
+        ...(whereClause.AND || []),
+        {
+          OR: [
+            { requestNumber: { contains: search } },
+            { customerName: { contains: search } },
+            { equipmentCategory: { contains: search } },
+            { equipmentName: { contains: search } },
+            { deliveryCity: { contains: search } },
+          ],
+        },
+      ];
+    }
+
     const [requests, total] = await Promise.all([
       prisma.equipment_quote_requests.findMany({
         where: whereClause,

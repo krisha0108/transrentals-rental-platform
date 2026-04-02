@@ -50,6 +50,25 @@ export async function GET(request: NextRequest) {
       whereClause.status = status;
     }
 
+    // SEARCH FILTER
+    const search = searchParams.get('search')?.trim();
+    if (search) {
+      whereClause.OR = [
+        { quoteNumber: { contains: search } },
+        { vehicleName: { contains: search } },
+        {
+          truck_quote_requests: {
+            OR: [
+              { requestNumber: { contains: search } },
+              { customerName: { contains: search } },
+              { pickupCity: { contains: search } },
+              { dropCity: { contains: search } },
+            ],
+          },
+        },
+      ];
+    }
+
     const [quotes, total] = await Promise.all([
       prisma.truck_quotes.findMany({
         where: whereClause,

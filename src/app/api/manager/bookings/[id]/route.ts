@@ -27,23 +27,55 @@ export async function GET(
     // If bookingId looks like a bookingNumber (contains uppercase + dashes like CB-2026-XXX), resolve to actual id
     if (bookingId && /^[A-Z]{2,4}-\d{4}-/.test(bookingId)) {
       const prefix = bookingId.split('-')[0];
-      const tableMap: Record<string, string> = {
-        'BK': 'bike_bookings', 'BKQ': 'bike_quote_requests',
-        'CB': 'chauffeur_bookings',
-        'BUS': 'bus_bookings', 'BUSQ': 'bus_quote_requests',
-        'SD': 'car_bookings', 'SDQ': 'self_drive_quote_requests',
-        'TR': 'truck_bookings', 'TQR': 'truck_quote_requests',
-        'EQ': 'equipment_bookings', 'EQR': 'equipment_quote_requests',
-        'PK': 'packers_bookings', 'PKQ': 'packers_quote_requests',
-        'LUX': 'luxury_bookings', 'LUXQ': 'luxury_quote_requests',
+
+      // Booking tables use `bookingNumber`; quote request tables use `requestNumber`
+      // Prefixes verified against actual DB data (multiple formats due to historical changes)
+      const bookingMap: Record<string, string> = {
+        'BK': 'bike_bookings',
+        'CB': 'chauffeur_bookings', 'CR': 'chauffeur_bookings',
+        'BB': 'bus_bookings', 'BUS': 'bus_bookings',
+        'SD': 'car_bookings',
+        'TB': 'truck_bookings', 'TR': 'truck_bookings',
+        'EB': 'equipment_bookings', 'EQ': 'equipment_bookings',
+        'PB': 'packers_bookings', 'PK': 'packers_bookings',
+        'LB': 'luxury_bookings', 'LUX': 'luxury_bookings',
       };
-      const table = tableMap[prefix];
-      if (table) {
-        const found = await (prisma as any)[table].findUnique({
+      const quoteRequestMap: Record<string, { table: string; bookingTable: string; bookingField: string }> = {
+        'BKQ': { table: 'bike_quote_requests', bookingTable: 'bike_bookings', bookingField: 'quoteRequestId' },
+        'BQR': { table: 'bus_quote_requests', bookingTable: 'bus_bookings', bookingField: 'quoteRequestId' },
+        'BUSQ': { table: 'bus_quote_requests', bookingTable: 'bus_bookings', bookingField: 'quoteRequestId' },
+        'SDQ': { table: 'self_drive_quote_requests', bookingTable: 'car_bookings', bookingField: 'quoteRequestId' },
+        'TQR': { table: 'truck_quote_requests', bookingTable: 'truck_bookings', bookingField: 'quoteRequestId' },
+        'EQR': { table: 'equipment_quote_requests', bookingTable: 'equipment_bookings', bookingField: 'quoteRequestId' },
+        'PQR': { table: 'packers_quote_requests', bookingTable: 'packers_bookings', bookingField: 'quoteRequestId' },
+        'PKQ': { table: 'packers_quote_requests', bookingTable: 'packers_bookings', bookingField: 'quoteRequestId' },
+        'LQR': { table: 'luxury_quote_requests', bookingTable: 'luxury_bookings', bookingField: 'quoteRequestId' },
+        'LUXQ': { table: 'luxury_quote_requests', bookingTable: 'luxury_bookings', bookingField: 'quoteRequestId' },
+      };
+
+      if (bookingMap[prefix]) {
+        // Direct booking lookup by bookingNumber
+        const found = await (prisma as any)[bookingMap[prefix]].findUnique({
           where: { bookingNumber: bookingId },
           select: { id: true },
         }).catch(() => null);
         if (found) bookingId = found.id;
+      } else if (quoteRequestMap[prefix]) {
+        // Quote request — find by requestNumber, then try to get the associated booking
+        const qr = quoteRequestMap[prefix];
+        const foundQr = await (prisma as any)[qr.table].findUnique({
+          where: { requestNumber: bookingId },
+          select: { id: true },
+        }).catch(() => null);
+        if (foundQr) {
+          // Try to find the accepted booking for this quote request
+          const linkedBooking = await (prisma as any)[qr.bookingTable].findFirst({
+            where: { [qr.bookingField]: foundQr.id },
+            select: { id: true },
+          }).catch(() => null);
+          // Use booking id if it exists, otherwise use quote request id (will show as quote request below)
+          bookingId = linkedBooking?.id || foundQr.id;
+        }
       }
     }
 
@@ -227,6 +259,45 @@ export async function GET(
     }
 
     if (!booking) {
+      // Fallback: search quote request tables (booking_id may point to a quote request with no booking yet)
+      const quoteRequestTables = [
+        { table: 'self_drive_quote_requests', slug: 'self-drive', name: 'Self Drive Quote Request' },
+        { table: 'bike_quote_requests', slug: 'bike-rental', name: 'Bike Quote Request' },
+        { table: 'bus_quote_requests', slug: 'bus-rental', name: 'Bus Quote Request' },
+        { table: 'truck_quote_requests', slug: 'truck-transport', name: 'Truck Quote Request' },
+        { table: 'equipment_quote_requests', slug: 'equipment-rental', name: 'Equipment Quote Request' },
+        { table: 'packers_quote_requests', slug: 'packers-and-movers', name: 'Packers Quote Request' },
+        { table: 'luxury_quote_requests', slug: 'luxury-car-rental', name: 'Luxury Quote Request' },
+      ];
+      for (const qrt of quoteRequestTables) {
+        const qr = await (prisma as any)[qrt.table].findUnique({
+          where: { id: bookingId },
+          include: { customers: { select: { id: true, name: true, email: true, phone: true } } },
+        }).catch(() => null);
+        if (qr) {
+          return NextResponse.json({
+            success: true,
+            booking: {
+              id: qr.id,
+              bookingNumber: qr.requestNumber,
+              status: qr.status,
+              serviceName: qrt.name,
+              serviceSlug: qrt.slug,
+              isQuoteRequest: true,
+              customerName: qr.customerName || qr.customers?.name,
+              customerEmail: qr.customerEmail || qr.customers?.email,
+              customerPhone: qr.customerPhone || qr.customers?.phone,
+              customer: qr.customers || null,
+              pickupCity: qr.pickupCity || qr.locationName || null,
+              pickupDate: qr.pickupDate || qr.startDate || qr.scheduledDate || null,
+              createdAt: qr.createdAt,
+              updatedAt: qr.updatedAt,
+              assignedVendor: null,
+              acceptedVendor: null,
+            },
+          });
+        }
+      }
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 

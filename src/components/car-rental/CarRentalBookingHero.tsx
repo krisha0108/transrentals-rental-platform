@@ -699,7 +699,7 @@ export function CarRentalBookingHero({
       try {
         const [vehiclesRes, packagesRes, locationsRes, airportsRes] = await Promise.all([
           fetch(`${apiBasePath}/vehicles`),
-          fetch(`${apiBasePath}/packages`),
+          fetch(`${apiBasePath}/packages?locationSlug=${citySlug}`),
           fetch(`/api/services/${serviceSlug}/locations`),
           fetch(`/api/airports`), // Fetch all airports
         ]);
@@ -810,6 +810,7 @@ export function CarRentalBookingHero({
   }, [localPackages, selectedPackageId]);
 
   // Get unique packages (grouped by hours/kms for display)
+  // API already filters by location, so no client-side location filtering needed
   const uniquePackages = localPackages.reduce((acc, pkg) => {
     const key = `${pkg.hours}-${pkg.kms}`;
     if (!acc.find((p) => `${p.hours}-${p.kms}` === key)) {
@@ -842,6 +843,7 @@ export function CarRentalBookingHero({
 
             if (tripType === 'local' && selectedPackageId) {
               // Find the matching package for THIS vehicle category (same hours/kms)
+              // localPackages is already filtered by location from the API
               const selectedPkg = localPackages.find((lp) => lp.id === selectedPackageId);
               const pkg = localPackages.find(
                 (p) =>

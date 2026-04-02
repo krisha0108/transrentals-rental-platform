@@ -256,7 +256,9 @@ export async function PATCH(
         const bookingNumber = generateBookingNumber();
 
         // Calculate advance amount (typically 20-30% of total)
-        const advanceAmount = Math.round(quote.totalAmount * 0.25);
+        const advanceAmount = (quote.advanceAmount != null && quote.advanceAmount > 0)
+          ? quote.advanceAmount
+          : Math.round(quote.totalAmount * 0.25);
         const balanceAmount = quote.totalAmount - advanceAmount;
 
         // Create the booking in a transaction

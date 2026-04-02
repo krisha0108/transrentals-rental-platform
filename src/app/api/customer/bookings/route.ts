@@ -250,6 +250,7 @@ export async function GET(request: NextRequest) {
           },
           include: {
             vehicle_models: { select: { sideImage: true } },
+            bike_quotes_bike_quotes_requestIdTobike_quote_requests: { select: { status: true, validTill: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 500,
@@ -296,6 +297,7 @@ export async function GET(request: NextRequest) {
           },
           include: {
             vehicle_models: { select: { sideImage: true } },
+            self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: { select: { status: true, validTill: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 500,
@@ -322,6 +324,9 @@ export async function GET(request: NextRequest) {
           where: {
             ...quoteRequestFilter,
             ...(busQuoteRequestStatusArray ? { status: { in: busQuoteRequestStatusArray as any } } : {}),
+          },
+          include: {
+            bus_quotes_bus_quotes_requestIdTobus_quote_requests: { select: { status: true, validTill: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 500,
@@ -350,6 +355,9 @@ export async function GET(request: NextRequest) {
             ...quoteRequestFilter,
             ...(truckQuoteRequestStatusArray ? { status: { in: truckQuoteRequestStatusArray as any } } : {}),
           },
+          include: {
+            truck_quotes: { select: { status: true, validTill: true } },
+          },
           orderBy: { createdAt: 'desc' },
           take: 500,
         }).catch((e) => { logger.error('Error fetching truck quote requests', e); return []; })
@@ -376,6 +384,9 @@ export async function GET(request: NextRequest) {
           where: {
             ...quoteRequestFilter,
             ...(packersQuoteRequestStatusArray ? { status: { in: packersQuoteRequestStatusArray as any } } : {}),
+          },
+          include: {
+            packers_quotes: { select: { status: true, validTill: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 500,
@@ -406,6 +417,7 @@ export async function GET(request: NextRequest) {
           },
           include: {
             locations: { select: { name: true } },
+            equipment_quotes: { select: { status: true, validTill: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 500,
@@ -433,6 +445,9 @@ export async function GET(request: NextRequest) {
           where: {
             ...quoteRequestFilter,
             ...(luxuryQuoteRequestStatusArray ? { status: { in: luxuryQuoteRequestStatusArray as any } } : {}),
+          },
+          include: {
+            luxury_quotes: { select: { status: true, validTill: true } },
           },
           orderBy: { createdAt: 'desc' },
           take: 500,
@@ -516,6 +531,15 @@ export async function GET(request: NextRequest) {
       vendorFleetMap[f.id] = { image, vehicleName };
     });
 
+    // Helper to check if all quotes for a request are expired
+    const computeAllQuotesExpired = (quotes: Array<{ status: string; validTill: Date | null }> | null | undefined): boolean => {
+      if (!quotes || quotes.length === 0) return false;
+      return quotes.every(q => {
+        if (!q.validTill) return q.status === 'EXPIRED';
+        return q.status === 'EXPIRED' || new Date(q.validTill).getTime() < Date.now();
+      });
+    };
+
     // Transform to common format
     const transformedBookings = [
       // Bike quote requests
@@ -544,6 +568,7 @@ export async function GET(request: NextRequest) {
         quotations: [],
         is_quote_request: true,
         quote_count: b.totalQuotesReceived || 0,
+        all_quotes_expired: computeAllQuotesExpired(b.bike_quotes_bike_quotes_requestIdTobike_quote_requests),
       };
       }),
       // Bike bookings
@@ -642,6 +667,7 @@ export async function GET(request: NextRequest) {
         quotations: [],
         is_quote_request: true,
         quote_count: b.totalQuotesReceived || 0,
+        all_quotes_expired: computeAllQuotesExpired(b.self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests),
       };
       }),
       ...chauffeurBookings.map((b) => ({
@@ -688,6 +714,7 @@ export async function GET(request: NextRequest) {
         quotations: [],
         is_quote_request: true,
         quote_count: b.totalQuotesReceived || 0,
+        all_quotes_expired: computeAllQuotesExpired(b.bus_quotes_bus_quotes_requestIdTobus_quote_requests),
       })),
       // Bus bookings (confirmed bookings)
       ...busBookings.map((b) => ({
@@ -735,6 +762,7 @@ export async function GET(request: NextRequest) {
         quotations: [],
         is_quote_request: true,
         quote_count: b.totalQuotesReceived || 0,
+        all_quotes_expired: computeAllQuotesExpired(b.truck_quotes),
       })),
       // Truck bookings
       ...truckBookings.map((b) => ({
@@ -780,6 +808,7 @@ export async function GET(request: NextRequest) {
         quotations: [],
         is_quote_request: true,
         quote_count: b.totalQuotesReceived || 0,
+        all_quotes_expired: computeAllQuotesExpired(b.packers_quotes),
       })),
       // Packers bookings
       ...packersBookings.map((b) => ({
@@ -824,6 +853,7 @@ export async function GET(request: NextRequest) {
         quotations: [],
         is_quote_request: true,
         quote_count: b.totalQuotesReceived || 0,
+        all_quotes_expired: computeAllQuotesExpired(b.equipment_quotes),
       })),
       // Equipment bookings
       ...equipmentBookings.map((b) => ({
@@ -870,6 +900,7 @@ export async function GET(request: NextRequest) {
         quotations: [],
         is_quote_request: true,
         quote_count: b.totalQuotesReceived || 0,
+        all_quotes_expired: computeAllQuotesExpired(b.luxury_quotes),
       })),
       // Luxury bookings
       ...luxuryBookings.map((b) => ({

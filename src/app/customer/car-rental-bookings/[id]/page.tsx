@@ -69,6 +69,7 @@ interface BookingDetails {
   review?: string;
   paymentStatus?: string;
   transactionId?: string;
+  vendorNotes?: string;
   createdAt: string;
 }
 
@@ -458,6 +459,37 @@ export default function CarRentalBookingDetailPage() {
                 <p className="text-xs text-gray-400 pt-1">* Toll, parking & state permit extra as applicable</p>
               </div>
             </div>
+
+            {/* Vendor Messages / Notes */}
+            {booking.vendorNotes && (
+              <div className="bg-white rounded-xl border border-emerald-200 p-6">
+                <h2 className="font-semibold text-emerald-800 mb-3 flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-emerald-600" />
+                  Messages from Vendor
+                </h2>
+                <div className="space-y-3">
+                  {(() => {
+                    let notes: { text: string; sentAt: string }[] = [];
+                    try {
+                      const parsed = JSON.parse(booking.vendorNotes!);
+                      notes = Array.isArray(parsed) ? parsed : [{ text: booking.vendorNotes!, sentAt: '' }];
+                    } catch {
+                      notes = [{ text: booking.vendorNotes!, sentAt: '' }];
+                    }
+                    return notes.map((n, i) => (
+                      <div key={i} className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+                        <p className="text-sm text-emerald-900 whitespace-pre-line">{n.text}</p>
+                        {n.sentAt && (
+                          <p className="text-xs text-emerald-500 mt-1 text-right">
+                            {new Date(n.sentAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                          </p>
+                        )}
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
 
             {/* Timeline */}
             <div className="bg-white rounded-xl shadow-sm border p-6">

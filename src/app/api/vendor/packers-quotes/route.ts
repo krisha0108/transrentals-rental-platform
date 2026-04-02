@@ -66,6 +66,24 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // SEARCH FILTER
+    const search = searchParams.get('search')?.trim();
+    if (search) {
+      whereClause.OR = [
+        { quoteNumber: { contains: search } },
+        {
+          packers_quote_requests: {
+            OR: [
+              { requestNumber: { contains: search } },
+              { customerName: { contains: search } },
+              { pickupCity: { contains: search } },
+              { dropCity: { contains: search } },
+            ],
+          },
+        },
+      ];
+    }
+
     logger.info('Query params', { status, page, limit, startDate, endDate, whereClause });
 
     let quotes, total;

@@ -110,6 +110,9 @@ export async function POST(request: NextRequest) {
           booking = await prisma.equipment_bookings.update({
             where: { id: bookingId },
             data: {
+              advancePaymentRef: transactionId,
+              advancePaymentDate: paymentDate,
+              paymentMethod: paymentMethod || 'upi',
               paymentStatus: 'SUBMITTED',
               status: 'PAYMENT_SUBMITTED',
             },
@@ -121,6 +124,9 @@ export async function POST(request: NextRequest) {
           booking = await prisma.packers_bookings.update({
             where: { id: bookingId },
             data: {
+              advancePaymentRef: transactionId,
+              advancePaymentDate: paymentDate,
+              paymentMethod: paymentMethod || 'upi',
               paymentStatus: 'SUBMITTED',
               status: 'PAYMENT_SUBMITTED',
             },

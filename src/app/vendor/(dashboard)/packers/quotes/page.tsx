@@ -16,6 +16,8 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
+  Search,
+  X,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
@@ -61,6 +63,8 @@ export default function VendorPackersQuotesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -74,8 +78,16 @@ export default function VendorPackersQuotesPage() {
   });
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
     fetchQuotes();
-  }, [filter, currentPage, dateFilter]);
+  }, [filter, currentPage, dateFilter, debouncedSearch]);
 
   const fetchQuotes = async () => {
     setIsLoading(true);
@@ -91,6 +103,9 @@ export default function VendorPackersQuotesPage() {
       // Date filter params
       if (dateFilter.start) params.set('startDate', dateFilter.start);
       if (dateFilter.end) params.set('endDate', dateFilter.end);
+
+      // Search param
+      if (debouncedSearch) params.set('search', debouncedSearch);
 
       const response = await fetch(`/api/vendor/packers-quotes?${params}`);
       const data = await response.json();
@@ -189,6 +204,26 @@ export default function VendorPackersQuotesPage() {
           <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
           <p className="text-sm text-gray-500">Rejected</p>
         </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search by quote #, customer, city..."
+          className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Filter */}

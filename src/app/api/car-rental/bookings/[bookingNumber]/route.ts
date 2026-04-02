@@ -100,6 +100,7 @@ export async function GET(
         tripEndedAt: booking.tripEndedAt,
         rating: booking.rating,
         review: booking.review,
+        vendorNotes: booking.vendorNotes,
         cancelledAt: booking.cancelledAt,
         cancellationReason: booking.cancellationReason,
         droppedAt: booking.droppedAt,

@@ -167,7 +167,7 @@ export async function GET(
         gstAmount: booking.gstAmount,
         totalAmount: booking.totalAmount,
         // Payment
-        advanceAmount: booking.advanceAmount,
+        advanceAmount: (booking.bus_quotes?.advanceAmount != null && booking.bus_quotes.advanceAmount > 0) ? booking.bus_quotes.advanceAmount : booking.advanceAmount,
         advancePaid: booking.advancePaid,
         advancePaidAt: booking.advancePaidAt,
         balanceAmount: booking.balanceAmount,

@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { Clock, MapPin, Users, Car, IndianRupee, Check, Briefcase, Fuel } from 'lucide-react';
+import { Clock, MapPin, Users, Briefcase, Fuel, Wind, Star, Car } from 'lucide-react';
 
 interface Package {
   id: string;
@@ -47,14 +47,20 @@ export function PackagesGrid({
 }: PackagesGridProps) {
   const displayTitle = title || `Car Rental Packages${locationName ? ` in ${locationName}` : ''}`;
 
-  // Parse example vehicles from JSON string
+  // Track selected package index per category
+  const [selectedIdx, setSelectedIdx] = useState<Record<string, number>>({});
+
+  const getSelectedPkg = (category: VehicleCategory): Package | undefined => {
+    const idx = selectedIdx[category.id] ?? 0;
+    return category.packages[idx] ?? category.packages[0];
+  };
+
   const parseExampleVehicles = (value: string | null): string[] => {
     if (!value) return [];
     try {
       const parsed = JSON.parse(value);
       return Array.isArray(parsed) ? parsed : [];
     } catch {
-      // If it's a comma-separated string
       return value.split(',').map((v) => v.trim()).filter(Boolean);
     }
   };
@@ -62,12 +68,9 @@ export function PackagesGrid({
   if (categories.length === 0) {
     return (
       <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8 text-center">{displayTitle}</h2>
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No packages available at this location currently.</p>
-            <p className="text-gray-400 text-sm mt-2">Please check back later or try a different location.</p>
-          </div>
+        <div className="container-custom text-center py-12">
+          <h2 className="text-3xl font-bold mb-4">{displayTitle}</h2>
+          <p className="text-gray-500">No packages available at this location currently.</p>
         </div>
       </section>
     );
@@ -76,154 +79,147 @@ export function PackagesGrid({
   return (
     <section className="py-16 bg-gray-50">
       <div className="container-custom">
-        <h2 className="text-3xl font-bold mb-3 text-center">{displayTitle}</h2>
-        <p className="text-gray-600 text-center mb-10 max-w-2xl mx-auto">
-          Choose from our range of vehicle categories and flexible rental packages
-        </p>
+        {/* Section Header */}
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-3">{displayTitle}</h2>
+          <p className="text-gray-500 max-w-xl mx-auto text-sm">
+            Choose from our range of vehicle categories and flexible rental packages
+          </p>
+        </div>
 
-        <div className="space-y-10">
+        <div className="space-y-5">
           {categories.map((category) => {
+            const selectedPkg = getSelectedPkg(category);
             const exampleVehicles = parseExampleVehicles(category.exampleVehicles);
+            const currentIdx = selectedIdx[category.id] ?? 0;
 
             return (
               <div
                 key={category.id}
-                className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100"
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
               >
-                {/* Category Header */}
-                <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6">
-                  <div className="flex flex-col md:flex-row md:items-center gap-4">
-                    {/* Category Image */}
-                    {category.image && (
-                      <div className="relative w-24 h-24 md:w-32 md:h-32 bg-white/20 rounded-xl overflow-hidden flex-shrink-0">
-                        <Image
-                          src={category.image}
-                          alt={category.name}
-                          fill
-                          className="object-cover"
-                          sizes="128px"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = '/images/fleet/honda-city.jpg';
-                          }}
-                        />
+                <div className="flex flex-col lg:flex-row">
+
+                  {/* LEFT — Vehicle Image */}
+                  <div className="lg:w-56 flex-shrink-0 bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center p-6">
+                    {category.image ? (
+                      <Image
+                        src={category.image}
+                        alt={category.name}
+                        width={200}
+                        height={130}
+                        className="object-contain drop-shadow-sm max-h-32 w-auto"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/images/fleet/honda-city.jpg';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-36 h-24 bg-gray-200 rounded-xl flex items-center justify-center">
+                        <Car className="w-10 h-10 text-gray-400" />
                       </div>
                     )}
+                  </div>
 
-                    {/* Category Info */}
-                    <div className="flex-1 text-white">
-                      <h3 className="text-2xl font-bold mb-2">{category.name}</h3>
-                      <div className="flex flex-wrap items-center gap-4 text-white/90">
-                        <span className="flex items-center gap-1.5">
-                          <Users className="w-4 h-4" />
-                          {category.seatingCapacity} Seater
-                        </span>
-                        {category.acType && (
-                          <span className="flex items-center gap-1.5">
-                            <Car className="w-4 h-4" />
-                            {category.acType}
-                          </span>
-                        )}
-                        {category.luggageCapacity && (
-                          <span className="flex items-center gap-1.5">
-                            <Briefcase className="w-4 h-4" />
-                            {category.luggageCapacity}
-                          </span>
-                        )}
-                        {category.fuelType && (
-                          <span className="flex items-center gap-1.5">
-                            <Fuel className="w-4 h-4" />
-                            {category.fuelType}
-                          </span>
-                        )}
-                      </div>
+                  {/* MIDDLE — Info + Package Selector */}
+                  <div className="flex-1 p-5 lg:p-6 border-t lg:border-t-0 lg:border-l border-gray-100">
+                    {/* Vehicle Name */}
+                    <div className="mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">{category.name}</h3>
                       {exampleVehicles.length > 0 && (
-                        <p className="mt-2 text-sm text-white/80">
+                        <p className="text-xs text-gray-400 mt-0.5">
                           e.g., {exampleVehicles.slice(0, 3).join(', ')}
                         </p>
                       )}
                     </div>
 
-                    {/* Starting Price */}
-                    {category.packages.length > 0 && (
-                      <div className="md:text-right">
-                        <p className="text-white/80 text-sm">Starting from</p>
-                        <p className="text-3xl font-bold text-white">
-                          ₹{Math.min(...category.packages.map((p) => p.basePrice)).toLocaleString('en-IN')}
-                        </p>
+                    {/* Specs */}
+                    <div className="flex flex-wrap items-center gap-2 mb-5">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
+                        <Users className="w-3 h-3" />
+                        {category.seatingCapacity} Seater
+                      </span>
+                      {category.acType && (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
+                          <Wind className="w-3 h-3" />
+                          {category.acType}
+                        </span>
+                      )}
+                      {category.luggageCapacity && (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
+                          <Briefcase className="w-3 h-3" />
+                          {category.luggageCapacity}
+                        </span>
+                      )}
+                      {category.fuelType && (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
+                          <Fuel className="w-3 h-3" />
+                          {category.fuelType}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Package Tabs */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {category.packages.map((pkg, idx) => (
+                        <button
+                          key={pkg.id}
+                          onClick={() => setSelectedIdx((prev) => ({ ...prev, [category.id]: idx }))}
+                          className={`relative px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
+                            currentIdx === idx
+                              ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300 hover:text-orange-600'
+                          }`}
+                        >
+                          {pkg.isPopular && currentIdx !== idx && (
+                            <Star className="absolute -top-1.5 -right-1.5 w-3 h-3 text-orange-400 fill-orange-400" />
+                          )}
+                          {pkg.hours}hr / {pkg.kms}km
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Selected Package Info */}
+                    {selectedPkg && (
+                      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-gray-500">
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-orange-400" />
+                          {selectedPkg.hours} Hours
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-orange-400" />
+                          {selectedPkg.kms} Km included
+                        </span>
+                        <span className="text-gray-400">+₹{selectedPkg.extraKmCharge}/extra km</span>
+                        <span className="text-gray-400">+₹{selectedPkg.extraHourCharge}/extra hr</span>
+                        {selectedPkg.nightChargesApply && selectedPkg.nightChargeAmount && (
+                          <span className="text-gray-400">Night ₹{selectedPkg.nightChargeAmount}</span>
+                        )}
+                        <span className="text-amber-600 font-medium">Toll/Parking extra</span>
                       </div>
                     )}
                   </div>
-                </div>
 
-                {/* Packages Grid */}
-                <div className="p-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {category.packages.map((pkg) => (
-                      <div
-                        key={pkg.id}
-                        className={`relative rounded-xl border-2 p-4 transition-all hover:shadow-md ${
-                          pkg.isPopular
-                            ? 'border-orange-500 bg-orange-50/50'
-                            : 'border-gray-200 hover:border-orange-300'
-                        }`}
-                      >
-                        {/* Popular Badge */}
-                        {pkg.isPopular && (
-                          <div className="absolute -top-2.5 left-4 bg-orange-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                            Popular
-                          </div>
-                        )}
-
-                        {/* Package Name */}
-                        <h4 className="font-bold text-lg text-gray-900 mb-3">
-                          {pkg.name || `${pkg.hours}hr / ${pkg.kms}km`}
-                        </h4>
-
-                        {/* Package Details */}
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Clock className="w-4 h-4 text-orange-500" />
-                            <span>{pkg.hours} Hours</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <MapPin className="w-4 h-4 text-orange-500" />
-                            <span>{pkg.kms} Kilometers</span>
-                          </div>
-                        </div>
-
-                        {/* Price */}
-                        <div className="flex items-baseline gap-1 mb-1">
-                          <span className="text-2xl font-bold text-gray-900">
-                            ₹{pkg.basePrice.toLocaleString('en-IN')}
-                          </span>
-                        </div>
-                        <p className="text-xs text-green-600 font-medium mb-3">All inclusive</p>
-
-                        {/* Extra Charges */}
-                        <div className="text-xs text-gray-500 space-y-1 pt-3 border-t border-gray-100">
-                          <p className="flex items-center gap-1">
-                            <Check className="w-3 h-3 text-green-500" />
-                            Extra km: ₹{pkg.extraKmCharge}/km
+                  {/* RIGHT — Price + Book */}
+                  <div className="lg:w-52 flex-shrink-0 border-t lg:border-t-0 lg:border-l border-gray-100 p-5 lg:p-6 flex flex-col items-center justify-center gap-4 bg-gray-50/60">
+                    {selectedPkg && (
+                      <>
+                        <div className="text-center">
+                          <p className="text-xs text-gray-400 mb-1">All inclusive</p>
+                          <p className="text-3xl font-bold text-gray-900">
+                            ₹{selectedPkg.basePrice.toLocaleString('en-IN')}
                           </p>
-                          <p className="flex items-center gap-1">
-                            <Check className="w-3 h-3 text-green-500" />
-                            Extra hour: ₹{pkg.extraHourCharge}/hr
-                          </p>
-                          {pkg.nightChargesApply && pkg.nightChargeAmount && (
-                            <p className="flex items-center gap-1">
-                              <Check className="w-3 h-3 text-green-500" />
-                              Night charge: ₹{pkg.nightChargeAmount}
-                            </p>
-                          )}
-                          <p className="flex items-center gap-1 text-amber-600">
-                            <IndianRupee className="w-3 h-3" />
-                            Toll/Parking extra (as applicable)
+                          <p className="text-xs text-gray-400 mt-1">
+                            {selectedPkg.hours}hr / {selectedPkg.kms}km
                           </p>
                         </div>
-                      </div>
-                    ))}
+
+                        <p className="text-xs text-green-600 font-medium text-center">
+                          ✓ Free cancellation
+                        </p>
+                      </>
+                    )}
                   </div>
+
                 </div>
               </div>
             );

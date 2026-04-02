@@ -14,6 +14,8 @@ import {
   Edit,
   IndianRupee,
   RefreshCw,
+  Search,
+  X,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
@@ -67,6 +69,8 @@ export default function VendorBikeQuotesPage() {
   const [stats, setStats] = useState<Stats>({ total: 0, pending: 0, accepted: 0, wonValue: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -78,6 +82,15 @@ export default function VendorBikeQuotesPage() {
     start: null,
     end: null,
   });
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const fetchQuotes = useCallback(async () => {
     setIsLoading(true);
@@ -97,6 +110,9 @@ export default function VendorBikeQuotesPage() {
       // DATE FILTER PARAMS
       if (dateFilter.start) params.set('startDate', dateFilter.start);
       if (dateFilter.end) params.set('endDate', dateFilter.end);
+
+      // SEARCH PARAM
+      if (debouncedSearch) params.set('search', debouncedSearch);
 
       const response = await fetch(`/api/vendor/bike-quotes?${params}`);
       const data = await response.json();
@@ -125,7 +141,7 @@ export default function VendorBikeQuotesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [filter, currentPage, dateFilter]);
+  }, [filter, currentPage, dateFilter, debouncedSearch]);
 
   useEffect(() => {
     fetchQuotes();
@@ -193,6 +209,26 @@ export default function VendorBikeQuotesPage() {
           </p>
           <p className="text-sm text-gray-500">Won Value</p>
         </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search by quote #, vehicle, customer, location..."
+          className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Filter */}

@@ -57,6 +57,9 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
+    // SEARCH PARAM
+    const search = searchParams.get('search')?.trim() || '';
+
     const whereClause: any = { vendorId: vendorId };
     if (status && status !== 'all') {
       // Support comma-separated statuses (e.g. "SENT,VIEWED")
@@ -76,6 +79,25 @@ export async function GET(request: NextRequest) {
         endDateTime.setHours(23, 59, 59, 999);
         whereClause.createdAt.lte = endDateTime;
       }
+    }
+
+    // SEARCH FILTERING — match quote number, vehicle name, or customer name/location via request relation
+    if (search) {
+      whereClause.OR = [
+        { quoteNumber: { contains: search } },
+        { vehicleName: { contains: search } },
+        { vehicleBrand: { contains: search } },
+        {
+          self_drive_quote_requests_self_drive_quotes_requestIdToself_drive_quote_requests: {
+            OR: [
+              { customerName: { contains: search } },
+              { requestNumber: { contains: search } },
+              { locationName: { contains: search } },
+              { vehicleCategoryName: { contains: search } },
+            ],
+          },
+        },
+      ];
     }
 
     const baseWhere = { vendorId: vendorId };

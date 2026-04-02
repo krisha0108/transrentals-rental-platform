@@ -20,6 +20,8 @@ import {
   Weight,
   RefreshCw,
   XCircle,
+  Search,
+  X,
 } from 'lucide-react';
 import { TRANSPORTER_CONFIG } from '@/lib/quote-services';
 
@@ -51,21 +53,33 @@ export default function VendorTransporterRequestsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('new');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const config = TRANSPORTER_CONFIG;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (sessionStatus === 'loading') return;
     if (sessionStatus === 'unauthenticated') return;
 
     fetchRequests();
-  }, [sessionStatus, filter]);
+  }, [sessionStatus, filter, debouncedSearch]);
 
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
       const type = filter === 'new' ? 'open' : filter === 'quoted' ? 'quoted' : '';
-      const response = await fetch(`/api/vendor/truck-quote-requests?type=${type}`);
+      const params = new URLSearchParams();
+      if (type) params.set('type', type);
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      const response = await fetch(`/api/vendor/truck-quote-requests?${params}`);
       const data = await response.json();
 
       if (data.success) {
@@ -123,24 +137,45 @@ export default function VendorTransporterRequestsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-          {[
-            { value: 'new', label: 'New Requests' },
-            { value: 'quoted', label: 'My Quotes' },
-            { value: 'all', label: 'All' },
-          ].map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setFilter(f.value)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filter === f.value
-                  ? 'bg-white text-indigo-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search requests..."
+              className="pl-9 pr-9 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 w-48"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+            {[
+              { value: 'new', label: 'New Requests' },
+              { value: 'quoted', label: 'My Quotes' },
+              { value: 'all', label: 'All' },
+            ].map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setFilter(f.value)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  filter === f.value
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
