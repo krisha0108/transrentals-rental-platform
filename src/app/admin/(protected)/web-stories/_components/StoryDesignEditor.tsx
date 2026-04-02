@@ -79,8 +79,14 @@ const EASINGS = [
   { label: 'Bounce', value: 'cubic-bezier(0.175,0.885,0.32,1.275)' },
 ];
 
-type EType = 'text' | 'image' | 'shape' | 'button';
-type ShapeType = 'rect' | 'circle' | 'triangle' | 'diamond' | 'star' | 'hexagon';
+type EType = 'text' | 'image' | 'shape' | 'button' | 'sticker';
+type ShapeType = 'rect' | 'circle' | 'triangle' | 'diamond' | 'star' | 'hexagon'
+  | 'pentagon' | 'octagon' | 'cross' | 'parallelogram'
+  | 'arrowRight' | 'arrowLeft' | 'arrowUp' | 'arrowDown' | 'arrowDoubleH' | 'chevronRight' | 'chevronLeft'
+  | 'star4' | 'star6' | 'star8' | 'starburst'
+  | 'heart' | 'speechLeft' | 'speechRight' | 'speechRound'
+  | 'bannerRibbon' | 'fcDocument' | 'fcCylinder'
+  | 'blobA' | 'blobB' | 'gear';
 
 interface CE {
   id: string; type: EType;
@@ -144,12 +150,50 @@ function toRgba(hex: string, alpha = 1): string {
 
 function getClipPath(st: ShapeType): string {
   switch (st) {
-    case 'triangle': return 'polygon(50% 0%, 0% 100%, 100% 100%)';
-    case 'diamond': return 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
-    case 'star': return 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)';
-    case 'hexagon': return 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)';
+    // Basic
+    case 'triangle':     return 'polygon(50% 0%, 0% 100%, 100% 100%)';
+    case 'diamond':      return 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
+    case 'star':         return 'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)';
+    case 'hexagon':      return 'polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)';
+    case 'pentagon':     return 'polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%)';
+    case 'octagon':      return 'polygon(30% 0%,70% 0%,100% 30%,100% 70%,70% 100%,30% 100%,0% 70%,0% 30%)';
+    case 'cross':        return 'polygon(35% 0%,65% 0%,65% 35%,100% 35%,100% 65%,65% 65%,65% 100%,35% 100%,35% 65%,0% 65%,0% 35%,35% 35%)';
+    case 'parallelogram':return 'polygon(20% 0%,100% 0%,80% 100%,0% 100%)';
+    // Arrows
+    case 'arrowRight':   return 'polygon(0% 20%,60% 20%,60% 0%,100% 50%,60% 100%,60% 80%,0% 80%)';
+    case 'arrowLeft':    return 'polygon(40% 0%,40% 20%,100% 20%,100% 80%,40% 80%,40% 100%,0% 50%)';
+    case 'arrowUp':      return 'polygon(50% 0%,100% 40%,80% 40%,80% 100%,20% 100%,20% 40%,0% 40%)';
+    case 'arrowDown':    return 'polygon(20% 0%,80% 0%,80% 60%,100% 60%,50% 100%,0% 60%,20% 60%)';
+    case 'arrowDoubleH': return 'polygon(0% 50%,20% 0%,20% 35%,80% 35%,80% 0%,100% 50%,80% 100%,80% 65%,20% 65%,20% 100%)';
+    case 'chevronRight': return 'polygon(0% 0%,75% 0%,100% 50%,75% 100%,0% 100%,25% 50%)';
+    case 'chevronLeft':  return 'polygon(25% 0%,100% 0%,75% 50%,100% 100%,25% 100%,0% 50%)';
+    // Stars
+    case 'star4':        return 'polygon(50% 0%,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0% 50%,40% 40%)';
+    case 'star6':        return 'polygon(50% 0%,38% 28%,7% 25%,25% 50%,7% 75%,38% 72%,50% 100%,63% 72%,93% 75%,75% 50%,93% 25%,63% 28%)';
+    case 'star8':        return 'polygon(50% 0%,61% 24%,85% 15%,76% 39%,100% 50%,76% 61%,85% 85%,61% 76%,50% 100%,39% 76%,15% 85%,24% 61%,0% 50%,24% 39%,15% 15%,39% 24%)';
+    case 'starburst':    return 'polygon(50% 0%,55% 31%,75% 7%,64% 36%,93% 25%,69% 45%,100% 50%,69% 55%,93% 75%,64% 64%,75% 93%,55% 69%,50% 100%,45% 69%,25% 93%,36% 64%,7% 75%,31% 55%,0% 50%,31% 45%,7% 25%,36% 36%,25% 7%,45% 31%)';
     default: return 'none';
   }
+}
+
+// SVG path shapes (viewBox 0 0 100 100)
+const SVG_PATHS: Partial<Record<ShapeType, string>> = {
+  heart:      'M 50 30 C 50 22,42 10,25 10 C 8 10,0 25,0 40 C 0 65,50 90,50 90 C 50 90,100 65,100 40 C 100 25,92 10,75 10 C 58 10,50 22,50 30 Z',
+  speechLeft: 'M 15 0 Q 0 0 0 15 L 0 65 Q 0 80 15 80 L 20 80 L 8 100 L 38 80 L 85 80 Q 100 80 100 65 L 100 15 Q 100 0 85 0 Z',
+  speechRight:'M 15 0 Q 0 0 0 15 L 0 65 Q 0 80 15 80 L 62 80 L 92 100 L 80 80 L 85 80 Q 100 80 100 65 L 100 15 Q 100 0 85 0 Z',
+  speechRound:'M 10 0 Q 0 0 0 10 L 0 62 Q 0 75 10 75 L 40 75 L 50 95 L 60 75 L 90 75 Q 100 75 100 62 L 100 10 Q 100 0 90 0 Z',
+  bannerRibbon:'M 0 20 L 15 35 L 0 50 L 0 85 Q 0 100 15 100 L 85 100 Q 100 100 100 85 L 100 50 L 85 35 L 100 20 Z',
+  fcDocument:  'M 0 0 L 100 0 L 100 75 Q 87 90 75 75 Q 62 60 50 75 Q 37 90 25 75 Q 12 60 0 75 Z',
+  blobA:       'M 72 14 C 90 26,102 46,96 65 C 90 84,72 95,52 93 C 32 91,8 84,2 66 C -4 48,8 24,24 14 C 40 4,54 2,72 14 Z',
+  blobB:       'M 65 8 C 82 14,96 32,97 52 C 98 72,84 92,64 95 C 44 98,20 88,8 70 C -4 52,0 26,16 14 C 32 2,48 2,65 8 Z',
+  gear:        'M 40 0 L 60 0 L 64 16 L 78 8 L 92 22 L 84 36 L 100 44 L 100 56 L 84 64 L 92 78 L 78 92 L 64 84 L 60 100 L 40 100 L 36 84 L 22 92 L 8 78 L 16 64 L 0 56 L 0 44 L 16 36 L 8 22 L 22 8 L 36 16 Z M 35 50 A 15 15 0 1 0 65 50 A 15 15 0 1 0 35 50 Z',
+};
+
+// Cylinder needs special 2-path SVG treatment
+const SVG_CYLINDER = true;
+
+function isSvgShape(st: ShapeType): boolean {
+  return st in SVG_PATHS || st === 'fcCylinder';
 }
 
 function shadowRgba(el: CE): string {
@@ -323,12 +367,42 @@ function renderElInner(el: CE): React.ReactNode {
       : <div className="w-full h-full bg-gray-700 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-600"><ImageIcon className="w-8 h-8 text-gray-400" /></div>;
   }
 
+  if (el.type === 'sticker') {
+    return (
+      <div className="w-full h-full flex items-center justify-center" style={{ filter: combinedFilter }}>
+        <span style={{ fontSize: el.fontSize || 60, lineHeight: 1, userSelect: 'none' }}>{el.content || '⭐'}</span>
+      </div>
+    );
+  }
+
   if (el.type === 'shape') {
     const st = el.shapeType || 'rect';
-    const clip = getClipPath(st);
     const isFilled = el.filled !== false;
     const fillColor = isFilled ? toRgba(el.bgColor || '#6366f1', el.bgAlpha ?? 1) : 'transparent';
     const bw = el.borderWidth || 0;
+
+    // SVG-based shapes
+    if (isSvgShape(st)) {
+      const borderDs = bw > 0 ? `drop-shadow(0 0 ${bw}px ${el.borderColor || '#fff'})` : '';
+      const shapeFilter = [el.filterCss, borderDs, shadowFilter].filter(Boolean).join(' ') || undefined;
+      if (st === 'fcCylinder') {
+        return (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', filter: shapeFilter }}>
+            <path d="M 0 18 Q 0 5 50 5 Q 100 5 100 18 L 100 82 Q 100 95 50 95 Q 0 95 0 82 Z" fill={fillColor} />
+            <path d="M 0 18 Q 0 31 50 31 Q 100 31 100 18" fill="none" stroke={toRgba(el.bgColor || '#6366f1', Math.min(1, (el.bgAlpha ?? 1) + 0.2))} strokeWidth="2" />
+          </svg>
+        );
+      }
+      const svgPath = SVG_PATHS[st]!;
+      const isGear = st === 'gear';
+      return (
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', filter: shapeFilter }}>
+          <path d={svgPath} fill={fillColor} fillRule={isGear ? 'evenodd' : 'nonzero'} />
+        </svg>
+      );
+    }
+
+    const clip = getClipPath(st);
     if (clip !== 'none') {
       const borderDs = bw > 0 ? `drop-shadow(0 0 ${bw}px ${el.borderColor || '#fff'})` : '';
       const shapeFilter = [el.filterCss, borderDs, shadowFilter].filter(Boolean).join(' ') || undefined;
@@ -338,6 +412,25 @@ function renderElInner(el: CE): React.ReactNode {
     return <div style={{ width: '100%', height: '100%', backgroundColor: el.bgImage ? 'transparent' : fillColor, borderRadius: br, backgroundImage: el.bgImage ? `url(${el.bgImage})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center', border: bw > 0 ? `${bw}px solid ${el.borderColor || '#fff'}` : undefined, boxSizing: 'border-box', overflow: 'hidden', filter: combinedFilter }} />;
   }
   return null;
+}
+
+// ─── Collapsible Insert Section ──────────────────────────────────────────────
+function InsertSection({ label, sKey, open, toggle, children }: {
+  label: string; sKey: string;
+  open: Set<string>; toggle: (k: string) => void;
+  children: React.ReactNode;
+}) {
+  const isOpen = open.has(sKey);
+  return (
+    <div className="border border-white/8 rounded-xl overflow-hidden">
+      <button onClick={() => toggle(sKey)}
+        className="w-full flex items-center justify-between px-3 py-2 bg-white/5 hover:bg-white/10 transition text-left">
+        <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wider">{label}</span>
+        <span className={`text-gray-500 text-xs transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▾</span>
+      </button>
+      {isOpen && <div className="p-2.5">{children}</div>}
+    </div>
+  );
 }
 
 // ─── CanvasEl with Rotation Handle ───────────────────────────────────────────
@@ -942,6 +1035,8 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [tab, setTab] = useState<Tab>('insert');
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['text', 'lines', 'basic', 'stickers']));
+  const toggleSection = (k: string) => setOpenSections(s => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panImageId, setPanImageId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -1207,6 +1302,17 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   const addParagraph = () => addElement({ id: uid(), type: 'text', x: 20, y: cy, w: CANVAS_W - 40, h: 60, rot: 0, z: maxZ, opacity: 1, content: 'Your text here', fontSize: 18, fontFamily: 'inherit', align: 'left', color: '#ffffff', colorAlpha: 1, lineHeight: 1.5 });
   const addShape = (shapeType: ShapeType) => addElement({ id: uid(), type: 'shape', x: cx, y: cy, w: 140, h: 140, rot: 0, z: maxZ, opacity: 1, bgColor: '#6366f1', bgAlpha: 1, shapeType, filled: true, borderRadius: shapeType === 'rect' ? 8 : 0 });
   const addButton = () => addElement({ id: uid(), type: 'button', x: cx - 30, y: CANVAS_H - 120, w: 260, h: 52, rot: 0, z: maxZ, opacity: 1, content: 'Tap Here', fontSize: 16, bold: true, color: '#1a1a2e', colorAlpha: 1, bgColor: '#ffffff', bgAlpha: 1, borderRadius: 50, href: '' });
+  const addLine = (thick: number) => addElement({ id: uid(), type: 'shape', shapeType: 'rect', x: cx - 60, y: cy + 60, w: 260, h: thick, rot: 0, z: maxZ, opacity: 1, bgColor: '#ffffff', bgAlpha: 1, filled: true, borderRadius: 99 });
+  const addSticker = (emoji: string) => addElement({ id: uid(), type: 'sticker', x: cx + 20, y: cy, w: 100, h: 100, rot: 0, z: maxZ, opacity: 1, content: emoji, fontSize: 64 });
+  const MAGIC_TEXT_PRESETS = [
+    { label: 'Neon', el: { color: '#00f5ff', colorAlpha: 1, bold: true, fontSize: 36, shadowX: 0, shadowY: 0, shadowBlur: 12, shadowColor: '#00f5ff', shadowAlpha: 0.9 } },
+    { label: 'Gold', el: { color: '#ffd700', colorAlpha: 1, bold: true, fontSize: 36, shadowX: 2, shadowY: 2, shadowBlur: 6, shadowColor: '#8B6914', shadowAlpha: 0.7 } },
+    { label: 'Outline', el: { color: '#ffffff', colorAlpha: 0, bold: true, fontSize: 36, textStrokeColor: '#ffffff', textStrokeWidth: 2 } },
+    { label: 'Fire', el: { color: '#ff4500', colorAlpha: 1, bold: true, fontSize: 36, shadowX: 0, shadowY: 3, shadowBlur: 10, shadowColor: '#ff8c00', shadowAlpha: 0.8 } },
+    { label: 'Ice', el: { color: '#a8d8ea', colorAlpha: 1, bold: true, fontSize: 36, shadowX: 0, shadowY: 2, shadowBlur: 8, shadowColor: '#00bfff', shadowAlpha: 0.6 } },
+    { label: 'Shadow', el: { color: '#ffffff', colorAlpha: 1, bold: true, fontSize: 36, shadowX: 3, shadowY: 3, shadowBlur: 0, shadowColor: '#000000', shadowAlpha: 1 } },
+  ];
+  const addMagicText = (preset: typeof MAGIC_TEXT_PRESETS[0]) => addElement({ id: uid(), type: 'text', x: 20, y: cy, w: CANVAS_W - 40, h: 70, rot: 0, z: maxZ, opacity: 1, content: preset.label + ' Text', fontFamily: 'inherit', align: 'center', lineHeight: 1.2, ...preset.el } as CE);
 
   const uploadFile = async (file: File, onSuccess: (url: string) => void) => {
     setUploading(true);
@@ -1399,13 +1505,62 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   const seo = calcSeo(meta, slides);
   const seoColor = seo >= 80 ? 'text-green-400' : seo >= 50 ? 'text-yellow-400' : 'text-red-400';
 
-  const SHAPES: { type: ShapeType; label: string; preview: React.ReactNode }[] = [
-    { type: 'rect', label: 'Rect', preview: <div className="w-8 h-5 bg-indigo-400 rounded-sm" /> },
-    { type: 'circle', label: 'Circle', preview: <div className="w-6 h-6 bg-pink-400 rounded-full" /> },
-    { type: 'triangle', label: 'Triangle', preview: <div className="w-0 h-0 border-l-[13px] border-r-[13px] border-b-[22px] border-transparent border-b-yellow-400" /> },
-    { type: 'diamond', label: 'Diamond', preview: <div className="w-5 h-5 bg-green-400" style={{ clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' }} /> },
-    { type: 'star', label: 'Star', preview: <div className="w-6 h-6 bg-amber-400" style={{ clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)' }} /> },
-    { type: 'hexagon', label: 'Hexagon', preview: <div className="w-6 h-6 bg-cyan-400" style={{ clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' }} /> },
+  // Shape grid data
+  type ShapeGroup = { label: string; key: string; color: string; shapes: { type: ShapeType; label: string; clip?: string; svg?: string; gear?: boolean; cylinder?: boolean }[] };
+  const SHAPE_GROUPS: ShapeGroup[] = [
+    { label: 'Basic', key: 'basic', color: '#818cf8', shapes: [
+      { type: 'rect', label: 'Rect' },
+      { type: 'circle', label: 'Circle' },
+      { type: 'triangle', label: 'Triangle', clip: 'polygon(50% 0%, 0% 100%, 100% 100%)' },
+      { type: 'diamond', label: 'Diamond', clip: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' },
+      { type: 'hexagon', label: 'Hexagon', clip: 'polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)' },
+      { type: 'pentagon', label: 'Pentagon', clip: 'polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%)' },
+      { type: 'octagon', label: 'Octagon', clip: 'polygon(30% 0%,70% 0%,100% 30%,100% 70%,70% 100%,30% 100%,0% 70%,0% 30%)' },
+      { type: 'cross', label: 'Cross', clip: 'polygon(35% 0%,65% 0%,65% 35%,100% 35%,100% 65%,65% 65%,65% 100%,35% 100%,35% 65%,0% 65%,0% 35%,35% 35%)' },
+      { type: 'parallelogram', label: 'Parallelogram', clip: 'polygon(20% 0%,100% 0%,80% 100%,0% 100%)' },
+    ]},
+    { label: 'Arrows', key: 'arrows', color: '#34d399', shapes: [
+      { type: 'arrowRight', label: '→ Arrow', clip: 'polygon(0% 20%,60% 20%,60% 0%,100% 50%,60% 100%,60% 80%,0% 80%)' },
+      { type: 'arrowLeft', label: '← Arrow', clip: 'polygon(40% 0%,40% 20%,100% 20%,100% 80%,40% 80%,40% 100%,0% 50%)' },
+      { type: 'arrowUp', label: '↑ Arrow', clip: 'polygon(50% 0%,100% 40%,80% 40%,80% 100%,20% 100%,20% 40%,0% 40%)' },
+      { type: 'arrowDown', label: '↓ Arrow', clip: 'polygon(20% 0%,80% 0%,80% 60%,100% 60%,50% 100%,0% 60%,20% 60%)' },
+      { type: 'arrowDoubleH', label: '↔ Double', clip: 'polygon(0% 50%,20% 0%,20% 35%,80% 35%,80% 0%,100% 50%,80% 100%,80% 65%,20% 65%,20% 100%)' },
+      { type: 'chevronRight', label: '> Chevron', clip: 'polygon(0% 0%,75% 0%,100% 50%,75% 100%,0% 100%,25% 50%)' },
+      { type: 'chevronLeft', label: '< Chevron', clip: 'polygon(25% 0%,100% 0%,75% 50%,100% 100%,25% 100%,0% 50%)' },
+    ]},
+    { label: 'Stars', key: 'stars', color: '#fbbf24', shapes: [
+      { type: 'star4', label: '4-Point', clip: 'polygon(50% 0%,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0% 50%,40% 40%)' },
+      { type: 'star', label: '5-Point', clip: 'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)' },
+      { type: 'star6', label: '6-Point', clip: 'polygon(50% 0%,38% 28%,7% 25%,25% 50%,7% 75%,38% 72%,50% 100%,63% 72%,93% 75%,75% 50%,93% 25%,63% 28%)' },
+      { type: 'star8', label: '8-Point', clip: 'polygon(50% 0%,61% 24%,85% 15%,76% 39%,100% 50%,76% 61%,85% 85%,61% 76%,50% 100%,39% 76%,15% 85%,24% 61%,0% 50%,24% 39%,15% 15%,39% 24%)' },
+      { type: 'starburst', label: 'Burst', clip: 'polygon(50% 0%,55% 31%,75% 7%,64% 36%,93% 25%,69% 45%,100% 50%,69% 55%,93% 75%,64% 64%,75% 93%,55% 69%,50% 100%,45% 69%,25% 93%,36% 64%,7% 75%,31% 55%,0% 50%,31% 45%,7% 25%,36% 36%,25% 7%,45% 31%)' },
+    ]},
+    { label: 'Hearts & Bubbles', key: 'hearts', color: '#f472b6', shapes: [
+      { type: 'heart', label: 'Heart', svg: 'M 50 30 C 50 22,42 10,25 10 C 8 10,0 25,0 40 C 0 65,50 90,50 90 C 50 90,100 65,100 40 C 100 25,92 10,75 10 C 58 10,50 22,50 30 Z' },
+      { type: 'speechLeft', label: 'Bubble L', svg: 'M 15 0 Q 0 0 0 15 L 0 65 Q 0 80 15 80 L 20 80 L 8 100 L 38 80 L 85 80 Q 100 80 100 65 L 100 15 Q 100 0 85 0 Z' },
+      { type: 'speechRight', label: 'Bubble R', svg: 'M 15 0 Q 0 0 0 15 L 0 65 Q 0 80 15 80 L 62 80 L 92 100 L 80 80 L 85 80 Q 100 80 100 65 L 100 15 Q 100 0 85 0 Z' },
+      { type: 'speechRound', label: 'Bubble ↓', svg: 'M 10 0 Q 0 0 0 10 L 0 62 Q 0 75 10 75 L 40 75 L 50 95 L 60 75 L 90 75 Q 100 75 100 62 L 100 10 Q 100 0 90 0 Z' },
+    ]},
+    { label: 'Banners & Flowchart', key: 'banners', color: '#a78bfa', shapes: [
+      { type: 'bannerRibbon', label: 'Banner', svg: 'M 0 20 L 15 35 L 0 50 L 0 85 Q 0 100 15 100 L 85 100 Q 100 100 100 85 L 100 50 L 85 35 L 100 20 Z' },
+      { type: 'fcDocument', label: 'Document', svg: 'M 0 0 L 100 0 L 100 75 Q 87 90 75 75 Q 62 60 50 75 Q 37 90 25 75 Q 12 60 0 75 Z' },
+      { type: 'fcCylinder', label: 'Cylinder', cylinder: true },
+      { type: 'parallelogram', label: 'Data', clip: 'polygon(20% 0%,100% 0%,80% 100%,0% 100%)' },
+    ]},
+    { label: 'Organic & Special', key: 'organic', color: '#2dd4bf', shapes: [
+      { type: 'blobA', label: 'Blob A', svg: 'M 72 14 C 90 26,102 46,96 65 C 90 84,72 95,52 93 C 32 91,8 84,2 66 C -4 48,8 24,24 14 C 40 4,54 2,72 14 Z' },
+      { type: 'blobB', label: 'Blob B', svg: 'M 65 8 C 82 14,96 32,97 52 C 98 72,84 92,64 95 C 44 98,20 88,8 70 C -4 52,0 26,16 14 C 32 2,48 2,65 8 Z' },
+      { type: 'gear', label: 'Gear', gear: true, svg: 'M 40 0 L 60 0 L 64 16 L 78 8 L 92 22 L 84 36 L 100 44 L 100 56 L 84 64 L 92 78 L 78 92 L 64 84 L 60 100 L 40 100 L 36 84 L 22 92 L 8 78 L 16 64 L 0 56 L 0 44 L 16 36 L 8 22 L 22 8 L 36 16 Z M 35 50 A 15 15 0 1 0 65 50 A 15 15 0 1 0 35 50 Z' },
+    ]},
+  ];
+
+  const STICKER_EMOJIS = [
+    '❤️','🔥','⭐','✨','💫','🎉','🎊','🎯','💎','🚀',
+    '🌟','🌈','🦋','🌸','🌺','🌻','🍀','🎵','🎶','💡',
+    '👑','🏆','💪','👍','🙌','✌️','🤩','😍','😎','🥳',
+    '💯','🔮','⚡','❄️','🌙','☀️','🌊','🍕','🎂','🎁',
+    '🦄','🐱','🐶','🦊','🐺','🦁','🐯','🐻','🐼','🦋',
+    '💜','💙','💚','💛','🧡','🖤','🤍','🤎','💝','💖',
   ];
 
   return (
@@ -1459,77 +1614,138 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
         <div className="w-72 bg-[#232323] border-r border-white/10 flex flex-col overflow-y-auto flex-shrink-0">
 
           {tab === 'insert' && (
-            <div className="p-4 space-y-5">
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Text</p>
-                <div className="space-y-2">
+            <div className="p-3 space-y-1">
+
+              {/* ── TEXT ── */}
+              <InsertSection label="Text" sKey="text" open={openSections} toggle={toggleSection}>
+                <div className="space-y-1.5">
                   <button onClick={addHeading} className="w-full flex items-center gap-3 px-3 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-white text-sm transition">
                     <Type className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-                    <div className="text-left"><p className="font-semibold">Heading</p><p className="text-xs text-gray-500">Large bold text</p></div>
+                    <div className="text-left"><p className="font-semibold text-sm">Heading</p><p className="text-xs text-gray-500">Large bold text</p></div>
                   </button>
                   <button onClick={addParagraph} className="w-full flex items-center gap-3 px-3 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-white text-sm transition">
                     <Type className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                    <div className="text-left"><p className="font-medium">Paragraph</p><p className="text-xs text-gray-500">Body text</p></div>
+                    <div className="text-left"><p className="font-medium text-sm">Paragraph</p><p className="text-xs text-gray-500">Body text</p></div>
                   </button>
                 </div>
-              </div>
+              </InsertSection>
 
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Media</p>
-                <button onClick={() => imgInputRef.current?.click()} disabled={uploading}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-white text-sm transition disabled:opacity-50">
-                  <ImageIcon className="w-4 h-4 text-green-400 flex-shrink-0" />
-                  <div className="text-left"><p className="font-medium">Upload Image</p><p className="text-xs text-gray-500">{uploading ? 'Uploading...' : 'Add from device'}</p></div>
-                </button>
-              </div>
-
-              {/* Gallery */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Gallery</p>
-                  <button onClick={() => { setGalleryLoaded(false); }} className="text-[10px] text-indigo-400 hover:text-indigo-300">Refresh</button>
-                </div>
-                {!galleryLoaded ? (
-                  <div className="flex items-center justify-center py-4"><Loader2 className="w-4 h-4 animate-spin text-gray-500" /></div>
-                ) : gallery.length === 0 ? (
-                  <p className="text-[11px] text-gray-500 text-center py-3">No images uploaded yet</p>
-                ) : (
-                  <div className="grid grid-cols-3 gap-1.5 max-h-48 overflow-y-auto">
-                    {gallery.map(url => (
-                      <button key={url} onClick={() => addElement({ id: uid(), type: 'image', x: cx - 30, y: cy - 60, w: 260, h: 200, rot: 0, z: maxZ, opacity: 1, src: url, borderRadius: 0 })}
-                        className="aspect-square overflow-hidden rounded-lg bg-gray-800 hover:ring-2 hover:ring-indigo-400 transition flex-shrink-0">
-                        <img src={url} alt="" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Shapes</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {SHAPES.map(sh => (
-                    <button key={sh.type} onClick={() => addShape(sh.type)}
-                      className="flex flex-col items-center gap-1.5 py-3 bg-white/5 hover:bg-white/10 rounded-xl transition">
-                      {sh.preview}
-                      <span className="text-[10px] text-gray-400">{sh.label}</span>
+              {/* ── MAGIC TEXT ── */}
+              <InsertSection label="✨ Magic Text" sKey="magictext" open={openSections} toggle={toggleSection}>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {MAGIC_TEXT_PRESETS.map(p => (
+                    <button key={p.label} onClick={() => addMagicText(p)}
+                      className="flex flex-col items-center gap-1 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition">
+                      <span className="text-sm font-bold" style={{ color: (p.el as any).color || '#fff', WebkitTextStroke: (p.el as any).textStrokeWidth ? `1px ${(p.el as any).textStrokeColor}` : undefined } as React.CSSProperties}>Aa</span>
+                      <span className="text-[10px] text-gray-400">{p.label}</span>
                     </button>
                   ))}
                 </div>
-              </div>
+              </InsertSection>
 
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Button</p>
+              {/* ── LINES ── */}
+              <InsertSection label="Lines" sKey="lines" open={openSections} toggle={toggleSection}>
+                <div className="space-y-1.5">
+                  {[{ thick: 2, label: 'Thin' }, { thick: 5, label: 'Medium' }, { thick: 10, label: 'Thick' }].map(l => (
+                    <button key={l.label} onClick={() => addLine(l.thick)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition">
+                      <div className="w-10 flex items-center justify-center flex-shrink-0">
+                        <div style={{ height: l.thick, width: 32, backgroundColor: '#fff', borderRadius: 99 }} />
+                      </div>
+                      <span className="text-sm text-gray-300">{l.label} Line</span>
+                    </button>
+                  ))}
+                </div>
+              </InsertSection>
+
+              {/* ── SHAPE GROUPS ── */}
+              {SHAPE_GROUPS.map(grp => (
+                <InsertSection key={grp.key} label={grp.label} sKey={grp.key} open={openSections} toggle={toggleSection}>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {grp.shapes.map(sh => (
+                      <button key={sh.type} onClick={() => addShape(sh.type as ShapeType)}
+                        className="flex flex-col items-center gap-1 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition group">
+                        <div className="w-8 h-8 flex items-center justify-center">
+                          {sh.cylinder ? (
+                            <svg viewBox="0 0 100 100" className="w-7 h-7">
+                              <path d="M 0 18 Q 0 5 50 5 Q 100 5 100 18 L 100 82 Q 100 95 50 95 Q 0 95 0 82 Z" fill={grp.color} />
+                              <path d="M 0 18 Q 0 31 50 31 Q 100 31 100 18" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="4" />
+                            </svg>
+                          ) : sh.svg ? (
+                            <svg viewBox="0 0 100 100" className="w-7 h-7">
+                              <path d={sh.svg} fill={grp.color} fillRule={sh.gear ? 'evenodd' : 'nonzero'} />
+                            </svg>
+                          ) : sh.clip ? (
+                            <div className="w-7 h-7" style={{ backgroundColor: grp.color, clipPath: sh.clip }} />
+                          ) : sh.type === 'circle' ? (
+                            <div className="w-7 h-7 rounded-full" style={{ backgroundColor: grp.color }} />
+                          ) : (
+                            <div className="w-7 h-5 rounded-sm" style={{ backgroundColor: grp.color }} />
+                          )}
+                        </div>
+                        <span className="text-[9px] text-gray-400 group-hover:text-gray-200 leading-tight text-center px-0.5">{sh.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </InsertSection>
+              ))}
+
+              {/* ── STICKERS ── */}
+              <InsertSection label="🎭 Stickers" sKey="stickers" open={openSections} toggle={toggleSection}>
+                <div className="grid grid-cols-6 gap-1">
+                  {STICKER_EMOJIS.map(e => (
+                    <button key={e} onClick={() => addSticker(e)}
+                      className="flex items-center justify-center h-9 text-xl bg-white/5 hover:bg-white/15 rounded-lg transition hover:scale-110 active:scale-95">
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              </InsertSection>
+
+              {/* ── MEDIA ── */}
+              <InsertSection label="Media" sKey="media" open={openSections} toggle={toggleSection}>
+                <div className="space-y-1.5">
+                  <button onClick={() => imgInputRef.current?.click()} disabled={uploading}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-white text-sm transition disabled:opacity-50">
+                    <ImageIcon className="w-4 h-4 text-green-400 flex-shrink-0" />
+                    <div className="text-left"><p className="font-medium text-sm">Upload Image</p><p className="text-xs text-gray-500">{uploading ? 'Uploading...' : 'Add from device'}</p></div>
+                  </button>
+                  {/* Gallery */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-[10px] text-gray-500 font-medium">Gallery</p>
+                      <button onClick={() => setGalleryLoaded(false)} className="text-[10px] text-indigo-400 hover:text-indigo-300">Refresh</button>
+                    </div>
+                    {!galleryLoaded ? (
+                      <div className="flex items-center justify-center py-3"><Loader2 className="w-4 h-4 animate-spin text-gray-500" /></div>
+                    ) : gallery.length === 0 ? (
+                      <p className="text-[11px] text-gray-500 text-center py-2">No images uploaded yet</p>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-1.5 max-h-40 overflow-y-auto">
+                        {gallery.map(url => (
+                          <button key={url} onClick={() => addElement({ id: uid(), type: 'image', x: cx - 30, y: cy - 60, w: 260, h: 200, rot: 0, z: maxZ, opacity: 1, src: url, borderRadius: 0 })}
+                            className="aspect-square overflow-hidden rounded-lg bg-gray-800 hover:ring-2 hover:ring-indigo-400 transition">
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </InsertSection>
+
+              {/* ── BUTTON ── */}
+              <InsertSection label="Button" sKey="button" open={openSections} toggle={toggleSection}>
                 <button onClick={addButton} className="w-full flex items-center gap-3 px-3 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-white text-sm transition">
                   <MousePointer className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                  <div className="text-left"><p className="font-medium">CTA Button</p><p className="text-xs text-gray-500">With link URL</p></div>
+                  <div className="text-left"><p className="font-medium text-sm">CTA Button</p><p className="text-xs text-gray-500">With link URL</p></div>
                 </button>
-              </div>
+              </InsertSection>
 
-              <div>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Templates</p>
+              {/* ── TEMPLATES ── */}
+              <InsertSection label="Templates" sKey="templates" open={openSections} toggle={toggleSection}>
                 <p className="text-[10px] text-gray-600 mb-2">Replaces current slide elements</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   {TEMPLATES.map(tpl => (
                     <button key={tpl.name} onClick={() => applyTemplate(tpl)}
                       className="flex flex-col items-center gap-1.5 py-3 bg-white/5 hover:bg-indigo-500/20 hover:border-indigo-500/40 border border-transparent rounded-xl transition text-center">
@@ -1538,35 +1754,30 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                     </button>
                   ))}
                 </div>
-              </div>
+              </InsertSection>
 
-              {/* Distribute */}
+              {/* ── DISTRIBUTE ── */}
               {activeSlide.elements.length >= 3 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Distribute</p>
+                <InsertSection label="Distribute" sKey="distribute" open={openSections} toggle={toggleSection}>
                   <div className="grid grid-cols-2 gap-2">
                     <button onClick={distributeH} className="py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs text-gray-300 transition">⟷ Horizontal</button>
                     <button onClick={distributeV} className="py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs text-gray-300 transition">⟸⟹ Vertical</button>
                   </div>
-                </div>
+                </InsertSection>
               )}
 
-              {/* Saved Colors Palette */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Color Palette</p>
-                  {selectedEl?.color && (
-                    <button onClick={() => saveColor(selectedEl.color!)} className="text-[10px] text-indigo-400 hover:text-indigo-300">+ Save current</button>
-                  )}
-                </div>
+              {/* ── COLOR PALETTE ── */}
+              <InsertSection label="Color Palette" sKey="palette" open={openSections} toggle={toggleSection}>
+                {selectedEl?.color && (
+                  <button onClick={() => saveColor(selectedEl.color!)} className="text-[10px] text-indigo-400 hover:text-indigo-300 mb-2 block">+ Save current color</button>
+                )}
                 {savedColors.length === 0
-                  ? <p className="text-[11px] text-gray-600 text-center py-2">Select element color then click Save</p>
+                  ? <p className="text-[11px] text-gray-600 text-center py-2">Select element → save its color</p>
                   : (
                     <div className="flex flex-wrap gap-1.5">
                       {savedColors.map(c => (
                         <div key={c} className="relative group">
-                          <button
-                            onClick={() => selectedEl && updateElement({ ...selectedEl, color: c })}
+                          <button onClick={() => selectedEl && updateElement({ ...selectedEl, color: c })}
                             className="w-7 h-7 rounded-lg border border-white/20 hover:ring-2 hover:ring-white/40 transition"
                             style={{ backgroundColor: c }} title={c} />
                           <button onClick={() => removeColor(c)} className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full text-white text-[8px] hidden group-hover:flex items-center justify-center">×</button>
@@ -1574,12 +1785,12 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                       ))}
                     </div>
                   )}
-              </div>
+              </InsertSection>
 
+              {/* ── LAYERS ── */}
               {activeSlide.elements.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Layers ({activeSlide.elements.length})</p>
+                <InsertSection label={`Layers (${activeSlide.elements.length})`} sKey="layers" open={openSections} toggle={toggleSection}>
+                  <div className="flex justify-end mb-1">
                     <button onClick={clearAll} className="text-[10px] text-red-400 hover:text-red-300">Clear all</button>
                   </div>
                   <div className="space-y-1">
@@ -1587,16 +1798,17 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                       <div key={el.id}
                         onClick={ev => { if (ev.shiftKey) toggleSelect(el.id); else if (el.groupId) selectGroup(el.groupId); else selectOne(el.id); }}
                         className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-xs transition ${selectedId === el.id ? 'bg-indigo-600/30 text-indigo-200' : selectedIds.includes(el.id) ? 'bg-indigo-600/15 text-indigo-300' : 'hover:bg-white/5 text-gray-400'}`}>
-                        {(el.type === 'text' || el.type === 'button') ? <Type className="w-3 h-3" /> : el.type === 'image' ? <ImageIcon className="w-3 h-3" /> : <Square className="w-3 h-3" />}
-                        <span className="truncate flex-1">{(el.type === 'text' || el.type === 'button') ? (el.content?.slice(0, 16) || el.type) : (el.shapeType || el.type)}</span>
+                        {(el.type === 'text' || el.type === 'button') ? <Type className="w-3 h-3" /> : el.type === 'image' ? <ImageIcon className="w-3 h-3" /> : el.type === 'sticker' ? <span className="text-xs">🎭</span> : <Square className="w-3 h-3" />}
+                        <span className="truncate flex-1">{el.type === 'sticker' ? el.content : (el.type === 'text' || el.type === 'button') ? (el.content?.slice(0, 16) || el.type) : (el.shapeType || el.type)}</span>
                         {el.groupId && <span className="text-[8px] text-amber-400/80 border border-amber-400/30 rounded px-0.5 flex-shrink-0">G</span>}
                         {el.animation && <Sparkles className="w-2.5 h-2.5 text-indigo-400" />}
                         <button onClick={e => { e.stopPropagation(); deleteElement(el.id); }} className="hover:text-red-400">×</button>
                       </div>
                     ))}
                   </div>
-                </div>
+                </InsertSection>
               )}
+
             </div>
           )}
 
