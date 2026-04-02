@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransRentals — Gujarat Vendor Campaign Brief Week 1</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --orange: #FF6B23;
+  --gold: #FFB800;
+  --bg: #070710;
+  --bg2: #0d0d1a;
+  --card: #111122;
+  --border: rgba(255,107,35,0.15);
+  --text: #ffffff;
+  --muted: rgba(255,255,255,0.45);
+  --dim: rgba(255,255,255,0.12);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--orange); border-radius: 4px; }
+
+/* ── NOISE TEXTURE ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* ── GRID BG ── */
+.page-grid {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,107,35,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,107,35,0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── WRAPPER ── */
+.wrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px 120px;
+}
+
+/* ════════════════════════════════
+   HERO
+════════════════════════════════ */
+.hero {
+  padding: 80px 0 60px;
+  text-align: center;
+  position: relative;
+}
+.hero-glow {
+  position: absolute;
+  width: 600px; height: 300px;
+  background: radial-gradient(ellipse, rgba(255,107,35,0.12), transparent 70%);
+  top: 0; left: 50%; transform: translateX(-50%);
+  pointer-events: none;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,107,35,0.1);
+  border: 1px solid rgba(255,107,35,0.3);
+  border-radius: 50px;
+  padding: 8px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--orange);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+.hero-badge span { width:6px; height:6px; background:var(--orange); border-radius:50%; display:inline-block; animation: blink 1.5s ease infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+.hero h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 16px;
+}
+.hero h1 .gr { background: linear-gradient(90deg, #FF6B23, #FFB800); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.hero-sub {
+  font-size: 18px;
+  color: var(--muted);
+  max-width: 560px;
+  margin: 0 auto 48px;
+  line-height: 1.6;
+}
+
+/* HERO STATS */
+.hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  max-width: 700px;
+  margin: 0 auto;
+  background: var(--card);
+}
+.hstat {
+  flex: 1;
+  padding: 28px 20px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+.hstat:last-child { border-right: none; }
+.hstat-num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #FF6B23, #FFB800);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.hstat-label { font-size: 12px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+
+/* ════════════════════════════════
+   SECTION HEADERS
+════════════════════════════════ */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 72px 0 32px;
+}
+.section-icon {
+  width: 44px; height: 44px;
+  background: linear-gradient(135deg, rgba(255,107,35,0.2), rgba(255,184,0,0.1));
+  border: 1px solid rgba(255,107,35,0.3);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.section-title { font-size: 28px; font-weight: 700; }
+.section-title span { color: var(--orange); }
+.section-line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(255,107,35,0.3), transparent); }
+
+/* ════════════════════════════════
+   CAMPAIGN OVERVIEW TABLE
+════════════════════════════════ */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-bottom: 48px;
+}
+.ov-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 12px;
+  text-align: center;
+  transition: border-color 0.2s;
+  cursor: default;
+}
+.ov-card:hover { border-color: rgba(255,107,35,0.5); }
+.ov-day { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.ov-emoji { font-size: 28px; margin-bottom: 6px; display: block; }
+.ov-type { font-size: 11px; font-weight: 600; color: var(--orange); text-transform: uppercase; letter-spacing: 0.5px; }
+.ov-platform { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+/* ════════════════════════════════
+   DAY CARDS
+════════════════════════════════ */
+.day-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  margin-bottom: 24px;
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+.day-card:hover { border-color: rgba(255,107,35,0.4); }
+
+.day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(90deg, rgba(255,107,35,0.05), transparent);
+}
+.day-left { display: flex; align-items: center; gap: 16px; }
+.day-num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 48px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #FF6B23, #FFB800);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  line-height: 1;
+  min-width: 60px;
+}
+.day-info h3 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.day-info p { font-size: 13px; color: var(--muted); }
+.day-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.badge {
+  padding: 5px 12px;
+  border-radius: 50px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.badge-platform { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.1); }
+.badge-type { background: rgba(255,107,35,0.12); color: #FF8C50; border: 1px solid rgba(255,107,35,0.25); }
+.badge-time { background: rgba(255,184,0,0.08); color: #FFB800; border: 1px solid rgba(255,184,0,0.2); }
+
+.day-body { padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.day-body.full { grid-template-columns: 1fr; }
+
+/* CONTENT BLOCKS */
+.content-block {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 24px;
+}
+.content-block.orange-tint {
+  background: rgba(255,107,35,0.05);
+  border-color: rgba(255,107,35,0.15);
+}
+.cb-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--orange);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cb-label::after { content:''; flex:1; height:1px; background:rgba(255,107,35,0.2); }
+.cb-tagline {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.cb-tagline .hl { background: linear-gradient(90deg,#FF6B23,#FFB800); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.cb-sub { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; }
+.cb-copy {
+  font-size: 14px;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.75);
+  white-space: pre-line;
+  background: rgba(0,0,0,0.2);
+  border-radius: 10px;
+  padding: 16px;
+  border-left: 2px solid var(--orange);
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+/* VISUAL DIRECTION */
+.visual-block { display: flex; flex-direction: column; gap: 12px; }
+.visual-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.vi-icon {
+  width: 32px; height: 32px;
+  background: rgba(255,107,35,0.1);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.vi-content h4 { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); margin-bottom: 2px; }
+.vi-content p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* CTA ROW */
+.cta-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 20px 32px;
+  border-top: 1px solid var(--border);
+  background: rgba(255,107,35,0.03);
+}
+.cta-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-right: 4px; }
+.cta-pill {
+  background: linear-gradient(135deg, #FF6B23, #FF9A00);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 50px;
+}
+.hashtag-wrap { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.htag {
+  font-size: 11px;
+  color: rgba(255,107,35,0.7);
+  background: rgba(255,107,35,0.06);
+  border: 1px solid rgba(255,107,35,0.12);
+  padding: 4px 10px;
+  border-radius: 50px;
+}
+
+/* ════════════════════════════════
+   AD CAMPAIGN SECTION
+════════════════════════════════ */
+.ad-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.ad-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.ad-header {
+  padding: 20px 24px;
+  background: linear-gradient(135deg, rgba(255,107,35,0.08), transparent);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ad-header h3 { font-size: 16px; font-weight: 700; }
+.ad-platform-badges { display: flex; gap: 6px; }
+.ad-body { padding: 24px; }
+.ad-field { margin-bottom: 16px; }
+.ad-field:last-child { margin-bottom: 0; }
+.adf-label { font-size: 10px; color: var(--orange); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; margin-bottom: 6px; }
+.adf-value { font-size: 14px; color: rgba(255,255,255,0.8); line-height: 1.6; }
+.adf-value.big { font-size: 18px; font-weight: 700; color: #fff; }
+
+/* ════════════════════════════════
+   WHATSAPP SECTION
+════════════════════════════════ */
+.wa-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.wa-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.wa-header {
+  background: linear-gradient(135deg, #25D366, #128C7E);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.wa-header span { font-size: 20px; }
+.wa-header h3 { font-size: 14px; font-weight: 700; color: #fff; }
+.wa-body { padding: 20px; }
+.wa-bubble {
+  background: rgba(37,211,102,0.05);
+  border: 1px solid rgba(37,211,102,0.15);
+  border-radius: 4px 16px 16px 16px;
+  padding: 16px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.8);
+  line-height: 1.7;
+  white-space: pre-line;
+  font-family: 'Space Grotesk', sans-serif;
+}
+.wa-meta { font-size: 11px; color: var(--muted); margin-top: 10px; text-align: right; }
+
+/* ════════════════════════════════
+   HASHTAG BANK
+════════════════════════════════ */
+.hashtag-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.hg-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+}
+.hg-title { font-size: 12px; font-weight: 600; color: var(--orange); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.hg-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.hg-tag {
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 4px 10px;
+  border-radius: 50px;
+}
+
+/* ════════════════════════════════
+   BRAND COLORS
+════════════════════════════════ */
+.colors-row { display: flex; gap: 16px; margin-bottom: 16px; }
+.color-swatch {
+  flex: 1;
+  height: 80px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px;
+}
+.color-swatch span { font-size: 11px; color: rgba(255,255,255,0.7); font-weight: 600; }
+
+/* ════════════════════════════════
+   FOOTER
+════════════════════════════════ */
+.footer {
+  margin-top: 80px;
+  padding-top: 40px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 13px;
+}
+.footer-brand { font-weight: 700; color: var(--orange); font-size: 16px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .day-body { grid-template-columns: 1fr; }
+  .ad-grid, .wa-grid, .hashtag-grid { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 40px; }
+  .overview-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ── ANIMATE ON SCROLL ── */
+.fade-up {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.fade-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
+</head>
+<body>
+
+<div class="page-grid"></div>
+
+<div class="wrapper">
+
+  <!-- ════ HERO ════ -->
+  <div class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-badge">
+      <span></span>
+      Gujarat Vendor Onboarding — Week 1 Campaign Brief
+    </div>
+    <h1>7 Days. 7 Posts.<br/><span class="gr">One Goal: Gujarat.</span></h1>
+    <p class="hero-sub">Complete campaign brief for designer team. Har post ka hook, copy, visual direction, aur platform strategy — sab ek jagah.</p>
+
+    <div class="hero-stats">
+      <div class="hstat">
+        <div class="hstat-num">7</div>
+        <div class="hstat-label">Posts / Days</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-num">3</div>
+        <div class="hstat-label">Platforms</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-num">2</div>
+        <div class="hstat-label">Ad Campaigns</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-num">3</div>
+        <div class="hstat-label">WA Templates</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ OVERVIEW ════ -->
+  <div class="section-header fade-up">
+    <div class="section-icon">📅</div>
+    <div class="section-title">Week <span>Overview</span></div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="overview-grid fade-up">
+    <div class="ov-card">
+      <div class="ov-day">Day 1 · Mon</div>
+      <span class="ov-emoji">😟</span>
+      <div class="ov-type">Problem Hook</div>
+      <div class="ov-platform">Instagram Reel</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-day">Day 2 · Tue</div>
+      <span class="ov-emoji">💰</span>
+      <div class="ov-type">Earnings Post</div>
+      <div class="ov-platform">Instagram Carousel</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-day">Day 3 · Wed</div>
+      <span class="ov-emoji">🏆</span>
+      <div class="ov-type">Success Story</div>
+      <div class="ov-platform">Facebook + Insta</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-day">Day 4 · Thu</div>
+      <span class="ov-emoji">📲</span>
+      <div class="ov-type">App Demo</div>
+      <div class="ov-platform">Instagram Reel</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-day">Day 5 · Fri</div>
+      <span class="ov-emoji">🔥</span>
+      <div class="ov-type">FOMO / Urgency</div>
+      <div class="ov-platform">Facebook Ad</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-day">Day 6 · Sat</div>
+      <span class="ov-emoji">❓</span>
+      <div class="ov-type">FAQ / Trust</div>
+      <div class="ov-platform">Instagram Carousel</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-day">Day 7 · Sun</div>
+      <span class="ov-emoji">🚀</span>
+      <div class="ov-type">CTA Closer</div>
+      <div class="ov-platform">All Platforms</div>
+    </div>
+  </div>
+
+  <!-- ════ DAY-BY-DAY ════ -->
+  <div class="section-header fade-up">
+    <div class="section-icon">🎯</div>
+    <div class="section-title">Day-by-Day <span>Post Guide</span></div>
+    <div class="section-line"></div>
+  </div>
+
+  <!-- DAY 1 -->
+  <div class="day-card fade-up">
+    <div class="day-header">
+      <div class="day-left">
+        <div class="day-num">01</div>
+        <div class="day-info">
+          <h3>Problem Hook — "Khaali Gaadi"</h3>
+          <p>Monday · Objective: Attention grab, pain point trigger</p>
+        </div>
+      </div>
+      <div class="day-badges">
+        <div class="badge badge-platform">📸 Instagram</div>
+        <div class="badge badge-type">🎬 Reel (30s)</div>
+        <div class="badge badge-time">⏰ 7–9 PM</div>
+      </div>
+    </div>
+    <div class="day-body">
+      <div>
+        <div class="content-block orange-tint">
+          <div class="cb-label">Tagline / Hook</div>
+          <div class="cb-tagline">Tamari Gaadi<br/><span class="hl">Khaali Padi Che?</span></div>
+          <div class="cb-sub">Is your vehicle sitting idle every day?</div>
+          <div class="cb-copy">Ahmedabad... Surat... Rajkot...
+tamari gaadi din mein khaali rehti che?
+
+Dassho booking nathi milti?
+
+TransRentals pe vendor bano —
+Gujarat na hazzaro customers
+tamne directly book karshe. 🚗
+
+Free Registration. Zero Cost.
+👇 Link bio mein chhe.</div>
+        </div>
+      </div>
+      <div class="content-block">
+        <div class="cb-label">Visual Direction (Designer ke liye)</div>
+        <div class="visual-block">
+          <div class="visual-item">
+            <div class="vi-icon">🎨</div>
+            <div class="vi-content">
+              <h4>Background</h4>
+              <p>Dark cinematic. Deep black/navy. Subtle orange glow from bottom. Film grain texture.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">🏍️</div>
+            <div class="vi-content">
+              <h4>Main Visual</h4>
+              <p>A bike/car parked alone in empty road. Desaturated/grayscale. Dust particles floating. Sad, idle mood.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">✍️</div>
+            <div class="vi-content">
+              <h4>Typography</h4>
+              <p>"Khaali Padi Che?" in bold white. "Khaali" slightly faded. Animate word-by-word.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">🎬</div>
+            <div class="vi-content">
+              <h4>Reel Flow</h4>
+              <p>0–5s: Empty vehicle. 5–15s: Text appears. 15–25s: TransRentals logo + solution line. 25–30s: CTA.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">🎵</div>
+            <div class="vi-content">
+              <h4>Music / Audio</h4>
+              <p>Slow dramatic beat drops into upbeat at solution reveal. Or Gujarati folk remix trending audio.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cta-row">
+      <span class="cta-label">CTA</span>
+      <div class="cta-pill">🔗 Link in Bio — transrentals.in/vendor/register</div>
+      <div class="hashtag-wrap">
+        <span class="htag">#KhaaliGaadi</span>
+        <span class="htag">#GujaratVendor</span>
+        <span class="htag">#TransRentals</span>
+        <span class="htag">#BikeRentalGujarat</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 2 -->
+  <div class="day-card fade-up">
+    <div class="day-header">
+      <div class="day-left">
+        <div class="day-num">02</div>
+        <div class="day-info">
+          <h3>Earnings Reveal — "Kitna Kamso?"</h3>
+          <p>Tuesday · Objective: Desire create karo, income potential dikhao</p>
+        </div>
+      </div>
+      <div class="day-badges">
+        <div class="badge badge-platform">📸 Instagram</div>
+        <div class="badge badge-platform">👤 Facebook</div>
+        <div class="badge badge-type">🃏 Carousel (6 slides)</div>
+        <div class="badge badge-time">⏰ 12–2 PM</div>
+      </div>
+    </div>
+    <div class="day-body">
+      <div>
+        <div class="content-block orange-tint">
+          <div class="cb-label">Tagline / Hook</div>
+          <div class="cb-tagline"><span class="hl">Mahine mein</span><br/>Ketlu Kamai Shakay?</div>
+          <div class="cb-sub">How much can you actually earn per month?</div>
+          <div class="cb-copy">Slide 1 (Cover): "Gujarat na Vendors Mahine mein Kya Kamate Hain? 👀"
+
+Slide 2 — 🏍️ Bike (1 unit)
+₹8,000 – ₹15,000 / month
+(Based on 15–25 bookings)
+
+Slide 3 — 🚗 Car (1 unit)
+₹20,000 – ₹40,000 / month
+(Based on 20–30 bookings)
+
+Slide 4 — 🚌 Bus / Tempo (1 unit)
+₹50,000 – ₹1,20,000 / month
+(Tourism + corporate routes)
+
+Slide 5 — 🚛 Truck (1 unit)
+₹35,000 – ₹80,000 / month
+(Logistics + shifting)
+
+Slide 6 (CTA): "Tamaro Dhanda, Tamari Sharat pe"
+Free mein join karo aaj j!</div>
+        </div>
+      </div>
+      <div class="content-block">
+        <div class="cb-label">Visual Direction (Designer ke liye)</div>
+        <div class="visual-block">
+          <div class="visual-item">
+            <div class="vi-icon">🎨</div>
+            <div class="vi-content">
+              <h4>Style</h4>
+              <p>Dark card design. Each vehicle gets its own slide with matching color accent (orange/gold). Glassmorphism cards.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">💸</div>
+            <div class="vi-content">
+              <h4>Earnings Display</h4>
+              <p>Large bold rupee amount center. Animated counter effect in reel version. Green upward arrow.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">📊</div>
+            <div class="vi-content">
+              <h4>Data Visualization</h4>
+              <p>Simple bar or progress bar showing booking count → income. Clean, minimal, credible.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">🖼️</div>
+            <div class="vi-content">
+              <h4>Cover Slide</h4>
+              <p>All 4 vehicles arranged in 2x2 grid. "Kitna Kamso?" in massive bold font. Orange/gold gradient text.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cta-row">
+      <span class="cta-label">CTA</span>
+      <div class="cta-pill">💬 Comment "VENDOR" for info</div>
+      <div class="hashtag-wrap">
+        <span class="htag">#PassiveIncome</span>
+        <span class="htag">#GujaratBusiness</span>
+        <span class="htag">#VehicleRental</span>
+        <span class="htag">#Dhanda</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 3 -->
+  <div class="day-card fade-up">
+    <div class="day-header">
+      <div class="day-left">
+        <div class="day-num">03</div>
+        <div class="day-info">
+          <h3>Success Story — Real Vendor Testimonial</h3>
+          <p>Wednesday · Objective: Trust build karo, social proof dikhao</p>
+        </div>
+      </div>
+      <div class="day-badges">
+        <div class="badge badge-platform">📸 Instagram</div>
+        <div class="badge badge-platform">👤 Facebook</div>
+        <div class="badge badge-type">🎬 Video / Static</div>
+        <div class="badge badge-time">⏰ 6–8 PM</div>
+      </div>
+    </div>
+    <div class="day-body">
+      <div>
+        <div class="content-block orange-tint">
+          <div class="cb-label">Tagline / Hook</div>
+          <div class="cb-tagline">"Mara Dhanda ne<br/><span class="hl">Wings Malya"</span></div>
+          <div class="cb-sub">"My business got wings" — Real vendor story</div>
+          <div class="cb-copy">Rajkot na Ramesh bhai ni story suno 👇
+
+Pehla:
+→ Sirf local customers
+→ Mahine mein 8–10 bookings
+→ Income unpredictable
+
+TransRentals join karya pachhi:
+→ Mahine mein 25–30 bookings ✅
+→ Income 2x thi gayi 📈
+→ Dashboard pe sab deke rakhay
+
+"Best decision hu mara business mate"
+— Ramesh Patel, Rajkot 🙏
+
+Tamaro number kayo chhe?
+Comment karo 'VENDOR'</div>
+        </div>
+      </div>
+      <div class="content-block">
+        <div class="cb-label">Visual Direction (Designer ke liye)</div>
+        <div class="visual-block">
+          <div class="visual-item">
+            <div class="vi-icon">👤</div>
+            <div class="vi-content">
+              <h4>Vendor Photo</h4>
+              <p>Real vendor photo (smiling, with vehicle). Or illustrated avatar. Authentic feel. Not stock photo.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">📱</div>
+            <div class="vi-content">
+              <h4>Before/After Layout</h4>
+              <p>Split screen — left: dim/empty garage. Right: bright dashboard with bookings. Dramatic contrast.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">📈</div>
+            <div class="vi-content">
+              <h4>Stats Overlay</h4>
+              <p>Income arrow going up. "8 bookings → 28 bookings" visible comparison. Gold color for earnings.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">💬</div>
+            <div class="vi-content">
+              <h4>Quote Style</h4>
+              <p>Large quote marks. Vendor name + city in caption. Verified badge feeling. Trust-first design.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cta-row">
+      <span class="cta-label">CTA</span>
+      <div class="cta-pill">💬 "Tamaro success story kayo hase" — Comment VENDOR</div>
+      <div class="hashtag-wrap">
+        <span class="htag">#GujaratSuccess</span>
+        <span class="htag">#VendorStory</span>
+        <span class="htag">#TransRentals</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 4 -->
+  <div class="day-card fade-up">
+    <div class="day-header">
+      <div class="day-left">
+        <div class="day-num">04</div>
+        <div class="day-info">
+          <h3>App Demo — "Itnu Easy Chhe"</h3>
+          <p>Thursday · Objective: Onboarding simplicity dikhao, fear remove karo</p>
+        </div>
+      </div>
+      <div class="day-badges">
+        <div class="badge badge-platform">📸 Instagram</div>
+        <div class="badge badge-type">🎬 Reel (45s)</div>
+        <div class="badge badge-time">⏰ 11 AM–1 PM</div>
+      </div>
+    </div>
+    <div class="day-body">
+      <div>
+        <div class="content-block orange-tint">
+          <div class="cb-label">Tagline / Hook</div>
+          <div class="cb-tagline">Sirf <span class="hl">3 Steps</span><br/>Dhanda Online!</div>
+          <div class="cb-sub">Register in 3 simple steps — no tech knowledge needed</div>
+          <div class="cb-copy">Tame sochta haso ke online aavun mushkel chhe?
+
+Nahi! TransRentals pe join karvu
+bilkul simple chhe 👇
+
+Step 1️⃣ — Register karo (2 min)
+Step 2️⃣ — Documents upload karo
+Step 3️⃣ — City + Service choose karo
+
+Bas! Booking aavvani sharu! 🎉
+
+Koi computer knowledge nahi joiye.
+Smartphone thi j sab thai jay.
+
+👇 Abhi shuru karo — FREE</div>
+        </div>
+      </div>
+      <div class="content-block">
+        <div class="cb-label">Visual Direction (Designer ke liye)</div>
+        <div class="visual-block">
+          <div class="visual-item">
+            <div class="vi-icon">📱</div>
+            <div class="vi-content">
+              <h4>Screen Recording</h4>
+              <p>Actual app/vendor portal screen recording. Show registration form → document upload → dashboard. Clean mockup frame.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">🔢</div>
+            <div class="vi-content">
+              <h4>Step Numbers</h4>
+              <p>Big bold "1, 2, 3" appearing with each step. Orange circle counters. Satisfying checkmark animation.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">🎬</div>
+            <div class="vi-content">
+              <h4>Reel Flow</h4>
+              <p>0–5s: Hook question. 5–35s: App walkthrough with step overlays. 35–45s: Dashboard showing first booking coming in.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">👴</div>
+            <div class="vi-content">
+              <h4>Tone</h4>
+              <p>Reassuring. "Even non-tech vendor can do it." Simple Hindi/Gujarati voiceover. Friendly pace.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cta-row">
+      <span class="cta-label">CTA</span>
+      <div class="cta-pill">🔗 Register Link in Bio</div>
+      <div class="hashtag-wrap">
+        <span class="htag">#EasyOnboarding</span>
+        <span class="htag">#SmallBusiness</span>
+        <span class="htag">#GujaratEntrepreneur</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 5 -->
+  <div class="day-card fade-up">
+    <div class="day-header">
+      <div class="day-left">
+        <div class="day-num">05</div>
+        <div class="day-info">
+          <h3>FOMO / Urgency — "Spots Bhari Rahe Chhe"</h3>
+          <p>Friday · Objective: FOMO trigger karo, immediate action lao</p>
+        </div>
+      </div>
+      <div class="day-badges">
+        <div class="badge badge-platform">👤 Facebook Ad</div>
+        <div class="badge badge-platform">📸 Instagram Story</div>
+        <div class="badge badge-type">📍 Location Targeted</div>
+        <div class="badge badge-time">⏰ 8–10 AM</div>
+      </div>
+    </div>
+    <div class="day-body">
+      <div>
+        <div class="content-block orange-tint">
+          <div class="cb-label">Tagline / Hook</div>
+          <div class="cb-tagline"><span class="hl">Tamari City</span><br/>mein Spots Bhari Rahe Chhe!</div>
+          <div class="cb-sub">Vendor spots in your city are filling up fast!</div>
+          <div class="cb-copy">⚠️ Gujarat Launch — Limited Vendor Spots!
+
+Ahmedabad 🔴 Filling Fast
+Surat 🔴 Filling Fast
+Vadodara 🟠 Few Spots Left
+Rajkot 🟠 Few Spots Left
+Gandhinagar 🟡 Open
+Bhavnagar 🟡 Open
+
+Jeta pehla teta pehla 🏃
+
+Pehla 50 vendors ne milse:
+✅ Priority customer matching
+✅ Free onboarding support call
+✅ Featured listing (1st month)
+
+👇 Abhi register karo — FREE</div>
+        </div>
+      </div>
+      <div class="content-block">
+        <div class="cb-label">Visual Direction (Designer ke liye)</div>
+        <div class="visual-block">
+          <div class="visual-item">
+            <div class="vi-icon">🗺️</div>
+            <div class="vi-content">
+              <h4>Gujarat Map Visual</h4>
+              <p>Gujarat map with glowing pins on major cities. Red pins = filling fast. Yellow = available. Dynamic feel.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">🔴</div>
+            <div class="vi-content">
+              <h4>Urgency Color</h4>
+              <p>Red/orange warning palette. Pulsing red dot on "filling fast" cities. Alarm/urgency aesthetic.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">⏳</div>
+            <div class="vi-content">
+              <h4>Countdown Element</h4>
+              <p>Optional: countdown timer or "X spots remaining" progress bar. Creates scarcity.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">🎯</div>
+            <div class="vi-content">
+              <h4>Ad Targeting Note</h4>
+              <p>Run this as Facebook Lead Ad. Target: Ahmedabad, Surat, Vadodara, Rajkot. Age 25–55. Business owners.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cta-row">
+      <span class="cta-label">CTA</span>
+      <div class="cta-pill">⚡ Register Now — Don't Miss Your City Slot</div>
+      <div class="hashtag-wrap">
+        <span class="htag">#LimitedSpots</span>
+        <span class="htag">#GujaratLaunch</span>
+        <span class="htag">#FOMO</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 6 -->
+  <div class="day-card fade-up">
+    <div class="day-header">
+      <div class="day-left">
+        <div class="day-num">06</div>
+        <div class="day-info">
+          <h3>FAQ / Trust Post — "Tamara Savalo na Javab"</h3>
+          <p>Saturday · Objective: Doubts door karo, trust build karo</p>
+        </div>
+      </div>
+      <div class="day-badges">
+        <div class="badge badge-platform">📸 Instagram</div>
+        <div class="badge badge-type">🃏 Carousel (5 slides)</div>
+        <div class="badge badge-time">⏰ 3–5 PM</div>
+      </div>
+    </div>
+    <div class="day-body">
+      <div>
+        <div class="content-block orange-tint">
+          <div class="cb-label">Tagline / Hook</div>
+          <div class="cb-tagline">Tamara <span class="hl">5 Savalo</span><br/>na Honest Javab</div>
+          <div class="cb-sub">5 honest answers to your 5 biggest questions</div>
+          <div class="cb-copy">Slide 1: "TransRentals mate 5 Savalo 🤔"
+
+Slide 2: ❓ "Registration ni fees ketli chhe?"
+✅ Bilkul FREE! Koi hidden charges nahi.
+
+Slide 3: ❓ "Payment kyare milse?"
+✅ Weekly direct bank transfer.
+Koi delay nahi.
+
+Slide 4: ❓ "Maru vehicle safe rahese?"
+✅ Verified customers only.
+Full booking trail recorded.
+
+Slide 5: ❓ "Agar booking na aave?"
+✅ Our team personally helps you
+get your first 5 bookings.
+
+Slide 6: "Avo. Badha savalo door thai gaya.
+Abhi join karo 🙏"</div>
+        </div>
+      </div>
+      <div class="content-block">
+        <div class="cb-label">Visual Direction (Designer ke liye)</div>
+        <div class="visual-block">
+          <div class="visual-item">
+            <div class="vi-icon">❓</div>
+            <div class="vi-content">
+              <h4>Q&A Layout</h4>
+              <p>Each slide: Question in bold red/orange. Answer in green with checkmark. Simple, clear, high contrast.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">🎨</div>
+            <div class="vi-content">
+              <h4>Color Shift</h4>
+              <p>Question slide: dark orange tint. Answer reveal: shifts to green/teal. Visual "problem solved" feel.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">🤝</div>
+            <div class="vi-content">
+              <h4>Tone</h4>
+              <p>Honest, direct, transparent. No marketing fluff. Vendor pe trust build karna hai. Real data use karo.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cta-row">
+      <span class="cta-label">CTA</span>
+      <div class="cta-pill">💬 "Bijo savalo hoy toh comment karo" + Register Link</div>
+      <div class="hashtag-wrap">
+        <span class="htag">#FAQ</span>
+        <span class="htag">#TrustTransRentals</span>
+        <span class="htag">#VendorSupport</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 7 -->
+  <div class="day-card fade-up">
+    <div class="day-header">
+      <div class="day-left">
+        <div class="day-num">07</div>
+        <div class="day-info">
+          <h3>Grand CTA Closer — "Aa Avsar Chhodso Nahi"</h3>
+          <p>Sunday · Objective: Week closer — final push, maximum conversions</p>
+        </div>
+      </div>
+      <div class="day-badges">
+        <div class="badge badge-platform">📸 Instagram</div>
+        <div class="badge badge-platform">👤 Facebook</div>
+        <div class="badge badge-platform">💬 WhatsApp</div>
+        <div class="badge badge-type">🎬 Reel + Story + WA Blast</div>
+        <div class="badge badge-time">⏰ 10 AM + 7 PM</div>
+      </div>
+    </div>
+    <div class="day-body">
+      <div>
+        <div class="content-block orange-tint">
+          <div class="cb-label">Tagline / Hook</div>
+          <div class="cb-tagline">Aa <span class="hl">Avsar</span><br/>Chhodso Nahi!</div>
+          <div class="cb-sub">"Don't miss this opportunity!" — Final week closer</div>
+          <div class="cb-copy">Aa aakhri vaakhta chhe! 🔥
+
+Pura ahvada maa tamne badhu batavyu:
+✅ Khaali gaadi ni problem
+✅ Ketla paisa kamai shakay
+✅ Kem join karvu
+✅ Successful vendors ni stories
+✅ Tamara savalo na javab
+
+Hve decision tamaro chhe.
+
+🚗 Bike, Car, Bus ke Truck —
+Gamte vehicle thi shuruat karo.
+
+Gujarat mein aaj j bijo vendor
+tari jagah le nai jaye... 👀
+
+💥 FREE Registration
+💥 Zero Commission for 1st Month
+💥 Guaranteed Onboarding Support
+
+👇 ABHI REGISTER KARO
+transrentals.in/vendor/register
+
+📞 Sawal hoy toh WhatsApp: [Number]</div>
+        </div>
+      </div>
+      <div class="content-block">
+        <div class="cb-label">Visual Direction (Designer ke liye)</div>
+        <div class="visual-block">
+          <div class="visual-item">
+            <div class="vi-icon">🏆</div>
+            <div class="vi-content">
+              <h4>Style: Celebratory + Urgent</h4>
+              <p>Grand, cinematic. All 4 vehicles shown together. Fireworks / light burst in background. Premium feel.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">🎊</div>
+            <div class="vi-content">
+              <h4>Week Recap Element</h4>
+              <p>Optional: "Week 1 Completed. 500 new vendors joined." Social proof momentum feel.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">🔥</div>
+            <div class="vi-content">
+              <h4>CTA Design</h4>
+              <p>Biggest, boldest CTA of the week. Glowing button. WhatsApp icon prominent. Dual CTA — register + call.</p>
+            </div>
+          </div>
+          <div class="visual-item">
+            <div class="vi-icon">🌅</div>
+            <div class="vi-content">
+              <h4>Color</h4>
+              <p>Full orange/gold gradient. Sunrise energy. "New beginning" aesthetic. Maximum warmth and hope.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cta-row">
+      <span class="cta-label">CTA</span>
+      <div class="cta-pill">🚀 Register + WhatsApp Button both</div>
+      <div class="hashtag-wrap">
+        <span class="htag">#AbhiNahi</span>
+        <span class="htag">#GujaratLaunch</span>
+        <span class="htag">#TransRentals</span>
+        <span class="htag">#JoinNow</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ AD CAMPAIGNS ════ -->
+  <div class="section-header fade-up">
+    <div class="section-icon">📣</div>
+    <div class="section-title">Paid Ad <span>Campaigns</span></div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="ad-grid fade-up">
+    <div class="ad-card">
+      <div class="ad-header">
+        <h3>Campaign 1 — Lead Gen</h3>
+        <div class="ad-platform-badges">
+          <div class="badge badge-platform">👤 Facebook</div>
+          <div class="badge badge-platform">📸 Instagram</div>
+        </div>
+      </div>
+      <div class="ad-body">
+        <div class="ad-field">
+          <div class="adf-label">Objective</div>
+          <div class="adf-value">Lead Generation — Vendor register kare</div>
+        </div>
+        <div class="ad-field">
+          <div class="adf-label">Headline</div>
+          <div class="adf-value big">"Gujarat na Vehicle Owners — Tamaro Dhanda Online Lavo"</div>
+        </div>
+        <div class="ad-field">
+          <div class="adf-label">Body Copy</div>
+          <div class="adf-value">Bike, Car, Bus ke Truck chhe? TransRentals pe join karo. Free registration. Verified customers. Weekly payment. Ahmedabad | Surat | Vadodara | Rajkot</div>
+        </div>
+        <div class="ad-field">
+          <div class="adf-label">Targeting</div>
+          <div class="adf-value">📍 Ahmedabad, Surat, Vadodara, Rajkot, Gandhinagar<br/>👤 Age 25–55 · Self-employed · Small business owners<br/>🎯 Interest: Vehicle, Transport, Business</div>
+        </div>
+        <div class="ad-field">
+          <div class="adf-label">Budget</div>
+          <div class="adf-value">₹500/day · Run Day 1–7</div>
+        </div>
+        <div class="ad-field">
+          <div class="adf-label">CTA Button</div>
+          <div class="adf-value">→ "Register Now" → transrentals.in/vendor/register</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ad-card">
+      <div class="ad-header">
+        <h3>Campaign 2 — Retargeting</h3>
+        <div class="ad-platform-badges">
+          <div class="badge badge-platform">👤 Facebook</div>
+        </div>
+      </div>
+      <div class="ad-body">
+        <div class="ad-field">
+          <div class="adf-label">Objective</div>
+          <div class="adf-value">Retargeting — Jo page pe aaye lekin register nahi kiya</div>
+        </div>
+        <div class="ad-field">
+          <div class="adf-label">Headline</div>
+          <div class="adf-value big">"Abhi Tak Register Nahi Kiya? Help Joiye?"</div>
+        </div>
+        <div class="ad-field">
+          <div class="adf-label">Body Copy</div>
+          <div class="adf-value">Koi mushkeli chhe? Amari team tamne personally guide karsi. Ek call mein sab clear. Zero cost. Zero risk.</div>
+        </div>
+        <div class="ad-field">
+          <div class="adf-label">Targeting</div>
+          <div class="adf-value">🎯 Custom audience: Visited /vendor/register but didn't submit<br/>📱 Pixel-based retargeting<br/>⏰ Run from Day 3 onwards</div>
+        </div>
+        <div class="ad-field">
+          <div class="adf-label">Budget</div>
+          <div class="adf-value">₹200/day · Run Day 3–7</div>
+        </div>
+        <div class="ad-field">
+          <div class="adf-label">CTA Button</div>
+          <div class="adf-value">→ "WhatsApp Karo" → wa.me/91XXXXXXXXXX</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ WHATSAPP ════ -->
+  <div class="section-header fade-up">
+    <div class="section-icon">💬</div>
+    <div class="section-title">WhatsApp <span>Templates</span></div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="wa-grid fade-up">
+    <div class="wa-card">
+      <div class="wa-header">
+        <span>📨</span>
+        <h3>Day 1 — Cold Outreach</h3>
+      </div>
+      <div class="wa-body">
+        <div class="wa-bubble">Namaste! 🙏
+
+Shun tamari paas bike, car, bus ke truck chhe? 🚗
+
+*TransRentals* — Gujarat na naya vehicle rental platform pe amne vendors joi rahi chhe!
+
+*Tame shu milshe:*
+✅ Daily verified bookings
+✅ Zero registration fee
+✅ Weekly payment
+✅ Full dashboard control
+
+*Interested?*
+Bas reply karo *"HAAN"* — amari team 5 minute mein call karsi 📞</div>
+        <div class="wa-meta">Send: Monday 10 AM · Target: All collected numbers</div>
+      </div>
+    </div>
+
+    <div class="wa-card">
+      <div class="wa-header">
+        <span>🔄</span>
+        <h3>Day 3 — Follow-up</h3>
+      </div>
+      <div class="wa-body">
+        <div class="wa-bubble">Kem chho! 🙏
+
+2 din pehla tamne TransRentals bare message karyu hatu.
+
+Bas ek quick question —
+
+*Tame konsi vehicle chalavo chho?*
+1️⃣ Bike
+2️⃣ Car
+3️⃣ Bus / Tempo
+4️⃣ Truck
+
+Number reply karo — tamari vehicle anusar exact earnings batavisu 📊
+
+5 min ni vaat chhe! 😊</div>
+        <div class="wa-meta">Send: Wednesday 11 AM · Target: No-reply from Day 1</div>
+      </div>
+    </div>
+
+    <div class="wa-card">
+      <div class="wa-header">
+        <span>🚀</span>
+        <h3>Day 7 — Final Push</h3>
+      </div>
+      <div class="wa-body">
+        <div class="wa-bubble">Aa aakhri vaakhta chhe! 🔥
+
+Gujarat mein TransRentals launch offer —
+*Pehla 50 vendors ne milse:*
+
+✅ Priority booking matching
+✅ Free onboarding call
+✅ 1st month featured listing
+
+Tamari city maa spots bhari rahe chhe ⚠️
+
+*Abhi register karo:*
+transrentals.in/vendor/register
+
+*Ya direct WhatsApp karo:*
+[Number] 📞</div>
+        <div class="wa-meta">Send: Sunday 9 AM · Target: All who haven't registered yet</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ HASHTAGS ════ -->
+  <div class="section-header fade-up">
+    <div class="section-icon">#️⃣</div>
+    <div class="section-title">Hashtag <span>Bank</span></div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="hashtag-grid fade-up">
+    <div class="hg-card">
+      <div class="hg-title">🏷️ Brand</div>
+      <div class="hg-tags">
+        <span class="hg-tag">#TransRentals</span>
+        <span class="hg-tag">#TransRentalsGujarat</span>
+        <span class="hg-tag">#GujaratLaunch</span>
+        <span class="hg-tag">#VendorPartner</span>
+      </div>
+    </div>
+    <div class="hg-card">
+      <div class="hg-title">📍 City</div>
+      <div class="hg-tags">
+        <span class="hg-tag">#Ahmedabad</span>
+        <span class="hg-tag">#Surat</span>
+        <span class="hg-tag">#Vadodara</span>
+        <span class="hg-tag">#Rajkot</span>
+        <span class="hg-tag">#Gandhinagar</span>
+        <span class="hg-tag">#Bhavnagar</span>
+        <span class="hg-tag">#Jamnagar</span>
+      </div>
+    </div>
+    <div class="hg-card">
+      <div class="hg-title">🚗 Service</div>
+      <div class="hg-tags">
+        <span class="hg-tag">#BikeRentalGujarat</span>
+        <span class="hg-tag">#CarRentalAhmedabad</span>
+        <span class="hg-tag">#BusRental</span>
+        <span class="hg-tag">#VehicleRental</span>
+        <span class="hg-tag">#TruckRental</span>
+      </div>
+    </div>
+    <div class="hg-card">
+      <div class="hg-title">💼 Business</div>
+      <div class="hg-tags">
+        <span class="hg-tag">#GujaratBusiness</span>
+        <span class="hg-tag">#GujaratEntrepreneur</span>
+        <span class="hg-tag">#Dhanda</span>
+        <span class="hg-tag">#VyaparVadharo</span>
+        <span class="hg-tag">#MakeInGujarat</span>
+        <span class="hg-tag">#SmallBusiness</span>
+        <span class="hg-tag">#PassiveIncome</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ BRAND COLORS ════ -->
+  <div class="section-header fade-up">
+    <div class="section-icon">🎨</div>
+    <div class="section-title">Brand <span>Colors & Fonts</span></div>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="fade-up" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;">
+    <div class="colors-row">
+      <div class="color-swatch" style="background:#FF6B23;">
+        <span>#FF6B23</span>
+        <span style="font-size:10px;opacity:0.7">Primary Orange</span>
+      </div>
+      <div class="color-swatch" style="background:#FFB800;">
+        <span>#FFB800</span>
+        <span style="font-size:10px;opacity:0.7">Gold Accent</span>
+      </div>
+      <div class="color-swatch" style="background:#070710;border:1px solid rgba(255,255,255,0.1);">
+        <span>#070710</span>
+        <span style="font-size:10px;opacity:0.7">Dark BG</span>
+      </div>
+      <div class="color-swatch" style="background:#ffffff;color:#000;">
+        <span style="color:#000">#FFFFFF</span>
+        <span style="font-size:10px;opacity:0.7;color:#000">Text White</span>
+      </div>
+      <div class="color-swatch" style="background:#25D366;">
+        <span>#25D366</span>
+        <span style="font-size:10px;opacity:0.7">WhatsApp</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:8px;">
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;">
+        <div style="font-size:11px;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Primary Font</div>
+        <div style="font-family:'Space Grotesk';font-size:24px;font-weight:700;">Space Grotesk</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Headlines, Taglines, Numbers</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;">
+        <div style="font-size:11px;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Body Font</div>
+        <div style="font-size:24px;font-weight:400;">Inter / Poppins</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Body copy, captions, UI text</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;">
+        <div style="font-size:11px;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Post Size</div>
+        <div style="font-size:18px;font-weight:600;">1080×1080</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Square · Reel: 1080×1920<br/>Story: 1080×1920</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div>
+      <div class="footer-brand">TransRentals</div>
+      <div style="margin-top:4px;">Gujarat Vendor Onboarding — Week 1 Campaign Brief · March 2026</div>
+    </div>
+    <div style="text-align:right;">
+      <div>Designer Team ko share karo</div>
+      <div style="margin-top:4px;">transrentals.in/vendor/register</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Scroll animation
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>

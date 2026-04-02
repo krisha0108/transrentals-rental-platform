@@ -49,17 +49,32 @@ function getClipPath(shapeType: string): string {
   }
 }
 
-// Keys must match the values saved by the editor's ANIMATIONS constant
-const ANIM_CSS: Record<string, string> = {
-  'fade-in':    'ws-fadeIn 0.6s ease forwards',
-  'slide-up':   'ws-slideUp 0.6s ease forwards',
-  'slide-down': 'ws-slideDown 0.6s ease forwards',
-  'slide-left': 'ws-slideLeft 0.6s ease forwards',
-  'slide-right':'ws-slideRight 0.6s ease forwards',
-  'zoom-in':    'ws-zoomIn 0.6s ease forwards',
-  'pop':        'ws-pop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) forwards',
-  'spin-in':    'ws-spin 0.8s ease forwards',
-};
+// Build animation CSS with custom duration and easing
+function getAnimCss(key: string, duration: number = 0.6, easing?: string): string {
+  const d = `${duration}s`;
+  const defaultEasing = key === 'pop' ? 'cubic-bezier(0.175,0.885,0.32,1.275)' : 'ease';
+  const e = easing || defaultEasing;
+  switch (key) {
+    case 'fade-in':    return `ws-fadeIn ${d} ${e} forwards`;
+    case 'slide-up':   return `ws-slideUp ${d} ${e} forwards`;
+    case 'slide-down': return `ws-slideDown ${d} ${e} forwards`;
+    case 'slide-left': return `ws-slideLeft ${d} ${e} forwards`;
+    case 'slide-right':return `ws-slideRight ${d} ${e} forwards`;
+    case 'zoom-in':    return `ws-zoomIn ${d} ${e} forwards`;
+    case 'pop':        return `ws-pop ${d} ${e} forwards`;
+    case 'spin-in':    return `ws-spin ${d} ${e} forwards`;
+    default: return '';
+  }
+}
+
+// Parse canvasData (may be old array format or new { config, elements } format)
+function parseCanvasData(raw: any): { config: any; elements: any[] } {
+  if (!raw) return { config: {}, elements: [] };
+  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  if (Array.isArray(parsed)) return { config: {}, elements: parsed };
+  return { config: parsed.config || {}, elements: parsed.elements || [] };
+}
+const ANIM_KEYS = new Set(['fade-in','slide-up','slide-down','slide-left','slide-right','zoom-in','pop','spin-in']);
 
 function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKey: string }) {
   if (!elements?.length) return null;
@@ -84,7 +99,7 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
           zIndex: (el.z || 0) + 5,
           opacity: el.opacity ?? 1,
           filter: combinedFilter,
-          animation: el.animation && ANIM_CSS[el.animation] ? ANIM_CSS[el.animation] : undefined,
+          animation: el.animation && ANIM_KEYS.has(el.animation) ? getAnimCss(el.animation, el.animationDuration, el.animationEasing) : undefined,
         };
 
         // Text/image/shape get filter via `s`. Text also gets textShadow on inner div.
@@ -97,16 +112,18 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
             ? toRgba(el.bgColor, el.bgAlpha)
             : undefined;
           return (
-            <div key={el.id} style={{ ...s, display: 'flex', alignItems: 'flex-start' }}>
+            <div key={el.id} style={{ ...s, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{
                 fontSize: `${(el.fontSize || 24) / CANVAS_W * 100}cqw`,
                 fontFamily: el.fontFamily || 'inherit',
                 fontWeight: el.bold ? 'bold' : 'normal',
                 fontStyle: el.italic ? 'italic' : 'normal',
                 textDecoration: el.underline ? 'underline' : 'none',
-                textAlign: el.align || 'left',
+                textAlign: el.align || 'center',
                 color: textColor,
                 lineHeight: el.lineHeight || 1.3,
+                letterSpacing: el.letterSpacing ? `${el.letterSpacing}px` : undefined,
+                textTransform: el.textTransform || undefined,
                 wordBreak: 'break-word',
                 whiteSpace: 'pre-wrap',
                 width: '100%',
@@ -126,17 +143,22 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
 
         // ── Image ─────────────────────────────────────────────────────────────
         if (el.type === 'image' && el.src) {
-          const borderStyle: React.CSSProperties = el.borderWidth && el.borderColor
-            ? { border: `${el.borderWidth}px solid ${el.borderColor}` }
-            : {};
+          const hasBorder = el.borderWidth && el.borderColor;
           return (
-            <div key={el.id} style={s}>
+            <div key={el.id} style={{
+              ...s,
+              borderRadius: el.borderRadius || 0,
+              overflow: 'hidden',
+              boxSizing: 'border-box',
+              ...(hasBorder ? { border: `${el.borderWidth}px solid ${el.borderColor}` } : {}),
+            }}>
               <img src={el.src} alt="" className="w-full h-full" style={{
                 objectFit: el.objectFit || 'cover',
                 objectPosition: el.objectPosition || 'center center',
-                borderRadius: el.borderRadius || 0,
-                ...borderStyle,
               }} />
+              {el.tintColor && (el.tintOpacity ?? 0) > 0 && (
+                <div style={{ position: 'absolute', inset: 0, backgroundColor: el.tintColor, opacity: el.tintOpacity, pointerEvents: 'none' }} />
+              )}
             </div>
           );
         }
@@ -249,7 +271,7 @@ interface Slide {
   ctaText: string | null;
   ctaUrl: string | null;
   ctaStyle: string | null;
-  canvasData?: any[];
+  canvasData?: any;
 }
 
 interface Story {
@@ -634,33 +656,58 @@ export default function StoryViewer({ story, backUrl = '/stories' }: StoryViewer
             onTouchEnd={handleTouchEnd}
           >
             {/* Slide background */}
-            <div className="absolute inset-0" style={getSlideBg(currentSlide)}>
-              {currentSlide.bgType === 'IMAGE' && currentSlide.bgImage && (
-                <img
-                  key={`img-${currentSlide.id}`}
-                  src={currentSlide.bgImage}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              )}
-              {currentSlide.bgType === 'VIDEO' && currentSlide.bgVideo && (
-                <video
-                  ref={videoRef}
-                  key={`vid-${currentSlide.id}`}
-                  src={currentSlide.bgVideo}
-                  className="w-full h-full object-cover"
-                  autoPlay muted={muted} loop playsInline
-                />
-              )}
-            </div>
+            {(() => {
+              const { config: bgCfg } = parseCanvasData(currentSlide.canvasData);
+              return (
+                <div className="absolute inset-0" style={getSlideBg(currentSlide)}>
+                  {currentSlide.bgType === 'IMAGE' && currentSlide.bgImage && (
+                    <img
+                      key={`img-${currentSlide.id}`}
+                      src={currentSlide.bgImage}
+                      alt=""
+                      className="w-full h-full"
+                      style={{
+                        objectFit: bgCfg.bgImageFit || 'cover',
+                        objectPosition: bgCfg.bgImagePosition || 'center',
+                        opacity: bgCfg.bgImageOpacity ?? 1,
+                      }}
+                    />
+                  )}
+                  {currentSlide.bgType === 'VIDEO' && currentSlide.bgVideo && (
+                    <video
+                      ref={videoRef}
+                      key={`vid-${currentSlide.id}`}
+                      src={currentSlide.bgVideo}
+                      className="w-full h-full object-cover"
+                      autoPlay muted={muted} loop playsInline
+                    />
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/20" />
 
             {/* Canvas elements */}
-            {currentSlide.canvasData && currentSlide.canvasData.length > 0 && (
-              <ViewerCanvasElements elements={currentSlide.canvasData} slideKey={`${currentSlide.id}-${currentIdx}`} />
-            )}
+            {(() => {
+              const { config: slCfg, elements: slEls } = parseCanvasData(currentSlide.canvasData);
+              return (
+                <>
+                  {/* bgBlur overlay (only for IMAGE/VIDEO bg) */}
+                  {(slCfg.bgBlur ?? 0) > 0 && (currentSlide.bgType === 'IMAGE' || currentSlide.bgType === 'VIDEO') && (
+                    <div className="absolute inset-0" style={{ backdropFilter: `blur(${slCfg.bgBlur}px)`, WebkitBackdropFilter: `blur(${slCfg.bgBlur}px)` } as React.CSSProperties} />
+                  )}
+                  {/* Color overlay */}
+                  {slCfg.bgOverlayColor && (slCfg.bgOverlayOpacity ?? 0) > 0 && (
+                    <div className="absolute inset-0" style={{ backgroundColor: slCfg.bgOverlayColor, opacity: slCfg.bgOverlayOpacity }} />
+                  )}
+                  {slEls.length > 0 && (
+                    <ViewerCanvasElements elements={slEls} slideKey={`${currentSlide.id}-${currentIdx}`} />
+                  )}
+                </>
+              );
+            })()}
 
             {/* Progress bars */}
             <div className="absolute top-3 left-3 right-3 flex gap-1 z-20">

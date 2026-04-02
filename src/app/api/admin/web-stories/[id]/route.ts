@@ -32,6 +32,11 @@ export async function GET(
 
     if (!story) return NextResponse.json({ error: 'Story not found' }, { status: 404 });
 
+    // Read targeting fields via raw SQL
+    const [targeting] = await prisma.$queryRawUnsafe<any[]>(
+      'SELECT targetServices, targetLocations FROM web_stories WHERE id = ?', story.id
+    );
+
     return NextResponse.json({
       id: story.id,
       title: story.title,
@@ -50,6 +55,8 @@ export async function GET(
       publishedAt: story.publishedAt?.toISOString() || null,
       createdAt: story.createdAt.toISOString(),
       updatedAt: story.updatedAt.toISOString(),
+      targetServices: targeting?.targetServices ? JSON.parse(targeting.targetServices) : [],
+      targetLocations: targeting?.targetLocations ? JSON.parse(targeting.targetLocations) : [],
       slides: story.slides.map((s: any) => ({
         id: s.id,
         order: s.order,
@@ -122,6 +129,18 @@ export async function PUT(
         displayOrder: body.displayOrder ?? existing.displayOrder,
       },
     });
+
+    // Save targeting fields via raw SQL
+    if (body.targetServices !== undefined || body.targetLocations !== undefined) {
+      const targetServices = Array.isArray(body.targetServices) && body.targetServices.length > 0
+        ? JSON.stringify(body.targetServices) : null;
+      const targetLocations = Array.isArray(body.targetLocations) && body.targetLocations.length > 0
+        ? JSON.stringify(body.targetLocations) : null;
+      await prisma.$executeRawUnsafe(
+        'UPDATE web_stories SET targetServices = ?, targetLocations = ? WHERE id = ?',
+        targetServices, targetLocations, id
+      );
+    }
 
     // Full replace slides if provided
     if (Array.isArray(body.slides)) {

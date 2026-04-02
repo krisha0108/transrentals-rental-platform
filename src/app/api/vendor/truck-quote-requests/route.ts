@@ -101,6 +101,23 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    // SEARCH FILTER
+    const search = searchParams.get('search')?.trim();
+    if (search) {
+      whereClause.AND = [
+        ...(whereClause.AND || []),
+        {
+          OR: [
+            { requestNumber: { contains: search } },
+            { customerName: { contains: search } },
+            { pickupCity: { contains: search } },
+            { dropCity: { contains: search } },
+            { goodsType: { contains: search } },
+          ],
+        },
+      ];
+    }
+
     const [requests, total] = await Promise.all([
       prisma.truck_quote_requests.findMany({
         where: whereClause,

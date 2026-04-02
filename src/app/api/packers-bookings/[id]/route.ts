@@ -33,6 +33,8 @@ export async function GET(
           materialCharges: true,
           gstAmount: true,
           totalAmount: true,
+          advanceAmount: true,
+          advancePercent: true,
           packingMaterials: true,
           inclusions: true,
           exclusions: true,
@@ -58,8 +60,11 @@ export async function GET(
     }
 
     // Transform booking to include quote with the expected property name
+    const quoteAdvancePk = booking.packers_quotes?.advanceAmount;
     const transformedBooking = {
       ...booking,
+      advanceAmount: (quoteAdvancePk != null && quoteAdvancePk > 0) ? quoteAdvancePk : booking.advanceAmount,
+      balanceAmount: booking.totalAmount - ((quoteAdvancePk != null && quoteAdvancePk > 0) ? quoteAdvancePk : booking.advanceAmount),
       vendor: booking.vendors ? {
         id: booking.vendors.id,
         name: booking.vendors.businessName,

@@ -151,6 +151,7 @@ export default function VendorBookingDetailPage() {
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [vendorNotesInput, setVendorNotesInput] = useState('');
 
   // Driver form
   const [showDriverForm, setShowDriverForm] = useState(false);
@@ -208,6 +209,7 @@ export default function VendorBookingDetailPage() {
 
       if (data.success) {
         setBooking(data.booking);
+        setVendorNotesInput('');
         // Pre-fill driver form if driver exists
         if (data.booking.driverName) {
           setDriverForm({
@@ -1143,28 +1145,65 @@ export default function VendorBookingDetailPage() {
             </div>
           </div>
 
-          {/* Vendor Notes */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-emerald-600" />
-              Vendor Notes
-            </h2>
+          {/* Vendor Notes - only after booking is accepted */}
+          {booking.acceptedVendorId && ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) && (
+            <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
+              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-emerald-600" />
+                Notes to Customer
+              </h2>
 
-            <textarea
-              value={booking.vendorNotes || ''}
-              onChange={(e) => setBooking({ ...booking, vendorNotes: e.target.value })}
-              placeholder="Add internal notes..."
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
-            />
-            <button
-              onClick={() => handleAction('update_notes', { vendorNotes: booking.vendorNotes })}
-              disabled={actionLoading}
-              className="mt-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm disabled:opacity-50"
-            >
-              Save Notes
-            </button>
-          </div>
+              {/* All sent notes thread */}
+              {(() => {
+                let notes: { text: string; sentAt: string }[] = [];
+                try {
+                  if (booking.vendorNotes) {
+                    const parsed = JSON.parse(booking.vendorNotes);
+                    notes = Array.isArray(parsed) ? parsed : [{ text: booking.vendorNotes, sentAt: '' }];
+                  }
+                } catch {
+                  if (booking.vendorNotes) notes = [{ text: booking.vendorNotes, sentAt: '' }];
+                }
+                if (notes.length === 0) return <p className="text-xs text-gray-400">No notes sent yet.</p>;
+                return (
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {notes.map((n, i) => (
+                      <div key={i} className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                        <p className="text-sm text-emerald-900 whitespace-pre-line">{n.text}</p>
+                        {n.sentAt && (
+                          <p className="text-xs text-emerald-500 mt-1 text-right">
+                            {new Date(n.sentAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* New note input */}
+              <div className="border-t pt-4">
+                <p className="text-xs text-gray-500 mb-1">Write a new note (visible to customer)</p>
+                <textarea
+                  value={vendorNotesInput}
+                  onChange={(e) => setVendorNotesInput(e.target.value)}
+                  placeholder="Add a note for the customer..."
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
+                />
+                <button
+                  onClick={() => {
+                    handleAction('update_notes', { vendorNotes: vendorNotesInput });
+                    setVendorNotesInput('');
+                  }}
+                  disabled={actionLoading || !vendorNotesInput.trim()}
+                  className="mt-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm disabled:opacity-50"
+                >
+                  Send Note
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -297,6 +297,17 @@ export default function ManagerBookingDetailPage() {
         </div>
       </div>
 
+      {/* Quote Request Notice */}
+      {(booking as any).isQuoteRequest && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-500" />
+          <div>
+            <p className="font-medium text-amber-800">This is a Quote Request — no booking confirmed yet</p>
+            <p className="text-sm text-amber-600">The customer has submitted a service request but has not accepted any quote.</p>
+          </div>
+        </div>
+      )}
+
       {/* Error Display */}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">

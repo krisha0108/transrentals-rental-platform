@@ -249,13 +249,13 @@ export default function ManagerTicketDetailPage() {
                 const prefix = bid.split('-')[0]?.toUpperCase();
                 const slugMap: Record<string, string> = {
                   'BK': 'bike-on-rent', 'BKQ': 'bike-on-rent',
-                  'CB': 'car-rental',
-                  'BUS': 'bus-rental', 'BUSQ': 'bus-rental',
-                  'SDQ': 'self-drive-car-rentals', 'SD': 'self-drive-car-rentals',
-                  'TQR': 'truck-rental', 'TR': 'truck-rental',
-                  'EQR': 'equipment-rental', 'EQ': 'equipment-rental',
-                  'PKQ': 'packers-movers', 'PK': 'packers-movers',
-                  'LUX': 'luxury-car-rental', 'LUXQ': 'luxury-car-rental',
+                  'CB': 'car-rental', 'CR': 'car-rental',
+                  'BB': 'bus-rental', 'BUS': 'bus-rental', 'BQR': 'bus-rental', 'BUSQ': 'bus-rental',
+                  'SD': 'self-drive-car-rentals', 'SDQ': 'self-drive-car-rentals',
+                  'TB': 'truck-rental', 'TR': 'truck-rental', 'TQR': 'truck-rental',
+                  'EB': 'equipment-rental', 'EQ': 'equipment-rental', 'EQR': 'equipment-rental',
+                  'PB': 'packers-movers', 'PK': 'packers-movers', 'PQR': 'packers-movers', 'PKQ': 'packers-movers',
+                  'LB': 'luxury-car-rental', 'LUX': 'luxury-car-rental', 'LQR': 'luxury-car-rental', 'LUXQ': 'luxury-car-rental',
                 };
                 const serviceSlug = slugMap[prefix] || 'car-rental';
                 const bookingUrl = `/manager/bookings/${bid}`;

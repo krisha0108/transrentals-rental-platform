@@ -41,6 +41,7 @@ interface PendingPayment {
   pickupDate: string;
   grandTotal: number;
   advanceAmount: number;
+  balanceAmount?: number;
   advancePaymentRef: string;
   advancePaymentProof: string | null;
   advancePaymentDate: string;
@@ -329,9 +330,13 @@ export default function PaymentsPage() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-500">Amount</p>
-                        <p className="font-bold text-green-600">₹{payment.advanceAmount?.toLocaleString() || payment.grandTotal?.toLocaleString()}</p>
-                        <p className="text-gray-600">Total: ₹{payment.grandTotal?.toLocaleString()}</p>
+                        <p className="text-gray-500">Advance</p>
+                        <p className="font-bold text-green-600">₹{(payment.advanceAmount || 0).toLocaleString()}</p>
+                        {payment.balanceAmount != null ? (
+                          <p className="text-gray-600 text-xs">Balance: ₹{payment.balanceAmount.toLocaleString()} | Total: ₹{payment.grandTotal?.toLocaleString()}</p>
+                        ) : (
+                          <p className="text-gray-600">Total: ₹{payment.grandTotal?.toLocaleString()}</p>
+                        )}
                       </div>
                     </div>
 
@@ -411,12 +416,19 @@ export default function PaymentsPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-500">Amount</p>
-                  <p className="font-bold text-green-600">₹{(selectedPayment.advanceAmount || selectedPayment.grandTotal)?.toLocaleString()}</p>
+                  <p className="text-sm text-gray-500">Advance Amount</p>
+                  <p className="font-bold text-green-600">₹{(selectedPayment.advanceAmount || 0).toLocaleString()}</p>
+                  {selectedPayment.balanceAmount != null && (
+                    <p className="text-xs text-gray-500 mt-1">Balance: ₹{selectedPayment.balanceAmount.toLocaleString()}</p>
+                  )}
+                  <p className="text-xs text-gray-400">Total: ₹{selectedPayment.grandTotal?.toLocaleString()}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-500">Transaction Ref</p>
                   <p className="font-mono text-sm break-all">{selectedPayment.advancePaymentRef || 'N/A'}</p>
+                  {selectedPayment.paymentMethod && (
+                    <p className="text-xs text-gray-500 mt-1 capitalize">{selectedPayment.paymentMethod}</p>
+                  )}
                 </div>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">

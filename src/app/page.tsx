@@ -10,6 +10,7 @@ import { BackrTokenSection } from '@/components/home/BackrTokenSection';
 import { AppDownloadSection } from '@/components/home/AppDownloadSection';
 import { BlogSectionDynamic } from '@/components/home/BlogSectionDynamic';
 import { CTASectionDynamic } from '@/components/home/CTASectionDynamic';
+import { StoriesStrip } from '@/components/home/StoriesStrip';
 
 export const metadata: Metadata = {
   alternates: {
@@ -75,6 +76,7 @@ export default function HomePage() {
       <ServicesGridDynamic />
       <PopularDestinationsDynamic />
       <HowItWorks />
+      <StoriesStrip />
       <Testimonials />
       <BackrTokenSection />
       <AppDownloadSection />

@@ -12,10 +12,11 @@ import {
   AlertCircle,
   Eye,
   Edit,
-  IndianRupee,
   Settings2,
   Fuel,
   RefreshCw,
+  Search,
+  X,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
@@ -74,6 +75,8 @@ export default function VendorSelfDriveQuotesPage() {
   const [stats, setStats] = useState<Stats>({ total: 0, pending: 0, accepted: 0, wonValue: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -100,6 +103,7 @@ export default function VendorSelfDriveQuotesPage() {
       params.set('limit', '20');
       if (dateFilter.start) params.set('startDate', dateFilter.start);
       if (dateFilter.end) params.set('endDate', dateFilter.end);
+      if (searchQuery) params.set('search', searchQuery);
 
       const response = await fetch(`/api/vendor/self-drive-quotes?${params}`);
       const data = await response.json();
@@ -123,7 +127,7 @@ export default function VendorSelfDriveQuotesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [filter, currentPage, dateFilter]);
+  }, [filter, currentPage, dateFilter, searchQuery]);
 
   useEffect(() => {
     fetchQuotes();
@@ -188,6 +192,46 @@ export default function VendorSelfDriveQuotesPage() {
           <p className="text-sm text-gray-500">Won Value</p>
         </div>
       </div>
+
+      {/* Search */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          setSearchQuery(searchInput);
+          setCurrentPage(1);
+        }}
+        className="flex gap-2"
+      >
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search by quote #, vehicle, customer, location..."
+            className="w-full pl-9 pr-9 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+          />
+          {searchInput && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchInput('');
+                setSearchQuery('');
+                setCurrentPage(1);
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition"
+        >
+          Search
+        </button>
+      </form>
 
       {/* Filter */}
       <div className="flex gap-2 overflow-x-auto pb-2">

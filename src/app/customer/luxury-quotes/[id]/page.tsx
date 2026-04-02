@@ -257,11 +257,12 @@ export default function CustomerLuxuryQuoteDetailPage() {
   const lowestPrice = activeQuotes[0]?.totalAmount ?? sortedQuotes[0]?.totalAmount;
 
   const allQuotesExpired = quotes.length > 0 && quotes.every(q => {
-    if (!q.validTill) return q.status === 'EXPIRED';
+    if (q.status === 'EXPIRED') return true;
+    if (!q.validTill) return false;
     return new Date(q.validTill).getTime() < Date.now();
   });
   const bookingDateInFuture = request?.pickupDate && new Date(request.pickupDate) > new Date();
-  const canReRequestQuotes = allQuotesExpired && bookingDateInFuture && request?.status !== 'BOOKED' && remainingAttempts > 0;
+  const canReRequestQuotes = allQuotesExpired && bookingDateInFuture && request?.status !== 'BOOKED' && request?.status !== 'ACCEPTED' && remainingAttempts > 0;
 
   if (isLoading) {
     return (
@@ -419,7 +420,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
                 const isExpanded = expandedQuote === quote.id;
                 const isSelected = selectedQuote === quote.id;
                 const isLowestPrice = quote.totalAmount === lowestPrice;
-                const isExpired = quote.validTill && new Date(quote.validTill).getTime() < Date.now();
+                const isExpired = quote.status === 'EXPIRED' || (quote.validTill && new Date(quote.validTill).getTime() < Date.now());
                 const isExpiringSoon = !isExpired && new Date(quote.validTill).getTime() - Date.now() < 24 * 3600000;
 
                 return (
@@ -704,8 +705,40 @@ export default function CustomerLuxuryQuoteDetailPage() {
           </>
         )}
 
+        {/* Expired — Booking Date Passed (cannot re-request) */}
+        {allQuotesExpired && !bookingDateInFuture && request?.status !== 'BOOKED' && request?.status !== 'ACCEPTED' && (
+          <div className="mt-6 bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+            <div className="p-5">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <XCircle className="w-5 h-5 text-red-500" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-800">Quotes Expired — Booking Date Passed</h4>
+                  <p className="text-sm text-gray-500 mt-1">
+                    All vendor quotes have expired and your pickup date{' '}
+                    {request?.pickupDate && (
+                      <span className="font-medium text-gray-700">
+                        ({new Date(request.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })})
+                      </span>
+                    )}{' '}
+                    has already passed. Re-requesting is no longer possible for this booking.
+                  </p>
+                  <a
+                    href="/customer/luxury-fleet"
+                    className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white text-sm font-semibold rounded-lg hover:bg-gray-700 transition"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Create a New Request
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Re-Request Quotes Banner */}
-        {allQuotesExpired && bookingDateInFuture && request?.status !== 'BOOKED' && !reRequestSuccess && (
+        {allQuotesExpired && bookingDateInFuture && request?.status !== 'BOOKED' && request?.status !== 'ACCEPTED' && !reRequestSuccess && (
           <div className="mt-6 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl overflow-hidden border border-amber-200">
             <div className="p-5">
               <div className="flex items-start gap-3">
@@ -715,7 +748,7 @@ export default function CustomerLuxuryQuoteDetailPage() {
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900">All quotes have expired</h4>
                   <p className="text-sm text-gray-600 mt-1">
-                    Your booking date is still upcoming. You can re-open this request so vendors can send fresh quotes.
+                    Your pickup date is still upcoming. Re-open this request and vendors will send fresh quotes.
                   </p>
                   {remainingAttempts > 0 ? (
                     <button

@@ -63,6 +63,7 @@ export async function GET(
         ctaText: s.ctaText,
         ctaUrl: s.ctaUrl,
         ctaStyle: s.ctaStyle,
+        canvasData: s.canvasData || null,
       })),
       reactions: reactionCounts,
     });

@@ -7,19 +7,39 @@ import {
   Type, Image as ImageIcon, Square, Upload,
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
   Link, ArrowUp, ArrowDown, Copy, Eye, X, MousePointer,
-  FlipHorizontal, FlipVertical, Sparkles,
+  FlipHorizontal, FlipVertical, Sparkles, Lock, Unlock,
+  AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd,
+  AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
+  GripVertical,
 } from 'lucide-react';
 
 const CANVAS_W = 390;
 const CANVAS_H = 693;
+
+const GOOGLE_FONTS_URL = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Open+Sans:wght@400;700&family=Raleway:wght@400;700&family=Playfair+Display:wght@400;700&family=Oswald:wght@400;700&family=Lobster&family=Dancing+Script:wght@400;700&family=Pacifico&family=Quicksand:wght@400;700&family=Nunito:wght@400;700&family=Lato:wght@400;700&family=Merriweather:wght@400;700&family=Ubuntu:wght@400;700&family=Bebas+Neue&family=Inter:wght@400;700&display=swap';
 
 const FONTS = [
   { label: 'Default', value: 'inherit' },
   { label: 'Arial', value: 'Arial, sans-serif' },
   { label: 'Georgia', value: 'Georgia, serif' },
   { label: 'Impact', value: 'Impact, sans-serif' },
+  { label: 'Inter', value: 'Inter, sans-serif' },
   { label: 'Roboto', value: 'Roboto, sans-serif' },
   { label: 'Poppins', value: 'Poppins, sans-serif' },
+  { label: 'Montserrat', value: 'Montserrat, sans-serif' },
+  { label: 'Open Sans', value: 'Open Sans, sans-serif' },
+  { label: 'Raleway', value: 'Raleway, sans-serif' },
+  { label: 'Nunito', value: 'Nunito, sans-serif' },
+  { label: 'Lato', value: 'Lato, sans-serif' },
+  { label: 'Quicksand', value: 'Quicksand, sans-serif' },
+  { label: 'Ubuntu', value: 'Ubuntu, sans-serif' },
+  { label: 'Oswald', value: 'Oswald, sans-serif' },
+  { label: 'Bebas Neue', value: 'Bebas Neue, sans-serif' },
+  { label: 'Playfair', value: 'Playfair Display, serif' },
+  { label: 'Merriweather', value: 'Merriweather, serif' },
+  { label: 'Lobster', value: 'Lobster, cursive' },
+  { label: 'Dancing', value: 'Dancing Script, cursive' },
+  { label: 'Pacifico', value: 'Pacifico, cursive' },
   { label: 'Courier', value: 'Courier New, monospace' },
 ];
 
@@ -50,6 +70,15 @@ const ANIMATIONS = [
   { name: 'Spin', value: 'spin-in' },
 ];
 
+const EASINGS = [
+  { label: 'Ease', value: 'ease' },
+  { label: 'Linear', value: 'linear' },
+  { label: 'Ease In', value: 'ease-in' },
+  { label: 'Ease Out', value: 'ease-out' },
+  { label: 'Smooth', value: 'ease-in-out' },
+  { label: 'Bounce', value: 'cubic-bezier(0.175,0.885,0.32,1.275)' },
+];
+
 type EType = 'text' | 'image' | 'shape' | 'button';
 type ShapeType = 'rect' | 'circle' | 'triangle' | 'diamond' | 'star' | 'hexagon';
 
@@ -59,7 +88,11 @@ interface CE {
   rot: number; z: number; opacity: number;
   flipX?: boolean; flipY?: boolean;
   filterCss?: string;
-  animation?: string;
+  animation?: string; animationDuration?: number; animationEasing?: string;
+  locked?: boolean;
+  groupId?: string;
+  letterSpacing?: number;
+  textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
   content?: string; fontSize?: number; fontFamily?: string;
   bold?: boolean; italic?: boolean; underline?: boolean;
   align?: 'left' | 'center' | 'right';
@@ -76,6 +109,7 @@ interface CE {
   objectFit?: 'cover' | 'contain' | 'fill';
   objectPosition?: string;
   src?: string;
+  tintColor?: string; tintOpacity?: number;
   href?: string;
 }
 
@@ -84,6 +118,9 @@ interface SD {
   bgType: 'COLOR' | 'GRADIENT' | 'IMAGE' | 'VIDEO';
   bgColor: string | null; bgGradient: string | null;
   bgImage: string | null; bgVideo: string | null;
+  bgImageOpacity?: number; bgImageFit?: 'cover' | 'contain' | 'fill'; bgImagePosition?: string;
+  bgBlur?: number;
+  bgOverlayColor?: string; bgOverlayOpacity?: number;
   elements: CE[];
 }
 
@@ -91,6 +128,7 @@ interface Meta {
   title: string; slug: string; description: string; metaDescription: string;
   category: string; publisherName: string; publisherLogo: string;
   coverImage: string; coverImageSquare: string; expiresAt: string;
+  targetServices: string[]; targetLocations: string[];
 }
 
 type Tab = 'insert' | 'style' | 'document';
@@ -132,6 +170,95 @@ function buildTextShadow(el: CE): string | undefined {
   return `${el.shadowX ?? 0}px ${el.shadowY ?? 4}px ${el.shadowBlur ?? 8}px ${shadowRgba(el)}`;
 }
 
+// ─── Templates ────────────────────────────────────────────────────────────────
+const TEMPLATES: {
+  name: string; icon: string;
+  bg: Pick<SD, 'bgType' | 'bgColor' | 'bgGradient' | 'bgImage' | 'bgVideo'>;
+  elements: Partial<CE>[];
+}[] = [
+  {
+    name: 'Title Slide', icon: '📌',
+    bg: { bgType: 'COLOR', bgColor: '#1a1a2e', bgGradient: null, bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'text', x: 20, y: 210, w: 350, h: 110, content: 'Your Headline', fontSize: 46, bold: true, align: 'center', color: '#ffffff', colorAlpha: 1, lineHeight: 1.15, fontFamily: 'inherit' },
+      { type: 'text', x: 40, y: 340, w: 310, h: 60, content: 'Your subtitle goes here', fontSize: 17, align: 'center', color: '#c4c4e0', colorAlpha: 0.85, lineHeight: 1.5, fontFamily: 'inherit' },
+    ],
+  },
+  {
+    name: 'CTA', icon: '🎯',
+    bg: { bgType: 'GRADIENT', bgColor: null, bgGradient: 'linear-gradient(160deg,#0f0c29,#302b63,#24243e)', bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'text', x: 20, y: 190, w: 350, h: 110, content: 'Big Bold Headline', fontSize: 44, bold: true, align: 'center', color: '#ffffff', colorAlpha: 1, lineHeight: 1.1, fontFamily: 'inherit' },
+      { type: 'text', x: 40, y: 320, w: 310, h: 50, content: 'Supporting text goes here', fontSize: 16, align: 'center', color: '#ffffff', colorAlpha: 0.7, lineHeight: 1.5, fontFamily: 'inherit' },
+      { type: 'button', x: 95, y: 500, w: 200, h: 52, content: 'Tap to Learn More', fontSize: 15, bold: true, color: '#1a1a2e', colorAlpha: 1, bgColor: '#ffffff', bgAlpha: 1, borderRadius: 50 },
+    ],
+  },
+  {
+    name: 'Quote', icon: '💬',
+    bg: { bgType: 'GRADIENT', bgColor: null, bgGradient: 'linear-gradient(135deg,#667eea,#764ba2)', bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'shape', x: 165, y: 140, w: 60, h: 60, shapeType: 'circle', bgColor: '#ffffff', bgAlpha: 0.15, filled: true },
+      { type: 'text', x: 30, y: 240, w: 330, h: 200, content: '"A great insight that resonates with your audience and inspires action."', fontSize: 24, italic: true, align: 'center', color: '#ffffff', colorAlpha: 1, lineHeight: 1.55, fontFamily: 'inherit' },
+      { type: 'text', x: 80, y: 455, w: 230, h: 40, content: '— Author Name', fontSize: 15, align: 'center', color: '#ffffff', colorAlpha: 0.72, lineHeight: 1.3, fontFamily: 'inherit' },
+    ],
+  },
+  {
+    name: 'Stats', icon: '📊',
+    bg: { bgType: 'COLOR', bgColor: '#0d0d0d', bgGradient: null, bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'text', x: 20, y: 90, w: 350, h: 55, content: 'Key Numbers', fontSize: 26, bold: true, align: 'center', color: '#ffffff', colorAlpha: 1, lineHeight: 1.2, fontFamily: 'inherit' },
+      { type: 'text', x: 20, y: 210, w: 165, h: 90, content: '99%', fontSize: 54, bold: true, align: 'center', color: '#818cf8', colorAlpha: 1, lineHeight: 1, fontFamily: 'inherit' },
+      { type: 'text', x: 20, y: 308, w: 165, h: 38, content: 'Satisfaction', fontSize: 14, align: 'center', color: '#9ca3af', colorAlpha: 1, lineHeight: 1.3, fontFamily: 'inherit' },
+      { type: 'text', x: 205, y: 210, w: 165, h: 90, content: '5K+', fontSize: 54, bold: true, align: 'center', color: '#f472b6', colorAlpha: 1, lineHeight: 1, fontFamily: 'inherit' },
+      { type: 'text', x: 205, y: 308, w: 165, h: 38, content: 'Customers', fontSize: 14, align: 'center', color: '#9ca3af', colorAlpha: 1, lineHeight: 1.3, fontFamily: 'inherit' },
+    ],
+  },
+  {
+    name: 'Announcement', icon: '📣',
+    bg: { bgType: 'GRADIENT', bgColor: null, bgGradient: 'linear-gradient(160deg,#f093fb,#f5576c)', bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'shape', x: 145, y: 140, w: 100, h: 100, shapeType: 'star', bgColor: '#ffffff', bgAlpha: 0.25, filled: true },
+      { type: 'text', x: 20, y: 270, w: 350, h: 80, content: 'Big Announcement!', fontSize: 38, bold: true, align: 'center', color: '#ffffff', colorAlpha: 1, lineHeight: 1.1, fontFamily: 'inherit' },
+      { type: 'text', x: 40, y: 368, w: 310, h: 70, content: 'Share details about your exciting news here.', fontSize: 17, align: 'center', color: '#ffffff', colorAlpha: 0.88, lineHeight: 1.45, fontFamily: 'inherit' },
+    ],
+  },
+  {
+    name: 'Split', icon: '✂️',
+    bg: { bgType: 'COLOR', bgColor: '#f9fafb', bgGradient: null, bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'shape', x: 0, y: 0, w: 390, h: 350, shapeType: 'rect', bgColor: '#1a1a2e', bgAlpha: 1, filled: true, borderRadius: 0 },
+      { type: 'text', x: 20, y: 380, w: 350, h: 70, content: 'Your Heading Here', fontSize: 30, bold: true, align: 'center', color: '#111827', colorAlpha: 1, lineHeight: 1.2, fontFamily: 'inherit' },
+      { type: 'text', x: 30, y: 460, w: 330, h: 80, content: 'Supporting description. Keep it short and engaging.', fontSize: 15, align: 'center', color: '#6b7280', colorAlpha: 1, lineHeight: 1.55, fontFamily: 'inherit' },
+    ],
+  },
+  {
+    name: 'Product', icon: '🛍️',
+    bg: { bgType: 'COLOR', bgColor: '#f8f9fa', bgGradient: null, bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'shape', x: 35, y: 55, w: 320, h: 310, shapeType: 'rect', bgColor: '#e5e7eb', bgAlpha: 1, filled: true, borderRadius: 20 },
+      { type: 'text', x: 20, y: 390, w: 350, h: 60, content: 'Product Name', fontSize: 28, bold: true, align: 'center', color: '#111827', colorAlpha: 1, lineHeight: 1.2, fontFamily: 'inherit' },
+      { type: 'text', x: 40, y: 460, w: 310, h: 45, content: '₹999 · Limited Time Offer', fontSize: 19, align: 'center', color: '#6366f1', colorAlpha: 1, lineHeight: 1.3, fontFamily: 'inherit' },
+      { type: 'button', x: 95, y: 555, w: 200, h: 52, content: 'Shop Now', fontSize: 16, bold: true, color: '#ffffff', colorAlpha: 1, bgColor: '#6366f1', bgAlpha: 1, borderRadius: 50 },
+    ],
+  },
+  {
+    name: 'Steps', icon: '📋',
+    bg: { bgType: 'COLOR', bgColor: '#18181b', bgGradient: null, bgImage: null, bgVideo: null },
+    elements: [
+      { type: 'text', x: 20, y: 55, w: 350, h: 55, content: 'How It Works', fontSize: 28, bold: true, align: 'center', color: '#ffffff', colorAlpha: 1, lineHeight: 1.2, fontFamily: 'inherit' },
+      { type: 'shape', x: 28, y: 150, w: 48, h: 48, shapeType: 'circle', bgColor: '#6366f1', bgAlpha: 1, filled: true },
+      { type: 'text', x: 28, y: 155, w: 48, h: 38, content: '1', fontSize: 22, bold: true, align: 'center', color: '#fff', colorAlpha: 1, lineHeight: 1, fontFamily: 'inherit' },
+      { type: 'text', x: 92, y: 152, w: 272, h: 44, content: 'Step one: First action here', fontSize: 15, align: 'left', color: '#e5e7eb', colorAlpha: 1, lineHeight: 1.45, fontFamily: 'inherit' },
+      { type: 'shape', x: 28, y: 288, w: 48, h: 48, shapeType: 'circle', bgColor: '#ec4899', bgAlpha: 1, filled: true },
+      { type: 'text', x: 28, y: 293, w: 48, h: 38, content: '2', fontSize: 22, bold: true, align: 'center', color: '#fff', colorAlpha: 1, lineHeight: 1, fontFamily: 'inherit' },
+      { type: 'text', x: 92, y: 290, w: 272, h: 44, content: 'Step two: Second action here', fontSize: 15, align: 'left', color: '#e5e7eb', colorAlpha: 1, lineHeight: 1.45, fontFamily: 'inherit' },
+      { type: 'shape', x: 28, y: 426, w: 48, h: 48, shapeType: 'circle', bgColor: '#10b981', bgAlpha: 1, filled: true },
+      { type: 'text', x: 28, y: 431, w: 48, h: 38, content: '3', fontSize: 22, bold: true, align: 'center', color: '#fff', colorAlpha: 1, lineHeight: 1, fontFamily: 'inherit' },
+      { type: 'text', x: 92, y: 428, w: 272, h: 44, content: 'Step three: Final result', fontSize: 15, align: 'left', color: '#e5e7eb', colorAlpha: 1, lineHeight: 1.45, fontFamily: 'inherit' },
+    ],
+  },
+];
+
 function blankSlide(order: number): SD {
   return { id: uid(), order, duration: 7, bgType: 'COLOR', bgColor: '#1a1a2e', bgGradient: null, bgImage: null, bgVideo: null, elements: [] };
 }
@@ -149,8 +276,15 @@ function calcSeo(meta: Meta, slides: SD[]): number {
 function SlideBg({ s, children }: { s: SD; children?: React.ReactNode }) {
   return (
     <div className="absolute inset-0 overflow-hidden" style={slideBgStyle(s)}>
-      {s.bgType === 'IMAGE' && s.bgImage && <img src={s.bgImage} alt="" className="absolute inset-0 w-full h-full object-cover" />}
+      {s.bgType === 'IMAGE' && s.bgImage && (
+        <img src={s.bgImage} alt="" className="absolute inset-0 w-full h-full"
+          style={{ objectFit: s.bgImageFit || 'cover', objectPosition: s.bgImagePosition || 'center', opacity: s.bgImageOpacity ?? 1, filter: s.bgBlur ? `blur(${s.bgBlur}px)` : undefined, transform: s.bgBlur ? 'scale(1.05)' : undefined }} />
+      )}
       {s.bgType === 'VIDEO' && s.bgVideo && <video src={s.bgVideo} className="absolute inset-0 w-full h-full object-cover" autoPlay muted loop playsInline />}
+      {/* Color overlay */}
+      {s.bgOverlayColor && (s.bgOverlayOpacity ?? 0) > 0 && (
+        <div className="absolute inset-0" style={{ backgroundColor: s.bgOverlayColor, opacity: s.bgOverlayOpacity ?? 0.5 }} />
+      )}
       {children}
     </div>
   );
@@ -168,7 +302,7 @@ function renderElInner(el: CE): React.ReactNode {
       : undefined;
     return (
       <div className="w-full h-full flex items-center justify-center overflow-hidden" style={{ filter: el.filterCss || undefined, backgroundColor: isBtn ? toRgba(el.bgColor || '#ffffff', el.bgAlpha ?? 1) : 'transparent', borderRadius: el.borderRadius ?? (isBtn ? 50 : 0), border: bw > 0 ? `${bw}px solid ${el.borderColor || '#fff'}` : undefined, boxSizing: 'border-box', boxShadow }}>
-        <div style={{ fontSize: el.fontSize || (isBtn ? 16 : 24), fontFamily: el.fontFamily || 'inherit', fontWeight: el.bold ? 'bold' : 'normal', fontStyle: el.italic ? 'italic' : 'normal', textDecoration: el.underline ? 'underline' : 'none', textAlign: el.align || 'center', color: toRgba(el.color || '#ffffff', el.colorAlpha ?? 1), lineHeight: el.lineHeight || 1.3, padding: isBtn ? '0 16px' : 0, wordBreak: 'break-word', whiteSpace: 'pre-wrap', width: '100%', WebkitTextStroke: el.textStrokeWidth ? `${el.textStrokeWidth}px ${el.textStrokeColor || '#000'}` : undefined, textShadow: !isBtn ? buildTextShadow(el) : undefined } as React.CSSProperties}>
+        <div style={{ fontSize: el.fontSize || (isBtn ? 16 : 24), fontFamily: el.fontFamily || 'inherit', fontWeight: el.bold ? 'bold' : 'normal', fontStyle: el.italic ? 'italic' : 'normal', textDecoration: el.underline ? 'underline' : 'none', textAlign: el.align || 'center', color: toRgba(el.color || '#ffffff', el.colorAlpha ?? 1), lineHeight: el.lineHeight || 1.3, letterSpacing: el.letterSpacing ? `${el.letterSpacing}px` : undefined, textTransform: el.textTransform || 'none', padding: isBtn ? '0 16px' : 0, wordBreak: 'break-word', whiteSpace: 'pre-wrap', width: '100%', WebkitTextStroke: el.textStrokeWidth ? `${el.textStrokeWidth}px ${el.textStrokeColor || '#000'}` : undefined, textShadow: !isBtn ? buildTextShadow(el) : undefined } as React.CSSProperties}>
           {el.content || (isBtn ? 'Button' : 'Double-click to edit')}
         </div>
       </div>
@@ -178,7 +312,14 @@ function renderElInner(el: CE): React.ReactNode {
   if (el.type === 'image') {
     const bw = el.borderWidth || 0;
     return el.src
-      ? <img src={el.src} alt="" className="w-full h-full" style={{ objectFit: el.objectFit || 'cover', objectPosition: el.objectPosition || 'center center', borderRadius: el.borderRadius ?? 0, filter: combinedFilter, border: bw > 0 ? `${bw}px solid ${el.borderColor || '#fff'}` : undefined, boxSizing: 'border-box' }} />
+      ? (
+        <div style={{ position: 'relative', width: '100%', height: '100%', borderRadius: el.borderRadius ?? 0, overflow: 'hidden', border: bw > 0 ? `${bw}px solid ${el.borderColor || '#fff'}` : undefined, boxSizing: 'border-box' }}>
+          <img src={el.src} alt="" className="w-full h-full" style={{ objectFit: el.objectFit || 'cover', objectPosition: el.objectPosition || 'center center', filter: combinedFilter, display: 'block' }} />
+          {el.tintColor && (el.tintOpacity ?? 0) > 0 && (
+            <div style={{ position: 'absolute', inset: 0, backgroundColor: el.tintColor, opacity: el.tintOpacity, pointerEvents: 'none' }} />
+          )}
+        </div>
+      )
       : <div className="w-full h-full bg-gray-700 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-600"><ImageIcon className="w-8 h-8 text-gray-400" /></div>;
   }
 
@@ -200,33 +341,64 @@ function renderElInner(el: CE): React.ReactNode {
 }
 
 // ─── CanvasEl with Rotation Handle ───────────────────────────────────────────
-function CanvasEl({ el, selected, scale, canvasRef, onSelect, onChange, onDblClick, onDragMove, onDragEnd, dropHighlight }: {
-  el: CE; selected: boolean; scale: number;
+function CanvasEl({ el, selected, multiSelected, scale, canvasRef, onSelect, onShiftSelect, onChange, onDblClick, onDragMove, onDragEnd, dropHighlight, onSnapshot, onMultiDragStart, onMultiMove }: {
+  el: CE; selected: boolean; multiSelected?: boolean; scale: number;
   canvasRef: React.RefObject<HTMLDivElement | null>;
-  onSelect: () => void; onChange: (e: CE) => void; onDblClick: () => void;
+  onSelect: () => void; onShiftSelect?: () => void; onChange: (e: CE) => void; onDblClick: () => void;
   onDragMove?: (el: CE) => void;
   onDragEnd?: (finalEl: CE) => void;
   dropHighlight?: boolean;
+  onSnapshot?: () => void;
+  onMultiDragStart?: () => void;
+  onMultiMove?: (dx: number, dy: number) => void;
 }) {
   const handleDrag = (e: React.MouseEvent) => {
-    e.preventDefault(); e.stopPropagation(); onSelect();
+    if (el.locked) { if (e.shiftKey && onShiftSelect) onShiftSelect(); else onSelect(); return; }
+    e.preventDefault(); e.stopPropagation();
+    // Shift+click = toggle selection only, skip drag
+    if (e.shiftKey && onShiftSelect) { onShiftSelect(); return; }
+    onSelect();
+    onSnapshot?.();
+    if (multiSelected && onMultiDragStart) onMultiDragStart();
     const sx = e.clientX, sy = e.clientY, ox = el.x, oy = el.y;
+    const SNAP = 8;
+    const snapX = (x: number) => {
+      if (Math.abs(x) < SNAP) return 0;
+      if (Math.abs(x + el.w - CANVAS_W) < SNAP) return CANVAS_W - el.w;
+      if (Math.abs(x + el.w / 2 - CANVAS_W / 2) < SNAP) return CANVAS_W / 2 - el.w / 2;
+      return x;
+    };
+    const snapY = (y: number) => {
+      if (Math.abs(y) < SNAP) return 0;
+      if (Math.abs(y + el.h - CANVAS_H) < SNAP) return CANVAS_H - el.h;
+      if (Math.abs(y + el.h / 2 - CANVAS_H / 2) < SNAP) return CANVAS_H / 2 - el.h / 2;
+      return y;
+    };
     let lastEl = el;
     const move = (ev: MouseEvent) => {
-      lastEl = { ...el, x: ox + (ev.clientX - sx) / scale, y: oy + (ev.clientY - sy) / scale };
-      onChange(lastEl);
-      if (onDragMove) onDragMove(lastEl);
+      const dx = (ev.clientX - sx) / scale;
+      const dy = (ev.clientY - sy) / scale;
+      if (multiSelected && onMultiMove) {
+        onMultiMove(dx, dy);
+      } else {
+        const rawX = ox + dx, rawY = oy + dy;
+        lastEl = { ...el, x: ev.altKey ? rawX : snapX(rawX), y: ev.altKey ? rawY : snapY(rawY) };
+        onChange(lastEl);
+        if (onDragMove) onDragMove(lastEl);
+      }
     };
     const up = () => {
       document.removeEventListener('mousemove', move);
       document.removeEventListener('mouseup', up);
-      if (onDragEnd) onDragEnd(lastEl);
+      if (!multiSelected && onDragEnd) onDragEnd(lastEl);
     };
     document.addEventListener('mousemove', move); document.addEventListener('mouseup', up);
   };
 
   const handleResize = (handle: string, e: React.MouseEvent) => {
+    if (el.locked) return;
     e.preventDefault(); e.stopPropagation();
+    onSnapshot?.();
     const sx = e.clientX, sy = e.clientY, s0 = { ...el };
     const move = (ev: MouseEvent) => {
       const dx = (ev.clientX - sx) / scale, dy = (ev.clientY - sy) / scale;
@@ -242,7 +414,9 @@ function CanvasEl({ el, selected, scale, canvasRef, onSelect, onChange, onDblCli
   };
 
   const handleRotate = (e: React.MouseEvent) => {
+    if (el.locked) return;
     e.preventDefault(); e.stopPropagation(); onSelect();
+    onSnapshot?.();
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     const cx = rect.left + (el.x + el.w / 2) * scale;
@@ -274,9 +448,9 @@ function CanvasEl({ el, selected, scale, canvasRef, onSelect, onChange, onDblCli
 
   return (
     <div
-      style={{ position: 'absolute', left: el.x, top: el.y, width: el.w, height: el.h, transform: `rotate(${el.rot}deg)${flipStr}`, zIndex: el.z, opacity: el.opacity, cursor: 'move', outline: dropHighlight ? '3px solid #22c55e' : selected ? '2px solid #818cf8' : 'none', outlineOffset: dropHighlight ? 3 : 1, userSelect: 'none', transition: 'outline 0.1s' }}
+      style={{ position: 'absolute', left: el.x, top: el.y, width: el.w, height: el.h, transform: `rotate(${el.rot}deg)${flipStr}`, zIndex: el.z, opacity: el.opacity, cursor: el.locked ? 'not-allowed' : 'move', outline: dropHighlight ? '3px solid #22c55e' : selected ? (el.locked ? '2px solid #f59e0b' : '2px solid #818cf8') : multiSelected ? '2px dashed #818cf8' : 'none', outlineOffset: dropHighlight ? 3 : 1, userSelect: 'none', transition: 'outline 0.1s' }}
       onMouseDown={handleDrag}
-      onClick={e => { e.stopPropagation(); onSelect(); }}
+      onClick={e => { e.stopPropagation(); if (!e.shiftKey) onSelect(); }}
       onDoubleClick={e => { e.stopPropagation(); onDblClick(); }}
     >
       {renderElInner(el)}
@@ -350,14 +524,21 @@ function SlideThumbnail({ s, idx, selected, onClick, onDelete, onDuplicate }: {
 }
 
 // ─── FloatingToolbar ──────────────────────────────────────────────────────────
-function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill }: {
+function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onSnapshot }: {
   el: CE; scale: number; onChange: (e: CE) => void;
   canvasRef: React.RefObject<HTMLDivElement | null>;
   onShapeImageFill?: () => void;
+  onSnapshot?: () => void;
 }) {
   const [showFilters, setShowFilters] = useState(false);
   const [showAnim, setShowAnim] = useState(false);
   const [showShadow, setShowShadow] = useState(false);
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // Reset position when a different element is selected
+  useEffect(() => { setDragPos(null); }, [el.id]);
+
   if (!canvasRef.current) return null;
 
   // All positions are in visual pixels (scale already applied)
@@ -365,20 +546,51 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill }: {
   const toolbarW = Math.min(420, canvasVisualW);
   const elTopPx = el.y * scale;
   const elBottomPx = (el.y + el.h) * scale;
-  let left = el.x * scale + (el.w * scale) / 2 - toolbarW / 2;
-  left = Math.max(0, Math.min(canvasVisualW - toolbarW, left));
-
-  // Show above: anchor toolbar BOTTOM to element TOP using translateY(-100%)
-  // This way browser handles the toolbar height — no guessing needed.
-  // Show below only if element is very near the top (< 100px from top).
+  let autoLeft = el.x * scale + (el.w * scale) / 2 - toolbarW / 2;
+  autoLeft = Math.max(0, Math.min(canvasVisualW - toolbarW, autoLeft));
   const showAbove = elTopPx >= 100;
-  const posStyle: React.CSSProperties = showAbove
+  const autoStyle: React.CSSProperties = showAbove
     ? { top: elTopPx - 6, transform: 'translateY(-100%)' }
     : { top: elBottomPx + 8 };
 
+  const finalStyle: React.CSSProperties = dragPos
+    ? { left: dragPos.x, top: dragPos.y, transform: 'none', width: toolbarW }
+    : { left: autoLeft, width: toolbarW, ...autoStyle };
+
+  const handleGripDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!toolbarRef.current) return;
+    const rect = toolbarRef.current.getBoundingClientRect();
+    const wrapper = canvasRef.current?.parentElement;
+    if (!wrapper) return;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const startMouseX = e.clientX;
+    const startMouseY = e.clientY;
+    const origX = rect.left - wrapperRect.left;
+    const origY = rect.top - wrapperRect.top;
+    const move = (ev: MouseEvent) => {
+      setDragPos({ x: origX + ev.clientX - startMouseX, y: origY + ev.clientY - startMouseY });
+    };
+    const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  };
+
   return (
-    <div className="absolute z-50 bg-[#2a2a2a] border border-white/10 rounded-xl shadow-2xl overflow-visible"
-      style={{ left, width: toolbarW, ...posStyle }} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+    <div ref={toolbarRef} className="absolute z-50 bg-[#2a2a2a] border border-white/10 rounded-xl shadow-2xl overflow-visible"
+      style={finalStyle} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+
+      {/* Drag handle */}
+      <div
+        className="flex items-center justify-center gap-1 py-1 cursor-grab active:cursor-grabbing border-b border-white/10 select-none"
+        onMouseDown={handleGripDrag}
+        title="Drag to reposition toolbar"
+      >
+        <GripVertical className="w-3.5 h-3.5 text-gray-600" />
+        <span className="text-[9px] text-gray-700 uppercase tracking-widest">drag</span>
+        <GripVertical className="w-3.5 h-3.5 text-gray-600" />
+      </div>
 
       {/* ROW 1: Text formatting */}
       {(el.type === 'text' || el.type === 'button') && (
@@ -393,12 +605,12 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill }: {
             className="w-11 text-xs text-center bg-white/10 text-white border border-white/10 rounded px-1 py-0.5 outline-none" />
           <div className="w-px h-4 bg-white/10 mx-0.5" />
           {[{ icon: <Bold className="w-3.5 h-3.5" />, k: 'bold' as const }, { icon: <Italic className="w-3.5 h-3.5" />, k: 'italic' as const }, { icon: <Underline className="w-3.5 h-3.5" />, k: 'underline' as const }].map(({ icon, k }) => (
-            <button key={k} onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, [k]: !el[k] }); }}
+            <button key={k} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, [k]: !el[k] }); }}
               className={`w-7 h-7 rounded flex items-center justify-center ${el[k] ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-white/10 text-gray-400'}`}>{icon}</button>
           ))}
           <div className="w-px h-4 bg-white/10 mx-0.5" />
           {[{ icon: <AlignLeft className="w-3.5 h-3.5" />, v: 'left' as const }, { icon: <AlignCenter className="w-3.5 h-3.5" />, v: 'center' as const }, { icon: <AlignRight className="w-3.5 h-3.5" />, v: 'right' as const }].map(({ icon, v }) => (
-            <button key={v} onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, align: v }); }}
+            <button key={v} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, align: v }); }}
               className={`w-7 h-7 rounded flex items-center justify-center ${(el.align || 'center') === v ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-white/10 text-gray-400'}`}>{icon}</button>
           ))}
           <div className="w-px h-4 bg-white/10 mx-0.5" />
@@ -407,6 +619,23 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill }: {
           <input type="range" min={0} max={1} step={0.05} value={el.colorAlpha ?? 1}
             onChange={e => onChange({ ...el, colorAlpha: Number(e.target.value) })}
             className="w-12 accent-indigo-500" />
+          <div className="w-px h-4 bg-white/10 mx-0.5" />
+          {/* Letter spacing */}
+          <div className="flex items-center gap-1" title="Letter Spacing">
+            <span className="text-[10px] text-gray-500">LS</span>
+            <input type="range" min={-5} max={20} step={0.5} value={el.letterSpacing ?? 0}
+              onChange={e => onChange({ ...el, letterSpacing: Number(e.target.value) })}
+              className="w-14 accent-indigo-500" />
+            <span className="text-[9px] text-gray-500 w-5">{el.letterSpacing ?? 0}</span>
+          </div>
+          <div className="w-px h-4 bg-white/10 mx-0.5" />
+          {/* Text Transform */}
+          {(['none','uppercase','lowercase','capitalize'] as const).map(t => (
+            <button key={t} onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, textTransform: t }); }}
+              className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition ${(el.textTransform || 'none') === t ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-white/10 text-gray-500'}`}>
+              {t === 'none' ? 'Aa' : t === 'uppercase' ? 'AA' : t === 'lowercase' ? 'aa' : 'Abc'}
+            </button>
+          ))}
         </div>
       )}
 
@@ -424,9 +653,9 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill }: {
         {el.type === 'shape' && (
           <div className="flex items-center gap-1">
             <div className="flex rounded-lg overflow-hidden border border-white/10">
-              <button onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, filled: true }); }}
+              <button onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, filled: true }); }}
                 className={`px-2 py-0.5 text-[10px] transition ${el.filled !== false ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/10'}`}>Filled</button>
-              <button onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, filled: false }); }}
+              <button onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, filled: false }); }}
                 className={`px-2 py-0.5 text-[10px] transition ${el.filled === false ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/10'}`}>Outline</button>
             </div>
             {el.filled !== false && (
@@ -470,6 +699,24 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill }: {
               className="w-6 h-6 rounded cursor-pointer border border-white/20 p-0.5 bg-transparent" />
           </div>
         )}
+        {/* Image tint overlay */}
+        {el.type === 'image' && el.src && (
+          <div className="flex items-center gap-1.5 w-full border-t border-white/10 pt-1.5 mt-0.5">
+            <span className="text-[10px] text-gray-500 flex-shrink-0">Tint</span>
+            <input type="color" value={el.tintColor || '#0044ff'}
+              onChange={e => onChange({ ...el, tintColor: e.target.value, tintOpacity: el.tintOpacity ?? 0.3 })}
+              className="w-6 h-6 rounded cursor-pointer border border-white/20 p-0.5 bg-transparent flex-shrink-0" title="Tint color" />
+            <input type="range" min={0} max={1} step={0.05} value={el.tintOpacity ?? 0}
+              onMouseDown={ev => ev.stopPropagation()}
+              onChange={e => onChange({ ...el, tintOpacity: Number(e.target.value) })}
+              className="flex-1 accent-indigo-500" />
+            <span className="text-[9px] text-gray-400 w-7 flex-shrink-0">{Math.round((el.tintOpacity ?? 0) * 100)}%</span>
+            {(el.tintOpacity ?? 0) > 0 && (
+              <button onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, tintOpacity: 0 }); }}
+                className="text-[10px] text-red-400 hover:text-red-300 px-1.5 py-0.5 bg-red-500/10 rounded-lg flex-shrink-0">Clear</button>
+            )}
+          </div>
+        )}
         {/* Shape image fill */}
         {el.type === 'shape' && onShapeImageFill && (
           <button onMouseDown={ev => { ev.preventDefault(); onShapeImageFill(); }}
@@ -494,6 +741,32 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill }: {
         )}
       </div>
 
+      {/* ROW ALIGNMENT: Canvas alignment tools */}
+      <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-white/10 flex-wrap">
+        <span className="text-[10px] text-gray-500 mr-1">Align</span>
+        {([
+          { icon: <AlignHorizontalJustifyStart className="w-3.5 h-3.5" />, title: 'Align Left', fn: () => onChange({ ...el, x: 0 }) },
+          { icon: <AlignHorizontalJustifyCenter className="w-3.5 h-3.5" />, title: 'Center Horizontal', fn: () => onChange({ ...el, x: Math.round((CANVAS_W - el.w) / 2) }) },
+          { icon: <AlignHorizontalJustifyEnd className="w-3.5 h-3.5" />, title: 'Align Right', fn: () => onChange({ ...el, x: Math.round(CANVAS_W - el.w) }) },
+          { icon: <AlignVerticalJustifyStart className="w-3.5 h-3.5" />, title: 'Align Top', fn: () => onChange({ ...el, y: 0 }) },
+          { icon: <AlignVerticalJustifyCenter className="w-3.5 h-3.5" />, title: 'Center Vertical', fn: () => onChange({ ...el, y: Math.round((CANVAS_H - el.h) / 2) }) },
+          { icon: <AlignVerticalJustifyEnd className="w-3.5 h-3.5" />, title: 'Align Bottom', fn: () => onChange({ ...el, y: Math.round(CANVAS_H - el.h) }) },
+        ] as { icon: React.ReactNode; title: string; fn: () => void }[]).map(({ icon, title, fn }) => (
+          <button key={title} onMouseDown={ev => { ev.preventDefault(); fn(); }} title={title}
+            className="w-7 h-7 rounded flex items-center justify-center text-gray-400 hover:bg-white/10 hover:text-indigo-300 transition">{icon}</button>
+        ))}
+        <div className="w-px h-4 bg-white/10 mx-0.5" />
+        {/* Position inputs */}
+        {(['x','y','w','h'] as const).map(k => (
+          <div key={k} className="flex flex-col items-center">
+            <span className="text-[8px] text-gray-600 leading-none">{k.toUpperCase()}</span>
+            <input type="number" value={Math.round((el as any)[k])}
+              onChange={ev => onChange({ ...el, [k]: Number(ev.target.value) })}
+              className="w-10 text-[10px] text-center bg-white/10 text-white border border-white/10 rounded px-1 py-0.5 outline-none" />
+          </div>
+        ))}
+      </div>
+
       {/* ROW 3: Filters + Animation */}
       <div className="flex items-center gap-1 px-2 py-1.5">
         {/* Filter toggle */}
@@ -506,7 +779,7 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill }: {
             <div className="absolute bottom-full left-0 mb-1 bg-[#1e1e1e] border border-white/10 rounded-xl p-2 shadow-2xl z-50" style={{ width: 280 }}>
               <div className="grid grid-cols-4 gap-1">
                 {FILTER_PRESETS.map(fp => (
-                  <button key={fp.name} onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, filterCss: fp.css }); }}
+                  <button key={fp.name} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, filterCss: fp.css }); }}
                     className={`px-1.5 py-1 rounded-lg text-[10px] font-medium transition ${(el.filterCss || '') === fp.css ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/15'}`}>
                     {fp.name}
                   </button>
@@ -523,15 +796,40 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill }: {
             <Sparkles className="w-3 h-3" /> {el.animation || 'Animate'}
           </button>
           {showAnim && (
-            <div className="absolute bottom-full left-0 mb-1 bg-[#1e1e1e] border border-white/10 rounded-xl p-2 shadow-2xl z-50" style={{ width: 200 }}>
-              <div className="grid grid-cols-2 gap-1">
+            <div className="absolute bottom-full left-0 mb-1 bg-[#1e1e1e] border border-white/10 rounded-xl p-2 shadow-2xl z-50" style={{ width: 220 }}>
+              <div className="grid grid-cols-2 gap-1 mb-2">
                 {ANIMATIONS.map(a => (
-                  <button key={a.value} onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, animation: a.value }); setShowAnim(false); }}
+                  <button key={a.value} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, animation: a.value }); setShowAnim(false); }}
                     className={`px-2 py-1.5 rounded-lg text-[10px] font-medium transition ${(el.animation || '') === a.value ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/15'}`}>
                     {a.name}
                   </button>
                 ))}
               </div>
+              {el.animation && (
+                <div className="border-t border-white/10 pt-2 space-y-2">
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-[10px] text-gray-400">Speed</span>
+                      <span className="text-[10px] text-gray-300">{(el.animationDuration ?? 0.6).toFixed(1)}s</span>
+                    </div>
+                    <input type="range" min={0.1} max={3} step={0.1} value={el.animationDuration ?? 0.6}
+                      onMouseDown={ev => ev.stopPropagation()}
+                      onChange={ev => onChange({ ...el, animationDuration: Number(ev.target.value) })}
+                      className="w-full accent-indigo-500" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 block mb-1">Easing</span>
+                    <div className="grid grid-cols-3 gap-1">
+                      {EASINGS.map(ez => (
+                        <button key={ez.value} onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, animationEasing: ez.value }); }}
+                          className={`px-1 py-1 rounded text-[9px] font-medium transition ${(el.animationEasing || 'ease') === ez.value ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/15'}`}>
+                          {ez.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -615,6 +913,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     category: initialData?.category || '', publisherName: initialData?.publisherName || '',
     publisherLogo: initialData?.publisherLogo || '', coverImage: initialData?.coverImage || '',
     coverImageSquare: initialData?.coverImageSquare || '', expiresAt: initialData?.expiresAt || '',
+    targetServices: initialData?.targetServices || [], targetLocations: initialData?.targetLocations || [],
   }));
 
   const [slides, setSlides] = useState<SD[]>(() => {
@@ -623,37 +922,88 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
         id: s.id || uid(), order: i, duration: s.duration || 7,
         bgType: s.bgType || 'COLOR', bgColor: s.bgColor || '#1a1a2e',
         bgGradient: s.bgGradient || null, bgImage: s.bgImage || null, bgVideo: s.bgVideo || null,
-        elements: s.canvasData
-          ? (typeof s.canvasData === 'string' ? JSON.parse(s.canvasData) : s.canvasData)
-          : [],
+        ...(() => {
+          const raw = s.canvasData
+            ? (typeof s.canvasData === 'string' ? JSON.parse(s.canvasData) : s.canvasData)
+            : null;
+          const isNew = raw && !Array.isArray(raw) && raw.elements !== undefined;
+          const cfg: any = isNew ? (raw.config || {}) : {};
+          return {
+            elements: isNew ? raw.elements : (raw || []),
+            bgImageOpacity: cfg.bgImageOpacity, bgImageFit: cfg.bgImageFit, bgImagePosition: cfg.bgImagePosition,
+            bgBlur: cfg.bgBlur, bgOverlayColor: cfg.bgOverlayColor, bgOverlayOpacity: cfg.bgOverlayOpacity,
+          };
+        })(),
       }));
     }
     return [blankSlide(0)];
   });
 
   const [activeIdx, setActiveIdx] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [tab, setTab] = useState<Tab>('insert');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [panImageId, setPanImageId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [showGrid, setShowGrid] = useState(false);
+  const [savedColors, setSavedColors] = useState<string[]>(() => {
+    try { return JSON.parse(typeof window !== 'undefined' ? (localStorage.getItem('ws_palette') || '[]') : '[]'); } catch { return []; }
+  });
   const [scale, setScale] = useState(1);
   const [uploading, setUploading] = useState(false);
   const [gallery, setGallery] = useState<string[]>([]);
   const [galleryLoaded, setGalleryLoaded] = useState(false);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [dragSlideIdx, setDragSlideIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const [servicesList, setServicesList] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [locationsList, setLocationsList] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [locationSearch, setLocationSearch] = useState('');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const multiDragOriginsRef = useRef<{ [id: string]: { x: number; y: number } }>({});
   const imgInputRef = useRef<HTMLInputElement>(null);
   const bgImgInputRef = useRef<HTMLInputElement>(null);
   const shapeImgInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
+  // ─── History / Undo-Redo ─────────────────────────────────────────────────────
+  const slidesRef = useRef(slides);
+  useEffect(() => { slidesRef.current = slides; }, [slides]);
+  const pastRef = useRef<SD[][]>([]);
+  const futureRef = useRef<SD[][]>([]);
+  const clipboardRef = useRef<CE[] | null>(null);
+
+  const snapshot = useCallback(() => {
+    const copy = JSON.parse(JSON.stringify(slidesRef.current));
+    pastRef.current.push(copy);
+    if (pastRef.current.length > 50) pastRef.current.shift();
+    futureRef.current = [];
+  }, []);
+
+  const undo = useCallback(() => {
+    if (pastRef.current.length === 0) return;
+    const prev = pastRef.current.pop()!;
+    futureRef.current.unshift(JSON.parse(JSON.stringify(slidesRef.current)));
+    setSlides(JSON.parse(JSON.stringify(prev)));
+    setSelectedIds([]);
+  }, []);
+
+  const redo = useCallback(() => {
+    if (futureRef.current.length === 0) return;
+    const next = futureRef.current.shift()!;
+    pastRef.current.push(JSON.parse(JSON.stringify(slidesRef.current)));
+    setSlides(JSON.parse(JSON.stringify(next)));
+    setSelectedIds([]);
+  }, []);
+
   const activeSlide = slides[activeIdx] || slides[0];
+  const selectedId = selectedIds[selectedIds.length - 1] ?? null;
   const selectedEl = activeSlide?.elements.find(e => e.id === selectedId) || null;
 
   useEffect(() => {
@@ -667,6 +1017,14 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     if (containerRef.current) ro.observe(containerRef.current);
     return () => ro.disconnect();
   }, []);
+
+  // Load services + locations for targeting (when document tab opens)
+  useEffect(() => {
+    if (tab === 'document' && servicesList.length === 0) {
+      fetch('/api/services?parentsOnly=true').then(r => r.json()).then(d => setServicesList(d?.services || [])).catch(() => {});
+      fetch('/api/locations?type=CITY').then(r => r.json()).then(d => setLocationsList(d?.locations || [])).catch(() => {});
+    }
+  }, [tab]);
 
   // Load gallery when insert tab opens
   useEffect(() => {
@@ -686,9 +1044,47 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     updateSlide(s => ({ ...s, elements: s.elements.map(e => e.id === updated.id ? updated : e) }));
   }, [updateSlide]);
 
-  const addElement = (el: CE) => { updateSlide(s => ({ ...s, elements: [...s.elements, el] })); setSelectedId(el.id); };
-  const deleteElement = (id: string) => { updateSlide(s => ({ ...s, elements: s.elements.filter(e => e.id !== id) })); setSelectedId(null); };
-  const clearAll = () => { updateSlide(s => ({ ...s, elements: [] })); setSelectedId(null); };
+  const addElement = (el: CE) => { snapshot(); updateSlide(s => ({ ...s, elements: [...s.elements, el] })); setSelectedIds([el.id]); };
+  const deleteElement = (id: string) => { snapshot(); updateSlide(s => ({ ...s, elements: s.elements.filter(e => e.id !== id) })); setSelectedIds([]); };
+  const deleteElements = useCallback((ids: string[]) => { snapshot(); updateSlide(s => ({ ...s, elements: s.elements.filter(e => !ids.includes(e.id)) })); setSelectedIds([]); }, [snapshot, updateSlide]);
+  const clearAll = () => { snapshot(); updateSlide(s => ({ ...s, elements: [] })); setSelectedIds([]); };
+
+  const distributeH = () => {
+    const els = [...activeSlide.elements].sort((a, b) => a.x - b.x);
+    if (els.length < 3) return;
+    snapshot();
+    const leftmost = els[0].x, rightmost = els[els.length - 1].x + els[els.length - 1].w;
+    const totalW = els.reduce((s, e) => s + e.w, 0);
+    const gap = (rightmost - leftmost - totalW) / (els.length - 1);
+    let x = leftmost;
+    const updated = els.map(e => { const ne = { ...e, x: Math.round(x) }; x += e.w + gap; return ne; });
+    updateSlide(s => ({ ...s, elements: s.elements.map(e => updated.find(u => u.id === e.id) || e) }));
+  };
+
+  const distributeV = () => {
+    const els = [...activeSlide.elements].sort((a, b) => a.y - b.y);
+    if (els.length < 3) return;
+    snapshot();
+    const topmost = els[0].y, bottommost = els[els.length - 1].y + els[els.length - 1].h;
+    const totalH = els.reduce((s, e) => s + e.h, 0);
+    const gap = (bottommost - topmost - totalH) / (els.length - 1);
+    let y = topmost;
+    const updated = els.map(e => { const ne = { ...e, y: Math.round(y) }; y += e.h + gap; return ne; });
+    updateSlide(s => ({ ...s, elements: s.elements.map(e => updated.find(u => u.id === e.id) || e) }));
+  };
+
+  const saveColor = (color: string) => {
+    if (!color || savedColors.includes(color)) return;
+    const next = [color, ...savedColors].slice(0, 20);
+    setSavedColors(next);
+    try { localStorage.setItem('ws_palette', JSON.stringify(next)); } catch {}
+  };
+
+  const removeColor = (color: string) => {
+    const next = savedColors.filter(c => c !== color);
+    setSavedColors(next);
+    try { localStorage.setItem('ws_palette', JSON.stringify(next)); } catch {}
+  };
 
   const duplicateElement = (id: string) => {
     const el = activeSlide.elements.find(e => e.id === id);
@@ -700,8 +1096,71 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     const src = slides[idx];
     const copy: SD = { ...src, id: uid(), order: slides.length, elements: src.elements.map(e => ({ ...e, id: uid() })) };
     setSlides(prev => [...prev.slice(0, idx + 1), copy, ...prev.slice(idx + 1)]);
-    setActiveIdx(idx + 1); setSelectedId(null);
+    setActiveIdx(idx + 1); setSelectedIds([]);
   };
+
+  // ─── Multi-select & Group helpers ────────────────────────────────────────────
+  const selectOne = useCallback((id: string) => setSelectedIds([id]), []);
+  const toggleSelect = useCallback((id: string) => setSelectedIds(prev =>
+    prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+  ), []);
+
+  const handleMultiDragStart = useCallback(() => {
+    const map: { [id: string]: { x: number; y: number } } = {};
+    for (const id of selectedIds) {
+      const el = activeSlide.elements.find(e => e.id === id);
+      if (el) map[id] = { x: el.x, y: el.y };
+    }
+    multiDragOriginsRef.current = map;
+  }, [selectedIds, activeSlide.elements]);
+
+  const handleMultiMove = useCallback((dx: number, dy: number) => {
+    const origins = multiDragOriginsRef.current;
+    updateSlide(s => ({
+      ...s,
+      elements: s.elements.map(e => {
+        const orig = origins[e.id];
+        if (!orig) return e;
+        return { ...e, x: Math.round(orig.x + dx), y: Math.round(orig.y + dy) };
+      }),
+    }));
+  }, [updateSlide]);
+
+  const groupSelected = useCallback(() => {
+    if (selectedIds.length < 2) return;
+    snapshot();
+    const gid = uid();
+    updateSlide(s => ({
+      ...s,
+      elements: s.elements.map(e => selectedIds.includes(e.id) ? { ...e, groupId: gid } : e),
+    }));
+  }, [selectedIds, snapshot, updateSlide]);
+
+  const ungroupSelected = useCallback(() => {
+    const gid = selectedEl?.groupId;
+    if (!gid) return;
+    snapshot();
+    updateSlide(s => ({
+      ...s,
+      elements: s.elements.map(e => e.groupId === gid ? { ...e, groupId: undefined } : e),
+    }));
+  }, [selectedEl, snapshot, updateSlide]);
+
+  const selectGroup = useCallback((groupId: string) => {
+    const gIds = activeSlide.elements.filter(e => e.groupId === groupId).map(e => e.id);
+    setSelectedIds(gIds);
+  }, [activeSlide.elements]);
+
+  const applyTemplate = useCallback((tpl: typeof TEMPLATES[0]) => {
+    snapshot();
+    const els: CE[] = tpl.elements.map((e, i) => ({
+      rot: 0, z: i + 1, opacity: 1,
+      ...e,
+      id: uid(),
+    } as CE));
+    updateSlide(s => ({ ...s, ...tpl.bg, elements: els }));
+    setSelectedIds([]);
+  }, [snapshot, updateSlide]);
 
   // When an image element is dragged, highlight shape under it and merge on drop
   const handleElementDrag = useCallback((draggedEl: CE) => {
@@ -732,7 +1191,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
         .filter(e => e.id !== draggedEl.id)
         .map(e => e.id === targetShape.id ? { ...e, bgImage: draggedEl.src, filled: true } : e),
     }));
-    setSelectedId(targetShape.id);
+    setSelectedIds([targetShape.id]);
   }, [activeSlide.elements, updateSlide]);
 
   const changeLayer = (id: string, dir: 'up' | 'down') => {
@@ -790,10 +1249,17 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     coverImage: meta.coverImage || null, coverImageSquare: meta.coverImageSquare || null,
     publisherName: meta.publisherName.trim() || null, publisherLogo: meta.publisherLogo || null,
     category: meta.category.trim() || null, expiresAt: meta.expiresAt || null,
+    targetServices: meta.targetServices, targetLocations: meta.targetLocations,
     slides: slides.map((s, i) => ({
       id: s.id.startsWith('_') ? undefined : s.id, order: i, duration: s.duration, bgType: s.bgType,
       bgImage: s.bgImage || null, bgVideo: s.bgVideo || null, bgColor: s.bgColor || null, bgGradient: s.bgGradient || null,
-      canvasData: JSON.stringify(s.elements), heading: null, subtext: null, ctaText: null, ctaUrl: null,
+      canvasData: JSON.stringify({
+        config: {
+          bgImageOpacity: s.bgImageOpacity, bgImageFit: s.bgImageFit, bgImagePosition: s.bgImagePosition,
+          bgBlur: s.bgBlur, bgOverlayColor: s.bgOverlayColor, bgOverlayOpacity: s.bgOverlayOpacity,
+        },
+        elements: s.elements,
+      }), heading: null, subtext: null, ctaText: null, ctaUrl: null,
     })),
   });
 
@@ -830,14 +1296,105 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) deleteElement(selectedId);
-      if (e.key === 'Escape') setSelectedId(null);
-      if (e.key === 'd' && (e.ctrlKey || e.metaKey) && selectedId) { e.preventDefault(); duplicateElement(selectedId); }
-      if (e.key === 's' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleSave(); }
+
+      // Normalize key — Shift changes letter case, so always compare lowercase
+      const k = e.key.toLowerCase();
+
+      // Undo / Redo
+      if (k === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) { e.preventDefault(); undo(); return; }
+      if ((k === 'y' && (e.ctrlKey || e.metaKey)) || (k === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) { e.preventDefault(); redo(); return; }
+
+      // Group / Ungroup
+      if (k === 'g' && (e.ctrlKey || e.metaKey) && !e.shiftKey) { e.preventDefault(); groupSelected(); return; }
+      if (k === 'g' && (e.ctrlKey || e.metaKey) && e.shiftKey) { e.preventDefault(); ungroupSelected(); return; }
+
+      // Select All
+      if (k === 'a' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setSelectedIds(activeSlide.elements.map(el => el.id));
+        return;
+      }
+
+      // Copy — copies all selected elements (supports group & multi-select)
+      if (k === 'c' && (e.ctrlKey || e.metaKey) && selectedIds.length > 0) {
+        const els = activeSlide.elements.filter(el => selectedIds.includes(el.id));
+        if (els.length > 0) { clipboardRef.current = els; e.preventDefault(); }
+        return;
+      }
+      // Paste — pastes all copied elements with new IDs, preserving group relationship
+      if (k === 'v' && (e.ctrlKey || e.metaKey) && clipboardRef.current) {
+        e.preventDefault();
+        const srcs = clipboardRef.current;
+        const newMaxZ = activeSlide.elements.length ? Math.max(...activeSlide.elements.map(el => el.z)) + 1 : 1;
+        // If all copied elements share the same groupId, assign a new groupId to the paste
+        const sharedGroup = srcs.length > 1 && srcs[0].groupId && srcs.every(e => e.groupId === srcs[0].groupId);
+        const newGroupId = sharedGroup ? uid() : undefined;
+        const newEls: CE[] = srcs.map((src, i) => ({
+          ...src,
+          id: uid(),
+          x: Math.min(src.x + 20, CANVAS_W - src.w),
+          y: Math.min(src.y + 20, CANVAS_H - src.h),
+          z: newMaxZ + i,
+          groupId: newGroupId,
+        }));
+        snapshot();
+        updateSlide(s => ({ ...s, elements: [...s.elements, ...newEls] }));
+        setSelectedIds(newEls.map(e => e.id));
+        return;
+      }
+
+      // Delete / Backspace
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length > 0) {
+        if (selectedIds.length > 1) deleteElements(selectedIds);
+        else if (selectedId) deleteElement(selectedId);
+        return;
+      }
+
+      // Escape
+      if (e.key === 'Escape') { setSelectedIds([]); return; }
+
+      // Duplicate
+      if (k === 'd' && (e.ctrlKey || e.metaKey) && selectedId) { e.preventDefault(); duplicateElement(selectedId); return; }
+
+      // Layer order
+      if (e.key === ']' && (e.ctrlKey || e.metaKey) && selectedId) { e.preventDefault(); changeLayer(selectedId, 'up'); return; }
+      if (e.key === '[' && (e.ctrlKey || e.metaKey) && selectedId) { e.preventDefault(); changeLayer(selectedId, 'down'); return; }
+
+      // Lock/Unlock
+      if (k === 'l' && (e.ctrlKey || e.metaKey) && selectedId) {
+        e.preventDefault();
+        const el = activeSlide.elements.find(el => el.id === selectedId);
+        if (el) updateElement({ ...el, locked: !el.locked });
+        return;
+      }
+
+      // Save
+      if (k === 's' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleSave(); return; }
+
+      // Arrow key nudge (moves all selected)
+      if (selectedIds.length > 0 && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+        if (selectedIds.length > 1) {
+          updateSlide(s => ({
+            ...s,
+            elements: s.elements.map(el => {
+              if (!selectedIds.includes(el.id) || el.locked) return el;
+              return { ...el, x: el.x + dx, y: el.y + dy };
+            }),
+          }));
+        } else if (selectedId) {
+          const el = activeSlide.elements.find(el => el.id === selectedId);
+          if (!el || el.locked) return;
+          updateElement({ ...el, x: el.x + dx, y: el.y + dy });
+        }
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [selectedId, activeSlide]);
+  }, [selectedIds, selectedId, activeSlide, undo, redo, groupSelected, ungroupSelected, deleteElements, updateSlide]);
 
   const seo = calcSeo(meta, slides);
   const seoColor = seo >= 80 ? 'text-green-400' : seo >= 50 ? 'text-yellow-400' : 'text-red-400';
@@ -853,6 +1410,10 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
 
   return (
     <div className="h-screen flex flex-col bg-[#1a1a1a] overflow-hidden" style={{ fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
+      {/* Google Fonts */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link href={GOOGLE_FONTS_URL} rel="stylesheet" />
       <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleAddImage} />
       <input ref={bgImgInputRef} type="file" accept="image/*,video/mp4,video/webm" className="hidden" onChange={handleBgUpload} />
       <input ref={shapeImgInputRef} type="file" accept="image/*" className="hidden" onChange={handleShapeImgUpload} />
@@ -876,6 +1437,10 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
         <div className="flex items-center gap-2">
           {msg && <span className={`text-xs font-medium px-2 py-1 rounded-full ${msg.type === 'ok' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{msg.text}</span>}
           <span className={`text-xs font-bold ${seoColor}`}>SEO {seo}</span>
+          <button onClick={() => setShowGrid(v => !v)} title="Toggle Grid"
+            className={`px-2 py-1.5 text-xs rounded-lg transition ${showGrid ? 'bg-white/20 text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white'}`}>
+            ⊞ Grid
+          </button>
           <button onClick={() => window.open(`/admin/web-stories/preview/${initialData?.id || ''}`, '_blank')} disabled={mode === 'create'}
             className="flex items-center gap-1.5 px-3 py-1.5 text-gray-300 hover:text-white text-xs rounded-lg hover:bg-white/10 transition disabled:opacity-30">
             <Eye className="w-3.5 h-3.5" /> Preview
@@ -961,6 +1526,56 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 </button>
               </div>
 
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Templates</p>
+                <p className="text-[10px] text-gray-600 mb-2">Replaces current slide elements</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {TEMPLATES.map(tpl => (
+                    <button key={tpl.name} onClick={() => applyTemplate(tpl)}
+                      className="flex flex-col items-center gap-1.5 py-3 bg-white/5 hover:bg-indigo-500/20 hover:border-indigo-500/40 border border-transparent rounded-xl transition text-center">
+                      <span className="text-lg">{tpl.icon}</span>
+                      <span className="text-[10px] text-gray-400">{tpl.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Distribute */}
+              {activeSlide.elements.length >= 3 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Distribute</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={distributeH} className="py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs text-gray-300 transition">⟷ Horizontal</button>
+                    <button onClick={distributeV} className="py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs text-gray-300 transition">⟸⟹ Vertical</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Saved Colors Palette */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Color Palette</p>
+                  {selectedEl?.color && (
+                    <button onClick={() => saveColor(selectedEl.color!)} className="text-[10px] text-indigo-400 hover:text-indigo-300">+ Save current</button>
+                  )}
+                </div>
+                {savedColors.length === 0
+                  ? <p className="text-[11px] text-gray-600 text-center py-2">Select element color then click Save</p>
+                  : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {savedColors.map(c => (
+                        <div key={c} className="relative group">
+                          <button
+                            onClick={() => selectedEl && updateElement({ ...selectedEl, color: c })}
+                            className="w-7 h-7 rounded-lg border border-white/20 hover:ring-2 hover:ring-white/40 transition"
+                            style={{ backgroundColor: c }} title={c} />
+                          <button onClick={() => removeColor(c)} className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full text-white text-[8px] hidden group-hover:flex items-center justify-center">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+              </div>
+
               {activeSlide.elements.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -969,10 +1584,12 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                   </div>
                   <div className="space-y-1">
                     {[...activeSlide.elements].sort((a, b) => b.z - a.z).map(el => (
-                      <div key={el.id} onClick={() => setSelectedId(el.id)}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-xs transition ${selectedId === el.id ? 'bg-indigo-600/30 text-indigo-200' : 'hover:bg-white/5 text-gray-400'}`}>
+                      <div key={el.id}
+                        onClick={ev => { if (ev.shiftKey) toggleSelect(el.id); else if (el.groupId) selectGroup(el.groupId); else selectOne(el.id); }}
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-xs transition ${selectedId === el.id ? 'bg-indigo-600/30 text-indigo-200' : selectedIds.includes(el.id) ? 'bg-indigo-600/15 text-indigo-300' : 'hover:bg-white/5 text-gray-400'}`}>
                         {(el.type === 'text' || el.type === 'button') ? <Type className="w-3 h-3" /> : el.type === 'image' ? <ImageIcon className="w-3 h-3" /> : <Square className="w-3 h-3" />}
                         <span className="truncate flex-1">{(el.type === 'text' || el.type === 'button') ? (el.content?.slice(0, 16) || el.type) : (el.shapeType || el.type)}</span>
+                        {el.groupId && <span className="text-[8px] text-amber-400/80 border border-amber-400/30 rounded px-0.5 flex-shrink-0">G</span>}
                         {el.animation && <Sparkles className="w-2.5 h-2.5 text-indigo-400" />}
                         <button onClick={e => { e.stopPropagation(); deleteElement(el.id); }} className="hover:text-red-400">×</button>
                       </div>
@@ -1009,7 +1626,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 </div>
               )}
               {(activeSlide.bgType === 'IMAGE' || activeSlide.bgType === 'VIDEO') && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {activeSlide.bgImage && <img src={activeSlide.bgImage} alt="" className="w-full h-24 object-cover rounded-xl" />}
                   {activeSlide.bgVideo && <video src={activeSlide.bgVideo} className="w-full h-24 object-cover rounded-xl" muted />}
                   <button onClick={() => bgImgInputRef.current?.click()} disabled={uploading} className="w-full py-2.5 border border-dashed border-white/20 text-gray-400 hover:text-white hover:border-white/40 rounded-xl text-xs flex items-center justify-center gap-2 transition disabled:opacity-50">
@@ -1018,6 +1635,50 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                   {(activeSlide.bgImage || activeSlide.bgVideo) && (
                     <button onClick={() => updateSlide(s => ({ ...s, bgImage: null, bgVideo: null }))} className="w-full py-1 text-xs text-red-400 hover:text-red-300">Remove</button>
                   )}
+                  {activeSlide.bgType === 'IMAGE' && activeSlide.bgImage && (<>
+                    {/* Opacity */}
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                        <span>Opacity</span><span>{Math.round((activeSlide.bgImageOpacity ?? 1) * 100)}%</span>
+                      </div>
+                      <input type="range" min={0} max={1} step={0.05} value={activeSlide.bgImageOpacity ?? 1}
+                        onChange={e => updateSlide(s => ({ ...s, bgImageOpacity: Number(e.target.value) }))}
+                        className="w-full accent-indigo-500" />
+                    </div>
+                    {/* Blur */}
+                    <div>
+                      <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                        <span>Blur</span><span>{activeSlide.bgBlur ?? 0}px</span>
+                      </div>
+                      <input type="range" min={0} max={20} step={1} value={activeSlide.bgBlur ?? 0}
+                        onChange={e => updateSlide(s => ({ ...s, bgBlur: Number(e.target.value) }))}
+                        className="w-full accent-indigo-500" />
+                    </div>
+                    {/* Fit */}
+                    <div>
+                      <p className="text-[10px] text-gray-400 mb-1.5">Fit</p>
+                      <div className="grid grid-cols-3 gap-1">
+                        {(['cover','contain','fill'] as const).map(f => (
+                          <button key={f} onClick={() => updateSlide(s => ({ ...s, bgImageFit: f }))}
+                            className={`py-1 rounded-lg text-[10px] capitalize transition ${(activeSlide.bgImageFit||'cover')===f ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>{f}</button>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Position */}
+                    <div>
+                      <p className="text-[10px] text-gray-400 mb-1.5">Position</p>
+                      <div className="grid grid-cols-3 gap-1">
+                        {([
+                          {l:'↖',v:'top left'},{l:'↑',v:'top center'},{l:'↗',v:'top right'},
+                          {l:'←',v:'center left'},{l:'·',v:'center'},{l:'→',v:'center right'},
+                          {l:'↙',v:'bottom left'},{l:'↓',v:'bottom center'},{l:'↘',v:'bottom right'},
+                        ]).map(p => (
+                          <button key={p.v} onClick={() => updateSlide(s => ({ ...s, bgImagePosition: p.v }))}
+                            className={`py-1.5 rounded-lg text-sm transition ${(activeSlide.bgImagePosition||'center')===p.v ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>{p.l}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </>)}
                 </div>
               )}
               {selectedEl?.type === 'shape' && (
@@ -1034,6 +1695,27 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                   </button>
                 </div>
               )}
+              {/* Color Overlay (works on all bg types) */}
+              <div className="border-t border-white/10 pt-4 space-y-2">
+                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest">Color Overlay</p>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={activeSlide.bgOverlayColor || '#000000'}
+                    onChange={e => updateSlide(s => ({ ...s, bgOverlayColor: e.target.value, bgOverlayOpacity: s.bgOverlayOpacity ?? 0.3 }))}
+                    className="w-8 h-8 rounded-lg border-0 cursor-pointer p-0.5 bg-transparent" />
+                  <div className="flex-1">
+                    <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                      <span>Opacity</span><span>{Math.round((activeSlide.bgOverlayOpacity ?? 0) * 100)}%</span>
+                    </div>
+                    <input type="range" min={0} max={1} step={0.05} value={activeSlide.bgOverlayOpacity ?? 0}
+                      onChange={e => updateSlide(s => ({ ...s, bgOverlayOpacity: Number(e.target.value) }))}
+                      className="w-full accent-indigo-500" />
+                  </div>
+                  {(activeSlide.bgOverlayOpacity ?? 0) > 0 && (
+                    <button onClick={() => updateSlide(s => ({ ...s, bgOverlayOpacity: 0 }))} className="text-[10px] text-red-400 hover:text-red-300">Clear</button>
+                  )}
+                </div>
+              </div>
+
               <div className="border-t border-white/10 pt-4 space-y-1.5">
                 <div className="flex justify-between text-xs"><span className="text-gray-400">Slide Duration</span><span className="text-white font-medium">{activeSlide.duration}s</span></div>
                 <input type="range" min={3} max={30} value={activeSlide.duration} onChange={e => updateSlide(s => ({ ...s, duration: Number(e.target.value) }))} className="w-full accent-indigo-500" />
@@ -1060,13 +1742,122 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 {meta.coverImage && <img src={meta.coverImage} alt="" className="w-full h-24 object-cover rounded-xl mb-2" />}
                 <button onClick={() => coverInputRef.current?.click()} className="w-full py-2 border border-dashed border-white/20 text-gray-400 hover:text-white rounded-xl text-xs flex items-center justify-center gap-1.5 transition"><Upload className="w-3 h-3" /> Upload Cover</button>
               </div>
+
+              {/* Targeting */}
+              <div className="pt-2 border-t border-white/10">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Targeting <span className="text-[10px] font-normal text-gray-600 normal-case">(optional)</span></p>
+
+                {/* Services */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs text-gray-400">Services</label>
+                    <div className="flex items-center gap-2">
+                      {servicesList.length > 0 && (
+                        <button
+                          onClick={() => setMeta(m => ({
+                            ...m,
+                            targetServices: m.targetServices.length === servicesList.length ? [] : servicesList.map((s: any) => s.slug)
+                          }))}
+                          className="text-[10px] text-indigo-400 hover:text-indigo-300 transition">
+                          {meta.targetServices.length === servicesList.length ? 'Deselect All' : 'Select All'}
+                        </button>
+                      )}
+                      {meta.targetServices.length > 0 && meta.targetServices.length < servicesList.length && (
+                        <button onClick={() => setMeta(m => ({ ...m, targetServices: [] }))} className="text-[10px] text-gray-500 hover:text-red-400 transition">Clear</button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-gray-600 mb-2">{meta.targetServices.length === 0 ? 'All services (default)' : `${meta.targetServices.length} of ${servicesList.length} selected`}</p>
+                  {servicesList.length === 0 ? (
+                    <p className="text-[10px] text-gray-600 italic">Loading...</p>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        placeholder="Search services..."
+                        value={serviceSearch}
+                        onChange={e => setServiceSearch(e.target.value)}
+                        className="w-full bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 placeholder-gray-600 mb-1.5"
+                      />
+                    <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+                      {servicesList.filter((s: any) => s.name.toLowerCase().includes(serviceSearch.toLowerCase())).map((svc: any) => (
+                        <label key={svc.id} className="flex items-center gap-2 cursor-pointer group">
+                          <input type="checkbox"
+                            checked={meta.targetServices.includes(svc.slug)}
+                            onChange={e => setMeta(m => ({
+                              ...m,
+                              targetServices: e.target.checked
+                                ? [...m.targetServices, svc.slug]
+                                : m.targetServices.filter(s => s !== svc.slug)
+                            }))}
+                            className="accent-indigo-500 w-3 h-3 flex-shrink-0" />
+                          <span className="text-[11px] text-gray-300 group-hover:text-white transition truncate">{svc.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Locations */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs text-gray-400">Locations</label>
+                    <div className="flex items-center gap-2">
+                      {locationsList.length > 0 && (
+                        <button
+                          onClick={() => setMeta(m => ({
+                            ...m,
+                            targetLocations: m.targetLocations.length === locationsList.length ? [] : locationsList.map((l: any) => l.slug)
+                          }))}
+                          className="text-[10px] text-indigo-400 hover:text-indigo-300 transition">
+                          {meta.targetLocations.length === locationsList.length ? 'Deselect All' : 'Select All'}
+                        </button>
+                      )}
+                      {meta.targetLocations.length > 0 && meta.targetLocations.length < locationsList.length && (
+                        <button onClick={() => setMeta(m => ({ ...m, targetLocations: [] }))} className="text-[10px] text-gray-500 hover:text-red-400 transition">Clear</button>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-gray-600 mb-2">{meta.targetLocations.length === 0 ? 'All locations (default)' : `${meta.targetLocations.length} of ${locationsList.length} selected`}</p>
+                  {locationsList.length === 0 ? (
+                    <p className="text-[10px] text-gray-600 italic">Loading...</p>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        placeholder="Search locations..."
+                        value={locationSearch}
+                        onChange={e => setLocationSearch(e.target.value)}
+                        className="w-full bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 placeholder-gray-600 mb-1.5"
+                      />
+                    <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+                      {locationsList.filter((l: any) => l.name.toLowerCase().includes(locationSearch.toLowerCase())).map((loc: any) => (
+                        <label key={loc.id} className="flex items-center gap-2 cursor-pointer group">
+                          <input type="checkbox"
+                            checked={meta.targetLocations.includes(loc.slug)}
+                            onChange={e => setMeta(m => ({
+                              ...m,
+                              targetLocations: e.target.checked
+                                ? [...m.targetLocations, loc.slug]
+                                : m.targetLocations.filter(l => l !== loc.slug)
+                            }))}
+                            className="accent-indigo-500 w-3 h-3 flex-shrink-0" />
+                          <span className="text-[11px] text-gray-300 group-hover:text-white transition truncate">{loc.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>
 
         {/* Center Canvas */}
         <div className="flex-1 flex flex-col overflow-hidden bg-[#1e1e1e]">
-          <div ref={containerRef} className="flex-1 flex items-center justify-center overflow-hidden" onClick={() => setSelectedId(null)}>
+          <div ref={containerRef} className="flex-1 flex items-center justify-center overflow-hidden" onClick={() => setSelectedIds([])}>
             <div style={{ position: 'relative', width: CANVAS_W * scale, height: CANVAS_H * scale, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
               <div ref={canvasRef} className="overflow-visible shadow-2xl rounded-sm"
                 style={{ width: CANVAS_W, height: CANVAS_H, transform: `scale(${scale})`, transformOrigin: 'top left' }}
@@ -1076,20 +1867,48 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                   <SlideBg s={activeSlide} />
                 </div>
                 {activeSlide.elements.sort((a, b) => a.z - b.z).map(el => (
-                  <CanvasEl key={el.id} el={el} selected={selectedId === el.id} scale={scale}
+                  <CanvasEl key={el.id} el={el}
+                    selected={selectedIds.length === 1 && selectedId === el.id}
+                    multiSelected={selectedIds.length > 1 && selectedIds.includes(el.id)}
+                    scale={scale}
                     canvasRef={canvasRef}
-                    onSelect={() => setSelectedId(el.id)} onChange={updateElement}
+                    onSelect={() => { if (el.groupId) selectGroup(el.groupId); else selectOne(el.id); }}
+                    onShiftSelect={() => toggleSelect(el.id)}
+                    onChange={updateElement}
                     onDblClick={() => {
                       if (el.type === 'text' || el.type === 'button') setEditingId(el.id);
                       else if (el.type === 'image' && el.src) setPanImageId(el.id);
                     }}
                     onDragMove={handleElementDrag} onDragEnd={handleDragEnd}
-                    dropHighlight={dropTargetId === el.id} />
+                    dropHighlight={dropTargetId === el.id} onSnapshot={snapshot}
+                    onMultiDragStart={selectedIds.length > 1 ? handleMultiDragStart : undefined}
+                    onMultiMove={selectedIds.length > 1 ? handleMultiMove : undefined} />
                 ))}
+                {/* Multi-select bounding box */}
+                {selectedIds.length > 1 && (() => {
+                  const els = activeSlide.elements.filter(e => selectedIds.includes(e.id));
+                  if (!els.length) return null;
+                  const pad = 8;
+                  const minX = Math.min(...els.map(e => e.x)) - pad;
+                  const minY = Math.min(...els.map(e => e.y)) - pad;
+                  const maxX = Math.max(...els.map(e => e.x + e.w)) + pad;
+                  const maxY = Math.max(...els.map(e => e.y + e.h)) + pad;
+                  return (
+                    <div style={{ position: 'absolute', left: minX, top: minY, width: maxX - minX, height: maxY - minY, border: '1.5px dashed #818cf8', borderRadius: 6, pointerEvents: 'none', zIndex: 9990 }} />
+                  );
+                })()}
+                {/* Grid overlay */}
+                {showGrid && (
+                  <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 9000, backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '30px 30px' }}>
+                    {/* Center guides */}
+                    <div className="absolute" style={{ left: CANVAS_W/2 - 0.5, top: 0, width: 1, height: '100%', background: 'rgba(99,102,241,0.4)' }} />
+                    <div className="absolute" style={{ top: CANVAS_H/2 - 0.5, left: 0, height: 1, width: '100%', background: 'rgba(99,102,241,0.4)' }} />
+                  </div>
+                )}
               </div>
               {/* FloatingToolbar outside scaled canvas — positioned in visual pixels */}
-              {selectedEl && (
-                <FloatingToolbar el={selectedEl} scale={scale} onChange={updateElement} canvasRef={canvasRef} onShapeImageFill={() => shapeImgInputRef.current?.click()} />
+              {selectedEl && selectedIds.length === 1 && (
+                <FloatingToolbar el={selectedEl} scale={scale} onChange={updateElement} canvasRef={canvasRef} onShapeImageFill={() => shapeImgInputRef.current?.click()} onSnapshot={snapshot} />
               )}
             </div>
           </div>
@@ -1099,12 +1918,33 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
             <span className="text-gray-500 text-xs font-medium whitespace-nowrap flex-shrink-0">{activeIdx + 1} / {slides.length}</span>
             <div className="flex items-center gap-2">
               {slides.map((s, i) => (
-                <SlideThumbnail key={s.id} s={s} idx={i} selected={i === activeIdx}
-                  onClick={() => { setActiveIdx(i); setSelectedId(null); }}
-                  onDelete={() => { if (slides.length <= 1) return; setSlides(prev => prev.filter((_, idx) => idx !== i)); setActiveIdx(Math.max(0, i - 1)); setSelectedId(null); }}
-                  onDuplicate={() => duplicateSlide(i)} />
+                <div
+                  key={s.id}
+                  draggable
+                  onDragStart={() => setDragSlideIdx(i)}
+                  onDragEnd={() => { setDragSlideIdx(null); setDragOverIdx(null); }}
+                  onDragOver={e => { e.preventDefault(); setDragOverIdx(i); }}
+                  onDrop={() => {
+                    if (dragSlideIdx === null || dragSlideIdx === i) return;
+                    snapshot();
+                    setSlides(prev => {
+                      const arr = [...prev];
+                      const [removed] = arr.splice(dragSlideIdx, 1);
+                      arr.splice(i, 0, removed);
+                      return arr.map((sl, idx) => ({ ...sl, order: idx }));
+                    });
+                    setActiveIdx(i);
+                    setDragSlideIdx(null); setDragOverIdx(null);
+                  }}
+                  className={`transition-all ${dragOverIdx === i && dragSlideIdx !== i ? 'ring-2 ring-indigo-400 rounded-lg scale-95' : ''}`}
+                >
+                  <SlideThumbnail s={s} idx={i} selected={i === activeIdx}
+                    onClick={() => { setActiveIdx(i); setSelectedIds([]); }}
+                    onDelete={() => { if (slides.length <= 1) return; snapshot(); setSlides(prev => prev.filter((_, idx) => idx !== i)); setActiveIdx(Math.max(0, i - 1)); setSelectedIds([]); }}
+                    onDuplicate={() => duplicateSlide(i)} />
+                </div>
               ))}
-              <button onClick={() => { setSlides(prev => [...prev, blankSlide(prev.length)]); setActiveIdx(slides.length); setSelectedId(null); }}
+              <button onClick={() => { setSlides(prev => [...prev, blankSlide(prev.length)]); setActiveIdx(slides.length); setSelectedIds([]); }}
                 className="flex-shrink-0 w-[72px] h-[128px] border-2 border-dashed border-white/20 hover:border-indigo-400 text-white/30 hover:text-indigo-400 rounded-lg flex items-center justify-center transition">
                 <Plus className="w-6 h-6" />
               </button>
@@ -1118,10 +1958,24 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
             <>
               <button onClick={() => duplicateElement(selectedEl.id)} title="Duplicate (Ctrl+D)"
                 className="w-9 h-9 hover:bg-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white transition"><Copy className="w-4 h-4" /></button>
-              <button onClick={() => changeLayer(selectedEl.id, 'up')} title="Forward"
+              {selectedIds.length >= 2 && (
+                <button onClick={groupSelected} title="Group selection (Ctrl+G)"
+                  className="w-9 h-9 hover:bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400 hover:text-indigo-200 transition text-[10px] font-bold border border-indigo-500/30">G</button>
+              )}
+              {selectedEl?.groupId && (
+                <button onClick={ungroupSelected} title="Ungroup (Ctrl+Shift+G)"
+                  className="w-9 h-9 hover:bg-amber-500/20 rounded-xl flex items-center justify-center text-amber-400 hover:text-amber-200 transition text-[10px] font-bold border border-amber-500/30">UG</button>
+              )}
+              <button onClick={() => changeLayer(selectedEl.id, 'up')} title="Forward (Ctrl+])"
                 className="w-9 h-9 hover:bg-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white transition"><ArrowUp className="w-4 h-4" /></button>
-              <button onClick={() => changeLayer(selectedEl.id, 'down')} title="Back"
+              <button onClick={() => changeLayer(selectedEl.id, 'down')} title="Back (Ctrl+[)"
                 className="w-9 h-9 hover:bg-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white transition"><ArrowDown className="w-4 h-4" /></button>
+              <div className="w-6 h-px bg-white/10 my-0.5" />
+              {/* Lock/Unlock */}
+              <button onClick={() => updateElement({ ...selectedEl, locked: !selectedEl.locked })} title={selectedEl.locked ? 'Unlock' : 'Lock element'}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${selectedEl.locked ? 'bg-amber-500/30 text-amber-300' : 'hover:bg-white/10 text-gray-400 hover:text-white'}`}>
+                {selectedEl.locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+              </button>
               <div className="w-6 h-px bg-white/10 my-0.5" />
               {/* Flip H */}
               <button onClick={() => updateElement({ ...selectedEl, flipX: !selectedEl.flipX })} title="Flip Horizontal"
@@ -1134,7 +1988,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 <FlipVertical className="w-4 h-4" />
               </button>
               <div className="w-6 h-px bg-white/10 my-0.5" />
-              <button onClick={() => deleteElement(selectedEl.id)} title="Delete (Del)"
+              <button onClick={() => selectedIds.length > 1 ? deleteElements(selectedIds) : deleteElement(selectedEl.id)} title="Delete (Del)"
                 className="w-9 h-9 hover:bg-red-500/20 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-400 transition"><Trash2 className="w-4 h-4" /></button>
               <div className="mt-auto px-1 w-full flex flex-col items-center gap-1 pb-2">
                 <span className="text-[9px] text-gray-500 uppercase tracking-wide">Opacity</span>

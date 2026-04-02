@@ -520,8 +520,18 @@ export async function PATCH(
           );
         }
 
-        updateData = { vendorNotes: data.vendorNotes };
-        message = 'Notes updated successfully';
+        {
+          const newNote = { text: data.vendorNotes, sentAt: new Date().toISOString() };
+          let existing: any[] = [];
+          try {
+            if (booking.vendorNotes) existing = JSON.parse(booking.vendorNotes);
+            if (!Array.isArray(existing)) existing = [{ text: booking.vendorNotes, sentAt: booking.updatedAt?.toISOString() || new Date().toISOString() }];
+          } catch {
+            if (booking.vendorNotes) existing = [{ text: booking.vendorNotes, sentAt: new Date().toISOString() }];
+          }
+          updateData = { vendorNotes: JSON.stringify([...existing, newNote]) };
+        }
+        message = 'Note sent successfully';
         break;
 
       case 'update_driver':
@@ -560,6 +570,41 @@ export async function PATCH(
       where: { bookingNumber },
       data: updateData,
     });
+
+    // Send vendor notes notification to customer
+    if (action === 'update_notes' && updatedBooking.customerId && data.vendorNotes) {
+      try {
+        const noteText: string = data.vendorNotes;
+        const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
+        await prisma.notifications.create({
+          data: {
+            id: notificationId,
+            customerId: updatedBooking.customerId,
+            title: '📋 Message from your Vendor',
+            body: `Your vendor sent a note on booking ${updatedBooking.bookingNumber}: "${noteText.slice(0, 100)}${noteText.length > 100 ? '...' : ''}"`,
+            type: 'booking',
+            serviceType: 'chauffeur-service',
+            bookingId: updatedBooking.id,
+            isRead: false,
+          },
+        });
+        await sendNotificationToCustomer(
+          updatedBooking.customerId,
+          {
+            title: '📋 Message from your Vendor',
+            body: `Your vendor has added a note to your booking ${updatedBooking.bookingNumber}. Tap to view.`,
+          },
+          {
+            type: 'vendor_notes',
+            serviceType: 'chauffeur-service',
+            bookingId: updatedBooking.id,
+            bookingNumber: updatedBooking.bookingNumber,
+          }
+        );
+      } catch (notificationError: any) {
+        console.error('❌ Vendor notes notification error:', notificationError);
+      }
+    }
 
     // Send driver assigned notification
     if (action === 'assign_driver') {
