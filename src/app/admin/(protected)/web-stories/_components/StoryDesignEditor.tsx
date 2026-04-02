@@ -361,7 +361,7 @@ function renderElInner(el: CE): React.ReactNode {
           )}
         </div>
       )
-      : <div className="w-full h-full bg-gray-700 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-600"><ImageIcon className="w-8 h-8 text-gray-400" /></div>;
+      : <div className="w-full h-full bg-slate-100 flex items-center justify-center rounded-lg border-2 border-dashed border-slate-300"><ImageIcon className="w-8 h-8 text-slate-400" /></div>;
   }
 
   if (el.type === 'sticker') {
@@ -419,13 +419,13 @@ function InsertSection({ label, sKey, open, toggle, children }: {
 }) {
   const isOpen = open.has(sKey);
   return (
-    <div className="border border-white/8 rounded-xl overflow-hidden">
+    <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
       <button onClick={() => toggle(sKey)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-white/5 hover:bg-white/10 transition text-left">
-        <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wider">{label}</span>
-        <span className={`text-gray-500 text-xs transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▾</span>
+        className="w-full flex items-center justify-between px-3 py-2 bg-slate-50 hover:bg-slate-100 transition text-left">
+        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{label}</span>
+        <span className={`text-slate-400 text-xs transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>▾</span>
       </button>
-      {isOpen && <div className="p-2.5">{children}</div>}
+      {isOpen && <div className="p-2.5 bg-white">{children}</div>}
     </div>
   );
 }
@@ -593,7 +593,7 @@ function SlideThumbnail({ s, idx, selected, onClick, onDelete, onDuplicate }: {
   const ts = 72 / CANVAS_W;
   return (
     <div className="relative flex-shrink-0 group cursor-pointer" onClick={onClick}>
-      <div className={`overflow-hidden rounded-lg ${selected ? 'ring-2 ring-indigo-400' : 'ring-1 ring-white/10'}`} style={{ width: 72, height: 128 }}>
+      <div className={`overflow-hidden rounded-lg ${selected ? 'ring-2 ring-indigo-400' : 'ring-1 ring-slate-200'}`} style={{ width: 72, height: 128 }}>
         <div style={{ width: CANVAS_W, height: CANVAS_H, transform: `scale(${ts})`, transformOrigin: 'top left', position: 'absolute', pointerEvents: 'none' }}>
           <SlideBg s={s}>
             {s.elements.sort((a, b) => a.z - b.z).map(el => (
@@ -668,61 +668,61 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
   };
 
   return (
-    <div ref={toolbarRef} className="absolute z-50 bg-[#2a2a2a] border border-white/10 rounded-xl shadow-2xl overflow-visible"
+    <div ref={toolbarRef} className="absolute z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl shadow-slate-300/60 overflow-visible"
       style={finalStyle} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
 
       {/* Drag handle */}
       <div
-        className="flex items-center justify-center gap-1 py-1 cursor-grab active:cursor-grabbing border-b border-white/10 select-none"
+        className="flex items-center justify-center gap-1 py-1 cursor-grab active:cursor-grabbing border-b border-slate-100 select-none bg-slate-50 rounded-t-2xl"
         onMouseDown={handleGripDrag}
         title="Drag to reposition toolbar"
       >
-        <GripVertical className="w-3.5 h-3.5 text-gray-600" />
-        <span className="text-[9px] text-gray-700 uppercase tracking-widest">drag</span>
-        <GripVertical className="w-3.5 h-3.5 text-gray-600" />
+        <GripVertical className="w-3.5 h-3.5 text-slate-300" />
+        <span className="text-[9px] text-slate-400 uppercase tracking-widest">drag</span>
+        <GripVertical className="w-3.5 h-3.5 text-slate-300" />
       </div>
 
       {/* ROW 1: Text formatting */}
       {(el.type === 'text' || el.type === 'button') && (
-        <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-white/10 flex-wrap">
+        <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-slate-100 flex-wrap">
           <select value={el.fontFamily || 'inherit'} onChange={e => onChange({ ...el, fontFamily: e.target.value })}
-            className="text-xs border-0 outline-none bg-transparent text-gray-300 max-w-[76px] cursor-pointer">
-            {FONTS.map(f => <option key={f.value} value={f.value} className="bg-gray-800">{f.label}</option>)}
+            className="text-xs border-0 outline-none bg-transparent text-slate-700 max-w-[76px] cursor-pointer">
+            {FONTS.map(f => <option key={f.value} value={f.value} className="bg-white text-slate-800">{f.label}</option>)}
           </select>
-          <div className="w-px h-4 bg-white/10 mx-0.5" />
+          <div className="w-px h-4 bg-slate-200 mx-0.5" />
           <input type="number" value={el.fontSize || 24} min={8} max={120}
             onChange={e => onChange({ ...el, fontSize: Number(e.target.value) })}
-            className="w-11 text-xs text-center bg-white/10 text-white border border-white/10 rounded px-1 py-0.5 outline-none" />
-          <div className="w-px h-4 bg-white/10 mx-0.5" />
+            className="w-11 text-xs text-center bg-slate-50 text-slate-800 border border-slate-200 rounded px-1 py-0.5 outline-none focus:border-indigo-400" />
+          <div className="w-px h-4 bg-slate-200 mx-0.5" />
           {[{ icon: <Bold className="w-3.5 h-3.5" />, k: 'bold' as const }, { icon: <Italic className="w-3.5 h-3.5" />, k: 'italic' as const }, { icon: <Underline className="w-3.5 h-3.5" />, k: 'underline' as const }].map(({ icon, k }) => (
             <button key={k} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, [k]: !el[k] }); }}
-              className={`w-7 h-7 rounded flex items-center justify-center ${el[k] ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-white/10 text-gray-400'}`}>{icon}</button>
+              className={`w-7 h-7 rounded-lg flex items-center justify-center ${el[k] ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-slate-100 text-slate-500'}`}>{icon}</button>
           ))}
-          <div className="w-px h-4 bg-white/10 mx-0.5" />
+          <div className="w-px h-4 bg-slate-200 mx-0.5" />
           {[{ icon: <AlignLeft className="w-3.5 h-3.5" />, v: 'left' as const }, { icon: <AlignCenter className="w-3.5 h-3.5" />, v: 'center' as const }, { icon: <AlignRight className="w-3.5 h-3.5" />, v: 'right' as const }].map(({ icon, v }) => (
             <button key={v} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, align: v }); }}
-              className={`w-7 h-7 rounded flex items-center justify-center ${(el.align || 'center') === v ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-white/10 text-gray-400'}`}>{icon}</button>
+              className={`w-7 h-7 rounded-lg flex items-center justify-center ${(el.align || 'center') === v ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-slate-100 text-slate-500'}`}>{icon}</button>
           ))}
-          <div className="w-px h-4 bg-white/10 mx-0.5" />
+          <div className="w-px h-4 bg-slate-200 mx-0.5" />
           <input type="color" value={el.color || '#ffffff'} onChange={e => onChange({ ...el, color: e.target.value })}
-            className="w-6 h-6 rounded cursor-pointer border border-white/20 p-0.5 bg-transparent" title="Text color" />
+            className="w-6 h-6 rounded-lg cursor-pointer border border-slate-200 p-0.5 bg-transparent" title="Text color" />
           <input type="range" min={0} max={1} step={0.05} value={el.colorAlpha ?? 1}
             onChange={e => onChange({ ...el, colorAlpha: Number(e.target.value) })}
             className="w-12 accent-indigo-500" />
-          <div className="w-px h-4 bg-white/10 mx-0.5" />
+          <div className="w-px h-4 bg-slate-200 mx-0.5" />
           {/* Letter spacing */}
           <div className="flex items-center gap-1" title="Letter Spacing">
-            <span className="text-[10px] text-gray-500">LS</span>
+            <span className="text-[10px] text-slate-400">LS</span>
             <input type="range" min={-5} max={20} step={0.5} value={el.letterSpacing ?? 0}
               onChange={e => onChange({ ...el, letterSpacing: Number(e.target.value) })}
               className="w-14 accent-indigo-500" />
-            <span className="text-[9px] text-gray-500 w-5">{el.letterSpacing ?? 0}</span>
+            <span className="text-[9px] text-slate-500 w-5">{el.letterSpacing ?? 0}</span>
           </div>
-          <div className="w-px h-4 bg-white/10 mx-0.5" />
+          <div className="w-px h-4 bg-slate-200 mx-0.5" />
           {/* Text Transform */}
           {(['none','uppercase','lowercase','capitalize'] as const).map(t => (
             <button key={t} onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, textTransform: t }); }}
-              className={`px-1.5 py-0.5 rounded text-[9px] font-medium transition ${(el.textTransform || 'none') === t ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-white/10 text-gray-500'}`}>
+              className={`px-1.5 py-0.5 rounded-md text-[9px] font-medium transition ${(el.textTransform || 'none') === t ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-slate-100 text-slate-400'}`}>
               {t === 'none' ? 'Aa' : t === 'uppercase' ? 'AA' : t === 'lowercase' ? 'aa' : 'Abc'}
             </button>
           ))}
@@ -731,40 +731,40 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
 
       {/* ROW 1b: Sticker size */}
       {el.type === 'sticker' && (
-        <div className="flex items-center gap-2 px-2 py-1.5 border-b border-white/10">
+        <div className="flex items-center gap-2 px-2 py-1.5 border-b border-slate-100">
           <span className="text-xl leading-none flex-shrink-0">{el.content}</span>
-          <span className="text-[10px] text-gray-500 flex-shrink-0">Size</span>
+          <span className="text-[10px] text-slate-500 flex-shrink-0">Size</span>
           <input type="range" min={20} max={200} step={4} value={el.fontSize || 64}
             onMouseDown={ev => ev.stopPropagation()}
             onChange={e => onChange({ ...el, fontSize: Number(e.target.value) })}
             className="flex-1 accent-indigo-500" />
-          <span className="text-[10px] text-gray-400 w-7 text-right">{el.fontSize || 64}px</span>
+          <span className="text-[10px] text-slate-400 w-7 text-right">{el.fontSize || 64}px</span>
         </div>
       )}
 
       {/* ROW 2: BG, border, radius, href, stroke */}
-      <div className="flex items-center gap-1.5 px-2 py-1.5 flex-wrap border-b border-white/10">
+      <div className="flex items-center gap-1.5 px-2 py-1.5 flex-wrap border-b border-slate-100">
         {el.type === 'button' && (
           <div className="flex items-center gap-1">
-            <Square className="w-3 h-3 text-gray-500" />
+            <Square className="w-3 h-3 text-slate-400" />
             <input type="color" value={el.bgColor || '#fff'} onChange={e => onChange({ ...el, bgColor: e.target.value })}
-              className="w-6 h-6 rounded cursor-pointer border border-white/20 p-0.5 bg-transparent" />
+              className="w-6 h-6 rounded-lg cursor-pointer border border-slate-200 p-0.5 bg-transparent" />
             <input type="range" min={0} max={1} step={0.05} value={el.bgAlpha ?? 1}
               onChange={e => onChange({ ...el, bgAlpha: Number(e.target.value) })} className="w-12 accent-indigo-500" />
           </div>
         )}
         {el.type === 'shape' && (
           <div className="flex items-center gap-1">
-            <div className="flex rounded-lg overflow-hidden border border-white/10">
+            <div className="flex rounded-lg overflow-hidden border border-slate-200">
               <button onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, filled: true }); }}
-                className={`px-2 py-0.5 text-[10px] transition ${el.filled !== false ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/10'}`}>Filled</button>
+                className={`px-2 py-0.5 text-[10px] transition ${el.filled !== false ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>Filled</button>
               <button onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, filled: false }); }}
-                className={`px-2 py-0.5 text-[10px] transition ${el.filled === false ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/10'}`}>Outline</button>
+                className={`px-2 py-0.5 text-[10px] transition ${el.filled === false ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>Outline</button>
             </div>
             {el.filled !== false && (
               <>
                 <input type="color" value={el.bgColor || '#6366f1'} onChange={e => onChange({ ...el, bgColor: e.target.value })}
-                  className="w-6 h-6 rounded cursor-pointer border border-white/20 p-0.5 bg-transparent" />
+                  className="w-6 h-6 rounded-lg cursor-pointer border border-slate-200 p-0.5 bg-transparent" />
                 <input type="range" min={0} max={1} step={0.05} value={el.bgAlpha ?? 1}
                   onChange={e => onChange({ ...el, bgAlpha: Number(e.target.value) })} className="w-14 accent-indigo-500" />
               </>
@@ -773,80 +773,80 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
         )}
         {/* Border */}
         <div className="flex items-center gap-1">
-          <span className="text-[10px] text-gray-500">B</span>
+          <span className="text-[10px] text-slate-400">B</span>
           <input type="number" value={el.borderWidth || 0} min={0} max={20}
             onChange={e => onChange({ ...el, borderWidth: Number(e.target.value) })}
-            className="w-8 text-xs text-center bg-white/10 text-white border border-white/10 rounded px-1 py-0.5 outline-none" />
+            className="w-8 text-xs text-center bg-slate-50 text-slate-800 border border-slate-200 rounded px-1 py-0.5 outline-none" />
           <input type="color" value={el.borderColor || '#ffffff'} onChange={e => onChange({ ...el, borderColor: e.target.value })}
-            className="w-6 h-6 rounded cursor-pointer border border-white/20 p-0.5 bg-transparent" />
+            className="w-6 h-6 rounded-lg cursor-pointer border border-slate-200 p-0.5 bg-transparent" />
         </div>
         {/* Radius */}
         {(!el.shapeType || el.shapeType === 'rect') && (
           <div className="flex items-center gap-1">
-            <span className="text-[10px] text-gray-500">R</span>
+            <span className="text-[10px] text-slate-400">R</span>
             <input type="range" min={0} max={el.type === 'button' ? 100 : 120}
               value={el.borderRadius ?? (el.type === 'button' ? 50 : 0)}
               onChange={e => onChange({ ...el, borderRadius: Number(e.target.value) })}
               className="w-16 accent-indigo-500" />
-            <span className="text-[10px] text-gray-400">{el.borderRadius ?? (el.type === 'button' ? 50 : 0)}</span>
+            <span className="text-[10px] text-slate-500">{el.borderRadius ?? (el.type === 'button' ? 50 : 0)}</span>
           </div>
         )}
         {/* Text stroke */}
         {(el.type === 'text' || el.type === 'button') && (
           <div className="flex items-center gap-1">
-            <span className="text-[10px] text-gray-500">Stk</span>
+            <span className="text-[10px] text-slate-400">Stk</span>
             <input type="number" value={el.textStrokeWidth || 0} min={0} max={10}
               onChange={e => onChange({ ...el, textStrokeWidth: Number(e.target.value) })}
-              className="w-8 text-xs text-center bg-white/10 text-white border border-white/10 rounded px-1 py-0.5 outline-none" />
+              className="w-8 text-xs text-center bg-slate-50 text-slate-800 border border-slate-200 rounded px-1 py-0.5 outline-none" />
             <input type="color" value={el.textStrokeColor || '#000000'} onChange={e => onChange({ ...el, textStrokeColor: e.target.value })}
-              className="w-6 h-6 rounded cursor-pointer border border-white/20 p-0.5 bg-transparent" />
+              className="w-6 h-6 rounded-lg cursor-pointer border border-slate-200 p-0.5 bg-transparent" />
           </div>
         )}
         {/* Image tint overlay */}
         {el.type === 'image' && el.src && (
-          <div className="flex items-center gap-1.5 w-full border-t border-white/10 pt-1.5 mt-0.5">
-            <span className="text-[10px] text-gray-500 flex-shrink-0">Tint</span>
+          <div className="flex items-center gap-1.5 w-full border-t border-slate-100 pt-1.5 mt-0.5">
+            <span className="text-[10px] text-slate-400 flex-shrink-0">Tint</span>
             <input type="color" value={el.tintColor || '#0044ff'}
               onChange={e => onChange({ ...el, tintColor: e.target.value, tintOpacity: el.tintOpacity ?? 0.3 })}
-              className="w-6 h-6 rounded cursor-pointer border border-white/20 p-0.5 bg-transparent flex-shrink-0" title="Tint color" />
+              className="w-6 h-6 rounded-lg cursor-pointer border border-slate-200 p-0.5 bg-transparent flex-shrink-0" title="Tint color" />
             <input type="range" min={0} max={1} step={0.05} value={el.tintOpacity ?? 0}
               onMouseDown={ev => ev.stopPropagation()}
               onChange={e => onChange({ ...el, tintOpacity: Number(e.target.value) })}
               className="flex-1 accent-indigo-500" />
-            <span className="text-[9px] text-gray-400 w-7 flex-shrink-0">{Math.round((el.tintOpacity ?? 0) * 100)}%</span>
+            <span className="text-[9px] text-slate-500 w-7 flex-shrink-0">{Math.round((el.tintOpacity ?? 0) * 100)}%</span>
             {(el.tintOpacity ?? 0) > 0 && (
               <button onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, tintOpacity: 0 }); }}
-                className="text-[10px] text-red-400 hover:text-red-300 px-1.5 py-0.5 bg-red-500/10 rounded-lg flex-shrink-0">Clear</button>
+                className="text-[10px] text-red-500 hover:text-red-700 px-1.5 py-0.5 bg-red-50 hover:bg-red-100 rounded-lg flex-shrink-0 transition">Clear</button>
             )}
           </div>
         )}
         {/* Shape image fill */}
         {el.type === 'shape' && onShapeImageFill && (
           <button onMouseDown={ev => { ev.preventDefault(); onShapeImageFill(); }}
-            className="flex items-center gap-1 px-2 py-1 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 rounded-lg text-[10px] font-medium transition">
+            className="flex items-center gap-1 px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[10px] font-medium transition border border-indigo-100">
             <ImageIcon className="w-3 h-3" /> {el.bgImage ? 'Change Fill' : 'Fill Image'}
           </button>
         )}
         {el.type === 'shape' && el.bgImage && (
           <button onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, bgImage: undefined }); }}
-            className="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-[10px] transition">
+            className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg text-[10px] transition border border-red-100">
             ✕ Fill
           </button>
         )}
         {/* Button href */}
         {el.type === 'button' && (
           <div className="flex items-center gap-1 flex-1 min-w-[120px]">
-            <Link className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+            <Link className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
             <input type="url" value={el.href || ''} placeholder="https://..."
               onChange={e => onChange({ ...el, href: e.target.value })}
-              className="flex-1 text-xs bg-white/10 text-white border border-white/10 rounded-lg px-2 py-0.5 outline-none placeholder-gray-600" />
+              className="flex-1 text-xs bg-slate-50 text-slate-800 border border-slate-200 rounded-lg px-2 py-0.5 outline-none focus:border-indigo-400 placeholder-slate-300" />
           </div>
         )}
       </div>
 
       {/* ROW ALIGNMENT: Canvas alignment tools */}
-      <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-white/10 flex-wrap">
-        <span className="text-[10px] text-gray-500 mr-1">Align</span>
+      <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-slate-100 flex-wrap">
+        <span className="text-[10px] text-slate-400 mr-1">Align</span>
         {([
           { icon: <AlignHorizontalJustifyStart className="w-3.5 h-3.5" />, title: 'Align Left', fn: () => onChange({ ...el, x: 0 }) },
           { icon: <AlignHorizontalJustifyCenter className="w-3.5 h-3.5" />, title: 'Center Horizontal', fn: () => onChange({ ...el, x: Math.round((CANVAS_W - el.w) / 2) }) },
@@ -856,34 +856,33 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
           { icon: <AlignVerticalJustifyEnd className="w-3.5 h-3.5" />, title: 'Align Bottom', fn: () => onChange({ ...el, y: Math.round(CANVAS_H - el.h) }) },
         ] as { icon: React.ReactNode; title: string; fn: () => void }[]).map(({ icon, title, fn }) => (
           <button key={title} onMouseDown={ev => { ev.preventDefault(); fn(); }} title={title}
-            className="w-7 h-7 rounded flex items-center justify-center text-gray-400 hover:bg-white/10 hover:text-indigo-300 transition">{icon}</button>
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition">{icon}</button>
         ))}
-        <div className="w-px h-4 bg-white/10 mx-0.5" />
-        {/* Position inputs */}
+        <div className="w-px h-4 bg-slate-200 mx-0.5" />
         {(['x','y','w','h'] as const).map(k => (
           <div key={k} className="flex flex-col items-center">
-            <span className="text-[8px] text-gray-600 leading-none">{k.toUpperCase()}</span>
+            <span className="text-[8px] text-slate-400 leading-none">{k.toUpperCase()}</span>
             <input type="number" value={Math.round((el as any)[k])}
               onChange={ev => onChange({ ...el, [k]: Number(ev.target.value) })}
-              className="w-10 text-[10px] text-center bg-white/10 text-white border border-white/10 rounded px-1 py-0.5 outline-none" />
+              className="w-10 text-[10px] text-center bg-slate-50 text-slate-800 border border-slate-200 rounded px-1 py-0.5 outline-none focus:border-indigo-400" />
           </div>
         ))}
       </div>
 
-      {/* ROW 3: Filters + Animation */}
+      {/* ROW 3: Filters + Animation + Shadow + Rotation */}
       <div className="flex items-center gap-1 px-2 py-1.5">
         {/* Filter toggle */}
         <div className="relative">
           <button onMouseDown={ev => { ev.preventDefault(); setShowFilters(v => !v); setShowAnim(false); setShowShadow(false); }}
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition ${showFilters ? 'bg-indigo-600 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/15'}`}>
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition ${showFilters ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
             🎨 Filter
           </button>
           {showFilters && (
-            <div className="absolute bottom-full left-0 mb-1 bg-[#1e1e1e] border border-white/10 rounded-xl p-2 shadow-2xl z-50" style={{ width: 280 }}>
+            <div className="absolute bottom-full left-0 mb-1 bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-200/80 z-50" style={{ width: 280 }}>
               <div className="grid grid-cols-4 gap-1">
                 {FILTER_PRESETS.map(fp => (
                   <button key={fp.name} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, filterCss: fp.css }); }}
-                    className={`px-1.5 py-1 rounded-lg text-[10px] font-medium transition ${(el.filterCss || '') === fp.css ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/15'}`}>
+                    className={`px-1.5 py-1 rounded-lg text-[10px] font-medium transition ${(el.filterCss || '') === fp.css ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
                     {fp.name}
                   </button>
                 ))}
@@ -895,25 +894,25 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
         {/* Animation toggle */}
         <div className="relative">
           <button onMouseDown={ev => { ev.preventDefault(); setShowAnim(v => !v); setShowFilters(false); setShowShadow(false); }}
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition ${showAnim ? 'bg-indigo-600 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/15'}`}>
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition ${showAnim ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
             <Sparkles className="w-3 h-3" /> {el.animation || 'Animate'}
           </button>
           {showAnim && (
-            <div className="absolute bottom-full left-0 mb-1 bg-[#1e1e1e] border border-white/10 rounded-xl p-2 shadow-2xl z-50" style={{ width: 220 }}>
+            <div className="absolute bottom-full left-0 mb-1 bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-200/80 z-50" style={{ width: 220 }}>
               <div className="grid grid-cols-2 gap-1 mb-2">
                 {ANIMATIONS.map(a => (
                   <button key={a.value} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, animation: a.value }); setShowAnim(false); }}
-                    className={`px-2 py-1.5 rounded-lg text-[10px] font-medium transition ${(el.animation || '') === a.value ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-300 hover:bg-white/15'}`}>
+                    className={`px-2 py-1.5 rounded-lg text-[10px] font-medium transition ${(el.animation || '') === a.value ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
                     {a.name}
                   </button>
                 ))}
               </div>
               {el.animation && (
-                <div className="border-t border-white/10 pt-2 space-y-2">
+                <div className="border-t border-slate-100 pt-2 space-y-2">
                   <div className="space-y-1">
                     <div className="flex justify-between">
-                      <span className="text-[10px] text-gray-400">Speed</span>
-                      <span className="text-[10px] text-gray-300">{(el.animationDuration ?? 0.6).toFixed(1)}s</span>
+                      <span className="text-[10px] text-slate-400">Speed</span>
+                      <span className="text-[10px] text-slate-600 font-medium">{(el.animationDuration ?? 0.6).toFixed(1)}s</span>
                     </div>
                     <input type="range" min={0.1} max={3} step={0.1} value={el.animationDuration ?? 0.6}
                       onMouseDown={ev => ev.stopPropagation()}
@@ -921,11 +920,11 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
                       className="w-full accent-indigo-500" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-gray-400 block mb-1">Easing</span>
+                    <span className="text-[10px] text-slate-400 block mb-1">Easing</span>
                     <div className="grid grid-cols-3 gap-1">
                       {EASINGS.map(ez => (
                         <button key={ez.value} onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, animationEasing: ez.value }); }}
-                          className={`px-1 py-1 rounded text-[9px] font-medium transition ${(el.animationEasing || 'ease') === ez.value ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/15'}`}>
+                          className={`px-1 py-1 rounded-lg text-[9px] font-medium transition ${(el.animationEasing || 'ease') === ez.value ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
                           {ez.label}
                         </button>
                       ))}
@@ -940,12 +939,11 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
         {/* Shadow toggle */}
         <div className="relative">
           <button onMouseDown={ev => { ev.preventDefault(); setShowShadow(v => !v); setShowFilters(false); setShowAnim(false); }}
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition ${showShadow || el.shadowBlur !== undefined || el.shadowX !== undefined || el.shadowY !== undefined ? 'bg-indigo-600 text-white' : 'bg-white/10 text-gray-300 hover:bg-white/15'}`}>
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition ${showShadow || el.shadowBlur !== undefined || el.shadowX !== undefined || el.shadowY !== undefined ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
             🌑 Shadow
           </button>
           {showShadow && (
-            <div className="absolute bottom-full left-0 mb-1 bg-[#1e1e1e] border border-white/10 rounded-xl p-3 shadow-2xl z-50" style={{ width: 270 }}>
-              {/* Directional presets */}
+            <div className="absolute bottom-full left-0 mb-1 bg-white border border-slate-200 rounded-xl p-3 shadow-2xl shadow-slate-200/80 z-50" style={{ width: 270 }}>
               <div className="grid grid-cols-4 gap-1 mb-3">
                 {[
                   { label: '↑ Top', x: 0, y: -8 },
@@ -954,10 +952,9 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
                   { label: '→ Right', x: 8, y: 0 },
                 ].map(p => (
                   <button key={p.label} onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, shadowX: p.x, shadowY: p.y, shadowBlur: el.shadowBlur ?? 8, shadowColor: el.shadowColor || '#000000' }); }}
-                    className="px-1 py-1 bg-white/5 hover:bg-white/15 text-gray-300 rounded-lg text-[10px] transition">{p.label}</button>
+                    className="px-1 py-1 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] transition border border-slate-200">{p.label}</button>
                 ))}
               </div>
-              {/* Sliders */}
               <div className="space-y-2">
                 {[
                   { label: 'X', key: 'shadowX' as const, min: -50, max: 50, step: 1, val: el.shadowX ?? 0 },
@@ -966,24 +963,24 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
                   { label: 'Opacity', key: 'shadowAlpha' as const, min: 0, max: 1, step: 0.05, val: el.shadowAlpha ?? 0.6 },
                 ].map(({ label, key, min, max, step, val }) => (
                   <div key={key} className="flex items-center gap-2">
-                    <span className="text-[10px] text-gray-400 w-10">{label}</span>
+                    <span className="text-[10px] text-slate-500 w-10">{label}</span>
                     <input type="range" min={min} max={max} step={step} value={val}
                       onMouseDown={ev => ev.stopPropagation()}
                       onChange={e => onChange({ ...el, [key]: Number(e.target.value) })}
                       className="flex-1 accent-indigo-500" />
-                    <span className="text-[10px] text-gray-400 w-8 text-right">
+                    <span className="text-[10px] text-slate-500 w-8 text-right">
                       {key === 'shadowAlpha' ? Math.round((val as number) * 100) + '%' : val}
                     </span>
                   </div>
                 ))}
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-gray-400 w-7">Col</span>
+                  <span className="text-[10px] text-slate-500 w-7">Col</span>
                   <input type="color" value={el.shadowColor || '#000000'}
                     onMouseDown={ev => ev.stopPropagation()}
                     onChange={e => onChange({ ...el, shadowColor: e.target.value })}
-                    className="w-8 h-7 rounded cursor-pointer border border-white/20 p-0.5 bg-transparent" />
+                    className="w-8 h-7 rounded-lg cursor-pointer border border-slate-200 p-0.5 bg-transparent" />
                   <button onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, shadowX: undefined, shadowY: undefined, shadowBlur: undefined, shadowColor: undefined, shadowAlpha: undefined }); setShowShadow(false); }}
-                    className="ml-auto text-[10px] text-red-400 hover:text-red-300 px-2 py-0.5 bg-red-500/10 rounded-lg">Clear</button>
+                    className="ml-auto text-[10px] text-red-500 hover:text-red-700 px-2 py-0.5 bg-red-50 hover:bg-red-100 rounded-lg border border-red-100 transition">Clear</button>
                 </div>
               </div>
             </div>
@@ -992,12 +989,12 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
 
         {/* Rotation display */}
         <div className="flex items-center gap-1 ml-auto">
-          <span className="text-[10px] text-gray-500">↺</span>
+          <span className="text-[10px] text-slate-400">↺</span>
           <input type="number" value={Math.round(el.rot)} onChange={e => onChange({ ...el, rot: Number(e.target.value) })}
-            className="w-12 text-xs text-center bg-white/10 text-white border border-white/10 rounded px-1 py-0.5 outline-none" />
-          <span className="text-[10px] text-gray-500">°</span>
+            className="w-12 text-xs text-center bg-slate-50 text-slate-800 border border-slate-200 rounded px-1 py-0.5 outline-none focus:border-indigo-400" />
+          <span className="text-[10px] text-slate-400">°</span>
           <button onMouseDown={ev => { ev.preventDefault(); onChange({ ...el, rot: 0 }); }}
-            className="px-1.5 py-0.5 text-[10px] bg-white/10 text-gray-300 rounded hover:bg-white/20">Reset</button>
+            className="px-1.5 py-0.5 text-[10px] bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition">Reset</button>
         </div>
       </div>
     </div>
@@ -1574,7 +1571,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   ];
 
   return (
-    <div className="h-screen flex flex-col bg-[#1a1a1a] overflow-hidden" style={{ fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
+    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden" style={{ fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
       {/* Google Fonts */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -1586,42 +1583,49 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
       <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
 
       {/* Top Bar */}
-      <div className="h-14 flex items-center justify-between px-4 bg-[#1a1a1a] border-b border-white/10 flex-shrink-0 z-30">
-        <div className="flex items-center gap-1">
-          <button onClick={() => router.push('/admin/web-stories')} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition mr-2"><ChevronLeft className="w-4 h-4" /></button>
+      <div className="h-14 flex items-center justify-between px-3 sm:px-5 bg-white border-b border-slate-200 flex-shrink-0 z-30 shadow-sm">
+        <div className="flex items-center gap-0.5 sm:gap-1">
+          <button onClick={() => router.push('/admin/web-stories')}
+            className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition mr-1 flex-shrink-0">
+            <ChevronLeft className="w-4 h-4" />
+          </button>
           {(['insert', 'style', 'document'] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition ${tab === t ? 'bg-white/15 text-white' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}>
+              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-medium capitalize transition ${tab === t ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}>
               {t === 'insert' ? 'Insert' : t === 'style' ? 'Style' : 'Document'}
             </button>
           ))}
         </div>
         <input value={meta.title} onChange={e => setMeta(m => ({ ...m, title: e.target.value, slug: m.slug || slugify(e.target.value) }))}
           placeholder="Story title..."
-          className="bg-transparent text-white text-sm font-medium text-center outline-none placeholder-gray-500 max-w-xs w-full border-b border-transparent focus:border-white/30 transition py-1 px-2" />
-        <div className="flex items-center gap-2">
-          {msg && <span className={`text-xs font-medium px-2 py-1 rounded-full ${msg.type === 'ok' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{msg.text}</span>}
-          <span className={`text-xs font-bold ${seoColor}`}>SEO {seo}</span>
+          className="hidden sm:block bg-transparent text-slate-800 text-sm font-semibold text-center outline-none placeholder-slate-400 max-w-[200px] lg:max-w-xs w-full border-b-2 border-transparent focus:border-indigo-400 transition py-1 px-2" />
+        <div className="flex items-center gap-1.5">
+          {msg && <span className={`hidden sm:inline text-xs font-medium px-2.5 py-1 rounded-full border ${msg.type === 'ok' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>{msg.text}</span>}
+          <span className={`text-xs font-bold hidden sm:inline ${seo >= 80 ? 'text-green-600' : seo >= 50 ? 'text-amber-500' : 'text-red-500'}`}>SEO {seo}</span>
           <button onClick={() => setShowGrid(v => !v)} title="Toggle Grid"
-            className={`px-2 py-1.5 text-xs rounded-lg transition ${showGrid ? 'bg-white/20 text-white' : 'text-gray-400 hover:bg-white/10 hover:text-white'}`}>
+            className={`px-2 py-1.5 text-xs rounded-xl transition hidden lg:flex items-center gap-1 ${showGrid ? 'bg-indigo-100 text-indigo-700 font-medium' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'}`}>
             ⊞ Grid
           </button>
           <button onClick={() => window.open(`/admin/web-stories/preview/${initialData?.id || ''}`, '_blank')} disabled={mode === 'create'}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-300 hover:text-white text-xs rounded-lg hover:bg-white/10 transition disabled:opacity-30">
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-slate-600 hover:text-slate-900 text-xs rounded-xl hover:bg-slate-100 border border-slate-200 transition disabled:opacity-30">
             <Eye className="w-3.5 h-3.5" /> Preview
           </button>
-          <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs rounded-lg transition disabled:opacity-50">
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save
+          <button onClick={handleSave} disabled={saving}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium rounded-xl transition disabled:opacity-50 shadow-sm">
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">Save</span>
           </button>
-          <button onClick={handlePublish} disabled={publishing || saving} className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50">
-            {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />} Publish
+          <button onClick={handlePublish} disabled={publishing || saving}
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition disabled:opacity-50 shadow-sm">
+            {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">Publish</span>
           </button>
         </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel */}
-        <div className="w-72 bg-[#232323] border-r border-white/10 flex flex-col overflow-y-auto flex-shrink-0">
+        <div className="w-64 lg:w-72 bg-white border-r border-slate-200 flex flex-col overflow-y-auto flex-shrink-0 shadow-sm">
 
           {tab === 'insert' && (
             <div className="p-3 space-y-1">
@@ -1629,13 +1633,13 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
               {/* ── TEXT ── */}
               <InsertSection label="Text" sKey="text" open={openSections} toggle={toggleSection}>
                 <div className="space-y-1.5">
-                  <button onClick={addHeading} className="w-full flex items-center gap-3 px-3 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-white text-sm transition">
-                    <Type className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-                    <div className="text-left"><p className="font-semibold text-sm">Heading</p><p className="text-xs text-gray-500">Large bold text</p></div>
+                  <button onClick={addHeading} className="w-full flex items-center gap-3 px-3 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-xl text-slate-800 text-sm transition">
+                    <Type className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                    <div className="text-left"><p className="font-semibold text-sm text-slate-800">Heading</p><p className="text-xs text-slate-400">Large bold text</p></div>
                   </button>
-                  <button onClick={addParagraph} className="w-full flex items-center gap-3 px-3 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-white text-sm transition">
-                    <Type className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                    <div className="text-left"><p className="font-medium text-sm">Paragraph</p><p className="text-xs text-gray-500">Body text</p></div>
+                  <button onClick={addParagraph} className="w-full flex items-center gap-3 px-3 py-2.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-xl text-slate-800 text-sm transition">
+                    <Type className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    <div className="text-left"><p className="font-medium text-sm text-slate-800">Paragraph</p><p className="text-xs text-slate-400">Body text</p></div>
                   </button>
                 </div>
               </InsertSection>
@@ -1645,9 +1649,9 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 <div className="grid grid-cols-3 gap-1.5">
                   {MAGIC_TEXT_PRESETS.map(p => (
                     <button key={p.label} onClick={() => addMagicText(p)}
-                      className="flex flex-col items-center gap-1 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition">
-                      <span className="text-sm font-bold" style={{ color: (p.el as any).color || '#fff', WebkitTextStroke: (p.el as any).textStrokeWidth ? `1px ${(p.el as any).textStrokeColor}` : undefined } as React.CSSProperties}>Aa</span>
-                      <span className="text-[10px] text-gray-400">{p.label}</span>
+                      className="flex flex-col items-center gap-1 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition">
+                      <span className="text-sm font-bold" style={{ color: (p.el as any).color || '#1e293b', WebkitTextStroke: (p.el as any).textStrokeWidth ? `1px ${(p.el as any).textStrokeColor}` : undefined } as React.CSSProperties}>Aa</span>
+                      <span className="text-[10px] text-slate-500">{p.label}</span>
                     </button>
                   ))}
                 </div>
@@ -1658,11 +1662,11 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 <div className="space-y-1.5">
                   {[{ thick: 2, label: 'Thin' }, { thick: 5, label: 'Medium' }, { thick: 10, label: 'Thick' }].map(l => (
                     <button key={l.label} onClick={() => addLine(l.thick)}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition">
+                      className="w-full flex items-center gap-3 px-3 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition">
                       <div className="w-10 flex items-center justify-center flex-shrink-0">
-                        <div style={{ height: l.thick, width: 32, backgroundColor: '#fff', borderRadius: 99 }} />
+                        <div style={{ height: l.thick, width: 32, backgroundColor: '#64748b', borderRadius: 99 }} />
                       </div>
-                      <span className="text-sm text-gray-300">{l.label} Line</span>
+                      <span className="text-sm text-slate-700">{l.label} Line</span>
                     </button>
                   ))}
                 </div>
@@ -1674,7 +1678,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                   <div className="grid grid-cols-4 gap-1.5">
                     {grp.shapes.map(sh => (
                       <button key={sh.type} onClick={() => addShape(sh.type as ShapeType)}
-                        className="flex flex-col items-center gap-1 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition group">
+                        className="flex flex-col items-center gap-1 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-100 hover:border-slate-200 rounded-xl transition group">
                         <div className="w-8 h-8 flex items-center justify-center">
                           {sh.cylinder ? (
                             <svg viewBox="0 0 100 100" className="w-7 h-7">
@@ -1693,7 +1697,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                             <div className="w-7 h-5 rounded-sm" style={{ backgroundColor: grp.color }} />
                           )}
                         </div>
-                        <span className="text-[9px] text-gray-400 group-hover:text-gray-200 leading-tight text-center px-0.5">{sh.label}</span>
+                        <span className="text-[9px] text-slate-500 group-hover:text-slate-800 leading-tight text-center px-0.5">{sh.label}</span>
                       </button>
                     ))}
                   </div>
@@ -1705,7 +1709,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 <div className="grid grid-cols-6 gap-1">
                   {STICKER_EMOJIS.map(e => (
                     <button key={e} onClick={() => addSticker(e)}
-                      className="flex items-center justify-center h-9 text-xl bg-white/5 hover:bg-white/15 rounded-lg transition hover:scale-110 active:scale-95">
+                      className="flex items-center justify-center h-9 text-xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-lg transition hover:scale-110 active:scale-95">
                       {e}
                     </button>
                   ))}
@@ -1716,25 +1720,24 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
               <InsertSection label="Media" sKey="media" open={openSections} toggle={toggleSection}>
                 <div className="space-y-1.5">
                   <button onClick={() => imgInputRef.current?.click()} disabled={uploading}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-white text-sm transition disabled:opacity-50">
-                    <ImageIcon className="w-4 h-4 text-green-400 flex-shrink-0" />
-                    <div className="text-left"><p className="font-medium text-sm">Upload Image</p><p className="text-xs text-gray-500">{uploading ? 'Uploading...' : 'Add from device'}</p></div>
+                    className="w-full flex items-center gap-3 px-3 py-2.5 bg-slate-50 hover:bg-green-50 border border-slate-200 hover:border-green-200 rounded-xl text-slate-800 text-sm transition disabled:opacity-50">
+                    <ImageIcon className="w-4 h-4 text-green-600 flex-shrink-0" />
+                    <div className="text-left"><p className="font-medium text-sm text-slate-800">Upload Image</p><p className="text-xs text-slate-400">{uploading ? 'Uploading...' : 'Add from device'}</p></div>
                   </button>
-                  {/* Gallery */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <p className="text-[10px] text-gray-500 font-medium">Gallery</p>
-                      <button onClick={() => setGalleryLoaded(false)} className="text-[10px] text-indigo-400 hover:text-indigo-300">Refresh</button>
+                      <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Gallery</p>
+                      <button onClick={() => setGalleryLoaded(false)} className="text-[10px] text-indigo-600 hover:text-indigo-800">Refresh</button>
                     </div>
                     {!galleryLoaded ? (
-                      <div className="flex items-center justify-center py-3"><Loader2 className="w-4 h-4 animate-spin text-gray-500" /></div>
+                      <div className="flex items-center justify-center py-3"><Loader2 className="w-4 h-4 animate-spin text-slate-400" /></div>
                     ) : gallery.length === 0 ? (
-                      <p className="text-[11px] text-gray-500 text-center py-2">No images uploaded yet</p>
+                      <p className="text-[11px] text-slate-400 text-center py-2">No images uploaded yet</p>
                     ) : (
                       <div className="grid grid-cols-3 gap-1.5 max-h-40 overflow-y-auto">
                         {gallery.map(url => (
                           <button key={url} onClick={() => addElement({ id: uid(), type: 'image', x: cx - 30, y: cy - 60, w: 260, h: 200, rot: 0, z: maxZ, opacity: 1, src: url, borderRadius: 0 })}
-                            className="aspect-square overflow-hidden rounded-lg bg-gray-800 hover:ring-2 hover:ring-indigo-400 transition">
+                            className="aspect-square overflow-hidden rounded-lg bg-slate-100 hover:ring-2 hover:ring-indigo-400 transition border border-slate-200">
                             <img src={url} alt="" className="w-full h-full object-cover" />
                           </button>
                         ))}
@@ -1746,21 +1749,21 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
 
               {/* ── BUTTON ── */}
               <InsertSection label="Button" sKey="button" open={openSections} toggle={toggleSection}>
-                <button onClick={addButton} className="w-full flex items-center gap-3 px-3 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-white text-sm transition">
-                  <MousePointer className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                  <div className="text-left"><p className="font-medium text-sm">CTA Button</p><p className="text-xs text-gray-500">With link URL</p></div>
+                <button onClick={addButton} className="w-full flex items-center gap-3 px-3 py-2.5 bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 rounded-xl text-slate-800 text-sm transition">
+                  <MousePointer className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <div className="text-left"><p className="font-medium text-sm text-slate-800">CTA Button</p><p className="text-xs text-slate-400">With link URL</p></div>
                 </button>
               </InsertSection>
 
               {/* ── TEMPLATES ── */}
               <InsertSection label="Templates" sKey="templates" open={openSections} toggle={toggleSection}>
-                <p className="text-[10px] text-gray-600 mb-2">Replaces current slide elements</p>
+                <p className="text-[10px] text-slate-400 mb-2">Replaces current slide elements</p>
                 <div className="grid grid-cols-2 gap-1.5">
                   {TEMPLATES.map(tpl => (
                     <button key={tpl.name} onClick={() => applyTemplate(tpl)}
-                      className="flex flex-col items-center gap-1.5 py-3 bg-white/5 hover:bg-indigo-500/20 hover:border-indigo-500/40 border border-transparent rounded-xl transition text-center">
+                      className="flex flex-col items-center gap-1.5 py-3 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-xl transition text-center">
                       <span className="text-lg">{tpl.icon}</span>
-                      <span className="text-[10px] text-gray-400">{tpl.name}</span>
+                      <span className="text-[10px] text-slate-600 font-medium">{tpl.name}</span>
                     </button>
                   ))}
                 </div>
@@ -1770,8 +1773,8 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
               {activeSlide.elements.length >= 3 && (
                 <InsertSection label="Distribute" sKey="distribute" open={openSections} toggle={toggleSection}>
                   <div className="grid grid-cols-2 gap-2">
-                    <button onClick={distributeH} className="py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs text-gray-300 transition">⟷ Horizontal</button>
-                    <button onClick={distributeV} className="py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs text-gray-300 transition">⟸⟹ Vertical</button>
+                    <button onClick={distributeH} className="py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 transition">⟷ Horizontal</button>
+                    <button onClick={distributeV} className="py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600 transition">⟸⟹ Vertical</button>
                   </div>
                 </InsertSection>
               )}
@@ -1779,18 +1782,18 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
               {/* ── COLOR PALETTE ── */}
               <InsertSection label="Color Palette" sKey="palette" open={openSections} toggle={toggleSection}>
                 {selectedEl?.color && (
-                  <button onClick={() => saveColor(selectedEl.color!)} className="text-[10px] text-indigo-400 hover:text-indigo-300 mb-2 block">+ Save current color</button>
+                  <button onClick={() => saveColor(selectedEl.color!)} className="text-[10px] text-indigo-600 hover:text-indigo-800 mb-2 block font-medium">+ Save current color</button>
                 )}
                 {savedColors.length === 0
-                  ? <p className="text-[11px] text-gray-600 text-center py-2">Select element → save its color</p>
+                  ? <p className="text-[11px] text-slate-400 text-center py-2">Select element → save its color</p>
                   : (
                     <div className="flex flex-wrap gap-1.5">
                       {savedColors.map(c => (
                         <div key={c} className="relative group">
                           <button onClick={() => selectedEl && updateElement({ ...selectedEl, color: c })}
-                            className="w-7 h-7 rounded-lg border border-white/20 hover:ring-2 hover:ring-white/40 transition"
+                            className="w-7 h-7 rounded-lg border border-slate-300 hover:ring-2 hover:ring-indigo-400 transition shadow-sm"
                             style={{ backgroundColor: c }} title={c} />
-                          <button onClick={() => removeColor(c)} className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full text-white text-[8px] hidden group-hover:flex items-center justify-center">×</button>
+                          <button onClick={() => removeColor(c)} className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full text-white text-[8px] hidden group-hover:flex items-center justify-center shadow-sm">×</button>
                         </div>
                       ))}
                     </div>
@@ -1801,18 +1804,18 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
               {activeSlide.elements.length > 0 && (
                 <InsertSection label={`Layers (${activeSlide.elements.length})`} sKey="layers" open={openSections} toggle={toggleSection}>
                   <div className="flex justify-end mb-1">
-                    <button onClick={clearAll} className="text-[10px] text-red-400 hover:text-red-300">Clear all</button>
+                    <button onClick={clearAll} className="text-[10px] text-red-500 hover:text-red-700 font-medium">Clear all</button>
                   </div>
                   <div className="space-y-1">
                     {[...activeSlide.elements].sort((a, b) => b.z - a.z).map(el => (
                       <div key={el.id}
                         onClick={ev => { if (ev.shiftKey) toggleSelect(el.id); else if (el.groupId) selectGroup(el.groupId); else selectOne(el.id); }}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-xs transition ${selectedId === el.id ? 'bg-indigo-600/30 text-indigo-200' : selectedIds.includes(el.id) ? 'bg-indigo-600/15 text-indigo-300' : 'hover:bg-white/5 text-gray-400'}`}>
-                        {(el.type === 'text' || el.type === 'button') ? <Type className="w-3 h-3" /> : el.type === 'image' ? <ImageIcon className="w-3 h-3" /> : el.type === 'sticker' ? <span className="text-xs">🎭</span> : <Square className="w-3 h-3" />}
-                        <span className="truncate flex-1">{el.type === 'sticker' ? el.content : (el.type === 'text' || el.type === 'button') ? (el.content?.slice(0, 16) || el.type) : (el.shapeType || el.type)}</span>
-                        {el.groupId && <span className="text-[8px] text-amber-400/80 border border-amber-400/30 rounded px-0.5 flex-shrink-0">G</span>}
-                        {el.animation && <Sparkles className="w-2.5 h-2.5 text-indigo-400" />}
-                        <button onClick={e => { e.stopPropagation(); deleteElement(el.id); }} className="hover:text-red-400">×</button>
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-xs transition ${selectedId === el.id ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' : selectedIds.includes(el.id) ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-600 border border-transparent'}`}>
+                        {(el.type === 'text' || el.type === 'button') ? <Type className="w-3 h-3 text-indigo-500" /> : el.type === 'image' ? <ImageIcon className="w-3 h-3 text-green-500" /> : el.type === 'sticker' ? <span className="text-xs">🎭</span> : <Square className="w-3 h-3 text-slate-400" />}
+                        <span className="truncate flex-1 font-medium">{el.type === 'sticker' ? el.content : (el.type === 'text' || el.type === 'button') ? (el.content?.slice(0, 16) || el.type) : (el.shapeType || el.type)}</span>
+                        {el.groupId && <span className="text-[8px] text-amber-700 bg-amber-100 border border-amber-200 rounded px-0.5 flex-shrink-0">G</span>}
+                        {el.animation && <Sparkles className="w-2.5 h-2.5 text-indigo-500" />}
+                        <button onClick={e => { e.stopPropagation(); deleteElement(el.id); }} className="hover:text-red-500 text-slate-400">×</button>
                       </div>
                     ))}
                   </div>
@@ -1824,25 +1827,25 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
 
           {tab === 'style' && (
             <div className="p-4 space-y-5">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Slide Background</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Slide Background</p>
               <div className="grid grid-cols-2 gap-2">
                 {(['COLOR', 'GRADIENT', 'IMAGE', 'VIDEO'] as const).map(t => (
                   <button key={t} onClick={() => updateSlide(s => ({ ...s, bgType: t }))}
-                    className={`py-2 rounded-xl text-xs font-medium transition ${activeSlide.bgType === t ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>{t}</button>
+                    className={`py-2 rounded-xl text-xs font-medium transition ${activeSlide.bgType === t ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'}`}>{t}</button>
                 ))}
               </div>
               {activeSlide.bgType === 'COLOR' && (
                 <div className="flex items-center gap-3">
-                  <input type="color" value={activeSlide.bgColor || '#1a1a2e'} onChange={e => updateSlide(s => ({ ...s, bgColor: e.target.value }))} className="w-10 h-10 rounded-xl border-0 cursor-pointer p-1 bg-transparent" />
-                  <input type="text" value={activeSlide.bgColor || '#1a1a2e'} onChange={e => updateSlide(s => ({ ...s, bgColor: e.target.value }))} className="flex-1 bg-white/10 text-white text-xs px-3 py-2 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500 font-mono" />
+                  <input type="color" value={activeSlide.bgColor || '#1a1a2e'} onChange={e => updateSlide(s => ({ ...s, bgColor: e.target.value }))} className="w-10 h-10 rounded-xl border border-slate-200 cursor-pointer p-1 bg-transparent shadow-sm" />
+                  <input type="text" value={activeSlide.bgColor || '#1a1a2e'} onChange={e => updateSlide(s => ({ ...s, bgColor: e.target.value }))} className="flex-1 bg-slate-50 text-slate-800 text-xs px-3 py-2 rounded-xl outline-none border border-slate-200 focus:border-indigo-400 font-mono" />
                 </div>
               )}
               {activeSlide.bgType === 'GRADIENT' && (
                 <div className="space-y-2">
-                  <input type="text" placeholder="linear-gradient(...)" value={activeSlide.bgGradient || ''} onChange={e => updateSlide(s => ({ ...s, bgGradient: e.target.value }))} className="w-full bg-white/10 text-white text-xs px-3 py-2 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500" />
+                  <input type="text" placeholder="linear-gradient(...)" value={activeSlide.bgGradient || ''} onChange={e => updateSlide(s => ({ ...s, bgGradient: e.target.value }))} className="w-full bg-slate-50 text-slate-800 text-xs px-3 py-2 rounded-xl outline-none border border-slate-200 focus:border-indigo-400" />
                   <div className="grid grid-cols-3 gap-1.5">
                     {['linear-gradient(135deg,#1a1a2e,#0f3460)', 'linear-gradient(180deg,#0f0c29,#302b63,#24243e)', 'linear-gradient(135deg,#f093fb,#f5576c)', 'linear-gradient(135deg,#4facfe,#00f2fe)', 'linear-gradient(135deg,#43e97b,#38f9d7)', 'linear-gradient(180deg,#fa709a,#fee140)', 'linear-gradient(135deg,#a18cd1,#fbc2eb)', 'linear-gradient(135deg,#667eea,#764ba2)', 'linear-gradient(135deg,#ffecd2,#fcb69f)'].map(g => (
-                      <button key={g} onClick={() => updateSlide(s => ({ ...s, bgGradient: g }))} className="h-10 rounded-lg border border-white/10 hover:border-white/30 transition" style={{ background: g }} />
+                      <button key={g} onClick={() => updateSlide(s => ({ ...s, bgGradient: g }))} className="h-10 rounded-lg border border-slate-200 hover:border-slate-400 transition shadow-sm" style={{ background: g }} />
                     ))}
                   </div>
                 </div>
@@ -1851,7 +1854,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 <div className="space-y-3">
                   {activeSlide.bgImage && <img src={activeSlide.bgImage} alt="" className="w-full h-24 object-cover rounded-xl" />}
                   {activeSlide.bgVideo && <video src={activeSlide.bgVideo} className="w-full h-24 object-cover rounded-xl" muted />}
-                  <button onClick={() => bgImgInputRef.current?.click()} disabled={uploading} className="w-full py-2.5 border border-dashed border-white/20 text-gray-400 hover:text-white hover:border-white/40 rounded-xl text-xs flex items-center justify-center gap-2 transition disabled:opacity-50">
+                  <button onClick={() => bgImgInputRef.current?.click()} disabled={uploading} className="w-full py-2.5 border border-dashed border-slate-300 text-slate-500 hover:text-indigo-600 hover:border-indigo-400 rounded-xl text-xs flex items-center justify-center gap-2 transition disabled:opacity-50">
                     <Upload className="w-4 h-4" /> Upload {activeSlide.bgType === 'VIDEO' ? 'Video (MP4/WebM)' : 'Image'}
                   </button>
                   {(activeSlide.bgImage || activeSlide.bgVideo) && (
@@ -1860,7 +1863,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                   {activeSlide.bgType === 'IMAGE' && activeSlide.bgImage && (<>
                     {/* Opacity */}
                     <div>
-                      <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                      <div className="flex justify-between text-[10px] text-slate-500 mb-1">
                         <span>Opacity</span><span>{Math.round((activeSlide.bgImageOpacity ?? 1) * 100)}%</span>
                       </div>
                       <input type="range" min={0} max={1} step={0.05} value={activeSlide.bgImageOpacity ?? 1}
@@ -1869,7 +1872,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                     </div>
                     {/* Blur */}
                     <div>
-                      <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                      <div className="flex justify-between text-[10px] text-slate-500 mb-1">
                         <span>Blur</span><span>{activeSlide.bgBlur ?? 0}px</span>
                       </div>
                       <input type="range" min={0} max={20} step={1} value={activeSlide.bgBlur ?? 0}
@@ -1878,17 +1881,17 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                     </div>
                     {/* Fit */}
                     <div>
-                      <p className="text-[10px] text-gray-400 mb-1.5">Fit</p>
+                      <p className="text-[10px] text-slate-500 mb-1.5">Fit</p>
                       <div className="grid grid-cols-3 gap-1">
                         {(['cover','contain','fill'] as const).map(f => (
                           <button key={f} onClick={() => updateSlide(s => ({ ...s, bgImageFit: f }))}
-                            className={`py-1 rounded-lg text-[10px] capitalize transition ${(activeSlide.bgImageFit||'cover')===f ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>{f}</button>
+                            className={`py-1 rounded-lg text-[10px] capitalize transition ${(activeSlide.bgImageFit||'cover')===f ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>{f}</button>
                         ))}
                       </div>
                     </div>
                     {/* Position */}
                     <div>
-                      <p className="text-[10px] text-gray-400 mb-1.5">Position</p>
+                      <p className="text-[10px] text-slate-500 mb-1.5">Position</p>
                       <div className="grid grid-cols-3 gap-1">
                         {([
                           {l:'↖',v:'top left'},{l:'↑',v:'top center'},{l:'↗',v:'top right'},
@@ -1896,7 +1899,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                           {l:'↙',v:'bottom left'},{l:'↓',v:'bottom center'},{l:'↘',v:'bottom right'},
                         ]).map(p => (
                           <button key={p.v} onClick={() => updateSlide(s => ({ ...s, bgImagePosition: p.v }))}
-                            className={`py-1.5 rounded-lg text-sm transition ${(activeSlide.bgImagePosition||'center')===p.v ? 'bg-indigo-600 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>{p.l}</button>
+                            className={`py-1.5 rounded-lg text-sm transition ${(activeSlide.bgImagePosition||'center')===p.v ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200'}`}>{p.l}</button>
                         ))}
                       </div>
                     </div>
@@ -1904,42 +1907,42 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 </div>
               )}
               {selectedEl?.type === 'shape' && (
-                <div className="border-t border-white/10 pt-4 space-y-2">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Shape Image Fill</p>
+                <div className="border-t border-slate-100 pt-4 space-y-2">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Shape Image Fill</p>
                   {selectedEl.bgImage && (
                     <div className="relative">
-                      <img src={selectedEl.bgImage} alt="" className="w-full h-20 object-cover rounded-xl" />
-                      <button onClick={() => updateElement({ ...selectedEl, bgImage: undefined })} className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">×</button>
+                      <img src={selectedEl.bgImage} alt="" className="w-full h-20 object-cover rounded-xl border border-slate-200" />
+                      <button onClick={() => updateElement({ ...selectedEl, bgImage: undefined })} className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center shadow-sm">×</button>
                     </div>
                   )}
-                  <button onClick={() => shapeImgInputRef.current?.click()} disabled={uploading} className="w-full py-2.5 border border-dashed border-white/20 text-gray-400 hover:text-white hover:border-indigo-400 rounded-xl text-xs flex items-center justify-center gap-2 transition disabled:opacity-50">
+                  <button onClick={() => shapeImgInputRef.current?.click()} disabled={uploading} className="w-full py-2.5 border border-dashed border-slate-300 text-slate-500 hover:text-indigo-600 hover:border-indigo-400 rounded-xl text-xs flex items-center justify-center gap-2 transition disabled:opacity-50">
                     <Upload className="w-3.5 h-3.5" /> {selectedEl.bgImage ? 'Change Image' : 'Fill with Image'}
                   </button>
                 </div>
               )}
-              {/* Color Overlay (works on all bg types) */}
-              <div className="border-t border-white/10 pt-4 space-y-2">
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest">Color Overlay</p>
+              {/* Color Overlay */}
+              <div className="border-t border-slate-100 pt-4 space-y-2">
+                <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest">Color Overlay</p>
                 <div className="flex items-center gap-3">
                   <input type="color" value={activeSlide.bgOverlayColor || '#000000'}
                     onChange={e => updateSlide(s => ({ ...s, bgOverlayColor: e.target.value, bgOverlayOpacity: s.bgOverlayOpacity ?? 0.3 }))}
-                    className="w-8 h-8 rounded-lg border-0 cursor-pointer p-0.5 bg-transparent" />
+                    className="w-8 h-8 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-transparent" />
                   <div className="flex-1">
-                    <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                      <span>Opacity</span><span>{Math.round((activeSlide.bgOverlayOpacity ?? 0) * 100)}%</span>
+                    <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                      <span>Opacity</span><span className="font-medium">{Math.round((activeSlide.bgOverlayOpacity ?? 0) * 100)}%</span>
                     </div>
                     <input type="range" min={0} max={1} step={0.05} value={activeSlide.bgOverlayOpacity ?? 0}
                       onChange={e => updateSlide(s => ({ ...s, bgOverlayOpacity: Number(e.target.value) }))}
                       className="w-full accent-indigo-500" />
                   </div>
                   {(activeSlide.bgOverlayOpacity ?? 0) > 0 && (
-                    <button onClick={() => updateSlide(s => ({ ...s, bgOverlayOpacity: 0 }))} className="text-[10px] text-red-400 hover:text-red-300">Clear</button>
+                    <button onClick={() => updateSlide(s => ({ ...s, bgOverlayOpacity: 0 }))} className="text-[10px] text-red-500 hover:text-red-700 font-medium">Clear</button>
                   )}
                 </div>
               </div>
 
-              <div className="border-t border-white/10 pt-4 space-y-1.5">
-                <div className="flex justify-between text-xs"><span className="text-gray-400">Slide Duration</span><span className="text-white font-medium">{activeSlide.duration}s</span></div>
+              <div className="border-t border-slate-100 pt-4 space-y-1.5">
+                <div className="flex justify-between text-xs"><span className="text-slate-500">Slide Duration</span><span className="text-slate-800 font-semibold">{activeSlide.duration}s</span></div>
                 <input type="range" min={3} max={30} value={activeSlide.duration} onChange={e => updateSlide(s => ({ ...s, duration: Number(e.target.value) }))} className="w-full accent-indigo-500" />
               </div>
             </div>
@@ -1947,32 +1950,32 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
 
           {tab === 'document' && (
             <div className="p-4 space-y-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Story Info</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Story Info</p>
               {[{ label: 'Slug', key: 'slug' as const, placeholder: 'url-slug' }, { label: 'Category', key: 'category' as const, placeholder: 'Travel, Deals...' }, { label: 'Publisher Name', key: 'publisherName' as const, placeholder: 'TransRentals' }, { label: 'Description', key: 'description' as const, placeholder: 'Story description...' }, { label: 'Meta Description', key: 'metaDescription' as const, placeholder: 'SEO description...' }, { label: 'Expires At', key: 'expiresAt' as const, placeholder: '', type: 'datetime-local' }].map(f => (
                 <div key={f.key}>
-                  <label className="text-xs text-gray-400 mb-1 block">{f.label}</label>
-                  <input type={f.type || 'text'} placeholder={f.placeholder} value={(meta as any)[f.key]} onChange={e => setMeta(m => ({ ...m, [f.key]: e.target.value }))} className="w-full bg-white/10 text-white text-xs px-3 py-2 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500 placeholder-gray-600" />
+                  <label className="text-xs text-slate-500 font-medium mb-1 block">{f.label}</label>
+                  <input type={f.type || 'text'} placeholder={f.placeholder} value={(meta as any)[f.key]} onChange={e => setMeta(m => ({ ...m, [f.key]: e.target.value }))} className="w-full bg-slate-50 text-slate-800 text-xs px-3 py-2 rounded-xl outline-none border border-slate-200 focus:border-indigo-400 placeholder-slate-300" />
                 </div>
               ))}
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Publisher Logo</label>
-                {meta.publisherLogo && <img src={meta.publisherLogo} alt="" className="w-12 h-12 rounded-full object-cover mb-2" />}
-                <button onClick={() => logoInputRef.current?.click()} className="w-full py-2 border border-dashed border-white/20 text-gray-400 hover:text-white rounded-xl text-xs flex items-center justify-center gap-1.5 transition"><Upload className="w-3 h-3" /> Upload Logo</button>
+                <label className="text-xs text-slate-500 font-medium mb-1 block">Publisher Logo</label>
+                {meta.publisherLogo && <img src={meta.publisherLogo} alt="" className="w-12 h-12 rounded-full object-cover mb-2 border border-slate-200 shadow-sm" />}
+                <button onClick={() => logoInputRef.current?.click()} className="w-full py-2 border border-dashed border-slate-300 text-slate-500 hover:text-indigo-600 hover:border-indigo-400 rounded-xl text-xs flex items-center justify-center gap-1.5 transition"><Upload className="w-3 h-3" /> Upload Logo</button>
               </div>
               <div>
-                <label className="text-xs text-gray-400 mb-1 block">Cover Image</label>
-                {meta.coverImage && <img src={meta.coverImage} alt="" className="w-full h-24 object-cover rounded-xl mb-2" />}
-                <button onClick={() => coverInputRef.current?.click()} className="w-full py-2 border border-dashed border-white/20 text-gray-400 hover:text-white rounded-xl text-xs flex items-center justify-center gap-1.5 transition"><Upload className="w-3 h-3" /> Upload Cover</button>
+                <label className="text-xs text-slate-500 font-medium mb-1 block">Cover Image</label>
+                {meta.coverImage && <img src={meta.coverImage} alt="" className="w-full h-24 object-cover rounded-xl mb-2 border border-slate-200" />}
+                <button onClick={() => coverInputRef.current?.click()} className="w-full py-2 border border-dashed border-slate-300 text-slate-500 hover:text-indigo-600 hover:border-indigo-400 rounded-xl text-xs flex items-center justify-center gap-1.5 transition"><Upload className="w-3 h-3" /> Upload Cover</button>
               </div>
 
               {/* Targeting */}
-              <div className="pt-2 border-t border-white/10">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Targeting <span className="text-[10px] font-normal text-gray-600 normal-case">(optional)</span></p>
+              <div className="pt-2 border-t border-slate-100">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Targeting <span className="text-[10px] font-normal text-slate-400 normal-case">(optional)</span></p>
 
                 {/* Services */}
                 <div className="mb-3">
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs text-gray-400">Services</label>
+                    <label className="text-xs text-slate-600 font-medium">Services</label>
                     <div className="flex items-center gap-2">
                       {servicesList.length > 0 && (
                         <button
@@ -1980,18 +1983,18 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                             ...m,
                             targetServices: m.targetServices.length === servicesList.length ? [] : servicesList.map((s: any) => s.slug)
                           }))}
-                          className="text-[10px] text-indigo-400 hover:text-indigo-300 transition">
+                          className="text-[10px] text-indigo-600 hover:text-indigo-800 font-medium transition">
                           {meta.targetServices.length === servicesList.length ? 'Deselect All' : 'Select All'}
                         </button>
                       )}
                       {meta.targetServices.length > 0 && meta.targetServices.length < servicesList.length && (
-                        <button onClick={() => setMeta(m => ({ ...m, targetServices: [] }))} className="text-[10px] text-gray-500 hover:text-red-400 transition">Clear</button>
+                        <button onClick={() => setMeta(m => ({ ...m, targetServices: [] }))} className="text-[10px] text-red-500 hover:text-red-700 transition">Clear</button>
                       )}
                     </div>
                   </div>
-                  <p className="text-[10px] text-gray-600 mb-2">{meta.targetServices.length === 0 ? 'All services (default)' : `${meta.targetServices.length} of ${servicesList.length} selected`}</p>
+                  <p className="text-[10px] text-slate-400 mb-2">{meta.targetServices.length === 0 ? 'All services (default)' : `${meta.targetServices.length} of ${servicesList.length} selected`}</p>
                   {servicesList.length === 0 ? (
-                    <p className="text-[10px] text-gray-600 italic">Loading...</p>
+                    <p className="text-[10px] text-slate-400 italic">Loading...</p>
                   ) : (
                     <>
                       <input
@@ -1999,7 +2002,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                         placeholder="Search services..."
                         value={serviceSearch}
                         onChange={e => setServiceSearch(e.target.value)}
-                        className="w-full bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 placeholder-gray-600 mb-1.5"
+                        className="w-full bg-slate-50 text-slate-800 text-[11px] px-2.5 py-1.5 rounded-lg outline-none border border-slate-200 focus:border-indigo-400 placeholder-slate-300 mb-1.5"
                       />
                     <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
                       {servicesList.filter((s: any) => s.name.toLowerCase().includes(serviceSearch.toLowerCase())).map((svc: any) => (
@@ -2013,7 +2016,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                                 : m.targetServices.filter(s => s !== svc.slug)
                             }))}
                             className="accent-indigo-500 w-3 h-3 flex-shrink-0" />
-                          <span className="text-[11px] text-gray-300 group-hover:text-white transition truncate">{svc.name}</span>
+                          <span className="text-[11px] text-slate-600 group-hover:text-slate-900 transition truncate">{svc.name}</span>
                         </label>
                       ))}
                     </div>
@@ -2024,7 +2027,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 {/* Locations */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs text-gray-400">Locations</label>
+                    <label className="text-xs text-slate-500 font-medium">Locations</label>
                     <div className="flex items-center gap-2">
                       {locationsList.length > 0 && (
                         <button
@@ -2032,18 +2035,18 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                             ...m,
                             targetLocations: m.targetLocations.length === locationsList.length ? [] : locationsList.map((l: any) => l.slug)
                           }))}
-                          className="text-[10px] text-indigo-400 hover:text-indigo-300 transition">
+                          className="text-[10px] text-indigo-500 hover:text-indigo-700 transition font-medium">
                           {meta.targetLocations.length === locationsList.length ? 'Deselect All' : 'Select All'}
                         </button>
                       )}
                       {meta.targetLocations.length > 0 && meta.targetLocations.length < locationsList.length && (
-                        <button onClick={() => setMeta(m => ({ ...m, targetLocations: [] }))} className="text-[10px] text-gray-500 hover:text-red-400 transition">Clear</button>
+                        <button onClick={() => setMeta(m => ({ ...m, targetLocations: [] }))} className="text-[10px] text-slate-400 hover:text-red-500 transition">Clear</button>
                       )}
                     </div>
                   </div>
-                  <p className="text-[10px] text-gray-600 mb-2">{meta.targetLocations.length === 0 ? 'All locations (default)' : `${meta.targetLocations.length} of ${locationsList.length} selected`}</p>
+                  <p className="text-[10px] text-slate-400 mb-2">{meta.targetLocations.length === 0 ? 'All locations (default)' : `${meta.targetLocations.length} of ${locationsList.length} selected`}</p>
                   {locationsList.length === 0 ? (
-                    <p className="text-[10px] text-gray-600 italic">Loading...</p>
+                    <p className="text-[10px] text-slate-400 italic">Loading...</p>
                   ) : (
                     <>
                       <input
@@ -2051,7 +2054,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                         placeholder="Search locations..."
                         value={locationSearch}
                         onChange={e => setLocationSearch(e.target.value)}
-                        className="w-full bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 placeholder-gray-600 mb-1.5"
+                        className="w-full bg-slate-50 text-slate-800 text-[11px] px-2.5 py-1.5 rounded-lg outline-none border border-slate-200 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100 placeholder-slate-400 mb-1.5"
                       />
                     <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
                       {locationsList.filter((l: any) => l.name.toLowerCase().includes(locationSearch.toLowerCase())).map((loc: any) => (
@@ -2065,7 +2068,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                                 : m.targetLocations.filter(l => l !== loc.slug)
                             }))}
                             className="accent-indigo-500 w-3 h-3 flex-shrink-0" />
-                          <span className="text-[11px] text-gray-300 group-hover:text-white transition truncate">{loc.name}</span>
+                          <span className="text-[11px] text-slate-600 group-hover:text-slate-900 transition truncate">{loc.name}</span>
                         </label>
                       ))}
                     </div>
@@ -2078,7 +2081,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
         </div>
 
         {/* Center Canvas */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-[#1e1e1e]">
+        <div className="flex-1 flex flex-col overflow-hidden bg-slate-100">
           <div ref={containerRef} className="flex-1 flex items-center justify-center overflow-hidden" onClick={() => setSelectedIds([])}>
             <div style={{ position: 'relative', width: CANVAS_W * scale, height: CANVAS_H * scale, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
               <div ref={canvasRef} className="overflow-visible shadow-2xl rounded-sm"
@@ -2136,8 +2139,8 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
           </div>
 
           {/* Slide Strip */}
-          <div className="h-36 bg-[#161616] border-t border-white/10 flex items-center px-4 gap-3 overflow-x-auto flex-shrink-0">
-            <span className="text-gray-500 text-xs font-medium whitespace-nowrap flex-shrink-0">{activeIdx + 1} / {slides.length}</span>
+          <div className="h-36 bg-white border-t border-slate-200 flex items-center px-4 gap-3 overflow-x-auto flex-shrink-0 shadow-sm">
+            <span className="text-slate-400 text-xs font-medium whitespace-nowrap flex-shrink-0">{activeIdx + 1} / {slides.length}</span>
             <div className="flex items-center gap-2">
               {slides.map((s, i) => (
                 <div
@@ -2167,7 +2170,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 </div>
               ))}
               <button onClick={() => { setSlides(prev => [...prev, blankSlide(prev.length)]); setActiveIdx(slides.length); setSelectedIds([]); }}
-                className="flex-shrink-0 w-[72px] h-[128px] border-2 border-dashed border-white/20 hover:border-indigo-400 text-white/30 hover:text-indigo-400 rounded-lg flex items-center justify-center transition">
+                className="flex-shrink-0 w-[72px] h-[128px] border-2 border-dashed border-slate-300 hover:border-indigo-400 text-slate-300 hover:text-indigo-400 rounded-lg flex items-center justify-center transition bg-slate-50 hover:bg-indigo-50">
                 <Plus className="w-6 h-6" />
               </button>
             </div>
@@ -2175,55 +2178,55 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
         </div>
 
         {/* Right Strip */}
-        <div className="w-12 bg-[#232323] border-l border-white/10 flex flex-col items-center py-3 gap-1 flex-shrink-0">
+        <div className="w-12 bg-white border-l border-slate-200 flex flex-col items-center py-3 gap-1 flex-shrink-0 shadow-sm">
           {selectedEl ? (
             <>
               <button onClick={() => duplicateElement(selectedEl.id)} title="Duplicate (Ctrl+D)"
-                className="w-9 h-9 hover:bg-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white transition"><Copy className="w-4 h-4" /></button>
+                className="w-9 h-9 hover:bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 transition"><Copy className="w-4 h-4" /></button>
               {selectedIds.length >= 2 && (
                 <button onClick={groupSelected} title="Group selection (Ctrl+G)"
-                  className="w-9 h-9 hover:bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400 hover:text-indigo-200 transition text-[10px] font-bold border border-indigo-500/30">G</button>
+                  className="w-9 h-9 hover:bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-500 hover:text-indigo-700 transition text-[10px] font-bold border border-indigo-200">G</button>
               )}
               {selectedEl?.groupId && (
                 <button onClick={ungroupSelected} title="Ungroup (Ctrl+Shift+G)"
-                  className="w-9 h-9 hover:bg-amber-500/20 rounded-xl flex items-center justify-center text-amber-400 hover:text-amber-200 transition text-[10px] font-bold border border-amber-500/30">UG</button>
+                  className="w-9 h-9 hover:bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 hover:text-amber-700 transition text-[10px] font-bold border border-amber-200">UG</button>
               )}
               <button onClick={() => changeLayer(selectedEl.id, 'up')} title="Forward (Ctrl+])"
-                className="w-9 h-9 hover:bg-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white transition"><ArrowUp className="w-4 h-4" /></button>
+                className="w-9 h-9 hover:bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 transition"><ArrowUp className="w-4 h-4" /></button>
               <button onClick={() => changeLayer(selectedEl.id, 'down')} title="Back (Ctrl+[)"
-                className="w-9 h-9 hover:bg-white/10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white transition"><ArrowDown className="w-4 h-4" /></button>
-              <div className="w-6 h-px bg-white/10 my-0.5" />
+                className="w-9 h-9 hover:bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 transition"><ArrowDown className="w-4 h-4" /></button>
+              <div className="w-6 h-px bg-slate-200 my-0.5" />
               {/* Lock/Unlock */}
               <button onClick={() => updateElement({ ...selectedEl, locked: !selectedEl.locked })} title={selectedEl.locked ? 'Unlock' : 'Lock element'}
-                className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${selectedEl.locked ? 'bg-amber-500/30 text-amber-300' : 'hover:bg-white/10 text-gray-400 hover:text-white'}`}>
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${selectedEl.locked ? 'bg-amber-100 text-amber-600' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-900'}`}>
                 {selectedEl.locked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
               </button>
-              <div className="w-6 h-px bg-white/10 my-0.5" />
+              <div className="w-6 h-px bg-slate-200 my-0.5" />
               {/* Flip H */}
               <button onClick={() => updateElement({ ...selectedEl, flipX: !selectedEl.flipX })} title="Flip Horizontal"
-                className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${selectedEl.flipX ? 'bg-indigo-600/40 text-indigo-300' : 'hover:bg-white/10 text-gray-400 hover:text-white'}`}>
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${selectedEl.flipX ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-900'}`}>
                 <FlipHorizontal className="w-4 h-4" />
               </button>
               {/* Flip V */}
               <button onClick={() => updateElement({ ...selectedEl, flipY: !selectedEl.flipY })} title="Flip Vertical"
-                className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${selectedEl.flipY ? 'bg-indigo-600/40 text-indigo-300' : 'hover:bg-white/10 text-gray-400 hover:text-white'}`}>
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${selectedEl.flipY ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-900'}`}>
                 <FlipVertical className="w-4 h-4" />
               </button>
-              <div className="w-6 h-px bg-white/10 my-0.5" />
+              <div className="w-6 h-px bg-slate-200 my-0.5" />
               <button onClick={() => selectedIds.length > 1 ? deleteElements(selectedIds) : deleteElement(selectedEl.id)} title="Delete (Del)"
-                className="w-9 h-9 hover:bg-red-500/20 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-400 transition"><Trash2 className="w-4 h-4" /></button>
+                className="w-9 h-9 hover:bg-red-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-500 transition"><Trash2 className="w-4 h-4" /></button>
               <div className="mt-auto px-1 w-full flex flex-col items-center gap-1 pb-2">
-                <span className="text-[9px] text-gray-500 uppercase tracking-wide">Opacity</span>
+                <span className="text-[9px] text-slate-400 uppercase tracking-wide">Opacity</span>
                 <input type="range" min={0.1} max={1} step={0.05} value={selectedEl.opacity}
                   onChange={e => updateElement({ ...selectedEl, opacity: parseFloat(e.target.value) })}
                   className="accent-indigo-500" style={{ writingMode: 'vertical-lr', width: 32, height: 80 }} />
-                <span className="text-[9px] text-gray-500">{Math.round(selectedEl.opacity * 100)}%</span>
+                <span className="text-[9px] text-slate-400">{Math.round(selectedEl.opacity * 100)}%</span>
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center gap-2 mt-2 opacity-30">
-              <MousePointer className="w-4 h-4 text-gray-500" />
-              <span className="text-[8px] text-gray-500 text-center leading-tight px-1">Select element</span>
+            <div className="flex flex-col items-center gap-2 mt-2 opacity-40">
+              <MousePointer className="w-4 h-4 text-slate-400" />
+              <span className="text-[8px] text-slate-400 text-center leading-tight px-1">Select element</span>
             </div>
           )}
         </div>
