@@ -79,6 +79,28 @@ const EASINGS = [
   { label: 'Bounce', value: 'cubic-bezier(0.175,0.885,0.32,1.275)' },
 ];
 
+// Interpolate CSS filter intensity: 0% = no effect, 100% = full effect
+function scaleFilter(css: string | undefined, intensity: number): string | undefined {
+  if (!css) return undefined;
+  const t = Math.max(0, Math.min(100, intensity)) / 100;
+  if (t === 1) return css;
+  if (t === 0) return undefined;
+  const NEUTRALS: Record<string, number> = {
+    saturate: 1, brightness: 1, contrast: 1,
+    grayscale: 0, sepia: 0, invert: 0, blur: 0, 'hue-rotate': 0,
+  };
+  const result = css.replace(/(\w[\w-]*)\(([^)]+)\)/g, (_m, fn, val) => {
+    const neutral = NEUTRALS[fn] ?? 0;
+    if (val.includes('deg')) {
+      const num = parseFloat(val);
+      return `${fn}(${(neutral + (num - neutral) * t).toFixed(1)}deg)`;
+    }
+    const num = parseFloat(val);
+    return `${fn}(${(neutral + (num - neutral) * t).toFixed(3)})`;
+  });
+  return result || undefined;
+}
+
 type EType = 'text' | 'image' | 'shape' | 'button' | 'sticker';
 type ShapeType = 'rect' | 'circle' | 'triangle' | 'diamond' | 'star' | 'hexagon'
   | 'pentagon' | 'octagon' | 'cross' | 'parallelogram'
@@ -94,6 +116,7 @@ interface CE {
   rot: number; z: number; opacity: number;
   flipX?: boolean; flipY?: boolean;
   filterCss?: string;
+  filterIntensity?: number;
   animation?: string; animationDuration?: number; animationEasing?: string;
   locked?: boolean;
   groupId?: string;
@@ -332,8 +355,9 @@ function SlideBg({ s, children }: { s: SD; children?: React.ReactNode }) {
 }
 
 function renderElInner(el: CE): React.ReactNode {
+  const scaledFilterCss = scaleFilter(el.filterCss, el.filterIntensity ?? 100);
   const shadowFilter = buildDropShadow(el);
-  const combinedFilter = [el.filterCss, shadowFilter].filter(Boolean).join(' ') || undefined;
+  const combinedFilter = [scaledFilterCss, shadowFilter].filter(Boolean).join(' ') || undefined;
 
   if (el.type === 'text' || el.type === 'button') {
     const isBtn = el.type === 'button';
@@ -342,7 +366,7 @@ function renderElInner(el: CE): React.ReactNode {
       ? `${el.shadowX ?? 0}px ${el.shadowY ?? 4}px ${el.shadowBlur ?? 8}px ${shadowRgba(el)}`
       : undefined;
     return (
-      <div className="w-full h-full flex items-center justify-center overflow-hidden" style={{ filter: el.filterCss || undefined, backgroundColor: isBtn ? toRgba(el.bgColor || '#ffffff', el.bgAlpha ?? 1) : 'transparent', borderRadius: el.borderRadius ?? (isBtn ? 50 : 0), border: bw > 0 ? `${bw}px solid ${el.borderColor || '#fff'}` : undefined, boxSizing: 'border-box', boxShadow }}>
+      <div className="w-full h-full flex items-center justify-center overflow-hidden" style={{ filter: scaledFilterCss || undefined, backgroundColor: isBtn ? toRgba(el.bgColor || '#ffffff', el.bgAlpha ?? 1) : 'transparent', borderRadius: el.borderRadius ?? (isBtn ? 50 : 0), border: bw > 0 ? `${bw}px solid ${el.borderColor || '#fff'}` : undefined, boxSizing: 'border-box', boxShadow }}>
         <div style={{ fontSize: el.fontSize || (isBtn ? 16 : 24), fontFamily: el.fontFamily || 'inherit', fontWeight: el.bold ? 'bold' : 'normal', fontStyle: el.italic ? 'italic' : 'normal', textDecoration: el.underline ? 'underline' : 'none', textAlign: el.align || 'center', color: toRgba(el.color || '#ffffff', el.colorAlpha ?? 1), lineHeight: el.lineHeight || 1.3, letterSpacing: el.letterSpacing ? `${el.letterSpacing}px` : undefined, textTransform: el.textTransform || 'none', padding: isBtn ? '0 16px' : 0, wordBreak: 'break-word', whiteSpace: 'pre-wrap', width: '100%', WebkitTextStroke: el.textStrokeWidth ? `${el.textStrokeWidth}px ${el.textStrokeColor || '#000'}` : undefined, textShadow: !isBtn ? buildTextShadow(el) : undefined } as React.CSSProperties}>
           {el.content || (isBtn ? 'Button' : 'Double-click to edit')}
         </div>
@@ -381,7 +405,7 @@ function renderElInner(el: CE): React.ReactNode {
     // SVG-based shapes
     if (isSvgShape(st)) {
       const borderDs = bw > 0 ? `drop-shadow(0 0 ${bw}px ${el.borderColor || '#fff'})` : '';
-      const shapeFilter = [el.filterCss, borderDs, shadowFilter].filter(Boolean).join(' ') || undefined;
+      const shapeFilter = [scaledFilterCss, borderDs, shadowFilter].filter(Boolean).join(' ') || undefined;
       if (st === 'fcCylinder') {
         return (
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', filter: shapeFilter }}>
@@ -402,7 +426,7 @@ function renderElInner(el: CE): React.ReactNode {
     const clip = getClipPath(st);
     if (clip !== 'none') {
       const borderDs = bw > 0 ? `drop-shadow(0 0 ${bw}px ${el.borderColor || '#fff'})` : '';
-      const shapeFilter = [el.filterCss, borderDs, shadowFilter].filter(Boolean).join(' ') || undefined;
+      const shapeFilter = [scaledFilterCss, borderDs, shadowFilter].filter(Boolean).join(' ') || undefined;
       return <div style={{ width: '100%', height: '100%', backgroundColor: el.bgImage ? 'transparent' : fillColor, clipPath: clip, backgroundImage: el.bgImage ? `url(${el.bgImage})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center', filter: shapeFilter }} />;
     }
     const br = st === 'circle' ? '50%' : `${el.borderRadius ?? 0}px`;
@@ -879,14 +903,27 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
           </button>
           {showFilters && (
             <div className="absolute bottom-full left-0 mb-1 bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-200/80 z-50" style={{ width: 280 }}>
-              <div className="grid grid-cols-4 gap-1">
+              <div className="grid grid-cols-4 gap-1 mb-2">
                 {FILTER_PRESETS.map(fp => (
-                  <button key={fp.name} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, filterCss: fp.css }); }}
+                  <button key={fp.name} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, filterCss: fp.css, filterIntensity: el.filterIntensity ?? 100 }); }}
                     className={`px-1.5 py-1 rounded-lg text-[10px] font-medium transition ${(el.filterCss || '') === fp.css ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
                     {fp.name}
                   </button>
                 ))}
               </div>
+              {el.filterCss && (
+                <div className="border-t border-slate-100 pt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-slate-500 font-medium">Intensity</span>
+                    <span className="text-[10px] text-indigo-600 font-semibold">{el.filterIntensity ?? 100}%</span>
+                  </div>
+                  <input type="range" min={0} max={100} step={1}
+                    value={el.filterIntensity ?? 100}
+                    onMouseDown={ev => ev.stopPropagation()}
+                    onChange={ev => onChange({ ...el, filterIntensity: Number(ev.target.value) })}
+                    className="w-full accent-indigo-500" />
+                </div>
+              )}
             </div>
           )}
         </div>

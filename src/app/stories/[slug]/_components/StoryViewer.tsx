@@ -19,6 +19,27 @@ function hasShadow(el: any): boolean {
   return el.shadowBlur !== undefined || el.shadowX !== undefined || el.shadowY !== undefined || el.shadowAlpha !== undefined;
 }
 
+function scaleFilter(css: string | undefined, intensity: number): string | undefined {
+  if (!css) return undefined;
+  const t = Math.max(0, Math.min(100, intensity)) / 100;
+  if (t === 1) return css;
+  if (t === 0) return undefined;
+  const NEUTRALS: Record<string, number> = {
+    saturate: 1, brightness: 1, contrast: 1,
+    grayscale: 0, sepia: 0, invert: 0, blur: 0, 'hue-rotate': 0,
+  };
+  const result = css.replace(/(\w[\w-]*)\(([^)]+)\)/g, (_m: string, fn: string, val: string) => {
+    const neutral = NEUTRALS[fn] ?? 0;
+    if (val.includes('deg')) {
+      const num = parseFloat(val);
+      return `${fn}(${(neutral + (num - neutral) * t).toFixed(1)}deg)`;
+    }
+    const num = parseFloat(val);
+    return `${fn}(${(neutral + (num - neutral) * t).toFixed(3)})`;
+  });
+  return result || undefined;
+}
+
 function buildDropShadow(el: any): string {
   if (!hasShadow(el)) return '';
   return `drop-shadow(${el.shadowX ?? 0}px ${el.shadowY ?? 4}px ${el.shadowBlur ?? 8}px ${shadowRgba(el)})`;
@@ -110,12 +131,13 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
       {[...elements].sort((a, b) => (a.z || 0) - (b.z || 0)).map((el: any) => {
         const flipX = el.flipX ? ' scaleX(-1)' : '';
         const flipY = el.flipY ? ' scaleY(-1)' : '';
+        const scaledFilterCss = scaleFilter(el.filterCss, el.filterIntensity ?? 100);
         const shadowFilter = buildDropShadow(el);
         const isText = el.type === 'text';
         // For text: use textShadow on inner div, only filterCss on outer. For others: combine both.
         const combinedFilter = isText
-          ? (el.filterCss || undefined)
-          : ([el.filterCss, shadowFilter].filter(Boolean).join(' ') || undefined);
+          ? (scaledFilterCss || undefined)
+          : ([scaledFilterCss, shadowFilter].filter(Boolean).join(' ') || undefined);
         const s: React.CSSProperties = {
           position: 'absolute',
           left: `${(el.x / CANVAS_W) * 100}%`,
@@ -206,7 +228,7 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
           const filled = el.filled !== false;
           const bw = el.borderWidth || 0;
           const borderDs = bw > 0 ? `drop-shadow(0 0 ${bw}px ${el.borderColor || '#fff'})` : '';
-          const shapeFilter = [el.filterCss, borderDs, shadowFilter].filter(Boolean).join(' ') || undefined;
+          const shapeFilter = [scaledFilterCss, borderDs, shadowFilter].filter(Boolean).join(' ') || undefined;
 
           // SVG-based shapes
           if (shapeType === 'fcCylinder') {
