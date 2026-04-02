@@ -19,6 +19,27 @@ function hasShadow(el: any): boolean {
   return el.shadowBlur !== undefined || el.shadowX !== undefined || el.shadowY !== undefined || el.shadowAlpha !== undefined;
 }
 
+function scaleFilter(css: string | undefined, intensity: number): string | undefined {
+  if (!css) return undefined;
+  const t = Math.max(0, Math.min(100, intensity)) / 100;
+  if (t === 1) return css;
+  if (t === 0) return undefined;
+  const NEUTRALS: Record<string, number> = {
+    saturate: 1, brightness: 1, contrast: 1,
+    grayscale: 0, sepia: 0, invert: 0, blur: 0, 'hue-rotate': 0,
+  };
+  const result = css.replace(/(\w[\w-]*)\(([^)]+)\)/g, (_m: string, fn: string, val: string) => {
+    const neutral = NEUTRALS[fn] ?? 0;
+    if (val.includes('deg')) {
+      const num = parseFloat(val);
+      return `${fn}(${(neutral + (num - neutral) * t).toFixed(1)}deg)`;
+    }
+    const num = parseFloat(val);
+    return `${fn}(${(neutral + (num - neutral) * t).toFixed(3)})`;
+  });
+  return result || undefined;
+}
+
 function buildDropShadow(el: any): string {
   if (!hasShadow(el)) return '';
   return `drop-shadow(${el.shadowX ?? 0}px ${el.shadowY ?? 4}px ${el.shadowBlur ?? 8}px ${shadowRgba(el)})`;
@@ -39,15 +60,42 @@ function toRgba(hex: string, alpha: number = 1): string {
   return `rgba(${r},${g},${b},${isNaN(alpha) ? 1 : alpha})`;
 }
 
-function getClipPath(shapeType: string): string {
-  switch (shapeType) {
-    case 'triangle': return 'polygon(50% 0%, 0% 100%, 100% 100%)';
-    case 'diamond':  return 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
-    case 'star':     return 'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)';
-    case 'hexagon':  return 'polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)';
+function getClipPath(st: string): string {
+  switch (st) {
+    case 'triangle':      return 'polygon(50% 0%, 0% 100%, 100% 100%)';
+    case 'diamond':       return 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
+    case 'star':          return 'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)';
+    case 'hexagon':       return 'polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)';
+    case 'pentagon':      return 'polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%)';
+    case 'octagon':       return 'polygon(30% 0%,70% 0%,100% 30%,100% 70%,70% 100%,30% 100%,0% 70%,0% 30%)';
+    case 'cross':         return 'polygon(35% 0%,65% 0%,65% 35%,100% 35%,100% 65%,65% 65%,65% 100%,35% 100%,35% 65%,0% 65%,0% 35%,35% 35%)';
+    case 'parallelogram': return 'polygon(20% 0%,100% 0%,80% 100%,0% 100%)';
+    case 'arrowRight':    return 'polygon(0% 20%,60% 20%,60% 0%,100% 50%,60% 100%,60% 80%,0% 80%)';
+    case 'arrowLeft':     return 'polygon(40% 0%,40% 20%,100% 20%,100% 80%,40% 80%,40% 100%,0% 50%)';
+    case 'arrowUp':       return 'polygon(50% 0%,100% 40%,80% 40%,80% 100%,20% 100%,20% 40%,0% 40%)';
+    case 'arrowDown':     return 'polygon(20% 0%,80% 0%,80% 60%,100% 60%,50% 100%,0% 60%,20% 60%)';
+    case 'arrowDoubleH':  return 'polygon(0% 50%,20% 0%,20% 35%,80% 35%,80% 0%,100% 50%,80% 100%,80% 65%,20% 65%,20% 100%)';
+    case 'chevronRight':  return 'polygon(0% 0%,75% 0%,100% 50%,75% 100%,0% 100%,25% 50%)';
+    case 'chevronLeft':   return 'polygon(25% 0%,100% 0%,75% 50%,100% 100%,25% 100%,0% 50%)';
+    case 'star4':         return 'polygon(50% 0%,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0% 50%,40% 40%)';
+    case 'star6':         return 'polygon(50% 0%,38% 28%,7% 25%,25% 50%,7% 75%,38% 72%,50% 100%,63% 72%,93% 75%,75% 50%,93% 25%,63% 28%)';
+    case 'star8':         return 'polygon(50% 0%,61% 24%,85% 15%,76% 39%,100% 50%,76% 61%,85% 85%,61% 76%,50% 100%,39% 76%,15% 85%,24% 61%,0% 50%,24% 39%,15% 15%,39% 24%)';
+    case 'starburst':     return 'polygon(50% 0%,55% 31%,75% 7%,64% 36%,93% 25%,69% 45%,100% 50%,69% 55%,93% 75%,64% 64%,75% 93%,55% 69%,50% 100%,45% 69%,25% 93%,36% 64%,7% 75%,31% 55%,0% 50%,31% 45%,7% 25%,36% 36%,25% 7%,45% 31%)';
     default: return 'none';
   }
 }
+
+const VIEWER_SVG_PATHS: Record<string, string> = {
+  heart:       'M 50 30 C 50 22,42 10,25 10 C 8 10,0 25,0 40 C 0 65,50 90,50 90 C 50 90,100 65,100 40 C 100 25,92 10,75 10 C 58 10,50 22,50 30 Z',
+  speechLeft:  'M 15 0 Q 0 0 0 15 L 0 65 Q 0 80 15 80 L 20 80 L 8 100 L 38 80 L 85 80 Q 100 80 100 65 L 100 15 Q 100 0 85 0 Z',
+  speechRight: 'M 15 0 Q 0 0 0 15 L 0 65 Q 0 80 15 80 L 62 80 L 92 100 L 80 80 L 85 80 Q 100 80 100 65 L 100 15 Q 100 0 85 0 Z',
+  speechRound: 'M 10 0 Q 0 0 0 10 L 0 62 Q 0 75 10 75 L 40 75 L 50 95 L 60 75 L 90 75 Q 100 75 100 62 L 100 10 Q 100 0 90 0 Z',
+  bannerRibbon:'M 0 20 L 15 35 L 0 50 L 0 85 Q 0 100 15 100 L 85 100 Q 100 100 100 85 L 100 50 L 85 35 L 100 20 Z',
+  fcDocument:  'M 0 0 L 100 0 L 100 75 Q 87 90 75 75 Q 62 60 50 75 Q 37 90 25 75 Q 12 60 0 75 Z',
+  blobA:       'M 72 14 C 90 26,102 46,96 65 C 90 84,72 95,52 93 C 32 91,8 84,2 66 C -4 48,8 24,24 14 C 40 4,54 2,72 14 Z',
+  blobB:       'M 65 8 C 82 14,96 32,97 52 C 98 72,84 92,64 95 C 44 98,20 88,8 70 C -4 52,0 26,16 14 C 32 2,48 2,65 8 Z',
+  gear:        'M 40 0 L 60 0 L 64 16 L 78 8 L 92 22 L 84 36 L 100 44 L 100 56 L 84 64 L 92 78 L 78 92 L 64 84 L 60 100 L 40 100 L 36 84 L 22 92 L 8 78 L 16 64 L 0 56 L 0 44 L 16 36 L 8 22 L 22 8 L 36 16 Z M 35 50 A 15 15 0 1 0 65 50 A 15 15 0 1 0 35 50 Z',
+};
 
 // Build animation CSS with custom duration and easing
 function getAnimCss(key: string, duration: number = 0.6, easing?: string): string {
@@ -83,12 +131,13 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
       {[...elements].sort((a, b) => (a.z || 0) - (b.z || 0)).map((el: any) => {
         const flipX = el.flipX ? ' scaleX(-1)' : '';
         const flipY = el.flipY ? ' scaleY(-1)' : '';
+        const scaledFilterCss = scaleFilter(el.filterCss, el.filterIntensity ?? 100);
         const shadowFilter = buildDropShadow(el);
         const isText = el.type === 'text';
         // For text: use textShadow on inner div, only filterCss on outer. For others: combine both.
         const combinedFilter = isText
-          ? (el.filterCss || undefined)
-          : ([el.filterCss, shadowFilter].filter(Boolean).join(' ') || undefined);
+          ? (scaledFilterCss || undefined)
+          : ([scaledFilterCss, shadowFilter].filter(Boolean).join(' ') || undefined);
         const s: React.CSSProperties = {
           position: 'absolute',
           left: `${(el.x / CANVAS_W) * 100}%`,
@@ -163,22 +212,51 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
           );
         }
 
+        // ── Sticker ───────────────────────────────────────────────────────────
+        if (el.type === 'sticker') {
+          return (
+            <div key={el.id} style={{ ...s, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: `${(el.fontSize || 60) / CANVAS_W * 100}cqw`, lineHeight: 1 }}>{el.content || '⭐'}</span>
+            </div>
+          );
+        }
+
         // ── Shape ─────────────────────────────────────────────────────────────
         if (el.type === 'shape') {
           const shapeType = el.shapeType || 'rect';
-          const clip = getClipPath(shapeType);
           const fillColor = el.bgColor ? toRgba(el.bgColor, el.bgAlpha ?? 1) : '#6366f1';
-          const bgImage = el.bgImage ? `url(${el.bgImage})` : undefined;
           const filled = el.filled !== false;
+          const bw = el.borderWidth || 0;
+          const borderDs = bw > 0 ? `drop-shadow(0 0 ${bw}px ${el.borderColor || '#fff'})` : '';
+          const shapeFilter = [scaledFilterCss, borderDs, shadowFilter].filter(Boolean).join(' ') || undefined;
+
+          // SVG-based shapes
+          if (shapeType === 'fcCylinder') {
+            return (
+              <div key={el.id} style={{ ...s, filter: shapeFilter }}>
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+                  <path d="M 0 18 Q 0 5 50 5 Q 100 5 100 18 L 100 82 Q 100 95 50 95 Q 0 95 0 82 Z" fill={filled ? fillColor : 'transparent'} />
+                  <path d="M 0 18 Q 0 31 50 31 Q 100 31 100 18" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2" />
+                </svg>
+              </div>
+            );
+          }
+          if (VIEWER_SVG_PATHS[shapeType]) {
+            return (
+              <div key={el.id} style={{ ...s, filter: shapeFilter }}>
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+                  <path d={VIEWER_SVG_PATHS[shapeType]} fill={filled ? fillColor : 'transparent'} fillRule={shapeType === 'gear' ? 'evenodd' : 'nonzero'} />
+                </svg>
+              </div>
+            );
+          }
+
+          const clip = getClipPath(shapeType);
+          const bgImage = el.bgImage ? `url(${el.bgImage})` : undefined;
 
           if (clip !== 'none') {
-            // Polygon shapes: use drop-shadow filter to simulate border
-            const borderFilter = !filled && el.borderColor && el.borderWidth
-              ? `drop-shadow(0 0 ${el.borderWidth}px ${el.borderColor})`
-              : undefined;
-            const combinedFilter = [el.filterCss, borderFilter].filter(Boolean).join(' ') || undefined;
             return (
-              <div key={el.id} style={{ ...s, filter: combinedFilter }}>
+              <div key={el.id} style={{ ...s, filter: shapeFilter }}>
                 <div style={{
                   width: '100%', height: '100%',
                   clipPath: clip,

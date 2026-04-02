@@ -20,11 +20,10 @@ export async function GET(
       where: { id: bookingNumber },
       include: {
         locations: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
+          select: { id: true, name: true, slug: true },
+        },
+        accepted_driver: {
+          select: { id: true, name: true, phone: true, email: true, profilePhoto: true },
         },
       },
     }).catch(() => null);
@@ -35,11 +34,10 @@ export async function GET(
         where: { bookingNumber },
         include: {
           locations: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
+            select: { id: true, name: true, slug: true },
+          },
+          accepted_driver: {
+            select: { id: true, name: true, phone: true, email: true, profilePhoto: true },
           },
         },
       });
@@ -51,6 +49,8 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    const acceptedDriver = (booking as any).accepted_driver;
 
     return NextResponse.json({
       success: true,
@@ -90,11 +90,20 @@ export async function GET(
         advanceAmount: booking.advanceAmount,
         status: booking.status,
         paymentStatus: booking.paymentStatus,
-        paidAmount: booking.paidAmount,
-        driverName: booking.driverName,
-        driverPhone: booking.driverPhone,
-        vehicleNumber: booking.vehicleNumber,
-        vehicle_models: booking.vehicle_models,
+        // Driver info — vendor-assigned fields take priority, fallback to accepted_driver
+        driverName: booking.driverName || acceptedDriver?.name || null,
+        driverPhone: booking.driverPhone || acceptedDriver?.phone || null,
+        driverEmail: acceptedDriver?.email || null,
+        driverPhoto: booking.driverPhoto || acceptedDriver?.profilePhoto || null,
+        acceptedDriverId: booking.acceptedDriverId,
+        // Vehicle info — only show when explicitly assigned to this booking
+        vehicleNumber: booking.vehicleNumber || null,
+        vehicleModel: booking.vehicleModel || null,
+        vehicleColor: booking.vehicleColor || null,
+        vehicleFuelType: booking.vehicleFuelType || null,
+        vehicleSeats: booking.vehicleSeats || null,
+        vehicleYear: booking.vehicleYear || null,
+        vehiclePhoto: booking.vehiclePhoto || null,
         tripStartOtp: booking.tripStartOtp,
         tripStartedAt: booking.tripStartedAt,
         tripEndedAt: booking.tripEndedAt,

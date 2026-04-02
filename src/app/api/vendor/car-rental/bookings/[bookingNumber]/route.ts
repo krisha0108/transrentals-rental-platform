@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { saveDriverNotification } from '@/lib/utils/driver-notification-sender';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
@@ -651,6 +652,28 @@ export async function PATCH(
       } catch (notificationError: any) {
         console.error('❌ Driver assigned notification error:', notificationError);
         logger.error('Failed to send driver assigned notification', notificationError);
+      }
+
+      // Notify the assigned driver (vendor_staff)
+      try {
+        const assignedStaff = await prisma.vendor_staff.findFirst({
+          where: { phone: updatedBooking.driverPhone ?? '', vendorId },
+          select: { id: true },
+        });
+        if (assignedStaff) {
+          await saveDriverNotification({
+            staffId: assignedStaff.id,
+            title: '🚗 New Trip Assigned!',
+            body: `You have been assigned to Car Rental Booking #${updatedBooking.bookingNumber}. Vehicle: ${updatedBooking.vehicleNumber}. Pickup: ${updatedBooking.pickupCity} on ${updatedBooking.pickupDate}.`,
+            type: 'booking_assigned',
+            serviceType: 'car',
+            bookingId: updatedBooking.id,
+            bookingNumber: updatedBooking.bookingNumber,
+          });
+          console.log('✅ Driver notification sent for car rental booking:', updatedBooking.bookingNumber);
+        }
+      } catch (driverNotifError: any) {
+        logger.error('Failed to send driver notification for car rental assignment', driverNotifError);
       }
     }
 

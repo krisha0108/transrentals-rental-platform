@@ -16,10 +16,10 @@ const PHOTO_SLOTS = [
 ];
 
 const DOC_SLOTS = [
-  { key: 'insurance', label: 'Insurance', fieldKey: 'insuranceExpiry' },
-  { key: 'rc', label: 'RC Certificate', fieldKey: 'rcExpiry' },
-  { key: 'fitness', label: 'Fitness Certificate', fieldKey: 'fitnessExpiry' },
-  { key: 'permit', label: 'Permit', fieldKey: 'permitExpiry' },
+  { key: 'insurance', label: 'Insurance', fieldKey: 'insuranceExpiry', numberKey: 'insuranceNumber', numberPlaceholder: 'Insurance number' },
+  { key: 'rc', label: 'RC Certificate', fieldKey: 'rcExpiry', numberKey: 'rcNumber', numberPlaceholder: 'RC number' },
+  { key: 'fitness', label: 'Fitness Certificate', fieldKey: 'fitnessExpiry', numberKey: null, numberPlaceholder: '' },
+  { key: 'permit', label: 'Permit', fieldKey: 'permitExpiry', numberKey: null, numberPlaceholder: '' },
 ];
 
 const inp = 'w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition';
@@ -31,8 +31,10 @@ export default function AddVehiclePage() {
 
   const [form, setForm] = useState({
     make: '', model: '', year: '', registrationNo: '', color: '',
-    category: '', seatingCapacity: '', fuelType: '',
-    insuranceExpiry: '', rcExpiry: '', fitnessExpiry: '', permitExpiry: '',
+    category: '', seatingCapacity: '', fuelType: '', currentOdometer: '',
+    insuranceNumber: '', insuranceExpiry: '',
+    rcNumber: '', rcExpiry: '',
+    fitnessExpiry: '', permitExpiry: '',
     nextServiceDate: '',
   });
 
@@ -160,6 +162,10 @@ export default function AddVehiclePage() {
               <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Seating Capacity</label>
               <input type="number" className={inp} placeholder="4" value={form.seatingCapacity} onChange={e => set('seatingCapacity', e.target.value)} min="1" max="60" />
             </div>
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Current Odometer (km)</label>
+              <input type="number" className={inp} placeholder="e.g. 45000" value={form.currentOdometer} onChange={e => set('currentOdometer', e.target.value)} min="0" />
+            </div>
           </div>
         </div>
 
@@ -190,6 +196,12 @@ export default function AddVehiclePage() {
                     </label>
                   )}
                 </div>
+                {doc.numberKey && (
+                  <input className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent mb-2"
+                    placeholder={doc.numberPlaceholder}
+                    value={(form as any)[doc.numberKey] || ''}
+                    onChange={e => set(doc.numberKey!, e.target.value)} />
+                )}
                 <input type="date" className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   value={(form as any)[doc.fieldKey]} onChange={e => set(doc.fieldKey, e.target.value)} />
               </div>

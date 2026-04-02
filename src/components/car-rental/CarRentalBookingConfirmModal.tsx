@@ -373,7 +373,7 @@ export function CarRentalBookingConfirmModal({
           dropCity: dropCity,
           dropLocationId: bookingDetails.dropLocationId,
           mode: outstationMode,
-          returnDate: returnDate,
+          returnDate: outstationMode === 'round-trip' ? returnDate : undefined,
           intermediateStops: intermediateStops?.filter((s) => s.locationId || s.cityText.trim()) || [],
         }),
         ...(tripType === 'airport' && {

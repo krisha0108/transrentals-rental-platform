@@ -59,7 +59,7 @@ export function getClientIdentifier(request: Request): string {
  * Create hash of booking data to detect duplicates
  */
 export function hashBookingData(data: any): string {
-  const key = `${data.customerPhone}-${data.vehicleName}-${data.pickupDate}-${data.dropDate}`;
+  const key = `${data.customerPhone}-${data.carCategoryName || data.vehicleName}-${data.pickupDate}-${data.returnDate || data.dropDate}-${data.tripType}-${data.dropCity || ''}`;
   return key;
 }
 

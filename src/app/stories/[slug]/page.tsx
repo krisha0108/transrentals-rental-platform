@@ -3,11 +3,17 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import StoryViewer from './_components/StoryViewer';
 
-async function getStory(slug: string) {
+async function getStory(rawSlug: string) {
   try {
     const now = new Date();
-    const story = await prisma.web_stories.findUnique({
-      where: { slug },
+    // Decode URL encoding (e.g. %20 → space) and normalise to lowercase-dash slug
+    const decoded = decodeURIComponent(rawSlug);
+    const normalised = decoded.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    // Try exact match first, then normalised slug
+    const story = await prisma.web_stories.findFirst({
+      where: {
+        OR: [{ slug: decoded }, { slug: normalised }],
+      },
       include: {
         slides: { orderBy: { order: 'asc' } },
         reactions: { select: { reactionType: true } },
@@ -64,7 +70,7 @@ async function getStory(slug: string) {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const story = await getStory(slug);
+  const story = await getStory(decodeURIComponent(slug));
   if (!story) return { title: 'Story Not Found' };
 
   return {

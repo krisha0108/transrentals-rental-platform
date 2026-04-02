@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, AlertTriangle, CheckCircle, Car, Calendar, Loader2, RefreshCw } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Bell, AlertTriangle, CheckCircle, Car, Calendar, Loader2, RefreshCw, ChevronRight } from 'lucide-react';
 
 interface Notification {
   id: string;
@@ -20,6 +21,7 @@ interface Alert {
 }
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,6 +54,22 @@ export default function NotificationsPage() {
       });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch {}
+  };
+
+  const handleNotificationClick = async (n: Notification) => {
+    if (!n.read) {
+      try {
+        await fetch('/api/driver/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'markRead', notificationIds: [n.id] }),
+        });
+        setNotifications(prev => prev.map(notif => notif.id === n.id ? { ...notif, read: true } : notif));
+      } catch {}
+    }
+    if (n.bookingNumber) {
+      router.push(`/driver/bookings/${n.bookingNumber}`);
+    }
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -118,7 +136,11 @@ export default function NotificationsPage() {
               ) : (
                 <div className="space-y-3">
                   {notifications.map(n => (
-                    <div key={n.id} className={`bg-white rounded-xl border p-4 ${!n.read ? 'border-emerald-300 bg-emerald-50/30' : ''}`}>
+                    <div
+                      key={n.id}
+                      onClick={() => handleNotificationClick(n)}
+                      className={`bg-white rounded-xl border p-4 transition ${!n.read ? 'border-emerald-300 bg-emerald-50/30' : ''} ${n.bookingNumber ? 'cursor-pointer hover:shadow-md hover:border-emerald-400' : ''}`}
+                    >
                       <div className="flex items-start gap-3">
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${!n.read ? 'bg-emerald-100' : 'bg-gray-100'}`}>
                           <Car className={`w-4 h-4 ${!n.read ? 'text-emerald-600' : 'text-gray-500'}`} />
@@ -138,6 +160,9 @@ export default function NotificationsPage() {
                             </p>
                           )}
                         </div>
+                        {n.bookingNumber && (
+                          <ChevronRight className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                        )}
                       </div>
                     </div>
                   ))}

@@ -6,6 +6,7 @@ import {
   checkRateLimit, RATE_LIMITS, checkLoginAllowed,
   recordFailedLogin, clearLockoutOnSuccess, logger,
 } from '@/lib/security';
+import { addFcmToken } from '@/lib/utils/driver-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, password } = body;
+    const { email, password, fcmToken } = body;
     if (!email || !password) {
       return NextResponse.json({ success: false, error: 'Email and password are required' }, { status: 400 });
     }
@@ -78,6 +79,14 @@ export async function POST(request: NextRequest) {
         email: staffDriver.email, name: staffDriver.name,
         role: 'driver', userType: 'vendor_staff',
       }).setProtectedHeader({ alg: 'HS256' }).setExpirationTime('7d').setIssuedAt().sign(JWT_SECRET);
+
+      // Append mobile FCM token to array (supports multiple devices)
+      if (fcmToken) {
+        await Promise.all([
+          addFcmToken(`driver_mobile_fcm_${staffDriver.id}`, fcmToken),
+          prisma.vendor_staff.update({ where: { id: staffDriver.id }, data: { fcmToken } }),
+        ]).catch(() => {});
+      }
 
       const response = NextResponse.json({
         success: true, message: 'Login successful',
@@ -118,6 +127,11 @@ export async function POST(request: NextRequest) {
       driverId: indDriver.id, email: indDriver.email,
       name: indDriver.name, role: 'driver', userType: 'independent',
     }).setProtectedHeader({ alg: 'HS256' }).setExpirationTime('7d').setIssuedAt().sign(JWT_SECRET);
+
+    // Append mobile FCM token to array (supports multiple devices)
+    if (fcmToken) {
+      await addFcmToken(`driver_mobile_fcm_${indDriver.id}`, fcmToken).catch(() => {});
+    }
 
     const response = NextResponse.json({
       success: true, message: 'Login successful',
