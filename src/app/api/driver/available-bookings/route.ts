@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   try {
     const bookings = await prisma.chauffeur_bookings.findMany({
       where: { status: 'BROADCASTED', acceptedDriverId: null },
-      orderBy: { pickupDate: 'asc' },
+      orderBy: { createdAt: 'desc' },
       select: {
         id: true, bookingNumber: true, tripType: true, carCategoryName: true,
         customerName: true, pickupCity: true, dropCity: true,
@@ -43,10 +43,19 @@ export async function POST(request: NextRequest) {
     });
     if (!booking) return NextResponse.json({ success: false, error: 'Booking no longer available' }, { status: 409 });
 
+    const isStaff = (driver as any).userType === 'vendor_staff';
+
     const updated = await prisma.chauffeur_bookings.update({
       where: { id: bookingId },
       data: {
-        acceptedDriverId: driver.id,
+        ...(isStaff
+          ? {
+              driverPhone: (driver as any).phone ?? null,
+              driverName: (driver as any).name ?? null,
+              acceptedVendorId: (driver as any).vendorId ?? null,
+              acceptedStaffId: driver.id,
+            }
+          : { acceptedDriverId: driver.id }),
         status: 'ACCEPTED',
         acceptedAt: new Date(),
       },

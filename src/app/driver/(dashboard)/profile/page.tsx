@@ -15,6 +15,7 @@ import {
   Loader2,
   AlertCircle,
   Pencil,
+  Camera,
 } from 'lucide-react';
 
 interface Driver {
@@ -38,6 +39,7 @@ export default function DriverProfilePage() {
   const router = useRouter();
   const [driver, setDriver] = useState<Driver | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -56,6 +58,18 @@ export default function DriverProfilePage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePhotoUpload = async (file: File) => {
+    setUploadingPhoto(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetch('/api/driver/profile/photo', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.success && driver) setDriver({ ...driver, profilePhoto: data.url });
+    } catch {}
+    setUploadingPhoto(false);
   };
 
   const handleLogout = async () => {
@@ -114,8 +128,22 @@ export default function DriverProfilePage() {
       {/* Profile Card */}
       <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-6 text-white">
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-3xl font-bold">
-            {driver.name.charAt(0).toUpperCase()}
+          <div className="relative">
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-white/20 flex items-center justify-center text-3xl font-bold">
+              {driver.profilePhoto ? (
+                <img src={driver.profilePhoto} alt={driver.name} className="w-full h-full object-cover" />
+              ) : (
+                driver.name.charAt(0).toUpperCase()
+              )}
+            </div>
+            <label className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full flex items-center justify-center cursor-pointer shadow hover:bg-gray-50 transition">
+              {uploadingPhoto ? (
+                <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
+              ) : (
+                <Camera className="w-3.5 h-3.5 text-emerald-600" />
+              )}
+              <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); e.target.value = ''; }} />
+            </label>
           </div>
           <div>
             <h2 className="text-2xl font-bold">{driver.name}</h2>

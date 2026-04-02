@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { verifyDriverToken } from '@/lib/auth/driver-auth';
+import { addFcmToken } from '@/lib/utils/driver-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,25 @@ export async function POST(request: NextRequest) {
   const driverId = payload.driverId;
 
   const body = await request.json();
+
+  // Handle FCM token update from mobile app (append to array — multi-device support)
+  if (body.fcmToken) {
+    const updatePromises: Promise<any>[] = [
+      addFcmToken(`driver_mobile_fcm_${driverId}`, body.fcmToken),
+    ];
+    // Also keep vendor_staff.fcmToken updated (used by some direct-send routes)
+    if (payload.userType === 'vendor_staff') {
+      updatePromises.push(
+        prisma.vendor_staff.update({
+          where: { id: driverId },
+          data: { fcmToken: body.fcmToken },
+        })
+      );
+    }
+    await Promise.all(updatePromises).catch(() => {});
+    return NextResponse.json({ success: true });
+  }
+
   const key = SETTINGS_KEY(driverId);
 
   const existing = await prisma.settings.findUnique({ where: { key } });

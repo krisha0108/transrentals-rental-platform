@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Car,
   Bus,
@@ -20,6 +21,8 @@ import {
   Crown,
   Radio,
   IndianRupee,
+  Search,
+  Zap,
 } from 'lucide-react';
 
 interface Booking {
@@ -67,6 +70,7 @@ interface AvailableBooking {
   pickupTime: string;
   estimatedDistance?: number;
   driverBatta?: number;
+  createdAt?: string;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string; icon: any }> = {
@@ -94,6 +98,7 @@ const TRIP_TYPE_LABELS_MAP: Record<string, string> = {
 };
 
 export default function DriverBookingsPage() {
+  const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, active: 0, completed: 0, totalEarnings: 0 });
   const [isLoading, setIsLoading] = useState(true);
@@ -104,13 +109,24 @@ export default function DriverBookingsPage() {
   const [availableLoading, setAvailableLoading] = useState(false);
   const [accepting, setAccepting] = useState<string | null>(null);
   const [acceptedId, setAcceptedId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [availSort, setAvailSort] = useState<'soonest' | 'highest'>('soonest');
+  const [availTripType, setAvailTripType] = useState('ALL');
+  const [availShowAll, setAvailShowAll] = useState(false);
 
   useEffect(() => {
     fetchBookings();
   }, [filter, serviceType]);
 
+  const autoRefreshRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    if (tab === 'available') fetchAvailable();
+    if (tab === 'available') {
+      fetchAvailable();
+      autoRefreshRef.current = setInterval(() => fetchAvailable(), 30000);
+    } else {
+      if (autoRefreshRef.current) clearInterval(autoRefreshRef.current);
+    }
+    return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
   }, [tab]);
 
   const fetchBookings = async () => {
@@ -139,21 +155,23 @@ export default function DriverBookingsPage() {
     setAvailableLoading(false);
   };
 
-  const handleAccept = async (bookingId: string) => {
-    setAccepting(bookingId);
+  const handleAccept = async (booking: AvailableBooking) => {
+    setAccepting(booking.id);
     try {
       const res = await fetch('/api/driver/available-bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId }),
+        body: JSON.stringify({ bookingId: booking.id }),
       });
       const data = await res.json();
       if (data.success) {
-        setAcceptedId(bookingId);
+        setAcceptedId(booking.id);
+        fetchBookings();
         setTimeout(() => {
-          setAvailableBookings(prev => prev.filter(b => b.id !== bookingId));
+          setAvailableBookings(prev => prev.filter(b => b.id !== booking.id));
           setAcceptedId(null);
-        }, 1500);
+          router.push(`/driver/bookings/${booking.bookingNumber}`);
+        }, 1000);
       } else {
         fetchAvailable();
       }
@@ -203,93 +221,172 @@ export default function DriverBookingsPage() {
         </div>
 
       {/* Available Trips Tab Content */}
-      {tab === 'available' && (
-        <div className="space-y-4">
-          {availableLoading ? (
-            <div className="flex items-center justify-center h-48">
-              <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
-            </div>
-          ) : availableBookings.length === 0 ? (
-            <div className="bg-white rounded-xl border p-10 text-center">
-              <Radio className="w-14 h-14 text-gray-300 mx-auto mb-3" />
-              <h3 className="font-semibold text-gray-900 mb-1">No Available Trips</h3>
-              <p className="text-sm text-gray-500">No broadcasted trips right now. Check back later.</p>
-              <button onClick={fetchAvailable} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
-                Refresh
+      {tab === 'available' && (() => {
+        const now = new Date();
+        const AVAIL_TRIP_TYPES = ['ALL', 'LOCAL', 'OUTSTATION_ONEWAY', 'OUTSTATION_ROUNDTRIP', 'AIRPORT_PICKUP', 'AIRPORT_DROP'];
+        const typeCounts = AVAIL_TRIP_TYPES.reduce((acc, t) => {
+          acc[t] = t === 'ALL' ? availableBookings.length : availableBookings.filter(b => b.tripType === t).length;
+          return acc;
+        }, {} as Record<string, number>);
+
+        let filtered = availableBookings.filter(b => {
+          if (!availShowAll && new Date(b.pickupDate) < now) return false;
+          if (availTripType !== 'ALL' && b.tripType !== availTripType) return false;
+          return true;
+        });
+        filtered = [...filtered].sort((a, b) =>
+          availSort === 'soonest'
+            ? new Date(a.pickupDate).getTime() - new Date(b.pickupDate).getTime()
+            : (b.driverBatta || 0) - (a.driverBatta || 0)
+        );
+
+        return (
+          <div className="space-y-4">
+            {/* Sort + Toggle row */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+                <button
+                  onClick={() => setAvailSort('soonest')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${availSort === 'soonest' ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}
+                >
+                  <Clock className="w-3 h-3" /> Soonest
+                </button>
+                <button
+                  onClick={() => setAvailSort('highest')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${availSort === 'highest' ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}
+                >
+                  <IndianRupee className="w-3 h-3" /> Highest
+                </button>
+              </div>
+              <button
+                onClick={() => setAvailShowAll(v => !v)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${availShowAll ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+              >
+                {availShowAll ? 'All Dates' : 'Upcoming'}
               </button>
             </div>
-          ) : (
-            availableBookings.map(booking => {
-              const isAccepting = accepting === booking.id;
-              const isAccepted = acceptedId === booking.id;
-              return (
-                <div key={booking.id} className={`bg-white rounded-xl border shadow-sm p-4 transition ${isAccepted ? 'border-green-400 bg-green-50' : ''}`}>
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                        <Car className="w-5 h-5 text-emerald-600" />
+
+            {/* Trip type filter chips */}
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {AVAIL_TRIP_TYPES.filter(t => t === 'ALL' || typeCounts[t] > 0).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setAvailTripType(t)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition flex items-center gap-1.5 ${
+                    availTripType === t ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300'
+                  }`}
+                >
+                  {t === 'ALL' ? 'All Types' : TRIP_TYPE_LABELS_MAP[t] || t}
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${availTripType === t ? 'bg-white/20' : 'bg-gray-100'}`}>{typeCounts[t]}</span>
+                </button>
+              ))}
+            </div>
+
+            {availableLoading ? (
+              <div className="flex items-center justify-center h-48">
+                <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="bg-white rounded-xl border p-10 text-center">
+                <Radio className="w-14 h-14 text-gray-300 mx-auto mb-3" />
+                <h3 className="font-semibold text-gray-900 mb-1">No Available Trips</h3>
+                <p className="text-sm text-gray-500">
+                  {availTripType !== 'ALL' ? 'No trips for this type. Try changing the filter.' : 'No broadcasted trips right now. Check back later.'}
+                </p>
+                <button onClick={fetchAvailable} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
+                  Refresh
+                </button>
+              </div>
+            ) : (
+              filtered.map(booking => {
+                const isAccepting = accepting === booking.id;
+                const isAccepted = acceptedId === booking.id;
+                const isNewTrip = booking.createdAt ? Date.now() - new Date(booking.createdAt).getTime() < 15 * 60 * 1000 : false;
+                const isPast = new Date(booking.pickupDate) < now;
+                return (
+                  <Link key={booking.id} href={`/driver/bookings/${booking.bookingNumber}`}
+                    className={`block bg-white rounded-xl border shadow-sm p-4 transition hover:border-emerald-300 hover:shadow-md ${isAccepted ? 'border-green-400 bg-green-50' : ''} ${isPast ? 'opacity-60' : ''}`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                          <Car className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-mono text-gray-400">#{booking.bookingNumber}</p>
+                            {isNewTrip && !isPast && <span className="flex items-center gap-0.5 text-xs font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full"><Zap className="w-2.5 h-2.5" /> NEW</span>}
+                            {isPast && <span className="text-xs font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">PAST</span>}
+                          </div>
+                          <p className="font-semibold text-gray-900">{booking.carCategoryName}</p>
+                          <p className="text-xs text-gray-500">{TRIP_TYPE_LABELS_MAP[booking.tripType] || booking.tripType}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs font-mono text-gray-400">#{booking.bookingNumber}</p>
-                        <p className="font-semibold text-gray-900">{booking.carCategoryName}</p>
-                        <p className="text-xs text-gray-500">{TRIP_TYPE_LABELS_MAP[booking.tripType] || booking.tripType}</p>
-                      </div>
+                      {booking.driverBatta != null && booking.driverBatta > 0 && (
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500">Your Earning</p>
+                          <p className="font-bold text-emerald-700 flex items-center gap-0.5 justify-end">
+                            <IndianRupee className="w-3.5 h-3.5" />{booking.driverBatta.toLocaleString()}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    {booking.driverBatta != null && booking.driverBatta > 0 && (
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500">Driver Batta</p>
-                        <p className="font-bold text-emerald-700 flex items-center gap-0.5 justify-end">
-                          <IndianRupee className="w-3.5 h-3.5" />{booking.driverBatta.toLocaleString()}
-                        </p>
+                    <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-xs text-gray-500">Route</p>
+                          <p className="font-medium">{booking.dropCity ? `${booking.pickupCity} → ${booking.dropCity}` : booking.pickupCity}</p>
+                        </div>
                       </div>
+                      <div className="flex items-start gap-2">
+                        <Clock className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-xs text-gray-500">Pickup</p>
+                          <p className="font-medium">
+                            {new Date(booking.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} {booking.pickupTime}
+                          </p>
+                        </div>
+                      </div>
+                      {booking.pickupAddress && (
+                        <div className="col-span-2 flex items-start gap-2">
+                          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                          <p className="text-gray-700 text-sm">{booking.pickupAddress}</p>
+                        </div>
+                      )}
+                    </div>
+                    {isAccepted ? (
+                      <div className="flex items-center justify-center gap-2 py-2.5 bg-green-100 text-green-700 rounded-xl font-medium">
+                        <CheckCircle className="w-5 h-5" /> Trip Accepted! Assigning vehicle...
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.preventDefault(); if (!isPast) handleAccept(booking); }}
+                        disabled={isAccepting || accepting !== null || isPast}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition disabled:opacity-50"
+                      >
+                        {isAccepting ? <><Loader2 className="w-4 h-4 animate-spin" /> Accepting...</> : isPast ? 'Trip Expired' : 'Accept Trip'}
+                      </button>
                     )}
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-                    <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-xs text-gray-500">Route</p>
-                        <p className="font-medium">{booking.dropCity ? `${booking.pickupCity} → ${booking.dropCity}` : booking.pickupCity}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Clock className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-xs text-gray-500">Pickup</p>
-                        <p className="font-medium">
-                          {new Date(booking.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} {booking.pickupTime}
-                        </p>
-                      </div>
-                    </div>
-                    {booking.pickupAddress && (
-                      <div className="col-span-2 flex items-start gap-2">
-                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                        <p className="text-gray-700 text-sm">{booking.pickupAddress}</p>
-                      </div>
-                    )}
-                  </div>
-                  {isAccepted ? (
-                    <div className="flex items-center justify-center gap-2 py-2.5 bg-green-100 text-green-700 rounded-xl font-medium">
-                      <CheckCircle className="w-5 h-5" /> Trip Accepted!
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handleAccept(booking.id)}
-                      disabled={isAccepting || accepting !== null}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition disabled:opacity-50"
-                    >
-                      {isAccepting ? <><Loader2 className="w-4 h-4 animate-spin" /> Accepting...</> : 'Accept Trip'}
-                    </button>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
+                  </Link>
+                );
+              })
+            )}
+          </div>
+        );
+      })()}
 
       {/* My Trips */}
-      {tab === 'my' && <><div className="flex gap-2 overflow-x-auto pb-2">
+      {tab === 'my' && <><div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          placeholder="Search by booking#, city, customer..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-2">
         <button
           onClick={() => setServiceType('all')}
           className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition flex items-center gap-2 ${
@@ -410,7 +507,16 @@ export default function DriverBookingsPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {bookings.map((booking) => {
+          {bookings.filter(booking => {
+            const q = search.toLowerCase().trim();
+            if (!q) return true;
+            return (
+              booking.bookingNumber?.toLowerCase().includes(q) ||
+              booking.pickupCity?.toLowerCase().includes(q) ||
+              booking.dropCity?.toLowerCase().includes(q) ||
+              booking.customerName?.toLowerCase().includes(q)
+            );
+          }).map((booking) => {
             const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.DRIVER_ASSIGNED;
             const StatusIcon = statusConfig.icon;
 

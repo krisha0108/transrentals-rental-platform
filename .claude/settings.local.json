@@ -236,7 +236,17 @@
       "Bash(find \"C:\\\\Users\\\\Admin\\\\Desktop\\\\tran_stable\\\\src\\\\app\\\\vendor\\\\\\(dashboard\\)\" -type f -name \"*.tsx\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(''''project_id:'''', d.get\\(''''project_id''''\\)\\); print\\(''''client_email:'''', d.get\\(''''client_email'''',''''''''\\)[:40]\\)\")",
       "Bash(/c/Users/Admin/Desktop/tran_stable/.env:*)",
-      "Bash(node -e \"const {PrismaClient} = require\\(''''@prisma/client''''\\); const p = new PrismaClient\\(\\); console.log\\(Object.keys\\(p.driver_vehicles.fields || {}\\).join\\('''', ''''\\)\\)\")"
+      "Bash(node -e \"const {PrismaClient} = require\\(''''@prisma/client''''\\); const p = new PrismaClient\\(\\); console.log\\(Object.keys\\(p.driver_vehicles.fields || {}\\).join\\('''', ''''\\)\\)\")",
+      "Bash(cp:*)",
+      "Bash(ls \"C:\\\\Users\\\\Admin\\\\Desktop\\\\tran_stable\\\\src\\\\app\\\\driver\\\\\\(dashboard\\)\\\\bookings\\\\TRAN2025\\\\assign-vehicle\")",
+      "Bash(grep -n \"4-digit\\\\|slice\\(0, 4\\)\\\\|maxLength={4}\\\\|length !== 4\\\\|length === 4\" \"src/app/driver/\\(dashboard\\)/bookings/[bookingNumber]/page.tsx\")",
+      "Bash(grep -n \"6-digit\\\\|slice\\(0, 6\\)\\\\|maxLength={6}\\\\|length !== 6\" \"src/app/driver/\\(dashboard\\)/bookings/[bookingNumber]/page.tsx\")",
+      "Bash(grep -n \"4-digit\\\\|slice\\(0, 4\\)\\\\|maxLength={4}\\\\|length !== 4\\\\|length < 4\\\\|length === 4\" \"src/app/vendor/\\(dashboard\\)/luxury/bookings/[id]/page.tsx\")",
+      "Bash(grep -n \"6-digit\\\\|slice\\(0, 6\\)\\\\|maxLength={6}\\\\|length !== 6\\\\|length < 6\" \"src/app/driver/\\(dashboard\\)/bookings/[bookingNumber]/page.tsx\")",
+      "Bash(grep -n \"slice\\(0, 6\\)\\\\|maxLength={6}\\\\|length !== 6\\\\|length < 6\" \"src/app/driver/\\(dashboard\\)/bookings/[bookingNumber]/page.tsx\")",
+      "Bash(grep -n \"slice\\(0, 6\\)\\\\|maxLength={6}\\\\|length !== 6\\\\|6-digit\\\\|isTruck.*4.*6\\\\|isBus.*4.*6\" \"src/app/driver/\\(dashboard\\)/bookings/[bookingNumber]/page.tsx\")",
+      "Bash(rm -rf \"C:\\\\Users\\\\Admin\\\\Desktop\\\\tran_stable\\\\src\\\\app\\\\driver\\\\\\(dashboard\\)\\\\bookings\\\\[bookingNumber]\\\\assign-vehicle\")",
+      "Bash(rm -rf \"C:\\\\Users\\\\Admin\\\\Desktop\\\\tran_stable\\\\src\\\\app\\\\api\\\\driver\\\\bookings\\\\[bookingNumber]\\\\assign-vehicle\")"
     ],
     "deny": [],
     "ask": [],

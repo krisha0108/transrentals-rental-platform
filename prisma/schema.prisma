@@ -940,10 +940,12 @@ model chauffeur_bookings {
   locations                                            locations                        @relation(fields: [locationId], references: [id])
   accepted_driver                                      drivers?                         @relation(fields: [acceptedDriverId], references: [id])
   acceptedDriverId                                     String?
+  acceptedStaffId                                      String?
 
   @@index([acceptedVendorId])
   @@index([assignedVendorId])
   @@index([acceptedDriverId])
+  @@index([acceptedStaffId])
   @@index([bookingNumber])
   @@index([createdAt])
   @@index([customerEmail])
