@@ -189,9 +189,6 @@ const SVG_PATHS: Partial<Record<ShapeType, string>> = {
   gear:        'M 40 0 L 60 0 L 64 16 L 78 8 L 92 22 L 84 36 L 100 44 L 100 56 L 84 64 L 92 78 L 78 92 L 64 84 L 60 100 L 40 100 L 36 84 L 22 92 L 8 78 L 16 64 L 0 56 L 0 44 L 16 36 L 8 22 L 22 8 L 36 16 Z M 35 50 A 15 15 0 1 0 65 50 A 15 15 0 1 0 35 50 Z',
 };
 
-// Cylinder needs special 2-path SVG treatment
-const SVG_CYLINDER = true;
-
 function isSvgShape(st: ShapeType): boolean {
   return st in SVG_PATHS || st === 'fcCylinder';
 }
@@ -729,6 +726,19 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
               {t === 'none' ? 'Aa' : t === 'uppercase' ? 'AA' : t === 'lowercase' ? 'aa' : 'Abc'}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* ROW 1b: Sticker size */}
+      {el.type === 'sticker' && (
+        <div className="flex items-center gap-2 px-2 py-1.5 border-b border-white/10">
+          <span className="text-xl leading-none flex-shrink-0">{el.content}</span>
+          <span className="text-[10px] text-gray-500 flex-shrink-0">Size</span>
+          <input type="range" min={20} max={200} step={4} value={el.fontSize || 64}
+            onMouseDown={ev => ev.stopPropagation()}
+            onChange={e => onChange({ ...el, fontSize: Number(e.target.value) })}
+            className="flex-1 accent-indigo-500" />
+          <span className="text-[10px] text-gray-400 w-7 text-right">{el.fontSize || 64}px</span>
         </div>
       )}
 
