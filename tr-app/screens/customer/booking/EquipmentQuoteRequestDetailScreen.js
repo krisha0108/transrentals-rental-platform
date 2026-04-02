@@ -48,6 +48,12 @@ export default function EquipmentQuoteRequestDetailScreen() {
   const [acceptError, setAcceptError] = useState(null);
   const [acceptSuccess, setAcceptSuccess] = useState(null);
 
+  // Re-request state
+  const [reRequestCount, setReRequestCount] = useState(0);
+  const [reRequesting, setReRequesting] = useState(false);
+  const [reRequestModal, setReRequestModal] = useState(null); // null | 'confirm' | 'limit' | 'success' | 'error'
+  const [reRequestError, setReRequestError] = useState('');
+
   // StatusBar management
   useFocusEffect(
     useCallback(() => {
@@ -77,6 +83,12 @@ export default function EquipmentQuoteRequestDetailScreen() {
         const requestData = response.data.quoteRequest;
         setRequest(requestData);
         setQuotes(requestData.equipment_quotes || requestData.quotes || []);
+
+        // Fetch re-request count
+        try {
+          const rcRes = await api.get(`/customer/re-request-quotes?serviceType=equipment&requestId=${requestId}`);
+          if (rcRes.data.success) setReRequestCount(rcRes.data.reRequestCount || 0);
+        } catch {}
 
         // If quote already accepted and booking created, redirect to booking detail
         if (requestData.status === 'ACCEPTED' && requestData.bookingId) {
@@ -185,6 +197,36 @@ export default function EquipmentQuoteRequestDetailScreen() {
     return [];
   };
 
+  const handleReRequest = () => {
+    if (3 - reRequestCount <= 0) {
+      setReRequestModal('limit');
+      return;
+    }
+    setReRequestModal('confirm');
+  };
+
+  const confirmReRequest = async () => {
+    setReRequesting(true);
+    try {
+      const response = await api.post('/customer/re-request-quotes', {
+        serviceType: 'equipment',
+        requestId,
+      });
+      if (response.data.success) {
+        setReRequestModal('success');
+        fetchRequestDetails();
+      } else {
+        setReRequestError(response.data.message || 'Failed to re-request quotes');
+        setReRequestModal('error');
+      }
+    } catch (err) {
+      setReRequestError('Failed to re-request quotes. Please try again.');
+      setReRequestModal('error');
+    } finally {
+      setReRequesting(false);
+    }
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     const date = new Date(dateStr);
@@ -251,6 +293,13 @@ export default function EquipmentQuoteRequestDetailScreen() {
     );
   }
 
+  const allQuotesExpired = quotes.length > 0 && quotes.every(q => {
+    if (q.status === 'EXPIRED') return true;
+    if (!q.validTill) return false;
+    return new Date(q.validTill).getTime() < Date.now();
+  });
+  const reRequestsRemaining = 3 - reRequestCount;
+  const bookingDateInFuture = request.startDate && new Date(request.startDate) > new Date();
   const statusConfig = STATUS_CONFIG[request.status] || STATUS_CONFIG.PENDING;
 
   return (
@@ -426,8 +475,16 @@ export default function EquipmentQuoteRequestDetailScreen() {
               Quotes Received ({quotes.length})
             </Text>
 
-            {quotes.map((quote) => (
-              <View key={quote.id} style={styles.quoteCard}>
+            {quotes.map((quote) => {
+              const isQuoteExpired = quote.status === 'EXPIRED' || (quote.validTill && new Date(quote.validTill).getTime() < Date.now());
+              return (
+              <View key={quote.id} style={[styles.quoteCard, isQuoteExpired && styles.quoteCardExpired]}>
+                {isQuoteExpired && (
+                  <View style={styles.expiredTopBanner}>
+                    <Ionicons name="close-circle" size={13} color="#FFF" />
+                    <Text style={styles.expiredTopBannerText}>Quote Expired</Text>
+                  </View>
+                )}
                 <View style={styles.quoteHeader}>
                   <View style={styles.vendorAvatarCircle}>
                     <Ionicons name="construct" size={wp('5%')} color={TEAL_MID} />
@@ -464,13 +521,15 @@ export default function EquipmentQuoteRequestDetailScreen() {
                   )}
                   {quote.validTill && (
                     <View style={styles.quoteDetailRow}>
-                      <Ionicons name="time-outline" size={16} color="#F59E0B" />
-                      <Text style={styles.quoteDetailText}>Valid till {formatDate(quote.validTill)}</Text>
+                      <Ionicons name="time-outline" size={16} color={isQuoteExpired ? '#EF4444' : '#F59E0B'} />
+                      <Text style={[styles.quoteDetailText, isQuoteExpired && { color: '#EF4444' }]}>
+                        {isQuoteExpired ? `Expired on ${formatDate(quote.validTill)}` : `Valid till ${formatDate(quote.validTill)}`}
+                      </Text>
                     </View>
                   )}
                 </View>
 
-                {quote.status === 'SENT' || quote.status === 'VIEWED' ? (
+                {!isQuoteExpired && request.status !== 'ACCEPTED' && (quote.status === 'SENT' || quote.status === 'VIEWED') ? (
                   <TouchableOpacity
                     style={[styles.acceptBtn, acceptingQuote === quote.id && styles.acceptBtnDisabled]}
                     onPress={() => handleAcceptQuote(quote)}
@@ -497,7 +556,62 @@ export default function EquipmentQuoteRequestDetailScreen() {
                   </View>
                 ) : null}
               </View>
-            ))}
+              );
+            })}
+
+            {/* Date Passed — Cannot Re-request */}
+            {allQuotesExpired && !bookingDateInFuture && request.status !== 'ACCEPTED' && (
+              <View style={styles.datePastBanner}>
+                <Ionicons name="calendar-outline" size={wp('8%')} color="#6B7280" />
+                <Text style={styles.datePastTitle}>Booking Date Passed</Text>
+                <Text style={styles.datePastDesc}>
+                  The start date for this request has already passed. Please create a new request for your equipment needs.
+                </Text>
+                <TouchableOpacity style={styles.datePastNewBtn} onPress={() => navigation.navigate('EquipmentBooking')}>
+                  <Text style={styles.datePastNewBtnText}>Create New Request</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Re-request Banner */}
+            {allQuotesExpired && bookingDateInFuture && request.status !== 'ACCEPTED' && (
+              <View style={styles.reRequestBanner}>
+                <View style={styles.reRequestContent}>
+                  <Ionicons name="refresh-circle-outline" size={wp('8%')} color="#EF4444" />
+                  <View style={{ flex: 1, marginLeft: wp('3%') }}>
+                    <Text style={styles.reRequestTitle}>All Quotes Expired</Text>
+                    <Text style={styles.reRequestDesc}>
+                      {reRequestsRemaining > 0
+                        ? `Re-request quotes from vendors (${reRequestsRemaining} attempt${reRequestsRemaining > 1 ? 's' : ''} left)`
+                        : 'Maximum re-request limit reached (3/3)'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.reRequestDots}>
+                  {[0, 1, 2].map(i => (
+                    <View key={i} style={[styles.dot, i < reRequestCount ? styles.dotFilled : styles.dotEmpty]} />
+                  ))}
+                </View>
+                {reRequestsRemaining > 0 && (
+                  <TouchableOpacity
+                    style={styles.reRequestBtn}
+                    onPress={handleReRequest}
+                    disabled={reRequesting}
+                  >
+                    <LinearGradient colors={['#EF4444', '#DC2626']} style={styles.reRequestBtnGrad}>
+                      {reRequesting ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                      ) : (
+                        <>
+                          <Ionicons name="refresh" size={18} color="#fff" />
+                          <Text style={styles.reRequestBtnText}>Re-request Quotes</Text>
+                        </>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </View>
         ) : (
           <View style={styles.noQuotesContainer}>
@@ -680,6 +794,98 @@ export default function EquipmentQuoteRequestDetailScreen() {
                   </>
                 )}
               </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Re-request Custom Modal */}
+      <Modal
+        visible={reRequestModal !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !reRequesting && setReRequestModal(null)}
+      >
+        <View style={styles.reReqOverlay}>
+          <View style={styles.reReqCard}>
+            {reRequestModal === 'confirm' && (
+              <>
+                <View style={styles.reReqIconWrap}>
+                  <LinearGradient colors={['#FEF3C7', '#FDE68A']} style={styles.reReqIconBg}>
+                    <Ionicons name="refresh" size={wp('8%')} color="#D97706" />
+                  </LinearGradient>
+                </View>
+                <Text style={styles.reReqTitle}>Re-request Quotes?</Text>
+                <Text style={styles.reReqSubtitle}>Vendors will be notified to send fresh quotes for your request.</Text>
+                <View style={styles.reReqAttemptsBox}>
+                  <View style={styles.reReqDots}>
+                    {[1, 2, 3].map(i => (
+                      <View key={i} style={[styles.reReqDot, i <= reRequestCount ? styles.reReqDotUsed : styles.reReqDotFree]} />
+                    ))}
+                  </View>
+                  <Text style={styles.reReqAttemptsText}>{3 - reRequestCount} of 3 attempts remaining</Text>
+                </View>
+                <View style={styles.reReqActions}>
+                  <TouchableOpacity style={styles.reReqCancelBtn} onPress={() => setReRequestModal(null)} disabled={reRequesting}>
+                    <Text style={styles.reReqCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.reReqConfirmBtn} onPress={confirmReRequest} disabled={reRequesting}>
+                    <LinearGradient colors={['#F59E0B', '#D97706']} style={styles.reReqConfirmGrad}>
+                      {reRequesting ? <ActivityIndicator size="small" color="#FFF" /> : (
+                        <>
+                          <Ionicons name="refresh" size={16} color="#FFF" />
+                          <Text style={styles.reReqConfirmText}>Re-request</Text>
+                        </>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+            {reRequestModal === 'limit' && (
+              <>
+                <View style={styles.reReqIconWrap}>
+                  <LinearGradient colors={['#FEE2E2', '#FECACA']} style={styles.reReqIconBg}>
+                    <Ionicons name="ban" size={wp('8%')} color="#EF4444" />
+                  </LinearGradient>
+                </View>
+                <Text style={styles.reReqTitle}>Limit Reached</Text>
+                <Text style={styles.reReqSubtitle}>You've used all 3 re-request attempts for this request. Please create a new request.</Text>
+                <View style={styles.reReqDots}>
+                  {[1, 2, 3].map(i => <View key={i} style={[styles.reReqDot, styles.reReqDotUsed]} />)}
+                </View>
+                <TouchableOpacity style={styles.reReqCloseBtn} onPress={() => setReRequestModal(null)}>
+                  <Text style={styles.reReqCloseBtnText}>Close</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {reRequestModal === 'success' && (
+              <>
+                <View style={styles.reReqIconWrap}>
+                  <LinearGradient colors={['#D1FAE5', '#A7F3D0']} style={styles.reReqIconBg}>
+                    <Ionicons name="checkmark-circle" size={wp('8%')} color="#059669" />
+                  </LinearGradient>
+                </View>
+                <Text style={[styles.reReqTitle, { color: '#059669' }]}>Request Re-opened!</Text>
+                <Text style={styles.reReqSubtitle}>Vendors have been notified and will send fresh quotes within 48 hours.</Text>
+                <TouchableOpacity style={[styles.reReqCloseBtn, { backgroundColor: '#059669' }]} onPress={() => setReRequestModal(null)}>
+                  <Text style={[styles.reReqCloseBtnText, { color: '#FFF' }]}>Done</Text>
+                </TouchableOpacity>
+              </>
+            )}
+            {reRequestModal === 'error' && (
+              <>
+                <View style={styles.reReqIconWrap}>
+                  <LinearGradient colors={['#FEE2E2', '#FECACA']} style={styles.reReqIconBg}>
+                    <Ionicons name="alert-circle" size={wp('8%')} color="#EF4444" />
+                  </LinearGradient>
+                </View>
+                <Text style={[styles.reReqTitle, { color: '#EF4444' }]}>Request Failed</Text>
+                <Text style={styles.reReqSubtitle}>{reRequestError}</Text>
+                <TouchableOpacity style={[styles.reReqCloseBtn, { backgroundColor: '#EF4444' }]} onPress={() => setReRequestModal(null)}>
+                  <Text style={[styles.reReqCloseBtnText, { color: '#FFF' }]}>Try Again</Text>
+                </TouchableOpacity>
+              </>
             )}
           </View>
         </View>
@@ -1348,4 +1554,168 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
+
+  // Re-request & Expired
+  reRequestBanner: { backgroundColor: '#FEF2F2', borderRadius: wp('3%'), padding: wp('4%'), marginTop: wp('3%'), borderWidth: 1, borderColor: '#FECACA' },
+  reRequestContent: { flexDirection: 'row', alignItems: 'center', marginBottom: wp('3%') },
+  reRequestTitle: { fontSize: wp('4%'), fontWeight: '700', color: '#991B1B' },
+  reRequestDesc: { fontSize: wp('3.2%'), color: '#DC2626', marginTop: 2 },
+  reRequestDots: { flexDirection: 'row', justifyContent: 'center', marginBottom: wp('3%'), gap: wp('2%') },
+  dot: { width: wp('2.5%'), height: wp('2.5%'), borderRadius: wp('1.25%') },
+  dotFilled: { backgroundColor: '#EF4444' },
+  dotEmpty: { backgroundColor: '#FECACA' },
+  reRequestBtn: { borderRadius: wp('2.5%'), overflow: 'hidden' },
+  reRequestBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: hp('1.5%'), gap: wp('2%') },
+  reRequestBtnText: { color: '#fff', fontSize: wp('3.8%'), fontWeight: '700' },
+  expiredBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF2F2', borderRadius: wp('2%'), padding: wp('2%'), marginTop: wp('2%'), gap: wp('1.5%') },
+  expiredText: { color: '#EF4444', fontSize: wp('3.5%'), fontWeight: '600' },
+  quoteCardExpired: {
+    borderColor: '#FECACA',
+    backgroundColor: '#FFF5F5',
+  },
+  expiredTopBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EF4444',
+    paddingHorizontal: wp('3%'),
+    paddingVertical: hp('0.6%'),
+    borderTopLeftRadius: wp('4%'),
+    borderTopRightRadius: wp('4%'),
+    marginHorizontal: -wp('4%'),
+    marginTop: -wp('4%'),
+    marginBottom: wp('2%'),
+    gap: wp('1.5%'),
+  },
+  expiredTopBannerText: {
+    color: '#FFF',
+    fontSize: wp('3%'),
+    fontWeight: '700',
+  },
+  datePastBanner: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: wp('3%'),
+    padding: wp('4%'),
+    marginTop: wp('3%'),
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    gap: wp('2%'),
+  },
+  datePastTitle: {
+    fontSize: wp('4%'),
+    fontWeight: '700',
+    color: '#374151',
+    marginTop: wp('1%'),
+  },
+  datePastDesc: {
+    fontSize: wp('3.2%'),
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: wp('4.5%'),
+  },
+  datePastNewBtn: {
+    backgroundColor: '#6B7280',
+    borderRadius: wp('2.5%'),
+    paddingVertical: hp('1.2%'),
+    paddingHorizontal: wp('6%'),
+    marginTop: wp('1%'),
+  },
+  datePastNewBtnText: {
+    color: '#fff',
+    fontSize: wp('3.8%'),
+    fontWeight: '700',
+  },
+  // Re-request Modal
+  reReqOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: wp('5%'),
+  },
+  reReqCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#FFF',
+    borderRadius: wp('5%'),
+    padding: wp('6%'),
+    alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20 },
+      android: { elevation: 10 },
+    }),
+  },
+  reReqIconWrap: { marginBottom: hp('2%') },
+  reReqIconBg: {
+    width: wp('18%'),
+    height: wp('18%'),
+    borderRadius: wp('9%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reReqTitle: {
+    fontSize: wp('5%'),
+    fontWeight: '800',
+    color: TEXT_PRIMARY,
+    textAlign: 'center',
+    marginBottom: hp('0.8%'),
+  },
+  reReqSubtitle: {
+    fontSize: wp('3.3%'),
+    color: TEXT_SECONDARY,
+    textAlign: 'center',
+    lineHeight: wp('5%'),
+    marginBottom: hp('2.5%'),
+  },
+  reReqAttemptsBox: {
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    borderRadius: wp('3%'),
+    paddingVertical: hp('1.2%'),
+    paddingHorizontal: wp('5%'),
+    marginBottom: hp('2.5%'),
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    width: '100%',
+  },
+  reReqDots: { flexDirection: 'row', gap: wp('2%'), marginBottom: hp('0.8%') },
+  reReqDot: { width: wp('3%'), height: wp('3%'), borderRadius: wp('1.5%') },
+  reReqDotFree: { backgroundColor: '#FDE68A' },
+  reReqDotUsed: { backgroundColor: '#EF4444' },
+  reReqAttemptsText: { fontSize: wp('3%'), color: '#92400E', fontWeight: '600' },
+  reReqActions: { flexDirection: 'row', gap: wp('3%'), width: '100%' },
+  reReqCancelBtn: {
+    flex: 1,
+    paddingVertical: hp('1.8%'),
+    borderRadius: wp('3%'),
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  reReqCancelText: { fontSize: wp('3.5%'), fontWeight: '700', color: TEXT_SECONDARY },
+  reReqConfirmBtn: {
+    flex: 1,
+    borderRadius: wp('3%'),
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: { shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.35, shadowRadius: 4 },
+      android: { elevation: 3 },
+    }),
+  },
+  reReqConfirmGrad: {
+    paddingVertical: hp('1.8%'),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: wp('2%'),
+  },
+  reReqConfirmText: { fontSize: wp('3.5%'), fontWeight: '700', color: '#FFF' },
+  reReqCloseBtn: {
+    width: '100%',
+    paddingVertical: hp('1.8%'),
+    borderRadius: wp('3%'),
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    marginTop: hp('1%'),
+  },
+  reReqCloseBtnText: { fontSize: wp('3.5%'), fontWeight: '700', color: TEXT_SECONDARY },
 });

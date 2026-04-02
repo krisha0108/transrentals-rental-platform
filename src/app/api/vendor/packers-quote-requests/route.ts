@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     // DATE FILTER PARAMS
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const search = searchParams.get('search')?.trim() || '';
 
     // Build where clause based on type
     let whereClause: any = {
@@ -79,6 +80,21 @@ export async function GET(request: NextRequest) {
         select: { requestId: true },
       });
       whereClause.id = { notIn: activeQuotedRequestIds.map((q) => q.requestId) };
+    }
+
+    if (search) {
+      whereClause.AND = [
+        ...(whereClause.AND || []),
+        {
+          OR: [
+            { customerName: { contains: search } },
+            { requestNumber: { contains: search } },
+            { pickupCity: { contains: search } },
+            { dropCity: { contains: search } },
+            { shiftingType: { contains: search } },
+          ],
+        },
+      ];
     }
 
     const [requests, total] = await Promise.all([

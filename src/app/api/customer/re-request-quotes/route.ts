@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
   const count = setting ? parseInt(setting.value as string) || 0 : 0;
 
   return NextResponse.json({
+    success: true,
     reRequestCount: count,
     remainingAttempts: Math.max(0, 3 - count),
   });
@@ -48,9 +49,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { serviceType, requestId, customerId } = body;
 
-    if (!serviceType || !requestId || !customerId) {
+    if (!serviceType || !requestId) {
       return NextResponse.json(
-        { success: false, message: 'serviceType, requestId, and customerId are required' },
+        { success: false, message: 'serviceType and requestId are required' },
         { status: 400 }
       );
     }
@@ -190,20 +191,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send notification to customer
-    try {
-      await prisma.notifications.create({
-        data: {
-          customerId,
-          title: 'Quote Request Re-opened',
-          body: `Your ${SERVICE_DISPLAY_NAMES[serviceType] || serviceType} quote request has been re-opened. Vendors will be able to send new quotes for the next 48 hours.`,
-          type: 'quote',
-          serviceType,
-          quoteId: requestId,
-        },
-      });
-    } catch {
-      // notification is non-critical
+    // Send notification to customer (optional — only if customerId provided)
+    if (customerId) {
+      try {
+        await prisma.notifications.create({
+          data: {
+            customerId,
+            title: 'Quote Request Re-opened',
+            body: `Your ${SERVICE_DISPLAY_NAMES[serviceType] || serviceType} quote request has been re-opened. Vendors will be able to send new quotes for the next 48 hours.`,
+            type: 'quote',
+            serviceType,
+            quoteId: requestId,
+          },
+        });
+      } catch {
+        // notification is non-critical
+      }
     }
 
     // Notify ALL vendors in the location (same as new request)

@@ -40,6 +40,8 @@ export async function GET(
             tollEstimate: true,
             gstAmount: true,
             totalAmount: true,
+            advanceAmount: true,
+            advancePercent: true,
             inclusions: true,
             exclusions: true,
             termsConditions: true,
@@ -90,8 +92,12 @@ export async function GET(
     }
 
     // Transform booking to include quote with the expected property name
+    const quoteAdvance = booking.truck_quotes?.advanceAmount;
     const transformedBooking = {
       ...booking,
+      // Use vendor-set advanceAmount from quote if available (overrides booking record)
+      advanceAmount: (quoteAdvance != null && quoteAdvance > 0) ? quoteAdvance : booking.advanceAmount,
+      balanceAmount: booking.totalAmount - ((quoteAdvance != null && quoteAdvance > 0) ? quoteAdvance : booking.advanceAmount),
       vendor: booking.vendors ? {
         id: booking.vendors.id,
         name: booking.vendors.businessName,

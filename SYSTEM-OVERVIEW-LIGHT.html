@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TransRentals — System Overview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; }
+
+  /* NAV */
+  nav { background: #ffffff; border-bottom: 1px solid #e2e8f0; padding: 14px 32px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  nav .logo { font-size: 18px; font-weight: 700; color: #4f46e5; letter-spacing: -0.5px; }
+  nav .date { font-size: 12px; color: #94a3b8; margin-left: auto; }
+
+  /* LAYOUT */
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+
+  /* HERO */
+  .hero { text-align: center; padding: 48px 0 40px; }
+  .hero h1 { font-size: 36px; font-weight: 800; background: linear-gradient(135deg, #4f46e5, #7c3aed, #0891b2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { color: #64748b; margin-top: 8px; font-size: 15px; }
+
+  /* STATS BAR */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 32px 0; }
+  .stat { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .stat .num { font-size: 28px; font-weight: 800; color: #4f46e5; }
+  .stat .label { font-size: 11px; color: #94a3b8; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* SECTION */
+  .section { margin: 48px 0; }
+  .section-title { font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .section-title .icon { background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 6px 10px; font-size: 16px; }
+
+  /* CARDS */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .card h3 { font-size: 14px; font-weight: 600; color: #4f46e5; margin-bottom: 12px; }
+  .card ul { list-style: none; }
+  .card ul li { font-size: 13px; color: #475569; padding: 4px 0; border-bottom: 1px solid #f1f5f9; display: flex; align-items: flex-start; gap: 8px; }
+  .card ul li:last-child { border-bottom: none; }
+  .card ul li::before { content: '→'; color: #4f46e5; flex-shrink: 0; }
+
+  /* FLOW DIAGRAM */
+  .flow { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .flow-grid { display: grid; gap: 0; }
+  .flow-row { display: flex; align-items: stretch; gap: 0; }
+  .flow-col { display: flex; flex-direction: column; align-items: center; }
+
+  /* FLOW BOXES */
+  .box { border-radius: 8px; padding: 8px 14px; font-size: 12px; font-weight: 600; text-align: center; white-space: nowrap; min-width: 100px; }
+  .box-blue { background: #eff6ff; border: 1px solid #93c5fd; color: #1d4ed8; }
+  .box-purple { background: #faf5ff; border: 1px solid #c4b5fd; color: #6d28d9; }
+  .box-green { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+  .box-orange { background: #fff7ed; border: 1px solid #fdba74; color: #c2410c; }
+  .box-red { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; }
+  .box-gray { background: #f8fafc; border: 1px solid #cbd5e1; color: #475569; }
+  .box-teal { background: #f0fdfa; border: 1px solid #99f6e4; color: #0f766e; }
+  .box-yellow { background: #fffbeb; border: 1px solid #fde68a; color: #a16207; }
+
+  /* ARROWS */
+  .arrow-down { text-align: center; color: #cbd5e1; font-size: 18px; line-height: 1; padding: 4px 0; }
+  .arrow-right { color: #cbd5e1; font-size: 16px; padding: 0 8px; display: flex; align-items: center; }
+
+  /* STATUS FLOW */
+  .status-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; margin: 8px 0; }
+  .status-flow .arrow-r { color: #cbd5e1; font-size: 20px; padding: 0 4px; }
+
+  /* ROLE TABLE */
+  .role-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .role-table th { background: #f1f5f9; color: #64748b; padding: 10px 12px; text-align: left; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
+  .role-table td { padding: 9px 12px; border-bottom: 1px solid #f8fafc; color: #374151; }
+  .role-table tr:hover td { background: #f8fafc; }
+  .yes { color: #16a34a; font-weight: 700; }
+  .no { color: #dc2626; }
+  .partial { color: #ea580c; }
+
+  /* FLOW STEPS */
+  .flow-steps { display: flex; flex-direction: column; gap: 0; }
+  .step { display: flex; gap: 16px; align-items: flex-start; position: relative; }
+  .step::before { content: ''; position: absolute; left: 19px; top: 40px; width: 2px; height: calc(100% - 8px); background: #e2e8f0; }
+  .step:last-child::before { display: none; }
+  .step-num { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .step-content { padding-bottom: 24px; flex: 1; }
+  .step-content h4 { font-size: 14px; font-weight: 600; color: #0f172a; }
+  .step-content p { font-size: 12px; color: #64748b; margin-top: 3px; }
+  .step-content .note { font-size: 11px; color: #b45309; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 4px; padding: 4px 8px; margin-top: 6px; display: inline-block; }
+
+  /* BADGE */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .badge-red { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+  .badge-orange { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+  .badge-yellow { background: #fffbeb; color: #a16207; border: 1px solid #fde68a; }
+  .badge-green { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+  .badge-gray { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+  .badge-blue { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+  /* ISSUES */
+  .issue-list { display: flex; flex-direction: column; gap: 8px; }
+  .issue { background: #ffffff; border-radius: 8px; padding: 12px 16px; display: flex; align-items: flex-start; gap: 12px; border-left: 3px solid; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+  .issue.critical { border-color: #dc2626; }
+  .issue.high { border-color: #ea580c; }
+  .issue.medium { border-color: #ca8a04; }
+  .issue.low { border-color: #94a3b8; }
+  .issue .issue-num { font-size: 11px; font-weight: 700; color: #94a3b8; flex-shrink: 0; margin-top: 1px; width: 24px; }
+  .issue .issue-body h4 { font-size: 13px; font-weight: 600; color: #0f172a; }
+  .issue .issue-body p { font-size: 12px; color: #64748b; margin-top: 2px; }
+  .issue .issue-body code { font-size: 11px; color: #4f46e5; background: #eef2ff; padding: 1px 5px; border-radius: 3px; }
+
+  /* WORKING/GAPS */
+  .check-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
+  .check-item { background: #ffffff; border-radius: 8px; padding: 10px 14px; font-size: 13px; display: flex; align-items: center; gap: 8px; border: 1px solid #e2e8f0; }
+  .check-item.ok { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+  .check-item.ok::before { content: '✓'; color: #16a34a; font-weight: 700; }
+  .check-item.fail { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+  .check-item.fail::before { content: '✗'; color: #dc2626; font-weight: 700; }
+
+  /* ARCH BOX */
+  .arch { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .arch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .arch-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
+  .arch-item .arch-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .arch-item .arch-val { font-size: 13px; color: #374151; font-weight: 500; }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid #e2e8f0; margin: 40px 0; }
+
+  /* SERVICE GRID */
+  .service-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .service-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .service-card .svc-name { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .service-card .svc-row { font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #f1f5f9; }
+  .service-card .svc-row:last-child { border-bottom: none; }
+  .service-card .svc-row span { color: #374151; }
+
+  /* MODULE TABS */
+  .module-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .module-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+
+  pre { font-family: 'Consolas', monospace; font-size: 12px; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; overflow-x: auto; line-height: 1.8; }
+
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 26px; }
+    .stats { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { background: #ffffff !important; font-size: 11px; }
+    nav { position: static !important; box-shadow: none; border-bottom: 1px solid #e2e8f0; }
+    .container { padding: 16px !important; }
+    .hero { padding: 24px 0 20px !important; }
+    .hero h1 { font-size: 26px !important; }
+    .stats { grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; margin: 16px 0 !important; }
+    .stat { padding: 10px !important; }
+    .stat .num { font-size: 22px !important; }
+    .section { margin: 24px 0 !important; }
+    .section-title { font-size: 16px !important; margin-bottom: 12px !important; page-break-after: avoid; }
+    .cards { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+    .card { padding: 14px !important; page-break-inside: avoid; }
+    .card ul li { font-size: 11px !important; }
+    .arch-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px !important; }
+    .arch-item { padding: 10px !important; }
+    .service-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; }
+    .service-card { padding: 12px !important; page-break-inside: avoid; }
+    .flow { padding: 16px !important; page-break-inside: avoid; }
+    .flow-steps .step { page-break-inside: avoid; }
+    .issue { page-break-inside: avoid; }
+    .issue-list { gap: 6px !important; }
+    .check-item { padding: 8px 12px !important; font-size: 11px !important; }
+    .divider { margin: 20px 0 !important; }
+    .role-table th, .role-table td { padding: 6px 8px !important; font-size: 10px !important; }
+    .box { padding: 5px 10px !important; font-size: 10px !important; }
+    .arrow-down { padding: 2px 0 !important; font-size: 14px !important; }
+    .step-content { padding-bottom: 16px !important; }
+    .step-content h4 { font-size: 12px !important; }
+    .step-content p { font-size: 11px !important; }
+    .badge { font-size: 10px !important; }
+    h1, h2, h3, h4 { page-break-after: avoid; }
+    .section { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">TransRentals</span>
+  <span class="badge badge-blue">System Overview</span>
+  <span class="date">2026-03-20</span>
+</nav>
+
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>Complete System Overview - TransRentals</h1>
+    <p>India's Largest Vehicle Rental Marketplace — Full Architecture, Flows & Status</p>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat"><div class="num">543</div><div class="label">API Routes</div></div>
+    <div class="stat"><div class="num">90+</div><div class="label">DB Models</div></div>
+    <div class="stat"><div class="num">8</div><div class="label">Services</div></div>
+    <div class="stat"><div class="num">3</div><div class="label">Apps</div></div>
+    <div class="stat"><div class="num">27K+</div><div class="label">Static Pages</div></div>
+    <div class="stat"><div class="num">5</div><div class="label">User Roles</div></div>
+    <div class="stat"><div class="num">5622</div><div class="label">Schema Lines</div></div>
+    <div class="stat"><div class="num">6</div><div class="label">Modules</div></div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- TECH STACK -->
+  <div class="section">
+    <div class="section-title"><span class="icon">⚙️</span> Tech Stack</div>
+    <div class="arch">
+      <div class="arch-grid">
+        <div class="arch-item"><div class="arch-label">Framework</div><div class="arch-val">Next.js 14.2 App Router</div></div>
+        <div class="arch-item"><div class="arch-label">Language</div><div class="arch-val">TypeScript 5</div></div>
+        <div class="arch-item"><div class="arch-label">Styling</div><div class="arch-val">Tailwind CSS + Shadcn/ui</div></div>
+        <div class="arch-item"><div class="arch-label">Database</div><div class="arch-val">MySQL + Prisma ORM</div></div>
+        <div class="arch-item"><div class="arch-label">Auth</div><div class="arch-val">NextAuth JWT (30 days)</div></div>
+        <div class="arch-item"><div class="arch-label">Payments</div><div class="arch-val">Razorpay (HMAC verify)</div></div>
+        <div class="arch-item"><div class="arch-label">Push Notifications</div><div class="arch-val">Firebase FCM</div></div>
+        <div class="arch-item"><div class="arch-label">Real-time</div><div class="arch-val">Socket.io 4.8</div></div>
+        <div class="arch-item"><div class="arch-label">Email</div><div class="arch-val">Nodemailer</div></div>
+        <div class="arch-item"><div class="arch-label">Mobile (Customer)</div><div class="arch-val">React Native 0.78</div></div>
+        <div class="arch-item"><div class="arch-label">Mobile (Vendor)</div><div class="arch-val">React Native 0.79</div></div>
+        <div class="arch-item"><div class="arch-label">Deployment</div><div class="arch-val">Docker + Coolify</div></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ROLES -->
+  <div class="section">
+    <div class="section-title"><span class="icon">👥</span> Roles & Portals</div>
+    <div class="cards">
+      <div class="card">
+        <h3>Admin Side — /admin/login</h3>
+        <ul>
+          <li><strong style="color:#0f172a">SUPER_ADMIN</strong> — Full control, users, money, all</li>
+          <li><strong style="color:#0f172a">ADMIN</strong> — Platform mgmt, vendors, bookings</li>
+          <li><strong style="color:#0f172a">SUB_ADMIN</strong> — Assigned region only</li>
+          <li><strong style="color:#0f172a">MANAGER</strong> — Assigned location + service</li>
+          <li><strong style="color:#0f172a">EDITOR</strong> — Content only (blog, SEO, pages)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Vendor Side — /vendor/login</h3>
+        <ul>
+          <li>Email + Password login</li>
+          <li>Status: PENDING → DOCUMENTS_PENDING → UNDER_REVIEW → APPROVED</li>
+          <li>Staff roles: DRIVER, HELPER, MECHANIC, SUPERVISOR, OFFICE_STAFF</li>
+          <li>Manage fleet, bookings, staff, earnings, social</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Customer Side — /login</h3>
+        <ul>
+          <li><strong style="color:#0f172a">B2C Customer</strong> — Regular, browse & book</li>
+          <li><strong style="color:#0f172a">B2B Customer</strong> — Corporate, bulk + wallet</li>
+          <li>B2B approval required from Admin</li>
+          <li>Mobile App (React Native) + Web</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Driver — /driver/login</h3>
+        <ul>
+          <li>Phone + OTP login</li>
+          <li>Web dashboard only (no mobile app)</li>
+          <li>View assigned bookings</li>
+          <li>OTP-based trip start/end</li>
+          <li>Track earnings per booking</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 8 SERVICES -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🚗</span> 8 Core Services</div>
+    <div class="service-grid">
+      <div class="service-card">
+        <div class="svc-name">🏍️ Bike Rental</div>
+        <div class="svc-row">Flow <span>Browse + Quote</span></div>
+        <div class="svc-row">Driver <span>Self-drive</span></div>
+        <div class="svc-row">Payment <span>30% advance</span></div>
+        <div class="svc-row">Booking Table <span>bike_bookings</span></div>
+      </div>
+      <div class="service-card">
+        <div class="svc-name">🚗 Car Rental</div>
+        <div class="svc-row">Flow <span>Browse-first</span></div>
+        <div class="svc-row">Driver <span>Self-drive</span></div>
+        <div class="svc-row">Payment <span>30% advance</span></div>
+        <div class="svc-row">Booking Table <span>car_bookings</span></div>
+      </div>
+      <div class="service-card">
+        <div class="svc-name">🚌 Bus Rental</div>
+        <div class="svc-row">Flow <span>Quote-based</span></div>
+        <div class="svc-row">Driver <span>Included</span></div>
+        <div class="svc-row">Payment <span>30% advance</span></div>
+        <div class="svc-row">Booking Table <span>bus_bookings</span></div>
+      </div>
+      <div class="service-card">
+        <div class="svc-name">🚛 Truck / Cargo</div>
+        <div class="svc-row">Flow <span>Quote marketplace</span></div>
+        <div class="svc-row">Driver <span>Included</span></div>
+        <div class="svc-row">Payment <span>30% advance</span></div>
+        <div class="svc-row">Booking Table <span>truck_bookings</span></div>
+      </div>
+      <div class="service-card">
+        <div class="svc-name">📦 Packers & Movers</div>
+        <div class="svc-row">Flow <span>Quote-based</span></div>
+        <div class="svc-row">Driver <span>Team assigned</span></div>
+        <div class="svc-row">Payment <span>30% advance</span></div>
+        <div class="svc-row">Booking Table <span>packers_bookings</span></div>
+      </div>
+      <div class="service-card">
+        <div class="svc-name">💎 Luxury Cars</div>
+        <div class="svc-row">Flow <span>Bid-based</span></div>
+        <div class="svc-row">Driver <span>Chauffeur</span></div>
+        <div class="svc-row">Payment <span>30% advance</span></div>
+        <div class="svc-row">Booking Table <span>luxury_bookings</span></div>
+      </div>
+      <div class="service-card">
+        <div class="svc-name">🏗️ Equipment Rental</div>
+        <div class="svc-row">Flow <span>Quote-based</span></div>
+        <div class="svc-row">Driver <span>Operator</span></div>
+        <div class="svc-row">Payment <span>30% advance</span></div>
+        <div class="svc-row">Booking Table <span>equipment_bookings</span></div>
+      </div>
+      <div class="service-card">
+        <div class="svc-name">🚖 Chauffeur Service</div>
+        <div class="svc-row">Flow <span>Browse-first</span></div>
+        <div class="svc-row">Types <span>Local/Outstation/Airport</span></div>
+        <div class="svc-row">Payment <span>30% advance</span></div>
+        <div class="svc-row">Booking Table <span>chauffeur_bookings</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- BOOKING FLOWS -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🔄</span> Core Booking Flows</div>
+
+    <!-- Flow A -->
+    <div style="margin-bottom:24px">
+      <p style="font-size:13px;color:#64748b;margin-bottom:16px;font-weight:600;">FLOW A — Quote-Based (Bus, Truck, Equipment, Packers, Luxury, Bike-quote)</p>
+      <div class="flow">
+        <div style="display:grid;grid-template-columns:1fr 80px 1fr 80px 1fr;gap:0;align-items:start;">
+          <!-- Customer column -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0;">
+            <div class="box box-blue" style="margin-bottom:8px;width:100%;max-width:180px;">👤 CUSTOMER</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-blue" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Create Quote Request<br><span style="color:#3b82f6;font-weight:400;">dates, location, needs</span></div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-gray" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">⏳ Wait for quotes</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-blue" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Accept Quote</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-blue" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Pay 30% Advance<br><span style="color:#3b82f6;font-weight:400;">via Razorpay</span></div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-green" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">✅ Booking Confirmed</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-teal" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Trip Execution</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-green" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Pay Balance + Complete</div>
+          </div>
+          <!-- Middle arrows -->
+          <div style="display:flex;flex-direction:column;align-items:center;padding-top:52px;gap:0;">
+            <div style="color:#94a3b8;font-size:11px;text-align:center;padding:4px;">──▶</div>
+            <div style="height:82px;"></div>
+            <div style="color:#94a3b8;font-size:11px;text-align:center;padding:4px;">◀──</div>
+            <div style="color:#94a3b8;font-size:11px;text-align:center;padding:4px;">──▶</div>
+            <div style="height:30px;"></div>
+            <div style="color:#94a3b8;font-size:11px;text-align:center;padding:4px;">◀──</div>
+          </div>
+          <!-- System column -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0;">
+            <div class="box box-purple" style="margin-bottom:8px;width:100%;max-width:180px;">⚡ SYSTEM</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-purple" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Broadcast to vendors<br><span style="color:#7c3aed;font-weight:400;">FCM + Socket.io</span></div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-purple" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Collect quotes</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-purple" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Verify Razorpay HMAC ✅<br>status: PAYMENT_VERIFIED</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-purple" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Notify vendor directly<br>(if pre-assigned)</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-purple" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">status: ACCEPTED<br>Track trip</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-purple" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">status: COMPLETED<br>Generate invoice</div>
+          </div>
+          <!-- Middle arrows 2 -->
+          <div style="display:flex;flex-direction:column;align-items:center;padding-top:52px;gap:0;">
+            <div style="color:#94a3b8;font-size:11px;text-align:center;padding:4px;">──▶</div>
+            <div style="height:50px;"></div>
+            <div style="color:#94a3b8;font-size:11px;text-align:center;padding:4px;">◀──</div>
+            <div style="height:60px;"></div>
+            <div style="color:#94a3b8;font-size:11px;text-align:center;padding:4px;">──▶</div>
+          </div>
+          <!-- Vendor column -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0;">
+            <div class="box box-orange" style="margin-bottom:8px;width:100%;max-width:180px;">🏢 VENDOR</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-orange" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Receive notification</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-orange" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Send quote with price</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-orange" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Quote accepted ✅</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-orange" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Payment received 💰</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-orange" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Assign driver</div>
+            <div class="arrow-down">↓</div>
+            <div class="box box-orange" style="margin:4px 0;width:100%;max-width:180px;font-size:11px;">Execute trip</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Booking Status Chain -->
+    <div style="margin-bottom:24px">
+      <p style="font-size:13px;color:#64748b;margin-bottom:16px;font-weight:600;">BOOKING STATUS CHAIN</p>
+      <div class="flow">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;">
+          <div class="box box-gray" style="font-size:11px;">PENDING_PAYMENT</div>
+          <span style="color:#94a3b8;font-size:18px;">→</span>
+          <div class="box box-yellow" style="font-size:11px;">PAYMENT_VERIFIED</div>
+          <span style="color:#94a3b8;font-size:18px;">→</span>
+          <div class="box box-blue" style="font-size:11px;">BROADCASTED</div>
+          <span style="color:#94a3b8;font-size:18px;">→</span>
+          <div class="box box-purple" style="font-size:11px;">ACCEPTED</div>
+          <span style="color:#94a3b8;font-size:18px;">→</span>
+          <div class="box box-teal" style="font-size:11px;">DRIVER_ASSIGNED</div>
+          <span style="color:#94a3b8;font-size:18px;">→</span>
+          <div class="box box-orange" style="font-size:11px;">IN_PROGRESS</div>
+          <span style="color:#94a3b8;font-size:18px;">→</span>
+          <div class="box box-green" style="font-size:11px;">COMPLETED</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <div class="box box-red" style="font-size:11px;">CANCELLED (any stage)</div>
+          <div class="box box-red" style="font-size:11px;">DROPPED (no vendor response)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Flow -->
+    <div>
+      <p style="font-size:13px;color:#64748b;margin-bottom:16px;font-weight:600;">PAYMENT FLOW</p>
+      <div class="flow">
+        <div class="flow-steps">
+          <div class="step">
+            <div class="step-num" style="background:#dbeafe;border:1px solid #93c5fd;color:#1d4ed8;">1</div>
+            <div class="step-content">
+              <h4>Customer pays via Razorpay</h4>
+              <p>30% advance of (Base + 18% GST). Razorpay returns order_id + payment_id + signature</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:#ede9fe;border:1px solid #c4b5fd;color:#6d28d9;">2</div>
+            <div class="step-content">
+              <h4>POST /api/payments/verify</h4>
+              <p>System verifies HMAC signature. If valid → DB update: status=PAYMENT_VERIFIED, paymentStatus=PAID</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:#dcfce7;border:1px solid #86efac;color:#15803d;">3</div>
+            <div class="step-content">
+              <h4>Auto-notify vendor (if pre-assigned)</h4>
+              <p>If vendor already assigned from quote → direct FCM notification sent immediately</p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:#fef3c7;border:1px solid #fcd34d;color:#b45309;">4</div>
+            <div class="step-content">
+              <h4>Admin broadcasts (browse-first only)</h4>
+              <p>If no vendor assigned → Admin manually triggers broadcast from dashboard</p>
+              <span class="note">⚠️ This is the manual delay bottleneck</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:#f1f5f9;border:1px solid #cbd5e1;color:#64748b;">5</div>
+            <div class="step-content">
+              <h4>Balance payment at completion</h4>
+              <p>Remaining 70% + any extra charges paid after trip ends</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- MODULES -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🧩</span> Additional Modules</div>
+    <div class="cards">
+
+      <!-- B2B -->
+      <div class="card" style="grid-column: span 1;">
+        <div class="module-header">
+          <div class="module-icon" style="background:#dbeafe;border:1px solid #93c5fd;">🏢</div>
+          <div>
+            <h3 style="color:#1d4ed8;font-size:15px;margin-bottom:0;">B2B Corporate</h3>
+            <span class="badge badge-blue">Bulk Bookings + Wallet</span>
+          </div>
+        </div>
+        <ul>
+          <li>HR creates bulk booking request (multiple vehicles)</li>
+          <li>Vendors bid with super-quotes</li>
+          <li>HR accepts → trips auto-created (1 per vehicle)</li>
+          <li>Driver assigned per trip, OTP-based start</li>
+          <li>Payment via prepaid wallet or Razorpay</li>
+          <li>Auto invoice: DRAFT → ISSUED → PAID</li>
+          <li>Wallet: RECHARGE / BOOKING_DEBIT / REFUND</li>
+        </ul>
+      </div>
+
+      <!-- WANDER -->
+      <div class="card">
+        <div class="module-header">
+          <div class="module-icon" style="background:#ccfbf1;border:1px solid #5eead4;">🧭</div>
+          <div>
+            <h3 style="color:#0f766e;font-size:15px;margin-bottom:0;">Wander</h3>
+            <span class="badge badge-green">Tours & Experiences</span>
+          </div>
+        </div>
+        <ul>
+          <li>Vendors create tour listings (itinerary, pricing, images)</li>
+          <li>Customer browses by category / location / date / price</li>
+          <li>Customer requests quote</li>
+          <li>Vendor responds with custom quote</li>
+          <li>Customer books + pays via Razorpay</li>
+          <li>Reviews after tour</li>
+          <li>Wishlist to save favourite tours</li>
+        </ul>
+      </div>
+
+      <!-- P2P -->
+      <div class="card">
+        <div class="module-header">
+          <div class="module-icon" style="background:#ede9fe;border:1px solid #c4b5fd;">🔁</div>
+          <div>
+            <h3 style="color:#6d28d9;font-size:15px;margin-bottom:0;">P2P Marketplace</h3>
+            <span class="badge badge-blue">Vendor ↔ Vendor</span>
+          </div>
+        </div>
+        <ul>
+          <li>Vendor A posts vehicle with empty seats/space</li>
+          <li>Vendor B browses available vehicles</li>
+          <li>B requests to use A's vehicle</li>
+          <li>A accepts → transaction created</li>
+          <li>Trip starts, completes, both rate each other</li>
+          <li>Use case: share trip costs on same route</li>
+        </ul>
+      </div>
+
+      <!-- SOCIAL -->
+      <div class="card">
+        <div class="module-header">
+          <div class="module-icon" style="background:#ffedd5;border:1px solid #fdba74;">📣</div>
+          <div>
+            <h3 style="color:#c2410c;font-size:15px;margin-bottom:0;">Social</h3>
+            <span class="badge badge-orange">Vendor Community</span>
+          </div>
+        </div>
+        <ul>
+          <li>Vendors create posts (tips, news, general)</li>
+          <li>SOS posts — emergency alerts, expire in 24hrs</li>
+          <li>Like, comment, save posts</li>
+          <li>Follow other vendors</li>
+          <li>Direct messages (1-on-1 DM)</li>
+          <li>Admin manages categories</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ROLE PERMISSION TABLE -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🔐</span> Who Can Do What</div>
+    <div class="flow" style="overflow-x:auto;">
+      <table class="role-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Super Admin</th>
+            <th>Admin</th>
+            <th>Manager</th>
+            <th>Vendor</th>
+            <th>Driver</th>
+            <th>Customer B2C</th>
+            <th>Customer B2B</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Approve vendors</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Verify payments</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Manage content (blog/SEO)</td><td class="yes">✓</td><td class="partial">Editor only</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>View platform analytics</td><td class="yes">✓</td><td class="yes">✓</td><td class="partial">Own location</td><td class="partial">Own data</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Set pricing</td><td class="yes">✓</td><td class="yes">✓</td><td class="partial">Own location</td><td class="partial">Own rates</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Create booking</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>Submit quote to customer</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Assign driver</td><td class="no">✗</td><td class="no">✗</td><td class="partial">Some services</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Start / End trip (OTP)</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>B2B bulk booking</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">Approved only</td></tr>
+          <tr><td>B2B approve customer</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Wander create listing</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Wander book tour</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>P2P post / transact</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Social post / follow / DM</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Manage social categories</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- WHAT'S WORKING + GAPS SIDE BY SIDE -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📊</span> Current System State</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div>
+        <p style="font-size:13px;font-weight:600;color:#16a34a;margin-bottom:12px;">✓ What's Working</p>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div class="check-item ok">Razorpay auto HMAC verify</div>
+          <div class="check-item ok">Multi-vendor broadcast (FCM + Socket.io)</div>
+          <div class="check-item ok">Quote flow — all 6 quote services</div>
+          <div class="check-item ok">B2B full flow (wallet, trips, invoices)</div>
+          <div class="check-item ok">Wander (listings, quotes, bookings)</div>
+          <div class="check-item ok">P2P vendor marketplace</div>
+          <div class="check-item ok">Social (posts, SOS, DMs, follow)</div>
+          <div class="check-item ok">Driver web portal (OTP, trip start/end)</div>
+          <div class="check-item ok">Admin role hierarchy</div>
+          <div class="check-item ok">Vendor approval workflow</div>
+          <div class="check-item ok">27K+ SEO static pages</div>
+          <div class="check-item ok">Input sanitization + XSS protection</div>
+          <div class="check-item ok">Rate limiting (basic)</div>
+        </div>
+      </div>
+      <div>
+        <p style="font-size:13px;font-weight:600;color:#dc2626;margin-bottom:12px;">✗ Known Gaps</p>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div class="check-item fail">Admin payment verify — NO AUTH CHECK</div>
+          <div class="check-item fail">OTP uses Math.random() — insecure</div>
+          <div class="check-item fail">Quote accept — no ownership validation</div>
+          <div class="check-item fail">Location filter OFF in truck quotes</div>
+          <div class="check-item fail">6/8 services: no post-payment notification</div>
+          <div class="check-item fail">Browse-first: manual admin broadcast step</div>
+          <div class="check-item fail">Vendor payout hardcoded 0</div>
+          <div class="check-item fail">Security deposit refund — no logic</div>
+          <div class="check-item fail">Staff payment history not saved</div>
+          <div class="check-item fail">Driver has no mobile app</div>
+          <div class="check-item fail">Rate limiting in-memory (not distributed)</div>
+          <div class="check-item fail">237 files with @ts-nocheck</div>
+          <div class="check-item fail">Console.log leaking user phone/email</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- PRIORITY FIXES -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🔥</span> Priority Fix List</div>
+    <div class="issue-list">
+
+      <p style="font-size:12px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">🔴 Critical — Fix Today</p>
+
+      <div class="issue critical">
+        <div class="issue-num">#1</div>
+        <div class="issue-body">
+          <h4>Admin payment verify — No auth check</h4>
+          <p>Anyone can POST to this endpoint and approve payments. <code>src/app/api/admin/payments/verify/route.ts</code></p>
+          <p style="margin-top:4px;color:#ea580c;">Fix: Add getServerSession() — 30 min</p>
+        </div>
+        <span class="badge badge-red" style="flex-shrink:0;">30 min</span>
+      </div>
+
+      <div class="issue critical">
+        <div class="issue-num">#2</div>
+        <div class="issue-body">
+          <h4>OTP = Math.random() — Brute-forceable</h4>
+          <p>4-digit OTP, predictable random, no attempt limit. Trip start/end can be forged. <code>bike-bookings/route.ts</code>, <code>luxury-bookings/[id]/route.ts</code></p>
+          <p style="margin-top:4px;color:#ea580c;">Fix: crypto.randomInt() + attempt limit — 2 hrs</p>
+        </div>
+        <span class="badge badge-red" style="flex-shrink:0;">2 hrs</span>
+      </div>
+
+      <div class="issue critical">
+        <div class="issue-num">#3</div>
+        <div class="issue-body">
+          <h4>Quote accept — no ownership check</h4>
+          <p>Customer A can accept Customer B's quote. No session validation. <code>src/app/api/customer/accept-quote/route.ts</code></p>
+          <p style="margin-top:4px;color:#ea580c;">Fix: Validate customerId from session — 1 hr</p>
+        </div>
+        <span class="badge badge-red" style="flex-shrink:0;">1 hr</span>
+      </div>
+
+      <div class="issue critical">
+        <div class="issue-num">#4</div>
+        <div class="issue-body">
+          <h4>Location filter OFF in production</h4>
+          <p>Truck quote requests go to ALL vendors regardless of location. <code>src/app/api/vendor/truck-quote-requests/route.ts:58</code></p>
+          <p style="margin-top:4px;color:#ea580c;">Fix: Uncomment 1 line — 30 min</p>
+        </div>
+        <span class="badge badge-red" style="flex-shrink:0;">30 min</span>
+      </div>
+
+      <div class="issue critical">
+        <div class="issue-num">#5</div>
+        <div class="issue-body">
+          <h4>Console.log leaking user phone/email</h4>
+          <p>Server logs contain customer PII data. Multiple booking route files.</p>
+          <p style="margin-top:4px;color:#ea580c;">Fix: Remove all console.log — 2 hrs</p>
+        </div>
+        <span class="badge badge-red" style="flex-shrink:0;">2 hrs</span>
+      </div>
+
+      <p style="font-size:12px;font-weight:700;color:#ea580c;text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px;">🟠 High — This Week</p>
+
+      <div class="issue high">
+        <div class="issue-num">#6</div>
+        <div class="issue-body">
+          <h4>Notification fails silently after payment</h4>
+          <p>DB update succeeds but FCM fails → vendor never knows. No retry logic. <code>src/app/api/payments/verify/route.ts</code></p>
+          <p style="margin-top:4px;color:#64748b;">Fix: Add retry logic on notification failure — 1 day</p>
+        </div>
+        <span class="badge badge-orange" style="flex-shrink:0;">1 day</span>
+      </div>
+
+      <div class="issue high">
+        <div class="issue-num">#7</div>
+        <div class="issue-body">
+          <h4>6 services missing post-payment vendor notifications</h4>
+          <p>Bus, Truck, Equipment, Packers, Luxury, Chauffeur. TODO templates already in code, just not wired. <code>src/app/api/admin/payments/verify/route.ts</code></p>
+          <p style="margin-top:4px;color:#64748b;">Fix: Wire existing TODO templates — 1 day</p>
+        </div>
+        <span class="badge badge-orange" style="flex-shrink:0;">1 day</span>
+      </div>
+
+      <div class="issue high">
+        <div class="issue-num">#8</div>
+        <div class="issue-body">
+          <h4>Browse-first flow: admin manual broadcast step</h4>
+          <p>Payment verified → booking sits at PAYMENT_VERIFIED → admin manually broadcasts → vendors notified. Causes delays.</p>
+          <p style="margin-top:4px;color:#64748b;">Fix: Auto-broadcast on payment verify — 3 hrs</p>
+        </div>
+        <span class="badge badge-orange" style="flex-shrink:0;">3 hrs</span>
+      </div>
+
+      <p style="font-size:12px;font-weight:700;color:#a16207;text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px;">🟡 Medium — This Month</p>
+
+      <div class="issue medium">
+        <div class="issue-num">#9</div>
+        <div class="issue-body">
+          <h4>Staff payment history not saved</h4>
+          <p>Vendor pays staff → no record. <code>TODO: Create staff_payments table</code> in <code>src/app/api/vendor/staff/payments/route.ts:170</code></p>
+        </div>
+        <span class="badge badge-yellow" style="flex-shrink:0;">2 days</span>
+      </div>
+
+      <div class="issue medium">
+        <div class="issue-num">#10</div>
+        <div class="issue-body">
+          <h4>Vendor payout hardcoded 0</h4>
+          <p>Earnings not calculated. Vendors can't see what they'll be paid. <code>src/app/vendor/(dashboard)/car-rental/earnings/page.tsx</code></p>
+        </div>
+        <span class="badge badge-yellow" style="flex-shrink:0;">3 days</span>
+      </div>
+
+      <div class="issue medium">
+        <div class="issue-num">#11</div>
+        <div class="issue-body">
+          <h4>Security deposit refund missing</h4>
+          <p>Deposit collected at booking, no refund logic after completion. Customer money stuck.</p>
+        </div>
+        <span class="badge badge-yellow" style="flex-shrink:0;">2 days</span>
+      </div>
+
+      <p style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px;">🟢 Low — Tech Debt</p>
+
+      <div class="issue low">
+        <div class="issue-num">#12</div>
+        <div class="issue-body">
+          <h4>Rate limiting in-memory — useless on multi-server</h4>
+          <p>Redis config exists but unused. <code>src/lib/security/redis-rate-limiter.ts</code></p>
+        </div>
+        <span class="badge badge-gray" style="flex-shrink:0;">4 hrs</span>
+      </div>
+
+      <div class="issue low">
+        <div class="issue-num">#13</div>
+        <div class="issue-body">
+          <h4>@ts-nocheck on 237 files</h4>
+          <p>TypeScript disabled across most API routes. Silent runtime errors possible.</p>
+        </div>
+        <span class="badge badge-gray" style="flex-shrink:0;">Ongoing</span>
+      </div>
+
+      <div class="issue low">
+        <div class="issue-num">#14</div>
+        <div class="issue-body">
+          <h4>Driver has no mobile app</h4>
+          <p>Driver uses web browser in field for OTP + trip start. Poor UX on bad networks.</p>
+        </div>
+        <span class="badge badge-gray" style="flex-shrink:0;">1 week</span>
+      </div>
+
+      <div class="issue low">
+        <div class="issue-num">#15</div>
+        <div class="issue-body">
+          <h4>Double-booking race condition</h4>
+          <p>Gap between checkAvailability() and blockDates(). Low probability, high impact at volume.</p>
+        </div>
+        <span class="badge badge-gray" style="flex-shrink:0;">1 day</span>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 30 DAY PLAN -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📅</span> 30-Day Sprint Plan</div>
+    <div class="cards">
+      <div class="card">
+        <h3 style="color:#dc2626;">Week 1 — Security (~6 hrs)</h3>
+        <ul>
+          <li>Auth on admin payment verify</li>
+          <li>OTP → crypto.randomInt()</li>
+          <li>Quote ownership check</li>
+          <li>Location filter re-enable</li>
+          <li>Remove console.log user data</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:#ea580c;">Week 2 — Notifications (~2 days)</h3>
+        <ul>
+          <li>6 services payment notifications</li>
+          <li>Notification retry logic</li>
+          <li>Auto-broadcast browse-first flow</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:#a16207;">Week 3 — Vendor Trust (~4 days)</h3>
+        <ul>
+          <li>Staff payments persistence + table</li>
+          <li>Security deposit refund flow</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:#16a34a;">Week 4 — Payouts (~3 days)</h3>
+        <ul>
+          <li>Vendor payout calculation engine</li>
+          <li>Payout dashboard UI</li>
+          <li>Payout history per booking</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div style="text-align:center;padding:24px 0 48px;color:#94a3b8;font-size:12px;">
+    TransRentals System Overview · Generated 2026-03-20 · <span style="color:#4f46e5;">transrentals.in</span>
+  </div>
+
+</div>
+</body>
+</html>

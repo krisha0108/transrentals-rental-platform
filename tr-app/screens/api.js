@@ -66,6 +66,7 @@ api.interceptors.response.use(
       console.log(`❌ Error Code: ${error.code}`);
       console.log(`❌ Full URL attempted: ${error.config?.baseURL}${error.config?.url}`);
       console.log(`❌ Error Details:`, error);
+      console.log(`❌ Error Response Body:`, error.response?.data);
     }
     if (error.response) {
       // Handle 401 Unauthorized - token expired

@@ -35,6 +35,8 @@ export async function GET(
             securityDeposit: true,
             gstAmount: true,
             totalAmount: true,
+            advanceAmount: true,
+            advancePercent: true,
             inclusions: true,
             exclusions: true,
             termsConditions: true,
@@ -85,8 +87,11 @@ export async function GET(
     const dailyRate = booking.rentalDays > 0 ? Math.round(booking.baseAmount / booking.rentalDays) : 0;
     const additionalCharges = (booking.operatorCharges || 0) + (booking.deliveryCharges || 0) + (booking.pickupCharges || 0) + (booking.installationCharges || 0);
 
+    const quoteAdvanceEq = booking.equipment_quotes?.advanceAmount;
     const transformedBooking = {
       ...booking,
+      advanceAmount: (quoteAdvanceEq != null && quoteAdvanceEq > 0) ? quoteAdvanceEq : booking.advanceAmount,
+      balanceAmount: booking.totalAmount - ((quoteAdvanceEq != null && quoteAdvanceEq > 0) ? quoteAdvanceEq : booking.advanceAmount),
       deliveryLocation: booking.deliveryCity,
       dailyRate,
       additionalCharges,

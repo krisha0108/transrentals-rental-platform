@@ -69,6 +69,8 @@ const MyBookingsScreen = ({route}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
+  const [showExpiredQuotesOnly, setShowExpiredQuotesOnly] = useState(false);
+  const [tempExpiredOnly, setTempExpiredOnly] = useState(false);
 
   // Update filter when navigating with new params
   useEffect(() => {
@@ -78,28 +80,32 @@ const MyBookingsScreen = ({route}) => {
     }
   }, [route?.params?.filter, route?.params?.timestamp]);
 
-  const activeFilterCount = (selectedService !== 'all' ? 1 : 0) + (selectedStatus !== 'all' ? 1 : 0);
+  const activeFilterCount = (selectedService !== 'all' ? 1 : 0) + (selectedStatus !== 'all' ? 1 : 0) + (showExpiredQuotesOnly ? 1 : 0);
 
   const openFilter = () => {
     setTempService(selectedService);
     setTempStatus(selectedStatus);
+    setTempExpiredOnly(showExpiredQuotesOnly);
     setFilterVisible(true);
   };
 
   const applyFilters = () => {
     setSelectedService(tempService);
     setSelectedStatus(tempStatus);
+    setShowExpiredQuotesOnly(tempExpiredOnly);
     setFilterVisible(false);
   };
 
   const resetFilters = () => {
     setTempService('all');
     setTempStatus('all');
+    setTempExpiredOnly(false);
   };
 
   const clearAllFilters = () => {
     setSelectedService('all');
     setSelectedStatus('all');
+    setShowExpiredQuotesOnly(false);
   };
 
   // StatusBar management
@@ -286,6 +292,11 @@ const MyBookingsScreen = ({route}) => {
       filtered = filtered.filter(b => targetStatuses.includes(b.status?.toUpperCase()));
     }
 
+    // Filter by expired quotes
+    if (showExpiredQuotesOnly) {
+      filtered = filtered.filter(b => b.is_quote_request && b.all_quotes_expired);
+    }
+
     // Filter by search query
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
@@ -299,7 +310,7 @@ const MyBookingsScreen = ({route}) => {
     }
 
     return filtered;
-  }, [allBookings, selectedService, selectedStatus, searchQuery]);
+  }, [allBookings, selectedService, selectedStatus, showExpiredQuotesOnly, searchQuery]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -685,6 +696,15 @@ const MyBookingsScreen = ({route}) => {
               </View>
             );
           })()}
+          {showExpiredQuotesOnly && (
+            <View style={[styles.activeChip, { borderColor: '#FECACA' }]}>
+              <Ionicons name="close-circle-outline" size={wp('3.2%')} color="#EF4444" />
+              <Text style={[styles.activeChipText, { color: '#EF4444' }]}>Expired Quotes</Text>
+              <TouchableOpacity onPress={() => setShowExpiredQuotesOnly(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={wp('3.8%')} color={TEXT_MUTED} />
+              </TouchableOpacity>
+            </View>
+          )}
           <TouchableOpacity onPress={clearAllFilters} style={styles.clearBtn}>
             <Text style={styles.clearBtnText}>Clear</Text>
           </TouchableOpacity>
@@ -816,6 +836,25 @@ const MyBookingsScreen = ({route}) => {
                   );
                 })}
               </View>
+
+              {/* Expired Quotes Toggle */}
+              <Text style={styles.sectionTitle}>Quote Status</Text>
+              <TouchableOpacity
+                style={[styles.expiredToggleRow, tempExpiredOnly && styles.expiredToggleRowActive]}
+                onPress={() => setTempExpiredOnly(v => !v)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.expiredToggleIcon, tempExpiredOnly && styles.expiredToggleIconActive]}>
+                  <Ionicons name="close-circle-outline" size={wp('4.5%')} color={tempExpiredOnly ? '#fff' : '#EF4444'} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.expiredToggleLabel, tempExpiredOnly && { color: '#991B1B' }]}>Expired Quotes Only</Text>
+                  <Text style={styles.expiredToggleDesc}>Show requests where all quotes have expired</Text>
+                </View>
+                <View style={[styles.expiredToggleCheck, tempExpiredOnly && styles.expiredToggleCheckActive]}>
+                  {tempExpiredOnly && <Ionicons name="checkmark" size={wp('3%')} color="#fff" />}
+                </View>
+              </TouchableOpacity>
 
               <View style={{ height: hp('2%') }} />
             </ScrollView>
@@ -1146,6 +1185,56 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#fff',
     letterSpacing: 0.3,
+  },
+  expiredToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderRadius: wp('3%'),
+    padding: wp('3.5%'),
+    marginHorizontal: wp('4%'),
+    marginTop: wp('2%'),
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    gap: wp('3%'),
+  },
+  expiredToggleRowActive: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#EF4444',
+  },
+  expiredToggleIcon: {
+    width: wp('9%'),
+    height: wp('9%'),
+    borderRadius: wp('4.5%'),
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  expiredToggleIconActive: {
+    backgroundColor: '#EF4444',
+  },
+  expiredToggleLabel: {
+    fontSize: wp('3.5%'),
+    fontWeight: '700',
+    color: '#374151',
+  },
+  expiredToggleDesc: {
+    fontSize: wp('2.8%'),
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  expiredToggleCheck: {
+    width: wp('5.5%'),
+    height: wp('5.5%'),
+    borderRadius: wp('2.75%'),
+    borderWidth: 1.5,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  expiredToggleCheckActive: {
+    backgroundColor: '#EF4444',
+    borderColor: '#EF4444',
   },
 
   // Bookings List

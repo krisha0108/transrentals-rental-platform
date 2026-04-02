@@ -12,14 +12,40 @@ function generateId(): string {
 }
 
 // GET - List local packages for a service
+// Query params:
+//   locationSlug  — if provided, returns only packages for that location + global (locationId=null)
+//                   if omitted (admin panel), returns ALL packages unfiltered
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const { slug: serviceSlug } = await params;
+    const { searchParams } = new URL(request.url);
+    const locationSlug = searchParams.get('locationSlug');
+
+    // Build where clause
+    let whereClause: any = { isActive: true };
+
+    if (locationSlug) {
+      // Resolve slug → location id
+      const location = await prisma.locations.findFirst({
+        where: { slug: locationSlug },
+        select: { id: true },
+      });
+
+      // If slug is provided but location not found, return empty (no cross-location leakage)
+      const locationId = location?.id ?? null;
+
+      whereClause.OR = [
+        { locationId: locationId ?? 'no-match' }, // location-specific packages
+        { locationId: null },                      // global packages (all locations)
+      ];
+    }
+    // If no locationSlug (admin panel), no location filter — returns all packages
 
     const packages = await prisma.chauffeur_local_packages.findMany({
+      where: whereClause,
       orderBy: [
         { chauffeur_vehicle_categories: { displayOrder: 'asc' } },
         { displayOrder: 'asc' },

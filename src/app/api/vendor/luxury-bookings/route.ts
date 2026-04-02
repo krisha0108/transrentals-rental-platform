@@ -53,6 +53,38 @@ export async function GET(request: NextRequest) {
     // DATE FILTER PARAMS
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const search = searchParams.get('search')?.trim() || '';
+
+    const searchFilter = search
+      ? {
+          AND: [
+            {
+              OR: [
+                { customerName: { contains: search } },
+                { requestNumber: { contains: search } },
+                { pickupCity: { contains: search } },
+                { dropCity: { contains: search } },
+                { vehicleCategoryName: { contains: search } },
+              ],
+            },
+          ],
+        }
+      : {};
+
+    const bookingSearchFilter = search
+      ? {
+          AND: [
+            {
+              OR: [
+                { customerName: { contains: search } },
+                { bookingNumber: { contains: search } },
+                { pickupCity: { contains: search } },
+                { dropCity: { contains: search } },
+              ],
+            },
+          ],
+        }
+      : {};
 
     let items: any[] = [];
     let total = 0;
@@ -86,6 +118,7 @@ export async function GET(request: NextRequest) {
       // Fetch open quote requests in vendor's area (where vendor hasn't quoted yet)
       const openRequestsWhere = {
         ...dateFilter,
+        ...searchFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
         OR: [
@@ -152,6 +185,7 @@ export async function GET(request: NextRequest) {
       // Fetch requests where vendor has submitted a quote (pending decision or expired)
       const quotedRequestsWhere = {
         ...dateFilter,
+        ...searchFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         luxury_quotes: {
           some: { vendorId: vendor.id, status: { in: ['SENT', 'VIEWED', 'EXPIRED'] } },
@@ -209,6 +243,7 @@ export async function GET(request: NextRequest) {
       // Fetch confirmed LuxuryBookings assigned to this vendor
       let bookingWhere: any = {
         ...dateFilter,
+        ...bookingSearchFilter,
         OR: [
           { assignedVendorId: vendor.id },
           { acceptedVendorId: vendor.id },

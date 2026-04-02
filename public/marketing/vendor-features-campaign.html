@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TransRentals — Vendor Features Campaign</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --or: #FF6B23; --gold: #FFB800; --bg: #050508; --card: #0c0c14;
+  --card2: #111120; --border: rgba(255,107,35,0.12); --muted: rgba(255,255,255,0.4);
+  --dim: rgba(255,255,255,0.07); --green: #00E599; --blue: #4F8EF7; --purple: #9B59F7;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:#fff;font-family:'Inter',sans-serif;overflow-x:hidden}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--or);border-radius:3px}
+
+/* ── NOISE + GRID ── */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.5}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(255,107,35,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,107,35,0.025) 1px,transparent 1px);background-size:60px 60px;z-index:0;pointer-events:none}
+
+/* ── WRAPPER ── */
+.wrap{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:0 40px 160px}
+
+/* ═══════════════════════════════════════
+   HERO
+═══════════════════════════════════════ */
+.hero{
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;position:relative;padding:100px 0 80px;
+}
+.hero-orb{
+  position:absolute;width:800px;height:800px;
+  background:radial-gradient(ellipse,rgba(255,107,35,0.08) 0%,transparent 65%);
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  animation:orbPulse 6s ease-in-out infinite;pointer-events:none;
+}
+@keyframes orbPulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.15)}}
+
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:10px;
+  background:rgba(255,107,35,0.08);border:1px solid rgba(255,107,35,0.25);
+  border-radius:50px;padding:10px 24px;font-size:12px;font-weight:600;
+  color:var(--or);letter-spacing:2px;text-transform:uppercase;margin-bottom:32px;
+}
+.hero-eyebrow .dot{width:6px;height:6px;background:var(--or);border-radius:50%;animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.1}}
+
+.hero h1{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:80px;font-weight:800;line-height:1.05;margin-bottom:24px;
+  background:linear-gradient(180deg,#fff 30%,rgba(255,255,255,0.5) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero h1 .accent{
+  background:linear-gradient(90deg,#FF6B23,#FFB800,#FF6B23);
+  background-size:200%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:shimmerText 3s linear infinite;
+}
+@keyframes shimmerText{0%{background-position:0%}100%{background-position:200%}}
+
+.hero-desc{font-size:20px;color:var(--muted);max-width:600px;margin:0 auto 56px;line-height:1.7;font-weight:300}
+
+/* FEATURE PILLS ROW */
+.hero-pills{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:64px}
+.hpill{
+  display:flex;align-items:center;gap:8px;
+  background:var(--dim);border:1px solid rgba(255,255,255,0.08);
+  border-radius:50px;padding:10px 18px;font-size:13px;font-weight:500;
+  color:rgba(255,255,255,0.7);transition:all .3s;cursor:default;
+}
+.hpill:hover{background:rgba(255,107,35,0.1);border-color:rgba(255,107,35,0.3);color:#fff}
+.hpill .icon{font-size:16px}
+
+/* HERO STATS */
+.hero-stats-row{
+  display:flex;gap:1px;background:var(--border);
+  border:1px solid var(--border);border-radius:20px;overflow:hidden;
+  max-width:800px;margin:0 auto;
+}
+.hst{
+  flex:1;padding:32px 20px;text-align:center;
+  background:var(--card);position:relative;overflow:hidden;
+}
+.hst::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--or),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.hst:hover::before{opacity:1}
+.hst-n{
+  font-family:'Space Grotesk',sans-serif;font-size:40px;font-weight:800;
+  background:linear-gradient(135deg,#FF6B23,#FFB800);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hst-l{font-size:12px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:1px}
+
+/* ═══════════════════════════════════════
+   SECTION HEADS
+═══════════════════════════════════════ */
+.sh{display:flex;align-items:center;gap:16px;margin:100px 0 48px}
+.sh-icon{
+  width:48px;height:48px;
+  background:linear-gradient(135deg,rgba(255,107,35,0.15),rgba(255,184,0,0.08));
+  border:1px solid rgba(255,107,35,0.25);border-radius:14px;
+  display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;
+}
+.sh-title{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700}
+.sh-title em{font-style:normal;color:var(--or)}
+.sh-line{flex:1;height:1px;background:linear-gradient(90deg,rgba(255,107,35,0.25),transparent)}
+
+/* ═══════════════════════════════════════
+   DAY REVEAL CARDS
+═══════════════════════════════════════ */
+.day-reveal{
+  margin-bottom:32px;
+  border-radius:28px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  background:var(--card);
+  transition:border-color .4s,transform .3s;
+  transform-style:preserve-3d;
+}
+.day-reveal:hover{border-color:rgba(255,107,35,0.35);transform:translateY(-3px)}
+
+/* TOP BAR */
+.dr-top{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:28px 36px;border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.dr-top::after{
+  content:'';position:absolute;inset:0;opacity:0;transition:opacity .4s;
+}
+.day-reveal:hover .dr-top::after{opacity:1}
+
+.dr-day-num{
+  font-family:'Space Grotesk',sans-serif;font-size:64px;font-weight:800;
+  line-height:1;min-width:80px;flex-shrink:0;
+}
+.dr-day-info h2{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;margin-bottom:4px}
+.dr-day-info p{font-size:14px;color:var(--muted)}
+.dr-badges{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.db{
+  padding:6px 14px;border-radius:50px;font-size:11px;font-weight:600;
+  letter-spacing:.5px;text-transform:uppercase;
+}
+.db-day{background:rgba(255,107,35,0.1);color:#FF8C50;border:1px solid rgba(255,107,35,0.2)}
+.db-type{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.55);border:1px solid rgba(255,255,255,0.08)}
+.db-platform{background:rgba(79,142,247,0.1);color:#7AABFF;border:1px solid rgba(79,142,247,0.2)}
+
+/* BODY GRID */
+.dr-body{display:grid;grid-template-columns:1fr 1.1fr;gap:0}
+.dr-left{padding:36px;border-right:1px solid var(--border)}
+.dr-right{padding:36px;background:rgba(255,255,255,0.015)}
+
+/* TAGLINE */
+.feat-tagline{
+  font-family:'Space Grotesk',sans-serif;font-size:36px;font-weight:800;
+  line-height:1.15;margin-bottom:12px;
+}
+.feat-sub{font-size:15px;color:var(--muted);margin-bottom:28px;line-height:1.6}
+
+/* COPY BOX */
+.copy-box{
+  background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);
+  border-left:2px solid var(--or);border-radius:0 12px 12px 0;
+  padding:20px 20px;font-size:13.5px;color:rgba(255,255,255,0.72);
+  line-height:1.9;white-space:pre-line;font-family:'Space Grotesk',sans-serif;
+  margin-bottom:24px;
+}
+
+/* FEATURE LIST */
+.feat-list{display:flex;flex-direction:column;gap:10px}
+.fi{
+  display:flex;gap:12px;align-items:flex-start;
+  background:var(--dim);border:1px solid rgba(255,255,255,0.06);
+  border-radius:12px;padding:14px 16px;transition:background .3s;
+}
+.fi:hover{background:rgba(255,107,35,0.06)}
+.fi-icon{
+  width:36px;height:36px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+}
+.fi-text h4{font-size:14px;font-weight:600;margin-bottom:2px}
+.fi-text p{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* 3D PHONE MOCKUP */
+.phone-wrap{
+  display:flex;align-items:center;justify-content:center;
+  perspective:1000px;height:100%;min-height:400px;
+}
+.phone-3d{
+  width:240px;height:420px;
+  background:linear-gradient(145deg,#1a1a2e,#0f0f1a);
+  border-radius:36px;
+  border:1px solid rgba(255,255,255,0.12);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05),
+    0 40px 80px rgba(0,0,0,0.6),
+    0 0 60px rgba(255,107,35,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+  transform:rotateY(-18deg) rotateX(5deg);
+  transition:transform .5s cubic-bezier(.34,1.56,.64,1);
+  overflow:hidden;
+  position:relative;
+  flex-shrink:0;
+}
+.day-reveal:hover .phone-3d{transform:rotateY(-6deg) rotateX(2deg)}
+.phone-3d::before{
+  content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:80px;height:24px;background:#0a0a14;border-radius:0 0 14px 14px;z-index:10;
+}
+.phone-screen{
+  position:absolute;inset:4px;border-radius:32px;overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.ps-header{
+  padding:32px 14px 10px;
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  color:rgba(255,255,255,0.5);
+}
+.ps-title{font-size:16px;font-weight:800;color:#fff;padding:0 14px 12px;font-family:'Space Grotesk',sans-serif}
+.ps-cards{flex:1;padding:0 10px;overflow:hidden;display:flex;flex-direction:column;gap:8px}
+.ps-card{
+  border-radius:12px;padding:12px;
+  border:1px solid rgba(255,255,255,0.06);
+  font-size:11px;
+}
+.ps-card-label{font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.ps-card-val{font-size:16px;font-weight:800;font-family:'Space Grotesk',sans-serif}
+.ps-card-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.ps-bar{height:3px;border-radius:3px;margin-top:8px;background:rgba(255,255,255,0.05)}
+.ps-bar-fill{height:100%;border-radius:3px;animation:barGrow 2s ease infinite alternate}
+@keyframes barGrow{from{width:30%}to{width:90%}}
+.ps-bottom{
+  padding:10px 10px 14px;display:flex;gap:6px;
+}
+.ps-btn{
+  flex:1;padding:10px 6px;border-radius:10px;
+  font-size:10px;font-weight:700;text-align:center;text-transform:uppercase;letter-spacing:.3px;
+}
+
+/* FLOATING ELEMENTS around phone */
+.float-badge{
+  position:absolute;
+  background:var(--card2);border:1px solid var(--border);
+  border-radius:12px;padding:10px 14px;
+  font-size:12px;font-weight:600;white-space:nowrap;
+  box-shadow:0 10px 30px rgba(0,0,0,0.4);
+  animation:float 3s ease-in-out infinite;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.float-badge.left{left:-80px;top:30%;animation-delay:.5s}
+.float-badge.right{right:-80px;top:50%;animation-delay:1s}
+.float-badge.bottom{bottom:10%;left:50%;transform:translateX(-50%);animation-delay:1.5s}
+
+/* PHONE RELATIVE WRAPPER */
+.phone-scene{position:relative;display:inline-block}
+
+/* BOTTOM CTA BAR */
+.dr-cta{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:22px 36px;border-top:1px solid var(--border);
+  background:rgba(255,107,35,0.025);
+}
+.cta-label-sm{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.cta-chip{
+  background:linear-gradient(135deg,#FF6B23,#FF9A00);color:#fff;
+  font-size:13px;font-weight:700;padding:9px 20px;border-radius:50px;
+  box-shadow:0 4px 20px rgba(255,107,35,0.3);
+}
+.ht-row{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.ht{
+  font-size:11px;color:rgba(255,107,35,0.65);
+  background:rgba(255,107,35,0.05);border:1px solid rgba(255,107,35,0.1);
+  padding:4px 10px;border-radius:50px;
+}
+
+/* ═══════════════════════════════════════
+   COLORS PER DAY
+═══════════════════════════════════════ */
+.d1 .dr-day-num{background:linear-gradient(135deg,#FF6B23,#FFB800);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.d1 .dr-top{background:linear-gradient(90deg,rgba(255,107,35,0.04),transparent)}
+.d2 .dr-day-num{background:linear-gradient(135deg,#00E599,#00B8FF);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.d2 .dr-top{background:linear-gradient(90deg,rgba(0,229,153,0.04),transparent)}
+.d3 .dr-day-num{background:linear-gradient(135deg,#4F8EF7,#9B59F7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.d3 .dr-top{background:linear-gradient(90deg,rgba(79,142,247,0.04),transparent)}
+.d4 .dr-day-num{background:linear-gradient(135deg,#FFB800,#FF6B23);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.d4 .dr-top{background:linear-gradient(90deg,rgba(255,184,0,0.04),transparent)}
+.d5 .dr-day-num{background:linear-gradient(135deg,#9B59F7,#4F8EF7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.d5 .dr-top{background:linear-gradient(90deg,rgba(155,89,247,0.04),transparent)}
+.d6 .dr-day-num{background:linear-gradient(135deg,#00E599,#FFB800);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.d6 .dr-top{background:linear-gradient(90deg,rgba(0,229,153,0.04),transparent)}
+.d7 .dr-day-num{background:linear-gradient(135deg,#FF6B23,#9B59F7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.d7 .dr-top{background:linear-gradient(90deg,rgba(255,107,35,0.06),rgba(155,89,247,0.03),transparent)}
+
+/* ═══════════════════════════════════════
+   TIMELINE STRIP
+═══════════════════════════════════════ */
+.timeline{
+  display:flex;gap:0;border:1px solid var(--border);
+  border-radius:20px;overflow:hidden;margin-bottom:64px;
+  background:var(--card);
+}
+.tl-item{
+  flex:1;padding:20px 16px;text-align:center;
+  border-right:1px solid var(--border);cursor:pointer;transition:background .3s;
+  position:relative;
+}
+.tl-item:last-child{border-right:none}
+.tl-item:hover,.tl-item.active{background:rgba(255,107,35,0.06)}
+.tl-item::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--or),transparent);
+  opacity:0;transition:opacity .3s;
+}
+.tl-item:hover::after,.tl-item.active::after{opacity:1}
+.tl-day{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.tl-emoji{font-size:24px;display:block;margin-bottom:6px}
+.tl-feat{font-size:11px;font-weight:600;color:rgba(255,255,255,0.7)}
+
+/* ═══════════════════════════════════════
+   3D FEATURE SHOWCASE GRID
+═══════════════════════════════════════ */
+.feat-showcase{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:60px;
+}
+.fs-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:20px;padding:28px;transition:all .4s;
+  position:relative;overflow:hidden;cursor:default;
+  transform-style:preserve-3d;
+}
+.fs-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 0%,rgba(255,107,35,0.08),transparent 60%);
+  opacity:0;transition:opacity .4s;
+}
+.fs-card:hover::before{opacity:1}
+.fs-card:hover{transform:translateY(-6px) rotateX(2deg);border-color:rgba(255,107,35,0.3)}
+.fs-icon{
+  width:52px;height:52px;border-radius:16px;
+  display:flex;align-items:center;justify-content:center;font-size:24px;
+  margin-bottom:18px;
+}
+.fs-title{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px}
+.fs-desc{font-size:13px;color:var(--muted);line-height:1.6}
+.fs-tag{
+  display:inline-block;margin-top:14px;
+  font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;
+  padding:4px 12px;border-radius:50px;
+}
+
+/* ═══════════════════════════════════════
+   CANVAS PARTICLES
+═══════════════════════════════════════ */
+#hero-canvas{position:absolute;inset:0;z-index:0;opacity:.6}
+
+/* ═══════════════════════════════════════
+   FADE IN ANIMATION
+═══════════════════════════════════════ */
+.fade-up{opacity:0;transform:translateY(32px);transition:opacity .6s ease,transform .6s ease}
+.fade-up.vis{opacity:1;transform:translateY(0)}
+
+/* ═══════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════ */
+.footer{
+  margin-top:100px;padding-top:40px;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  color:var(--muted);font-size:13px;
+}
+.footer-brand{font-size:20px;font-weight:800;color:var(--or);font-family:'Space Grotesk',sans-serif}
+
+/* RESPONSIVE */
+@media(max-width:960px){
+  .dr-body{grid-template-columns:1fr}
+  .hero h1{font-size:48px}
+  .feat-showcase{grid-template-columns:1fr 1fr}
+  .timeline{flex-wrap:wrap}
+  .float-badge{display:none}
+}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<div class="wrap">
+
+<!-- ═══════ HERO ═══════ -->
+<div class="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-orb"></div>
+
+  <div class="hero-eyebrow">
+    <span class="dot"></span>
+    Vendor Features Campaign — Gujarat Launch · Week 1
+  </div>
+
+  <h1>
+    Sirf Booking Nahi.<br/>
+    <span class="accent">Poora Dhanda.</span>
+  </h1>
+
+  <p class="hero-desc">
+    TransRentals sirf ek booking app nahi hai — yeh aapka complete business OS hai.
+    7 din mein, 7 features. Basic se Advanced.
+  </p>
+
+  <div class="hero-pills">
+    <div class="hpill"><span class="icon">📦</span> Direct Bookings</div>
+    <div class="hpill"><span class="icon">📋</span> Easy Quotations</div>
+    <div class="hpill"><span class="icon">🚛</span> Fleet Management</div>
+    <div class="hpill"><span class="icon">👥</span> Staff & Payroll</div>
+    <div class="hpill"><span class="icon">🤝</span> P2P Marketplace</div>
+    <div class="hpill"><span class="icon">🏢</span> B2B Corporate</div>
+    <div class="hpill"><span class="icon">🌿</span> Wander Experiences</div>
+    <div class="hpill"><span class="icon">📊</span> Analytics</div>
+  </div>
+
+  <div class="hero-stats-row">
+    <div class="hst"><div class="hst-n">15+</div><div class="hst-l">Features</div></div>
+    <div class="hst"><div class="hst-n">7</div><div class="hst-l">Days Reveal</div></div>
+    <div class="hst"><div class="hst-n">8</div><div class="hst-l">Vehicle Types</div></div>
+    <div class="hst"><div class="hst-n">150+</div><div class="hst-l">Cities</div></div>
+  </div>
+</div>
+
+<!-- TIMELINE -->
+<div class="timeline fade-up">
+  <div class="tl-item active">
+    <div class="tl-day">Day 1 · Mon</div>
+    <span class="tl-emoji">📦</span>
+    <div class="tl-feat">Direct Bookings</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-day">Day 2 · Tue</div>
+    <span class="tl-emoji">📋</span>
+    <div class="tl-feat">Quotations</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-day">Day 3 · Wed</div>
+    <span class="tl-emoji">🚛</span>
+    <div class="tl-feat">Fleet Mgmt</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-day">Day 4 · Thu</div>
+    <span class="tl-emoji">👥</span>
+    <div class="tl-feat">Staff & Payroll</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-day">Day 5 · Fri</div>
+    <span class="tl-emoji">🤝</span>
+    <div class="tl-feat">P2P Network</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-day">Day 6 · Sat</div>
+    <span class="tl-emoji">🏢</span>
+    <div class="tl-feat">B2B + Wander</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-day">Day 7 · Sun</div>
+    <span class="tl-emoji">🚀</span>
+    <div class="tl-feat">Full Power</div>
+  </div>
+</div>
+
+<!-- ═══════ SECTION: DAY BY DAY ═══════ -->
+<div class="sh fade-up">
+  <div class="sh-icon">🎯</div>
+  <div class="sh-title">7-Day <em>Feature Reveal</em></div>
+  <div class="sh-line"></div>
+</div>
+
+<!-- ══ DAY 1 ══ -->
+<div class="day-reveal d1 fade-up">
+  <div class="dr-top">
+    <div style="display:flex;align-items:center;gap:20px">
+      <div class="dr-day-num">01</div>
+      <div class="dr-day-info">
+        <h2>Direct Bookings + Booking Links</h2>
+        <p>Monday · Basic Feature · Objective: "Tumhara customer, tumhari booking"</p>
+      </div>
+    </div>
+    <div class="dr-badges">
+      <div class="db db-day">🎬 Reel (45s)</div>
+      <div class="db db-platform">📸 Instagram</div>
+      <div class="db db-type">👤 Facebook</div>
+      <div class="db db-type">⏰ 7–9 PM</div>
+    </div>
+  </div>
+
+  <div class="dr-body">
+    <div class="dr-left">
+      <div class="feat-tagline">Taro Customer.<br/><span style="color:#FF6B23">Teri Booking.</span><br/>Sidhi.</div>
+      <div class="feat-sub">Customers directly book karo — platform se bhi, apne khud ke link se bhi. Zero middleman.</div>
+
+      <div class="copy-box">🎬 Reel Script:
+
+[0–5s] Hook: "Kyaa aapke customers abhi bhi phone pe booking karte hain?"
+
+[5–20s] Screen: TransRentals app open — Direct Bookings screen
+Vendor apna khud ka booking form banata hai
+QR code generate hota hai ✨
+
+[20–35s] Text overlay:
+"Apna booking link banao.
+WhatsApp pe share karo.
+Customer book kare — tum track karo."
+
+[35–45s] CTA:
+"TransRentals pe vendor bano — FREE"
+transrentals.in/vendor/register</div>
+
+      <div class="feat-list">
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(255,107,35,0.12)">📦</div>
+          <div class="fi-text"><h4>Platform Bookings</h4><p>TransRentals ke 1L+ customers directly aapko book karte hain</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(255,184,0,0.1)">🔗</div>
+          <div class="fi-text"><h4>Custom Booking Links</h4><p>Apna personal booking form banao. WhatsApp, SMS se share karo</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(0,229,153,0.08)">📱</div>
+          <div class="fi-text"><h4>QR Code Generator</h4><p>QR code print karo — shop pe lagao, customers scan karein</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(79,142,247,0.1)">💰</div>
+          <div class="fi-text"><h4>Payment Tracking</h4><p>Pending, Partial, Collected — har booking ka payment status live</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dr-right">
+      <div class="phone-wrap">
+        <div class="phone-scene">
+          <div class="phone-3d">
+            <div class="phone-screen" style="background:linear-gradient(180deg,#0f0f1e,#07070f)">
+              <div class="ps-header">TransRentals Vendor</div>
+              <div class="ps-title">Direct Bookings</div>
+              <div class="ps-cards">
+                <div class="ps-card" style="background:rgba(255,107,35,0.08);border-color:rgba(255,107,35,0.2)">
+                  <div class="ps-card-label">Today's Bookings</div>
+                  <div class="ps-card-val" style="color:#FF6B23">12 New 🔥</div>
+                  <div class="ps-card-sub">↑ 40% from yesterday</div>
+                  <div class="ps-bar"><div class="ps-bar-fill" style="background:linear-gradient(90deg,#FF6B23,#FFB800)"></div></div>
+                </div>
+                <div class="ps-card" style="background:rgba(0,229,153,0.06);border-color:rgba(0,229,153,0.15)">
+                  <div class="ps-card-label">My Booking Link</div>
+                  <div class="ps-card-val" style="color:#00E599;font-size:12px">trns.in/v/rajesh-bhai ✓</div>
+                  <div class="ps-card-sub">247 visits this week</div>
+                </div>
+                <div class="ps-card" style="background:rgba(79,142,247,0.06);border-color:rgba(79,142,247,0.15)">
+                  <div class="ps-card-label">Pending Payments</div>
+                  <div class="ps-card-val" style="color:#4F8EF7">₹18,400</div>
+                  <div class="ps-card-sub">3 bookings • Collect today</div>
+                </div>
+              </div>
+              <div class="ps-bottom">
+                <div class="ps-btn" style="background:rgba(255,107,35,0.15);color:#FF6B23">+ New</div>
+                <div class="ps-btn" style="background:rgba(0,229,153,0.1);color:#00E599">QR Code</div>
+                <div class="ps-btn" style="background:rgba(79,142,247,0.1);color:#4F8EF7">Share</div>
+              </div>
+            </div>
+          </div>
+          <div class="float-badge left" style="border-color:rgba(0,229,153,0.3);color:#00E599">✅ 12 Bookings Today</div>
+          <div class="float-badge right" style="border-color:rgba(255,107,35,0.3);color:#FF6B23">🔗 Share Link</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dr-cta">
+    <span class="cta-label-sm">Post CTA</span>
+    <div class="cta-chip">📲 Comment "LINK" — Apna Booking Link Banao</div>
+    <div class="ht-row">
+      <span class="ht">#DirectBooking</span><span class="ht">#BookingLink</span><span class="ht">#TransRentals</span><span class="ht">#GujaratVendor</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DAY 1.5 — BASIC BOOKING + QUOTES ══ -->
+<div class="day-reveal d1 fade-up" style="margin-top:40px">
+  <div class="dr-top">
+    <div style="display:flex;align-items:center;gap:20px">
+      <div class="dr-day-num" style="background:linear-gradient(135deg,#00E599,#009B6A)">📋</div>
+      <div class="dr-day-info">
+        <h2>Basic Booking & Quote Management</h2>
+        <p>Monday Bonus · Core Feature · Objective: "Har booking aapke haath mein"</p>
+      </div>
+    </div>
+    <div class="dr-badges">
+      <div class="db db-day">🎬 Reel (45s)</div>
+      <div class="db db-platform">📸 Instagram</div>
+      <div class="db db-type">🔄 Booking Flow</div>
+    </div>
+  </div>
+
+  <div class="dr-body">
+    <div class="dr-left">
+      <div class="feat-tagline">Customer Book Kare.<br/><span style="color:#00E599">Tum Accept Karo.</span><br/>Trip Shuru.</div>
+      <div class="feat-sub">TransRentals pe jab customer booking kare — aapko turant notification aaye. Accept karo, driver assign karo, trip manage karo. Sab ek screen se.</div>
+
+      <div class="copy-box">🔄 <strong>Booking Flow — Vendor ko kya karna padta hai:</strong>
+
+<strong>Step 1: Notification Aaye</strong>
+"New Car Rental Booking in Mumbai" — Push notification + in-app alert
+
+<strong>Step 2: Accept ya Reject</strong>
+✅ Accept → Booking aapki ho gayi
+❌ Reject → Goes to next vendor
+
+<strong>Step 3: Driver Assign Karo</strong>
+Staff list se driver select karo → Customer ko auto-notification jaaye
+
+<strong>Step 4: OTP se Trip Start</strong>
+Driver OTP generate kare → Customer verify kare → Trip shuru!
+
+<strong>Step 5: Trip Complete</strong>
+Driver marks complete → Final payment collected → Rating request sent
+
+---
+
+📋 <strong>Quote Flow — Jab customer quote maange:</strong>
+
+<strong>Step 1: Quote Request Aaye</strong>
+"Shrusti is looking for Bus Rental in Ahmedabad" — Notification aaye
+
+<strong>Step 2: Quote Bhejo (60 seconds)</strong>
+Vehicle select karo → Price daalo → Send! (Templates bhi use kar sakte ho)
+
+<strong>Step 3: Customer Accept Kare</strong>
+Customer best quote select kare → Advance payment kare → Booking confirmed!
+
+<strong>Step 4: Manage Karo</strong>
+Vehicle assign karo → Trip track karo → Complete karo</div>
+
+      <div class="feat-list">
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(0,229,153,0.1)">🔔</div>
+          <div class="fi-text"><h4>Real-time Booking Alerts</h4><p>Jaise hi customer book kare — push notification + in-app alert instantly</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(255,107,35,0.12)">✅</div>
+          <div class="fi-text"><h4>One-Tap Accept / Reject</h4><p>Booking detail dekho aur ek tap mein accept ya reject karo. Fast response = more bookings</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(79,142,247,0.1)">👤</div>
+          <div class="fi-text"><h4>Driver Assignment</h4><p>Staff list se driver select karo → Customer ko auto-notification with driver details</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(155,89,247,0.08)">🔑</div>
+          <div class="fi-text"><h4>OTP Trip Verification</h4><p>Secure handover — driver OTP generate kare, customer verify kare, trip start ho</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(255,184,0,0.1)">📋</div>
+          <div class="fi-text"><h4>Quote Requests</h4><p>Multiple customers se quote request aaye — competitive price bhejo, deal jito</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(0,229,153,0.08)">📊</div>
+          <div class="fi-text"><h4>Booking Status Tracking</h4><p>Pending → Accepted → Driver Assigned → In Progress → Completed — har step track karo</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(255,107,35,0.12)">💰</div>
+          <div class="fi-text"><h4>Payment Auto-Tracking</h4><p>Advance 30% → Razorpay se auto-verify → Balance at completion. No manual tracking</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(79,142,247,0.1)">⭐</div>
+          <div class="fi-text"><h4>Customer Ratings</h4><p>Trip complete hone pe customer rating de — aapka profile strong bane, more bookings aaye</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dr-right">
+      <div class="phone-wrap">
+        <div class="phone-scene">
+          <div class="phone-3d">
+            <div class="phone-screen" style="background:linear-gradient(180deg,#0f0f1e,#07070f)">
+              <div class="ps-header">TransRentals Vendor</div>
+              <div class="ps-title">Booking Management</div>
+              <div class="ps-cards">
+                <div class="ps-card" style="background:rgba(0,229,153,0.06);border-color:rgba(0,229,153,0.15)">
+                  <div class="ps-card-label">🔔 New Booking Request</div>
+                  <div class="ps-card-val" style="color:#00E599;font-size:13px">Car Rental · Mumbai → Pune</div>
+                  <div class="ps-card-sub">Shrusti · 28 Mar · Sedan</div>
+                  <div style="display:flex;gap:6px;margin-top:8px">
+                    <div class="ps-btn" style="background:rgba(0,229,153,0.2);color:#00E599;flex:1;text-align:center">✅ Accept</div>
+                    <div class="ps-btn" style="background:rgba(255,70,70,0.15);color:#FF4646;flex:1;text-align:center">❌ Reject</div>
+                  </div>
+                </div>
+                <div class="ps-card" style="background:rgba(255,184,0,0.06);border-color:rgba(255,184,0,0.15)">
+                  <div class="ps-card-label">📋 Quote Request</div>
+                  <div class="ps-card-val" style="color:#FFB800;font-size:13px">Bus Rental · Ahmedabad → Goa</div>
+                  <div class="ps-card-sub">45-seater · 3 days · 15 Apr</div>
+                  <div style="margin-top:8px">
+                    <div class="ps-btn" style="background:rgba(255,184,0,0.15);color:#FFB800;text-align:center">📤 Send Quote</div>
+                  </div>
+                </div>
+                <div class="ps-card" style="background:rgba(79,142,247,0.06);border-color:rgba(79,142,247,0.15)">
+                  <div class="ps-card-label">🚗 Active Trip</div>
+                  <div class="ps-card-val" style="color:#4F8EF7;font-size:13px">CB-2026-6TTYIN</div>
+                  <div class="ps-card-sub">Driver: Ramesh · OTP Verified ✓</div>
+                  <div class="ps-bar"><div class="ps-bar-fill" style="background:linear-gradient(90deg,#4F8EF7,#00E599);width:65%"></div></div>
+                </div>
+              </div>
+              <div class="ps-bottom">
+                <div class="ps-btn" style="background:rgba(0,229,153,0.1);color:#00E599">📋 All</div>
+                <div class="ps-btn" style="background:rgba(255,184,0,0.1);color:#FFB800">💬 Quotes</div>
+                <div class="ps-btn" style="background:rgba(79,142,247,0.1);color:#4F8EF7">🚗 Active</div>
+              </div>
+            </div>
+          </div>
+          <div class="float-badge left" style="border-color:rgba(0,229,153,0.3);color:#00E599">✅ Accepted in 8 sec</div>
+          <div class="float-badge right" style="border-color:rgba(255,184,0,0.3);color:#FFB800">📋 3 Quotes Pending</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dr-cta">
+    <span class="cta-label-sm">Key Points for Vendor</span>
+    <div class="cta-chip">🔄 Booking aaye → Accept karo → Driver lagao → Trip complete → Payment aaye</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px">
+      <div class="cta-chip" style="font-size:12px">📋 Quote request aaye → Price bhejo → Customer accept kare → Booking confirm!</div>
+    </div>
+
+    <!-- BOOKING TYPES SUMMARY -->
+    <div style="margin-top:32px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;text-align:left">
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:20px">
+        <div style="font-size:20px;margin-bottom:8px">🏍️</div>
+        <div style="font-size:14px;font-weight:700;color:#fff">Bike Rental</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">Customer browse kare → Select kare → Pay kare → OTP se pickup → Return pe complete</div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:20px">
+        <div style="font-size:20px;margin-bottom:8px">🚗</div>
+        <div style="font-size:14px;font-weight:700;color:#fff">Car Rental (Driver)</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">Local/Outstation/Airport → Vehicle select → Pay advance 30% → Driver assign → OTP start → Complete</div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:20px">
+        <div style="font-size:20px;margin-bottom:8px">🔑</div>
+        <div style="font-size:14px;font-weight:700;color:#fff">Self-Drive</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">Browse fleet → Check availability → Pay + ₹2000 deposit → OTP pickup → Drive → Return → Deposit refund</div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:20px">
+        <div style="font-size:20px;margin-bottom:8px">💎</div>
+        <div style="font-size:14px;font-weight:700;color:#fff">Luxury Car</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">Customer request kare → Aap quote bhejo → Accept hone pe advance payment → Premium chauffeur assign → Trip</div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:20px">
+        <div style="font-size:20px;margin-bottom:8px">🚌</div>
+        <div style="font-size:14px;font-weight:700;color:#fff">Bus Rental</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">Quote request aaye → Vehicle + price bhejo → Customer accept kare → Advance 30% → Vehicle assign → Trip manage</div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:20px">
+        <div style="font-size:20px;margin-bottom:8px">🚚</div>
+        <div style="font-size:14px;font-weight:700;color:#fff">Truck / Tempo</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">Quote request (goods + route) → Price bhejo → Accept → Loading → In Transit → Delivered → Complete</div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:20px">
+        <div style="font-size:20px;margin-bottom:8px">🏗️</div>
+        <div style="font-size:14px;font-weight:700;color:#fff">Equipment Rental</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">Quote request → Equipment + operator price bhejo → Accept → Deliver on-site → Usage period → Return → Complete</div>
+      </div>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:20px">
+        <div style="font-size:20px;margin-bottom:8px">📦</div>
+        <div style="font-size:14px;font-weight:700;color:#fff">Packers & Movers</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">Quote request → Survey + price → Accept → Packing → Loading → Transit → Unloading → Unpacking → Done</div>
+      </div>
+    </div>
+
+    <div class="ht-row" style="margin-top:16px">
+      <span class="ht">#BookingManagement</span><span class="ht">#QuoteSystem</span><span class="ht">#TransRentals</span><span class="ht">#VendorBusiness</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DAY 2 ══ -->
+<div class="day-reveal d2 fade-up">
+  <div class="dr-top">
+    <div style="display:flex;align-items:center;gap:20px">
+      <div class="dr-day-num">02</div>
+      <div class="dr-day-info">
+        <h2>Easy Quotation System</h2>
+        <p>Tuesday · Core Feature · Objective: "60 second mein quote ready"</p>
+      </div>
+    </div>
+    <div class="dr-badges">
+      <div class="db db-day">🃏 Carousel (5 slides)</div>
+      <div class="db db-platform">📸 Instagram</div>
+      <div class="db db-type">⏰ 12–2 PM</div>
+    </div>
+  </div>
+
+  <div class="dr-body">
+    <div class="dr-left">
+      <div class="feat-tagline"><span style="color:#00E599">60 Second</span><br/>mein Quote.<br/>Deal Pakku.</div>
+      <div class="feat-sub">Customer ne quote mangyu? Phone uthayo, app kholo, 60 second mein professional quote send karo.</div>
+
+      <div class="copy-box">📲 Carousel Copy:
+
+Slide 1 (Cover):
+"Quotation banava ne ketlo time lage chhe tamne? 🤔"
+"60 seconds? Ya 60 minutes?"
+
+Slide 2: Problem
+❌ WhatsApp pe calculate karvu pade
+❌ Excel sheet banavi pade
+❌ Customer wait kare, chale jay
+
+Slide 3: Solution — TransRentals Quote
+✅ Vehicle select karo
+✅ Route + dates bharо
+✅ Auto calculate — Send!
+Done in 60 seconds ⚡
+
+Slide 4: What's included
+• Multi-vehicle quotes
+• GST auto-calculate
+• PDF format ready
+• Quote history
+
+Slide 5 (CTA):
+"Abhi join karo — Free trial"</div>
+
+      <div class="feat-list">
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(0,229,153,0.1)">⚡</div>
+          <div class="fi-text"><h4>Instant Quote Builder</h4><p>Vehicle, route, dates select karo — price auto calculate. 60 second mein ready.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(79,142,247,0.1)">📄</div>
+          <div class="fi-text"><h4>Professional PDF</h4><p>Aapka branding ke saath professional quotation PDF — customer pe acha impression</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(255,184,0,0.1)">📊</div>
+          <div class="fi-text"><h4>Quote Tracking</h4><p>Submitted → Under Review → Accepted/Rejected — har quote ka status live dekhо</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(155,89,247,0.1)">🔄</div>
+          <div class="fi-text"><h4>Multi-Vehicle Quotes</h4><p>Ek hi quote mein multiple vehicles include karo — fleet deals ke liye perfect</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dr-right">
+      <div class="phone-wrap">
+        <div class="phone-scene">
+          <div class="phone-3d">
+            <div class="phone-screen" style="background:linear-gradient(180deg,#091a12,#050f0a)">
+              <div class="ps-header" style="color:rgba(0,229,153,0.6)">Quote Builder</div>
+              <div class="ps-title" style="color:#00E599">New Quotation</div>
+              <div class="ps-cards">
+                <div class="ps-card" style="background:rgba(0,229,153,0.06);border-color:rgba(0,229,153,0.15)">
+                  <div class="ps-card-label">Service</div>
+                  <div class="ps-card-val" style="color:#00E599;font-size:13px">🚌 Bus Rental</div>
+                  <div class="ps-card-sub">Ahmedabad → Dwarka</div>
+                </div>
+                <div class="ps-card" style="background:rgba(79,142,247,0.06);border-color:rgba(79,142,247,0.15)">
+                  <div class="ps-card-label">Auto Calculated</div>
+                  <div class="ps-card-val" style="color:#4F8EF7">₹24,500</div>
+                  <div class="ps-card-sub">incl. GST + Toll + Driver</div>
+                </div>
+                <div class="ps-card" style="background:rgba(255,184,0,0.06);border-color:rgba(255,184,0,0.15)">
+                  <div class="ps-card-label">Quote Status</div>
+                  <div class="ps-card-val" style="color:#FFB800;font-size:12px">3 Sent · 1 Accepted ✓</div>
+                  <div class="ps-bar"><div class="ps-bar-fill" style="background:linear-gradient(90deg,#00E599,#4F8EF7)"></div></div>
+                </div>
+              </div>
+              <div class="ps-bottom">
+                <div class="ps-btn" style="background:rgba(0,229,153,0.15);color:#00E599">Send Quote</div>
+                <div class="ps-btn" style="background:rgba(79,142,247,0.1);color:#4F8EF7">PDF</div>
+              </div>
+            </div>
+          </div>
+          <div class="float-badge left" style="border-color:rgba(0,229,153,0.3);color:#00E599">⚡ 60 Sec Quote</div>
+          <div class="float-badge right" style="border-color:rgba(79,142,247,0.3);color:#4F8EF7">📄 Auto PDF</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dr-cta">
+    <span class="cta-label-sm">Post CTA</span>
+    <div class="cta-chip">💬 "Tumhara quote kitna time leta hai?" — Comment below</div>
+    <div class="ht-row">
+      <span class="ht">#EasyQuote</span><span class="ht">#VendorTools</span><span class="ht">#SmartBusiness</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DAY 3 ══ -->
+<div class="day-reveal d3 fade-up">
+  <div class="dr-top">
+    <div style="display:flex;align-items:center;gap:20px">
+      <div class="dr-day-num">03</div>
+      <div class="dr-day-info">
+        <h2>Fleet Management — Poori Gaadi, Ek Jagah</h2>
+        <p>Wednesday · Core Feature · Objective: Fleet chaos ko organize karo</p>
+      </div>
+    </div>
+    <div class="dr-badges">
+      <div class="db db-day">🎬 Reel (60s)</div>
+      <div class="db db-platform">📸 Instagram</div>
+      <div class="db db-platform">👤 Facebook</div>
+      <div class="db db-type">⏰ 6–8 PM</div>
+    </div>
+  </div>
+
+  <div class="dr-body">
+    <div class="dr-left">
+      <div class="feat-tagline">Poori <span style="color:#4F8EF7">Fleet.</span><br/>Ek App.<br/>Full Control.</div>
+      <div class="feat-sub">10 vehicles ho ya 100 — TransRentals pe sab ek jagah. Insurance alerts, fuel tracking, maintenance schedule — sab automatic.</div>
+
+      <div class="copy-box">🎬 Reel Script:
+
+[0–8s] Hook (Pain):
+"Tamari paas 10 vehicle chhe — pan
+insurance kyari expire thai gai khabar nathi?
+Fuel keto vaperayo? Maintenance kyare chhe?"
+
+[8–30s] App demo: Fleet screen
+→ All vehicles listed with status
+→ Insurance expiry countdown — RED alert
+→ Fuel tracking chart
+→ Maintenance schedule
+
+[30–50s] Text overlays:
+"Ek tap mein sab deke rakhay" ✅
+"Expiry alert — advance mein" ✅
+"Per vehicle earnings" ✅
+
+[50–60s] CTA: Join karo today</div>
+
+      <div class="feat-list">
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(79,142,247,0.12)">🚗</div>
+          <div class="fi-text"><h4>All Vehicles Dashboard</h4><p>Bike, Car, Bus, Truck — sab ek screen pe. Active, available, in-trip status live.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(255,0,0,0.08)">⚠️</div>
+          <div class="fi-text"><h4>Insurance & Fitness Alerts</h4><p>Expiry se pehle automatic alert. Kabhi bhi expired vehicle se booking mat lo.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(255,184,0,0.1)">⛽</div>
+          <div class="fi-text"><h4>Fuel Tracking</h4><p>Har vehicle ka fuel consumption track karo. Wastage pakdо. Savings badhaо.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(0,229,153,0.08)">🔧</div>
+          <div class="fi-text"><h4>Maintenance Schedule</h4><p>Service due date set karo. Reminder aayega. Vehicle hamesha road-ready rahega.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dr-right">
+      <div class="phone-wrap">
+        <div class="phone-scene">
+          <div class="phone-3d">
+            <div class="phone-screen" style="background:linear-gradient(180deg,#090f1a,#05080f)">
+              <div class="ps-header" style="color:rgba(79,142,247,0.7)">Fleet Manager</div>
+              <div class="ps-title" style="color:#4F8EF7">My Fleet (8 Vehicles)</div>
+              <div class="ps-cards">
+                <div class="ps-card" style="background:rgba(0,229,153,0.06);border-color:rgba(0,229,153,0.2)">
+                  <div class="ps-card-label">Active Now</div>
+                  <div class="ps-card-val" style="color:#00E599">6 / 8 🟢</div>
+                  <div class="ps-card-sub">5 on trip · 1 available</div>
+                  <div class="ps-bar"><div class="ps-bar-fill" style="background:linear-gradient(90deg,#00E599,#4F8EF7);width:75%"></div></div>
+                </div>
+                <div class="ps-card" style="background:rgba(255,60,0,0.08);border-color:rgba(255,60,0,0.25)">
+                  <div class="ps-card-label">⚠️ Insurance Alert</div>
+                  <div class="ps-card-val" style="color:#FF4444;font-size:13px">GJ-01 AB 1234</div>
+                  <div class="ps-card-sub">Expires in 8 days — Renew!</div>
+                </div>
+                <div class="ps-card" style="background:rgba(255,184,0,0.06);border-color:rgba(255,184,0,0.15)">
+                  <div class="ps-card-label">⛽ Fleet Fuel This Month</div>
+                  <div class="ps-card-val" style="color:#FFB800">₹34,200</div>
+                  <div class="ps-card-sub">↓ 12% vs last month</div>
+                </div>
+              </div>
+              <div class="ps-bottom">
+                <div class="ps-btn" style="background:rgba(79,142,247,0.15);color:#4F8EF7">+ Add Vehicle</div>
+                <div class="ps-btn" style="background:rgba(0,229,153,0.1);color:#00E599">Analytics</div>
+              </div>
+            </div>
+          </div>
+          <div class="float-badge left" style="border-color:rgba(255,60,0,0.4);color:#FF6666">⚠️ Insurance Alert</div>
+          <div class="float-badge right" style="border-color:rgba(0,229,153,0.3);color:#00E599">✅ 6 Active</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dr-cta">
+    <span class="cta-label-sm">Post CTA</span>
+    <div class="cta-chip">🚛 "Kitni vehicles hai tumhari?" — Comment karо</div>
+    <div class="ht-row">
+      <span class="ht">#FleetManagement</span><span class="ht">#VehicleTracking</span><span class="ht">#TransRentals</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DAY 4 ══ -->
+<div class="day-reveal d4 fade-up">
+  <div class="dr-top">
+    <div style="display:flex;align-items:center;gap:20px">
+      <div class="dr-day-num">04</div>
+      <div class="dr-day-info">
+        <h2>Staff Management & Payroll</h2>
+        <p>Thursday · Core Feature · Objective: Team chaos door karo</p>
+      </div>
+    </div>
+    <div class="dr-badges">
+      <div class="db db-day">🃏 Carousel (6 slides)</div>
+      <div class="db db-platform">📸 Instagram</div>
+      <div class="db db-type">⏰ 11 AM–1 PM</div>
+    </div>
+  </div>
+
+  <div class="dr-body">
+    <div class="dr-left">
+      <div class="feat-tagline">Driver,<br/>Manager, Helper —<br/><span style="color:#FFB800">Sab Haath Mein.</span></div>
+      <div class="feat-sub">Staff hire karo, attendance lagao, salary do — sab ek jagah. No register, no Excel. Bas app.</div>
+
+      <div class="copy-box">📲 Carousel Copy:
+
+Slide 1: "Tamaro driver aaj aavyo k nai? 🤔
+          Excel sheet kholvanu band karo."
+
+Slide 2: Staff Roles you can manage:
+🚗 Driver  👔 Manager
+🧹 Helper  💼 Accountant
+🔧 Mechanic  📋 Supervisor
+
+Slide 3: Attendance Tracking
+✅ Daily attendance mark karo
+✅ Leave management
+✅ Absent alerts
+
+Slide 4: Payroll in 1 tap
+✅ Salary calculate auto
+✅ Payment history
+✅ No disputes
+
+Slide 5: Staff Performance
+✅ Trip count per driver
+✅ Customer ratings
+✅ Best performer badge
+
+Slide 6 CTA: "Tamari team digital karo!"</div>
+
+      <div class="feat-list">
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(255,184,0,0.12)">👔</div>
+          <div class="fi-text"><h4>6 Staff Roles</h4><p>Driver, Manager, Helper, Accountant, Mechanic, Supervisor — sab add karo app mein</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(0,229,153,0.08)">📅</div>
+          <div class="fi-text"><h4>Attendance Tracking</h4><p>Daily attendance ek tap mein. Leave record, absent alert — sab automatic.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(79,142,247,0.1)">💸</div>
+          <div class="fi-text"><h4>Payroll Management</h4><p>Monthly salary calculate karo. Payment history. Staff ko transparency do.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(155,89,247,0.1)">⭐</div>
+          <div class="fi-text"><h4>Performance Tracking</h4><p>Har driver ka trip count, customer rating dekhо. Best staff ko reward karo.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dr-right">
+      <div class="phone-wrap">
+        <div class="phone-scene">
+          <div class="phone-3d">
+            <div class="phone-screen" style="background:linear-gradient(180deg,#100f09,#0a0905)">
+              <div class="ps-header" style="color:rgba(255,184,0,0.6)">Staff Manager</div>
+              <div class="ps-title" style="color:#FFB800">My Team (12 Members)</div>
+              <div class="ps-cards">
+                <div class="ps-card" style="background:rgba(0,229,153,0.06);border-color:rgba(0,229,153,0.2)">
+                  <div class="ps-card-label">Today's Attendance</div>
+                  <div class="ps-card-val" style="color:#00E599">10 / 12 ✅</div>
+                  <div class="ps-card-sub">2 on leave • 0 absent</div>
+                  <div class="ps-bar"><div class="ps-bar-fill" style="background:linear-gradient(90deg,#00E599,#FFB800);width:83%"></div></div>
+                </div>
+                <div class="ps-card" style="background:rgba(255,184,0,0.06);border-color:rgba(255,184,0,0.15)">
+                  <div class="ps-card-label">💸 This Month Payroll</div>
+                  <div class="ps-card-val" style="color:#FFB800">₹1,24,000</div>
+                  <div class="ps-card-sub">8 paid · 4 pending</div>
+                </div>
+                <div class="ps-card" style="background:rgba(155,89,247,0.06);border-color:rgba(155,89,247,0.15)">
+                  <div class="ps-card-label">⭐ Top Driver</div>
+                  <div class="ps-card-val" style="color:#9B59F7;font-size:13px">Ramesh — 4.9★</div>
+                  <div class="ps-card-sub">32 trips this month</div>
+                </div>
+              </div>
+              <div class="ps-bottom">
+                <div class="ps-btn" style="background:rgba(255,184,0,0.15);color:#FFB800">+ Add Staff</div>
+                <div class="ps-btn" style="background:rgba(0,229,153,0.1);color:#00E599">Payroll</div>
+              </div>
+            </div>
+          </div>
+          <div class="float-badge left" style="border-color:rgba(255,184,0,0.3);color:#FFB800">💸 Auto Payroll</div>
+          <div class="float-badge right" style="border-color:rgba(155,89,247,0.3);color:#9B59F7">⭐ 4.9 Rating</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dr-cta">
+    <span class="cta-label-sm">Post CTA</span>
+    <div class="cta-chip">👥 "Kitne staff hain tumhare?" — Comment mein batao</div>
+    <div class="ht-row">
+      <span class="ht">#StaffManagement</span><span class="ht">#TeamManagement</span><span class="ht">#SmallBusiness</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DAY 5 ══ -->
+<div class="day-reveal d5 fade-up">
+  <div class="dr-top">
+    <div style="display:flex;align-items:center;gap:20px">
+      <div class="dr-day-num">05</div>
+      <div class="dr-day-info">
+        <h2>P2P Marketplace — Vendor-to-Vendor Network</h2>
+        <p>Friday · Advanced Feature · Objective: "Akela nahi, saath mein badho"</p>
+      </div>
+    </div>
+    <div class="dr-badges">
+      <div class="db db-day">🎬 Reel (45s)</div>
+      <div class="db db-platform">📸 Instagram</div>
+      <div class="db db-platform">👤 Facebook Ad</div>
+      <div class="db db-type">⏰ 8–10 PM</div>
+    </div>
+  </div>
+
+  <div class="dr-body">
+    <div class="dr-left">
+      <div class="feat-tagline">Bija Vendors<br/>sathe <span style="color:#9B59F7">Dhanda</span><br/>Karo.</div>
+      <div class="feat-sub">India ka pehla Vendor-to-Vendor marketplace. Capacity full hai? Doosre vendor ko vehicle do. Booking miss? Doosre vendor se vehicle lo.</div>
+
+      <div class="copy-box">🎬 Reel Script:
+
+[0–8s] Hook:
+"Kya tumhare paas booking hai par vehicle nahi?
+Ya vehicle hai par booking nahi?"
+
+[8–25s] P2P screen demo:
+→ "Browse Vehicles" — doosre vendors ki available vehicles
+→ "Post My Vehicle" — apni vehicle list karo
+→ P2P earnings dashboard showing ₹12,400
+
+[25–40s] Text:
+"Gujarat na vendors ek doosre ko help karte hain.
+Capacity full? Vehicle share karo.
+Short on vehicles? Kisi se lo."
+
+[40–45s] CTA: India ka naya vendor network.
+Join karo aaj j.</div>
+
+      <div class="feat-list">
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(155,89,247,0.12)">🔍</div>
+          <div class="fi-text"><h4>Browse Vendor Vehicles</h4><p>Gujarat ke doosre vendors ki available vehicles dekhо. Filter by type, location, date.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(79,142,247,0.1)">📤</div>
+          <div class="fi-text"><h4>Post Your Vehicle</h4><p>Apni idle vehicle list karo. Doosre vendors use karein. Extra income generate karo.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(0,229,153,0.08)">💬</div>
+          <div class="fi-text"><h4>Vendor Community</h4><p>Gujarat ke vendors se connect karo. Deal negotiate karo. Community me grow karo.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(255,184,0,0.1)">📈</div>
+          <div class="fi-text"><h4>P2P Earnings</h4><p>Har P2P deal ki alag earnings. Dashboard mein track karo. Extra income — same vehicle se.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dr-right">
+      <div class="phone-wrap">
+        <div class="phone-scene">
+          <div class="phone-3d">
+            <div class="phone-screen" style="background:linear-gradient(180deg,#0f0918,#07050f)">
+              <div class="ps-header" style="color:rgba(155,89,247,0.7)">P2P Marketplace</div>
+              <div class="ps-title" style="color:#9B59F7">Vendor Network</div>
+              <div class="ps-cards">
+                <div class="ps-card" style="background:rgba(155,89,247,0.08);border-color:rgba(155,89,247,0.2)">
+                  <div class="ps-card-label">🤝 P2P Earnings</div>
+                  <div class="ps-card-val" style="color:#9B59F7">₹12,400 this month</div>
+                  <div class="ps-card-sub">4 deals completed</div>
+                  <div class="ps-bar"><div class="ps-bar-fill" style="background:linear-gradient(90deg,#9B59F7,#4F8EF7)"></div></div>
+                </div>
+                <div class="ps-card" style="background:rgba(0,229,153,0.06);border-color:rgba(0,229,153,0.15)">
+                  <div class="ps-card-label">Available Near You</div>
+                  <div class="ps-card-val" style="color:#00E599;font-size:13px">14 Vehicles • Ahmedabad</div>
+                  <div class="ps-card-sub">Trucks, Buses, Cars</div>
+                </div>
+                <div class="ps-card" style="background:rgba(79,142,247,0.06);border-color:rgba(79,142,247,0.15)">
+                  <div class="ps-card-label">My Posted Vehicles</div>
+                  <div class="ps-card-val" style="color:#4F8EF7">2 Active Posts</div>
+                  <div class="ps-card-sub">3 requests received</div>
+                </div>
+              </div>
+              <div class="ps-bottom">
+                <div class="ps-btn" style="background:rgba(155,89,247,0.15);color:#9B59F7">Browse</div>
+                <div class="ps-btn" style="background:rgba(0,229,153,0.1);color:#00E599">Post Vehicle</div>
+              </div>
+            </div>
+          </div>
+          <div class="float-badge left" style="border-color:rgba(155,89,247,0.4);color:#9B59F7">🤝 P2P Active</div>
+          <div class="float-badge right" style="border-color:rgba(0,229,153,0.3);color:#00E599">+₹12,400 Extra</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dr-cta">
+    <span class="cta-label-sm">Post CTA</span>
+    <div class="cta-chip">🤝 "Akela vendor mat raho — Network mein aao"</div>
+    <div class="ht-row">
+      <span class="ht">#P2PMarketplace</span><span class="ht">#VendorNetwork</span><span class="ht">#CollabOverCompetition</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DAY 6 ══ -->
+<div class="day-reveal d6 fade-up">
+  <div class="dr-top">
+    <div style="display:flex;align-items:center;gap:20px">
+      <div class="dr-day-num">06</div>
+      <div class="dr-day-info">
+        <h2>B2B Corporate + Wander Experiences</h2>
+        <p>Saturday · Advanced Feature · Objective: Premium revenue streams dikhao</p>
+      </div>
+    </div>
+    <div class="dr-badges">
+      <div class="db db-day">🃏 Carousel</div>
+      <div class="db db-platform">📸 Instagram</div>
+      <div class="db db-platform">👤 Facebook</div>
+      <div class="db db-type">⏰ 3–5 PM</div>
+    </div>
+  </div>
+
+  <div class="dr-body">
+    <div class="dr-left">
+      <div class="feat-tagline"><span style="color:#00E599">Corporate</span><br/>+ Experiences =<br/>Big Revenue.</div>
+      <div class="feat-sub">Sirf retail customers nahi — B2B corporate deals aur Wander experiences se premium income. Gujarat ke businesses hamesha vehicles chahte hain.</div>
+
+      <div class="copy-box">📲 Carousel Copy:
+
+Slide 1: "Ek customer se ₹500. Ek corporate deal se ₹50,000. 🏢"
+
+[B2B SECTION]
+Slide 2: B2B Corporate Bookings
+→ Open corporate tenders dekhо
+→ Apna quote submit karo
+→ Long-term contracts = stable income
+
+Slide 3: Who books B2B?
+🏭 Manufacturing companies
+🏥 Hospitals
+🏫 Schools & colleges
+💼 IT companies
+✈️ Travel agencies
+
+[WANDER SECTION]
+Slide 4: Wander — Experience Marketplace
+"Gujarat mein ghumvanu chhe? Tamari paas vehicle chhe."
+→ Tour packages list karo
+→ Dwarka, Kutch, Gir, Somnath tours
+→ Per person pricing
+
+Slide 5: Wander Earnings
+"Ek Kutch tour package → ₹8,000–₹25,000"
+
+Slide 6 CTA: "Premium income shuru karo"</div>
+
+      <div class="feat-list">
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(0,229,153,0.1)">🏢</div>
+          <div class="fi-text"><h4>B2B Open Tenders</h4><p>Corporate companies ke open booking requests dekhо. Compete karo. Long-term deals jito.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(79,142,247,0.1)">📊</div>
+          <div class="fi-text"><h4>Quote Pipeline</h4><p>Ek hi jagah se sab corporate quotes manage karo. Status, negotiation, acceptance — sab.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(255,184,0,0.1)">🌿</div>
+          <div class="fi-text"><h4>Wander Tour Listings</h4><p>Gujarat ke tourist destinations pe tour packages list karo. Travellers directly book karein.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(155,89,247,0.1)">💎</div>
+          <div class="fi-text"><h4>Premium Pricing Control</h4><p>Apna rate set karo. Min/max group size. Inclusions/exclusions. Fully customizable packages.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dr-right">
+      <div class="phone-wrap">
+        <div class="phone-scene">
+          <div class="phone-3d">
+            <div class="phone-screen" style="background:linear-gradient(180deg,#091a10,#050f08)">
+              <div class="ps-header" style="color:rgba(0,229,153,0.6)">B2B + Wander</div>
+              <div class="ps-title" style="color:#00E599">Corporate Hub</div>
+              <div class="ps-cards">
+                <div class="ps-card" style="background:rgba(0,229,153,0.06);border-color:rgba(0,229,153,0.2)">
+                  <div class="ps-card-label">🏢 Open B2B Tenders</div>
+                  <div class="ps-card-val" style="color:#00E599">23 Available</div>
+                  <div class="ps-card-sub">Ahmedabad · Surat · Vadodara</div>
+                </div>
+                <div class="ps-card" style="background:rgba(255,184,0,0.06);border-color:rgba(255,184,0,0.15)">
+                  <div class="ps-card-label">🌿 Wander Listing</div>
+                  <div class="ps-card-val" style="color:#FFB800;font-size:12px">Rann of Kutch Tour</div>
+                  <div class="ps-card-sub">₹18,500 per group • 8 bookings</div>
+                </div>
+                <div class="ps-card" style="background:rgba(155,89,247,0.06);border-color:rgba(155,89,247,0.15)">
+                  <div class="ps-card-label">B2B Revenue This Month</div>
+                  <div class="ps-card-val" style="color:#9B59F7">₹2,40,000</div>
+                  <div class="ps-card-sub">3 corporate contracts</div>
+                  <div class="ps-bar"><div class="ps-bar-fill" style="background:linear-gradient(90deg,#9B59F7,#00E599)"></div></div>
+                </div>
+              </div>
+              <div class="ps-bottom">
+                <div class="ps-btn" style="background:rgba(0,229,153,0.15);color:#00E599">Browse B2B</div>
+                <div class="ps-btn" style="background:rgba(255,184,0,0.1);color:#FFB800">Wander</div>
+              </div>
+            </div>
+          </div>
+          <div class="float-badge left" style="border-color:rgba(0,229,153,0.35);color:#00E599">🏢 ₹2.4L Corporate</div>
+          <div class="float-badge right" style="border-color:rgba(255,184,0,0.3);color:#FFB800">🌿 Tour Packages</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dr-cta">
+    <span class="cta-label-sm">Post CTA</span>
+    <div class="cta-chip">🏢 "Corporate clients chahiye? Join karo aaj"</div>
+    <div class="ht-row">
+      <span class="ht">#B2BBusiness</span><span class="ht">#CorporateTravel</span><span class="ht">#WanderGujarat</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DAY 7 ══ -->
+<div class="day-reveal d7 fade-up">
+  <div class="dr-top">
+    <div style="display:flex;align-items:center;gap:20px">
+      <div class="dr-day-num">07</div>
+      <div class="dr-day-info">
+        <h2>Full Platform Power — "Ek App, Poora Business OS"</h2>
+        <p>Sunday · Grand Finale · Objective: Week closer — sab kuch ek saath dikhao, max conversion</p>
+      </div>
+    </div>
+    <div class="dr-badges">
+      <div class="db db-day">🎬 Reel (60s) + Story</div>
+      <div class="db db-platform">📸 Instagram</div>
+      <div class="db db-platform">👤 Facebook</div>
+      <div class="db db-platform">💬 WhatsApp</div>
+      <div class="db db-type">⏰ 10 AM + 7 PM</div>
+    </div>
+  </div>
+
+  <div class="dr-body">
+    <div class="dr-left">
+      <div class="feat-tagline" style="font-size:30px">Ek App.<br/><span style="background:linear-gradient(90deg,#FF6B23,#9B59F7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Poora Business.</span><br/>Zero Limits.</div>
+      <div class="feat-sub">7 din mein tumne dekha — yeh sirf booking app nahi. Yeh tumhara complete business operating system hai.</div>
+
+      <div class="copy-box">🎬 60s Grand Finale Reel:
+
+[0–5s] Epic opening: All 4 vehicles — Bike, Car, Bus, Truck
+        Flying through a city. Cinematic. Music drops.
+
+[5–45s] Feature rapid-fire montage:
+Day 1 → "Direct Bookings + Booking Links" ⚡
+Day 2 → "60 Second Quotes" 📋
+Day 3 → "Fleet Full Control" 🚛
+Day 4 → "Staff & Payroll" 👥
+Day 5 → "P2P Vendor Network" 🤝
+Day 6 → "B2B + Wander" 🏢
+
+[45–55s] Dashboard shot — ALL earnings combined
+"Ek month mein — ₹4,50,000" 🔥
+
+[55–60s] CTA — FULL SCREEN:
+"Tum ready ho?"
+transrentals.in/vendor/register
+FREE. Today. Gujarat.</div>
+
+      <div class="feat-list">
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(255,107,35,0.12)">📊</div>
+          <div class="fi-text"><h4>Unified Analytics Dashboard</h4><p>Sab earnings ek jagah — Platform + Direct + P2P + B2B + Wander. Total picture.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(0,229,153,0.08)">💬</div>
+          <div class="fi-text"><h4>Vendor Social Community</h4><p>Gujarat ke vendors se connect karo. Tips share karo. Deals post karo. Community grow karo.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(79,142,247,0.1)">📱</div>
+          <div class="fi-text"><h4>Real-time Notifications</h4><p>New booking, quote accepted, payment received — instant alerts. Kabhi kuch miss mat karo.</p></div>
+        </div>
+        <div class="fi">
+          <div class="fi-icon" style="background:rgba(155,89,247,0.1)">🏆</div>
+          <div class="fi-text"><h4>Complete Business OS</h4><p>Direct + Platform + P2P + B2B + Wander + Fleet + Staff + Finance — sab ek app.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dr-right">
+      <div class="phone-wrap">
+        <div class="phone-scene">
+          <div class="phone-3d" style="box-shadow:0 0 0 1px rgba(255,255,255,0.05),0 40px 80px rgba(0,0,0,0.6),0 0 80px rgba(255,107,35,0.15),inset 0 1px 0 rgba(255,255,255,0.1)">
+            <div class="phone-screen" style="background:linear-gradient(180deg,#100810,#070507)">
+              <div class="ps-header" style="color:rgba(255,107,35,0.7)">TransRentals Vendor</div>
+              <div class="ps-title" style="background:linear-gradient(90deg,#FF6B23,#9B59F7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;font-size:14px">This Month Total</div>
+              <div class="ps-cards">
+                <div class="ps-card" style="background:linear-gradient(135deg,rgba(255,107,35,0.1),rgba(155,89,247,0.08));border-color:rgba(255,107,35,0.25)">
+                  <div class="ps-card-label">💰 Total Earnings</div>
+                  <div class="ps-card-val" style="font-size:22px;background:linear-gradient(90deg,#FF6B23,#FFB800);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">₹4,52,800</div>
+                  <div class="ps-card-sub">↑ 340% from last month 🔥</div>
+                  <div class="ps-bar"><div class="ps-bar-fill" style="background:linear-gradient(90deg,#FF6B23,#9B59F7);width:92%"></div></div>
+                </div>
+                <div class="ps-card" style="background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.06);font-size:11px">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                    <div style="color:var(--or)">Platform: ₹1.2L</div>
+                    <div style="color:#00E599">Direct: ₹0.8L</div>
+                    <div style="color:#9B59F7">P2P: ₹0.5L</div>
+                    <div style="color:#FFB800">B2B: ₹1.4L</div>
+                    <div style="color:#4F8EF7">Wander: ₹0.5L</div>
+                    <div style="color:#fff">Total ✅</div>
+                  </div>
+                </div>
+              </div>
+              <div class="ps-bottom">
+                <div class="ps-btn" style="background:linear-gradient(135deg,#FF6B23,#FF9A00);color:#fff;font-size:11px;flex:2">View Full Dashboard</div>
+              </div>
+            </div>
+          </div>
+          <div class="float-badge left" style="border-color:rgba(255,107,35,0.4);color:#FF6B23">🔥 ₹4.5L / Month</div>
+          <div class="float-badge right" style="border-color:rgba(155,89,247,0.4);color:#9B59F7">📈 340% Growth</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dr-cta">
+    <span class="cta-label-sm">FINAL CTA</span>
+    <div class="cta-chip">🚀 FREE Register — transrentals.in/vendor/register</div>
+    <div class="ht-row">
+      <span class="ht">#TransRentals</span><span class="ht">#GujaratVendor</span><span class="ht">#FullPlatform</span><span class="ht">#JoinToday</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ ALL FEATURES GRID ═══════ -->
+<div class="sh fade-up">
+  <div class="sh-icon">⚡</div>
+  <div class="sh-title">Complete <em>Feature Map</em></div>
+  <div class="sh-line"></div>
+</div>
+
+<div class="feat-showcase fade-up">
+  <div class="fs-card">
+    <div class="fs-icon" style="background:rgba(255,107,35,0.12)">📦</div>
+    <div class="fs-title">Direct Bookings</div>
+    <div class="fs-desc">Khud ke customers ki bookings manage karo. Platform se independent revenue stream.</div>
+    <div class="fs-tag" style="background:rgba(255,107,35,0.08);color:var(--or)">Day 1 · Basic</div>
+  </div>
+  <div class="fs-card">
+    <div class="fs-icon" style="background:rgba(0,229,153,0.1)">🔗</div>
+    <div class="fs-title">Custom Booking Links</div>
+    <div class="fs-desc">Apna booking form + QR code. WhatsApp se share karo. Ek tap mein booking.</div>
+    <div class="fs-tag" style="background:rgba(0,229,153,0.06);color:#00E599">Day 1 · Basic</div>
+  </div>
+  <div class="fs-card">
+    <div class="fs-icon" style="background:rgba(0,229,153,0.08)">⚡</div>
+    <div class="fs-title">60-Second Quotes</div>
+    <div class="fs-desc">Professional quotation PDF in seconds. Auto GST calculate. Multi-vehicle support.</div>
+    <div class="fs-tag" style="background:rgba(0,229,153,0.06);color:#00E599">Day 2 · Core</div>
+  </div>
+  <div class="fs-card">
+    <div class="fs-icon" style="background:rgba(79,142,247,0.1)">🚛</div>
+    <div class="fs-title">Fleet Management</div>
+    <div class="fs-desc">Insurance alerts, fuel tracking, maintenance schedule. Poori fleet ek jagah.</div>
+    <div class="fs-tag" style="background:rgba(79,142,247,0.08);color:#4F8EF7">Day 3 · Core</div>
+  </div>
+  <div class="fs-card">
+    <div class="fs-icon" style="background:rgba(255,184,0,0.1)">👥</div>
+    <div class="fs-title">Staff & Payroll</div>
+    <div class="fs-desc">Driver, Manager, Mechanic — attendance, performance, salary ek app se.</div>
+    <div class="fs-tag" style="background:rgba(255,184,0,0.06);color:#FFB800">Day 4 · Core</div>
+  </div>
+  <div class="fs-card">
+    <div class="fs-icon" style="background:rgba(155,89,247,0.1)">🤝</div>
+    <div class="fs-title">P2P Marketplace</div>
+    <div class="fs-desc">Vendor-to-vendor vehicle sharing. Extra income from idle assets. India first.</div>
+    <div class="fs-tag" style="background:rgba(155,89,247,0.08);color:#9B59F7">Day 5 · Advanced</div>
+  </div>
+  <div class="fs-card">
+    <div class="fs-icon" style="background:rgba(0,229,153,0.08)">🏢</div>
+    <div class="fs-title">B2B Corporate</div>
+    <div class="fs-desc">Open corporate tenders. Quote submit karo. Long-term contracts. Premium revenue.</div>
+    <div class="fs-tag" style="background:rgba(0,229,153,0.06);color:#00E599">Day 6 · Advanced</div>
+  </div>
+  <div class="fs-card">
+    <div class="fs-icon" style="background:rgba(255,184,0,0.1)">🌿</div>
+    <div class="fs-title">Wander Experiences</div>
+    <div class="fs-desc">Gujarat tour packages list karo. Kutch, Dwarka, Gir. Per person pricing. Travellers book directly.</div>
+    <div class="fs-tag" style="background:rgba(255,184,0,0.06);color:#FFB800">Day 6 · Advanced</div>
+  </div>
+  <div class="fs-card">
+    <div class="fs-icon" style="background:rgba(255,107,35,0.1)">📊</div>
+    <div class="fs-title">Unified Analytics</div>
+    <div class="fs-desc">Sab revenue streams ek dashboard — Platform + Direct + P2P + B2B + Wander.</div>
+    <div class="fs-tag" style="background:rgba(255,107,35,0.08);color:var(--or)">Day 7 · Pro</div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer fade-up">
+  <div>
+    <div class="footer-brand">TransRentals</div>
+    <div style="margin-top:6px">Vendor Features Campaign · Gujarat Launch · Week 1 · March 2026</div>
+    <div style="margin-top:4px;color:rgba(255,255,255,0.25)">Designer Team Brief — Share with confidence</div>
+  </div>
+  <div style="text-align:right">
+    <div style="font-size:18px;font-weight:700;color:#fff">transrentals.in/vendor/register</div>
+    <div style="margin-top:6px">Free. Forever. Gujarat.</div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+// Scroll fade
+const obs = new IntersectionObserver(e=>{e.forEach(el=>{if(el.isIntersecting)el.target.classList.add('vis')})},{threshold:.08});
+document.querySelectorAll('.fade-up').forEach(el=>obs.observe(el));
+
+// Timeline active
+document.querySelectorAll('.tl-item').forEach((el,i)=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.tl-item').forEach(e=>e.classList.remove('active'));
+    el.classList.add('active');
+    const cards = document.querySelectorAll('.day-reveal');
+    if(cards[i]) cards[i].scrollIntoView({behavior:'smooth',block:'start'});
+  });
+});
+
+// Hero canvas particles
+const canvas = document.getElementById('hero-canvas');
+const ctx = canvas.getContext('2d');
+function resize(){canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight}
+resize();window.addEventListener('resize',resize);
+
+const pts = Array.from({length:100},()=>({
+  x:Math.random()*canvas.width,y:Math.random()*canvas.height,
+  r:Math.random()*1.5+.3,
+  dx:(Math.random()-.5)*.35,dy:(Math.random()-.5)*.35,
+  a:Math.random()*.4+.1,
+  c:Math.random()>.5?'255,107,35':'255,184,0'
+}));
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  pts.forEach((p,i)=>{
+    pts.forEach((q,j)=>{
+      if(j<=i)return;
+      const d=Math.hypot(p.x-q.x,p.y-q.y);
+      if(d<140){
+        ctx.beginPath();
+        ctx.strokeStyle=`rgba(255,107,35,${.06*(1-d/140)})`;
+        ctx.lineWidth=.5;
+        ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();
+      }
+    });
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${p.c},${p.a})`;ctx.fill();
+    p.x+=p.dx;p.y+=p.dy;
+    if(p.x<0||p.x>canvas.width)p.dx*=-1;
+    if(p.y<0||p.y>canvas.height)p.dy*=-1;
+  });
+  requestAnimationFrame(draw);
+}
+draw();
+
+// 3D tilt on day cards
+document.querySelectorAll('.day-reveal').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect();
+    const x=(e.clientX-r.left)/r.width-.5;
+    const y=(e.clientY-r.top)/r.height-.5;
+    card.style.transform=`perspective(1200px) rotateY(${x*4}deg) rotateX(${-y*2}deg) translateY(-3px)`;
+  });
+  card.addEventListener('mouseleave',()=>{card.style.transform=''});
+});
+</script>
+</body>
+</html>

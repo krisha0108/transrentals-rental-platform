@@ -1346,6 +1346,9 @@ model equipment_bookings {
   advanceAmount            Float                            @default(0)
   advancePaid              Float                            @default(0)
   advancePaidAt            DateTime?
+  advancePaymentRef        String?
+  advancePaymentDate       DateTime?
+  paymentMethod            String?                          @db.VarChar(50)
   depositPaid              Float                            @default(0)
   depositPaidAt            DateTime?
   balanceAmount            Float                            @default(0)
@@ -2204,6 +2207,9 @@ model packers_bookings {
   advanceAmount          Float                          @default(0)
   advancePaid            Float                          @default(0)
   advancePaidAt          DateTime?
+  advancePaymentRef      String?
+  advancePaymentDate     DateTime?
+  paymentMethod          String?                        @db.VarChar(50)
   balanceAmount          Float                          @default(0)
   balancePaid            Float                          @default(0)
   balancePaidAt          DateTime?

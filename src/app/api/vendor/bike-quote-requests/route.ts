@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
     // DATE FILTER PARAMS
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const search = searchParams.get('search')?.trim() || '';
 
     let whereClause: any = {};
 
@@ -123,6 +124,21 @@ export async function GET(request: NextRequest) {
           },
         ],
       };
+    }
+
+    if (search) {
+      whereClause.AND = [
+        ...(whereClause.AND || []),
+        {
+          OR: [
+            { customerName: { contains: search } },
+            { requestNumber: { contains: search } },
+            { locationName: { contains: search } },
+            { vehicleModelName: { contains: search } },
+            { vehicleBrand: { contains: search } },
+          ],
+        },
+      ];
     }
 
     const [requests, total] = await Promise.all([
