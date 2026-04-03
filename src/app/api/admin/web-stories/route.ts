@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
         include: {
           slides: { select: { id: true, canvasData: true } },
           reactions: { select: { reactionType: true } },
+          _count: { select: { views: true } },
         },
       }),
       prisma.web_stories.count({ where }),
@@ -98,6 +99,7 @@ export async function GET(request: NextRequest) {
         THUMBS_UP: s.reactions.filter((r: any) => r.reactionType === 'THUMBS_UP').length,
         total: s.reactions.length,
       },
+      viewCount: s._count?.views ?? 0,
     }));
 
     return NextResponse.json({
