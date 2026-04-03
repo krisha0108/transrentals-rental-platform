@@ -6,7 +6,7 @@ import {
   Plus, Search, Edit, Trash2, Eye, Film,
   Globe, Clock, Archive, ChevronLeft, ChevronRight,
   Loader2, ArrowUp, ArrowDown, CheckCircle, XCircle,
-  LayoutGrid, AlertTriangle,
+  LayoutGrid, AlertTriangle, TrendingUp,
 } from 'lucide-react';
 
 interface WebStory {
@@ -27,7 +27,9 @@ interface WebStory {
   publishedAt: string | null;
   createdAt: string;
   slideCount: number;
+  hasTextElement: boolean;
   reactions: { HEART: number; FIRE: number; THUMBS_UP: number; total: number };
+  viewCount: number;
 }
 
 type TabFilter = 'all' | 'published' | 'draft' | 'archived';
@@ -42,7 +44,7 @@ function calcSeoScore(story: WebStory): { score: number; checks: { label: string
     { label: '4+ slides', ok: story.slideCount >= 4 },
     { label: 'Has category', ok: !!story.category },
     { label: 'URL-friendly slug', ok: /^[a-z0-9-]+$/.test(story.slug) },
-    { label: 'Has reactions', ok: story.reactions.total > 0 },
+    { label: 'Has text elements', ok: story.hasTextElement },
     { label: 'Description set', ok: !!(story.description && story.description.trim().length > 10) },
   ];
   const score = checks.filter((c) => c.ok).length * 10;
@@ -146,13 +148,13 @@ export default function WebStoriesAdminPage() {
   const to = Math.min(page * LIMIT, total);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5">
 
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Film className="w-6 h-6 text-purple-600" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Film className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
             Web Stories
           </h1>
           <p className="text-gray-500 text-sm mt-1">
@@ -161,7 +163,7 @@ export default function WebStoriesAdminPage() {
         </div>
         <Link
           href="/admin/web-stories/new"
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium self-start"
         >
           <Plus className="w-4 h-4" />
           New Story
@@ -169,7 +171,7 @@ export default function WebStoriesAdminPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Total', value: total, icon: <Film className="w-5 h-5 text-purple-600" />, bg: 'bg-purple-50' },
           { label: 'Published', value: stories.filter((s) => s.isPublished).length, icon: <Globe className="w-5 h-5 text-green-600" />, bg: 'bg-green-50' },
@@ -189,8 +191,8 @@ export default function WebStoriesAdminPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="relative flex-1 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
@@ -200,12 +202,12 @@ export default function WebStoriesAdminPage() {
             className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
         </div>
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 overflow-x-auto">
           {tabs.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`flex items-center gap-1.5 px-3 py-1 text-xs rounded-md font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1 text-xs rounded-md font-medium transition-colors whitespace-nowrap ${
                 tab === t.key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -242,13 +244,15 @@ export default function WebStoriesAdminPage() {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <table className="w-full">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[520px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Story</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Category</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Slides</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden xl:table-cell">Reactions</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Views</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">SEO</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden xl:table-cell">Expires</th>
@@ -316,6 +320,12 @@ export default function WebStoriesAdminPage() {
                         <span>❤️ {story.reactions.HEART}</span>
                         <span>🔥 {story.reactions.FIRE}</span>
                         <span>👍 {story.reactions.THUMBS_UP}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      <div className="flex items-center gap-1 text-xs text-gray-600 font-medium">
+                        <TrendingUp className="w-3 h-3 text-blue-500" />
+                        {story.viewCount.toLocaleString()}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -406,6 +416,7 @@ export default function WebStoriesAdminPage() {
             </tbody>
           </table>
 
+          </div>
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">

@@ -1444,7 +1444,19 @@ export default function BikeQuoteRequestDetailScreen() {
 
               {/* Bottom Actions */}
               <View style={styles.detailsActions}>
-                {request.status !== 'ACCEPTED' && viewingQuote.status !== 'ACCEPTED' && (
+                {(() => {
+                  const isViewingQuoteExpired = viewingQuote.status === 'EXPIRED' || (viewingQuote.validTill && new Date(viewingQuote.validTill).getTime() < Date.now());
+                  
+                  if (isViewingQuoteExpired) {
+                    return (
+                      <View style={[styles.detailsAcceptBtnGrad, { backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FCA5A5' }]}>
+                         <Ionicons name="alert-circle" size={22} color="#DC2626" />
+                         <Text style={[styles.detailsAcceptBtnText, { color: '#DC2626', marginLeft: 8 }]}>This Quote has Expired</Text>
+                      </View>
+                    );
+                  }
+
+                  return request.status !== 'ACCEPTED' && viewingQuote.status !== 'ACCEPTED' && (
                   <TouchableOpacity
                     style={styles.detailsAcceptBtnWrap}
                     onPress={() => {
@@ -1457,7 +1469,8 @@ export default function BikeQuoteRequestDetailScreen() {
                       <Text style={styles.detailsAcceptBtnText}>Accept & Book This Quote</Text>
                     </LinearGradient>
                   </TouchableOpacity>
-                )}
+                  );
+                })()}
               </View>
 
               <View style={{ height: 40 }} />

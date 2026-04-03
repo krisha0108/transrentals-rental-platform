@@ -14,6 +14,11 @@ function generateOTP(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
+// Generate 6-digit OTP (car rental)
+function generateCarRentalOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 function normalizePhone(phone: string | null | undefined): string {
   if (!phone) return '';
   const digits = phone.replace(/\D/g, '');
@@ -193,7 +198,12 @@ export async function GET(
     if (serviceType === 'car') vendorIdMatch = booking.acceptedVendorId;
     if (serviceType === 'luxury') vendorIdMatch = booking.assignedVendorId || booking.acceptedVendorId;
 
-    if (normalizePhone(booking[driverPhoneField]) !== normalizePhone(driver.phone) || vendorIdMatch !== driver.vendorId) {
+    // Independent driver who self-accepted via acceptedDriverId
+    const isSelfAccepted = serviceType === 'car' && booking.acceptedDriverId === driver.id;
+    // BROADCASTED bookings are visible to all authenticated drivers (so they can view & accept)
+    const isBroadcasted = serviceType === 'car' && booking.status === 'BROADCASTED' && !booking.acceptedDriverId;
+
+    if (!isSelfAccepted && !isBroadcasted && (normalizePhone(booking[driverPhoneField]) !== normalizePhone(driver.phone) || vendorIdMatch !== driver.vendorId)) {
       return NextResponse.json(
         { success: false, error: 'This booking is not assigned to you' },
         { status: 403 }
@@ -422,6 +432,7 @@ export async function GET(
         dropCity: booking.dropCity,
         pickupAddress: booking.pickupAddress,
         dropAddress: booking.dropAddress,
+        intermediateStops: booking.intermediateStops ? (() => { try { return JSON.parse(booking.intermediateStops!); } catch { return []; } })() : [],
         pickupDate: booking.pickupDate,
         pickupTime: booking.pickupTime,
         returnDate: booking.returnDate,
@@ -631,7 +642,7 @@ export async function PATCH(
           finalVehicleModel = `${vehicle.make} ${vehicle.model}`.trim();
         }
 
-        const tripOtp = generateOTP();
+        const tripOtp = generateCarRentalOTP();
         await prisma.chauffeur_bookings.update({
           where: { bookingNumber },
           data: {
@@ -675,7 +686,7 @@ export async function PATCH(
             completedAt: new Date(),
             actualKmTravelled: actualKm ? parseFloat(actualKm) : null,
             actualHours: actualHours ? parseFloat(actualHours) : null,
-            tollCharges: tollCharges ? parseFloat(tollCharges) : null,
+            tollCharges: tollCharges ? parseFloat(tollCharges) : undefined,
           },
         });
         return NextResponse.json({ success: true, message: 'Trip completed!' });
@@ -693,11 +704,60 @@ export async function PATCH(
     if (serviceType === 'car') vendorIdMatch = booking.acceptedVendorId;
     if (serviceType === 'luxury') vendorIdMatch = booking.assignedVendorId || booking.acceptedVendorId;
 
-    if (normalizePhone(booking[driverPhoneField]) !== normalizePhone(driver.phone) || vendorIdMatch !== driver.vendorId) {
+    // Independent driver who self-accepted via acceptedDriverId
+    const isSelfAccepted = serviceType === 'car' && booking.acceptedDriverId === driver.id;
+
+    if (!isSelfAccepted && (normalizePhone(booking[driverPhoneField]) !== normalizePhone(driver.phone) || vendorIdMatch !== driver.vendorId)) {
       return NextResponse.json(
         { success: false, error: 'This booking is not assigned to you' },
         { status: 403 }
       );
+    }
+
+    // assign_vehicle for vendor-staff accepted car bookings (driverPhone match)
+    if (serviceType === 'car' && action === 'assign_vehicle') {
+      if (!vehicleId && !vehicleNumber) {
+        return NextResponse.json({ success: false, error: 'Vehicle is required' }, { status: 400 });
+      }
+      let finalVehicleNumber = vehicleNumber;
+      let finalVehicleModel = vehicleModel;
+
+      const isStaff2 = (driver as any).userType === 'vendor_staff';
+      if (vehicleId) {
+        const vehicle = await prisma.driver_vehicles.findFirst({
+          where: isStaff2 ? { id: vehicleId, staffId: driver.id } : { id: vehicleId, driverId: driver.id },
+        });
+        if (vehicle) {
+          finalVehicleNumber = vehicle.registrationNo || vehicleNumber;
+          finalVehicleModel = `${vehicle.make} ${vehicle.model}`.trim();
+        } else if (isStaff2) {
+          const vendorVehicle = await prisma.vendor_fleets.findFirst({
+            where: { id: vehicleId, vendorId: (driver as any).vendorId },
+          });
+          if (vendorVehicle) {
+            finalVehicleNumber = vendorVehicle.registrationNumber || vehicleNumber;
+            finalVehicleModel = vendorVehicle.vehicleName || vehicleModel;
+          }
+        }
+      }
+
+      const tripOtp = generateCarRentalOTP();
+      // If status is ACCEPTED and no acceptedStaffId yet, this is an old self-accepted booking
+      // retroactively set acceptedStaffId so vendor page correctly excludes it going forward
+      const isStaff2retro = (driver as any).userType === 'vendor_staff';
+      const isRetroSelfAccept = isStaff2retro && booking.status === 'ACCEPTED' && !(booking as any).acceptedStaffId;
+      await prisma.chauffeur_bookings.update({
+        where: { bookingNumber },
+        data: {
+          vehicleNumber: finalVehicleNumber || null,
+          vehicleModel: finalVehicleModel || null,
+          status: 'DRIVER_ASSIGNED',
+          driverAssignedAt: new Date(),
+          tripStartOtp: tripOtp,
+          ...(isRetroSelfAccept ? { acceptedStaffId: driver.id } : {}),
+        },
+      });
+      return NextResponse.json({ success: true, message: 'Vehicle assigned! You can now send the OTP to start the trip.' });
     }
 
     const isTruck = serviceType === 'truck';
@@ -735,7 +795,8 @@ export async function PATCH(
         if (isTruck) return [initialStatus, 'IN_TRANSIT'];
         if (isPackers) return [initialStatus, 'PACKING', 'IN_TRANSIT'];
         if (isEquipment) return [initialStatus, 'PICKUP_SCHEDULED'];
-        return [initialStatus];
+        // Car/luxury: also allow ACCEPTED (independent driver self-accepted)
+        return [initialStatus, 'ACCEPTED'];
       };
       const validStatuses = getValidOtpStatuses();
 
@@ -893,7 +954,7 @@ export async function PATCH(
         );
       }
 
-      if (booking.status !== initialStatus) {
+      if (booking.status !== initialStatus && booking.status !== 'ACCEPTED') {
         return NextResponse.json(
           { success: false, error: `Cannot start. Current status: ${booking.status}` },
           { status: 400 }

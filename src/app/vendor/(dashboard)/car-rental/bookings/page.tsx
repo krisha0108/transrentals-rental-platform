@@ -55,6 +55,7 @@ interface CarRentalBooking {
   vehicleNumber?: string;
   vehicle_model?: string;
   acceptedVendorId?: string;
+  acceptedDriverId?: string;
   isOwnBooking?: boolean;
   createdAt: string;
   location?: {
@@ -193,7 +194,12 @@ export default function VendorCarRentalBookingsPage() {
       })));
 
       if (data.success) {
-        setBookings(data.bookings);
+        // Filter out bookings accepted by a driver directly (not by this vendor)
+        // acceptedDriverId being set means a driver self-accepted — not vendor's booking
+        const filtered = (data.bookings || []).filter((b: any) =>
+          !b.acceptedDriverId
+        );
+        setBookings(filtered);
         setStats(data.stats);
         // Set pagination state
         if (data.pagination) {

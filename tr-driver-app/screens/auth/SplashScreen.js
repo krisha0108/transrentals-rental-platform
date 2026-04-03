@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, Animated, Dimensions, StatusBar,
+  View, Text, StyleSheet, Animated, Dimensions, StatusBar, Image,
 } from 'react-native';
+
+const APP_LOGO = require('../../assets/driver_logo.png');
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getDriverToken } from '../api/client';
@@ -82,14 +84,8 @@ export default function SplashScreen({ navigation }) {
 
       {/* Logo */}
       <Animated.View style={[styles.logoWrap, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>
-        <View style={styles.logoOuter}>
-          <View style={styles.logoInner}>
-            {/* Steering wheel icon using nested views */}
-            <View style={styles.wheelHub} />
-            <View style={styles.wheelSpoke1} />
-            <View style={styles.wheelSpoke2} />
-            <View style={styles.wheelSpoke3} />
-          </View>
+        <View style={styles.logoRing}>
+          <Image source={APP_LOGO} style={styles.logoImg} resizeMode="cover" />
         </View>
       </Animated.View>
 
@@ -177,56 +173,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoOuter: {
-    width: 120,
-    height: 120,
+  logoRing: {
+    width: 130,
+    height: 130,
     borderRadius: 36,
+    padding: 6,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.35)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 16,
   },
-  logoInner: {
-    width: 80,
-    height: 80,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  // Steering wheel icon (custom drawn)
-  wheelHub: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#16A34A',
-    position: 'absolute',
-  },
-  wheelSpoke1: {
-    position: 'absolute',
-    width: 4,
-    height: 28,
-    borderRadius: 2,
-    backgroundColor: '#16A34A',
-    top: 10,
-  },
-  wheelSpoke2: {
-    position: 'absolute',
-    width: 28,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#16A34A',
-    left: 26,
-  },
-  wheelSpoke3: {
-    position: 'absolute',
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#16A34A',
-    bottom: 12,
-    transform: [{ rotate: '45deg' }],
+  logoImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 30,
   },
   // Text
   appName: {

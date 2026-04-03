@@ -68,8 +68,10 @@ export async function POST(request: NextRequest) {
     const {
       make, model, year, registrationNo, color, category,
       seatingCapacity, fuelType,
-      insuranceExpiry, rcExpiry, fitnessExpiry, permitExpiry,
-      lastServiceDate, nextServiceDate,
+      insuranceNumber, insuranceExpiry,
+      rcNumber, rcExpiry,
+      fitnessExpiry, permitExpiry,
+      currentOdometer, lastServiceDate, nextServiceDate,
     } = body;
 
     if (!make || !model) {
@@ -96,10 +98,13 @@ export async function POST(request: NextRequest) {
         category: category || null,
         seatingCapacity: seatingCapacity ? parseInt(seatingCapacity) : null,
         fuelType: fuelType || null,
+        insuranceNumber: insuranceNumber || null,
         insuranceExpiry: insuranceExpiry ? new Date(insuranceExpiry) : null,
+        rcNumber: rcNumber || null,
         rcExpiry: rcExpiry ? new Date(rcExpiry) : null,
         fitnessExpiry: fitnessExpiry ? new Date(fitnessExpiry) : null,
         permitExpiry: permitExpiry ? new Date(permitExpiry) : null,
+        currentOdometer: currentOdometer ? parseInt(currentOdometer) : null,
         lastServiceDate: lastServiceDate ? new Date(lastServiceDate) : null,
         nextServiceDate: nextServiceDate ? new Date(nextServiceDate) : null,
       },

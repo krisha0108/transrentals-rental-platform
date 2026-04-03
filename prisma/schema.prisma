@@ -940,10 +940,12 @@ model chauffeur_bookings {
   locations                                            locations                        @relation(fields: [locationId], references: [id])
   accepted_driver                                      drivers?                         @relation(fields: [acceptedDriverId], references: [id])
   acceptedDriverId                                     String?
+  acceptedStaffId                                      String?
 
   @@index([acceptedVendorId])
   @@index([assignedVendorId])
   @@index([acceptedDriverId])
+  @@index([acceptedStaffId])
   @@index([bookingNumber])
   @@index([createdAt])
   @@index([customerEmail])
@@ -5709,6 +5711,7 @@ model web_stories {
   updatedAt        DateTime             @updatedAt
   slides           web_story_slides[]
   reactions        web_story_reactions[]
+  views            web_story_views[]
 
   @@index([isPublished])
   @@index([isArchived])
@@ -5754,6 +5757,17 @@ model web_story_reactions {
 
   @@index([storyId])
   @@index([reactionType])
+}
+
+model web_story_views {
+  id        String      @id
+  storyId   String
+  userIp    String?
+  viewedAt  DateTime    @default(now())
+  story     web_stories @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([storyId])
+  @@index([userIp])
 }
 
 // ─── Independent Driver App ───────────────────────────────────────────────────

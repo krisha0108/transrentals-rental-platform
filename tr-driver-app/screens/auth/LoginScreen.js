@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
-  StatusBar, ScrollView,
+  StatusBar, ScrollView, Image, Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging, getToken } from '@react-native-firebase/messaging';
 import { loginDriver, setDriverToken } from '../api/client';
 import { useAuth } from '../../contexts/AuthContext';
+
+const { width, height } = Dimensions.get('window');
+const APP_LOGO = require('../../assets/driver_logo.png');
 
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
@@ -17,6 +20,7 @@ export default function LoginScreen({ navigation }) {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [focusedField, setFocusedField] = useState(null);
 
   function validate() {
     const e = {};
@@ -32,7 +36,7 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     try {
       let fcmToken = '';
-      try { fcmToken = await messaging().getToken(); } catch {}
+      try { fcmToken = await getToken(getMessaging()); } catch {}
       const res = await loginDriver(email.trim(), password, fcmToken);
       if (res.data.success) {
         await setDriverToken(res.data.token);
@@ -50,65 +54,100 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="light-content" backgroundColor="#064E3B" />
+
+      {/* ── Green header ── */}
+      <LinearGradient
+        colors={['#064E3B', '#0D7A4E', '#16A34A']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+      >
+        {/* decorative circles */}
+        <View style={styles.circle1} />
+        <View style={styles.circle2} />
+
+        {/* Logo */}
+        <View style={styles.logoRing}>
+          <Image source={APP_LOGO} style={styles.logoImg} resizeMode="cover" />
+        </View>
+        <Text style={styles.headerTitle}>Driver App</Text>
+        <Text style={styles.headerSub}>by TransRentals</Text>
+      </LinearGradient>
+
+      {/* ── White card ── */}
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.cardWrap}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={styles.card}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           keyboardDismissMode="interactive"
         >
-          {/* ── Branding ── */}
-          <View style={styles.brand}>
-            <LinearGradient
-              colors={['#064E3B', '#16A34A']}
-              style={styles.logoBox}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            >
-              <Ionicons name="car" size={30} color="#FFFFFF" />
-            </LinearGradient>
-            <Text style={styles.appName}>Driver App</Text>
-            <Text style={styles.appSub}>by TransRentals</Text>
+          <Text style={styles.welcomeText}>Welcome back 👋</Text>
+          <Text style={styles.welcomeSub}>Sign in to your driver account</Text>
+
+          {/* Email */}
+          <View style={styles.fieldWrap}>
+            <Text style={styles.fieldLabel}>Email Address</Text>
+            <View style={[
+              styles.inputBox,
+              focusedField === 'email' && styles.inputBoxFocused,
+              errors.email && styles.inputBoxError,
+            ]}>
+              <View style={[styles.iconWrap, focusedField === 'email' && styles.iconWrapActive]}>
+                <Ionicons name="mail-outline" size={17} color={focusedField === 'email' ? '#16A34A' : '#94A3B8'} />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="your@email.com"
+                placeholderTextColor="#CBD5E1"
+                value={email}
+                onChangeText={t => { setEmail(t); setErrors(e => ({ ...e, email: '' })); }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                onFocus={() => setFocusedField('email')}
+                onBlur={() => setFocusedField(null)}
+              />
+            </View>
+            {errors.email ? <Text style={styles.errText}>{errors.email}</Text> : null}
           </View>
 
-          {/* ── Heading ── */}
-          <Text style={styles.heading}>Welcome back 👋</Text>
-          <Text style={styles.subHeading}>Sign in to continue</Text>
-
-          {/* ── Fields ── */}
-          <View style={styles.form}>
-            <Field
-              label="Email Address"
-              icon="mail-outline"
-              placeholder="your@email.com"
-              value={email}
-              onChangeText={t => { setEmail(t); setErrors(e => ({ ...e, email: '' })); }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              error={errors.email}
-            />
-            <Field
-              label="Password"
-              icon="lock-closed-outline"
-              placeholder="Enter your password"
-              value={password}
-              onChangeText={t => { setPassword(t); setErrors(e => ({ ...e, password: '' })); }}
-              secureTextEntry={!showPass}
-              rightIcon={showPass ? 'eye-off-outline' : 'eye-outline'}
-              onRightPress={() => setShowPass(!showPass)}
-              error={errors.password}
-            />
+          {/* Password */}
+          <View style={styles.fieldWrap}>
+            <Text style={styles.fieldLabel}>Password</Text>
+            <View style={[
+              styles.inputBox,
+              focusedField === 'password' && styles.inputBoxFocused,
+              errors.password && styles.inputBoxError,
+            ]}>
+              <View style={[styles.iconWrap, focusedField === 'password' && styles.iconWrapActive]}>
+                <Ionicons name="lock-closed-outline" size={17} color={focusedField === 'password' ? '#16A34A' : '#94A3B8'} />
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your password"
+                placeholderTextColor="#CBD5E1"
+                value={password}
+                onChangeText={t => { setPassword(t); setErrors(e => ({ ...e, password: '' })); }}
+                secureTextEntry={!showPass}
+                onFocus={() => setFocusedField('password')}
+                onBlur={() => setFocusedField(null)}
+              />
+              <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
+                <Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+            {errors.password ? <Text style={styles.errText}>{errors.password}</Text> : null}
           </View>
 
-          {/* ── Sign In button ── */}
+          {/* Sign In button */}
           <TouchableOpacity
             onPress={handleLogin}
             disabled={loading}
             activeOpacity={0.88}
-            style={[styles.btn, loading && { opacity: 0.65 }]}
+            style={[styles.btn, loading && { opacity: 0.7 }]}
           >
             <LinearGradient
               colors={['#064E3B', '#16A34A']}
@@ -119,86 +158,196 @@ export default function LoginScreen({ navigation }) {
                 ? <ActivityIndicator color="#fff" size="small" />
                 : <>
                     <Text style={styles.btnText}>Sign In</Text>
-                    <Ionicons name="arrow-forward" size={18} color="#fff" />
+                    <Ionicons name="arrow-forward-circle" size={20} color="#fff" />
                   </>
               }
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* ── Register link ── */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>New to TransRentals?  </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.footerLink}>Create account</Text>
-            </TouchableOpacity>
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
           </View>
+
+          {/* Register link */}
+          <TouchableOpacity
+            style={styles.registerBtn}
+            onPress={() => navigation.navigate('Register')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.registerBtnText}>Create New Account</Text>
+          </TouchableOpacity>
+
+          {/* Footer note */}
+          <Text style={styles.footerNote}>
+            By signing in, you agree to TransRentals{'\n'}Terms of Service & Privacy Policy
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
 }
 
-function Field({ label, icon, error, rightIcon, onRightPress, ...props }) {
-  return (
-    <View style={styles.fieldWrap}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={[styles.inputRow, error && styles.inputRowErr]}>
-        <Ionicons name={icon} size={18} color={error ? '#EF4444' : '#94A3B8'} style={{ marginRight: 10 }} />
-        <TextInput style={styles.input} placeholderTextColor="#CBD5E1" {...props} />
-        {rightIcon && (
-          <TouchableOpacity onPress={onRightPress} style={{ padding: 4 }}>
-            <Ionicons name={rightIcon} size={18} color="#94A3B8" />
-          </TouchableOpacity>
-        )}
-      </View>
-      {error ? <Text style={styles.errText}>{error}</Text> : null}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FFFFFF' },
-  scroll: { paddingHorizontal: 28, paddingTop: 60, paddingBottom: 120 },
+  root: { flex: 1, backgroundColor: '#064E3B' },
 
-  // Branding
-  brand: { alignItems: 'center', marginBottom: 40 },
-  logoBox: {
-    width: 72, height: 72, borderRadius: 22,
-    alignItems: 'center', justifyContent: 'center',
+  // Header
+  header: {
+    height: height * 0.38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 20,
+    overflow: 'hidden',
+  },
+  circle1: {
+    position: 'absolute',
+    width: width * 1.1,
+    height: width * 1.1,
+    borderRadius: width * 0.55,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    top: -width * 0.6,
+    right: -width * 0.2,
+  },
+  circle2: {
+    position: 'absolute',
+    width: width * 0.6,
+    height: width * 0.6,
+    borderRadius: width * 0.3,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    bottom: -width * 0.1,
+    left: -width * 0.1,
+  },
+  logoRing: {
+    width: 92,
+    height: 92,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    padding: 5,
     marginBottom: 14,
-    shadowColor: '#16A34A', shadowOpacity: 0.35, shadowRadius: 16, elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
   },
-  appName: { fontSize: 24, fontWeight: '800', color: '#0F172A' },
-  appSub: { fontSize: 13, color: '#94A3B8', fontWeight: '500', marginTop: 3, letterSpacing: 0.5 },
+  logoImg: { width: '100%', height: '100%', borderRadius: 20 },
+  headerTitle: {
+    fontSize: 26, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.3,
+  },
+  headerSub: {
+    fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: '500',
+    marginTop: 3, letterSpacing: 1.2, textTransform: 'uppercase',
+  },
 
-  // Heading
-  heading: { fontSize: 28, fontWeight: '800', color: '#0F172A', marginBottom: 6 },
-  subHeading: { fontSize: 15, color: '#94A3B8', marginBottom: 32 },
+  // White card
+  cardWrap: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    marginTop: -20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  card: {
+    paddingHorizontal: 28,
+    paddingTop: 32,
+    paddingBottom: 40,
+  },
 
-  // Form
-  form: { gap: 4 },
+  welcomeText: {
+    fontSize: 26, fontWeight: '800', color: '#0F172A', marginBottom: 6,
+  },
+  welcomeSub: {
+    fontSize: 14, color: '#94A3B8', fontWeight: '500', marginBottom: 28,
+  },
+
+  // Fields
   fieldWrap: { marginBottom: 18 },
-  label: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 8 },
-  inputRow: {
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1.5, borderColor: '#E2E8F0',
-    borderRadius: 14, paddingHorizontal: 16,
-    height: 54, backgroundColor: '#FAFAFA',
+  fieldLabel: {
+    fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 8,
   },
-  inputRowErr: { borderColor: '#FCA5A5', backgroundColor: '#FFF5F5' },
-  input: { flex: 1, fontSize: 15, color: '#0F172A', fontWeight: '500' },
+  inputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    overflow: 'hidden',
+    height: 54,
+  },
+  inputBoxFocused: {
+    borderColor: '#16A34A',
+    backgroundColor: '#F0FDF4',
+  },
+  inputBoxError: {
+    borderColor: '#FCA5A5',
+    backgroundColor: '#FFF5F5',
+  },
+  iconWrap: {
+    width: 46,
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#E2E8F0',
+  },
+  iconWrapActive: {
+    borderRightColor: '#BBF7D0',
+    backgroundColor: '#F0FDF4',
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: '#0F172A',
+    fontWeight: '500',
+    paddingHorizontal: 14,
+  },
+  eyeBtn: { padding: 14 },
   errText: { fontSize: 12, color: '#EF4444', marginTop: 5, marginLeft: 2 },
 
   // Button
-  btn: { marginTop: 8, borderRadius: 16, overflow: 'hidden' },
-  btnInner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 10, height: 58,
+  btn: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 4,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  btnText: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
+  btnInner: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 10, height: 56,
+  },
+  btnText: { fontSize: 16, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.3 },
 
-  // Footer
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 28 },
-  footerText: { fontSize: 14, color: '#94A3B8' },
-  footerLink: { fontSize: 14, color: '#16A34A', fontWeight: '700' },
+  // Divider
+  divider: {
+    flexDirection: 'row', alignItems: 'center', marginVertical: 24, gap: 12,
+  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#E2E8F0' },
+  dividerText: { fontSize: 13, color: '#94A3B8', fontWeight: '600' },
+
+  // Register button (outlined)
+  registerBtn: {
+    height: 54, borderRadius: 16,
+    borderWidth: 1.5, borderColor: '#16A34A',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  registerBtnText: { fontSize: 15, fontWeight: '700', color: '#16A34A' },
+
+  footerNote: {
+    fontSize: 12, color: '#CBD5E1', textAlign: 'center',
+    marginTop: 24, lineHeight: 18,
+  },
 });

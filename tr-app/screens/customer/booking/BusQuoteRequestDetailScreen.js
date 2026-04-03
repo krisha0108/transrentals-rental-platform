@@ -1200,22 +1200,38 @@ export default function BusQuoteRequestDetailScreen() {
               </View>
 
               {/* Accept Button at bottom of modal */}
-              {request?.status !== 'ACCEPTED' && viewingQuote.status !== 'ACCEPTED' && (
-                <View style={styles.detailsActions}>
-                  <TouchableOpacity
-                    style={styles.detailsAcceptBtn}
-                    onPress={() => {
-                      handleCloseQuoteDetails();
-                      handleAcceptQuote(viewingQuote);
-                    }}
-                  >
-                    <LinearGradient colors={[TEAL_MID, '#047857']} style={styles.detailsAcceptBtnGrad}>
-                      <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                      <Text style={styles.detailsAcceptBtnText}>Accept This Quote</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-              )}
+              {(() => {
+                const isViewingQuoteExpired = viewingQuote.status === 'EXPIRED' || 
+                  (viewingQuote.validTill && new Date(viewingQuote.validTill).getTime() < Date.now());
+                
+                if (isViewingQuoteExpired) {
+                  return (
+                    <View style={styles.detailsActions}>
+                      <View style={[styles.detailsAcceptBtnGrad, { backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FCA5A5' }]}>
+                         <Ionicons name="alert-circle" size={20} color="#DC2626" />
+                         <Text style={[styles.detailsAcceptBtnText, { color: '#DC2626', marginLeft: 8 }]}>This Quote has Expired</Text>
+                      </View>
+                    </View>
+                  );
+                }
+
+                return request?.status !== 'ACCEPTED' && viewingQuote.status !== 'ACCEPTED' && (
+                  <View style={styles.detailsActions}>
+                    <TouchableOpacity
+                      style={styles.detailsAcceptBtn}
+                      onPress={() => {
+                        handleCloseQuoteDetails();
+                        handleAcceptQuote(viewingQuote);
+                      }}
+                    >
+                      <LinearGradient colors={[TEAL_MID, '#047857']} style={styles.detailsAcceptBtnGrad}>
+                        <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                        <Text style={styles.detailsAcceptBtnText}>Accept This Quote</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })()}
             </ScrollView>
           )}
         </SafeAreaView>

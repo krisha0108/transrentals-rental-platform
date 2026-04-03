@@ -586,10 +586,12 @@ export default function LuxuryQuoteDetailScreen() {
               <Text style={styles.noQuotesPullRefresh}>Pull down to refresh</Text>
             </View>
           ) : (
-            quoteRequest.quotes.map((quote, index) => (
-              <View key={quote.id} style={[styles.quoteCard, quote.status === 'EXPIRED' && styles.quoteCardExpired]}>
+            quoteRequest.quotes.map((quote, index) => {
+              const isQuoteExpired = quote.status === 'EXPIRED' || (quote.validTill && new Date(quote.validTill).getTime() < Date.now()) || (quote.validUntil && new Date(quote.validUntil).getTime() < Date.now());
+              return (
+              <View key={quote.id} style={[styles.quoteCard, isQuoteExpired && styles.quoteCardExpired]}>
                 {/* Expired Strip */}
-                {quote.status === 'EXPIRED' && (
+                {isQuoteExpired && (
                   <View style={styles.expiredTopBanner}>
                     <Ionicons name="close-circle" size={13} color="#FFF" />
                     <Text style={styles.expiredTopBannerText}>Quote Expired</Text>
@@ -748,7 +750,14 @@ export default function LuxuryQuoteDetailScreen() {
                     </TouchableOpacity>
 
                     {/* Action Buttons */}
-                    {quote.status !== 'EXPIRED' && (
+                    {isQuoteExpired ? (
+                      <View style={styles.quoteActions}>
+                        <View style={[styles.acceptGradient, { backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FCA5A5', borderRadius: 8 }]}>
+                           <Ionicons name="alert-circle" size={18} color="#DC2626" />
+                           <Text style={[styles.acceptBtnText, { color: '#DC2626', marginLeft: 8 }]}>This Quote has Expired</Text>
+                        </View>
+                      </View>
+                    ) : (
                       <View style={styles.quoteActions}>
                         <TouchableOpacity
                           style={styles.callBtn}
@@ -791,7 +800,8 @@ export default function LuxuryQuoteDetailScreen() {
                   </View>
                 )}
               </View>
-            ))
+            );
+            })
           )}
 
           {/* Date Passed — Cannot Re-request */}

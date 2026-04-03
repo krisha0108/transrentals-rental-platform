@@ -58,8 +58,9 @@ export async function GET(request: NextRequest) {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          slides: { select: { id: true } },
+          slides: { select: { id: true, canvasData: true } },
           reactions: { select: { reactionType: true } },
+          _count: { select: { views: true } },
         },
       }),
       prisma.web_stories.count({ where }),
@@ -84,12 +85,21 @@ export async function GET(request: NextRequest) {
       createdAt: s.createdAt.toISOString(),
       updatedAt: s.updatedAt.toISOString(),
       slideCount: s.slides.length,
+      hasTextElement: s.slides.some((slide: any) => {
+        if (!slide.canvasData) return false;
+        try {
+          const data = typeof slide.canvasData === 'string' ? JSON.parse(slide.canvasData) : slide.canvasData;
+          const elements = Array.isArray(data) ? data : (data.elements || []);
+          return elements.some((e: any) => e.type === 'text' && e.content?.trim());
+        } catch { return false; }
+      }),
       reactions: {
         HEART: s.reactions.filter((r: any) => r.reactionType === 'HEART').length,
         FIRE: s.reactions.filter((r: any) => r.reactionType === 'FIRE').length,
         THUMBS_UP: s.reactions.filter((r: any) => r.reactionType === 'THUMBS_UP').length,
         total: s.reactions.length,
       },
+      viewCount: s._count?.views ?? 0,
     }));
 
     return NextResponse.json({
