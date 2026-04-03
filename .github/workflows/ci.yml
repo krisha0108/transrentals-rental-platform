@@ -180,7 +180,7 @@ jobs:
   build:
     name: Build Application with Production Database
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 360
 
     steps:
       # Step 1: Checkout code
