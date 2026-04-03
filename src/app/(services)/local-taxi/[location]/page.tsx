@@ -7,6 +7,9 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { prisma } from '@/lib/db/prisma';
+import { getCarRentalServiceId, getLocationId } from '@/lib/db/build-cache';
+import { LocalTaxiPackages } from '@/components/local-taxi/LocalTaxiPackages';
 
 interface PageProps {
   params: {
@@ -70,6 +73,43 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
 
   const locationName = city.name;
 
+  // Fetch local packages from DB (city-specific + global fallback)
+  const [locationId, carRentalServiceId] = await Promise.all([
+    getLocationId(params.location),
+    getCarRentalServiceId(),
+  ]);
+
+  const localPackages = carRentalServiceId ? await prisma.chauffeur_local_packages.findMany({
+    where: {
+      isActive: true,
+      chauffeur_vehicle_categories: { serviceId: carRentalServiceId, isActive: true },
+      ...(locationId ? { OR: [{ locationId }, { locationId: null }] } : { locationId: null }),
+    },
+    select: {
+      id: true, hours: true, kms: true, basePrice: true,
+      extraKmCharge: true, isPopular: true,
+      chauffeur_vehicle_categories: {
+        select: { id: true, name: true, image: true, seatingCapacity: true, acType: true, exampleVehicles: true, isPopular: true },
+      },
+    },
+    orderBy: [
+      { chauffeur_vehicle_categories: { displayOrder: 'asc' } },
+      { hours: 'asc' },
+    ],
+  }) : [];
+
+  // Group by hours → { hours: number, kms: number, vehicles: [...] }[]
+  const packagesByHour = new Map<number, { hours: number; kms: number; vehicles: typeof localPackages }>();
+  for (const pkg of localPackages) {
+    const existing = packagesByHour.get(pkg.hours);
+    if (!existing) {
+      packagesByHour.set(pkg.hours, { hours: pkg.hours, kms: pkg.kms, vehicles: [pkg] });
+    } else {
+      existing.vehicles.push(pkg);
+    }
+  }
+  const hourGroups = Array.from(packagesByHour.values()).sort((a, b) => a.hours - b.hours);
+
   return (
     <>
       {/* Breadcrumbs */}
@@ -116,38 +156,10 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* Hourly Packages */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Local Taxi Packages in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { duration: '4 Hours / 40 Km', sedan: '399', suv: '599' },
-              { duration: '8 Hours / 80 Km', sedan: '799', suv: '1199' },
-              { duration: '12 Hours / 120 Km', sedan: '1199', suv: '1799' },
-            ].map((pkg) => (
-              <div key={pkg.duration} className="bg-white p-6 rounded-lg shadow-md border-t-4 border-green-600">
-                <h3 className="text-xl font-bold mb-4">{pkg.duration}</h3>
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Sedan</span>
-                    <span className="text-2xl font-bold text-green-700">₹{pkg.sedan}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">SUV</span>
-                    <span className="text-2xl font-bold text-green-700">₹{pkg.suv}</span>
-                  </div>
-                </div>
-                <button className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition">
-                  Book Now
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Local Packages — dynamic from DB */}
+      {hourGroups.length > 0 && (
+        <LocalTaxiPackages hourGroups={hourGroups} locationName={locationName} />
+      )}
 
       {/* Perfect Occasions */}
       <section className="py-16">

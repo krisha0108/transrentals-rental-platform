@@ -7,6 +7,8 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { prisma } from '@/lib/db/prisma';
+import Image from 'next/image';
 
 interface PageProps {
   params: {
@@ -66,6 +68,59 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
 
   const locationName = city.name;
 
+  // Fetch one-way route packages FROM this location
+  const routePackages = await prisma.chauffeur_route_packages.findMany({
+    where: {
+      isActive: true,
+      isAirportTransfer: false,
+      locations_chauffeur_route_packages_fromLocationIdTolocations: { slug: params.location },
+      locations_chauffeur_route_packages_toLocationIdTolocations: { type: { not: 'AIRPORT' } },
+    },
+    select: {
+      id: true,
+      basePrice: true,
+      estimatedKm: true,
+      estimatedDuration: true,
+      isPopular: true,
+      chauffeur_vehicle_categories: {
+        select: { id: true, name: true, slug: true, seatingCapacity: true, acType: true, image: true, exampleVehicles: true, isPopular: true },
+      },
+      locations_chauffeur_route_packages_toLocationIdTolocations: { select: { name: true, slug: true } },
+    },
+    orderBy: [{ isPopular: 'desc' }, { basePrice: 'asc' }],
+  });
+
+  // Group by vehicle category — min price per category
+  const catMap = new Map<string, {
+    cat: typeof routePackages[0]['chauffeur_vehicle_categories'];
+    minPrice: number;
+    routeCount: number;
+  }>();
+  for (const rp of routePackages) {
+    const existing = catMap.get(rp.chauffeur_vehicle_categories.id);
+    if (!existing) {
+      catMap.set(rp.chauffeur_vehicle_categories.id, { cat: rp.chauffeur_vehicle_categories, minPrice: rp.basePrice, routeCount: 1 });
+    } else {
+      if (rp.basePrice < existing.minPrice) existing.minPrice = rp.basePrice;
+      existing.routeCount++;
+    }
+  }
+  const vehicleCats = Array.from(catMap.values());
+
+  // Group popular routes by destination
+  const destMap = new Map<string, { toName: string; toSlug: string; minPrice: number; estimatedKm: number; isPopular: boolean }>();
+  for (const rp of routePackages) {
+    const dest = rp.locations_chauffeur_route_packages_toLocationIdTolocations;
+    const existing = destMap.get(dest.slug);
+    if (!existing) {
+      destMap.set(dest.slug, { toName: dest.name, toSlug: dest.slug, minPrice: rp.basePrice, estimatedKm: rp.estimatedKm, isPopular: rp.isPopular });
+    } else {
+      if (rp.basePrice < existing.minPrice) existing.minPrice = rp.basePrice;
+      if (rp.isPopular) existing.isPopular = true;
+    }
+  }
+  const popularRoutes = Array.from(destMap.values()).sort((a, b) => (b.isPopular ? 1 : 0) - (a.isPopular ? 1 : 0)).slice(0, 8);
+
   return (
     <>
       {/* Breadcrumbs */}
@@ -112,60 +167,85 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
         </div>
       </section>
 
-      {/* Available Cars */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            One Way Cars Available from {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { type: 'Hatchbacks', price: '1299', examples: 'Swift, i20, Baleno' },
-              { type: 'Sedans', price: '1799', examples: 'City, Verna, Ciaz' },
-              { type: 'Compact SUVs', price: '2199', examples: 'Venue, Nexon, Brezza' },
-              { type: 'SUVs', price: '2999', examples: 'Creta, Seltos, XUV500' },
-              { type: 'MUVs', price: '2699', examples: 'Ertiga, XL6, Innova' },
-              { type: 'Premium', price: '3999', examples: 'Camry, Octavia, Fortuner' },
-            ].map((category) => (
-              <div key={category.type} className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-bold mb-2">{category.type}</h3>
-                <p className="text-2xl font-bold text-green-600 mb-2">₹{category.price}+</p>
-                <p className="text-sm text-gray-600 mb-4">{category.examples}</p>
-                <button className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition">
-                  Book One Way
-                </button>
-              </div>
-            ))}
+      {/* Available Cars — dynamic from chauffeur_route_packages */}
+      {vehicleCats.length > 0 && (
+        <section className="py-16 bg-gray-50">
+          <div className="container-custom">
+            <h2 className="text-3xl font-bold mb-2">One Way Cars Available from {locationName}</h2>
+            <p className="text-gray-500 mb-8">Choose your vehicle type for a one-way trip</p>
+            <div className={`grid gap-6 ${vehicleCats.length === 1 ? 'max-w-sm mx-auto' : vehicleCats.length === 2 ? 'md:grid-cols-2 max-w-2xl mx-auto' : 'md:grid-cols-3'}`}>
+              {vehicleCats.map(({ cat, minPrice, routeCount }) => {
+                let examples: string[] = [];
+                try { examples = cat.exampleVehicles ? JSON.parse(cat.exampleVehicles) : []; } catch {}
+                return (
+                  <div key={cat.id} className={`relative bg-white rounded-2xl shadow-md hover:shadow-xl transition overflow-hidden flex flex-col ${cat.isPopular ? 'ring-2 ring-green-500' : 'border border-gray-200'}`}>
+                    {cat.isPopular && (
+                      <div className="absolute top-0 left-0 right-0 flex justify-center">
+                        <span className="bg-green-600 text-white text-xs font-bold px-4 py-1 rounded-b-lg">⭐ POPULAR</span>
+                      </div>
+                    )}
+                    <div className={`relative h-40 bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center ${cat.isPopular ? 'mt-6' : ''}`}>
+                      {cat.image ? (
+                        <Image src={cat.image} alt={cat.name} fill className="object-contain p-4" sizes="(max-width:768px) 100vw,33vw" />
+                      ) : (
+                        <span className="text-7xl">🚗</span>
+                      )}
+                    </div>
+                    <div className="p-5 flex flex-col flex-1">
+                      <div className="text-center mb-3">
+                        <h3 className="text-xl font-bold text-gray-900 capitalize">{cat.name}</h3>
+                        <p className="text-sm text-gray-500">{cat.seatingCapacity} Seater{cat.acType ? ` · ${cat.acType}` : ''}</p>
+                      </div>
+                      {examples.length > 0 && (
+                        <p className="text-sm text-gray-400 text-center mb-3">{examples.slice(0, 2).join(', ')}</p>
+                      )}
+                      <div className="text-center mb-4">
+                        <div className="flex items-baseline justify-center gap-1">
+                          <span className="text-3xl font-bold text-green-600">₹{minPrice.toLocaleString('en-IN')}</span>
+                          <span className="text-sm text-gray-400">onwards</span>
+                        </div>
+                        <p className="text-xs text-gray-400">{routeCount} route{routeCount > 1 ? 's' : ''} available</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-center text-xs text-gray-400 mt-6">
+              * Prices shown are starting fares. Final price includes driver charges, fuel & GST (5%). Toll & parking extra.
+            </p>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Popular One Way Routes from This City */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Popular One Way Routes from {locationName}
-          </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            {city.tier <= 2 && [
-              { destination: 'Nearby City 1', distance: '150-250 km', price: '2499' },
-              { destination: 'Nearby City 2', distance: '250-350 km', price: '3499' },
-              { destination: 'Nearby City 3', distance: '350-450 km', price: '4499' },
-              { destination: 'Nearby City 4', distance: '450-550 km', price: '5499' },
-            ].map((route, idx) => (
-              <div key={idx} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-                <div>
-                  <p className="font-semibold">{locationName} to {route.destination}</p>
-                  <p className="text-sm text-gray-600">{route.distance}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-green-600">₹{route.price}+</p>
-                </div>
-              </div>
-            ))}
+      {/* Popular One Way Routes — dynamic from DB */}
+      {popularRoutes.length > 0 && (
+        <section className="py-16 bg-white">
+          <div className="container-custom">
+            <h2 className="text-3xl font-bold mb-2">Popular One Way Routes from {locationName}</h2>
+            <p className="text-gray-500 mb-8">Fixed prices · All-inclusive · No return charges</p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {popularRoutes.map((route) => (
+                <a
+                  key={route.toSlug}
+                  href={`/one-way-cab/${params.location}-to-${route.toSlug}`}
+                  className={`group flex items-center justify-between bg-gray-50 hover:bg-green-50 border-2 p-4 rounded-xl transition ${route.isPopular ? 'border-green-300' : 'border-gray-200 hover:border-green-200'}`}
+                >
+                  <div>
+                    <p className="text-xs text-gray-400">{locationName}</p>
+                    <p className="font-semibold text-gray-900 group-hover:text-green-700 transition">→ {route.toName}</p>
+                    {route.estimatedKm > 0 && <p className="text-xs text-gray-400">{route.estimatedKm} km</p>}
+                  </div>
+                  <div className="text-right shrink-0 ml-2">
+                    <p className="text-lg font-bold text-green-600">₹{route.minPrice.toLocaleString('en-IN')}</p>
+                    <p className="text-xs text-gray-400">one-way</p>
+                  </div>
+                </a>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Pricing Structure */}
       <section className="py-16 bg-gray-50">

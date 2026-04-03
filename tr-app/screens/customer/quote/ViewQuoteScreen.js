@@ -1235,10 +1235,23 @@ export default function QuoteDetailScreen({ route, navigation }) {
         </View>
 
         {/* Vendor Quotes List */}
-        {quotes.map((vendorQuote, index) => (
-          <View key={vendorQuote.id || index} style={styles.vendorQuoteCard}>
+        {quotes.map((vendorQuote, index) => {
+          const isQuoteExpired = vendorQuote.status === 'EXPIRED' || 
+            (vendorQuote.validTill && new Date(vendorQuote.validTill).getTime() < Date.now()) || 
+            (vendorQuote.validUntil && new Date(vendorQuote.validUntil).getTime() < Date.now());
+
+          return (
+          <View key={vendorQuote.id || index} style={[styles.vendorQuoteCard, isQuoteExpired && { opacity: 0.85 }]}>
+            {/* Expired Strip */}
+            {isQuoteExpired && (
+              <View style={{ backgroundColor: '#EF4444', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingVertical: 6, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12, marginTop: -16, marginLeft: -16, marginRight: -16 }}>
+                <Icon name="x-circle" size={14} color="#FFF" />
+                <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '600', marginLeft: 6 }}>Quote Expired</Text>
+              </View>
+            )}
+
             {/* Best Price Badge */}
-            {index === 0 && (
+            {index === 0 && !isQuoteExpired && (
               <View style={styles.bestPriceBadge}>
                 <Icon name="award" size={14} color="#fff" />
                 <Text style={styles.bestPriceText}>Best Price</Text>
@@ -1353,16 +1366,19 @@ export default function QuoteDetailScreen({ route, navigation }) {
                 <Icon name="eye" size={16} color={COLORS.primary} />
                 <Text style={styles.viewDetailsBtnText}>View Details</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.acceptQuoteBtn}
-                onPress={() => handleAcceptQuote(vendorQuote)}
-              >
-                <Text style={styles.acceptQuoteBtnText}>Accept Quote</Text>
-                <Icon name="check-circle" size={16} color="#fff" />
-              </TouchableOpacity>
+              {!isQuoteExpired && quote.status !== 'ACCEPTED' && vendorQuote.status !== 'ACCEPTED' && (
+                <TouchableOpacity
+                  style={styles.acceptQuoteBtn}
+                  onPress={() => handleAcceptQuote(vendorQuote)}
+                >
+                  <Text style={styles.acceptQuoteBtnText}>Accept Quote</Text>
+                  <Icon name="check-circle" size={16} color="#fff" />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
-        ))}
+          );
+        })}
 
         <View style={{ height: 20 }} />
       </Animated.ScrollView>
@@ -1655,12 +1671,29 @@ export default function QuoteDetailScreen({ route, navigation }) {
 
             {/* Modal Footer */}
             <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.modalAcceptBtn}
-                onPress={() => handleAcceptQuote(selectedQuote)}
-              >
-                <Text style={styles.modalAcceptBtnText}>Accept This Quote</Text>
-              </TouchableOpacity>
+              {(() => {
+                const isViewingQuoteExpired = selectedQuote.status === 'EXPIRED' || 
+                  (selectedQuote.validTill && new Date(selectedQuote.validTill).getTime() < Date.now()) || 
+                  (selectedQuote.validUntil && new Date(selectedQuote.validUntil).getTime() < Date.now());
+                
+                if (isViewingQuoteExpired) {
+                  return (
+                    <View style={[styles.modalAcceptBtn, { backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FCA5A5', paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }]}>
+                      <Ionicons name="alert-circle" size={20} color="#DC2626" />
+                      <Text style={[styles.modalAcceptBtnText, { color: '#DC2626', marginLeft: 8 }]}>This Quote has Expired</Text>
+                    </View>
+                  );
+                }
+
+                return quote?.status !== 'ACCEPTED' && selectedQuote.status !== 'ACCEPTED' && (
+                  <TouchableOpacity
+                    style={styles.modalAcceptBtn}
+                    onPress={() => handleAcceptQuote(selectedQuote)}
+                  >
+                    <Text style={styles.modalAcceptBtnText}>Accept This Quote</Text>
+                  </TouchableOpacity>
+                );
+              })()}
             </View>
           </View>
         </View>

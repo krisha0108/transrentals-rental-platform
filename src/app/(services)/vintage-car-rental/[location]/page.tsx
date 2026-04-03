@@ -7,6 +7,9 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { prisma } from '@/lib/db/prisma';
+import { getLuxuryServiceId, getLocationId } from '@/lib/db/build-cache';
+import Image from 'next/image';
 
 interface PageProps {
   params: {
@@ -70,6 +73,34 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
 
   const seoData = await resolvePageMeta(`vintage-car-rental:${params.location}`);
 
+  // Fetch luxury car models for this location (service id cached across pages)
+  const [luxuryServiceId, locationId] = await Promise.all([
+    getLuxuryServiceId(),
+    getLocationId(params.location),
+  ]);
+
+  const luxuryCars = luxuryServiceId ? await prisma.vehicle_models.findMany({
+    where: { serviceId: luxuryServiceId, isActive: true },
+    select: {
+      id: true, name: true, sideImage: true, seatingCapacity: true,
+      basePricePerDay: true, isPopular: true, tagline: true, highlight: true,
+      brands: { select: { name: true } },
+      ...(locationId ? {
+        vehicle_model_locations: {
+          where: { locationId, isActive: true },
+          select: { basePricePerDay: true },
+          take: 1,
+        },
+      } : {}),
+    },
+    orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+  }) : [];
+
+  const carsWithPrice = (luxuryCars ?? []).map((m) => {
+    const locationPrice = m.vehicle_model_locations?.[0]?.basePricePerDay;
+    const price = locationPrice ?? m.basePricePerDay ?? null;
+    return { ...m, price };
+  });
 
   return (
     <>
@@ -112,33 +143,92 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
         </div>
       </section>
 
-      {/* Vintage Cars Available */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Vintage Cars Available in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { car: 'Ambassador Classic', price: '8999', era: '1950s-1980s' },
-              { car: 'Ambassador Mark II', price: '9999', era: '1960s-1970s' },
-              { car: 'Fiat Vintage', price: '12999', era: '1960s' },
-              { car: 'Standard Herald', price: '14999', era: '1960s-1970s' },
-              { car: 'Premier Padmini', price: '10999', era: '1970s-1980s' },
-              { car: 'Vintage Jeep', price: '11999', era: '1950s-1960s' },
-            ].map((item) => (
-              <div key={item.car} className="bg-white p-6 rounded-lg shadow-md border-t-4 border-amber-700">
-                <p className="text-sm text-amber-800 font-semibold mb-2">{item.era}</p>
-                <h3 className="text-xl font-bold mb-2">{item.car}</h3>
-                <p className="text-2xl font-bold text-amber-800 mb-4">₹{item.price}/event</p>
-                <button className="w-full bg-amber-700 text-white py-2 rounded hover:bg-amber-800 transition">
-                  Book Vintage Car
-                </button>
-              </div>
-            ))}
+      {/* Vintage / Luxury Cars Available — dynamic */}
+      {carsWithPrice.length > 0 && (
+        <section className="py-16 bg-gray-50">
+          <div className="container-custom">
+            <h2 className="text-3xl font-bold mb-2 text-center">
+              Vintage Cars Available in {locationName}
+            </h2>
+            <p className="text-center text-gray-500 mb-10">Classic &amp; heritage vehicles · Chauffeur included</p>
+
+            <div className={`grid gap-6 ${
+              carsWithPrice.length === 1 ? 'max-w-sm mx-auto' :
+              carsWithPrice.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' :
+              carsWithPrice.length === 3 ? 'sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto' :
+              'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+            }`}>
+              {carsWithPrice.map((car) => (
+                <div
+                  key={car.id}
+                  className={`relative bg-white rounded-2xl shadow-md hover:shadow-xl transition overflow-hidden flex flex-col ${
+                    car.isPopular ? 'ring-2 ring-amber-500 scale-[1.02]' : 'border border-gray-200'
+                  }`}
+                >
+                  {car.isPopular && (
+                    <div className="absolute top-0 left-0 right-0 flex justify-center z-10">
+                      <span className="bg-amber-700 text-white text-xs font-bold px-4 py-1 rounded-b-lg">
+                        ⭐ POPULAR
+                      </span>
+                    </div>
+                  )}
+
+                  <div className={`relative h-44 bg-gradient-to-br from-amber-50 to-yellow-50 flex items-center justify-center ${car.isPopular ? 'mt-6' : ''}`}>
+                    {car.sideImage ? (
+                      <Image
+                        src={car.sideImage}
+                        alt={car.name}
+                        fill
+                        className="object-contain p-4"
+                        sizes="(max-width:640px) 100vw,(max-width:1024px) 50vw,33vw"
+                      />
+                    ) : (
+                      <span className="text-7xl">🚗</span>
+                    )}
+                  </div>
+
+                  <div className="p-5 flex flex-col flex-1">
+                    <div className="text-center mb-3">
+                      {car.brands?.name && (
+                        <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-1">{car.brands.name}</p>
+                      )}
+                      <h3 className="text-xl font-bold text-gray-900">{car.name}</h3>
+                      {car.tagline && <p className="text-sm text-gray-500 mt-0.5">{car.tagline}</p>}
+                      {car.seatingCapacity && (
+                        <p className="text-xs text-gray-400 mt-0.5">{car.seatingCapacity} Seater</p>
+                      )}
+                    </div>
+
+                    {car.highlight && (
+                      <p className="text-center text-xs bg-amber-50 text-amber-800 rounded-full px-3 py-1 mb-3 font-medium">
+                        {car.highlight}
+                      </p>
+                    )}
+
+                    <div className="text-center mt-auto">
+                      {car.price ? (
+                        <>
+                          <p className="text-xs text-gray-400 mb-0.5">Starting from</p>
+                          <p className="text-3xl font-bold text-amber-800">
+                            ₹{car.price.toLocaleString('en-IN')}
+                          </p>
+                       
+                        </>
+                      ) : (
+                        <p className="text-sm font-semibold text-amber-700">Get Quote</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-center text-xs text-gray-400 mt-8">
+              * Prices may vary based on vendor availability. Decoration &amp; chauffeur included.
+            </p>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Perfect Occasions */}
       <section className="py-16">
