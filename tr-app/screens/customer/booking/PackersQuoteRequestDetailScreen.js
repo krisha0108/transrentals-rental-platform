@@ -1153,7 +1153,19 @@ export default function PackersQuoteRequestDetailScreen() {
               </View>
 
               {/* Accept Button at Bottom */}
-              {(viewingQuote.status === 'SENT' || viewingQuote.status === 'VIEWED') && (
+              {(() => {
+                 const isViewingQuoteExpired = viewingQuote.status === 'EXPIRED' || (viewingQuote.validTill && new Date(viewingQuote.validTill).getTime() < Date.now());
+                 if (isViewingQuoteExpired) {
+                   return (
+                     <View style={styles.detailsFooter}>
+                       <View style={[styles.detailsAcceptBtnGrad, { backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FCA5A5' }]}>
+                         <Ionicons name="alert-circle" size={22} color="#DC2626" />
+                         <Text style={[styles.detailsAcceptBtnText, { color: '#DC2626', marginLeft: 8 }]}>This Quote has Expired</Text>
+                       </View>
+                     </View>
+                   );
+                 }
+                 return (viewingQuote.status === 'SENT' || viewingQuote.status === 'VIEWED') && (
                 <View style={styles.detailsFooter}>
                   <TouchableOpacity
                     style={styles.detailsAcceptBtn}
@@ -1168,7 +1180,8 @@ export default function PackersQuoteRequestDetailScreen() {
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
-              )}
+                );
+              })()}
 
               <View style={{ height: hp('5%') }} />
             </ScrollView>
