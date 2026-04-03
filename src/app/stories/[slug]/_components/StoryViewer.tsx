@@ -372,10 +372,76 @@ interface StoryViewerProps {
 
 type ReactionType = 'HEART' | 'FIRE' | 'THUMBS_UP';
 
-const REACTION_EMOJI: Record<ReactionType, string> = {
-  HEART: '❤️',
-  FIRE: '🔥',
-  THUMBS_UP: '👍',
+// Professional SVG reaction icons
+function IconHeart({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={active ? 'url(#heartGrad)' : 'none'} stroke={active ? 'none' : 'rgba(255,255,255,0.7)'} strokeWidth="1.8" className="w-8 h-8">
+      <defs>
+        <linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ff6b8a" />
+          <stop offset="100%" stopColor="#e91e63" />
+        </linearGradient>
+      </defs>
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  );
+}
+
+function IconFire({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={active ? 'url(#fireGrad)' : 'none'} stroke={active ? 'none' : 'rgba(255,255,255,0.7)'} strokeWidth="1.8" strokeLinejoin="round" className="w-8 h-8">
+      <defs>
+        <linearGradient id="fireGrad" x1="0%" y1="0%" x2="60%" y2="100%">
+          <stop offset="0%" stopColor="#ffd93d" />
+          <stop offset="50%" stopColor="#ff6b35" />
+          <stop offset="100%" stopColor="#c0392b" />
+        </linearGradient>
+      </defs>
+      <path d="M12 2c0 0-3 4-3 7a3 3 0 0 0 6 0c0-1-.5-2-1-3 0 0 2 2 2 5a5 5 0 0 1-10 0c0-5 4-9 6-9z" />
+      <path d="M12 14c0 0-1.5 1-1.5 2.5a1.5 1.5 0 0 0 3 0C13.5 15 12 14 12 14z" />
+    </svg>
+  );
+}
+
+function IconThumbsUp({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" fill={active ? 'url(#thumbGrad)' : 'none'} stroke={active ? 'none' : 'rgba(255,255,255,0.7)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
+      <defs>
+        <linearGradient id="thumbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#74b9ff" />
+          <stop offset="100%" stopColor="#0984e3" />
+        </linearGradient>
+      </defs>
+      <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z" />
+      <path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+    </svg>
+  );
+}
+
+const REACTION_CONFIG: Record<ReactionType, {
+  label: string;
+  icon: (active: boolean) => React.ReactNode;
+  activeBg: string;
+  activeGlow: string;
+}> = {
+  HEART: {
+    label: 'Love',
+    icon: (active) => <IconHeart active={active} />,
+    activeBg: 'from-pink-500/30 to-rose-600/30',
+    activeGlow: 'shadow-[0_0_20px_rgba(236,72,153,0.5)]',
+  },
+  FIRE: {
+    label: 'Fire',
+    icon: (active) => <IconFire active={active} />,
+    activeBg: 'from-orange-400/30 to-red-500/30',
+    activeGlow: 'shadow-[0_0_20px_rgba(249,115,22,0.5)]',
+  },
+  THUMBS_UP: {
+    label: 'Like',
+    icon: (active) => <IconThumbsUp active={active} />,
+    activeBg: 'from-blue-400/30 to-blue-600/30',
+    activeGlow: 'shadow-[0_0_20px_rgba(59,130,246,0.5)]',
+  },
 };
 
 // ─── Progress Bar ─────────────────────────────────────────────────────────────
@@ -534,6 +600,14 @@ export default function StoryViewer({ story, backUrl = '/stories' }: StoryViewer
     if (currentIdx > 0) setCurrentIdx(i => i - 1);
   }, [currentIdx]);
 
+  // Record view on mount (fire-and-forget, once per mount)
+  const viewRecorded = useRef(false);
+  useEffect(() => {
+    if (viewRecorded.current) return;
+    viewRecorded.current = true;
+    fetch(`/api/web-stories/${story.slug}/view`, { method: 'POST' }).catch(() => {});
+  }, [story.slug]);
+
   // Keyboard
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -617,60 +691,122 @@ export default function StoryViewer({ story, backUrl = '/stories' }: StoryViewer
   // ── Complete Screen ────────────────────────────────────────────────────────
   if (showEnd) {
     return (
-      <div className="fixed inset-0 z-50 bg-black flex items-center justify-center overflow-hidden">
+      <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center">
+        {/* Layered background */}
+        <div className="absolute inset-0 bg-[#0a0a0f]" />
         {story.coverImage && (
-          <img src={story.coverImage} alt="" className="absolute inset-0 w-full h-full object-cover opacity-25 scale-110 blur-2xl" />
+          <img src={story.coverImage} alt="" className="absolute inset-0 w-full h-full object-cover opacity-10 scale-110 blur-3xl" style={{ filter: 'blur(48px) saturate(1.5)' }} />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/60 to-black/95" />
+        {/* Radial glow center */}
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(10,107,63,0.22) 0%, transparent 70%)' }} />
+        {/* Bottom fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-1/2" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }} />
 
-        <div className="relative w-full max-w-xs mx-auto px-6 text-center">
-          <div className="relative w-20 h-20 mx-auto mb-5">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500/30 to-pink-500/30 border border-white/20 backdrop-blur-sm flex items-center justify-center">
-              <Sparkles className="w-9 h-9 text-white" />
+        <div className="relative w-full max-w-[340px] mx-auto px-5 text-center" style={{ animation: 'ws-slideUp 0.5s cubic-bezier(0.16,1,0.3,1) forwards' }}>
+
+          {/* Check icon */}
+          <div className="relative w-24 h-24 mx-auto mb-6">
+            {/* Outer glow ring */}
+            <div className="absolute inset-0 rounded-full" style={{ background: 'conic-gradient(from 0deg, #0A6B3F, #10b981, #34d399, #059669, #0A6B3F)', padding: '2px', borderRadius: '9999px' }}>
+              <div className="w-full h-full rounded-full bg-[#0a0a0f]" />
             </div>
-            <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-black flex items-center justify-center">
-              <span className="text-white text-[10px] font-black">✓</span>
+            {/* Inner glass */}
+            <div className="absolute inset-[3px] rounded-full backdrop-blur-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, rgba(10,107,63,0.3), rgba(16,185,129,0.15))' }}>
+              <svg viewBox="0 0 24 24" fill="none" className="w-10 h-10">
+                <circle cx="12" cy="12" r="10" fill="url(#checkCircle)" opacity="0.9" />
+                <polyline points="8,12 11,15 16,9" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                <defs>
+                  <linearGradient id="checkCircle" x1="0" y1="0" x2="24" y2="24">
+                    <stop offset="0%" stopColor="#059669" />
+                    <stop offset="100%" stopColor="#10b981" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            {/* Sparkle dots */}
+            <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gradient-to-br from-emerald-300 to-green-500 shadow-lg shadow-green-500/50" />
+            <div className="absolute -bottom-0.5 -left-1 w-3 h-3 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 shadow-lg shadow-emerald-500/50" />
+          </div>
+
+          {/* Title */}
+          <div className="mb-1">
+            <span className="text-[11px] font-semibold tracking-[0.2em] uppercase" style={{ background: 'linear-gradient(90deg,#059669,#34d399)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>You finished it</span>
+          </div>
+          <h2 className="text-white text-[1.6rem] font-black leading-tight mb-2 tracking-tight">Story Complete</h2>
+
+          {/* Story meta card */}
+          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl mb-6 mx-auto max-w-[260px]" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(12px)' }}>
+            {story.coverImage && (
+              <img src={story.coverImage} alt="" className="w-11 h-14 rounded-xl object-cover flex-shrink-0" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }} />
+            )}
+            <div className="text-left min-w-0">
+              <p className="text-white text-sm font-semibold leading-snug truncate">{story.title}</p>
+              {story.publisherName && (
+                <p className="text-white/50 text-xs mt-0.5 truncate">{story.publisherName}</p>
+              )}
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-[10px] text-white/30 font-medium">{slides.length} slides</span>
+                {story.category && (
+                  <>
+                    <span className="w-0.5 h-0.5 rounded-full bg-white/20" />
+                    <span className="text-[10px] text-white/30 font-medium">{story.category}</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
-          <h2 className="text-white text-2xl font-black mb-1">Story Complete!</h2>
-          <p className="text-white/60 text-sm mb-1 font-medium">{story.title}</p>
-          <p className="text-white/30 text-xs mb-7">
-            {slides.length} slides{story.category ? ` · ${story.category}` : ''}
-          </p>
-
-          <p className="text-white/40 text-[11px] font-semibold uppercase tracking-widest mb-4">How was it?</p>
-          <div className="flex items-center justify-center gap-3 mb-7">
-            {(['HEART', 'FIRE', 'THUMBS_UP'] as ReactionType[]).map(type => (
-              <button
-                key={type}
-                onClick={() => handleReact(type)}
-                className={`flex flex-col items-center gap-2 py-4 px-5 rounded-2xl border-2 transition-all duration-200 ${
-                  reactedTypes.has(type)
-                    ? 'bg-white/20 border-white/50 scale-110 shadow-lg'
-                    : 'bg-white/5 border-white/10 hover:bg-white/15 hover:border-white/25 hover:scale-105'
-                }`}
-              >
-                <span className="text-3xl">{REACTION_EMOJI[type]}</span>
-                <span className="text-white font-bold text-sm">{reactions[type]}</span>
-              </button>
-            ))}
+          {/* Reactions */}
+          <p className="text-white/35 text-[10px] font-bold tracking-[0.18em] uppercase mb-3">Rate this story</p>
+          <div className="flex items-center justify-center gap-3 mb-6">
+            {(['HEART', 'FIRE', 'THUMBS_UP'] as ReactionType[]).map(type => {
+              const cfg = REACTION_CONFIG[type];
+              const active = reactedTypes.has(type);
+              return (
+                <button
+                  key={type}
+                  onClick={() => handleReact(type)}
+                  className={`flex flex-col items-center gap-2 py-4 px-4 rounded-[20px] transition-all duration-300 ${
+                    active
+                      ? `bg-gradient-to-b ${cfg.activeBg} border border-white/25 scale-110 ${cfg.activeGlow}`
+                      : 'border border-white/8 hover:border-white/20 hover:scale-105 active:scale-95'
+                  }`}
+                  style={{ background: active ? undefined : 'rgba(255,255,255,0.04)', minWidth: 76 }}
+                >
+                  {cfg.icon(active)}
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-white font-bold text-base leading-none">{reactions[type]}</span>
+                    <span className={`text-[10px] font-semibold ${active ? 'text-white/80' : 'text-white/35'}`}>{cfg.label}</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
 
+          {/* CTA Buttons */}
           <div className="space-y-2.5">
             <button
               onClick={() => { setCurrentIdx(0); setShowEnd(false); }}
-              className="w-full py-3.5 bg-white text-gray-900 font-bold rounded-2xl hover:bg-gray-100 transition flex items-center justify-center gap-2 text-sm"
+              className="w-full py-3.5 rounded-[16px] font-bold text-sm transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2.5"
+              style={{ background: 'linear-gradient(135deg,#0A6B3F,#10b981)', boxShadow: '0 4px 24px rgba(10,107,63,0.45)', color: 'white' }}
             >
-              <RotateCcw className="w-4 h-4" /> Watch Again
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-4.36" />
+              </svg>
+              Watch Again
             </button>
             <button
               onClick={() => router.push(backUrl)}
-              className="w-full py-3.5 bg-white/10 text-white font-medium rounded-2xl hover:bg-white/18 transition text-sm border border-white/15"
+              className="w-full py-3.5 rounded-[16px] font-semibold text-sm transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2.5"
+              style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.85)' }}
             >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
               Browse More Stories
             </button>
           </div>
+
         </div>
       </div>
     );

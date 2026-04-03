@@ -6,7 +6,7 @@ import {
   Plus, Search, Edit, Trash2, Eye, Film,
   Globe, Clock, Archive, ChevronLeft, ChevronRight,
   Loader2, ArrowUp, ArrowDown, CheckCircle, XCircle,
-  LayoutGrid, AlertTriangle,
+  LayoutGrid, AlertTriangle, TrendingUp,
 } from 'lucide-react';
 
 interface WebStory {
@@ -29,6 +29,7 @@ interface WebStory {
   slideCount: number;
   hasTextElement: boolean;
   reactions: { HEART: number; FIRE: number; THUMBS_UP: number; total: number };
+  viewCount: number;
 }
 
 type TabFilter = 'all' | 'published' | 'draft' | 'archived';
@@ -251,6 +252,7 @@ export default function WebStoriesAdminPage() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Category</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Slides</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden xl:table-cell">Reactions</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">Views</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden lg:table-cell">SEO</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden xl:table-cell">Expires</th>
@@ -318,6 +320,12 @@ export default function WebStoriesAdminPage() {
                         <span>❤️ {story.reactions.HEART}</span>
                         <span>🔥 {story.reactions.FIRE}</span>
                         <span>👍 {story.reactions.THUMBS_UP}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      <div className="flex items-center gap-1 text-xs text-gray-600 font-medium">
+                        <TrendingUp className="w-3 h-3 text-blue-500" />
+                        {story.viewCount.toLocaleString()}
                       </div>
                     </td>
                     <td className="px-4 py-3">
