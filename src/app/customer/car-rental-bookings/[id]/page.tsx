@@ -60,8 +60,16 @@ interface BookingDetails {
   status: string;
   driverName?: string;
   driverPhone?: string;
+  driverEmail?: string;
+  driverPhoto?: string;
+  acceptedDriverId?: string;
   vehicleNumber?: string;
-  vehicle_model?: string;
+  vehicleModel?: string;
+  vehicleColor?: string;
+  vehicleFuelType?: string;
+  vehicleSeats?: number;
+  vehicleYear?: number;
+  vehiclePhoto?: string;
   tripStartOtp?: string;
   tripStartedAt?: string;
   tripEndedAt?: string;
@@ -99,22 +107,34 @@ export default function CarRentalBookingDetailPage() {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState('');
 
-  useEffect(() => {
-    const fetchBooking = async () => {
-      try {
-        const response = await fetch(`/api/car-rental/bookings/${params.id}`);
-        const data = await response.json();
-        if (data.success) {
-          setBooking(data.booking);
-        }
-      } catch (error) {
-        console.error('Failed to fetch booking:', error);
-      } finally {
-        setIsLoading(false);
+  const fetchBooking = async (silent = false) => {
+    try {
+      const response = await fetch(`/api/car-rental/bookings/${params.id}`);
+      const data = await response.json();
+      if (data.success) {
+        setBooking(data.booking);
       }
-    };
+    } catch (error) {
+      console.error('Failed to fetch booking:', error);
+    } finally {
+      if (!silent) setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchBooking();
   }, [params.id]);
+
+  // Poll every 10s when waiting for OTP (driver hasn't sent it yet)
+  useEffect(() => {
+    if (!booking) return;
+    const isWaitingForOtp =
+      ['ACCEPTED', 'DRIVER_ASSIGNED'].includes(booking.status) && !booking.tripStartOtp;
+    if (!isWaitingForOtp) return;
+
+    const interval = setInterval(() => fetchBooking(true), 10000);
+    return () => clearInterval(interval);
+  }, [booking?.status, booking?.tripStartOtp]);
 
   const handleCancel = async () => {
     if (!confirm('Are you sure you want to cancel this booking?')) return;
@@ -224,87 +244,79 @@ export default function CarRentalBookingDetailPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Contact Vendor Card (when confirmed but no driver assigned yet) */}
-            {!booking.driverName && booking.acceptedVendorId && ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS'].includes(booking.status) && (
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <h2 className="font-semibold text-gray-900 mb-4">Contact Vendor</h2>
-                <p className="text-gray-600 mb-4">Your booking is confirmed. A driver will be assigned soon.</p>
-                <BikeBookingChat
-                  bookingId={booking.id}
-                  vendorId={booking.acceptedVendorId}
-                  vendorName="Vendor"
-                  customerId={customer?.id?.toString() || booking.customerId || `guest-${booking.id}`}
-                  customerName={customer?.name || 'Customer'}
-                />
-              </div>
-            )}
 
             {/* Driver Card (if assigned) */}
-            {booking.driverName && !['COMPLETED', 'CANCELLED'].includes(booking.status) && (
+            {(booking.driverName || booking.acceptedDriverId) && !['COMPLETED', 'CANCELLED'].includes(booking.status) && (
               <div className="bg-white rounded-xl shadow-sm border p-6">
                 <h2 className="font-semibold text-gray-900 mb-4">Your Driver</h2>
                 <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
-                    <User className="w-8 h-8 text-emerald-600" />
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center overflow-hidden">
+                    {booking.driverPhoto
+                      ? <img src={booking.driverPhoto} alt="Driver" className="w-full h-full object-cover" />
+                      : <User className="w-8 h-8 text-emerald-600" />}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg text-gray-900">{booking.driverName}</h3>
-                    <p className="text-gray-600">{booking.vehicle_models}</p>
-                    <p className="text-sm text-gray-500">{booking.vehicleNumber}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <a
-                      href={`tel:${booking.driverPhone}`}
-                      className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center hover:bg-emerald-200"
-                    >
-                      <Phone className="w-5 h-5 text-emerald-600" />
-                    </a>
-                    <a
-                      href={`https://wa.me/${booking.driverPhone?.replace(/\D/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center hover:bg-emerald-200"
-                    >
-                      <MessageCircle className="w-5 h-5 text-emerald-600" />
-                    </a>
+                    <h3 className="font-semibold text-lg text-gray-900">{booking.driverName || 'Driver Assigned'}</h3>
+                    {booking.driverEmail && <p className="text-sm text-gray-500">{booking.driverEmail}</p>}
                   </div>
                 </div>
 
-                {/* Chat with Vendor */}
-                {booking.acceptedVendorId && (
+
+                {/* Vehicle Details */}
+                {(booking.vehicleNumber || booking.vehicleModel) && (
                   <div className="mt-4 pt-4 border-t">
-                    <BikeBookingChat
-                      bookingId={booking.id}
-                      vendorId={booking.acceptedVendorId}
-                      vendorName={booking.driverName || 'Vendor'}
-                      customerId={customer?.id?.toString() || booking.customerId || `guest-${booking.id}`}
-                      customerName={customer?.name || 'Customer'}
-                    />
+                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-2">Vehicle</p>
+                    <div className="flex items-start gap-3">
+                      {booking.vehiclePhoto && (
+                        <img src={booking.vehiclePhoto} alt="Vehicle" className="w-20 h-14 object-cover rounded-lg border" />
+                      )}
+                      <div className="flex-1">
+                        {booking.vehicleModel && (
+                          <p className="font-semibold text-gray-900">{booking.vehicleModel}</p>
+                        )}
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-gray-600">
+                          {booking.vehicleNumber && (
+                            <span className="font-mono bg-gray-100 px-2 py-0.5 rounded text-xs">{booking.vehicleNumber}</span>
+                          )}
+                          {booking.vehicleColor && <span>{booking.vehicleColor}</span>}
+                          {booking.vehicleYear && <span>{booking.vehicleYear}</span>}
+                          {booking.vehicleFuelType && <span>{booking.vehicleFuelType}</span>}
+                          {booking.vehicleSeats && <span>{booking.vehicleSeats} Seats</span>}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                {/* OTP for trip start */}
-                {booking.status === 'DRIVER_ASSIGNED' && (
-                  <div className="mt-4 bg-amber-50 rounded-lg p-4 border border-amber-200">
-                    {booking.tripStartOtp ? (
-                      <>
-                        <p className="text-sm text-amber-700 mb-2">Trip Start OTP</p>
-                        <p className="text-3xl font-bold text-amber-700 tracking-widest">
-                          {booking.tripStartOtp}
-                        </p>
-                        <p className="text-xs text-amber-600 mt-1">
-                          Share this OTP with your driver to start the trip
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm text-amber-700 mb-1">Trip Start OTP</p>
-                        <p className="text-xs text-amber-600">
-                          An OTP will be sent to your phone when the driver is ready to start the trip. Share the OTP with your driver to begin the journey.
-                        </p>
-                      </>
-                    )}
-                  </div>
+              </div>
+            )}
+
+            {/* OTP for trip start — standalone card, always visible when active */}
+            {['ACCEPTED', 'DRIVER_ASSIGNED'].includes(booking.status) && (
+              <div className="bg-white rounded-xl shadow-sm border p-6">
+                {booking.tripStartOtp ? (
+                  <>
+                    <p className="text-sm font-semibold text-amber-700 mb-2">Trip Start OTP</p>
+                    <p className="text-4xl font-bold text-amber-700 tracking-widest mb-2">
+                      {booking.tripStartOtp}
+                    </p>
+                    <p className="text-xs text-amber-600">
+                      Share this OTP with your driver to start the trip
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-amber-700 mb-1">Trip Start OTP</p>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Waiting for driver to send OTP. Share the OTP with your driver to begin the journey.
+                    </p>
+                    <button
+                      onClick={() => fetchBooking(true)}
+                      className="text-xs text-amber-700 underline"
+                    >
+                      Refresh
+                    </button>
+                  </>
                 )}
               </div>
             )}

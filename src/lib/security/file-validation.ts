@@ -45,10 +45,10 @@ const FILE_SIGNATURES: Record<string, { signature: number[]; offset: number }[]>
 
 // Allowed extensions by category
 export const ALLOWED_EXTENSIONS = {
-  images: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'],
+  images: ['jpg', 'jpeg', 'jfif', 'png', 'gif', 'webp', 'svg'],
   documents: ['pdf', 'doc', 'docx'],
   videos: ['mp4', 'webm'],
-  all: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'pdf', 'doc', 'docx', 'mp4', 'webm'],
+  all: ['jpg', 'jpeg', 'jfif', 'png', 'gif', 'webp', 'svg', 'pdf', 'doc', 'docx', 'mp4', 'webm'],
 };
 
 // Allowed MIME types by category

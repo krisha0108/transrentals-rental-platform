@@ -11,21 +11,106 @@ const PERIODS = [
   { key: 'all', label: 'All Time' },
 ];
 
+interface TripItem {
+  id: string;
+  bookingNumber: string;
+  pickupCity: string;
+  dropCity?: string;
+  completedAt: string;
+  earnings: number;
+  grandTotal?: number;
+  driverRating?: number;
+  serviceType: string;
+  isVendorAssigned?: boolean;
+}
+
 interface EarningsData {
   earnings: { total: number; trips: number };
   stats: { totalTrips: number; completedTrips: number; activeTrips: number };
-  history: Array<{
-    id: string;
-    bookingNumber: string;
-    pickupCity: string;
-    dropCity?: string;
-    completedAt: string;
-    earnings: number;
-    grandTotal?: number;
-    driverRating?: number;
-    serviceType: string;
-    isVendorAssigned?: boolean;
-  }>;
+  history: TripItem[];
+}
+
+function BarChart({ history, period }: { history: TripItem[]; period: string }) {
+  if (history.length === 0) return null;
+
+  // Group by day or month depending on period
+  const groups: Record<string, number> = {};
+  const now = new Date();
+
+  if (period === 'today') {
+    for (let h = 0; h < 24; h++) {
+      const label = h % 4 === 0 ? `${h}:00` : '';
+      groups[h] = 0;
+    }
+    history.forEach(t => {
+      const h = new Date(t.completedAt).getHours();
+      groups[h] = (groups[h] || 0) + (t.earnings || 0);
+    });
+  } else if (period === 'week') {
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now); d.setDate(now.getDate() - i);
+      const key = d.toLocaleDateString('en-IN', { weekday: 'short' });
+      groups[key] = 0;
+    }
+    history.forEach(t => {
+      const key = new Date(t.completedAt).toLocaleDateString('en-IN', { weekday: 'short' });
+      if (key in groups) groups[key] = (groups[key] || 0) + (t.earnings || 0);
+    });
+  } else if (period === 'month') {
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    for (let d = 1; d <= daysInMonth; d++) groups[d] = 0;
+    history.forEach(t => {
+      const day = new Date(t.completedAt).getDate();
+      groups[day] = (groups[day] || 0) + (t.earnings || 0);
+    });
+  } else {
+    // all — group by month
+    history.forEach(t => {
+      const key = new Date(t.completedAt).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+      groups[key] = (groups[key] || 0) + (t.earnings || 0);
+    });
+  }
+
+  const entries = Object.entries(groups);
+  const maxVal = Math.max(...entries.map(([, v]) => v), 1);
+
+  const todayKey = period === 'week'
+    ? now.toLocaleDateString('en-IN', { weekday: 'short' })
+    : period === 'month'
+    ? now.getDate()
+    : null;
+
+  return (
+    <div className="bg-white rounded-2xl border p-4">
+      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Earnings Breakdown</p>
+      <div className="flex items-end gap-1 h-28 overflow-x-auto pb-1">
+        {entries.map(([key, val]) => {
+          const heightPct = maxVal > 0 ? (val / maxVal) * 100 : 0;
+          const isToday = todayKey !== null && String(key) === String(todayKey);
+          const isCurrentHour = period === 'today' && Number(key) === now.getHours();
+          const highlight = isToday || isCurrentHour;
+          return (
+            <div key={key} className="flex flex-col items-center gap-1 shrink-0" style={{ flex: '1 0 auto', minWidth: entries.length > 20 ? 12 : 20 }}>
+              <div className="relative w-full flex items-end" style={{ height: 80 }}>
+                {val > 0 && (
+                  <div
+                    className={`w-full rounded-t-md transition-all ${highlight ? 'bg-emerald-500' : 'bg-emerald-200'}`}
+                    style={{ height: `${heightPct}%` }}
+                  />
+                )}
+                {val === 0 && <div className="w-full h-1 rounded bg-gray-100" />}
+              </div>
+              {entries.length <= 14 && (
+                <span className={`text-xs font-medium truncate ${highlight ? 'text-emerald-700' : 'text-gray-400'}`}>
+                  {period === 'today' ? (Number(key) % 4 === 0 ? `${key}h` : '') : key}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export default function EarningsPage() {
@@ -103,6 +188,11 @@ export default function EarningsPage() {
             </div>
           </div>
 
+          {/* Bar Chart */}
+          {(data?.history?.length ?? 0) > 0 && (
+            <BarChart history={data!.history} period={period} />
+          )}
+
           {/* Stats Grid */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white rounded-xl border p-4 text-center">
@@ -134,7 +224,7 @@ export default function EarningsPage() {
               <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Recent Completed Trips</h2>
               <div className="space-y-3">
                 {data!.history.slice(0, 10).map(trip => (
-                  <div key={trip.id} className="bg-white rounded-xl border p-4">
+                  <Link key={trip.id} href={`/driver/bookings/${trip.bookingNumber}`} className="block bg-white rounded-xl border p-4 hover:border-emerald-300 hover:shadow-sm transition">
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -154,9 +244,7 @@ export default function EarningsPage() {
                       </div>
                       <div className="text-right">
                         {trip.isVendorAssigned ? (
-                          <div className="text-right">
-                            <p className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Paid by Vendor</p>
-                          </div>
+                          <p className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Paid by Vendor</p>
                         ) : (
                           <p className="font-bold text-emerald-700 flex items-center gap-0.5">
                             <IndianRupee className="w-3.5 h-3.5" />{(trip.earnings || 0).toLocaleString()}
@@ -171,14 +259,11 @@ export default function EarningsPage() {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
               {(data?.history.length ?? 0) > 10 && (
-                <Link
-                  href="/driver/earnings/history"
-                  className="block text-center text-sm text-emerald-600 font-medium mt-3 hover:underline"
-                >
+                <Link href="/driver/earnings/history" className="block text-center text-sm text-emerald-600 font-medium mt-3 hover:underline">
                   View all {data!.history.length} trips →
                 </Link>
               )}

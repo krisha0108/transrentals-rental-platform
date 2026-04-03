@@ -26,7 +26,7 @@ function generateBookingNumber(): string {
 
 // Generate OTP
 function generateOTP(): string {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 // Map trip type from form to enum
@@ -161,8 +161,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // For outstation roundtrip, validate return date
-      if (returnDate && (tripType === 'outstation' || mode === 'roundtrip')) {
+      // For outstation roundtrip, validate return date (skip for one-way)
+      if (returnDate && mode !== 'one-way' && mode !== 'one_way') {
         const returnD = new Date(returnDate);
         if (isNaN(returnD.getTime())) {
           return NextResponse.json(

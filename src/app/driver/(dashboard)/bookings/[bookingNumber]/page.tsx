@@ -46,6 +46,7 @@ interface Booking {
   dropCity?: string;
   pickupAddress?: string;
   dropAddress?: string;
+  intermediateStops?: Array<{ id?: string; locationId?: string; cityText: string }>;
   pickupDate: string;
   pickupTime: string;
   returnDate?: string;
@@ -116,6 +117,8 @@ interface Booking {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
   // Car/Bus/Truck statuses
+  BROADCASTED: { label: 'Available Trip', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  ACCEPTED: { label: 'Trip Accepted', color: 'text-emerald-700', bgColor: 'bg-emerald-100' },
   DRIVER_ASSIGNED: { label: 'Ready to Start', color: 'text-amber-700', bgColor: 'bg-amber-100' },
   VEHICLE_ASSIGNED: { label: 'Ready to Start', color: 'text-amber-700', bgColor: 'bg-amber-100' },
   IN_PROGRESS: { label: 'Trip in Progress', color: 'text-purple-700', bgColor: 'bg-purple-100' },
@@ -164,6 +167,8 @@ export default function DriverBookingDetailPage() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [acceptLoading, setAcceptLoading] = useState(false);
+  const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState('');
 
   // OTP flow
@@ -375,6 +380,29 @@ export default function DriverBookingDetailPage() {
     }
   };
 
+  const handleAcceptTrip = async () => {
+    if (!booking) return;
+    setAcceptLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/driver/available-bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: booking.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAccepted(true);
+        setBooking(prev => prev ? { ...prev, status: 'ACCEPTED' } : null);
+      } else {
+        setError(data.error || 'Failed to accept trip');
+      }
+    } catch {
+      setError('Failed to accept trip');
+    }
+    setAcceptLoading(false);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -400,6 +428,7 @@ export default function DriverBookingDetailPage() {
   const isEquipment = booking.serviceType === 'equipment';
   const isLuxury = booking.serviceType === 'luxury';
   const isB2B = booking.serviceType === 'b2b';
+  const isCarRental = !isBus && !isTruck && !isPackers && !isEquipment && !isLuxury && !isB2B;
   const ServiceIcon = SERVICE_ICONS[booking.serviceType || 'car'] || Car;
   const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.DRIVER_ASSIGNED;
 
@@ -482,6 +511,25 @@ export default function DriverBookingDetailPage() {
         </div>
       </div>
 
+      {/* Accept Trip — shown when booking is still BROADCASTED */}
+      {booking.status === 'BROADCASTED' && (
+        <div className="bg-white rounded-xl border p-5">
+          {accepted ? (
+            <div className="flex items-center justify-center gap-2 py-3 bg-green-50 text-green-700 rounded-xl font-semibold">
+              <CheckCircle className="w-5 h-5" /> Trip Accepted! Check My Trips.
+            </div>
+          ) : (
+            <button
+              onClick={handleAcceptTrip}
+              disabled={acceptLoading}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition disabled:opacity-50"
+            >
+              {acceptLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Accepting...</> : 'Accept This Trip'}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* B2B Vehicle Image */}
       {isB2B && booking.vehicleImage && (
         <div className="bg-white rounded-xl border overflow-hidden">
@@ -530,7 +578,7 @@ export default function DriverBookingDetailPage() {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 className="w-full pl-12 pr-4 py-3 text-center text-2xl font-bold tracking-widest border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500"
-                placeholder="- - - -"
+                placeholder="- - - - - -"
                 maxLength={4}
                 inputMode="numeric"
               />
@@ -696,19 +744,19 @@ export default function DriverBookingDetailPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Enter 4-digit OTP from Customer
+                  {isCarRental ? 'Enter 6-digit OTP from Customer' : 'Enter 4-digit OTP from Customer'}
                 </label>
                 <div className="relative">
                   <KeyRound className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, isCarRental ? 6 : 4))}
                     className={`w-full pl-12 pr-4 py-3 text-center text-2xl font-bold tracking-widest border border-gray-300 rounded-xl focus:ring-2 ${
                       isTruck ? 'focus:ring-indigo-500' : 'focus:ring-emerald-500'
                     }`}
-                    placeholder="• • • •"
-                    maxLength={4}
+                    placeholder="• • • • • •"
+                    maxLength={isCarRental ? 6 : 4}
                     inputMode="numeric"
                   />
                 </div>
@@ -730,7 +778,7 @@ export default function DriverBookingDetailPage() {
                 </button>
                 <button
                   onClick={handleStartTrip}
-                  disabled={actionLoading || otp.length !== 4}
+                  disabled={actionLoading || otp.length !== (isCarRental ? 6 : 4)}
                   className={`flex-1 py-3 text-white rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2 ${
                     isTruck ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-emerald-600 hover:bg-emerald-700'
                   }`}
@@ -839,7 +887,7 @@ export default function DriverBookingDetailPage() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     className="w-full pl-12 pr-4 py-3 text-center text-2xl font-bold tracking-widest border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
-                    placeholder="• • • •"
+                    placeholder="• • • • • •"
                     maxLength={4}
                     inputMode="numeric"
                   />
@@ -985,7 +1033,7 @@ export default function DriverBookingDetailPage() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     className="w-full pl-12 pr-4 py-3 text-center text-2xl font-bold tracking-widest border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-500"
-                    placeholder="• • • •"
+                    placeholder="• • • • • •"
                     maxLength={4}
                     inputMode="numeric"
                   />
@@ -1088,7 +1136,7 @@ export default function DriverBookingDetailPage() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     className="w-full pl-12 pr-4 py-3 text-center text-2xl font-bold tracking-widest border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
-                    placeholder="• • • •"
+                    placeholder="• • • • • •"
                     maxLength={4}
                     inputMode="numeric"
                   />
@@ -1231,7 +1279,7 @@ export default function DriverBookingDetailPage() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     className="w-full pl-12 pr-4 py-3 text-center text-2xl font-bold tracking-widest border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
-                    placeholder="• • • •"
+                    placeholder="• • • • • •"
                     maxLength={4}
                     inputMode="numeric"
                   />
@@ -1417,7 +1465,7 @@ export default function DriverBookingDetailPage() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     className="w-full pl-12 pr-4 py-3 text-center text-2xl font-bold tracking-widest border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500"
-                    placeholder="• • • •"
+                    placeholder="• • • • • •"
                     maxLength={4}
                     inputMode="numeric"
                   />
@@ -1600,7 +1648,7 @@ export default function DriverBookingDetailPage() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     className="w-full pl-12 pr-4 py-3 text-center text-2xl font-bold tracking-widest border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
-                    placeholder="• • • •"
+                    placeholder="• • • • • •"
                     maxLength={4}
                     inputMode="numeric"
                   />
@@ -1768,7 +1816,7 @@ export default function DriverBookingDetailPage() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
                     className="w-full pl-12 pr-4 py-3 text-center text-2xl font-bold tracking-widest border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500"
-                    placeholder="• • • •"
+                    placeholder="• • • • • •"
                     maxLength={4}
                     inputMode="numeric"
                   />
@@ -2039,33 +2087,37 @@ export default function DriverBookingDetailPage() {
           )}
 
           {/* Standard Pickup/Drop for car/bus/truck */}
-          {!isPackers && !isEquipment && (
-            <>
+          {!isPackers && !isEquipment && (() => {
+            const stops = (booking.intermediateStops || []).filter((s) => s.cityText);
+            const allPoints = [
+              { label: booking.pickupCity, sub: booking.pickupAddress, type: 'pickup' as const },
+              ...stops.map((s) => ({ label: s.cityText, sub: undefined, type: 'stop' as const })),
+              ...(booking.dropCity ? [{ label: booking.dropCity, sub: booking.dropAddress, type: 'drop' as const }] : []),
+            ];
+            return (
               <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-emerald-600 mt-0.5" />
-                <div>
-                  <p className="text-sm text-gray-500">Pickup</p>
-                  <p className="font-medium">{booking.pickupCity}</p>
-                  {booking.pickupAddress && (
-                    <p className="text-sm text-gray-500">{booking.pickupAddress}</p>
-                  )}
+                <div className="flex flex-col items-center pt-1 flex-shrink-0">
+                  {allPoints.map((p, i) => (
+                    <div key={i} className="flex flex-col items-center">
+                      <div className={`w-3 h-3 rounded-full ${p.type === 'pickup' ? 'bg-emerald-500' : p.type === 'drop' ? 'bg-red-500' : 'bg-orange-400'}`} />
+                      {i < allPoints.length - 1 && <div className="w-0.5 bg-gray-200" style={{ height: stops.length > 0 ? '2.75rem' : '2.25rem' }} />}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex-1 space-y-3">
+                  {allPoints.map((point, i) => (
+                    <div key={i} className={`pb-2 ${i < allPoints.length - 1 ? 'border-b border-dashed border-gray-100' : ''}`}>
+                      <p className="text-sm text-gray-500">
+                        {point.type === 'pickup' ? 'Pickup' : point.type === 'drop' ? 'Drop' : `Stop ${i}`}
+                      </p>
+                      <p className="font-medium">{point.label}</p>
+                      {point.sub && <p className="text-sm text-gray-500">{point.sub}</p>}
+                    </div>
+                  ))}
                 </div>
               </div>
-
-              {booking.dropCity && (
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-red-500 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-gray-500">Drop</p>
-                    <p className="font-medium">{booking.dropCity}</p>
-                    {booking.dropAddress && (
-                      <p className="text-sm text-gray-500">{booking.dropAddress}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+            );
+          })()}
 
           {/* Date/Time based on service type */}
           <div className="flex items-start gap-3">

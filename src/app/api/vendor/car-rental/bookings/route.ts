@@ -68,9 +68,12 @@ export async function GET(request: NextRequest) {
     };
 
     // Condition 2: This vendor's bookings (any status except PENDING_PAYMENT)
+    // acceptedDriverId/acceptedStaffId must be null to exclude bookings self-accepted by a driver directly
     const ownBookingsCondition: any = {
       ...baseFilters,
       acceptedVendorId: vendorId,
+      acceptedDriverId: null,
+      acceptedStaffId: null,
       status: { not: 'PENDING_PAYMENT' },
     };
 
@@ -81,6 +84,8 @@ export async function GET(request: NextRequest) {
         whereConditions = [{
           ...baseFilters,
           acceptedVendorId: vendorId,
+          acceptedDriverId: null,
+          acceptedStaffId: null,
           status: { not: 'PENDING_PAYMENT' },
         }];
       } else if (status === 'available') {
@@ -103,6 +108,8 @@ export async function GET(request: NextRequest) {
           ...baseFilters,
           status,
           acceptedVendorId: vendorId,
+          acceptedDriverId: null,
+          acceptedStaffId: null,
         }];
       }
     } else {
@@ -158,6 +165,8 @@ export async function GET(request: NextRequest) {
 
     const statsOwnCondition = {
       acceptedVendorId: vendorId,
+      acceptedDriverId: null,
+      acceptedStaffId: null,
       ...(startDate || endDate ? { createdAt: baseFilters.createdAt } : {}),
     };
 
@@ -236,7 +245,8 @@ export async function GET(request: NextRequest) {
         customerNotes: b.customerNotes,
         vendorNotes: b.vendorNotes,
         acceptedVendorId: b.acceptedVendorId,
-        isOwnBooking: b.acceptedVendorId === vendorId,
+        acceptedDriverId: b.acceptedDriverId,
+        isOwnBooking: b.acceptedVendorId === vendorId && !b.acceptedDriverId && !(b as any).acceptedStaffId,
         droppedAt: b.droppedAt,
         dropReason: b.dropReason,
         location: b.locations,

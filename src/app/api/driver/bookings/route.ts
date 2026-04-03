@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       const filter = searchParams.get('filter') || 'active';
 
       const where: any = { acceptedDriverId: driver.id };
-      if (filter === 'active') where.status = { in: ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'STARTED'] };
+      if (filter === 'active') where.status = { in: ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS'] };
       else if (filter === 'completed') where.status = 'COMPLETED';
 
       const rows = await prisma.chauffeur_bookings.findMany({
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       });
       const stats = {
         total: allRows.length,
-        active: allRows.filter(b => ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'STARTED'].includes(b.status)).length,
+        active: allRows.filter(b => ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS'].includes(b.status)).length,
         completed: allRows.filter(b => b.status === 'COMPLETED').length,
         totalEarnings: allRows.filter(b => b.status === 'COMPLETED').reduce((s, b) => s + (b.driverBatta || 0), 0),
       };
