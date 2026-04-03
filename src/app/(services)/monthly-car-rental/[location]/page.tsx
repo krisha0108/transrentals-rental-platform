@@ -7,6 +7,10 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { prisma } from '@/lib/db/prisma';
+import { getSelfDriveServiceId, getLocationId } from '@/lib/db/build-cache';
+import Image from 'next/image';
+import { MonthlyCarPlans } from '@/components/monthly-car-rental/MonthlyCarPlans';
 
 interface PageProps {
   params: {
@@ -70,6 +74,38 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
 
   const seoData = await resolvePageMeta(`monthly-car-rental:${params.location}`);
 
+  // Fetch self-drive vehicle models for monthly plans
+  const [selfDriveServiceId, locationId] = await Promise.all([
+    getSelfDriveServiceId(),
+    getLocationId(params.location),
+  ]);
+
+  const vehicleModels = selfDriveServiceId ? await prisma.vehicle_models.findMany({
+    where: { serviceId: selfDriveServiceId, isActive: true },
+    select: {
+      id: true, name: true, sideImage: true, seatingCapacity: true,
+      basePricePerDay: true, monthlyDiscount: true, isPopular: true, bodyType: true,
+      ...(locationId ? {
+        vehicle_model_locations: {
+          where: { locationId, isActive: true },
+          select: { basePricePerDay: true },
+          take: 1,
+        },
+      } : {}),
+    },
+    orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+  }) : [];
+
+  const monthlyPlans = vehicleModels
+    .map((m) => {
+      const locationPrice = m.vehicle_model_locations?.[0]?.basePricePerDay;
+      const basePrice = locationPrice ?? m.basePricePerDay ?? 0;
+      const monthlyPrice = basePrice > 0
+        ? Math.round(basePrice * 30 * (1 - (m.monthlyDiscount ?? 0) / 100))
+        : 0;
+      return { ...m, monthlyPrice };
+    })
+    .filter((m) => m.monthlyPrice > 0);
 
   return (
     <>
@@ -113,32 +149,9 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
       </section>
 
       {/* Monthly Plans */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Monthly Plans in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { car: 'Hatchback', price: '12000-15000', km: '2000 km/month' },
-              { car: 'Sedan', price: '18000-22000', km: '2500 km/month' },
-              { car: 'SUV', price: '25000-30000', km: '2500 km/month' },
-              { car: 'Premium SUV', price: '35000-40000', km: '3000 km/month' },
-              { car: 'Luxury Sedan', price: '50000-60000', km: '3000 km/month' },
-              { car: 'With Chauffeur', price: '+15000-20000', km: '2000 km/month' },
-            ].map((item) => (
-              <div key={item.car} className="bg-white p-6 rounded-lg shadow-md border-t-4 border-teal-600">
-                <h3 className="text-xl font-bold mb-2">{item.car}</h3>
-                <p className="text-2xl font-bold text-teal-700 mb-2">₹{item.price}</p>
-                <p className="text-sm text-gray-600 mb-4">{item.km}</p>
-                <button className="w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-700 transition">
-                  Subscribe Now
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {monthlyPlans.length > 0 && (
+        <MonthlyCarPlans plans={monthlyPlans} locationName={locationName} />
+      )}
 
       {/* What's Included */}
       <section className="py-16">

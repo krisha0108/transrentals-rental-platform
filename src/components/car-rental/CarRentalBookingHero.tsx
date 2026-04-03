@@ -1773,7 +1773,20 @@ export function CarRentalBookingHero({
                     {/* Car Options */}
                     {!loadingPrices && (
                       <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
-                        {vehicleCategories.map((vehicle) => {
+                        {[...vehicleCategories]
+                          .sort((a, b) => {
+                            const aAvail = carPrices[a.id]?.success && carPrices[a.id]?.pricing?.grandTotal > 0 ? 0 : 1;
+                            const bAvail = carPrices[b.id]?.success && carPrices[b.id]?.pricing?.grandTotal > 0 ? 0 : 1;
+                            return aAvail - bAvail;
+                          })
+                          .filter((vehicle) => {
+                            const priceData = carPrices[vehicle.id];
+                            const hasPrice = priceData?.success && priceData.pricing?.grandTotal > 0;
+                            // Only hide unavailable if we have pricing data loaded for at least some vehicles
+                            const hasSomeData = Object.keys(carPrices).length > 0;
+                            return hasPrice || !hasSomeData;
+                          })
+                          .map((vehicle) => {
                           const priceData = carPrices[vehicle.id];
                           const hasPrice =
                             priceData?.success && priceData.pricing?.grandTotal > 0;
