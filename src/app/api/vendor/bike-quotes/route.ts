@@ -348,6 +348,7 @@ export async function POST(request: NextRequest) {
     } else {
       validTill = new Date();
       validTill.setDate(validTill.getDate() + finalValidityDays!);
+      validTill.setHours(23, 59, 59, 999); // expire at end of day
     }
     const storedValidityDays = useCustomValidity
       ? Math.max(1, Math.ceil((validTill.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
@@ -402,7 +403,7 @@ export async function POST(request: NextRequest) {
 
     // Check if a withdrawn quote exists (re-quote after withdrawal)
     const withdrawnQuote = await prisma.bike_quotes.findFirst({
-      where: { requestId, vendorId: vendorId, status: 'WITHDRAWN' },
+      where: { requestId, vendorId: vendorId, status: { in: ['WITHDRAWN', 'EXPIRED'] } },
       select: { id: true },
     });
 

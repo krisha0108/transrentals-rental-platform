@@ -652,6 +652,7 @@ export default function SendBikeQuotePage() {
                 </button>
               </div>
             </div>
+            {kmLimitPerDay !== 'unlimited' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Extra KM Charge (if limit set)
@@ -667,6 +668,7 @@ export default function SendBikeQuotePage() {
                 />
               </div>
             </div>
+            )}
           </div>
 
           {/* Advance & Validity Row */}
@@ -759,9 +761,14 @@ export default function SendBikeQuotePage() {
               )}
               <p className="text-xs text-gray-400 mt-1">
                 {validityMode === 'days'
-                  ? `Quote expires in ${validityDays} day${validityDays !== '1' ? 's' : ''} from submission`
+                  ? (() => {
+                      const d = new Date();
+                      d.setDate(d.getDate() + parseInt(validityDays || '3'));
+                      d.setHours(23, 59, 59, 999);
+                      return `Expires: ${d.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at 11:59 PM`;
+                    })()
                   : customValidDate
-                    ? `Quote valid till ${new Date(`${customValidDate}T${customValidTime || '23:59'}`).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
+                    ? `Quote valid till ${new Date(`${customValidDate}T${customValidTime || '23:59'}:00`).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
                     : 'Select expiry date and time'}
               </p>
             </div>

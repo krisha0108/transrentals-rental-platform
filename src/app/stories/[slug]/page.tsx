@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import StoryViewer from './_components/StoryViewer';
 
+export const dynamic = 'force-dynamic';
+
 async function getStory(rawSlug: string) {
   try {
     const now = new Date();

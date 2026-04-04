@@ -364,7 +364,7 @@ export default function LuxuryHomeScreen({ navigation }) {
                 const sc = STATUS_CFG[b.status] || { label: b.status, bg: C.border, text: C.muted };
                 return (
                   <TouchableOpacity
-                    key={b.id}
+                    key={`upcoming-${b.id}`}
                     style={s.bookingCard}
                     onPress={() => {
                       if (b.type === 'quote_request' || b.type === 'quoted') {
@@ -410,7 +410,7 @@ export default function LuxuryHomeScreen({ navigation }) {
                 const sc = STATUS_CFG[b.status] || { label: b.status, bg: C.border, text: C.muted };
                 return (
                   <TouchableOpacity
-                    key={b.id}
+                    key={`recent-${b.id}`}
                     style={s.bookingCard}
                     onPress={() => {
                       if (b.type === 'quote_request' || b.type === 'quoted') {

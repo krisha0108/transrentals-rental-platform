@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Play, Zap, TrendingUp, Clock } from 'lucide-react';
 import { prisma } from '@/lib/db/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Web Stories | TransRentals',
   description: 'Explore immersive stories about travel, rentals, deals and more.',

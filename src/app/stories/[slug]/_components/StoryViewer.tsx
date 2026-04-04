@@ -127,7 +127,7 @@ const ANIM_KEYS = new Set(['fade-in','slide-up','slide-down','slide-left','slide
 function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKey: string }) {
   if (!elements?.length) return null;
   return (
-    <div key={slideKey} className="absolute inset-0 overflow-hidden" style={{ containerType: 'inline-size' } as any}>
+    <div key={slideKey} className="absolute inset-0 overflow-hidden" style={{ containerType: 'inline-size', pointerEvents: 'none' } as any}>
       {[...elements].sort((a, b) => (a.z || 0) - (b.z || 0)).map((el: any) => {
         const flipX = el.flipX ? ' scaleX(-1)' : '';
         const flipY = el.flipY ? ' scaleY(-1)' : '';
@@ -145,7 +145,7 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
           width: `${(el.w / CANVAS_W) * 100}%`,
           height: `${(el.h / CANVAS_H) * 100}%`,
           transform: `rotate(${el.rot || 0}deg)${flipX}${flipY}`,
-          zIndex: (el.z || 0) + 5,
+          zIndex: (el.type === 'button' && el.href) ? 20 : (el.z || 0) + 5,
           opacity: el.opacity ?? 1,
           filter: combinedFilter,
           animation: el.animation && ANIM_KEYS.has(el.animation) ? getAnimCss(el.animation, el.animationDuration, el.animationEasing) : undefined,
@@ -231,21 +231,42 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
           const shapeFilter = [scaledFilterCss, borderDs, shadowFilter].filter(Boolean).join(' ') || undefined;
 
           // SVG-based shapes
+          const svgClipId = `sv-${el.id}`;
           if (shapeType === 'fcCylinder') {
+            const cylPath = 'M 0 18 Q 0 5 50 5 Q 100 5 100 18 L 100 82 Q 100 95 50 95 Q 0 95 0 82 Z';
+            if (el.bgImage) return (
+              <div key={el.id} style={{ ...s, filter: shapeFilter }}>
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+                  <defs><clipPath id={svgClipId}><path d={cylPath} /></clipPath></defs>
+                  <image href={el.bgImage} x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" clipPath={`url(#${svgClipId})`} />
+                </svg>
+              </div>
+            );
+            if (el.isFrame) return null;
             return (
               <div key={el.id} style={{ ...s, filter: shapeFilter }}>
                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-                  <path d="M 0 18 Q 0 5 50 5 Q 100 5 100 18 L 100 82 Q 100 95 50 95 Q 0 95 0 82 Z" fill={filled ? fillColor : 'transparent'} />
+                  <path d={cylPath} fill={filled ? fillColor : 'transparent'} />
                   <path d="M 0 18 Q 0 31 50 31 Q 100 31 100 18" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2" />
                 </svg>
               </div>
             );
           }
           if (VIEWER_SVG_PATHS[shapeType]) {
+            const svgPath = VIEWER_SVG_PATHS[shapeType];
+            if (el.bgImage) return (
+              <div key={el.id} style={{ ...s, filter: shapeFilter }}>
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+                  <defs><clipPath id={svgClipId}><path d={svgPath} /></clipPath></defs>
+                  <image href={el.bgImage} x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" clipPath={`url(#${svgClipId})`} />
+                </svg>
+              </div>
+            );
+            if (el.isFrame) return null;
             return (
               <div key={el.id} style={{ ...s, filter: shapeFilter }}>
                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-                  <path d={VIEWER_SVG_PATHS[shapeType]} fill={filled ? fillColor : 'transparent'} fillRule={shapeType === 'gear' ? 'evenodd' : 'nonzero'} />
+                  <path d={svgPath} fill={filled ? fillColor : 'transparent'} fillRule={shapeType === 'gear' ? 'evenodd' : 'nonzero'} />
                 </svg>
               </div>
             );
@@ -255,6 +276,7 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
           const bgImage = el.bgImage ? `url(${el.bgImage})` : undefined;
 
           if (clip !== 'none') {
+            if (el.isFrame && !el.bgImage) return null;
             return (
               <div key={el.id} style={{ ...s, filter: shapeFilter }}>
                 <div style={{
@@ -270,6 +292,7 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
           }
 
           // rect / circle
+          if (el.isFrame && !el.bgImage) return null;
           const br = shapeType === 'circle' ? '50%' : (el.borderRadius || 0);
           const borderStyle: React.CSSProperties = el.borderWidth && el.borderColor
             ? { border: `${el.borderWidth}px solid ${el.borderColor}` }
@@ -315,9 +338,9 @@ function ViewerCanvasElements({ elements, slideKey }: { elements: any[]; slideKe
             </span>
           );
           return (
-            <div key={el.id} style={s}>
+            <div key={el.id} style={{ ...s, ...(el.href ? { pointerEvents: 'auto' } : {}) }}>
               {el.href
-                ? <a href={el.href} onClick={e => e.stopPropagation()} style={innerStyle}>{label}</a>
+                ? <a href={el.href} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={innerStyle}>{label}</a>
                 : <div style={innerStyle}>{label}</div>
               }
             </div>
@@ -368,6 +391,7 @@ interface Story {
 interface StoryViewerProps {
   story: Story;
   backUrl?: string;
+  readonly?: boolean; // admin preview: disable reaction saving
 }
 
 type ReactionType = 'HEART' | 'FIRE' | 'THUMBS_UP';
@@ -497,7 +521,10 @@ function ProgressBar({
 // ─── Share Sheet ──────────────────────────────────────────────────────────────
 
 function ShareSheet({ story, onClose }: { story: Story; onClose: () => void }) {
-  const url = typeof window !== 'undefined' ? window.location.href : '';
+  // Always use canonical public story URL regardless of where viewer is embedded (e.g. admin preview)
+  const url = typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.host}/stories/${story.slug}`
+    : `/stories/${story.slug}`;
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -575,7 +602,7 @@ function ShareSheet({ story, onClose }: { story: Story; onClose: () => void }) {
 
 // ─── Main Viewer ──────────────────────────────────────────────────────────────
 
-export default function StoryViewer({ story, backUrl = '/stories' }: StoryViewerProps) {
+export default function StoryViewer({ story, backUrl = '/stories', readonly = false }: StoryViewerProps) {
   const router = useRouter();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -656,6 +683,9 @@ export default function StoryViewer({ story, backUrl = '/stories' }: StoryViewer
 
   const handleReact = async (type: ReactionType) => {
     if (reactedTypes.has(type)) return;
+    // Optimistic update for instant feedback
+    setReactedTypes(prev => new Set([...prev, type]));
+    if (readonly) return; // admin preview — don't save reactions
     try {
       const res = await fetch(`/api/web-stories/${story.slug}/react`, {
         method: 'POST',
@@ -663,7 +693,10 @@ export default function StoryViewer({ story, backUrl = '/stories' }: StoryViewer
         body: JSON.stringify({ reactionType: type }),
       });
       const data = await res.json();
-      if (res.ok) { setReactions(data.reactions); setReactedTypes(prev => new Set([...prev, type])); }
+      if (res.ok || res.status === 429) {
+        // Update counts whether fresh reaction or already-reacted (429 also returns counts now)
+        if (data.reactions) setReactions(data.reactions);
+      }
     } catch {}
   };
 

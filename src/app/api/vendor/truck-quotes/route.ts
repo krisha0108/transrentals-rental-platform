@@ -47,7 +47,8 @@ export async function GET(request: NextRequest) {
 
     const whereClause: any = { vendorId: vendorId };
     if (status && status !== 'all' && status !== '') {
-      whereClause.status = status;
+      const statuses = status.split(",").map((s) => s.trim()).filter(Boolean);
+      whereClause.status = statuses.length === 1 ? statuses[0] : { in: statuses };
     }
 
     // SEARCH FILTER
@@ -169,26 +170,21 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // Debug log FULL body
-    console.log('=== TRUCK QUOTE API - FULL BODY ===');
-    console.log(JSON.stringify(body, null, 2));
-    console.log('Body keys:', Object.keys(body));
-    console.log('vehicleName in body:', body.vehicleName);
-
     const {
       requestId, vendorFleetId, vehicle_category, vehicleName, vehicleNumber, vehicleCapacity,
       driverName, driverPhone, labourIncluded, labourCount, labourCharges,
-      baseAmount, perKmRate, loadingCharges, unloadingCharges, packagingCharges,
+      perKmRate, loadingCharges, unloadingCharges, packagingCharges,
       insuranceCharges, tollEstimate, gstAmount, vehicleImages, inclusions, exclusions, termsConditions,
-      validityDays = 3,
-      validUntil,
+      validityDays,
+      customValidTill,
+      templateId,
       advanceAmount: bodyAdvanceAmount,
       advancePercent = 50,
       customAdvanceAmount,
     } = body;
 
-    // Debug log to see what's being received after destructuring
-    console.log('After destructuring - vehicleName:', vehicleName);
+    // Accept totalPrice as alias for baseAmount (TruckSendQuoteScreen sends totalPrice)
+    const baseAmount = body.baseAmount ?? body.totalPrice;
 
     const missingFields = [];
     if (!requestId) missingFields.push('requestId');
@@ -231,9 +227,19 @@ export async function POST(request: NextRequest) {
 
     const quoteNumber = generateQuoteNumber();
     const totalAmount = (baseAmount || 0) + (labourCharges || 0) + (loadingCharges || 0) + (unloadingCharges || 0) + (packagingCharges || 0) + (insuranceCharges || 0) + (tollEstimate || 0) + (gstAmount || 0);
-    const validTill = validUntil && !isNaN(new Date(validUntil).getTime())
-      ? new Date(validUntil)
-      : (() => { const d = new Date(); d.setDate(d.getDate() + validityDays); return d; })();
+    const useCustomValidity = customValidTill && !isNaN(new Date(customValidTill).getTime());
+    const finalValidityDays = useCustomValidity ? null : (validityDays || 3);
+    let validTill: Date;
+    if (useCustomValidity) {
+      validTill = new Date(customValidTill);
+    } else {
+      validTill = new Date();
+      validTill.setDate(validTill.getDate() + finalValidityDays!);
+      validTill.setHours(23, 59, 59, 999);
+    }
+    const storedValidityDays = useCustomValidity
+      ? Math.max(1, Math.ceil((validTill.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : finalValidityDays!;
 
     // Fetch fleet vehicle images if vendorFleetId is provided and no manual images
     let finalVehicleImages = vehicleImages; // Use provided images if any
@@ -284,13 +290,12 @@ export async function POST(request: NextRequest) {
 
     // Check if a withdrawn quote exists (re-quote after withdrawal)
     const withdrawnQuote = await prisma.truck_quotes.findFirst({
-      where: { requestId, vendorId: vendorId, status: 'WITHDRAWN' },
+      where: { requestId, vendorId: vendorId, status: { in: ['WITHDRAWN', 'EXPIRED'] } },
       select: { id: true },
     });
 
     const quoteFields = {
       quoteNumber,
-      vendorFleetId: vendorFleetId || null,
       vehicleCategory: vehicle_category || quoteRequest.vehicleCategory,
       vehicleName,
       vehicleNumber: vehicleNumber || null,
@@ -324,8 +329,17 @@ export async function POST(request: NextRequest) {
     };
 
     const quote = withdrawnQuote
-      ? await prisma.truck_quotes.update({ where: { id: withdrawnQuote.id }, data: quoteFields })
-      : await prisma.truck_quotes.create({ data: { id: generateId(), requestId, vendorId: vendorId, ...quoteFields } });
+      ? await prisma.truck_quotes.update({
+          where: { id: withdrawnQuote.id },
+          data: {
+            ...quoteFields,
+            vendor_fleets: vendorFleetId ? { connect: { id: vendorFleetId } } : { disconnect: true },
+            vendor_truck_templates: templateId ? { connect: { id: templateId } } : { disconnect: true },
+          },
+        })
+      : await prisma.truck_quotes.create({
+          data: { id: generateId(), requestId, vendorId: vendorId, templateId: templateId || null, vendorFleetId: vendorFleetId || null, ...quoteFields },
+        });
 
     await prisma.truck_quote_requests.update({
       where: { id: requestId },
@@ -378,6 +392,7 @@ export async function POST(request: NextRequest) {
       quote: { id: quote.id, quoteNumber: quote.quoteNumber, totalAmount: quote.totalAmount, validTill: quote.validTill, status: quote.status },
     });
   } catch (error: any) {
+    console.error('🔴 TRUCK QUOTE POST ERROR:', error?.message, error?.stack?.split('\n').slice(0,4).join(' | '));
     logger.error('Failed to submit truck quote', error);
     return NextResponse.json({ error: 'Failed to submit quote', details: error?.message }, { status: 500 });
   }

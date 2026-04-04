@@ -93,7 +93,7 @@ export default async function AdminStoryPreviewPage({
           Admin Preview
         </span>
       </div>
-      <StoryViewer story={story} backUrl="/admin/web-stories" />
+      <StoryViewer story={story} backUrl="/admin/web-stories" readonly />
     </>
   );
 }

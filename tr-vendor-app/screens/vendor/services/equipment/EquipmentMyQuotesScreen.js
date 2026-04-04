@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, ActivityIndicator, StatusBar,
+  RefreshControl, ActivityIndicator, StatusBar, Alert, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getVendorQuotes } from '../../../api/client';
+import { getVendorQuotes, withdrawQuote } from '../../../api/client';
 import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
 import DateFilterModal from '../../../../components/DateFilterModal';
 
@@ -33,10 +33,18 @@ const STATUS_COLORS = {
 };
 
 const TABS = [
-  { id: 'all',      label: 'All'      },
-  { id: 'accepted', label: 'Accepted' },
-  { id: 'rejected', label: 'Rejected' },
+  { id: 'all',      label: 'All'              },
+  { id: 'active',   label: 'Active'            },
+  { id: 'accepted', label: 'Accepted'          },
+  { id: 'expired',  label: 'Expired/Rejected'  },
 ];
+
+// Map tab id → status param sent to API
+const TAB_STATUS_MAP = {
+  active:   'SENT,VIEWED',
+  accepted: 'ACCEPTED',
+  expired:  'EXPIRED,REJECTED,WITHDRAWN',
+};
 
 const getStatusIcon = (status) => {
   switch (status) {
@@ -66,17 +74,43 @@ const formatCurrency = (amount) => {
 export default function EquipmentMyQuotesScreen({ navigation }) {
   const [activeTab, setActiveTab]       = useState('all');
   const [showDateFilter, setShowDateFilter] = useState(false);
+  const [withdrawingId, setWithdrawingId]   = useState(null);
 
   const {
     data: quotes, loading, refreshing, hasMore,
     loadMore, refresh, initialLoad, applyDateFilter, dateFilter,
   } = useInfiniteScroll(getVendorQuotes, {
     service: 'equipment',
-    type: activeTab !== 'all' ? activeTab.toUpperCase() : null,
+    type: TAB_STATUS_MAP[activeTab] || null,
     filterKey: 'status',
   });
 
   useEffect(() => { initialLoad(); }, [initialLoad, activeTab]);
+
+  const handleWithdraw = (quote) => {
+    Alert.alert(
+      'Withdraw Quote',
+      'Are you sure you want to withdraw this quote? The customer will be notified.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Withdraw',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setWithdrawingId(quote.id);
+              await withdrawQuote('equipment', quote.id);
+              refresh();
+            } catch (e) {
+              Alert.alert('Error', e?.message || 'Failed to withdraw quote');
+            } finally {
+              setWithdrawingId(null);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const renderQuoteCard = ({ item }) => {
     const status      = item.status || 'PENDING';
@@ -88,6 +122,9 @@ export default function EquipmentMyQuotesScreen({ navigation }) {
     const totalAmount    = item.grandTotal || item.totalAmount || item.quotedAmount || 0;
     const validTill      = item.validTill  || item.validUntil;
     const requestNumber  = request.requestNumber || item.requestNumber;
+
+    const isActive   = ['SENT', 'VIEWED'].includes(status);
+    const canReQuote = status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(request.status);
 
     return (
       <TouchableOpacity
@@ -173,6 +210,45 @@ export default function EquipmentMyQuotesScreen({ navigation }) {
               <Icon name="chevron-right" size={14} color={C.g700} />
             </View>
           </View>
+
+          {/* Action buttons */}
+          {(isActive || canReQuote) && (
+            <View style={styles.cardActions}>
+              {isActive && (
+                <TouchableOpacity
+                  style={styles.withdrawBtn}
+                  onPress={(e) => { e.stopPropagation?.(); handleWithdraw(item); }}
+                  disabled={withdrawingId === item.id}
+                  activeOpacity={0.7}
+                >
+                  {withdrawingId === item.id ? (
+                    <ActivityIndicator size="small" color={C.red} />
+                  ) : (
+                    <>
+                      <Ionicons name="close-circle-outline" size={14} color={C.red} />
+                      <Text style={styles.withdrawBtnText}>Withdraw</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+              {canReQuote && (
+                <TouchableOpacity
+                  style={styles.freshQuoteBtn}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    navigation.navigate('EquipmentSendQuote', {
+                      requestId: request.id || item.requestId,
+                      prefillQuoteId: item.id,
+                    });
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="refresh-outline" size={14} color={C.g700} />
+                  <Text style={styles.freshQuoteBtnText}>Send Fresh Quote</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -185,7 +261,10 @@ export default function EquipmentMyQuotesScreen({ navigation }) {
       </View>
       <Text style={styles.emptyTitle}>No Quotes Found</Text>
       <Text style={styles.emptySubtitle}>
-        {activeTab === 'all' ? "You haven't sent any quotes yet" : `No ${activeTab} quotes`}
+        {activeTab === 'all'      ? "You haven't sent any quotes yet"
+         : activeTab === 'active'   ? 'No active quotes'
+         : activeTab === 'accepted' ? 'No accepted quotes'
+         : 'No expired or rejected quotes'}
       </Text>
     </View>
   );
@@ -209,17 +288,19 @@ export default function EquipmentMyQuotesScreen({ navigation }) {
       </LinearGradient>
 
       <View style={styles.tabBar}>
-        {TABS.map(tab => (
-          <TouchableOpacity
-            key={tab.id}
-            style={[styles.tabPill, activeTab === tab.id && styles.tabPillActive]}
-            onPress={() => setActiveTab(tab.id)}
-          >
-            <Text style={[styles.tabLabel, activeTab === tab.id && styles.tabLabelActive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
+          {TABS.map(tab => (
+            <TouchableOpacity
+              key={tab.id}
+              style={[styles.tabPill, activeTab === tab.id && styles.tabPillActive]}
+              onPress={() => setActiveTab(tab.id)}
+            >
+              <Text style={[styles.tabLabel, activeTab === tab.id && styles.tabLabelActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {loading && quotes.length === 0 ? (
@@ -288,13 +369,24 @@ const styles = StyleSheet.create({
   },
 
   tabBar: {
-    flexDirection: 'row', backgroundColor: C.card,
-    paddingHorizontal: 16, paddingVertical: 12, gap: 8,
-    borderBottomWidth: 1, borderBottomColor: C.border,
+    backgroundColor: C.card,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  tabScroll: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+    flexDirection: 'row',
   },
   tabPill: {
-    flex: 1, paddingVertical: 9, borderRadius: 20, alignItems: 'center',
-    backgroundColor: C.bg, borderWidth: 1, borderColor: C.border,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    alignItems: 'center',
+    backgroundColor: C.bg,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   tabPillActive: { backgroundColor: C.g700, borderColor: C.g700 },
   tabLabel:      { fontSize: 13, fontWeight: '600', color: C.sub },
@@ -352,6 +444,42 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14,
     backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center',
   },
+
+  /* Card action buttons */
+  cardActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+  },
+  withdrawBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: C.redL,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  withdrawBtnText: { fontSize: 13, fontWeight: '600', color: C.red },
+  freshQuoteBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: C.g50,
+    borderWidth: 1,
+    borderColor: C.g100,
+  },
+  freshQuoteBtnText: { fontSize: 13, fontWeight: '600', color: C.g700 },
 
   emptyState: { alignItems: 'center', paddingVertical: 80 },
   emptyIconWrap: {

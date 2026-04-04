@@ -28,7 +28,7 @@ export async function GET() {
       latestVersion: settingsMap['vendor_app_latest_version'] || '3.0.9',
       forceUpdate: settingsMap['vendor_app_force_update'] === 'true',
       updateMessage: settingsMap['vendor_app_update_message'] || 'New features and improvements available.',
-      playStoreUrl: 'https://play.google.com/store/apps/details?id=com.transrentals.vendor',
+      playStoreUrl: 'https://play.google.com/store/apps/details?id=com.transrentalsvenderapp',
     });
   } catch {
     // Fallback if DB is unreachable
@@ -37,7 +37,7 @@ export async function GET() {
       latestVersion: '3.0.9',
       forceUpdate: false,
       updateMessage: 'New features and improvements available.',
-      playStoreUrl: 'https://play.google.com/store/apps/details?id=com.transrentals.vendor',
+      playStoreUrl: 'https://play.google.com/store/apps/details?id=com.transrentalsvenderapp',
     });
   }
 }

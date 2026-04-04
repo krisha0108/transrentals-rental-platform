@@ -167,6 +167,53 @@ export default function BusQuoteRequestsScreen({ navigation }) {
             <Icon name="arrow-right" size={12} color={C.g600} />
           </View>
         </View>
+
+        {/* Quote action buttons */}
+        <View style={styles.quoteActions}>
+          {!item.hasQuoted ? (
+            <TouchableOpacity
+              style={styles.sendQuoteBtn}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                navigation.navigate('BusSendQuote', { requestId: item.id || item._id });
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="send-outline" size={14} color="#fff" />
+              <Text style={styles.sendQuoteBtnText}>Send Quote</Text>
+            </TouchableOpacity>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={styles.viewQuoteBtn}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  navigation.navigate('BusQuoteDetail', { quoteId: item.myQuote?.id });
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="checkmark-circle-outline" size={14} color={C.g700} />
+                <Text style={styles.viewQuoteBtnText}>View Your Quote</Text>
+              </TouchableOpacity>
+              {item.myQuote?.status === 'EXPIRED' && status === 'PENDING' && (
+                <TouchableOpacity
+                  style={styles.resubmitBtn}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    navigation.navigate('BusSendQuote', {
+                      requestId: item.id || item._id,
+                      prefillQuoteId: item.myQuote?.id,
+                    });
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="refresh-outline" size={14} color="#fff" />
+                  <Text style={styles.resubmitBtnText}>Resubmit Quote</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+        </View>
       </TouchableOpacity>
     );
   };
@@ -370,6 +417,37 @@ const styles = StyleSheet.create({
     borderRadius: 8, borderWidth: 1, borderColor: C.g100,
   },
   viewBtnText: { fontSize: 12, fontWeight: '600', color: C.g700 },
+
+  quoteActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  sendQuoteBtn: {
+    flex: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    paddingVertical: 9, borderRadius: 10,
+    backgroundColor: C.amber,
+  },
+  sendQuoteBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  viewQuoteBtn: {
+    flex: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    paddingVertical: 9, borderRadius: 10,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1, borderColor: '#D1FAE5',
+  },
+  viewQuoteBtnText: { fontSize: 13, fontWeight: '600', color: C.g700 },
+  resubmitBtn: {
+    flex: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    paddingVertical: 9, borderRadius: 10,
+    backgroundColor: '#EA580C',
+  },
+  resubmitBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
   emptyState: { alignItems: 'center', paddingVertical: 60, paddingHorizontal: 32 },
   emptyIconWrap: {
