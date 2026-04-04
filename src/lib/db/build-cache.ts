@@ -55,6 +55,17 @@ export function getSelfDriveServiceId(): Promise<string | null> {
   });
 }
 
+/** Returns the id of the bus-rental service (cached). */
+export function getBusRentalServiceId(): Promise<string | null> {
+  return getOrCache('bus-rental-service-id', async () => {
+    const svc = await prisma.services.findFirst({
+      where: { slug: 'bus-rental', isActive: true },
+      select: { id: true },
+    });
+    return svc?.id ?? null;
+  });
+}
+
 /** Returns the location row id for a given slug (cached per slug). */
 export function getLocationId(slug: string): Promise<string | null> {
   return getOrCache(`location-id:${slug}`, async () => {
