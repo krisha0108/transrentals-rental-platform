@@ -2,6 +2,9 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
+import { prisma } from '@/lib/db/prisma';
+import { getCarRentalServiceId } from '@/lib/db/build-cache';
+import { ChauffeurPackages } from '@/components/chauffeur-service/ChauffeurPackages';
 
 export const metadata: Metadata = {
   title: 'Chauffeur Service | Driver on Hire @₹599/Day | Professional Car Driver',
@@ -26,7 +29,36 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ChauffeurServicePage() {
+export default async function ChauffeurServicePage() {
+  const carRentalServiceId = await getCarRentalServiceId();
+  const localPackages = carRentalServiceId ? await prisma.chauffeur_local_packages.findMany({
+    where: {
+      isActive: true,
+      chauffeur_vehicle_categories: { serviceId: carRentalServiceId, isActive: true },
+    },
+    select: {
+      id: true, hours: true, kms: true, basePrice: true,
+      extraKmCharge: true, isPopular: true,
+      chauffeur_vehicle_categories: {
+        select: { id: true, name: true, image: true, seatingCapacity: true, acType: true, exampleVehicles: true, isPopular: true },
+      },
+      locations: { select: { name: true } },
+    },
+    orderBy: [{ chauffeur_vehicle_categories: { displayOrder: 'asc' } }, { hours: 'asc' }],
+  }) : [];
+
+  const packagesWithLocation = localPackages.map((pkg) => ({
+    ...pkg,
+    locationName: (pkg.locations as { name: string } | null)?.name ?? null,
+  }));
+
+  const packagesByHour = new Map<number, { hours: number; kms: number; vehicles: typeof packagesWithLocation }>();
+  for (const pkg of packagesWithLocation) {
+    const existing = packagesByHour.get(pkg.hours);
+    if (!existing) packagesByHour.set(pkg.hours, { hours: pkg.hours, kms: pkg.kms, vehicles: [pkg] });
+    else existing.vehicles.push(pkg);
+  }
+  const hourGroups = Array.from(packagesByHour.values()).sort((a, b) => a.hours - b.hours);
   const popularCities = getCitiesByPriority(8);
 
   return (
@@ -90,34 +122,13 @@ export default function ChauffeurServicePage() {
         </div>
       </section>
 
-      {/* Chauffeur Packages */}
-      <section id="packages" className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Chauffeur Service Packages
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { type: 'Daily (8-10 hrs)', price: '599-899', features: 'Local city driving, 8-10 hours service, Own car', best: 'Daily office commute' },
-              { type: 'Outstation Trip', price: '800-1200/day', features: 'Outstation driving, Night stay charges extra, Bata included', best: 'Long trips, Tours' },
-              { type: 'Monthly Contract', price: '15000-25000', features: 'Full month driver, 26 days, 8-10 hrs/day', best: 'Regular need, Families' },
-              { type: 'Event/Wedding', price: '1500-2500/day', features: 'Special occasions, Uniformed driver, Flexible hours', best: 'Weddings, Events' },
-              { type: 'Luxury Car Driver', price: '1200-2000/day', features: 'Premium car experience, White uniform, Extra trained', best: 'Luxury vehicles' },
-              { type: 'Airport Transfer', price: '400-600', features: 'One-way pickup/drop, Professional service, On-time', best: 'Airport trips' },
-            ].map((pkg) => (
-              <div key={pkg.type} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition border-t-4 border-indigo-600">
-                <h3 className="text-xl font-bold mb-2">{pkg.type}</h3>
-                <p className="text-3xl font-bold text-indigo-700 mb-3">₹{pkg.price}</p>
-                <p className="text-sm text-gray-600 mb-3">{pkg.features}</p>
-                <p className="text-xs text-gray-500 mb-4">Best for: {pkg.best}</p>
-                <button className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition">
-                  Book Chauffeur
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {hourGroups.length > 0 && (
+        <ChauffeurPackages
+          hourGroups={hourGroups}
+          outstationPricing={[]}
+          locationName="India"
+        />
+      )}
 
       {/* Perfect Occasions */}
       <section className="py-16 bg-gray-50">

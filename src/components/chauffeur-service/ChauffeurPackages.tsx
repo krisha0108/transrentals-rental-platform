@@ -10,6 +10,7 @@ interface LocalPkg {
   basePrice: number;
   extraKmCharge: number;
   isPopular: boolean;
+  locationName?: string | null;
   chauffeur_vehicle_categories: {
     id: string;
     name: string;
@@ -51,6 +52,8 @@ interface Props {
 
 type Tab = 'local' | 'outstation';
 
+const LOCAL_LIMIT = 3;
+
 export function ChauffeurPackages({ hourGroups, outstationPricing, locationName }: Props) {
   const hasLocal = hourGroups.length > 0;
   const hasOutstation = outstationPricing.length > 0;
@@ -58,6 +61,7 @@ export function ChauffeurPackages({ hourGroups, outstationPricing, locationName 
   const defaultTab: Tab = hasLocal ? 'local' : 'outstation';
   const [activeTab, setActiveTab] = useState<Tab>(defaultTab);
   const [activeHours, setActiveHours] = useState(hourGroups[0]?.hours ?? null);
+  const [showAllLocal, setShowAllLocal] = useState(false);
 
   if (!hasLocal && !hasOutstation) return null;
 
@@ -96,7 +100,7 @@ export function ChauffeurPackages({ hourGroups, outstationPricing, locationName 
               {hourGroups.map((group) => (
                 <button
                   key={group.hours}
-                  onClick={() => setActiveHours(group.hours)}
+                  onClick={() => { setActiveHours(group.hours); setShowAllLocal(false); }}
                   className={`flex items-center gap-2 px-5 py-2 rounded-full border-2 font-semibold text-sm transition-all ${
                     activeHours === group.hours
                       ? 'bg-indigo-600 border-indigo-600 text-white shadow-md'
@@ -111,13 +115,17 @@ export function ChauffeurPackages({ hourGroups, outstationPricing, locationName 
               ))}
             </div>
 
-            {activeGroup && (
+            {activeGroup && (() => {
+              const visibleVehicles = showAllLocal ? activeGroup.vehicles : activeGroup.vehicles.slice(0, LOCAL_LIMIT);
+              const hasMore = activeGroup.vehicles.length > LOCAL_LIMIT;
+              return (
+              <>
               <div className={`grid gap-6 ${
-                activeGroup.vehicles.length === 1 ? 'max-w-xs mx-auto' :
-                activeGroup.vehicles.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' :
+                visibleVehicles.length === 1 ? 'max-w-xs mx-auto' :
+                visibleVehicles.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' :
                 'sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto'
               }`}>
-                {activeGroup.vehicles.map((pkg) => {
+                {visibleVehicles.map((pkg) => {
                   const cat = pkg.chauffeur_vehicle_categories;
                   let examples: string[] = [];
                   try { examples = cat.exampleVehicles ? JSON.parse(cat.exampleVehicles) : []; } catch {}
@@ -142,6 +150,9 @@ export function ChauffeurPackages({ hourGroups, outstationPricing, locationName 
                           <h4 className="text-xl font-bold text-gray-900 capitalize">{cat.name}</h4>
                           <p className="text-sm text-gray-500">{cat.seatingCapacity} Seater{cat.acType ? ` · ${cat.acType}` : ''}</p>
                           {examples.length > 0 && <p className="text-xs text-gray-400 mt-0.5">{examples.slice(0, 2).join(', ')}</p>}
+                          {pkg.locationName && (
+                            <p className="text-xs text-gray-500 mt-1">📍 {pkg.locationName}</p>
+                          )}
                         </div>
                         <div className="flex justify-center gap-3 mb-4">
                           <span className="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full font-medium">{activeGroup.hours}hr</span>
@@ -160,7 +171,19 @@ export function ChauffeurPackages({ hourGroups, outstationPricing, locationName 
                   );
                 })}
               </div>
-            )}
+              {hasMore && (
+                <div className="flex justify-center mt-8">
+                  <button
+                    onClick={() => setShowAllLocal((prev) => !prev)}
+                    className="flex items-center gap-2 px-8 py-3 rounded-full border-2 border-indigo-600 text-indigo-700 font-semibold text-sm hover:bg-indigo-600 hover:text-white transition-all"
+                  >
+                    {showAllLocal ? 'Show Less ↑' : `View All ${activeGroup.vehicles.length} Vehicles ↓`}
+                  </button>
+                </div>
+              )}
+              </>
+              );
+            })()}
             <p className="text-center text-xs text-gray-400 mt-8">
               * Prices include driver, fuel & GST. Extra km/hr charges apply beyond package limits.
             </p>

@@ -196,7 +196,7 @@ export function BusRentalBookingForm() {
             </div>
 
             <div className="text-center">
-              <label className="block text-sm font-medium text-gray-700 mb-3">Service Type *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-3">Service Type *</label>
               <div className="grid grid-cols-2 gap-3">
                 {SERVICE_TYPES.map((service) => (
                   <button key={service.id} type="button" onClick={() => updateFormData('serviceType', service.id)}
@@ -220,7 +220,7 @@ export function BusRentalBookingForm() {
                 required
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   <MapPin className="w-4 h-4 inline mr-2" />
                   Destination
                   <span className="text-red-500 ml-1">*</span>
@@ -230,7 +230,7 @@ export function BusRentalBookingForm() {
                   value={formData.destination}
                   onChange={(e) => updateFormData('destination', e.target.value)}
                   placeholder="Enter your destination (e.g., Agra, Jaipur, etc.)"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors text-gray-900 placeholder:text-gray-400"
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">You can type any location</p>
@@ -248,41 +248,41 @@ export function BusRentalBookingForm() {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div className="text-center">
-                <label className="block text-sm font-medium text-gray-700 mb-2"><Calendar className="w-4 h-4 inline mr-2" />Start Date *</label>
+                <label className="block text-sm font-medium text-gray-900 mb-2"><Calendar className="w-4 h-4 inline mr-2" />Start Date *</label>
                 <input type="date" value={formData.startDate} onChange={(e) => { updateFormData('startDate', e.target.value); setDateError(''); }}
                   min={minBookingDate}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none" required />
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none text-gray-900 placeholder:text-gray-400" required />
                 <p className="text-xs text-gray-500 mt-1">Advance booking required (min 12 hrs)</p>
               </div>
               <div className="text-center">
-                <label className="block text-sm font-medium text-gray-700 mb-2"><Clock className="w-4 h-4 inline mr-2" />Start Time *</label>
+                <label className="block text-sm font-medium text-gray-900 mb-2"><Clock className="w-4 h-4 inline mr-2" />Start Time *</label>
                 <select value={formData.startTime} onChange={(e) => { updateFormData('startTime', e.target.value); setDateError(''); }}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none" required>
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none text-gray-900 placeholder:text-gray-400" required>
                   <option value="">Select Time</option>
                   {Array.from({ length: 48 }, (_, i) => { const h = Math.floor(i / 2); const m = (i % 2) * 30; const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h; const ap = h < 12 ? 'AM' : 'PM'; const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`; const label = `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ap}`; return <option key={val} value={val}>{label}</option>; })}
                 </select>
               </div>
               <div className="text-center">
-                <label className="block text-sm font-medium text-gray-700 mb-2"><Calendar className="w-4 h-4 inline mr-2" />Return Date</label>
+                <label className="block text-sm font-medium text-gray-900 mb-2"><Calendar className="w-4 h-4 inline mr-2" />Return Date</label>
                 <input type="date" value={formData.returnDate} onChange={(e) => updateFormData('returnDate', e.target.value)}
                   min={getMinReturnDate()}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none" />
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none text-gray-900 placeholder:text-gray-400" />
                 <p className="text-xs text-gray-500 mt-1">Must be same or after start date</p>
               </div>
               <div className="text-center">
-                <label className="block text-sm font-medium text-gray-700 mb-2"><Clock className="w-4 h-4 inline mr-2" />Return Time</label>
+                <label className="block text-sm font-medium text-gray-900 mb-2"><Clock className="w-4 h-4 inline mr-2" />Return Time</label>
                 <select value={formData.returnTime} onChange={(e) => updateFormData('returnTime', e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none">
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none text-gray-900 placeholder:text-gray-400">
                   <option value="">Select Time</option>
                   {Array.from({ length: 48 }, (_, i) => { const h = Math.floor(i / 2); const m = (i % 2) * 30; const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h; const ap = h < 12 ? 'AM' : 'PM'; const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`; const label = `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ap}`; return <option key={val} value={val}>{label}</option>; })}
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   <Users className="w-4 h-4 inline mr-2" />Total Passengers *
                 </label>
                 <input type="number" value={formData.passengers} onChange={(e) => updateFormData('passengers', e.target.value)}
-                  placeholder="Number of passengers" min="1" className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none" required />
+                  placeholder="Number of passengers" min="1" className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none text-gray-900 placeholder:text-gray-400" required />
               </div>
             </div>
           </motion.div>
@@ -310,30 +310,30 @@ export function BusRentalBookingForm() {
             </div>
             <div className="space-y-4">
               <div className="text-center">
-                <label className="block text-sm font-medium text-gray-700 mb-2"><User className="w-4 h-4 inline mr-2" />Full Name *</label>
+                <label className="block text-sm font-medium text-gray-900 mb-2"><User className="w-4 h-4 inline mr-2" />Full Name *</label>
                 <input type="text" value={formData.name} onChange={(e) => updateFormData('name', e.target.value)}
                   placeholder="Enter your full name"
-                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none text-gray-900 placeholder:text-gray-400 ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
                     }`} required />
               </div>
               <div className="text-center">
-                <label className="block text-sm font-medium text-gray-700 mb-2"><Mail className="w-4 h-4 inline mr-2" />Email Address *</label>
+                <label className="block text-sm font-medium text-gray-900 mb-2"><Mail className="w-4 h-4 inline mr-2" />Email Address *</label>
                 <input type="email" value={formData.email} onChange={(e) => updateFormData('email', e.target.value)}
                   placeholder="your.email@example.com"
-                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none text-gray-900 placeholder:text-gray-400 ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
                     }`} required />
               </div>
               <div className="text-center">
-                <label className="block text-sm font-medium text-gray-700 mb-2"><Phone className="w-4 h-4 inline mr-2" />Phone Number *</label>
+                <label className="block text-sm font-medium text-gray-900 mb-2"><Phone className="w-4 h-4 inline mr-2" />Phone Number *</label>
                 <input type="tel" value={formData.phone} onChange={(e) => updateFormData('phone', e.target.value)}
                   placeholder="+91 9737965551"
-                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none text-gray-900 placeholder:text-gray-400 ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
                     }`} required />
               </div>
               <div className="text-center">
-                <label className="block text-sm font-medium text-gray-700 mb-2"><MessageSquare className="w-4 h-4 inline mr-2" />Additional Details</label>
+                <label className="block text-sm font-medium text-gray-900 mb-2"><MessageSquare className="w-4 h-4 inline mr-2" />Additional Details</label>
                 <textarea value={formData.additionalDetails} onChange={(e) => updateFormData('additionalDetails', e.target.value)}
-                  placeholder="Any special requirements?" rows={4} className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none resize-none" />
+                  placeholder="Any special requirements?" rows={4} className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none resize-none text-gray-900 placeholder:text-gray-400" />
               </div>
             </div>
           </motion.div>
@@ -370,7 +370,7 @@ export function BusRentalBookingForm() {
         </AnimatePresence>
 
         <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
-          {currentStep > 1 && <Button type="button" variant="outline" onClick={() => setCurrentStep(currentStep - 1)} disabled={isSubmitting}>Previous</Button>}
+          {currentStep > 1 && <Button type="button" variant="outline" onClick={() => setCurrentStep(currentStep - 1)} disabled={isSubmitting} className="text-gray-900 border-gray-400 hover:bg-gray-100">Previous</Button>}
           <div className="ml-auto">
             {currentStep < 3 ? (
               <Button type="button" onClick={() => {

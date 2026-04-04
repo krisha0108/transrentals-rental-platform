@@ -101,25 +101,36 @@ export function shouldAutoDrop(endDate: Date | string, endTime?: string | null):
 }
 
 /**
- * Statuses that are eligible for auto-drop (pre-trip statuses).
- * If a booking is IN_PROGRESS or COMPLETED, it should NOT be dropped.
+ * Statuses that should NEVER be auto-dropped (blacklist approach).
+ * Any status NOT in this list is eligible for auto-drop once the booking date + 24h passes.
+ * This is safer than a whitelist — new statuses are droppable by default.
  */
-export const DROPPABLE_STATUSES = {
-  bike: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'PAYMENT_VERIFIED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'READY_FOR_PICKUP'],
-  car: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'PAYMENT_VERIFIED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'READY_FOR_PICKUP'],
-  bus: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED'],
-  chauffeur: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'DRIVER_ASSIGNED'],
-  luxury: ['PENDING_PAYMENT', 'ADVANCE_PAID', 'CONFIRMED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'PAYMENT_SUBMITTED', 'DRIVER_ASSIGNED'],
-  equipment: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED'],
-  truck: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED'],
-  packers: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'TEAM_ASSIGNED'],
-  wander: ['PAYMENT_PENDING', 'PAYMENT_SUBMITTED', 'CONFIRMED', 'GUIDE_ASSIGNED'],
+export const NON_DROPPABLE_STATUSES = {
+  bike:      ['IN_PROGRESS', 'COMPLETED', 'DROPPED', 'CANCELLED', 'REFUNDED'],
+  car:       ['IN_PROGRESS', 'COMPLETED', 'DROPPED', 'CANCELLED', 'REFUNDED'],
+  chauffeur: ['IN_PROGRESS', 'COMPLETED', 'DROPPED', 'CANCELLED', 'REFUNDED'],
+  bus:       ['IN_PROGRESS', 'COMPLETED', 'DROPPED', 'CANCELLED', 'REFUNDED'],
+  luxury:    ['IN_PROGRESS', 'COMPLETED', 'DROPPED', 'CANCELLED', 'REFUNDED'],
+  equipment: ['IN_USE', 'PICKUP_SCHEDULED', 'DELIVERED', 'RETURNED', 'IN_PROGRESS', 'COMPLETED', 'DROPPED', 'CANCELLED', 'REFUNDED'],
+  truck:     ['LOADING', 'IN_TRANSIT', 'UNLOADING', 'DELIVERED', 'IN_PROGRESS', 'COMPLETED', 'DROPPED', 'CANCELLED', 'REFUNDED'],
+  packers:   ['PACKING', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'UNPACKING', 'DELIVERED', 'IN_PROGRESS', 'COMPLETED', 'DROPPED', 'CANCELLED', 'REFUNDED'],
+  wander:    ['STARTED', 'COMPLETED', 'DROPPED', 'CANCELLED', 'REFUNDED'],
 } as const;
+
+/** Statuses that indicate the booking was accepted/confirmed by vendor or customer */
+const CONFIRMED_STATUSES = new Set([
+  'ACCEPTED', 'CONFIRMED', 'ADVANCE_PAID', 'DRIVER_ASSIGNED',
+  'VEHICLE_ASSIGNED', 'TEAM_ASSIGNED', 'GUIDE_ASSIGNED', 'READY_FOR_PICKUP',
+  'PAYMENT_VERIFIED',
+]);
 
 /**
  * Generate drop reason message for customer notification
  */
-export function getDropReasonForCustomer(quotesReceived: number): string {
+export function getDropReasonForCustomer(quotesReceived: number, bookingStatus?: string): string {
+  if (bookingStatus && CONFIRMED_STATUSES.has(bookingStatus)) {
+    return 'Your booking has been automatically dropped by the system as the booking date has passed and the trip was never started.';
+  }
   if (quotesReceived === 0) {
     return 'Your booking has been automatically dropped by the system as no vendors responded with quotes before the booking end date.';
   }
@@ -129,7 +140,10 @@ export function getDropReasonForCustomer(quotesReceived: number): string {
 /**
  * Generate drop reason stored in DB
  */
-export function getDropReasonForDB(quotesReceived: number): string {
+export function getDropReasonForDB(quotesReceived: number, bookingStatus?: string): string {
+  if (bookingStatus && CONFIRMED_STATUSES.has(bookingStatus)) {
+    return 'AUTO_DROP: Booking confirmed but trip never started. Booking date + 24hrs passed.';
+  }
   if (quotesReceived === 0) {
     return 'AUTO_DROP: No vendor quotes received. Booking end date + 24hrs passed.';
   }

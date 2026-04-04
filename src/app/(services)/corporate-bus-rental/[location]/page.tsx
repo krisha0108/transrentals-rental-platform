@@ -183,65 +183,6 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* Rental Plans */}
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Flexible Rental Plans
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {[
-              {
-                name: 'Daily',
-                price: '₹4,999',
-                period: 'per day',
-                features: ['Single day rental', 'Professional driver', 'Fuel (250km)', 'AC bus'],
-              },
-              {
-                name: 'Monthly',
-                price: '₹99,999',
-                period: 'per month',
-                features: ['30-day rental', 'Dedicated driver', 'Unlimited km', 'Maintenance included'],
-                popular: true,
-              },
-              {
-                name: 'Annual',
-                price: '₹9,99,999',
-                period: 'per year',
-                features: ['365-day rental', 'Dedicated fleet', 'Full maintenance', 'Replacement vehicle'],
-              },
-            ].map((plan) => (
-              <div
-                key={plan.name}
-                className={`bg-white rounded-xl p-6 shadow-lg ${
-                  plan.popular ? 'border-4 border-primary' : 'border-2 border-gray-200'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="text-center mb-2">
-                    <span className="bg-primary text-white px-3 py-1 rounded-full text-xs font-bold">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-                <h3 className="text-xl font-bold mb-1">{plan.name}</h3>
-                <div className="mb-4">
-                  <span className="text-3xl font-bold text-primary">{plan.price}</span>
-                  <span className="text-gray-600 text-sm">/{plan.period}</span>
-                </div>
-                <ul className="space-y-2">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm">
-                      <span className="text-primary">✓</span>
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {busFleet.length > 0 && (
         <VehicleGrid

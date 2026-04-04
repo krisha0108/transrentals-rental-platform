@@ -18,34 +18,50 @@ const CONCURRENCY = parseInt(
   process.argv.find((a) => a.startsWith('--concurrency='))?.split('=')[1] || '50'
 );
 
-// All service slugs that have [location] pages
-const SERVICE_SLUGS = [
-  'car-rental',
-  'bike-on-rent',
-  'bus-rental',
-  'transporter',
-  'packers-and-movers',
-  'equipment-rental',
-  'self-drive-car-rentals',
-  'luxury-car-rental',
-  'chauffeur-service',
-  'local-taxi',
-  'outstation-car-rental',
-  'one-way-car-rental',
-  'monthly-car-rental',
-  'wedding-car-rental',
-  'vintage-car-rental',
-  'sports-car-rental',
-  'airport-transfer',
-  'tempo-traveller',
-];
+// Map of service DB slug → URL slug (for services where they differ)
+const SERVICE_MAP: Record<string, string> = {
+  'car-rental': 'car-rental',
+  'bike-on-rent': 'bike-on-rent',
+  'bus-rental': 'bus-rental',
+  'transporter': 'transporter',
+  'packers-and-movers': 'packers-and-movers',
+  'equipment-rental': 'jcb-on-rent',
+  'self-drive-car-rentals': 'self-drive-car-rentals',
+  'luxury-car-rental': 'luxury-car-rental',
+  'chauffeur-service': 'chauffeur-service',
+  'local-taxi': 'local-taxi',
+  'outstation-car-rental': 'outstation-car-rental',
+  'one-way-car-rental': 'one-way-car-rental',
+  'monthly-car-rental': 'monthly-car-rental',
+  'wedding-car-rental': 'wedding-car-rental',
+  'vintage-car-rental': 'vintage-car-rental',
+  'sports-car-rental': 'sports-car-rental',
+  'airport-transfer': 'airport-transfer',
+  'tempo-traveller': 'tempo-traveller',
+};
 
-async function getAllLocationSlugs(): Promise<string[]> {
-  const locations = await prisma.locations.findMany({
-    where: { isActive: true },
-    select: { slug: true },
+async function getServiceLocationUrls(): Promise<string[]> {
+  const urls: string[] = [];
+
+  const services = await prisma.services.findMany({
+    where: { slug: { in: Object.keys(SERVICE_MAP) }, isActive: true },
+    select: {
+      slug: true,
+      service_locations: {
+        where: { isActive: true },
+        select: { locations: { select: { slug: true } } },
+      },
+    },
   });
-  return locations.map((l) => l.slug);
+
+  for (const service of services) {
+    const urlSlug = SERVICE_MAP[service.slug] ?? service.slug;
+    for (const sl of service.service_locations) {
+      urls.push(`${BASE_URL}/${urlSlug}/${sl.locations.slug}`);
+    }
+  }
+
+  return urls;
 }
 
 async function runInBatches<T>(
@@ -81,25 +97,19 @@ async function main() {
   console.log(`⚡ Concurrency: ${CONCURRENCY}`);
   console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 
-  const locationSlugs = await getAllLocationSlugs();
-  console.log(`📍 Locations found: ${locationSlugs.length}`);
-  console.log(`🛠️  Services: ${SERVICE_SLUGS.length}`);
+  const serviceUrls = await getServiceLocationUrls();
+  console.log(`🛠️  Services: ${Object.keys(SERVICE_MAP).length}`);
 
   // Build all URLs
-  const urls: string[] = [];
-
-  // Service location pages
-  for (const service of SERVICE_SLUGS) {
-    for (const loc of locationSlugs) {
-      urls.push(`${BASE_URL}/${service}/${loc}`);
-    }
-  }
+  const urls: string[] = [...serviceUrls];
 
   // Add homepage and main service pages
   urls.push(BASE_URL);
-  for (const service of SERVICE_SLUGS) {
-    urls.push(`${BASE_URL}/${service}`);
+  for (const urlSlug of Object.values(SERVICE_MAP)) {
+    urls.push(`${BASE_URL}/${urlSlug}`);
   }
+
+  console.log(`📍 Service-location pages: ${serviceUrls.length}`);
 
   console.log(`📄 Total URLs to warm: ${urls.length}`);
   console.log(`⏱️  Estimated time: ~${Math.ceil(urls.length / CONCURRENCY / 2)} seconds\n`);

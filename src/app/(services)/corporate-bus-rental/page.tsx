@@ -3,8 +3,10 @@ import type { Metadata } from 'next';
 import { CorporateBusRentalServiceHero } from '@/components/services/CorporateBusRentalServiceHero';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
+import { BusFleetGrid } from '@/components/corporate-bus-rental/BusFleetGrid';
+import { prisma } from '@/lib/db/prisma';
+import { getBusRentalServiceId } from '@/lib/db/build-cache';
 
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 export const metadata: Metadata = {
   title: 'Corporate Bus Rental - Employee Transport & Office Events @₹4999 | TransRentals',
   description:
@@ -24,18 +26,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function CorporateBusRentalPage() {
+export default async function CorporateBusRentalPage() {
+  const busServiceId = await getBusRentalServiceId();
+  const busModels = busServiceId ? await prisma.vehicle_models.findMany({
+    where: { serviceId: busServiceId, isActive: true },
+    select: {
+      id: true, name: true, sideImage: true, basePricePerDay: true,
+      rating: true, seatingCapacity: true, brands: { select: { name: true } },
+    },
+    orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+  }) : [];
+
   return (
     <div className="flex flex-col">
-      <ServiceHeroWithChat
-        badge="Corporate Bus Services in 250+ Cities"
-        title="Corporate Bus Rental | Employee Transport"
-        titleHighlight="Starting @₹4999/Day"
-        description="Reliable bus rental for corporate events, employee transport, and business conferences. Comfortable AC buses with professional drivers."
-        gradientFrom="blue-50"
-        gradientTo="cyan-50"
-      />
-
       <CorporateBusRentalServiceHero />
 
       {/* Use Cases */}
@@ -101,85 +104,8 @@ export default function CorporateBusRentalPage() {
         </div>
       </section>
 
-      {/* Rental Plans */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Flexible Rental Plans
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              {
-                name: 'Daily Rental',
-                price: '₹4,999',
-                period: 'per day',
-                features: [
-                  'Single day rental',
-                  'Professional driver',
-                  'Fuel included (up to 250km)',
-                  'AC bus',
-                  'Perfect for events',
-                ],
-              },
-              {
-                name: 'Monthly Contract',
-                price: '₹99,999',
-                period: 'per month',
-                features: [
-                  '30-day rental',
-                  'Dedicated driver',
-                  'Unlimited km',
-                  'Maintenance included',
-                  'Best for daily commute',
-                  'Priority support',
-                ],
-                popular: true,
-              },
-              {
-                name: 'Annual Contract',
-                price: '₹9,99,999',
-                period: 'per year',
-                features: [
-                  '365-day rental',
-                  'Dedicated fleet',
-                  'Unlimited usage',
-                  'Full maintenance',
-                  'Replacement vehicle',
-                  'Maximum savings',
-                ],
-              },
-            ].map((plan) => (
-              <div
-                key={plan.name}
-                className={`relative bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition ${
-                  plan.popular ? 'border-4 border-primary' : 'border-2 border-gray-200'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-primary text-white px-4 py-1 rounded-full text-xs font-bold">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-                <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-primary">{plan.price}</span>
-                  <span className="text-gray-600 text-sm">/{plan.period}</span>
-                </div>
-                <ul className="space-y-3">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-2">
-                      <span className="text-primary mt-1">✓</span>
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+
+      {busModels.length > 0 && <BusFleetGrid buses={busModels} />}
 
       <LocationsGrid service="corporate-bus-rental" />
 

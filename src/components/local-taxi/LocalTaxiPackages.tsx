@@ -10,6 +10,7 @@ interface VehiclePkg {
   basePrice: number;
   extraKmCharge: number | null;
   isPopular: boolean;
+  locationName?: string | null;
   chauffeur_vehicle_categories: {
     id: string;
     name: string;
@@ -32,8 +33,11 @@ interface Props {
   locationName: string;
 }
 
+const INITIAL_LIMIT = 3;
+
 export function LocalTaxiPackages({ hourGroups, locationName }: Props) {
   const [activeHours, setActiveHours] = useState(hourGroups[0]?.hours ?? null);
+  const [showAll, setShowAll] = useState(false);
 
   const activeGroup = hourGroups.find((g) => g.hours === activeHours);
 
@@ -48,7 +52,7 @@ export function LocalTaxiPackages({ hourGroups, locationName }: Props) {
           {hourGroups.map((group) => (
             <button
               key={group.hours}
-              onClick={() => setActiveHours(group.hours)}
+              onClick={() => { setActiveHours(group.hours); setShowAll(false); }}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-full border-2 font-semibold text-sm transition-all ${
                 activeHours === group.hours
                   ? 'bg-green-600 border-green-600 text-white shadow-md'
@@ -65,13 +69,17 @@ export function LocalTaxiPackages({ hourGroups, locationName }: Props) {
         </div>
 
         {/* Active group vehicles */}
-        {activeGroup && (
+        {activeGroup && (() => {
+          const visible = showAll ? activeGroup.vehicles : activeGroup.vehicles.slice(0, INITIAL_LIMIT);
+          const hasMore = activeGroup.vehicles.length > INITIAL_LIMIT;
+          return (
+          <>
           <div className={`grid gap-6 ${
-            activeGroup.vehicles.length === 1 ? 'max-w-xs mx-auto' :
-            activeGroup.vehicles.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' :
+            visible.length === 1 ? 'max-w-xs mx-auto' :
+            visible.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' :
             'sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto'
           }`}>
-            {activeGroup.vehicles.map((pkg) => {
+            {visible.map((pkg) => {
               const cat = pkg.chauffeur_vehicle_categories;
               let examples: string[] = [];
               try { examples = cat.exampleVehicles ? JSON.parse(cat.exampleVehicles) : []; } catch {}
@@ -106,6 +114,9 @@ export function LocalTaxiPackages({ hourGroups, locationName }: Props) {
                       {examples.length > 0 && (
                         <p className="text-xs text-gray-400 mt-0.5">{examples.slice(0, 2).join(', ')}</p>
                       )}
+                      {pkg.locationName && (
+                        <p className="text-xs text-gray-500 mt-1">📍 {pkg.locationName}</p>
+                      )}
                     </div>
 
                     <div className="flex justify-center gap-3 mb-4">
@@ -130,7 +141,19 @@ export function LocalTaxiPackages({ hourGroups, locationName }: Props) {
               );
             })}
           </div>
-        )}
+          {hasMore && (
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={() => setShowAll((prev) => !prev)}
+                className="flex items-center gap-2 px-8 py-3 rounded-full border-2 border-green-600 text-green-700 font-semibold text-sm hover:bg-green-600 hover:text-white transition-all"
+              >
+                {showAll ? 'Show Less ↑' : `View All ${activeGroup.vehicles.length} Vehicles ↓`}
+              </button>
+            </div>
+          )}
+          </>
+          );
+        })()}
 
         <p className="text-center text-xs text-gray-400 mt-8">
           * Prices include driver, fuel & GST. Extra km/hr charges apply beyond package limits.
