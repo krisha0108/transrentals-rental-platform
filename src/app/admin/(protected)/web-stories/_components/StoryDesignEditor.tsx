@@ -140,6 +140,7 @@ interface CE {
   src?: string;
   tintColor?: string; tintOpacity?: number;
   href?: string;
+  isFrame?: boolean;
 }
 
 interface SD {
@@ -401,19 +402,56 @@ function renderElInner(el: CE): React.ReactNode {
     const isFilled = el.filled !== false;
     const fillColor = isFilled ? toRgba(el.bgColor || '#6366f1', el.bgAlpha ?? 1) : 'transparent';
     const bw = el.borderWidth || 0;
+    const frameStroke = el.borderColor || '#6366f1';
+    const isEmptyFrame = el.isFrame && !el.bgImage;
+    const clipId = `ec-${el.id}`;
 
     // SVG-based shapes
     if (isSvgShape(st)) {
       const borderDs = bw > 0 ? `drop-shadow(0 0 ${bw}px ${el.borderColor || '#fff'})` : '';
       const shapeFilter = [scaledFilterCss, borderDs, shadowFilter].filter(Boolean).join(' ') || undefined;
-      if (st === 'fcCylinder') {
+      const cylPath = 'M 0 18 Q 0 5 50 5 Q 100 5 100 18 L 100 82 Q 100 95 50 95 Q 0 95 0 82 Z';
+
+      // Image fill via SVG clipPath
+      if (el.bgImage) {
+        if (st === 'fcCylinder') return (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', filter: shapeFilter }}>
+            <defs><clipPath id={clipId}><path d={cylPath} /></clipPath></defs>
+            <image href={el.bgImage} x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" clipPath={`url(#${clipId})`} />
+          </svg>
+        );
+        const svgPath = SVG_PATHS[st]!;
         return (
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', filter: shapeFilter }}>
-            <path d="M 0 18 Q 0 5 50 5 Q 100 5 100 18 L 100 82 Q 100 95 50 95 Q 0 95 0 82 Z" fill={fillColor} />
-            <path d="M 0 18 Q 0 31 50 31 Q 100 31 100 18" fill="none" stroke={toRgba(el.bgColor || '#6366f1', Math.min(1, (el.bgAlpha ?? 1) + 0.2))} strokeWidth="2" />
+            <defs><clipPath id={clipId}><path d={svgPath} /></clipPath></defs>
+            <image href={el.bgImage} x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" clipPath={`url(#${clipId})`} />
           </svg>
         );
       }
+
+      // Empty frame placeholder
+      if (isEmptyFrame) {
+        if (st === 'fcCylinder') return (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', filter: shapeFilter }}>
+            <path d={cylPath} fill="rgba(99,102,241,0.07)" stroke={frameStroke} strokeWidth="4" strokeDasharray="7 4" />
+          </svg>
+        );
+        const svgPath = SVG_PATHS[st]!;
+        const isGear = st === 'gear';
+        return (
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', filter: shapeFilter }}>
+            <path d={svgPath} fill="rgba(99,102,241,0.07)" stroke={frameStroke} strokeWidth="4" strokeDasharray="7 4" fillRule={isGear ? 'evenodd' : 'nonzero'} />
+          </svg>
+        );
+      }
+
+      // Regular colored shape
+      if (st === 'fcCylinder') return (
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', filter: shapeFilter }}>
+          <path d={cylPath} fill={fillColor} />
+          <path d="M 0 18 Q 0 31 50 31 Q 100 31 100 18" fill="none" stroke={toRgba(el.bgColor || '#6366f1', Math.min(1, (el.bgAlpha ?? 1) + 0.2))} strokeWidth="2" />
+        </svg>
+      );
       const svgPath = SVG_PATHS[st]!;
       const isGear = st === 'gear';
       return (
@@ -427,9 +465,23 @@ function renderElInner(el: CE): React.ReactNode {
     if (clip !== 'none') {
       const borderDs = bw > 0 ? `drop-shadow(0 0 ${bw}px ${el.borderColor || '#fff'})` : '';
       const shapeFilter = [scaledFilterCss, borderDs, shadowFilter].filter(Boolean).join(' ') || undefined;
+      if (isEmptyFrame) return (
+        <div style={{ position: 'relative', width: '100%', height: '100%', filter: shapeFilter }}>
+          <div style={{ width: '100%', height: '100%', clipPath: clip, backgroundColor: 'rgba(99,102,241,0.07)', backgroundImage: 'repeating-linear-gradient(45deg,rgba(99,102,241,0.15) 0,rgba(99,102,241,0.15) 1px,transparent 0,transparent 50%)', backgroundSize: '8px 8px' }} />
+          <div style={{ position: 'absolute', inset: 0, clipPath: clip, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: 22, opacity: 0.45 }}>🖼️</span>
+          </div>
+        </div>
+      );
       return <div style={{ width: '100%', height: '100%', backgroundColor: el.bgImage ? 'transparent' : fillColor, clipPath: clip, backgroundImage: el.bgImage ? `url(${el.bgImage})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center', filter: shapeFilter }} />;
     }
+
     const br = st === 'circle' ? '50%' : `${el.borderRadius ?? 0}px`;
+    if (isEmptyFrame) return (
+      <div style={{ width: '100%', height: '100%', borderRadius: br, border: `2px dashed ${frameStroke}`, backgroundColor: 'rgba(99,102,241,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', filter: combinedFilter }}>
+        <span style={{ fontSize: 22, opacity: 0.45 }}>🖼️</span>
+      </div>
+    );
     return <div style={{ width: '100%', height: '100%', backgroundColor: el.bgImage ? 'transparent' : fillColor, borderRadius: br, backgroundImage: el.bgImage ? `url(${el.bgImage})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center', border: bw > 0 ? `${bw}px solid ${el.borderColor || '#fff'}` : undefined, boxSizing: 'border-box', overflow: 'hidden', filter: combinedFilter }} />;
   }
   return null;
@@ -1307,7 +1359,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     const cx = draggedEl.x + draggedEl.w / 2;
     const cy = draggedEl.y + draggedEl.h / 2;
     const over = activeSlide.elements.find(e =>
-      e.type === 'shape' && e.id !== draggedEl.id &&
+      e.type === 'shape' && e.isFrame && e.id !== draggedEl.id &&
       cx >= e.x && cx <= e.x + e.w && cy >= e.y && cy <= e.y + e.h
     );
     setDropTargetId(over?.id || null);
@@ -1318,12 +1370,12 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     const cx = draggedEl.x + draggedEl.w / 2;
     const cy = draggedEl.y + draggedEl.h / 2;
     const targetShape = activeSlide.elements.find(e =>
-      e.type === 'shape' && e.id !== draggedEl.id &&
+      e.type === 'shape' && e.isFrame && e.id !== draggedEl.id &&
       cx >= e.x && cx <= e.x + e.w && cy >= e.y && cy <= e.y + e.h
     );
     setDropTargetId(null);
     if (!targetShape) return;
-    // Merge: fill shape with image, delete image element
+    // Merge: fill frame with image, delete image element
     updateSlide(s => ({
       ...s,
       elements: s.elements
@@ -1345,6 +1397,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   const addHeading = () => addElement({ id: uid(), type: 'text', x: 20, y: cy, w: CANVAS_W - 40, h: 70, rot: 0, z: maxZ, opacity: 1, content: 'Your Heading', fontSize: 38, fontFamily: 'inherit', bold: true, align: 'center', color: '#ffffff', colorAlpha: 1, lineHeight: 1.2 });
   const addParagraph = () => addElement({ id: uid(), type: 'text', x: 20, y: cy, w: CANVAS_W - 40, h: 60, rot: 0, z: maxZ, opacity: 1, content: 'Your text here', fontSize: 18, fontFamily: 'inherit', align: 'left', color: '#ffffff', colorAlpha: 1, lineHeight: 1.5 });
   const addShape = (shapeType: ShapeType) => addElement({ id: uid(), type: 'shape', x: cx, y: cy, w: 140, h: 140, rot: 0, z: maxZ, opacity: 1, bgColor: '#6366f1', bgAlpha: 1, shapeType, filled: true, borderRadius: shapeType === 'rect' ? 8 : 0 });
+  const addFrame = (shapeType: ShapeType) => addElement({ id: uid(), type: 'shape', x: cx - 30, y: cy - 30, w: 200, h: 200, rot: 0, z: maxZ, opacity: 1, bgColor: '#6366f1', bgAlpha: 0.07, shapeType, filled: true, isFrame: true, borderRadius: shapeType === 'rect' ? 8 : 0, borderColor: '#6366f1', borderWidth: 0 });
   const addButton = () => addElement({ id: uid(), type: 'button', x: cx - 30, y: CANVAS_H - 120, w: 260, h: 52, rot: 0, z: maxZ, opacity: 1, content: 'Tap Here', fontSize: 16, bold: true, color: '#1a1a2e', colorAlpha: 1, bgColor: '#ffffff', bgAlpha: 1, borderRadius: 50, href: '' });
   const addLine = (thick: number) => addElement({ id: uid(), type: 'shape', shapeType: 'rect', x: cx - 60, y: cy + 60, w: 260, h: thick, rot: 0, z: maxZ, opacity: 1, bgColor: '#ffffff', bgAlpha: 1, filled: true, borderRadius: 99 });
   const addSticker = (emoji: string) => addElement({ id: uid(), type: 'sticker', x: cx + 20, y: cy, w: 100, h: 100, rot: 0, z: maxZ, opacity: 1, content: emoji, fontSize: 64 });
@@ -1549,6 +1602,22 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   const seo = calcSeo(meta, slides);
   const seoColor = seo >= 80 ? 'text-green-400' : seo >= 50 ? 'text-yellow-400' : 'text-red-400';
 
+  // Frame shapes data
+  const FRAME_SHAPES: { type: ShapeType; label: string; clip?: string; svg?: string; gear?: boolean; cylinder?: boolean }[] = [
+    { type: 'rect', label: 'Square' },
+    { type: 'circle', label: 'Circle' },
+    { type: 'triangle', label: 'Triangle', clip: 'polygon(50% 0%, 0% 100%, 100% 100%)' },
+    { type: 'diamond', label: 'Diamond', clip: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' },
+    { type: 'hexagon', label: 'Hexagon', clip: 'polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)' },
+    { type: 'pentagon', label: 'Pentagon', clip: 'polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%)' },
+    { type: 'star', label: 'Star', clip: 'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)' },
+    { type: 'heart', label: 'Heart', svg: 'M 50 30 C 50 22,42 10,25 10 C 8 10,0 25,0 40 C 0 65,50 90,50 90 C 50 90,100 65,100 40 C 100 25,92 10,75 10 C 58 10,50 22,50 30 Z' },
+    { type: 'blobA', label: 'Blob A', svg: 'M 72 14 C 90 26,102 46,96 65 C 90 84,72 95,52 93 C 32 91,8 84,2 66 C -4 48,8 24,24 14 C 40 4,54 2,72 14 Z' },
+    { type: 'blobB', label: 'Blob B', svg: 'M 65 8 C 82 14,96 32,97 52 C 98 72,84 92,64 95 C 44 98,20 88,8 70 C -4 52,0 26,16 14 C 32 2,48 2,65 8 Z' },
+    { type: 'speechRound', label: 'Bubble', svg: 'M 10 0 Q 0 0 0 10 L 0 62 Q 0 75 10 75 L 40 75 L 50 95 L 60 75 L 90 75 Q 100 75 100 62 L 100 10 Q 100 0 90 0 Z' },
+    { type: 'arrowRight', label: 'Arrow', clip: 'polygon(0% 20%,60% 20%,60% 0%,100% 50%,60% 100%,60% 80%,0% 80%)' },
+  ];
+
   // Shape grid data
   type ShapeGroup = { label: string; key: string; color: string; shapes: { type: ShapeType; label: string; clip?: string; svg?: string; gear?: boolean; cylinder?: boolean }[] };
   const SHAPE_GROUPS: ShapeGroup[] = [
@@ -1704,6 +1773,36 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                         <div style={{ height: l.thick, width: 32, backgroundColor: '#64748b', borderRadius: 99 }} />
                       </div>
                       <span className="text-sm text-slate-700">{l.label} Line</span>
+                    </button>
+                  ))}
+                </div>
+              </InsertSection>
+
+              {/* ── FRAMES ── */}
+              <InsertSection label="🖼️ Frames" sKey="frames" open={openSections} toggle={toggleSection}>
+                <p className="text-[10px] text-slate-400 mb-2">Clip images into shapes. Drag an image onto a frame or use "Set Image".</p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {FRAME_SHAPES.map(sh => (
+                    <button key={sh.type} onClick={() => addFrame(sh.type as ShapeType)}
+                      className="flex flex-col items-center gap-1 py-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-100 hover:border-indigo-200 rounded-xl transition group">
+                      <div className="w-8 h-8 flex items-center justify-center">
+                        {sh.svg ? (
+                          <svg viewBox="0 0 100 100" className="w-7 h-7">
+                            <path d={sh.svg} fill="rgba(99,102,241,0.1)" stroke="#6366f1" strokeWidth="7" strokeDasharray="10 5" fillRule={sh.gear ? 'evenodd' : 'nonzero'} />
+                          </svg>
+                        ) : sh.cylinder ? (
+                          <svg viewBox="0 0 100 100" className="w-7 h-7">
+                            <path d="M 0 18 Q 0 5 50 5 Q 100 5 100 18 L 100 82 Q 100 95 50 95 Q 0 95 0 82 Z" fill="rgba(99,102,241,0.1)" stroke="#6366f1" strokeWidth="7" strokeDasharray="10 5" />
+                          </svg>
+                        ) : sh.clip ? (
+                          <div className="w-7 h-7" style={{ clipPath: sh.clip, backgroundColor: 'rgba(99,102,241,0.1)', outline: '2px dashed #6366f1', outlineOffset: '-2px' }} />
+                        ) : sh.type === 'circle' ? (
+                          <div className="w-7 h-7 rounded-full border-2 border-dashed border-indigo-500" style={{ backgroundColor: 'rgba(99,102,241,0.1)' }} />
+                        ) : (
+                          <div className="w-7 h-5 rounded border-2 border-dashed border-indigo-500" style={{ backgroundColor: 'rgba(99,102,241,0.1)' }} />
+                        )}
+                      </div>
+                      <span className="text-[9px] text-slate-500 group-hover:text-indigo-600 leading-tight text-center px-0.5">{sh.label}</span>
                     </button>
                   ))}
                 </div>
@@ -1944,17 +2043,28 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 </div>
               )}
               {selectedEl?.type === 'shape' && (
-                <div className="border-t border-slate-100 pt-4 space-y-2">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Shape Image Fill</p>
+                <div className={`border-t pt-4 space-y-2 ${selectedEl.isFrame ? 'border-indigo-200' : 'border-slate-100'}`}>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: selectedEl.isFrame ? '#6366f1' : undefined }}>
+                      {selectedEl.isFrame ? '🖼️ Frame Image' : 'Shape Image Fill'}
+                    </p>
+                    {selectedEl.isFrame && !selectedEl.bgImage && (
+                      <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium">Empty</span>
+                    )}
+                  </div>
                   {selectedEl.bgImage && (
                     <div className="relative">
                       <img src={selectedEl.bgImage} alt="" className="w-full h-20 object-cover rounded-xl border border-slate-200" />
                       <button onClick={() => updateElement({ ...selectedEl, bgImage: undefined })} className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center shadow-sm">×</button>
                     </div>
                   )}
-                  <button onClick={() => shapeImgInputRef.current?.click()} disabled={uploading} className="w-full py-2.5 border border-dashed border-slate-300 text-slate-500 hover:text-indigo-600 hover:border-indigo-400 rounded-xl text-xs flex items-center justify-center gap-2 transition disabled:opacity-50">
-                    <Upload className="w-3.5 h-3.5" /> {selectedEl.bgImage ? 'Change Image' : 'Fill with Image'}
+                  <button onClick={() => shapeImgInputRef.current?.click()} disabled={uploading}
+                    className={`w-full py-2.5 border border-dashed rounded-xl text-xs flex items-center justify-center gap-2 transition disabled:opacity-50 ${selectedEl.isFrame ? 'border-indigo-400 text-indigo-600 hover:bg-indigo-50 font-semibold' : 'border-slate-300 text-slate-500 hover:text-indigo-600 hover:border-indigo-400'}`}>
+                    <Upload className="w-3.5 h-3.5" /> {selectedEl.bgImage ? 'Change Image' : (selectedEl.isFrame ? 'Set Frame Image' : 'Fill with Image')}
                   </button>
+                  {selectedEl.isFrame && (
+                    <p className="text-[10px] text-slate-400">Or drag an image from the canvas onto this frame</p>
+                  )}
                 </div>
               )}
               {/* Color Overlay */}

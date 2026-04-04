@@ -29,6 +29,7 @@ function generateQuoteNumber(): string {
 // GET - Get vendor's submitted quotes
 export async function GET(request: NextRequest) {
   try {
+    console.log('🟡 LUXURY QUOTES GET — URL:', request.url);
     const auth = await getVendorAuth(request);
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
@@ -37,6 +38,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    console.log('🟡 LUXURY QUOTES GET — params:', { status, page: searchParams.get('page'), requestId: searchParams.get('requestId') });
 
     // Check if fetching expired quote for resubmit prefill
     const requestIdParam = searchParams.get('requestId');
@@ -60,7 +62,8 @@ export async function GET(request: NextRequest) {
 
     const whereClause: any = { vendorId: vendorId };
     if (status && status !== 'all') {
-      whereClause.status = status;
+      const statuses = status.split(",").map((s) => s.trim()).filter(Boolean);
+      whereClause.status = statuses.length === 1 ? statuses[0] : { in: statuses };
     }
 
     // DATE FILTERING
@@ -171,9 +174,10 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error: any) {
+    console.error('🔴 LUXURY QUOTES GET ERROR:', error?.message, error?.stack);
     logger.error('Failed to fetch vendor luxury quotes', error);
     return NextResponse.json(
-      { error: 'Failed to fetch quotes', details: error?.message },
+      { error: 'Failed to fetch quotes', details: error?.message, stack: error?.stack?.split('\n').slice(0,3).join(' | ') },
       { status: 500 }
     );
   }
@@ -398,9 +402,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check if a withdrawn quote exists (re-quote after withdrawal)
+    // Check if a withdrawn or expired quote exists (re-quote after withdrawal/expiry)
     const withdrawnQuote = await prisma.luxury_quotes.findFirst({
-      where: { requestId, vendorId: vendorId, status: 'WITHDRAWN' },
+      where: { requestId, vendorId: vendorId, status: { in: ['WITHDRAWN', 'EXPIRED'] } },
       select: { id: true },
     });
 

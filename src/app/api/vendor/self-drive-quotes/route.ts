@@ -434,7 +434,7 @@ export async function POST(request: NextRequest) {
 
     // Check if a withdrawn quote exists (re-quote after withdrawal)
     const withdrawnQuote = await prisma.self_drive_quotes.findFirst({
-      where: { requestId, vendorId: vendorId, status: 'WITHDRAWN' },
+      where: { requestId, vendorId: vendorId, status: { in: ['WITHDRAWN', 'EXPIRED'] } },
       select: { id: true },
     });
 
@@ -478,8 +478,16 @@ export async function POST(request: NextRequest) {
 
     // Create the quote (or update existing withdrawn quote)
     const quote = withdrawnQuote
-      ? await prisma.self_drive_quotes.update({ where: { id: withdrawnQuote.id }, data: quoteFields })
-      : await prisma.self_drive_quotes.create({ data: { id: generateId(), requestId, vendorId: vendorId, ...quoteFields } });
+      ? await prisma.self_drive_quotes.update({
+          where: { id: withdrawnQuote.id },
+          data: {
+            ...quoteFields,
+            vendor_self_drive_templates: templateId ? { connect: { id: templateId } } : { disconnect: true },
+          },
+        })
+      : await prisma.self_drive_quotes.create({
+          data: { id: generateId(), requestId, vendorId: vendorId, templateId: templateId || null, ...quoteFields },
+        });
 
     // Update quote request stats
     await prisma.self_drive_quote_requests.update({

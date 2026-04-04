@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
 
     const whereClause: any = { vendorId: vendorId };
     if (status && status !== 'all') {
-      whereClause.status = status;
+      const statuses = status.split(",").map((s) => s.trim()).filter(Boolean);
+      whereClause.status = statuses.length === 1 ? statuses[0] : { in: statuses };
     }
 
     // DATE FILTERING
@@ -225,8 +226,8 @@ export async function POST(request: NextRequest) {
       termsConditions = [],
 
       // Validity (days)
-      validityDays = 3,
-      validUntil,
+      validityDays,
+      customValidTill,
     } = body;
 
     // Validate required fields
@@ -289,9 +290,19 @@ export async function POST(request: NextRequest) {
     const totalAmount = baseAmount + driverAllowance + nightHaltCharges + tollEstimate + permitCharges + parkingEstimate + gstAmount;
 
     // Set validity
-    const validTill = validUntil && !isNaN(new Date(validUntil).getTime())
-      ? new Date(validUntil)
-      : (() => { const d = new Date(); d.setDate(d.getDate() + validityDays); return d; })();
+    const useCustomValidity = customValidTill && !isNaN(new Date(customValidTill).getTime());
+    const finalValidityDays = useCustomValidity ? null : (validityDays || 3);
+    let validTill: Date;
+    if (useCustomValidity) {
+      validTill = new Date(customValidTill);
+    } else {
+      validTill = new Date();
+      validTill.setDate(validTill.getDate() + finalValidityDays!);
+      validTill.setHours(23, 59, 59, 999);
+    }
+    const storedValidityDays = useCustomValidity
+      ? Math.max(1, Math.ceil((validTill.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : finalValidityDays!;
 
     // Fetch fleet vehicle images if fleetId is provided
     let finalVehicleImages = vehicleImages; // Use provided images if any
@@ -342,13 +353,12 @@ export async function POST(request: NextRequest) {
 
     // Check if a withdrawn quote exists (re-quote after withdrawal)
     const withdrawnQuote = await prisma.bus_quotes.findFirst({
-      where: { requestId, vendorId: vendorId, status: 'WITHDRAWN' },
+      where: { requestId, vendorId: vendorId, status: { in: ['WITHDRAWN', 'EXPIRED'] } },
       select: { id: true },
     });
 
     const quoteFields = {
       quoteNumber,
-      templateId: templateId || null,
       fleetId: fleetId || null,
       vehicleCategory: vehicle_category || quoteRequest.vehicleCategory,
       vehicleName,
@@ -388,10 +398,18 @@ export async function POST(request: NextRequest) {
       sentAt: new Date(),
     };
 
-    // Create the quote (or update existing withdrawn quote)
+    // Create the quote (or update existing withdrawn/expired quote)
     const quote = withdrawnQuote
-      ? await prisma.bus_quotes.update({ where: { id: withdrawnQuote.id }, data: quoteFields })
-      : await prisma.bus_quotes.create({ data: { id: generateId(), requestId, vendorId: vendorId, ...quoteFields } });
+      ? await prisma.bus_quotes.update({
+          where: { id: withdrawnQuote.id },
+          data: {
+            ...quoteFields,
+            vendor_bus_templates: templateId ? { connect: { id: templateId } } : { disconnect: true },
+          },
+        })
+      : await prisma.bus_quotes.create({
+          data: { id: generateId(), requestId, vendorId: vendorId, templateId: templateId || null, ...quoteFields },
+        });
 
     // Update quote request stats
     await prisma.bus_quote_requests.update({
@@ -450,6 +468,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
+    console.error('🔴 BUS QUOTE POST ERROR:', error?.message, error?.stack?.split('\n').slice(0,4).join(' | '));
     logger.error('Failed to submit bus quote', error);
     return NextResponse.json(
       { error: 'Failed to submit quote', details: error?.message },

@@ -831,6 +831,12 @@ export async function getVendorQuotes(serviceType, params = {}) {
   return res.data;
 }
 
+export async function withdrawQuote(serviceType, quoteId) {
+  const mappedServiceType = mapServiceTypeForBackend(serviceType);
+  const res = await apiPatch(`/vendor/${mappedServiceType}-quotes/${quoteId}`, { action: 'withdraw' });
+  return res.data;
+}
+
 // ==================== FLEET APIs ====================
 
 /**

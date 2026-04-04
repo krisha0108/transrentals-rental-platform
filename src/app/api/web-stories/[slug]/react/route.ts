@@ -47,17 +47,30 @@ export async function POST(
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     // Check for duplicate reaction from same IP in last 24h
-    const existing = await prisma.web_story_reactions.findFirst({
-      where: {
-        storyId: story.id,
-        reactionType: reactionType as any,
-        userIp,
-        createdAt: { gte: since24h },
-      },
-    });
+    // Skip dedup if IP is unknown (0.0.0.0) — prevents blocking all users on proxied servers
+    if (userIp && userIp !== '0.0.0.0') {
+      const existing = await prisma.web_story_reactions.findFirst({
+        where: {
+          storyId: story.id,
+          reactionType: reactionType as any,
+          userIp,
+          createdAt: { gte: since24h },
+        },
+      });
 
-    if (existing) {
-      return NextResponse.json({ error: 'Already reacted' }, { status: 429 });
+      if (existing) {
+        // Return current counts so client can sync
+        const reactions = await prisma.web_story_reactions.groupBy({
+          by: ['reactionType'],
+          where: { storyId: story.id },
+          _count: { reactionType: true },
+        });
+        const counts = { HEART: 0, FIRE: 0, THUMBS_UP: 0 };
+        for (const r of reactions) {
+          counts[r.reactionType as keyof typeof counts] = r._count.reactionType;
+        }
+        return NextResponse.json({ error: 'Already reacted', reactions: counts }, { status: 429 });
+      }
     }
 
     // Save reaction

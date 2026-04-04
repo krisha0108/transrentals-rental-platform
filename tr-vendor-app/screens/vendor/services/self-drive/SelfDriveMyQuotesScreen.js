@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, ActivityIndicator, StatusBar,
+  RefreshControl, ActivityIndicator, StatusBar, Alert, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getVendorQuotes } from '../../../api/client';
+import { getVendorQuotes, withdrawQuote } from '../../../api/client';
 import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
 import DateFilterModal from '../../../../components/DateFilterModal';
 
@@ -33,10 +33,18 @@ const STATUS_CFG = {
 };
 
 const TABS = [
-  { id: 'all',      label: 'All'      },
-  { id: 'accepted', label: 'Accepted' },
-  { id: 'rejected', label: 'Rejected' },
+  { id: 'all',      label: 'All'              },
+  { id: 'active',   label: 'Active'            },
+  { id: 'accepted', label: 'Accepted'          },
+  { id: 'expired',  label: 'Expired/Rejected'  },
 ];
+
+// Map tab id → status param sent to API
+const TAB_STATUS_MAP = {
+  active:   'SENT,VIEWED',
+  accepted: 'ACCEPTED',
+  expired:  'EXPIRED,REJECTED,WITHDRAWN',
+};
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A';
 const fmtAmt  = (v) => v ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(v) : '₹0';
@@ -44,15 +52,41 @@ const fmtAmt  = (v) => v ? new Intl.NumberFormat('en-IN', { style: 'currency', c
 export default function SelfDriveMyQuotesScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('all');
   const [showDateFilter, setShowDateFilter] = useState(false);
+  const [withdrawingId, setWithdrawingId]   = useState(null);
 
   const { data: quotes, loading, refreshing, hasMore, loadMore, refresh, initialLoad, applyDateFilter, dateFilter, clearDateFilter } =
     useInfiniteScroll(getVendorQuotes, {
       service: 'self-drive',
-      type: activeTab !== 'all' ? activeTab.toUpperCase() : null,
+      type: TAB_STATUS_MAP[activeTab] || null,
       filterKey: 'status',
     });
 
-  useEffect(() => { initialLoad(); }, [initialLoad]);
+  useEffect(() => { initialLoad(); }, [initialLoad, activeTab]);
+
+  const handleWithdraw = (quote) => {
+    Alert.alert(
+      'Withdraw Quote',
+      'Are you sure you want to withdraw this quote? The customer will be notified.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Withdraw',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setWithdrawingId(quote.id);
+              await withdrawQuote('self-drive', quote.id);
+              refresh();
+            } catch (e) {
+              Alert.alert('Error', e?.message || 'Failed to withdraw quote');
+            } finally {
+              setWithdrawingId(null);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const renderQuoteCard = ({ item }) => {
     const status = item.status || 'PENDING';
@@ -64,6 +98,9 @@ export default function SelfDriveMyQuotesScreen({ navigation }) {
     const totalAmount = item.grandTotal || item.totalAmount || item.quotedAmount || 0;
     const validTill = item.validTill || item.validUntil;
     const requestNumber = request.requestNumber || item.requestNumber;
+
+    const isActive   = ['SENT', 'VIEWED'].includes(status);
+    const canReQuote = status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(request.status);
 
     return (
       <TouchableOpacity
@@ -136,6 +173,45 @@ export default function SelfDriveMyQuotesScreen({ navigation }) {
             <Icon name="chevron-right" size={14} color={C.g700} />
           </View>
         </View>
+
+        {/* Action buttons */}
+        {(isActive || canReQuote) && (
+          <View style={s.cardActions}>
+            {isActive && (
+              <TouchableOpacity
+                style={s.withdrawBtn}
+                onPress={(e) => { e.stopPropagation?.(); handleWithdraw(item); }}
+                disabled={withdrawingId === item.id}
+                activeOpacity={0.7}
+              >
+                {withdrawingId === item.id ? (
+                  <ActivityIndicator size="small" color={C.red} />
+                ) : (
+                  <>
+                    <Ionicons name="close-circle-outline" size={14} color={C.red} />
+                    <Text style={s.withdrawBtnText}>Withdraw</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+            {canReQuote && (
+              <TouchableOpacity
+                style={s.freshQuoteBtn}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  navigation.navigate('SelfDriveSendQuote', {
+                    requestId: request.id || item.requestId,
+                    prefillQuoteId: item.id,
+                  });
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="refresh-outline" size={14} color={C.g700} />
+                <Text style={s.freshQuoteBtnText}>Send Fresh Quote</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
@@ -167,15 +243,17 @@ export default function SelfDriveMyQuotesScreen({ navigation }) {
 
       {/* Tabs */}
       <View style={s.tabsBar}>
-        {TABS.map(tab => (
-          <TouchableOpacity
-            key={tab.id}
-            style={[s.tab, activeTab === tab.id && s.tabActive]}
-            onPress={() => setActiveTab(tab.id)}
-          >
-            <Text style={[s.tabText, activeTab === tab.id && s.tabTextActive]}>{tab.label}</Text>
-          </TouchableOpacity>
-        ))}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.tabScroll}>
+          {TABS.map(tab => (
+            <TouchableOpacity
+              key={tab.id}
+              style={[s.tab, activeTab === tab.id && s.tabActive]}
+              onPress={() => setActiveTab(tab.id)}
+            >
+              <Text style={[s.tabText, activeTab === tab.id && s.tabTextActive]}>{tab.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {loading && quotes.length === 0 ? (
@@ -200,7 +278,12 @@ export default function SelfDriveMyQuotesScreen({ navigation }) {
                 <Ionicons name="document-text-outline" size={36} color={C.muted} />
               </View>
               <Text style={s.emptyTitle}>No Quotes Found</Text>
-              <Text style={s.emptySub}>{activeTab === 'all' ? "You haven't sent any quotes yet" : `No ${activeTab} quotes`}</Text>
+              <Text style={s.emptySub}>
+                {activeTab === 'all'      ? "You haven't sent any quotes yet"
+                 : activeTab === 'active'   ? 'No active quotes'
+                 : activeTab === 'accepted' ? 'No accepted quotes'
+                 : 'No expired or rejected quotes'}
+              </Text>
             </View>
           }
         />
@@ -233,10 +316,28 @@ const s = StyleSheet.create({
   filterActiveDot: { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: '#FFD700', borderWidth: 1.5, borderColor: C.g900 },
 
   // Tabs
-  tabsBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-  tab: { paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border },
+  tabsBar: {
+    backgroundColor: C.card,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  tabScroll: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+    flexDirection: 'row',
+  },
+  tab: {
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    alignItems: 'center',
+    backgroundColor: C.bg,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
   tabActive: { backgroundColor: C.g700, borderColor: C.g700 },
-  tabText: { fontSize: 13, fontWeight: '600', color: C.muted },
+  tabText: { fontSize: 13, fontWeight: '600', color: C.sub },
   tabTextActive: { color: '#fff' },
 
   // List
@@ -270,6 +371,44 @@ const s = StyleSheet.create({
   footerLeft: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 },
   footerDate: { fontSize: 11, color: C.muted },
   footerArrow: { width: 28, height: 28, borderRadius: 8, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center' },
+
+  /* Card action buttons */
+  cardActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+  },
+  withdrawBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: C.redL,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  withdrawBtnText: { fontSize: 13, fontWeight: '600', color: C.red },
+  freshQuoteBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: C.g50,
+    borderWidth: 1,
+    borderColor: C.g100,
+  },
+  freshQuoteBtnText: { fontSize: 13, fontWeight: '600', color: C.g700 },
 
   // Empty
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 72 },

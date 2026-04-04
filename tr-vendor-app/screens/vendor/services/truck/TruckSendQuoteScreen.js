@@ -10,6 +10,8 @@ import {
   Alert,
   Modal,
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -17,6 +19,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import CustomDropdown from '../../../../components/CustomDropdown';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { getQuoteRequestById, getFleetVehicles, submitQuote, getTemplates, getTemplateById } from '../../../api/client';
 import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
 
@@ -78,6 +81,14 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
   const [advancePercent, setAdvancePercent] = useState('30');
   const [notes, setNotes] = useState('');
   const [validityDays, setValidityDays] = useState('3');
+
+  const [advanceMode, setAdvanceMode] = useState('percent'); // 'percent' | 'manual'
+  const [customAdvanceAmount, setCustomAdvanceAmount] = useState('');
+  const [validityMode, setValidityMode] = useState('days'); // 'days' | 'custom'
+  const [customValidDate, setCustomValidDate] = useState(null);
+  const [customValidTime, setCustomValidTime] = useState({ hours: 23, minutes: 59 });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // Inclusions/Exclusions/Terms
   const [inclusions, setInclusions] = useState([...DEFAULT_INCLUSIONS]);
@@ -219,6 +230,7 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
   };
 
   const calculateAdvance = () => {
+    if (advanceMode === 'manual') return parseFloat(customAdvanceAmount) || 0;
     const total = parseFloat(totalPrice) || 0;
     const percent = parseInt(advancePercent) || 30;
     return Math.round((total * percent) / 100);
@@ -228,7 +240,8 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
     const newErrors = {};
     if (!vehicleName.trim()) newErrors.vehicleName = 'Vehicle name is required';
     if (!totalPrice || parseFloat(totalPrice) <= 0) newErrors.totalPrice = 'Enter a valid total price';
-    if (!validityDays || parseInt(validityDays) <= 0) newErrors.validityDays = 'Validity must be at least 1 day';
+    if (validityMode === 'days' && (!validityDays || parseInt(validityDays) <= 0)) newErrors.validityDays = 'Validity must be at least 1 day';
+    if (validityMode === 'custom' && !customValidDate) newErrors.validityDays = 'Please select a custom expiry date';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -250,12 +263,14 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
         dailyRate: calculatedDailyRate,
         totalPrice: parseFloat(totalPrice),
         securityDeposit: parseFloat(securityDeposit) || 0,
-        advancePercent: parseInt(advancePercent),
+        advancePercent: advanceMode === 'percent' ? (parseInt(advancePercent) || 30) : 0,
+        customAdvanceAmount: advanceMode === 'manual' ? (parseFloat(customAdvanceAmount) || 0) : undefined,
         inclusions,
         exclusions,
         termsConditions,
         vendorMessage: notes || null,
-        validityDays: parseInt(validityDays),
+        validityDays: validityMode === 'days' ? parseInt(validityDays) : undefined,
+        customValidTill: validityMode === 'custom' && customValidDate ? (() => { const d = new Date(customValidDate); d.setHours(customValidTime.hours, customValidTime.minutes, 0, 0); return d.toISOString(); })() : undefined,
       });
       showSuccess('Quote sent successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
@@ -309,7 +324,16 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
 
         {/* ─── REQUEST SUMMARY ─── */}
         <View style={[styles.card, { backgroundColor: C.amberL, borderColor: '#FDE68A', marginTop: 20 }]}>
@@ -470,19 +494,46 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
             placeholderTextColor={C.muted}
           />
 
-          <CustomDropdown
-            label="Advance Payment Required"
-            value={advancePercent}
-            items={[
-              { label: '25%', value: '25' },
-              { label: '30%', value: '30' },
-              { label: '40%', value: '40' },
-              { label: '50%', value: '50' },
-              { label: '100%', value: '100' },
-            ]}
-            onValueChange={setAdvancePercent}
-            placeholder="Select advance %"
-          />
+          <Text style={styles.inputLabel}>Advance Payment Required</Text>
+          <View style={styles.modeToggleRow}>
+            <TouchableOpacity
+              style={[styles.modeToggleBtn, advanceMode === 'percent' && styles.modeToggleBtnActive]}
+              onPress={() => setAdvanceMode('percent')}
+            >
+              <Text style={[styles.modeToggleBtnText, advanceMode === 'percent' && styles.modeToggleBtnTextActive]}>% Percent</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeToggleBtn, advanceMode === 'manual' && styles.modeToggleBtnActive]}
+              onPress={() => setAdvanceMode('manual')}
+            >
+              <Text style={[styles.modeToggleBtnText, advanceMode === 'manual' && styles.modeToggleBtnTextActive]}>₹ Manual</Text>
+            </TouchableOpacity>
+          </View>
+          {advanceMode === 'percent' ? (
+            <CustomDropdown
+              label=""
+              value={advancePercent}
+              items={[
+                { label: '20%', value: '20' },
+                { label: '25%', value: '25' },
+                { label: '30%', value: '30' },
+                { label: '40%', value: '40' },
+                { label: '50%', value: '50' },
+                { label: '100%', value: '100' },
+              ]}
+              onValueChange={setAdvancePercent}
+              placeholder="Select advance %"
+            />
+          ) : (
+            <TextInput
+              style={styles.input}
+              value={customAdvanceAmount}
+              onChangeText={setCustomAdvanceAmount}
+              placeholder="Enter advance amount (₹)"
+              keyboardType="decimal-pad"
+              placeholderTextColor={C.muted}
+            />
+          )}
         </View>
 
         {/* ─── QUOTE SUMMARY ─── */}
@@ -508,7 +559,7 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
             <View style={styles.summaryDivider} />
             <View style={styles.summaryLine}>
               <Text style={[styles.summaryLineLabel, { fontWeight: '700', color: C.text }]}>
-                Advance ({advancePercent}%)
+                Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Fixed)'}
               </Text>
               <Text style={[styles.summaryLineValue, { color: C.blue, fontSize: 17, fontWeight: '800' }]}>
                 ₹{advance.toFixed(0)}
@@ -635,20 +686,65 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
             textAlignVertical="top"
           />
 
-          <Text style={styles.inputLabel}>Quote Valid For (Days) <Text style={{ color: C.red }}>*</Text></Text>
-          <TextInput
-            style={[styles.input, errors.validityDays && styles.inputError]}
-            value={validityDays}
-            onChangeText={(v) => { setValidityDays(v); if (errors.validityDays) setErrors(e => ({ ...e, validityDays: '' })); }}
-            placeholder="3"
-            keyboardType="number-pad"
-            placeholderTextColor={C.muted}
-          />
-          {errors.validityDays ? <Text style={styles.errorText}>{errors.validityDays}</Text> : null}
+          <Text style={styles.inputLabel}>Quote Valid For <Text style={{ color: C.red }}>*</Text></Text>
+          <View style={styles.modeToggleRow}>
+            <TouchableOpacity
+              style={[styles.modeToggleBtn, validityMode === 'days' && styles.modeToggleBtnActive]}
+              onPress={() => setValidityMode('days')}
+            >
+              <Text style={[styles.modeToggleBtnText, validityMode === 'days' && styles.modeToggleBtnTextActive]}>Days</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeToggleBtn, validityMode === 'custom' && styles.modeToggleBtnActive]}
+              onPress={() => setValidityMode('custom')}
+            >
+              <Text style={[styles.modeToggleBtnText, validityMode === 'custom' && styles.modeToggleBtnTextActive]}>Custom Date</Text>
+            </TouchableOpacity>
+          </View>
+          {validityMode === 'days' ? (
+            <CustomDropdown
+              label=""
+              value={validityDays}
+              items={[
+                { label: '1 day', value: '1' },
+                { label: '2 days', value: '2' },
+                { label: '3 days', value: '3' },
+                { label: '5 days', value: '5' },
+                { label: '7 days', value: '7' },
+              ]}
+              onValueChange={(v) => { setValidityDays(v); if (errors && errors.validityDays) setErrors(e => ({ ...e, validityDays: '' })); }}
+              placeholder="Select validity"
+            />
+          ) : (
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={[styles.datePicker, { flex: 1 }]}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Icon name="calendar" size={16} color={C.sub} />
+                <Text style={[styles.datePickerText, !customValidDate && { color: C.muted }]}>
+                  {customValidDate
+                    ? customValidDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : 'Select date'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.datePicker, { flex: 0.7 }]}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Icon name="clock" size={16} color={C.sub} />
+                <Text style={styles.datePickerText}>
+                  {String(customValidTime.hours).padStart(2, '0')}:{String(customValidTime.minutes).padStart(2, '0')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {errors && errors.validityDays ? <Text style={styles.errorText}>{errors.validityDays}</Text> : null}
         </View>
 
         <View style={{ height: 110 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* ─── SUBMIT FOOTER ─── */}
       <View style={styles.footer}>
@@ -669,6 +765,20 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
           )}
         </TouchableOpacity>
       </View>
+
+      <DateTimePickerModal
+        isVisible={showDatePicker}
+        mode="date"
+        minimumDate={new Date()}
+        onConfirm={(date) => { setCustomValidDate(date); setShowDatePicker(false); }}
+        onCancel={() => setShowDatePicker(false)}
+      />
+      <DateTimePickerModal
+        isVisible={showTimePicker}
+        mode="time"
+        onConfirm={(date) => { setCustomValidTime({ hours: date.getHours(), minutes: date.getMinutes() }); setShowTimePicker(false); }}
+        onCancel={() => setShowTimePicker(false)}
+      />
 
       {/* ─── EDIT MODAL ─── */}
       <Modal
@@ -940,4 +1050,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   modalSaveBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+
+  modeToggleRow: { flexDirection: 'row', borderRadius: 10, borderWidth: 1, borderColor: C.border, overflow: 'hidden', marginBottom: 10 },
+  modeToggleBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: C.card },
+  modeToggleBtnActive: { backgroundColor: C.g600 },
+  modeToggleBtnText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  modeToggleBtnTextActive: { color: '#fff' },
+  datePicker: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13, backgroundColor: C.card, marginBottom: 12 },
+  datePickerText: { flex: 1, fontSize: 14, color: C.text },
 });

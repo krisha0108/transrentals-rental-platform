@@ -49,7 +49,8 @@ export async function GET(request: NextRequest) {
 
     let whereClause: any = { vendorId: vendorId };
     if (status && status !== 'all') {
-      whereClause.status = status.toUpperCase();
+      const statuses = status.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+      whereClause.status = statuses.length === 1 ? statuses[0] : { in: statuses };
     }
 
     // DATE FILTERING - Add to where clause
@@ -194,6 +195,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       requestId,
+      templateId,
       packingCharges,
       loadingCharges,
       transportCharges,
@@ -215,7 +217,7 @@ export async function POST(request: NextRequest) {
       termsConditions,
       validityDays,
       notes,
-      validUntil,
+      customValidTill,
       advanceAmount: bodyAdvanceAmount,
       advancePercent = 50,
       customAdvanceAmount,
@@ -268,9 +270,19 @@ export async function POST(request: NextRequest) {
     }
 
     const quoteNumber = generateQuoteNumber();
-    const validTill = validUntil && !isNaN(new Date(validUntil).getTime())
-      ? new Date(validUntil)
-      : (() => { const d = new Date(); d.setDate(d.getDate() + (validityDays || 7)); return d; })();
+    const useCustomValidity = customValidTill && !isNaN(new Date(customValidTill).getTime());
+    const finalValidityDays = useCustomValidity ? null : (validityDays || 7);
+    let validTill: Date;
+    if (useCustomValidity) {
+      validTill = new Date(customValidTill);
+    } else {
+      validTill = new Date();
+      validTill.setDate(validTill.getDate() + finalValidityDays!);
+      validTill.setHours(23, 59, 59, 999);
+    }
+    const storedValidityDays = useCustomValidity
+      ? Math.max(1, Math.ceil((validTill.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : finalValidityDays!;
 
     // Get vehicle type from fleet if fleetVehicleId provided, otherwise use form value
     let finalVehicleType = vehicleType || '';
@@ -345,13 +357,12 @@ export async function POST(request: NextRequest) {
 
     // Check if a withdrawn quote exists (re-quote after withdrawal)
     const withdrawnQuote = await prisma.packers_quotes.findFirst({
-      where: { requestId, vendorId: vendorId, status: 'WITHDRAWN' },
+      where: { requestId, vendorId: vendorId, status: { in: ['WITHDRAWN', 'EXPIRED'] } },
       select: { id: true },
     });
 
     const quoteFields = {
       quoteNumber,
-      vendorFleetId: fleetVehicleId || null,
       packingCharges: packingCharges || 0,
       loadingCharges: loadingCharges || 0,
       transportCharges: transportCharges || 0,
@@ -382,8 +393,17 @@ export async function POST(request: NextRequest) {
 
     const quote = await prisma.$transaction(async (tx) => {
       const newQuote = withdrawnQuote
-        ? await tx.packers_quotes.update({ where: { id: withdrawnQuote.id }, data: quoteFields })
-        : await tx.packers_quotes.create({ data: { id: generateId(), requestId, vendorId: vendorId, ...quoteFields } });
+        ? await tx.packers_quotes.update({
+            where: { id: withdrawnQuote.id },
+            data: {
+              ...quoteFields,
+              vendor_fleets: fleetVehicleId ? { connect: { id: fleetVehicleId } } : { disconnect: true },
+              vendor_packers_templates: templateId ? { connect: { id: templateId } } : { disconnect: true },
+            },
+          })
+        : await tx.packers_quotes.create({
+            data: { id: generateId(), requestId, vendorId: vendorId, templateId: templateId || null, vendorFleetId: fleetVehicleId || null, ...quoteFields },
+          });
 
       // Update request status and quote count
       await tx.packers_quote_requests.update({

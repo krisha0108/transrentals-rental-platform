@@ -8,8 +8,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getVendorQuotes, getQuoteRequestById } from '../../../api/client';
-import { showError, showInfo } from '../../../../services/alertService';
+import { getVendorQuotes, getQuoteRequestById, withdrawQuote } from '../../../api/client';
+import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
 
 const C = {
   g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
@@ -17,6 +17,7 @@ const C = {
   bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A',
   sub: '#475569', muted: '#94A3B8', blue: '#2563EB', blueL: '#EFF6FF',
   amber: '#D97706', amberL: '#FFFBEB', red: '#DC2626', redL: '#FEF2F2',
+  orange: '#EA580C', orangeL: '#FFF7ED',
   indigo: '#4F46E5', indigoL: '#EEF2FF',
 };
 
@@ -45,6 +46,7 @@ export default function LuxuryQuoteDetailScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bookingId, setBookingId] = useState(null);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   const fetchQuoteDetail = useCallback(async () => {
     if (!quoteId) { showError('Quote ID is missing'); navigation.goBack(); return; }
@@ -79,6 +81,26 @@ export default function LuxuryQuoteDetailScreen({ route, navigation }) {
 
   const onRefresh = () => { setRefreshing(true); fetchQuoteDetail(); };
 
+  const handleWithdraw = () => {
+    showConfirm(
+      'Withdraw Quote',
+      'Are you sure you want to withdraw this quote?',
+      async () => {
+        try {
+          setIsWithdrawing(true);
+          await withdrawQuote('luxury', quoteId);
+          setQuote(prev => prev ? { ...prev, status: 'WITHDRAWN' } : null);
+          showSuccess('Quote withdrawn successfully');
+        } catch (err) {
+          showError(err?.response?.data?.error || 'Failed to withdraw quote');
+        } finally {
+          setIsWithdrawing(false);
+        }
+      },
+      { confirmText: 'Withdraw', destructive: true }
+    );
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={st.safe} edges={['top']}>
@@ -108,6 +130,8 @@ export default function LuxuryQuoteDetailScreen({ route, navigation }) {
   const status = quote.status || 'PENDING';
   const sc = STATUS_COLORS[status] || STATUS_COLORS.PENDING;
   const request = quote.request || {};
+  const isActive   = ['SENT', 'VIEWED'].includes(status);
+  const canReQuote = status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(request.status);
   const customerName = request.customerName || quote.customerName || 'Customer';
   const requestNumber = request.requestNumber || quote.requestNumber;
   const vehicleName = quote.vehicleName || 'Luxury Vehicle';
@@ -375,20 +399,86 @@ export default function LuxuryQuoteDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        <View style={{ height: status === 'ACCEPTED' && bookingId ? 90 : 30 }} />
+        <View style={{ height: 30 }} />
       </ScrollView>
 
-      {status === 'ACCEPTED' && bookingId && (
-        <View style={st.bottomBar}>
+      <View style={st.bottomBar}>
+        {status === 'ACCEPTED' ? (
           <TouchableOpacity
             style={st.viewBookingBtn}
-            onPress={() => navigation.navigate('LuxuryBookingDetail', { bookingId })}
+            onPress={() => {
+              if (bookingId) navigation.navigate('LuxuryBookingDetail', { bookingId });
+              else {
+                const rid = quote.requestId || quote.request?.id || quote.request?._id;
+                if (rid) navigation.navigate('LuxuryQuoteRequestDetail', { requestId: rid });
+                else showInfo('Please check your Bookings section.');
+              }
+            }}
           >
             <Ionicons name="document-text-outline" size={20} color="#fff" />
             <Text style={st.viewBookingText}>View Booking Details</Text>
           </TouchableOpacity>
-        </View>
-      )}
+        ) : isActive ? (
+          <View style={st.bottomRow}>
+            <TouchableOpacity
+              style={[st.withdrawBtn, isWithdrawing && { opacity: 0.6 }]}
+              onPress={handleWithdraw}
+              disabled={isWithdrawing}
+            >
+              <Icon name="x-circle" size={17} color="#fff" />
+              <Text style={st.bottomBtnText}>{isWithdrawing ? 'Withdrawing...' : 'Withdraw'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[st.viewRequestBtn, { flex: 1 }]}
+              onPress={() => {
+                const rid = quote.requestId || quote.request?.id || quote.request?._id;
+                if (rid) navigation.navigate('LuxuryQuoteRequestDetail', { requestId: rid });
+                else showInfo('Request details not available.');
+              }}
+            >
+              <Ionicons name="document-text-outline" size={17} color="#fff" />
+              <Text style={st.bottomBtnText}>View Request</Text>
+            </TouchableOpacity>
+          </View>
+        ) : canReQuote ? (
+          <View style={st.bottomRow}>
+            <TouchableOpacity
+              style={[st.viewRequestBtn, { flex: 1 }]}
+              onPress={() => {
+                const rid = quote.requestId || quote.request?.id || quote.request?._id;
+                if (rid) navigation.navigate('LuxuryQuoteRequestDetail', { requestId: rid });
+                else showInfo('Request details not available.');
+              }}
+            >
+              <Ionicons name="document-text-outline" size={17} color="#fff" />
+              <Text style={st.bottomBtnText}>View Request</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[st.freshQuoteBtn, { flex: 1 }]}
+              onPress={() => {
+                const rid = quote.requestId || quote.request?.id || quote.request?._id;
+                if (rid) navigation.navigate('LuxurySendQuote', { requestId: rid });
+                else showInfo('Request details not available.');
+              }}
+            >
+              <Icon name="refresh-cw" size={17} color="#fff" />
+              <Text style={st.bottomBtnText}>Send Fresh Quote</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={st.viewRequestBtn}
+            onPress={() => {
+              const rid = quote.requestId || quote.request?.id || quote.request?._id;
+              if (rid) navigation.navigate('LuxuryQuoteRequestDetail', { requestId: rid });
+              else showInfo('Request details not available.');
+            }}
+          >
+            <Ionicons name="document-text-outline" size={18} color="#fff" />
+            <Text style={st.bottomBtnText}>View Request Details</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -468,4 +558,18 @@ const st = StyleSheet.create({
   bottomBar: { padding: 16, backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border },
   viewBookingBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.blue, paddingVertical: 14, borderRadius: 14 },
   viewBookingText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  bottomRow: { flexDirection: 'row', gap: 10 },
+  viewRequestBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.sub, paddingVertical: 15, borderRadius: 14,
+  },
+  withdrawBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.red, paddingVertical: 15, borderRadius: 14, flex: 1,
+  },
+  freshQuoteBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.orange, paddingVertical: 15, borderRadius: 14,
+  },
+  bottomBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 });

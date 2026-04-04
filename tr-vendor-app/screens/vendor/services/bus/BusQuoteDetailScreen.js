@@ -9,8 +9,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getVendorQuotes, getBaseURL, getQuoteRequestById } from '../../../api/client';
-import { showError, showSuccess, showInfo } from '../../../../services/alertService';
+import { getVendorQuotes, getBaseURL, getQuoteRequestById, withdrawQuote } from '../../../api/client';
+import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
 
 const { width } = Dimensions.get('window');
 const SLIDER_WIDTH = width - 32;
@@ -89,6 +89,7 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [bookingId, setBookingId] = useState(null);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
   const imageSliderRef = useRef(null);
   const [baseUrl, setBaseUrl] = useState('');
 
@@ -118,6 +119,26 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
 
   useEffect(() => { fetchQuoteDetail(); }, [fetchQuoteDetail]);
   const onRefresh = () => { setRefreshing(true); fetchQuoteDetail(); };
+
+  const handleWithdraw = () => {
+    showConfirm(
+      'Withdraw Quote',
+      'Are you sure you want to withdraw this quote?',
+      async () => {
+        try {
+          setIsWithdrawing(true);
+          await withdrawQuote('bus', quoteId);
+          setQuote(prev => prev ? { ...prev, status: 'WITHDRAWN' } : null);
+          showSuccess('Quote withdrawn successfully');
+        } catch (err) {
+          showError(err?.response?.data?.error || 'Failed to withdraw quote');
+        } finally {
+          setIsWithdrawing(false);
+        }
+      },
+      { confirmText: 'Withdraw', destructive: true }
+    );
+  };
 
   const getFullImageUrl = (path) => {
     if (!path) return null;
@@ -189,6 +210,8 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
   const status = quote.status || 'PENDING';
   const sc = STATUS_COLORS[status] || { color: C.muted, bg: '#F8FAFC' };
   const request = quote.request || {};
+  const isActive   = ['SENT', 'VIEWED'].includes(status);
+  const canReQuote = status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(request.status);
 
   const customerName  = request.customerName  || quote.customerName  || 'Customer';
   const customerEmail = request.customerEmail || quote.customerEmail;
@@ -468,19 +491,7 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
       </ScrollView>
 
       <View style={styles.bottomBar}>
-        {status !== 'ACCEPTED' ? (
-          <TouchableOpacity
-            style={styles.viewRequestBtn}
-            onPress={() => {
-              const rid = quote.requestId || quote.request?.id || quote.request?._id;
-              if (rid) navigation.navigate('BusQuoteRequestDetail', { requestId: rid });
-              else showInfo('Request details not available.');
-            }}
-          >
-            <Ionicons name="document-text-outline" size={18} color="#fff" />
-            <Text style={styles.bottomBtnText}>View Request Details</Text>
-          </TouchableOpacity>
-        ) : (
+        {status === 'ACCEPTED' ? (
           <TouchableOpacity
             style={styles.viewBookingBtn}
             onPress={() => {
@@ -494,6 +505,65 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
           >
             <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
             <Text style={styles.bottomBtnText}>View Booking Details</Text>
+          </TouchableOpacity>
+        ) : isActive ? (
+          <View style={styles.bottomRow}>
+            <TouchableOpacity
+              style={[styles.withdrawBtn, isWithdrawing && { opacity: 0.6 }]}
+              onPress={handleWithdraw}
+              disabled={isWithdrawing}
+            >
+              <Icon name="x-circle" size={17} color="#fff" />
+              <Text style={styles.bottomBtnText}>{isWithdrawing ? 'Withdrawing...' : 'Withdraw'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.viewRequestBtn, { flex: 1 }]}
+              onPress={() => {
+                const rid = quote.requestId || quote.request?.id || quote.request?._id;
+                if (rid) navigation.navigate('BusQuoteRequestDetail', { requestId: rid });
+                else showInfo('Request details not available.');
+              }}
+            >
+              <Ionicons name="document-text-outline" size={17} color="#fff" />
+              <Text style={styles.bottomBtnText}>View Request</Text>
+            </TouchableOpacity>
+          </View>
+        ) : canReQuote ? (
+          <View style={styles.bottomRow}>
+            <TouchableOpacity
+              style={[styles.viewRequestBtn, { flex: 1 }]}
+              onPress={() => {
+                const rid = quote.requestId || quote.request?.id || quote.request?._id;
+                if (rid) navigation.navigate('BusQuoteRequestDetail', { requestId: rid });
+                else showInfo('Request details not available.');
+              }}
+            >
+              <Ionicons name="document-text-outline" size={17} color="#fff" />
+              <Text style={styles.bottomBtnText}>View Request</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.freshQuoteBtn, { flex: 1 }]}
+              onPress={() => {
+                const rid = quote.requestId || quote.request?.id || quote.request?._id;
+                if (rid) navigation.navigate('BusSendQuote', { requestId: rid });
+                else showInfo('Request details not available.');
+              }}
+            >
+              <Icon name="refresh-cw" size={17} color="#fff" />
+              <Text style={styles.bottomBtnText}>Send Fresh Quote</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.viewRequestBtn}
+            onPress={() => {
+              const rid = quote.requestId || quote.request?.id || quote.request?._id;
+              if (rid) navigation.navigate('BusQuoteRequestDetail', { requestId: rid });
+              else showInfo('Request details not available.');
+            }}
+          >
+            <Ionicons name="document-text-outline" size={18} color="#fff" />
+            <Text style={styles.bottomBtnText}>View Request Details</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -635,6 +705,15 @@ const styles = StyleSheet.create({
   viewBookingBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: C.blue, paddingVertical: 15, borderRadius: 14,
+  },
+  bottomRow: { flexDirection: 'row', gap: 10 },
+  withdrawBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.red, paddingVertical: 15, borderRadius: 14, flex: 1,
+  },
+  freshQuoteBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.orange, paddingVertical: 15, borderRadius: 14,
   },
   bottomBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
 

@@ -10,7 +10,10 @@ import {
   Alert,
   Modal,
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -20,7 +23,7 @@ import { getQuoteRequestById, getFleetVehicles, submitQuote, getTemplates, getTe
 import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
 
 const C = {
-  g900: '#022C22', g800: '#065F46', g700: '#047857', g500: '#059669', g400: '#34D399',
+  g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669', g500: '#059669', g400: '#34D399',
   g50: '#ECFDF5', g100: '#D1FAE5',
   bg: '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0', text: '#0F172A', sub: '#475569', muted: '#94A3B8',
   green: '#059669', greenL: '#ECFDF5',
@@ -28,6 +31,7 @@ const C = {
   red: '#DC2626', redL: '#FEF2F2',
   blue: '#2563EB', blueL: '#EFF6FF',
   purple: '#7C3AED', purpleL: '#F5F3FF',
+  orange: '#EA580C', orangeL: '#FFF7ED',
 };
 
 const DEFAULT_INCLUSIONS = [
@@ -70,11 +74,19 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [totalPrice, setTotalPrice] = useState('');
   const [securityDeposit, setSecurityDeposit] = useState('');
-  const [kmLimitPerDay, setKmLimitPerDay] = useState('250');
+  const [kmLimitPerDay, setKmLimitPerDay] = useState('');
   const [extraKmRate, setExtraKmRate] = useState('12');
   const [advancePercent, setAdvancePercent] = useState('30');
   const [notes, setNotes] = useState('');
   const [validityDays, setValidityDays] = useState('3');
+  const [unlimitedKm, setUnlimitedKm] = useState(false);
+  const [advanceMode, setAdvanceMode] = useState('percent'); // 'percent' | 'manual'
+  const [customAdvanceAmount, setCustomAdvanceAmount] = useState('');
+  const [validityMode, setValidityMode] = useState('days'); // 'days' | 'custom'
+  const [customValidDate, setCustomValidDate] = useState(null);
+  const [customValidTime, setCustomValidTime] = useState({ hours: 23, minutes: 59 });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // Focus state for inputs
   const [focusedInput, setFocusedInput] = useState(null);
@@ -222,6 +234,7 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
   };
 
   const calculateAdvance = () => {
+    if (advanceMode === 'manual') return parseFloat(customAdvanceAmount) || 0;
     const total = parseFloat(totalPrice) || 0;
     const percent = parseInt(advancePercent) || 30;
     return Math.round((total * percent) / 100);
@@ -250,14 +263,17 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
         dailyRate: calculatedDailyRate,
         totalPrice: parseFloat(totalPrice),
         securityDeposit: parseFloat(securityDeposit) || 0,
-        kmLimitPerDay: parseInt(kmLimitPerDay) || null,
-        extraKmCharge: parseFloat(extraKmRate) || null,
-        advancePercent: parseInt(advancePercent),
+        kmLimitPerDay: unlimitedKm ? 0 : (parseInt(kmLimitPerDay) || null),
+        unlimitedKm: unlimitedKm,
+        extraKmCharge: unlimitedKm ? null : (parseFloat(extraKmRate) || null),
+        advancePercent: advanceMode === 'percent' ? (parseInt(advancePercent) || 30) : 0,
+        customAdvanceAmount: advanceMode === 'manual' ? (parseFloat(customAdvanceAmount) || 0) : undefined,
         inclusions,
         exclusions,
         termsConditions,
         vendorMessage: notes || null,
-        validityDays: parseInt(validityDays),
+        validityDays: validityMode === 'days' ? parseInt(validityDays) : undefined,
+        customValidTill: validityMode === 'custom' && customValidDate ? (() => { const d = new Date(customValidDate); d.setHours(customValidTime.hours, customValidTime.minutes, 0, 0); return d.toISOString(); })() : undefined,
       });
       showSuccess('Quote sent successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
@@ -310,7 +326,8 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
         <View style={{ width: 44 }} />
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 20, flexGrow: 1 }}>
 
         {/* Request Summary Card */}
         <View style={[styles.card, { backgroundColor: C.g50, borderColor: C.g100 }]}>
@@ -479,51 +496,136 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
 
           <View style={styles.sectionDivider} />
 
-          {/* KM Limit / Extra KM Rate — 2-column layout */}
-          <View style={styles.twoColRow}>
-            <View style={styles.twoColItem}>
-              <Text style={styles.inputLabel}>KM Limit/Day</Text>
-              <TextInput
-                style={[styles.input, focusedInput === 'kmLimit' && styles.inputFocused]}
-                value={kmLimitPerDay}
-                onChangeText={setKmLimitPerDay}
-                placeholder="250"
-                keyboardType="number-pad"
-                placeholderTextColor={C.muted}
-                onFocus={() => setFocusedInput('kmLimit')}
-                onBlur={() => setFocusedInput(null)}
-              />
-            </View>
-            <View style={styles.twoColItem}>
+          <Text style={styles.inputLabel}>KM Limit per Day</Text>
+          <View style={styles.kmRow}>
+            <TextInput
+              style={[styles.input, styles.kmInput, unlimitedKm && { backgroundColor: C.bg, color: C.muted }]}
+              value={unlimitedKm ? '' : kmLimitPerDay}
+              onChangeText={setKmLimitPerDay}
+              placeholder="e.g., 200"
+              keyboardType="number-pad"
+              placeholderTextColor={C.muted}
+              editable={!unlimitedKm}
+            />
+            <TouchableOpacity
+              style={[styles.unlimitedBtn, unlimitedKm && { backgroundColor: C.orangeL, borderColor: C.orange }]}
+              onPress={() => setUnlimitedKm(!unlimitedKm)}
+            >
+              <Ionicons name="flash-outline" size={14} color={unlimitedKm ? C.orange : C.muted} />
+              <Text style={[styles.unlimitedBtnText, unlimitedKm && { color: C.orange }]}>Unlimited</Text>
+            </TouchableOpacity>
+          </View>
+
+          {!unlimitedKm && (
+            <>
               <Text style={styles.inputLabel}>Extra KM Rate (₹/km)</Text>
               <TextInput
-                style={[styles.input, focusedInput === 'extraKm' && styles.inputFocused]}
+                style={styles.input}
                 value={extraKmRate}
                 onChangeText={setExtraKmRate}
-                placeholder="12"
+                placeholder="e.g., 12"
                 keyboardType="decimal-pad"
                 placeholderTextColor={C.muted}
-                onFocus={() => setFocusedInput('extraKm')}
-                onBlur={() => setFocusedInput(null)}
               />
-            </View>
-          </View>
+            </>
+          )}
 
           <View style={styles.sectionDivider} />
 
-          <CustomDropdown
-            label="Advance Payment Required"
-            value={advancePercent}
-            items={[
-              { label: '25%', value: '25' },
-              { label: '30%', value: '30' },
-              { label: '40%', value: '40' },
-              { label: '50%', value: '50' },
-              { label: '100%', value: '100' },
-            ]}
-            onValueChange={setAdvancePercent}
-            placeholder="Select advance %"
-          />
+          <Text style={styles.inputLabel}>Advance Payment Required</Text>
+          <View style={styles.modeToggleRow}>
+            <TouchableOpacity
+              style={[styles.modeToggleBtn, advanceMode === 'percent' && styles.modeToggleBtnActive]}
+              onPress={() => setAdvanceMode('percent')}
+            >
+              <Text style={[styles.modeToggleBtnText, advanceMode === 'percent' && styles.modeToggleBtnTextActive]}>% Percent</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeToggleBtn, advanceMode === 'manual' && styles.modeToggleBtnActive]}
+              onPress={() => setAdvanceMode('manual')}
+            >
+              <Text style={[styles.modeToggleBtnText, advanceMode === 'manual' && styles.modeToggleBtnTextActive]}>₹ Manual</Text>
+            </TouchableOpacity>
+          </View>
+          {advanceMode === 'percent' ? (
+            <CustomDropdown
+              label=""
+              value={advancePercent}
+              items={[
+                { label: '20%', value: '20' },
+                { label: '25%', value: '25' },
+                { label: '30%', value: '30' },
+                { label: '40%', value: '40' },
+                { label: '50%', value: '50' },
+                { label: '100%', value: '100' },
+              ]}
+              onValueChange={setAdvancePercent}
+              placeholder="Select advance %"
+            />
+          ) : (
+            <TextInput
+              style={styles.input}
+              value={customAdvanceAmount}
+              onChangeText={setCustomAdvanceAmount}
+              placeholder="Enter advance amount (₹)"
+              keyboardType="decimal-pad"
+              placeholderTextColor={C.muted}
+            />
+          )}
+
+          <Text style={styles.inputLabel}>Quote Valid For <Text style={{ color: C.red }}>*</Text></Text>
+          <View style={styles.modeToggleRow}>
+            <TouchableOpacity
+              style={[styles.modeToggleBtn, validityMode === 'days' && styles.modeToggleBtnActive]}
+              onPress={() => setValidityMode('days')}
+            >
+              <Text style={[styles.modeToggleBtnText, validityMode === 'days' && styles.modeToggleBtnTextActive]}>Days</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeToggleBtn, validityMode === 'custom' && styles.modeToggleBtnActive]}
+              onPress={() => setValidityMode('custom')}
+            >
+              <Text style={[styles.modeToggleBtnText, validityMode === 'custom' && styles.modeToggleBtnTextActive]}>Custom Date</Text>
+            </TouchableOpacity>
+          </View>
+          {validityMode === 'days' ? (
+            <CustomDropdown
+              label=""
+              value={validityDays}
+              items={[
+                { label: '1 day', value: '1' },
+                { label: '2 days', value: '2' },
+                { label: '3 days', value: '3' },
+                { label: '5 days', value: '5' },
+                { label: '7 days', value: '7' },
+              ]}
+              onValueChange={(v) => setValidityDays(v)}
+              placeholder="Select validity"
+            />
+          ) : (
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={[styles.datePicker, { flex: 1 }]}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Ionicons name="calendar-outline" size={16} color={C.sub} />
+                <Text style={[styles.datePickerText, !customValidDate && { color: C.muted }]}>
+                  {customValidDate
+                    ? customValidDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : 'Select date'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.datePicker, { flex: 0.7 }]}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Ionicons name="time-outline" size={16} color={C.sub} />
+                <Text style={styles.datePickerText}>
+                  {String(customValidTime.hours).padStart(2, '0')}:{String(customValidTime.minutes).padStart(2, '0')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Quote Summary Card */}
@@ -551,7 +653,7 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
             <View style={styles.summaryDivider} />
 
             <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: C.g700 }]}>Advance ({advancePercent}%)</Text>
+              <Text style={[styles.summaryLabel, { color: C.g700 }]}>Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Fixed)'}</Text>
               <Text style={[styles.summaryValue, { color: C.g700, fontWeight: '700' }]}>₹{advance.toFixed(0)}</Text>
             </View>
 
@@ -566,6 +668,18 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
                 <Text style={styles.summaryValue}>₹{parseFloat(securityDeposit).toFixed(0)}</Text>
               </View>
             )}
+
+            {!unlimitedKm && kmLimitPerDay ? (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>KM Limit</Text>
+                <Text style={styles.summaryValue}>{kmLimitPerDay} km/day</Text>
+              </View>
+            ) : unlimitedKm ? (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>KM Limit</Text>
+                <Text style={styles.summaryValue}>Unlimited</Text>
+              </View>
+            ) : null}
           </View>
         )}
 
@@ -674,22 +788,11 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
             onFocus={() => setFocusedInput('notes')}
             onBlur={() => setFocusedInput(null)}
           />
-
-          <Text style={styles.inputLabel}>Quote Valid For (Days)</Text>
-          <TextInput
-            style={[styles.input, focusedInput === 'validity' && styles.inputFocused]}
-            value={validityDays}
-            onChangeText={setValidityDays}
-            placeholder="3"
-            keyboardType="number-pad"
-            placeholderTextColor={C.muted}
-            onFocus={() => setFocusedInput('validity')}
-            onBlur={() => setFocusedInput(null)}
-          />
         </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Footer Submit Button */}
       <View style={styles.footer}>
@@ -711,6 +814,20 @@ export default function SelfDriveSendQuoteScreen({ navigation, route }) {
           )}
         </TouchableOpacity>
       </View>
+
+      <DateTimePickerModal
+        isVisible={showDatePicker}
+        mode="date"
+        minimumDate={new Date()}
+        onConfirm={(date) => { setCustomValidDate(date); setShowDatePicker(false); }}
+        onCancel={() => setShowDatePicker(false)}
+      />
+      <DateTimePickerModal
+        isVisible={showTimePicker}
+        mode="time"
+        onConfirm={(date) => { setCustomValidTime({ hours: date.getHours(), minutes: date.getMinutes() }); setShowTimePicker(false); }}
+        onCancel={() => setShowTimePicker(false)}
+      />
 
       {/* Edit Modal */}
       <Modal
@@ -1263,4 +1380,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
   },
+
+  kmRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  kmInput: { flex: 1, marginBottom: 0 },
+  unlimitedBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: C.border, backgroundColor: C.card },
+  unlimitedBtnText: { fontSize: 13, fontWeight: '600', color: C.muted },
+  modeToggleRow: { flexDirection: 'row', borderRadius: 10, borderWidth: 1, borderColor: C.border, overflow: 'hidden', marginBottom: 10 },
+  modeToggleBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: C.card },
+  modeToggleBtnActive: { backgroundColor: C.g600 },
+  modeToggleBtnText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  modeToggleBtnTextActive: { color: '#fff' },
+  datePicker: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13, backgroundColor: C.card, marginBottom: 12 },
+  datePickerText: { flex: 1, fontSize: 14, color: C.text },
 });

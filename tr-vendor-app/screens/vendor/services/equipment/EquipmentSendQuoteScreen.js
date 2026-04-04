@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Modal, StatusBar,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
@@ -74,6 +76,14 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
   const [advancePercent, setAdvancePercent] = useState('30');
   const [notes, setNotes] = useState('');
   const [validityDays, setValidityDays] = useState('2');
+
+  const [advanceMode, setAdvanceMode] = useState('percent'); // 'percent' | 'manual'
+  const [customAdvanceAmount, setCustomAdvanceAmount] = useState('');
+  const [validityMode, setValidityMode] = useState('days'); // 'days' | 'custom'
+  const [customValidDate, setCustomValidDate] = useState(null);
+  const [customValidTime, setCustomValidTime] = useState({ hours: 23, minutes: 59 });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const [inclusions, setInclusions] = useState([...DEFAULT_INCLUSIONS]);
   const [exclusions, setExclusions] = useState([...DEFAULT_EXCLUSIONS]);
@@ -195,6 +205,7 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
   };
 
   const calculateAdvance = () => {
+    if (advanceMode === 'manual') return parseFloat(customAdvanceAmount) || 0;
     const total = calculateTotal();
     const percent = parseInt(advancePercent) || 30;
     return Math.round((total * percent) / 100);
@@ -226,12 +237,14 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
         rentalDays: request?.durationDays || request?.rentalDays || 1,
         totalAmount: calculateTotal(),
         advanceAmount: calculateAdvance(),
-        advancePercent: parseInt(advancePercent) || 30,
+        advancePercent: advanceMode === 'percent' ? (parseInt(advancePercent) || 30) : 0,
+        customAdvanceAmount: advanceMode === 'manual' ? (parseFloat(customAdvanceAmount) || 0) : undefined,
         inclusions,
         exclusions,
         termsConditions,
         vendorMessage: notes || null,
-        validityDays: parseInt(validityDays) || 7,
+        validityDays: validityMode === 'days' ? (parseInt(validityDays) || 3) : undefined,
+        customValidTill: validityMode === 'custom' && customValidDate ? (() => { const d = new Date(customValidDate); d.setHours(customValidTime.hours, customValidTime.minutes, 0, 0); return d.toISOString(); })() : undefined,
       });
       showSuccess('Quote sent successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
@@ -284,7 +297,8 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
         <Text style={s.heroSub}>Equipment Rental</Text>
       </LinearGradient>
 
-      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
         {/* Request Summary */}
         <View style={[s.card, { backgroundColor: C.g50, borderColor: C.g100 }]}>
           <Text style={[s.cardTitle, { color: C.g800 }]}>Request Summary</Text>
@@ -380,13 +394,46 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
           <Text style={s.inputLabel}>Security Deposit (₹)</Text>
           <TextInput style={s.input} value={securityDeposit} onChangeText={setSecurityDeposit} placeholder="e.g., 20000" keyboardType="decimal-pad" placeholderTextColor={C.muted} />
 
-          <CustomDropdown
-            label="Advance Payment Required"
-            value={advancePercent}
-            items={[{ label: '30%', value: '30' }, { label: '40%', value: '40' }, { label: '50%', value: '50' }, { label: '100%', value: '100' }]}
-            onValueChange={setAdvancePercent}
-            placeholder="Select advance %"
-          />
+          <Text style={s.inputLabel}>Advance Payment Required</Text>
+          <View style={s.modeToggleRow}>
+            <TouchableOpacity
+              style={[s.modeToggleBtn, advanceMode === 'percent' && s.modeToggleBtnActive]}
+              onPress={() => setAdvanceMode('percent')}
+            >
+              <Text style={[s.modeToggleBtnText, advanceMode === 'percent' && s.modeToggleBtnTextActive]}>% Percent</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.modeToggleBtn, advanceMode === 'manual' && s.modeToggleBtnActive]}
+              onPress={() => setAdvanceMode('manual')}
+            >
+              <Text style={[s.modeToggleBtnText, advanceMode === 'manual' && s.modeToggleBtnTextActive]}>₹ Manual</Text>
+            </TouchableOpacity>
+          </View>
+          {advanceMode === 'percent' ? (
+            <CustomDropdown
+              label=""
+              value={advancePercent}
+              items={[
+                { label: '20%', value: '20' },
+                { label: '25%', value: '25' },
+                { label: '30%', value: '30' },
+                { label: '40%', value: '40' },
+                { label: '50%', value: '50' },
+                { label: '100%', value: '100' },
+              ]}
+              onValueChange={setAdvancePercent}
+              placeholder="Select advance %"
+            />
+          ) : (
+            <TextInput
+              style={s.input}
+              value={customAdvanceAmount}
+              onChangeText={setCustomAdvanceAmount}
+              placeholder="Enter advance amount (₹)"
+              keyboardType="decimal-pad"
+              placeholderTextColor={C.muted}
+            />
+          )}
         </View>
 
         {/* Quote Summary */}
@@ -395,7 +442,7 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
             <Text style={[s.cardTitle, { color: C.blue }]}>Quote Summary</Text>
             <View style={s.summaryRow}><Text style={s.summaryLabel}>Total Amount</Text><Text style={s.summaryValue}>₹{total.toFixed(0)}</Text></View>
             <View style={s.divider} />
-            <View style={s.summaryRow}><Text style={[s.summaryLabel, { fontWeight: '700', color: C.text }]}>Advance ({advancePercent}%)</Text><Text style={[s.summaryValue, { fontSize: 18, color: C.blue }]}>₹{advance.toFixed(0)}</Text></View>
+            <View style={s.summaryRow}><Text style={[s.summaryLabel, { fontWeight: '700', color: C.text }]}>Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Fixed)'}</Text><Text style={[s.summaryValue, { fontSize: 18, color: C.blue }]}>₹{advance.toFixed(0)}</Text></View>
             <View style={s.summaryRow}><Text style={s.summaryLabel}>Balance on delivery</Text><Text style={s.summaryValue}>₹{(total - advance).toFixed(0)}</Text></View>
             {parseFloat(securityDeposit) > 0 && (
               <View style={s.summaryRow}><Text style={s.summaryLabel}>Security Deposit (Refundable)</Text><Text style={s.summaryValue}>₹{parseFloat(securityDeposit).toFixed(0)}</Text></View>
@@ -454,12 +501,64 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
           <Text style={s.cardTitle}>Additional Information</Text>
           <Text style={s.inputLabel}>Notes for Customer</Text>
           <TextInput style={[s.input, s.textArea]} value={notes} onChangeText={setNotes} placeholder="Any special notes..." placeholderTextColor={C.muted} multiline numberOfLines={3} textAlignVertical="top" />
-          <Text style={s.inputLabel}>Quote Valid For (Days)</Text>
-          <TextInput style={s.input} value={validityDays} onChangeText={setValidityDays} placeholder="2" keyboardType="number-pad" placeholderTextColor={C.muted} />
+          <Text style={s.inputLabel}>Quote Valid For <Text style={{ color: C.red }}>*</Text></Text>
+          <View style={s.modeToggleRow}>
+            <TouchableOpacity
+              style={[s.modeToggleBtn, validityMode === 'days' && s.modeToggleBtnActive]}
+              onPress={() => setValidityMode('days')}
+            >
+              <Text style={[s.modeToggleBtnText, validityMode === 'days' && s.modeToggleBtnTextActive]}>Days</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.modeToggleBtn, validityMode === 'custom' && s.modeToggleBtnActive]}
+              onPress={() => setValidityMode('custom')}
+            >
+              <Text style={[s.modeToggleBtnText, validityMode === 'custom' && s.modeToggleBtnTextActive]}>Custom Date</Text>
+            </TouchableOpacity>
+          </View>
+          {validityMode === 'days' ? (
+            <CustomDropdown
+              label=""
+              value={validityDays}
+              items={[
+                { label: '1 day', value: '1' },
+                { label: '2 days', value: '2' },
+                { label: '3 days', value: '3' },
+                { label: '5 days', value: '5' },
+                { label: '7 days', value: '7' },
+              ]}
+              onValueChange={(v) => setValidityDays(v)}
+              placeholder="Select validity"
+            />
+          ) : (
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={[s.datePicker, { flex: 1 }]}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Icon name="calendar" size={16} color={C.sub} />
+                <Text style={[s.datePickerText, !customValidDate && { color: C.muted }]}>
+                  {customValidDate
+                    ? customValidDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : 'Select date'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.datePicker, { flex: 0.7 }]}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Icon name="clock" size={16} color={C.sub} />
+                <Text style={s.datePickerText}>
+                  {String(customValidTime.hours).padStart(2, '0')}:{String(customValidTime.minutes).padStart(2, '0')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         <View style={{ height: 20 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Footer */}
       <View style={s.footer}>
@@ -472,6 +571,20 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
           )}
         </TouchableOpacity>
       </View>
+
+      <DateTimePickerModal
+        isVisible={showDatePicker}
+        mode="date"
+        minimumDate={new Date()}
+        onConfirm={(date) => { setCustomValidDate(date); setShowDatePicker(false); }}
+        onCancel={() => setShowDatePicker(false)}
+      />
+      <DateTimePickerModal
+        isVisible={showTimePicker}
+        mode="time"
+        onConfirm={(date) => { setCustomValidTime({ hours: date.getHours(), minutes: date.getMinutes() }); setShowTimePicker(false); }}
+        onCancel={() => setShowTimePicker(false)}
+      />
 
       {/* Edit Modal */}
       <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
@@ -567,4 +680,12 @@ const s = StyleSheet.create({
   modalAddBtn: { backgroundColor: C.g600, width: 46, height: 46, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   modalSaveBtn: { backgroundColor: C.g600, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
   modalSaveTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
+
+  modeToggleRow: { flexDirection: 'row', borderRadius: 10, borderWidth: 1, borderColor: C.border, overflow: 'hidden', marginBottom: 10 },
+  modeToggleBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', backgroundColor: C.card },
+  modeToggleBtnActive: { backgroundColor: C.g600 },
+  modeToggleBtnText: { fontSize: 13, fontWeight: '600', color: C.sub },
+  modeToggleBtnTextActive: { color: '#fff' },
+  datePicker: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13, backgroundColor: C.card, marginBottom: 12 },
+  datePickerText: { flex: 1, fontSize: 14, color: C.text },
 });

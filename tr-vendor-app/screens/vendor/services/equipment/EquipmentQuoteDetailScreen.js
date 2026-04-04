@@ -8,8 +8,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getVendorQuotes, getQuoteRequestById } from '../../../api/client';
-import { showError, showInfo } from '../../../../services/alertService';
+import { getVendorQuotes, getQuoteRequestById, withdrawQuote } from '../../../api/client';
+import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
 
 const C = {
   g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
@@ -19,6 +19,7 @@ const C = {
   blue: '#2563EB', blueL: '#EFF6FF',
   amber: '#D97706', amberL: '#FFFBEB',
   red: '#DC2626', redL: '#FEF2F2',
+  orange: '#EA580C',
 };
 
 const STATUS_CONFIG = {
@@ -36,6 +37,7 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bookingId, setBookingId] = useState(null);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   const fetchQuoteDetail = useCallback(async () => {
     if (!quoteId) {
@@ -72,6 +74,26 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
   useEffect(() => { fetchQuoteDetail(); }, [fetchQuoteDetail]);
 
   const onRefresh = () => { setRefreshing(true); fetchQuoteDetail(); };
+
+  const handleWithdraw = () => {
+    showConfirm(
+      'Withdraw Quote',
+      'Are you sure you want to withdraw this quote?',
+      async () => {
+        try {
+          setIsWithdrawing(true);
+          await withdrawQuote('equipment', quoteId);
+          setQuote(prev => prev ? { ...prev, status: 'WITHDRAWN' } : null);
+          showSuccess('Quote withdrawn successfully');
+        } catch (err) {
+          showError(err?.response?.data?.error || 'Failed to withdraw quote');
+        } finally {
+          setIsWithdrawing(false);
+        }
+      },
+      { confirmText: 'Withdraw', destructive: true }
+    );
+  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
@@ -145,6 +167,9 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING;
 
   const request = quote.request || {};
+  const isActive   = ['SENT', 'VIEWED'].includes(status);
+  const canReQuote = status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes((quote.request || {}).status);
+
   const customerName = request.customerName || quote.customerName || 'Customer';
   const customerEmail = request.customerEmail || quote.customerEmail;
   const pickupCity = request.locationName || request.pickupCity || quote.pickupCity || 'N/A';
@@ -378,19 +403,7 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
 
       {/* Bottom Bar */}
       <View style={s.bottomBar}>
-        {status !== 'ACCEPTED' ? (
-          <TouchableOpacity
-            style={[s.bottomBtn, { backgroundColor: C.sub }]}
-            onPress={() => {
-              const rid = quote.requestId || quote.request?.id || quote.request?._id;
-              if (rid) navigation.navigate('EquipmentQuoteRequestDetail', { requestId: rid });
-              else showInfo('Request details not available.');
-            }}
-          >
-            <Ionicons name="document-text-outline" size={18} color="#fff" />
-            <Text style={s.bottomBtnTxt}>View Request Details</Text>
-          </TouchableOpacity>
-        ) : (
+        {status === 'ACCEPTED' ? (
           <TouchableOpacity
             style={[s.bottomBtn, { backgroundColor: C.g700 }]}
             onPress={() => {
@@ -405,6 +418,65 @@ export default function EquipmentQuoteDetailScreen({ route, navigation }) {
           >
             <Ionicons name="checkmark-circle-outline" size={18} color="#fff" />
             <Text style={s.bottomBtnTxt}>View Booking Details</Text>
+          </TouchableOpacity>
+        ) : isActive ? (
+          <View style={s.bottomRow}>
+            <TouchableOpacity
+              style={[s.withdrawBtn, isWithdrawing && { opacity: 0.6 }]}
+              onPress={handleWithdraw}
+              disabled={isWithdrawing}
+            >
+              <Icon name="x-circle" size={17} color="#fff" />
+              <Text style={s.bottomBtnTxt}>{isWithdrawing ? 'Withdrawing...' : 'Withdraw'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.viewRequestBtn, { flex: 1 }]}
+              onPress={() => {
+                const rid = quote.requestId || quote.request?.id || quote.request?._id;
+                if (rid) navigation.navigate('EquipmentQuoteRequestDetail', { requestId: rid });
+                else showInfo('Request details not available.');
+              }}
+            >
+              <Ionicons name="document-text-outline" size={17} color="#fff" />
+              <Text style={s.bottomBtnTxt}>View Request</Text>
+            </TouchableOpacity>
+          </View>
+        ) : canReQuote ? (
+          <View style={s.bottomRow}>
+            <TouchableOpacity
+              style={[s.viewRequestBtn, { flex: 1 }]}
+              onPress={() => {
+                const rid = quote.requestId || quote.request?.id || quote.request?._id;
+                if (rid) navigation.navigate('EquipmentQuoteRequestDetail', { requestId: rid });
+                else showInfo('Request details not available.');
+              }}
+            >
+              <Ionicons name="document-text-outline" size={17} color="#fff" />
+              <Text style={s.bottomBtnTxt}>View Request</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.freshQuoteBtn, { flex: 1 }]}
+              onPress={() => {
+                const rid = quote.requestId || quote.request?.id || quote.request?._id;
+                if (rid) navigation.navigate('EquipmentSendQuote', { requestId: rid });
+                else showInfo('Request details not available.');
+              }}
+            >
+              <Icon name="refresh-cw" size={17} color="#fff" />
+              <Text style={s.bottomBtnTxt}>Send Fresh Quote</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[s.bottomBtn, { backgroundColor: C.sub }]}
+            onPress={() => {
+              const rid = quote.requestId || quote.request?.id || quote.request?._id;
+              if (rid) navigation.navigate('EquipmentQuoteRequestDetail', { requestId: rid });
+              else showInfo('Request details not available.');
+            }}
+          >
+            <Ionicons name="document-text-outline" size={18} color="#fff" />
+            <Text style={s.bottomBtnTxt}>View Request Details</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -497,4 +569,17 @@ const s = StyleSheet.create({
   bottomBar: { backgroundColor: C.card, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: C.border, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 8 },
   bottomBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12 },
   bottomBtnTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  bottomRow: { flexDirection: 'row', gap: 10 },
+  withdrawBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.red, paddingVertical: 15, borderRadius: 14, flex: 1,
+  },
+  viewRequestBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.sub, paddingVertical: 15, borderRadius: 14,
+  },
+  freshQuoteBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.orange, paddingVertical: 15, borderRadius: 14,
+  },
 });
