@@ -10,6 +10,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { ALL_CITIES } from '../src/data/indian-cities';
 
 const prisma = new PrismaClient();
 
@@ -18,46 +19,49 @@ const CONCURRENCY = parseInt(
   process.argv.find((a) => a.startsWith('--concurrency='))?.split('=')[1] || '50'
 );
 
-// Map of service DB slug → URL slug (for services where they differ)
-const SERVICE_MAP: Record<string, string> = {
-  'car-rental': 'car-rental',
-  'bike-on-rent': 'bike-on-rent',
-  'bus-rental': 'bus-rental',
-  'transporter': 'transporter',
-  'packers-and-movers': 'packers-and-movers',
-  'equipment-rental': 'jcb-on-rent',
-  'self-drive-car-rentals': 'self-drive-car-rentals',
-  'luxury-car-rental': 'luxury-car-rental',
-  'chauffeur-service': 'chauffeur-service',
-  'local-taxi': 'local-taxi',
-  'outstation-car-rental': 'outstation-car-rental',
-  'one-way-car-rental': 'one-way-car-rental',
-  'monthly-car-rental': 'monthly-car-rental',
-  'wedding-car-rental': 'wedding-car-rental',
-  'vintage-car-rental': 'vintage-car-rental',
-  'sports-car-rental': 'sports-car-rental',
-  'airport-transfer': 'airport-transfer',
-  'tempo-traveller': 'tempo-traveller',
-};
+// All service URL slugs to warm
+const SERVICE_URL_SLUGS: string[] = [
+  'car-rental',
+  'bike-on-rent',
+  'bus-rental',
+  'transporter',
+  'packers-and-movers',
+  'jcb-on-rent',
+  'self-drive-car-rentals',
+  'luxury-car-rental',
+  'chauffeur-service',
+  'local-taxi',
+  'outstation-car-rental',
+  'one-way-car-rental',
+  'monthly-car-rental',
+  'wedding-car-rental',
+  'vintage-car-rental',
+  'sports-car-rental',
+  'airport-transfer',
+  'tempo-traveller',
+];
 
 async function getServiceLocationUrls(): Promise<string[]> {
-  const urls: string[] = [];
-
-  const services = await prisma.services.findMany({
-    where: { slug: { in: Object.keys(SERVICE_MAP) }, isActive: true },
-    select: {
-      slug: true,
-      service_locations: {
-        where: { isActive: true },
-        select: { locations: { select: { slug: true } } },
-      },
-    },
+  // 1. All active location slugs from DB
+  const dbLocations = await prisma.locations.findMany({
+    where: { isActive: true },
+    select: { slug: true },
   });
 
-  for (const service of services) {
-    const urlSlug = SERVICE_MAP[service.slug] ?? service.slug;
-    for (const sl of service.service_locations) {
-      urls.push(`${BASE_URL}/${urlSlug}/${sl.locations.slug}`);
+  // 2. All static city slugs
+  const staticSlugs = ALL_CITIES.map((c) => c.slug);
+
+  // 3. Union — deduplicate
+  const allSlugs = Array.from(new Set([
+    ...dbLocations.map((l) => l.slug),
+    ...staticSlugs,
+  ]));
+
+  // 4. Cross-product: every city × every service
+  const urls: string[] = [];
+  for (const serviceSlug of SERVICE_URL_SLUGS) {
+    for (const citySlug of allSlugs) {
+      urls.push(`${BASE_URL}/${serviceSlug}/${citySlug}`);
     }
   }
 
@@ -98,14 +102,14 @@ async function main() {
   console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 
   const serviceUrls = await getServiceLocationUrls();
-  console.log(`🛠️  Services: ${Object.keys(SERVICE_MAP).length}`);
+  console.log(`🛠️  Services: ${SERVICE_URL_SLUGS.length}`);
 
   // Build all URLs
   const urls: string[] = [...serviceUrls];
 
   // Add homepage and main service pages
   urls.push(BASE_URL);
-  for (const urlSlug of Object.values(SERVICE_MAP)) {
+  for (const urlSlug of SERVICE_URL_SLUGS) {
     urls.push(`${BASE_URL}/${urlSlug}`);
   }
 
