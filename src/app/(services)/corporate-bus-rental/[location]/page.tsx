@@ -6,13 +6,14 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
-import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { prisma } from '@/lib/db/prisma';
+import { getBusRentalServiceId, getLocationId } from '@/lib/db/build-cache';
 
 interface PageProps {
   params: {
@@ -62,46 +63,48 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
 
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const pageData = {
-    location: {
-      name: locationName,
-      slug: params.location,
-      state: 'State Name',
-    },
-    service: {
-      name: 'Corporate Bus Rental',
-      slug: 'corporate-bus-rental',
-    },
-    vehicles: [
-      {
-        id: 1,
-        name: '20 Seater Mini Bus',
-        image: '/images/buses/mini-bus.jpg',
-        price: 4999,
-        rating: 4.8,
-      },
-      {
-        id: 2,
-        name: '35 Seater AC Bus',
-        image: '/images/buses/35-seater.jpg',
-        price: 6999,
-        rating: 4.9,
-      },
-      {
-        id: 3,
-        name: '45 Seater Luxury Coach',
-        image: '/images/buses/luxury-coach.jpg',
-        price: 9999,
-        rating: 4.9,
-      },
-    ],
-    nearbyLocations: [
-      { name: 'Nearby City 1', slug: 'nearby-city-1' },
-      { name: 'Nearby City 2', slug: 'nearby-city-2' },
-    ],
-  };
+  const [seoData, busServiceId, locationId] = await Promise.all([
+    resolvePageMeta(`corporate-bus-rental:${params.location}`),
+    getBusRentalServiceId(),
+    getLocationId(params.location),
+  ]);
 
-  const seoData = await resolvePageMeta(`corporate-bus-rental:${params.location}`);
+  const busModels = busServiceId ? await prisma.vehicle_models.findMany({
+    where: { serviceId: busServiceId, isActive: true },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      sideImage: true,
+      basePricePerDay: true,
+      rating: true,
+      seatingCapacity: true,
+      brands: { select: { name: true } },
+      ...(locationId ? {
+        vehicle_model_locations: {
+          where: { locationId, isActive: true },
+          select: { basePricePerDay: true },
+          take: 1,
+        },
+      } : {}),
+    },
+    orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+  }) : [];
+
+  const busFleet = busModels.map((m) => {
+    const locationPrice = m.vehicle_model_locations?.[0]?.basePricePerDay;
+    const price = locationPrice ?? m.basePricePerDay ?? 0;
+    return {
+      id: m.id,
+      name: m.name,
+      slug: m.slug ?? undefined,
+      brand: m.brands?.name ?? undefined,
+      image: m.sideImage ?? '/images/fleet/bus-default.jpg',
+      price: Number(price),
+      rating: m.rating ?? undefined,
+      specs: m.seatingCapacity ? { seating: `${m.seatingCapacity} Seater` } : undefined,
+    };
+  });
 
 
   return (
@@ -240,10 +243,12 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <VehicleGrid
-        vehicles={pageData.vehicles}
-        title={`Corporate Buses Available in ${locationName}`}
-      />
+      {busFleet.length > 0 && (
+        <VehicleGrid
+          vehicles={busFleet}
+          title={`Corporate Buses Available in ${locationName}`}
+        />
+      )}
 
       <WhyRentHere locationName={locationName} />
 
