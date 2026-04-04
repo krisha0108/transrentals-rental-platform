@@ -2,6 +2,9 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { prisma } from '@/lib/db/prisma';
+import { getCarRentalServiceId } from '@/lib/db/build-cache';
+import { LocalTaxiPackages } from '@/components/local-taxi/LocalTaxiPackages';
 
 export const metadata: Metadata = {
   title: 'Local Taxi | Hourly Cab @₹399 | 4 Hour 8 Hour Taxi Package India',
@@ -26,7 +29,40 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LocalTaxiPage() {
+export default async function LocalTaxiPage() {
+  const carRentalServiceId = await getCarRentalServiceId();
+  const localPackages = carRentalServiceId ? await prisma.chauffeur_local_packages.findMany({
+    where: {
+      isActive: true,
+      isPopular: true,
+      chauffeur_vehicle_categories: { serviceId: carRentalServiceId, isActive: true },
+    },
+    select: {
+      id: true, hours: true, kms: true, basePrice: true,
+      extraKmCharge: true, isPopular: true,
+      chauffeur_vehicle_categories: {
+        select: { id: true, name: true, image: true, seatingCapacity: true, acType: true, exampleVehicles: true, isPopular: true },
+      },
+      locations: { select: { name: true } },
+    },
+    orderBy: [{ chauffeur_vehicle_categories: { displayOrder: 'asc' } }, { hours: 'asc' }],
+  }) : [];
+
+  const packagesWithLocation = localPackages.map((pkg) => ({
+    ...pkg,
+    locationName: (pkg.locations as { name: string } | null)?.name ?? null,
+  }));
+
+  const packagesByHour = new Map<number, { hours: number; kms: number; vehicles: typeof packagesWithLocation }>();
+  for (const pkg of packagesWithLocation) {
+    const existing = packagesByHour.get(pkg.hours);
+    if (!existing) {
+      packagesByHour.set(pkg.hours, { hours: pkg.hours, kms: pkg.kms, vehicles: [pkg] });
+    } else {
+      existing.vehicles.push(pkg);
+    }
+  }
+  const hourGroups = Array.from(packagesByHour.values()).sort((a, b) => a.hours - b.hours);
   const popularCities = getCitiesByPriority(8);
 
   return (
@@ -97,40 +133,9 @@ export default function LocalTaxiPage() {
         </div>
       </section>
 
-      {/* Hourly Packages */}
-      <section id="packages" className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Local Taxi Packages
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { duration: '4 Hours / 40 Km', sedan: '399', suv: '599', best: 'Quick errands, Shopping' },
-              { duration: '8 Hours / 80 Km', sedan: '799', suv: '1199', best: 'City sightseeing, Meetings' },
-              { duration: '12 Hours / 120 Km', sedan: '1199', suv: '1799', best: 'Full day city tour' },
-            ].map((pkg) => (
-              <div key={pkg.duration} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition border-t-4 border-green-600">
-                <h3 className="text-xl font-bold mb-4">{pkg.duration}</h3>
-                <div className="space-y-3 mb-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Sedan (Dzire)</span>
-                    <span className="text-2xl font-bold text-green-700">₹{pkg.sedan}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">SUV (Innova)</span>
-                    <span className="text-2xl font-bold text-green-700">₹{pkg.suv}</span>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mb-4">Best for: {pkg.best}</p>
-                <p className="text-xs text-gray-500">*Extra: ₹10/km, ₹100/hr after limit</p>
-                <button className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition mt-4">
-                  Book Now
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {hourGroups.length > 0 && (
+        <LocalTaxiPackages hourGroups={hourGroups} locationName="India" />
+      )}
 
       {/* Perfect Occasions */}
       <section className="py-16 bg-gray-50">

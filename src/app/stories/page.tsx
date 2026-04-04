@@ -143,7 +143,7 @@ export default async function StoriesPage() {
         {/* Glow blobs */}
         <div className="absolute top-0 left-1/4 w-80 h-80 bg-[#09B368]/20 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-60 h-60 bg-[#09B368]/10 rounded-full blur-3xl" />
-        <div className="absolute inset-0 bg-[url('/images/noise.png')] opacity-[0.03] pointer-events-none" />
+
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20 text-center">
           {/* Badge */}

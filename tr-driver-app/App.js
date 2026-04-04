@@ -5,7 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging, getToken, onMessage, setBackgroundMessageHandler, onNotificationOpenedApp, getInitialNotification } from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 
 export const navigationRef = createNavigationContainerRef();
@@ -273,8 +273,10 @@ export default function App() {
       try {
         await setupNotificationChannel();
 
+        const messagingInstance = getMessaging();
+
         // FCM background handler — display notification when app is in background
-        messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+        setBackgroundMessageHandler(messagingInstance, async (remoteMessage) => {
           try {
             const { title, body } = remoteMessage.notification || {};
             if (title) {
@@ -288,7 +290,7 @@ export default function App() {
         });
 
         // FCM foreground handler — display notification when app is open
-        unsubForeground = messaging().onMessage(async (remoteMessage) => {
+        unsubForeground = onMessage(messagingInstance, async (remoteMessage) => {
           try {
             const { title, body } = remoteMessage.notification || {};
             if (title) {
@@ -309,12 +311,12 @@ export default function App() {
         });
 
         // App opened from background by tapping an FCM notification
-        messaging().onNotificationOpenedApp(() => {
+        onNotificationOpenedApp(messagingInstance, () => {
           navigateToBookings();
         });
 
         // App opened from killed state by tapping an FCM notification
-        messaging().getInitialNotification().then(remoteMessage => {
+        getInitialNotification(messagingInstance).then(remoteMessage => {
           if (remoteMessage) {
             // Delay to allow navigation to be ready
             setTimeout(() => navigateToBookings(), 1000);

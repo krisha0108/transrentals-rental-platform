@@ -7,6 +7,9 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { prisma } from '@/lib/db/prisma';
+import { getLuxuryServiceId, getLocationId } from '@/lib/db/build-cache';
+import { VintageCarsGrid } from '@/components/vintage-car-rental/VintageCarsGrid';
 
 interface PageProps {
   params: {
@@ -70,6 +73,34 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
 
   const seoData = await resolvePageMeta(`vintage-car-rental:${params.location}`);
 
+  // Fetch luxury car models for this location (service id cached across pages)
+  const [luxuryServiceId, locationId] = await Promise.all([
+    getLuxuryServiceId(),
+    getLocationId(params.location),
+  ]);
+
+  const luxuryCars = luxuryServiceId ? await prisma.vehicle_models.findMany({
+    where: { serviceId: luxuryServiceId, isActive: true },
+    select: {
+      id: true, name: true, sideImage: true, seatingCapacity: true,
+      basePricePerDay: true, isPopular: true, tagline: true, highlight: true,
+      brands: { select: { name: true } },
+      ...(locationId ? {
+        vehicle_model_locations: {
+          where: { locationId, isActive: true },
+          select: { basePricePerDay: true },
+          take: 1,
+        },
+      } : {}),
+    },
+    orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+  }) : [];
+
+  const carsWithPrice = (luxuryCars ?? []).map((m) => {
+    const locationPrice = m.vehicle_model_locations?.[0]?.basePricePerDay;
+    const price = locationPrice ?? m.basePricePerDay ?? null;
+    return { ...m, price };
+  });
 
   return (
     <>
@@ -112,33 +143,10 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
         </div>
       </section>
 
-      {/* Vintage Cars Available */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Vintage Cars Available in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { car: 'Ambassador Classic', price: '8999', era: '1950s-1980s' },
-              { car: 'Ambassador Mark II', price: '9999', era: '1960s-1970s' },
-              { car: 'Fiat Vintage', price: '12999', era: '1960s' },
-              { car: 'Standard Herald', price: '14999', era: '1960s-1970s' },
-              { car: 'Premier Padmini', price: '10999', era: '1970s-1980s' },
-              { car: 'Vintage Jeep', price: '11999', era: '1950s-1960s' },
-            ].map((item) => (
-              <div key={item.car} className="bg-white p-6 rounded-lg shadow-md border-t-4 border-amber-700">
-                <p className="text-sm text-amber-800 font-semibold mb-2">{item.era}</p>
-                <h3 className="text-xl font-bold mb-2">{item.car}</h3>
-                <p className="text-2xl font-bold text-amber-800 mb-4">₹{item.price}/event</p>
-                <button className="w-full bg-amber-700 text-white py-2 rounded hover:bg-amber-800 transition">
-                  Book Vintage Car
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Vintage / Luxury Cars Available — dynamic */}
+      {carsWithPrice.length > 0 && (
+        <VintageCarsGrid cars={carsWithPrice} locationName={locationName} />
+      )}
 
       {/* Perfect Occasions */}
       <section className="py-16">

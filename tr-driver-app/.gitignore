@@ -30,6 +30,7 @@ local.properties
 .cxx/
 *.keystore
 !debug.keystore
+android/gradle.properties
 .kotlin/
 
 # node.js

@@ -66,57 +66,6 @@ export default function JCBOnRentPage() {
         </div>
       </section>
 
-      {/* JCB Models */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Available JCB Models
-          </h2>
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {[
-              {
-                name: 'JCB 3DX',
-                desc: 'Most popular & versatile backhoe loader',
-                features: [
-                  'Front loader bucket',
-                  'Rear excavator arm',
-                  'All-terrain capability',
-                  '4WD available',
-                ],
-                price: '₹2,499/day',
-              },
-              {
-                name: 'JCB 3DX Super',
-                desc: 'Enhanced performance & capacity',
-                features: [
-                  'Higher dig depth',
-                  'Powerful engine',
-                  'Better hydraulics',
-                  'Extended reach',
-                ],
-                price: '₹2,999/day',
-              },
-            ].map((model) => (
-              <div key={model.name} className="bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition border-2 border-yellow-300">
-                <div className="text-6xl mb-4">🚜</div>
-                <h3 className="text-2xl font-bold mb-2">{model.name}</h3>
-                <p className="text-gray-600 mb-4">{model.desc}</p>
-                <ul className="space-y-2 mb-6">
-                  {model.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2">
-                      <span className="text-primary">✓</span>
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-3xl font-bold text-primary">{model.price}</p>
-                <p className="text-sm text-gray-600 mt-2">+ Operator charges</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* What's Included */}
       <section className="py-16 bg-white">
         <div className="container-custom">

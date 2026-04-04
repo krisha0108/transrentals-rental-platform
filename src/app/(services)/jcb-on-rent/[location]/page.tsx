@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
@@ -13,6 +12,8 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { prisma } from '@/lib/db/prisma';
+import { JCBFleetGrid } from '@/components/jcb-on-rent/JCBFleetGrid';
 
 interface PageProps {
   params: {
@@ -62,39 +63,27 @@ export default async function JCBLocationPage({ params }: PageProps) {
 
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const pageData = {
-    location: {
-      name: locationName,
-      slug: params.location,
-      state: 'State Name',
-    },
-    service: {
-      name: 'JCB on Rent',
-      slug: 'jcb-on-rent',
-    },
-    vehicles: [
-      {
-        id: 1,
-        name: 'JCB 3DX',
-        image: '/images/locations/default.jpg', // Placeholder - replace with actual image
-        price: 2999,
-        rating: 4.8,
+  const [seoData, equipmentFleet] = await Promise.all([
+    resolvePageMeta(`jcb-on-rent:${params.location}`),
+    prisma.vehicle_models.findMany({
+      where: {
+        isActive: true,
+        services_vehicle_models_serviceIdToservices: { slug: 'equipment-rental' },
       },
-      {
-        id: 2,
-        name: 'JCB 3DX Super',
-        image: '/images/locations/default.jpg', // Placeholder - replace with actual image
-        price: 3499,
-        rating: 4.9,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        sideImage: true,
+        basePricePerDay: true,
+        rating: true,
+        tagline: true,
+        highlight: true,
+        brands: { select: { name: true } },
       },
-    ],
-    nearbyLocations: [
-      { name: 'Nearby City 1', slug: 'nearby-city-1' },
-      { name: 'Nearby City 2', slug: 'nearby-city-2' },
-    ],
-  };
-
-  const seoData = await resolvePageMeta(`jcb-on-rent:${params.location}`);
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+    }),
+  ]);
 
 
   return (
@@ -156,46 +145,10 @@ export default async function JCBLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* JCB Models */}
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            JCB Models Available in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-            {[
-              {
-                name: 'JCB 3DX',
-                desc: 'Most popular & versatile',
-                features: ['Front loader bucket', 'Rear excavator arm', 'All-terrain', '4WD available'],
-                price: '₹2,999/day',
-              },
-              {
-                name: 'JCB 3DX Super',
-                desc: 'Enhanced performance',
-                features: ['Higher dig depth', 'Powerful engine', 'Better hydraulics', 'Extended reach'],
-                price: '₹3,499/day',
-              },
-            ].map((model) => (
-              <div key={model.name} className="bg-white rounded-xl p-6 shadow-lg border-2 border-yellow-300">
-                <div className="text-5xl mb-3">🚜</div>
-                <h3 className="text-xl font-bold mb-1">{model.name}</h3>
-                <p className="text-gray-600 mb-3">{model.desc}</p>
-                <ul className="space-y-2 mb-4">
-                  {model.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm">
-                      <span className="text-primary">✓</span>
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-2xl font-bold text-primary">{model.price}</p>
-                <p className="text-sm text-gray-600">+ Operator charges</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Equipment Fleet */}
+      {equipmentFleet.length > 0 && (
+        <JCBFleetGrid items={equipmentFleet} locationName={locationName} />
+      )}
 
       {/* What's Included */}
       <section className="py-12 bg-white">
@@ -223,11 +176,6 @@ export default async function JCBLocationPage({ params }: PageProps) {
           </div>
         </div>
       </section>
-
-      <VehicleGrid
-        vehicles={pageData.vehicles}
-        title={`JCB Equipment Available in ${locationName}`}
-      />
 
       <WhyRentHere locationName={locationName} />
 

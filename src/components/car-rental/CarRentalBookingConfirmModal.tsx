@@ -83,6 +83,7 @@ interface CarRentalBookingConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
   bookingDetails: BookingDetails | null;
+  colorScheme?: 'blue' | 'purple';
 }
 
 type Step = 'confirm' | 'auth' | 'processing';
@@ -92,7 +93,49 @@ export function CarRentalBookingConfirmModal({
   isOpen,
   onClose,
   bookingDetails,
+  colorScheme = 'blue',
 }: CarRentalBookingConfirmModalProps) {
+  const clr = colorScheme === 'purple' ? {
+    header: 'bg-gradient-to-r from-purple-600 to-indigo-600',
+    btn: 'bg-purple-600 hover:bg-purple-700',
+    imgBg: 'bg-purple-100',
+    imgIcon: 'text-purple-600',
+    badge: 'bg-purple-50 text-purple-700',
+    dot: 'bg-purple-500',
+    routeBg: 'bg-purple-50',
+    routeText: 'text-purple-700',
+    routeBorder: 'border-purple-200',
+    totalFare: 'text-purple-600',
+    advance: 'bg-purple-50 text-purple-700',
+    authSummary: 'bg-purple-50',
+    authIcon: 'text-purple-600',
+    loginCard: 'bg-purple-50 border-purple-200',
+    loginAvatarBg: 'bg-purple-100',
+    loginAvatarIcon: 'text-purple-600',
+    inputFocus: 'focus:ring-purple-500 focus:border-purple-500',
+    processingBg: 'bg-purple-100',
+    processingIcon: 'text-purple-600',
+  } : {
+    header: 'bg-gradient-to-r from-blue-600 to-blue-700',
+    btn: 'bg-blue-600 hover:bg-blue-700',
+    imgBg: 'bg-blue-100',
+    imgIcon: 'text-blue-600',
+    badge: 'bg-blue-50 text-blue-700',
+    dot: 'bg-blue-500',
+    routeBg: 'bg-blue-50',
+    routeText: 'text-blue-700',
+    routeBorder: 'border-blue-200',
+    totalFare: 'text-blue-600',
+    advance: 'bg-blue-50 text-blue-700',
+    authSummary: 'bg-blue-50',
+    authIcon: 'text-blue-600',
+    loginCard: 'bg-blue-50 border-blue-200',
+    loginAvatarBg: 'bg-blue-100',
+    loginAvatarIcon: 'text-blue-600',
+    inputFocus: 'focus:ring-blue-500 focus:border-blue-500',
+    processingBg: 'bg-blue-100',
+    processingIcon: 'text-blue-600',
+  };
   const router = useRouter();
   const [step, setStep] = useState<Step>('confirm');
   const [authMode, setAuthMode] = useState<AuthMode>('check');
@@ -447,11 +490,11 @@ export function CarRentalBookingConfirmModal({
     <div className="space-y-4">
       {/* Vehicle Info */}
       <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
-        <div className="w-20 h-20 bg-blue-100 rounded-lg flex items-center justify-center overflow-hidden">
+        <div className={`w-20 h-20 ${clr.imgBg} rounded-lg flex items-center justify-center overflow-hidden`}>
           {vehicle.image ? (
             <img src={vehicle.image} alt={vehicle.name} className="w-full h-full object-cover" />
           ) : (
-            <Car className="w-10 h-10 text-blue-600" />
+            <Car className={`w-10 h-10 ${clr.imgIcon}`} />
           )}
         </div>
         <div className="flex-1">
@@ -491,9 +534,9 @@ export function CarRentalBookingConfirmModal({
       </div>
 
       {/* Trip Type Badge */}
-      <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+      <div className={`flex items-center gap-2 p-3 ${clr.badge} rounded-lg`}>
         {getTripTypeIcon()}
-        <span className="font-medium text-blue-700">{getTripTypeLabel()}</span>
+        <span className={`font-medium ${clr.routeText}`}>{getTripTypeLabel()}</span>
         {tripType === 'local' && packageHours && packageKms && (
           <span className="text-sm text-blue-600">({packageHours}hrs / {packageKms}km)</span>
         )}
@@ -521,7 +564,7 @@ export function CarRentalBookingConfirmModal({
                 {[pickupCity, ...intermediateStops.map((s) => s.cityText), dropCity].map((city, i, arr) => (
                   <div key={i} className="flex items-center gap-2">
                     <div className="flex flex-col items-center flex-shrink-0">
-                      <div className={`w-2.5 h-2.5 rounded-full ${i === 0 ? 'bg-blue-500' : i === arr.length - 1 ? 'bg-red-500' : 'bg-orange-400'}`} />
+                      <div className={`w-2.5 h-2.5 rounded-full ${i === 0 ? clr.dot : i === arr.length - 1 ? 'bg-red-500' : 'bg-orange-400'}`} />
                       {i < arr.length - 1 && <div className="w-px h-3 bg-gray-300" />}
                     </div>
                     <span className={`text-sm ${i === 0 || i === arr.length - 1 ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>
@@ -529,18 +572,21 @@ export function CarRentalBookingConfirmModal({
                     </span>
                   </div>
                 ))}
-                {returnDate && (
-                  <p className="text-xs text-gray-500 mt-1 pl-4">Return: {formatDate(returnDate)}</p>
-                )}
               </div>
             ) : (
-              <>
-                <p className="font-medium text-gray-900">{dropCity}</p>
-                {returnDate && (
-                  <p className="text-sm text-gray-600">Return: {formatDate(returnDate)}</p>
-                )}
-              </>
+              <p className="font-medium text-gray-900">{dropCity}</p>
             )}
+          </div>
+        )}
+
+        {tripType === 'outstation' && outstationMode === 'round-trip' && returnDate && (
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+              <Calendar className={`w-4 h-4 ${clr.imgIcon}`} />
+              Return Date
+            </div>
+            <p className="font-medium text-gray-900">{formatDate(returnDate)}</p>
+            {pickupTime && <p className="text-sm text-gray-600">at {formatTime(pickupTime)}</p>}
           </div>
         )}
 
@@ -634,15 +680,14 @@ export function CarRentalBookingConfirmModal({
           )}
           {legs && legs.length > 0 && (
             <>
-              <div className="bg-blue-50 rounded-lg p-2.5 space-y-1.5 mb-1">
-                <p className="text-xs font-semibold text-blue-700 mb-1">Route Breakdown</p>
+              <div className={`${clr.routeBg} rounded-lg p-2.5 space-y-1.5 mb-1`}>
+                <p className={`text-xs font-semibold ${clr.routeText} mb-1`}>Route Breakdown</p>
                 {legs.map((leg, i) => (
-                  <div key={i} className="flex justify-between text-xs text-gray-600">
-                    <span>{leg.from} → {leg.to}</span>
-                    <span className="text-gray-500">{leg.km} km</span>
+                  <div key={i} className="text-xs text-gray-600">
+                    {leg.from} → {leg.to}
                   </div>
                 ))}
-                <div className="flex justify-between text-xs font-semibold text-blue-700 border-t border-blue-200 pt-1">
+                <div className={`flex justify-between text-xs font-semibold ${clr.routeText} border-t ${clr.routeBorder} pt-1`}>
                   <span>Total: {pricing.totalKm} km × ₹{pricing.perKmRate}/km</span>
                   <span>₹{pricing.baseKmCharge?.toLocaleString()}</span>
                 </div>
@@ -679,7 +724,7 @@ export function CarRentalBookingConfirmModal({
           </div>
           <div className="flex justify-between pt-2 border-t border-gray-200">
             <span className="font-semibold text-gray-900">Total Fare</span>
-            <span className="font-bold text-blue-600 text-lg">₹{pricing.grandTotal.toLocaleString()}</span>
+            <span className={`font-bold ${clr.totalFare} text-lg`}>₹{pricing.grandTotal.toLocaleString()}</span>
           </div>
           {bookingPurpose === 'company' ? (
             <div className="flex justify-between text-teal-700 bg-teal-50 p-2 rounded-lg mt-2">
@@ -687,7 +732,7 @@ export function CarRentalBookingConfirmModal({
               <span className="font-bold">Corporate Post-Paid</span>
             </div>
           ) : (
-            <div className="flex justify-between text-blue-700 bg-blue-50 p-2 rounded-lg mt-2">
+            <div className={`flex justify-between ${clr.advance} p-2 rounded-lg mt-2`}>
               <span className="font-medium">Advance Payment (30%)</span>
               <span className="font-bold">₹{advanceAmount.toLocaleString()}</span>
             </div>
@@ -716,8 +761,8 @@ export function CarRentalBookingConfirmModal({
   const renderAuthStep = () => (
     <div className="space-y-4">
       {/* Compact Booking Summary */}
-      <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-        <Car className="w-8 h-8 text-blue-600" />
+      <div className={`flex items-center gap-3 p-3 ${clr.authSummary} rounded-lg`}>
+        <Car className={`w-8 h-8 ${clr.authIcon}`} />
         <div className="flex-1">
           <p className="font-semibold text-gray-900">{vehicle.name}</p>
           <p className="text-sm text-gray-600">{getTripTypeLabel()} • ₹{pricing.grandTotal.toLocaleString()}</p>
@@ -822,7 +867,7 @@ export function CarRentalBookingConfirmModal({
           <Button
             onClick={checkCustomerAndProceed}
             disabled={isLoading || !formData.name || !formData.phone || !formData.email}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
+            className={`w-full ${clr.btn} text-white py-3`}
           >
             {isLoading ? (
               <>
@@ -846,10 +891,10 @@ export function CarRentalBookingConfirmModal({
             <p className="text-sm text-gray-500">Enter your password to login and confirm booking</p>
           </div>
 
-          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className={`p-3 ${clr.loginCard} rounded-lg border`}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <User className="w-5 h-5 text-blue-600" />
+              <div className={`w-10 h-10 ${clr.loginAvatarBg} rounded-full flex items-center justify-center`}>
+                <User className={`w-5 h-5 ${clr.loginAvatarIcon}`} />
               </div>
               <div>
                 <p className="font-medium text-gray-900">{existingCustomer?.name || formData.name}</p>
@@ -884,7 +929,7 @@ export function CarRentalBookingConfirmModal({
           <Button
             onClick={handleLogin}
             disabled={isLoading || !formData.password}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
+            className={`w-full ${clr.btn} text-white py-3`}
           >
             {isLoading ? (
               <>
@@ -960,7 +1005,7 @@ export function CarRentalBookingConfirmModal({
           <Button
             onClick={handleRegister}
             disabled={isLoading || !formData.password || formData.password.length < 6}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
+            className={`w-full ${clr.btn} text-white py-3`}
           >
             {isLoading ? (
               <>
@@ -994,8 +1039,8 @@ export function CarRentalBookingConfirmModal({
   // Render processing step
   const renderProcessingStep = () => (
     <div className="py-12 text-center">
-      <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      <div className={`w-16 h-16 mx-auto mb-4 ${clr.processingBg} rounded-full flex items-center justify-center`}>
+        <Loader2 className={`w-8 h-8 ${clr.processingIcon} animate-spin`} />
       </div>
       <h3 className="font-semibold text-gray-900 text-lg mb-2">Creating your booking...</h3>
       <p className="text-gray-500">Please wait while we confirm your reservation</p>
@@ -1036,7 +1081,7 @@ export function CarRentalBookingConfirmModal({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-2xl flex-shrink-0">
+            <div className={`flex items-center justify-between p-4 border-b border-gray-200 ${clr.header} text-white rounded-t-2xl flex-shrink-0`}>
               <h2 className="font-bold text-lg">
                 {step === 'confirm' && 'Confirm Booking'}
                 {step === 'auth' && 'Complete Registration'}
@@ -1062,7 +1107,7 @@ export function CarRentalBookingConfirmModal({
               <div className="p-4 border-t border-gray-200 bg-gray-50 flex-shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 <Button
                   onClick={handleConfirmBooking}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-semibold"
+                  className={`w-full ${clr.btn} text-white py-3 text-lg font-semibold`}
                 >
                   {existingCustomer ? (
                     <>

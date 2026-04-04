@@ -6,13 +6,14 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
-import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { prisma } from '@/lib/db/prisma';
+import { getTransporterServiceId, getLocationId } from '@/lib/db/build-cache';
 
 interface PageProps {
   params: {
@@ -62,46 +63,46 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
 
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const pageData = {
-    location: {
-      name: locationName,
-      slug: params.location,
-      state: 'State Name',
-    },
-    service: {
-      name: 'Mini Truck Rental',
-      slug: 'mini-truck-rental',
-    },
-    vehicles: [
-      {
-        id: 1,
-        name: 'Tata Ace',
-        image: '/images/fleet/tempo-traveller-17-seater.jpg',
-        price: 1499,
-        rating: 4.7,
-      },
-      {
-        id: 2,
-        name: 'Tata Ace Mega',
-        image: '/images/fleet/force-traveller-12-seater.jpg',
-        price: 1799,
-        rating: 4.8,
-      },
-      {
-        id: 3,
-        name: 'Mahindra Jeeto',
-        image: '/images/fleet/default-car.jpg',
-        price: 1999,
-        rating: 4.8,
-      },
-    ],
-    nearbyLocations: [
-      { name: 'Nearby City 1', slug: 'nearby-city-1' },
-      { name: 'Nearby City 2', slug: 'nearby-city-2' },
-    ],
-  };
+  const [seoData, transporterServiceId, locationId] = await Promise.all([
+    resolvePageMeta(`mini-truck-rental:${params.location}`),
+    getTransporterServiceId(),
+    getLocationId(params.location),
+  ]);
 
-  const seoData = await resolvePageMeta(`mini-truck-rental:${params.location}`);
+  const truckModels = transporterServiceId ? await prisma.vehicle_models.findMany({
+    where: { serviceId: transporterServiceId, isActive: true },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      sideImage: true,
+      basePricePerDay: true,
+      rating: true,
+      brands: { select: { name: true } },
+      ...(locationId ? {
+        vehicle_model_locations: {
+          where: { locationId, isActive: true },
+          select: { basePricePerDay: true },
+          take: 1,
+        },
+      } : {}),
+    },
+    orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+  }) : [];
+
+  const truckFleet = truckModels.map((m) => {
+    const locationPrice = m.vehicle_model_locations?.[0]?.basePricePerDay;
+    const price = locationPrice ?? m.basePricePerDay ?? 0;
+    return {
+      id: m.id,
+      name: m.name,
+      slug: m.slug ?? undefined,
+      brand: m.brands?.name ?? undefined,
+      image: m.sideImage ?? '/images/fleet/default-car.jpg',
+      price: Number(price),
+      rating: m.rating ?? undefined,
+    };
+  });
 
 
   return (
@@ -162,60 +163,13 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* Available Models */}
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Mini Trucks Available in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {[
-              {
-                name: 'Tata Ace',
-                capacity: '750 KG',
-                dimensions: "7'L x 4.5'W",
-                price: '₹1,499/day',
-                features: ['Most popular', 'Easy to drive', 'Compact'],
-              },
-              {
-                name: 'Tata Ace Mega',
-                capacity: '1 TON',
-                dimensions: "8'L x 5'W",
-                price: '₹1,799/day',
-                features: ['Extended deck', 'More capacity', 'Reliable'],
-              },
-              {
-                name: 'Mahindra Jeeto',
-                capacity: '1.5 TON',
-                dimensions: "8.5'L x 5.5'W",
-                price: '₹1,999/day',
-                features: ['Heavy load', 'Strong build', 'Fuel efficient'],
-              },
-            ].map((model) => (
-              <div key={model.name} className="bg-white rounded-xl p-6 shadow-lg border-2 border-orange-200">
-                <div className="text-4xl mb-3">🚚</div>
-                <h3 className="text-xl font-bold mb-2">{model.name}</h3>
-                <p className="text-gray-600 text-sm mb-1">Capacity: {model.capacity}</p>
-                <p className="text-gray-600 text-sm mb-3">Size: {model.dimensions}</p>
-                <p className="text-2xl font-bold text-primary mb-3">{model.price}</p>
-                <ul className="space-y-1">
-                  {model.features.map((feature) => (
-                    <li key={feature} className="text-sm text-gray-600 flex items-center gap-2">
-                      <span className="text-primary">✓</span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      <VehicleGrid
-        vehicles={pageData.vehicles}
-        title={`Mini Trucks Available in ${locationName}`}
-      />
+      {truckFleet.length > 0 && (
+        <VehicleGrid
+          vehicles={truckFleet}
+          title={`Mini Trucks Available in ${locationName}`}
+        />
+      )}
 
       <WhyRentHere locationName={locationName} />
 

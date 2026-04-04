@@ -6,13 +6,14 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
-import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { prisma } from '@/lib/db/prisma';
+import { getBusRentalServiceId, getLocationId } from '@/lib/db/build-cache';
 
 interface PageProps {
   params: {
@@ -62,46 +63,48 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
 
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const pageData = {
-    location: {
-      name: locationName,
-      slug: params.location,
-      state: 'State Name',
-    },
-    service: {
-      name: 'Corporate Bus Rental',
-      slug: 'corporate-bus-rental',
-    },
-    vehicles: [
-      {
-        id: 1,
-        name: '20 Seater Mini Bus',
-        image: '/images/buses/mini-bus.jpg',
-        price: 4999,
-        rating: 4.8,
-      },
-      {
-        id: 2,
-        name: '35 Seater AC Bus',
-        image: '/images/buses/35-seater.jpg',
-        price: 6999,
-        rating: 4.9,
-      },
-      {
-        id: 3,
-        name: '45 Seater Luxury Coach',
-        image: '/images/buses/luxury-coach.jpg',
-        price: 9999,
-        rating: 4.9,
-      },
-    ],
-    nearbyLocations: [
-      { name: 'Nearby City 1', slug: 'nearby-city-1' },
-      { name: 'Nearby City 2', slug: 'nearby-city-2' },
-    ],
-  };
+  const [seoData, busServiceId, locationId] = await Promise.all([
+    resolvePageMeta(`corporate-bus-rental:${params.location}`),
+    getBusRentalServiceId(),
+    getLocationId(params.location),
+  ]);
 
-  const seoData = await resolvePageMeta(`corporate-bus-rental:${params.location}`);
+  const busModels = busServiceId ? await prisma.vehicle_models.findMany({
+    where: { serviceId: busServiceId, isActive: true },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      sideImage: true,
+      basePricePerDay: true,
+      rating: true,
+      seatingCapacity: true,
+      brands: { select: { name: true } },
+      ...(locationId ? {
+        vehicle_model_locations: {
+          where: { locationId, isActive: true },
+          select: { basePricePerDay: true },
+          take: 1,
+        },
+      } : {}),
+    },
+    orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+  }) : [];
+
+  const busFleet = busModels.map((m) => {
+    const locationPrice = m.vehicle_model_locations?.[0]?.basePricePerDay;
+    const price = locationPrice ?? m.basePricePerDay ?? 0;
+    return {
+      id: m.id,
+      name: m.name,
+      slug: m.slug ?? undefined,
+      brand: m.brands?.name ?? undefined,
+      image: m.sideImage ?? '/images/fleet/bus-default.jpg',
+      price: Number(price),
+      rating: m.rating ?? undefined,
+      specs: m.seatingCapacity ? { seating: `${m.seatingCapacity} Seater` } : undefined,
+    };
+  });
 
 
   return (
@@ -180,70 +183,13 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* Rental Plans */}
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Flexible Rental Plans
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {[
-              {
-                name: 'Daily',
-                price: '₹4,999',
-                period: 'per day',
-                features: ['Single day rental', 'Professional driver', 'Fuel (250km)', 'AC bus'],
-              },
-              {
-                name: 'Monthly',
-                price: '₹99,999',
-                period: 'per month',
-                features: ['30-day rental', 'Dedicated driver', 'Unlimited km', 'Maintenance included'],
-                popular: true,
-              },
-              {
-                name: 'Annual',
-                price: '₹9,99,999',
-                period: 'per year',
-                features: ['365-day rental', 'Dedicated fleet', 'Full maintenance', 'Replacement vehicle'],
-              },
-            ].map((plan) => (
-              <div
-                key={plan.name}
-                className={`bg-white rounded-xl p-6 shadow-lg ${
-                  plan.popular ? 'border-4 border-primary' : 'border-2 border-gray-200'
-                }`}
-              >
-                {plan.popular && (
-                  <div className="text-center mb-2">
-                    <span className="bg-primary text-white px-3 py-1 rounded-full text-xs font-bold">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-                <h3 className="text-xl font-bold mb-1">{plan.name}</h3>
-                <div className="mb-4">
-                  <span className="text-3xl font-bold text-primary">{plan.price}</span>
-                  <span className="text-gray-600 text-sm">/{plan.period}</span>
-                </div>
-                <ul className="space-y-2">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm">
-                      <span className="text-primary">✓</span>
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      <VehicleGrid
-        vehicles={pageData.vehicles}
-        title={`Corporate Buses Available in ${locationName}`}
-      />
+      {busFleet.length > 0 && (
+        <VehicleGrid
+          vehicles={busFleet}
+          title={`Corporate Buses Available in ${locationName}`}
+        />
+      )}
 
       <WhyRentHere locationName={locationName} />
 

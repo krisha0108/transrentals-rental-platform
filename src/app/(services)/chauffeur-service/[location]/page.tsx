@@ -7,6 +7,9 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { prisma } from '@/lib/db/prisma';
+import { getCarRentalServiceId, getLocationId } from '@/lib/db/build-cache';
+import { ChauffeurPackages } from '@/components/chauffeur-service/ChauffeurPackages';
 
 interface PageProps {
   params: {
@@ -69,6 +72,55 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
 
   const locationName = city.name;
 
+  // Fetch dynamic package data
+  const [locationId, carRentalServiceId] = await Promise.all([
+    getLocationId(params.location),
+    getCarRentalServiceId(),
+  ]);
+
+  const [localPackages, outstationPricing] = await Promise.all([
+    carRentalServiceId ? prisma.chauffeur_local_packages.findMany({
+      where: {
+        isActive: true,
+        chauffeur_vehicle_categories: { serviceId: carRentalServiceId, isActive: true },
+        ...(locationId ? { OR: [{ locationId }, { locationId: null }] } : { locationId: null }),
+      },
+      select: {
+        id: true, hours: true, kms: true, basePrice: true,
+        extraKmCharge: true, isPopular: true,
+        chauffeur_vehicle_categories: {
+          select: { id: true, name: true, image: true, seatingCapacity: true, acType: true, exampleVehicles: true, isPopular: true },
+        },
+        locations: { select: { name: true } },
+      },
+      orderBy: [{ chauffeur_vehicle_categories: { displayOrder: 'asc' } }, { hours: 'asc' }],
+    }) : [],
+    locationId ? prisma.chauffeur_city_pricing.findMany({
+      where: { isActive: true, locations: { slug: params.location } },
+      select: {
+        vehicleCategoryId: true, baseKmRate: true, minKmPerDay: true, driverDayAllowance: true,
+        chauffeur_vehicle_categories: {
+          select: { id: true, name: true, image: true, seatingCapacity: true, acType: true, exampleVehicles: true, isPopular: true },
+        },
+      },
+      orderBy: { chauffeur_vehicle_categories: { displayOrder: 'asc' } },
+    }) : [],
+  ]);
+
+  // Group local packages by hours
+  const packagesWithLocation = localPackages.map((pkg) => ({
+    ...pkg,
+    locationName: (pkg.locations as { name: string } | null)?.name ?? null,
+  }));
+
+  const packagesByHour = new Map<number, { hours: number; kms: number; vehicles: typeof packagesWithLocation }>();
+  for (const pkg of packagesWithLocation) {
+    const existing = packagesByHour.get(pkg.hours);
+    if (!existing) packagesByHour.set(pkg.hours, { hours: pkg.hours, kms: pkg.kms, vehicles: [pkg] });
+    else existing.vehicles.push(pkg);
+  }
+  const hourGroups = Array.from(packagesByHour.values()).sort((a, b) => a.hours - b.hours);
+
   return (
     <>
       {/* Breadcrumbs */}
@@ -115,32 +167,12 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
         </div>
       </section>
 
-      {/* Chauffeur Packages */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Chauffeur Packages in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { type: 'Daily (8-10 hrs)', price: '599-899' },
-              { type: 'Outstation', price: '800-1200/day' },
-              { type: 'Monthly', price: '15000-25000' },
-              { type: 'Event/Wedding', price: '1500-2500' },
-              { type: 'Luxury Car', price: '1200-2000' },
-              { type: 'Airport Transfer', price: '400-600' },
-            ].map((item) => (
-              <div key={item.type} className="bg-white p-6 rounded-lg shadow-md border-t-4 border-indigo-600">
-                <h3 className="text-xl font-bold mb-2">{item.type}</h3>
-                <p className="text-2xl font-bold text-indigo-700 mb-4">₹{item.price}</p>
-                <button className="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition">
-                  Book Chauffeur
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Chauffeur Packages — dynamic */}
+      <ChauffeurPackages
+        hourGroups={hourGroups}
+        outstationPricing={outstationPricing}
+        locationName={locationName}
+      />
 
       {/* Perfect For */}
       <section className="py-16">

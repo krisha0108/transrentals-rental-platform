@@ -7,6 +7,9 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { prisma } from '@/lib/db/prisma';
+import { getLuxuryServiceId, getLocationId } from '@/lib/db/build-cache';
+import { SupercarsGrid } from '@/components/sports-car-rental/SupercarsGrid';
 
 interface PageProps {
   params: {
@@ -70,6 +73,33 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
 
   const seoData = await resolvePageMeta(`sports-car-rental:${params.location}`);
 
+  const [luxuryServiceId, locationId] = await Promise.all([
+    getLuxuryServiceId(),
+    getLocationId(params.location),
+  ]);
+
+  const luxuryCars = luxuryServiceId ? await prisma.vehicle_models.findMany({
+    where: { serviceId: luxuryServiceId, isActive: true },
+    select: {
+      id: true, name: true, sideImage: true, seatingCapacity: true,
+      basePricePerDay: true, isPopular: true, tagline: true, highlight: true,
+      brands: { select: { name: true } },
+      ...(locationId ? {
+        vehicle_model_locations: {
+          where: { locationId, isActive: true },
+          select: { basePricePerDay: true },
+          take: 1,
+        },
+      } : {}),
+    },
+    orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+  }) : [];
+
+  const carsWithPrice = (luxuryCars ?? []).map((m) => {
+    const locationPrice = m.vehicle_model_locations?.[0]?.basePricePerDay;
+    const price = locationPrice ?? m.basePricePerDay ?? null;
+    return { ...m, price };
+  });
 
   return (
     <>
@@ -112,33 +142,10 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
         </div>
       </section>
 
-      {/* Sports Cars Available */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Supercars Available in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { car: 'Lamborghini Huracan', price: '75000', category: 'Italian Supercar' },
-              { car: 'Ferrari 488', price: '80000', category: 'Italian Legend' },
-              { car: 'Porsche 911', price: '35000', category: 'German Excellence' },
-              { car: 'McLaren 570S', price: '70000', category: 'British Supercar' },
-              { car: 'Audi R8', price: '40000', category: 'German Supercar' },
-              { car: 'Nissan GT-R', price: '25000', category: 'JDM Legend' },
-            ].map((item) => (
-              <div key={item.car} className="bg-white p-6 rounded-lg shadow-md border-t-4 border-red-700">
-                <p className="text-sm text-red-800 font-semibold mb-2">{item.category}</p>
-                <h3 className="text-xl font-bold mb-2">{item.car}</h3>
-                <p className="text-2xl font-bold text-red-800 mb-4">₹{item.price}/day</p>
-                <button className="w-full bg-red-700 text-white py-2 rounded hover:bg-red-800 transition">
-                  Book Supercar
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Supercars Available — dynamic */}
+      {carsWithPrice.length > 0 && (
+        <SupercarsGrid cars={carsWithPrice} locationName={locationName} />
+      )}
 
       {/* Perfect Occasions */}
       <section className="py-16">

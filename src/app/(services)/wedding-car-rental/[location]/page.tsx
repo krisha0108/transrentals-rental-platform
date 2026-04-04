@@ -7,6 +7,8 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { prisma } from '@/lib/db/prisma';
+import Image from 'next/image';
 
 interface PageProps {
   params: {
@@ -72,7 +74,28 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
 
   const locationName = city.name;
 
-  const seoData = await resolvePageMeta(`wedding-car-rental:${params.location}`);
+  const [seoData, luxuryFleet] = await Promise.all([
+    resolvePageMeta(`wedding-car-rental:${params.location}`),
+    prisma.vehicle_models.findMany({
+      where: {
+        isActive: true,
+        services_vehicle_models_serviceIdToservices: { slug: 'luxury-car-rental' },
+      },
+      select: {
+        id: true,
+        name: true,
+        sideImage: true,
+        basePricePerDay: true,
+        rating: true,
+        tagline: true,
+        highlight: true,
+        isPopular: true,
+        seatingCapacity: true,
+        brands: { select: { name: true } },
+      },
+      orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+    }),
+  ]);
 
 
   return (
@@ -116,33 +139,63 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
         </div>
       </section>
 
-      {/* Available Wedding Cars */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Wedding Cars Available in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { car: 'Fortuner (Premium SUV)', price: '4999', category: 'Premium Baraat Car' },
-              { car: 'Mercedes E-Class', price: '6999', category: 'Luxury Wedding Car' },
-              { car: 'BMW 5 Series', price: '7499', category: 'Premium Luxury' },
-              { car: 'Vintage Ambassador', price: '3999', category: 'Vintage Wedding Car' },
-              { car: 'Audi A6 (White)', price: '7999', category: 'Luxury Sedan' },
-              { car: 'Range Rover', price: '9999', category: 'Royal Wedding Car' },
-            ].map((item) => (
-              <div key={item.car} className="bg-white p-6 rounded-lg shadow-md border-t-4 border-rose-600">
-                <p className="text-sm text-rose-700 font-semibold mb-2">{item.category}</p>
-                <h3 className="text-xl font-bold mb-2">{item.car}</h3>
-                <p className="text-2xl font-bold text-rose-700 mb-4">₹{item.price}/event</p>
-                <button className="w-full bg-rose-600 text-white py-2 rounded hover:bg-rose-700 transition">
-                  Book for Wedding
-                </button>
-              </div>
-            ))}
+      {/* Wedding Cars Fleet — dynamic from luxury-car-rental */}
+      {luxuryFleet.length > 0 && (
+        <section className="py-16 bg-gray-50">
+          <div className="container-custom">
+            <h2 className="text-3xl font-bold mb-2">Wedding Cars Available in {locationName}</h2>
+            <p className="text-gray-500 mb-8">Premium luxury fleet for your special day</p>
+            <div className={`grid gap-6 ${
+              luxuryFleet.length === 1 ? 'max-w-sm mx-auto' :
+              luxuryFleet.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' :
+              luxuryFleet.length === 3 ? 'sm:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto' :
+              'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+            }`}>
+              {luxuryFleet.map((car) => (
+                <div key={car.id} className="bg-white rounded-2xl shadow-md hover:shadow-xl transition border border-rose-100 overflow-hidden flex flex-col">
+                  <div className="relative h-44 bg-gradient-to-br from-rose-50 to-pink-50 flex items-center justify-center">
+                    {car.sideImage ? (
+                      <Image src={car.sideImage} alt={car.name} fill className="object-contain p-3" sizes="(max-width:640px) 100vw,(max-width:1024px) 50vw,25vw" />
+                    ) : (
+                      <span className="text-7xl">🚗</span>
+                    )}
+                    {car.isPopular && (
+                      <span className="absolute top-2 right-2 bg-rose-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">⭐ Popular</span>
+                    )}
+                  </div>
+                  <div className="p-4 flex flex-col flex-1">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <h3 className="font-bold text-gray-900 leading-tight">{car.name}</h3>
+                      {car.rating && (
+                        <span className="flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full shrink-0">
+                          ★ {car.rating}
+                        </span>
+                      )}
+                    </div>
+                    {car.brands?.name && <p className="text-xs text-gray-400 mb-1">{car.brands.name}</p>}
+                    {car.tagline && <p className="text-sm text-gray-500 mb-3 flex-1">{car.tagline}</p>}
+                    <div className="mt-auto pt-3 border-t border-gray-100">
+                      {car.basePricePerDay ? (
+                        <p className="text-lg font-bold text-rose-700">
+                          <span className="text-xs font-normal text-gray-500">Starting From </span>
+                          ₹{car.basePricePerDay.toLocaleString('en-IN')}
+                          
+                        </p>
+                      ) : (
+                        <p className="text-sm font-semibold text-rose-700">Get Quote</p>
+                      )}
+                      {car.highlight && <p className="text-xs text-green-600 mt-1">{car.highlight}</p>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-center text-xs text-gray-400 mt-6">
+              * Prices may vary based on vendor quotes. Decoration & chauffeur included.
+            </p>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Wedding Functions */}
       <section className="py-16">
@@ -216,28 +269,6 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
                 </li>
               </ul>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Rental Packages */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Wedding Car Packages in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { duration: 'Baraat Only', price: '2999-4999', desc: '4 hours' },
-              { duration: 'Full Day', price: '5999-9999', desc: '12 hours' },
-              { duration: 'Weekend', price: '15000-25000', desc: '2-3 days' },
-            ].map((plan) => (
-              <div key={plan.duration} className="bg-gray-50 p-6 rounded-lg text-center">
-                <h3 className="font-semibold text-lg mb-2">{plan.duration}</h3>
-                <p className="text-2xl font-bold text-rose-700 mb-2">₹{plan.price}</p>
-                <p className="text-sm text-gray-600">{plan.desc}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>

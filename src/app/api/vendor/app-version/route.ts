@@ -25,7 +25,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      latestVersion: settingsMap['vendor_app_latest_version'] || '4.0.0',
+      latestVersion: settingsMap['vendor_app_latest_version'] || '3.0.9',
       forceUpdate: settingsMap['vendor_app_force_update'] === 'true',
       updateMessage: settingsMap['vendor_app_update_message'] || 'New features and improvements available.',
       playStoreUrl: 'https://play.google.com/store/apps/details?id=com.transrentalsvenderapp',
@@ -34,7 +34,7 @@ export async function GET() {
     // Fallback if DB is unreachable
     return NextResponse.json({
       success: true,
-      latestVersion: '4.0.0',
+      latestVersion: '3.0.9',
       forceUpdate: false,
       updateMessage: 'New features and improvements available.',
       playStoreUrl: 'https://play.google.com/store/apps/details?id=com.transrentalsvenderapp',

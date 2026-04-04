@@ -1,8 +1,10 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { HourlyCitySearch } from '@/components/hourly-car-rental/HourlyCitySearch';
+import { HourlyPopularPackages } from '@/components/hourly-car-rental/HourlyPopularPackages';
+import { Timer, Shield, Star, Fuel, Clock } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Hourly Car Rental | Rent Car by Hour @₹149/hr | TransRentals',
@@ -16,58 +18,64 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://transrentals.in/hourly-car-rental' },
 };
 
-const packages = [
-  { hours: 2, km: 20, price: 299, perHour: 149, popular: false },
-  { hours: 4, km: 40, price: 499, perHour: 125, popular: true },
-  { hours: 8, km: 80, price: 899, perHour: 112, popular: false },
-];
-
-const carTypes = [
-  { name: 'Hatchback', cars: 'Swift, i20, Baleno', price: 149 },
-  { name: 'Sedan', cars: 'City, Verna, Ciaz', price: 199 },
-  { name: 'SUV', cars: 'Creta, Seltos', price: 299 },
-  { name: 'Premium', cars: 'Innova, Fortuner', price: 399 },
-];
-
 const topCities = ALL_CITIES.slice(0, 12);
 
 export default function HourlyCarRentalPage() {
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Flexible Short-Term Rental"
-        title="Hourly Car Rental"
-        titleHighlight="From ₹149/hour"
-        description="Rent a car by the hour for meetings, shopping, errands, or short trips. Self-drive flexibility with no full-day commitment."
-        features={[
-          { icon: 'star', text: 'Pay Per Hour', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Instant Booking', color: 'text-blue-600' },
-        ]}
-        gradientFrom="cyan-50"
-        gradientTo="blue-50"
-      />
-
-      <section className="relative bg-gradient-to-br from-cyan-600 to-blue-700 text-white py-16">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">Rent a Car by the Hour</h1>
-            <p className="text-xl opacity-90 mb-8">No full-day commitment. Pay only for hours you need.</p>
-            <div className="flex flex-wrap gap-4 justify-center mb-8">
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Starting from</p>
-                <p className="text-2xl font-bold">₹149/hour</p>
-              </div>
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Minimum</p>
-                <p className="text-2xl font-bold">2 Hours</p>
-              </div>
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Fuel</p>
-                <p className="text-2xl font-bold">Included</p>
-              </div>
+      {/* Hero */}
+      <section className="relative bg-gradient-to-br from-blue-900 via-indigo-800 to-blue-900 text-white overflow-hidden">
+        <div className="absolute inset-0 opacity-10"
+          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }}
+        />
+        <div className="relative container-custom py-16 lg:py-24">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
+              <Timer className="w-4 h-4 text-blue-300" />
+              <span className="text-sm font-medium">Hourly Car Rental — Driver Included</span>
             </div>
-            <a href="#packages" className="inline-block bg-white text-cyan-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">View Hourly Packages</a>
+
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight">
+              Rent a Car by the Hour<br />
+              <span className="text-blue-300">With Driver, Any City</span>
+            </h1>
+            <p className="text-blue-100 text-lg mb-4">
+              Book a chauffeur-driven car for 2–12 hours. Perfect for meetings, errands, shopping & city travel.
+            </p>
+
+            {/* Stats */}
+            <div className="flex flex-wrap justify-center gap-4 mb-10 text-sm">
+              {[
+                { label: 'Starting from', value: '₹499' },
+                { label: 'Driver + Fuel', value: 'Included' },
+                { label: 'Available in', value: '200+ Cities' },
+              ].map((s) => (
+                <div key={s.label} className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-center">
+                  <p className="text-blue-200 text-xs mb-0.5">{s.label}</p>
+                  <p className="text-xl font-bold">{s.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* City search */}
+            <div className="flex justify-center mb-8">
+              <HourlyCitySearch />
+            </div>
+
+            {/* Trust badges */}
+            <div className="flex flex-wrap justify-center gap-3">
+              {[
+                { icon: Shield, text: 'Verified Drivers' },
+                { icon: Star, text: '4.8★ Rated' },
+                { icon: Fuel, text: 'Fuel Included' },
+                { icon: Clock, text: '12-hr Advance' },
+              ].map((b) => (
+                <div key={b.text} className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full text-sm">
+                  <b.icon className="w-3.5 h-3.5 text-blue-300" />
+                  <span>{b.text}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -92,49 +100,7 @@ export default function HourlyCarRentalPage() {
         </div>
       </section>
 
-      <section id="packages" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-4">Hourly Packages</h2>
-          <p className="text-center text-gray-600 mb-12">Choose a package that fits your needs</p>
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {packages.map((pkg) => (
-              <div key={pkg.hours} className={`bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition ${pkg.popular ? 'ring-2 ring-cyan-500' : ''}`}>
-                {pkg.popular && <div className="bg-cyan-500 text-white text-center py-1 text-sm font-semibold">MOST POPULAR</div>}
-                <div className="p-6">
-                  <h3 className="text-2xl font-bold text-center mb-2">{pkg.hours} Hours</h3>
-                  <p className="text-center text-gray-500 mb-4">{pkg.km} km included</p>
-                  <div className="text-center mb-4">
-                    <span className="text-4xl font-bold text-cyan-600">₹{pkg.price}</span>
-                    <p className="text-sm text-gray-500">₹{pkg.perHour}/hour effective</p>
-                  </div>
-                  <ul className="text-sm text-gray-600 space-y-2 mb-6">
-                    <li>✓ Fuel included</li>
-                    <li>✓ Insurance covered</li>
-                    <li>✓ No hidden charges</li>
-                    <li>✓ Extra km @ ₹12/km</li>
-                  </ul>
-                  <button className={`w-full py-2 rounded-lg font-semibold transition ${pkg.popular ? 'bg-cyan-600 text-white hover:bg-cyan-700' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}>Book Now</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Cars Available for Hourly Rental</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            {carTypes.map((car) => (
-              <div key={car.name} className="bg-gray-50 p-6 rounded-lg text-center">
-                <h3 className="font-bold text-lg mb-1">{car.name}</h3>
-                <p className="text-sm text-gray-600 mb-3">{car.cars}</p>
-                <p className="text-2xl font-bold text-cyan-600">₹{car.price}<span className="text-sm text-gray-500">/hr</span></p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <HourlyPopularPackages />
 
       <section className="py-12 bg-cyan-50">
         <div className="container-custom">
