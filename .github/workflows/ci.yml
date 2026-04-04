@@ -308,6 +308,19 @@ jobs:
 
           node test-db.js
 
+      # Step 6.5: Run Database Migrations
+      - name: Run Database Migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "🔄 Resolving any previously failed migrations..."
+          npx prisma migrate resolve --rolled-back 20260403000002_add_missing_driver_vehicle_fields 2>/dev/null || true
+
+          echo "📦 Deploying pending migrations..."
+          npx prisma migrate deploy
+
+          echo "✅ Migrations complete"
+
       # Step 7: Build Application (with database access)
       - name: Build Application
         env:
