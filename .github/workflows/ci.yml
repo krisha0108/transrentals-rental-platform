@@ -308,35 +308,7 @@ jobs:
 
           node test-db.js
 
-      # Step 6.5: Run Database Migrations
-      - name: Run Database Migrations
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
-          echo "🔄 Resolving any previously failed migrations via direct DB fix..."
-          node -e "
-          const { execSync } = require('child_process');
-          const url = process.env.DATABASE_URL;
-          const match = url.match(/mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
-          if (!match) { console.log('Could not parse DATABASE_URL, skipping'); process.exit(0); }
-          const [,user,pass,host,port,db] = match;
-          try {
-            execSync(
-              \`mysql -u\${user} -p\${pass} -h\${host} -P\${port} \${db} -e \"UPDATE _prisma_migrations SET finished_at=NOW(), applied_steps_count=1, logs=NULL, rolled_back_at=NULL WHERE migration_name='20260403000002_add_missing_driver_vehicle_fields' AND finished_at IS NULL;\"\`,
-              { stdio: 'inherit' }
-            );
-            console.log('✅ Migration state fixed');
-          } catch(e) {
-            console.log('Note: migration fix skipped (may already be resolved)');
-          }
-          " || true
-
-          echo "📦 Deploying pending migrations..."
-          npx prisma migrate deploy
-
-          echo "✅ Migrations complete"
-
-      # Step 7: Build Application (with database access)
+# Step 7: Build Application (with database access)
       - name: Build Application
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
