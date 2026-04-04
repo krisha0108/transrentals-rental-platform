@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import Image from 'next/image';
 
 interface Plan {
@@ -16,15 +19,19 @@ interface Props {
   locationName: string;
 }
 
+const INITIAL_LIMIT = 8;
+
 export function MonthlyCarPlans({ plans, locationName }: Props) {
+  const [showAll, setShowAll] = useState(false);
+
+  const visible = showAll ? plans : plans.slice(0, INITIAL_LIMIT);
+  const hasMore = plans.length > INITIAL_LIMIT;
+
   const gridClass =
-    plans.length === 1
-      ? 'max-w-sm mx-auto'
-      : plans.length === 2
-      ? 'sm:grid-cols-2 max-w-2xl mx-auto'
-      : plans.length === 3
-      ? 'sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto'
-      : 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+    plans.length === 1 ? 'max-w-sm mx-auto' :
+    plans.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' :
+    plans.length === 3 ? 'sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto' :
+    'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
   return (
     <section className="py-16 bg-gray-50">
@@ -33,7 +40,7 @@ export function MonthlyCarPlans({ plans, locationName }: Props) {
         <p className="text-center text-gray-500 mb-10">Self-drive · All-inclusive · Flexible terms</p>
 
         <div className={`grid gap-6 ${gridClass}`}>
-          {plans.map((plan) => (
+          {visible.map((plan) => (
             <div
               key={plan.id}
               className={`relative bg-white rounded-2xl shadow-md hover:shadow-xl transition overflow-hidden flex flex-col ${
@@ -48,12 +55,7 @@ export function MonthlyCarPlans({ plans, locationName }: Props) {
                 </div>
               )}
 
-              {/* Vehicle image */}
-              <div
-                className={`relative h-40 bg-gradient-to-br from-teal-50 to-cyan-50 flex items-center justify-center ${
-                  plan.isPopular ? 'mt-6' : ''
-                }`}
-              >
+              <div className={`relative h-40 bg-gradient-to-br from-teal-50 to-cyan-50 flex items-center justify-center ${plan.isPopular ? 'mt-6' : ''}`}>
                 {plan.sideImage ? (
                   <Image
                     src={plan.sideImage}
@@ -91,11 +93,21 @@ export function MonthlyCarPlans({ plans, locationName }: Props) {
                     </span>
                   ) : null}
                 </div>
-
               </div>
             </div>
           ))}
         </div>
+
+        {hasMore && (
+          <div className="flex justify-center mt-10">
+            <button
+              onClick={() => setShowAll((prev) => !prev)}
+              className="flex items-center gap-2 px-8 py-3 rounded-full border-2 border-teal-600 text-teal-600 font-semibold text-sm hover:bg-teal-600 hover:text-white transition-all"
+            >
+              {showAll ? 'Show Less ↑' : `View All ${plans.length} Plans ↓`}
+            </button>
+          </div>
+        )}
 
         <p className="text-center text-xs text-gray-400 mt-8">
           * Monthly price = 30 days self-drive. Fuel, toll &amp; parking extra. Security deposit required. Prices may vary based on vendor availability.
