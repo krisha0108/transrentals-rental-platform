@@ -91,6 +91,7 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
         chauffeur_vehicle_categories: {
           select: { id: true, name: true, image: true, seatingCapacity: true, acType: true, exampleVehicles: true, isPopular: true },
         },
+        locations: { select: { name: true } },
       },
       orderBy: [{ chauffeur_vehicle_categories: { displayOrder: 'asc' } }, { hours: 'asc' }],
     }) : [],
@@ -107,8 +108,13 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
   ]);
 
   // Group local packages by hours
-  const packagesByHour = new Map<number, { hours: number; kms: number; vehicles: typeof localPackages }>();
-  for (const pkg of localPackages) {
+  const packagesWithLocation = localPackages.map((pkg) => ({
+    ...pkg,
+    locationName: (pkg.locations as { name: string } | null)?.name ?? null,
+  }));
+
+  const packagesByHour = new Map<number, { hours: number; kms: number; vehicles: typeof packagesWithLocation }>();
+  for (const pkg of packagesWithLocation) {
     const existing = packagesByHour.get(pkg.hours);
     if (!existing) packagesByHour.set(pkg.hours, { hours: pkg.hours, kms: pkg.kms, vehicles: [pkg] });
     else existing.vehicles.push(pkg);

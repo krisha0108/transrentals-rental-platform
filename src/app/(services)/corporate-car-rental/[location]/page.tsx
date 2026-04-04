@@ -1,12 +1,14 @@
 import { Metadata } from 'next';
 import { permanentRedirect } from 'next/navigation';
-import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { VehicleGrid } from '@/components/location/VehicleGrid';
+import { prisma } from '@/lib/db/prisma';
+import { getCarRentalServiceId, getLocationId } from '@/lib/db/build-cache';
 
 interface PageProps {
   params: {
@@ -68,7 +70,48 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
 
   const locationName = city.name;
 
-  const seoData = await resolvePageMeta(`corporate-car-rental:${params.location}`);
+  const [seoData, carServiceId, locationId] = await Promise.all([
+    resolvePageMeta(`corporate-car-rental:${params.location}`),
+    getCarRentalServiceId(),
+    getLocationId(params.location),
+  ]);
+
+  const carModels = carServiceId ? await prisma.vehicle_models.findMany({
+    where: { serviceId: carServiceId, isActive: true },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      sideImage: true,
+      basePricePerDay: true,
+      rating: true,
+      seatingCapacity: true,
+      brands: { select: { name: true } },
+      ...(locationId ? {
+        vehicle_model_locations: {
+          where: { locationId, isActive: true },
+          select: { basePricePerDay: true },
+          take: 1,
+        },
+      } : {}),
+    },
+    orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+  }) : [];
+
+  const carFleet = carModels.map((m) => {
+    const locationPrice = m.vehicle_model_locations?.[0]?.basePricePerDay;
+    const price = locationPrice ?? m.basePricePerDay ?? 0;
+    return {
+      id: m.id,
+      name: m.name,
+      slug: m.slug ?? undefined,
+      brand: m.brands?.name ?? undefined,
+      image: m.sideImage ?? '/images/fleet/default-car.jpg',
+      price: Number(price),
+      rating: m.rating ?? undefined,
+      specs: m.seatingCapacity ? { seating: `${m.seatingCapacity} Seater` } : undefined,
+    };
+  });
 
 
   return (
@@ -112,32 +155,12 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
         </div>
       </section>
 
-      {/* Corporate Solutions */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Corporate Solutions in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { solution: 'Employee Transport', price: '15000-25000' },
-              { solution: 'Executive Car', price: '25000-40000' },
-              { solution: 'Airport Transfer', price: '500-1500/trip' },
-              { solution: 'Client Meetings', price: '2000-4000/day' },
-              { solution: 'Event Transport', price: '3000-8000/day' },
-              { solution: 'Fleet Management', price: 'Custom' },
-            ].map((item) => (
-              <div key={item.solution} className="bg-white p-6 rounded-lg shadow-md border-t-4 border-gray-700">
-                <h3 className="text-xl font-bold mb-2">{item.solution}</h3>
-                <p className="text-2xl font-bold text-gray-800 mb-4">₹{item.price}</p>
-                <button className="w-full bg-gray-800 text-white py-2 rounded hover:bg-gray-900 transition">
-                  Get Quote
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {carFleet.length > 0 && (
+        <VehicleGrid
+          vehicles={carFleet}
+          title={`Corporate Cars Available in ${locationName}`}
+        />
+      )}
 
       {/* Perfect For */}
       <section className="py-16">

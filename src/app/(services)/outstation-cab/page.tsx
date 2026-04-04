@@ -1,8 +1,10 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getCitiesByPriority } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { formatPriceHighlight } from '@/lib/utils';
+import { prisma } from '@/lib/db/prisma';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Outstation Cab | Intercity Taxi @₹12/Km | Round Trip Car Rental India'),
@@ -27,7 +29,28 @@ export const metadata: Metadata = {
   },
 };
 
-export default function OutstationCabPage() {
+export default async function OutstationCabPage() {
+  const [vehicleCategories, routePackages] = await Promise.all([
+    prisma.chauffeur_vehicle_categories.findMany({
+      where: { isActive: true, services: { slug: 'car-rental' } },
+      select: {
+        id: true, name: true, image: true, seatingCapacity: true,
+        acType: true, exampleVehicles: true, isPopular: true, dailyRate: true,
+      },
+      orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
+    }),
+    prisma.chauffeur_route_packages.findMany({
+      where: { isActive: true, isPopular: true },
+      select: {
+        id: true, basePrice: true, returnMultiplier: true, estimatedKm: true,
+        locations_chauffeur_route_packages_fromLocationIdTolocations: { select: { name: true } },
+        locations_chauffeur_route_packages_toLocationIdTolocations: { select: { name: true } },
+        chauffeur_vehicle_categories: { select: { name: true } },
+      },
+      orderBy: [{ estimatedKm: 'asc' }],
+      take: 9,
+    }),
+  ]);
   const popularCities = getCitiesByPriority(8);
 
   return (
@@ -99,63 +122,85 @@ export default function OutstationCabPage() {
       </section>
 
       {/* Car Options */}
-      <section id="packages" className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Outstation Cab Options
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { name: 'Sedan (Swift Dzire)', price: '12', features: 'AC, 4 Seater, Comfortable, Good luggage space', capacity: '4 Passengers', best: 'Couples, Small families' },
-              { name: 'Sedan (Honda City)', price: '14', features: 'AC, Premium comfort, Spacious, Great mileage', capacity: '4 Passengers', best: 'Comfort seekers' },
-              { name: 'SUV (Ertiga)', price: '16', features: 'AC, 6-7 Seater, Spacious, Family friendly', capacity: '6-7 Passengers', best: 'Families with kids' },
-              { name: 'SUV (Innova)', price: '18', features: 'AC, 7 Seater, Premium comfort, Ample space', capacity: '7 Passengers', best: 'Large families' },
-              { name: 'SUV (Innova Crysta)', price: '22', features: 'Premium AC, 7 Seater, Luxury comfort, Modern', capacity: '7 Passengers', best: 'Premium travelers' },
-              { name: 'Tempo Traveller', price: '25', features: 'AC, 12-17 Seater, Group travel, Push-back seats', capacity: '12-17 Passengers', best: 'Large groups' },
-            ].map((vehicle) => (
-              <div key={vehicle.name} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition border-t-4 border-blue-600">
-                <p className="text-sm text-blue-700 font-semibold mb-2">{vehicle.capacity}</p>
-                <h3 className="text-xl font-bold mb-2">{vehicle.name}</h3>
-                <p className="text-3xl font-bold text-blue-700 mb-2">₹{vehicle.price}/km</p>
-                <p className="text-sm text-gray-600 mb-3">{vehicle.features}</p>
-                <p className="text-xs text-gray-500 mb-4">Best for: {vehicle.best}</p>
-                <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
-                  Book Now
-                </button>
-              </div>
-            ))}
+      {vehicleCategories.length > 0 && (
+        <section id="packages" className="py-16">
+          <div className="container-custom">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+              Outstation Cab Options
+            </h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              {vehicleCategories.map((cat) => {
+                let examples: string[] = [];
+                try { examples = cat.exampleVehicles ? JSON.parse(cat.exampleVehicles) : []; } catch {}
+                return (
+                  <div key={cat.id} className={`relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition overflow-hidden flex flex-col ${cat.isPopular ? 'ring-2 ring-purple-500 scale-[1.02]' : 'border border-purple-100'}`}>
+                    {cat.isPopular && (
+                      <div className="absolute top-0 left-0 right-0 flex justify-center">
+                        <span className="bg-purple-600 text-white text-xs font-bold px-4 py-1 rounded-b-lg">⭐ POPULAR</span>
+                      </div>
+                    )}
+                    <div className={`relative h-44 bg-gradient-to-br from-purple-50 to-indigo-50 flex items-center justify-center ${cat.isPopular ? 'mt-6' : ''}`}>
+                      {cat.image ? (
+                        <Image src={cat.image} alt={cat.name} fill className="object-contain p-4" sizes="(max-width:640px) 100vw,(max-width:1024px) 50vw,33vw" />
+                      ) : (
+                        <span className="text-7xl">🚗</span>
+                      )}
+                    </div>
+                    <div className="p-5 flex flex-col flex-1">
+                      <div className="text-center mb-3">
+                        <h3 className="text-xl font-bold text-gray-900 capitalize">{cat.name}</h3>
+                        <p className="text-sm text-gray-500">{cat.seatingCapacity} Seater{cat.acType ? ` · ${cat.acType}` : ''}</p>
+                      </div>
+                      {examples.length > 0 && (
+                        <p className="text-sm text-gray-500 text-center mb-3">{examples.slice(0, 2).join(', ')}</p>
+                      )}
+                      <div className="text-center mb-4">
+                        {cat.dailyRate ? (
+                          <div className="flex items-baseline justify-center gap-1">
+                            <span className="text-3xl font-bold text-purple-600">₹{Number(cat.dailyRate).toLocaleString('en-IN')}</span>
+                            <span className="text-sm text-gray-500">/km</span>
+                          </div>
+                        ) : (
+                          <p className="text-xl font-bold text-purple-600">Get Quote</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-center text-xs text-gray-400 mt-6">
+              * Rates are indicative. Final price depends on city &amp; route. Toll &amp; parking extra.
+            </p>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Popular Routes */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Popular Outstation Routes
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { route: 'Delhi to Agra', distance: '230 km', price: '2760' },
-              { route: 'Delhi to Jaipur', distance: '280 km', price: '3360' },
-              { route: 'Mumbai to Pune', distance: '150 km', price: '1800' },
-              { route: 'Mumbai to Shirdi', distance: '240 km', price: '2880' },
-              { route: 'Bangalore to Mysore', distance: '150 km', price: '1800' },
-              { route: 'Bangalore to Ooty', distance: '270 km', price: '3240' },
-              { route: 'Chennai to Pondicherry', distance: '160 km', price: '1920' },
-              { route: 'Chennai to Tirupati', distance: '140 km', price: '1680' },
-              { route: 'Delhi to Manali', distance: '550 km', price: '6600' },
-            ].map((item) => (
-              <div key={item.route} className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-600">
-                <h3 className="font-semibold text-lg mb-2">{item.route}</h3>
-                <p className="text-sm text-gray-600 mb-2">{item.distance} (one-way)</p>
-                <p className="text-2xl font-bold text-blue-700">₹{item.price}+</p>
-                <p className="text-xs text-gray-500 mt-1">*Sedan car, round trip</p>
-              </div>
-            ))}
+      {routePackages.length > 0 && (
+        <section className="py-16 bg-gray-50">
+          <div className="container-custom">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+              Popular Outstation Routes
+            </h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {routePackages.map((rp) => {
+                const from = rp.locations_chauffeur_route_packages_fromLocationIdTolocations.name;
+                const to = rp.locations_chauffeur_route_packages_toLocationIdTolocations.name;
+                const roundTrip = Math.round(rp.basePrice * rp.returnMultiplier);
+                return (
+                  <div key={rp.id} className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-600">
+                    <h3 className="font-semibold text-lg mb-2">{from} to {to}</h3>
+                    <p className="text-sm text-gray-600 mb-2">{rp.estimatedKm} km (one-way)</p>
+                    <p className="text-2xl font-bold text-blue-700">₹{roundTrip.toLocaleString('en-IN')}+</p>
+                    <p className="text-xs text-gray-500 mt-1">*{rp.chauffeur_vehicle_categories.name}, round trip</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Features & Amenities */}
       <section className="py-16">

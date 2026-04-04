@@ -97,7 +97,6 @@ export function VintageCarsGrid({ cars, locationName }: Props) {
                       <p className="text-3xl font-bold text-amber-800">
                         ₹{car.price.toLocaleString('en-IN')}
                       </p>
-                      <p className="text-xs text-gray-500">/event</p>
                     </>
                   ) : (
                     <p className="text-sm font-semibold text-amber-700">Get Quote</p>

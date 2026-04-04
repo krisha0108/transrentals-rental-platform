@@ -153,7 +153,7 @@ export function LocationAutocomplete({
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
           placeholder={placeholder}
-          className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors"
+          className="w-full px-4 py-3 pr-10 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none transition-colors text-gray-900 placeholder:text-gray-400"
           required={required}
           disabled={isLoading}
           autoComplete="off"

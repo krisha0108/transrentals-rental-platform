@@ -1,21 +1,42 @@
 import React from 'react';
 import Link from 'next/link';
-import { MapPin, Navigation, Clock, ArrowRight } from 'lucide-react';
-import { getPopularRoutes, getDestinationIcon, Destination } from '@/data/popular-routes';
+import { Navigation, ArrowRight, MapPin } from 'lucide-react';
+import { getPopularRoutes, getDestinationIcon } from '@/data/popular-routes';
+import { prisma } from '@/lib/db/prisma';
 
 interface PopularRoutesProps {
   location?: string;
   locationSlug?: string;
-  serviceSlug?: string; // e.g., 'bike-on-rent', 'car-rental'
+  serviceSlug?: string;
 }
 
-export function PopularRoutes({ location, locationSlug, serviceSlug = 'bike-on-rent' }: PopularRoutesProps) {
-  // Get routes from the data file
-  const routes = locationSlug ? getPopularRoutes(locationSlug) : [];
+export async function PopularRoutes({ location, locationSlug, serviceSlug = 'bike-on-rent' }: PopularRoutesProps) {
+  // Try DB first
+  const dbRoutes = locationSlug ? await prisma.chauffeur_route_packages.findMany({
+    where: {
+      isActive: true,
+      isPopular: true,
+      locations_chauffeur_route_packages_fromLocationIdTolocations: { slug: locationSlug },
+    },
+    select: {
+      id: true,
+      estimatedKm: true,
+      basePrice: true,
+      returnMultiplier: true,
+      locations_chauffeur_route_packages_toLocationIdTolocations: {
+        select: { name: true, slug: true, description: true },
+      },
+    },
+    orderBy: [{ estimatedKm: 'asc' }],
+    take: 6,
+  }) : [];
 
-  if (routes.length === 0) {
-    return null; // Don't render if no routes available
-  }
+  // Fall back to static data if no DB routes
+  const staticRoutes = locationSlug ? getPopularRoutes(locationSlug) : [];
+
+  if (dbRoutes.length === 0 && staticRoutes.length === 0) return null;
+
+  const useDb = dbRoutes.length > 0;
 
   return (
     <section className="py-16 bg-gradient-to-b from-gray-50 to-white">
@@ -34,13 +55,49 @@ export function PopularRoutes({ location, locationSlug, serviceSlug = 'bike-on-r
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {routes.slice(0, 6).map((route, index) => (
+          {useDb ? dbRoutes.map((rp) => {
+            const dest = rp.locations_chauffeur_route_packages_toLocationIdTolocations;
+            const roundTrip = Math.round(rp.basePrice * rp.returnMultiplier);
+            return (
+              <Link
+                key={rp.id}
+                href={`/${serviceSlug}/${dest.slug}`}
+                className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-blue-200"
+              >
+                <div className="p-5 pb-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <span className="text-2xl">🗺️</span>
+                    <div>
+                      <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                        {dest.name}
+                      </h3>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                    {dest.description || `Popular outstation destination from ${location}`}
+                  </p>
+                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-blue-500" />
+                      <span>{rp.estimatedKm} km</span>
+                    </div>
+                    <span className="text-green-600 font-medium">₹{roundTrip.toLocaleString('en-IN')}+</span>
+                  </div>
+                </div>
+                <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">{location} → {dest.name}</span>
+                  <span className="flex items-center gap-1 text-blue-600 text-sm font-semibold group-hover:gap-2 transition-all">
+                    Book Now <ArrowRight className="w-4 h-4" />
+                  </span>
+                </div>
+              </Link>
+            );
+          }) : staticRoutes.slice(0, 6).map((route, index) => (
             <Link
               key={index}
               href={`/${serviceSlug}/${route.slug}`}
               className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-blue-200"
             >
-              {/* Card Header with Icon */}
               <div className="p-5 pb-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -55,12 +112,7 @@ export function PopularRoutes({ location, locationSlug, serviceSlug = 'bike-on-r
                     </div>
                   </div>
                 </div>
-
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                  {route.description}
-                </p>
-
-                {/* Route Info */}
+                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{route.description}</p>
                 <div className="flex items-center gap-4 text-sm text-gray-500">
                   {route.distance && (
                     <div className="flex items-center gap-1.5">
@@ -68,27 +120,19 @@ export function PopularRoutes({ location, locationSlug, serviceSlug = 'bike-on-r
                       <span>{route.distance}</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-green-600 font-medium">{route.vehicles}</span>
-                  </div>
+                  <span className="text-green-600 font-medium">{route.vehicles}</span>
                 </div>
               </div>
-
-              {/* Card Footer */}
               <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  {location} → {route.name}
-                </span>
+                <span className="text-sm font-medium text-gray-700">{location} → {route.name}</span>
                 <span className="flex items-center gap-1 text-blue-600 text-sm font-semibold group-hover:gap-2 transition-all">
-                  Book Now
-                  <ArrowRight className="w-4 h-4" />
+                  Book Now <ArrowRight className="w-4 h-4" />
                 </span>
               </div>
             </Link>
           ))}
         </div>
 
-        {/* View All Link */}
         <div className="text-center mt-10">
           <Link
             href={`/${serviceSlug}`}

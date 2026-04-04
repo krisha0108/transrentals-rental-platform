@@ -19,7 +19,7 @@ interface Props {
   locationName: string;
 }
 
-const INITIAL_LIMIT = 8;
+const INITIAL_LIMIT = 6;
 
 export function MonthlyCarPlans({ plans, locationName }: Props) {
   const [showAll, setShowAll] = useState(false);

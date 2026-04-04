@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
-import { shouldAutoDrop, DROPPABLE_STATUSES, getDropReasonForCustomer, getDropReasonForDB } from '@/lib/utils/booking-date-guard';
+import { shouldAutoDrop, NON_DROPPABLE_STATUSES, getDropReasonForCustomer, getDropReasonForDB } from '@/lib/utils/booking-date-guard';
 import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     try {
       const bikeBookings = await prisma.bike_bookings.findMany({
         where: {
-          status: { in: DROPPABLE_STATUSES.bike as any },
+          status: { notIn: NON_DROPPABLE_STATUSES.bike as any },
         },
         select: {
           id: true,
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        const dropReason = getDropReasonForDB(quotesReceived);
+        const dropReason = getDropReasonForDB(quotesReceived, booking.status);
 
         await prisma.bike_bookings.update({
           where: { id: booking.id },
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Notify customer
-        await sendDropNotification(booking.customerId, booking.bookingNumber, 'bike', quotesReceived);
+        await sendDropNotification(booking.customerId, booking.bookingNumber, 'bike', quotesReceived, booking.status);
 
         // Notify vendor if assigned
         const vendorId = booking.acceptedVendorId || booking.assignedVendorId;
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     try {
       const carBookings = await prisma.car_bookings.findMany({
         where: {
-          status: { in: DROPPABLE_STATUSES.car as any },
+          status: { notIn: NON_DROPPABLE_STATUSES.car as any },
         },
         select: {
           id: true,
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
           data: {
             status: 'DROPPED',
             droppedAt: now,
-            dropReason: getDropReasonForDB(quotesReceived),
+            dropReason: getDropReasonForDB(quotesReceived, booking.status),
           },
         });
 
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
           }).catch(() => {});
         }
 
-        await sendDropNotification(booking.customerId, booking.bookingNumber, 'self-drive', quotesReceived);
+        await sendDropNotification(booking.customerId, booking.bookingNumber, 'self-drive', quotesReceived, booking.status);
 
         const vendorId = booking.acceptedVendorId || booking.assignedVendorId;
         if (vendorId) {
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
     try {
       const chauffeurBookings = await prisma.chauffeur_bookings.findMany({
         where: {
-          status: { in: DROPPABLE_STATUSES.chauffeur as any },
+          status: { notIn: NON_DROPPABLE_STATUSES.chauffeur as any },
         },
         select: {
           id: true,
@@ -203,11 +203,11 @@ export async function POST(request: NextRequest) {
           data: {
             status: 'DROPPED',
             droppedAt: now,
-            dropReason: getDropReasonForDB(0),
+            dropReason: getDropReasonForDB(0, booking.status),
           },
         });
 
-        await sendDropNotification(booking.customerId, booking.bookingNumber, 'chauffeur-service', 0);
+        await sendDropNotification(booking.customerId, booking.bookingNumber, 'chauffeur-service', 0, booking.status);
 
         const vendorId = booking.acceptedVendorId || booking.assignedVendorId;
         if (vendorId) {
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
     try {
       const busBookings = await prisma.bus_bookings.findMany({
         where: {
-          status: { in: DROPPABLE_STATUSES.bus as any },
+          status: { notIn: NON_DROPPABLE_STATUSES.bus as any },
         },
         select: {
           id: true,
@@ -262,7 +262,7 @@ export async function POST(request: NextRequest) {
           data: {
             status: 'DROPPED',
             droppedAt: now,
-            dropReason: getDropReasonForDB(quotesReceived),
+            dropReason: getDropReasonForDB(quotesReceived, booking.status),
           },
         });
 
@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
           }).catch(() => {});
         }
 
-        await sendDropNotification(booking.customerId, booking.bookingNumber, 'bus', quotesReceived);
+        await sendDropNotification(booking.customerId, booking.bookingNumber, 'bus', quotesReceived, booking.status);
 
         if (booking.vendorId) {
           await sendVendorDropNotification(booking.vendorId, booking.bookingNumber, 'bus');
@@ -293,7 +293,7 @@ export async function POST(request: NextRequest) {
     try {
       const luxuryBookings = await prisma.luxury_bookings.findMany({
         where: {
-          status: { in: DROPPABLE_STATUSES.luxury as any },
+          status: { notIn: NON_DROPPABLE_STATUSES.luxury as any },
         },
         select: {
           id: true,
@@ -328,7 +328,7 @@ export async function POST(request: NextRequest) {
           data: {
             status: 'DROPPED',
             droppedAt: now,
-            dropReason: getDropReasonForDB(quotesReceived),
+            dropReason: getDropReasonForDB(quotesReceived, booking.status),
           },
         });
 
@@ -339,7 +339,7 @@ export async function POST(request: NextRequest) {
           }).catch(() => {});
         }
 
-        await sendDropNotification(booking.customerId, booking.bookingNumber, 'luxury', quotesReceived);
+        await sendDropNotification(booking.customerId, booking.bookingNumber, 'luxury', quotesReceived, booking.status);
 
         const vendorId = booking.acceptedVendorId || booking.assignedVendorId;
         if (vendorId) {
@@ -360,7 +360,7 @@ export async function POST(request: NextRequest) {
     try {
       const equipmentBookings = await prisma.equipment_bookings.findMany({
         where: {
-          status: { in: DROPPABLE_STATUSES.equipment as any },
+          status: { notIn: NON_DROPPABLE_STATUSES.equipment as any },
         },
         select: {
           id: true,
@@ -390,7 +390,7 @@ export async function POST(request: NextRequest) {
           data: {
             status: 'DROPPED',
             droppedAt: now,
-            dropReason: getDropReasonForDB(quotesReceived),
+            dropReason: getDropReasonForDB(quotesReceived, booking.status),
           },
         });
 
@@ -401,7 +401,7 @@ export async function POST(request: NextRequest) {
           }).catch(() => {});
         }
 
-        await sendDropNotification(booking.customerId, booking.bookingNumber, 'equipment', quotesReceived);
+        await sendDropNotification(booking.customerId, booking.bookingNumber, 'equipment', quotesReceived, booking.status);
 
         if (booking.vendorId) {
           await sendVendorDropNotification(booking.vendorId, booking.bookingNumber, 'equipment');
@@ -421,7 +421,7 @@ export async function POST(request: NextRequest) {
     try {
       const truckBookings = await prisma.truck_bookings.findMany({
         where: {
-          status: { in: DROPPABLE_STATUSES.truck as any },
+          status: { notIn: NON_DROPPABLE_STATUSES.truck as any },
         },
         select: {
           id: true,
@@ -452,7 +452,7 @@ export async function POST(request: NextRequest) {
           data: {
             status: 'DROPPED',
             droppedAt: now,
-            dropReason: getDropReasonForDB(quotesReceived),
+            dropReason: getDropReasonForDB(quotesReceived, booking.status),
           },
         });
 
@@ -463,7 +463,7 @@ export async function POST(request: NextRequest) {
           }).catch(() => {});
         }
 
-        await sendDropNotification(booking.customerId, booking.bookingNumber, 'truck', quotesReceived);
+        await sendDropNotification(booking.customerId, booking.bookingNumber, 'truck', quotesReceived, booking.status);
 
         if (booking.vendorId) {
           await sendVendorDropNotification(booking.vendorId, booking.bookingNumber, 'truck');
@@ -483,7 +483,7 @@ export async function POST(request: NextRequest) {
     try {
       const packersBookings = await prisma.packers_bookings.findMany({
         where: {
-          status: { in: DROPPABLE_STATUSES.packers as any },
+          status: { notIn: NON_DROPPABLE_STATUSES.packers as any },
         },
         select: {
           id: true,
@@ -513,7 +513,7 @@ export async function POST(request: NextRequest) {
           data: {
             status: 'DROPPED',
             droppedAt: now,
-            dropReason: getDropReasonForDB(quotesReceived),
+            dropReason: getDropReasonForDB(quotesReceived, booking.status),
           },
         });
 
@@ -524,7 +524,7 @@ export async function POST(request: NextRequest) {
           }).catch(() => {});
         }
 
-        await sendDropNotification(booking.customerId, booking.bookingNumber, 'packers', quotesReceived);
+        await sendDropNotification(booking.customerId, booking.bookingNumber, 'packers', quotesReceived, booking.status);
 
         if (booking.vendorId) {
           await sendVendorDropNotification(booking.vendorId, booking.bookingNumber, 'packers');
@@ -544,7 +544,7 @@ export async function POST(request: NextRequest) {
     try {
       const wanderBookings = await (prisma as any).wander_bookings.findMany({
         where: {
-          status: { in: DROPPABLE_STATUSES.wander },
+          status: { notIn: NON_DROPPABLE_STATUSES.wander },
         },
         select: {
           id: true,
@@ -570,7 +570,7 @@ export async function POST(request: NextRequest) {
           data: {
             status: 'DROPPED',
             droppedAt: now,
-            dropReason: getDropReasonForDB(quotesReceived),
+            dropReason: getDropReasonForDB(quotesReceived, booking.status),
           },
         });
 
@@ -580,7 +580,7 @@ export async function POST(request: NextRequest) {
           data: { status: 'EXPIRED' },
         }).catch(() => {});
 
-        await sendDropNotification(booking.customerId, booking.bookingId, 'wander', quotesReceived);
+        await sendDropNotification(booking.customerId, booking.bookingId, 'wander', quotesReceived, booking.status);
 
         if (booking.vendorId) {
           await sendVendorDropNotification(booking.vendorId, booking.bookingId, 'wander');
@@ -623,11 +623,11 @@ export async function POST(request: NextRequest) {
 // HELPER FUNCTIONS
 // ============================================
 
-async function sendDropNotification(customerId: string | null, bookingNumber: string, serviceType: string, quotesReceived: number) {
+async function sendDropNotification(customerId: string | null, bookingNumber: string, serviceType: string, quotesReceived: number, bookingStatus?: string) {
   if (!customerId) return;
 
   try {
-    const customerMessage = getDropReasonForCustomer(quotesReceived);
+    const customerMessage = getDropReasonForCustomer(quotesReceived, bookingStatus);
     const notificationId = 'NOTIF_' + crypto.randomBytes(8).toString('hex');
 
     await prisma.notifications.create({
