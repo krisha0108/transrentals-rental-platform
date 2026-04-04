@@ -76,6 +76,7 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
       {
         id: 1,
         name: '20 Seater Mini Bus',
+        brand: 'Mini Bus',
         image: '/images/buses/mini-bus.jpg',
         price: 3999,
         rating: 4.8,
@@ -83,6 +84,7 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
       {
         id: 2,
         name: '35 Seater AC Bus',
+        brand: 'Standard Bus',
         image: '/images/buses/35-seater.jpg',
         price: 5999,
         rating: 4.9,
@@ -90,6 +92,7 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
       {
         id: 3,
         name: '45 Seater Luxury Coach',
+        brand: 'Luxury Coach',
         image: '/images/buses/luxury-coach.jpg',
         price: 8999,
         rating: 4.9,

@@ -2,14 +2,13 @@ import { Metadata } from 'next';
 import { permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
-import { VehicleGrid } from '@/components/location/VehicleGrid';
-import { getAllIndiaFleet } from '@/lib/fleet-utils';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
 import { formatPriceHighlight } from '@/lib/utils';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { TempoFleetSection } from '@/components/tempo-traveller/TempoFleetSection';
 
 interface PageProps {
   params: {
@@ -108,12 +107,31 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
   const city = pageContext.city;
   const locationName = city.name;
 
-  // Fetch tempo traveller fleet from database (ALL_INDIA type vehicles)
-  const vehicles = await getAllIndiaFleet(
-    ['tempo', 'tempo-traveller', 'bus', 'Bus Rental', 'Bus', 'Tempo Traveller']
-  );
-
-  const seoData = await resolvePageMeta(`tempo-traveller:${params.location}`);
+  const [seoData, tempoFleet] = await Promise.all([
+    resolvePageMeta(`tempo-traveller:${params.location}`),
+    prisma.vehicle_models.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { services_vehicle_models_serviceIdToservices: { slug: 'bus-rental' } },
+          { services_vehicle_models_serviceIdToservices: { slug: 'tempo-traveller' } },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        sideImage: true,
+        basePricePerDay: true,
+        rating: true,
+        tagline: true,
+        highlight: true,
+        isPopular: true,
+        seatingCapacity: true,
+        brands: { select: { name: true } },
+      },
+      orderBy: [{ isPopular: 'desc' }, { seatingCapacity: 'asc' }, { displayOrder: 'asc' }],
+    }),
+  ]);
 
 
   return (
@@ -157,42 +175,8 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
         </div>
       </section>
 
-      {/* Available Tempo Travellers from Database */}
-      {vehicles.length > 0 ? (
-        <VehicleGrid
-          vehicles={vehicles}
-          title={`Tempo Travellers Available in ${locationName}`}
-          locationSlug={params.location}
-          serviceSlug="tempo-traveller"
-        />
-      ) : (
-        <section className="py-16 bg-gray-50">
-          <div className="container-custom">
-            <h2 className="text-3xl font-bold mb-8">
-              Tempo Travellers Available in {locationName}
-            </h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              {[
-                { vehicle: '12 Seater Tempo', price: '18', capacity: '12 Passengers' },
-                { vehicle: '14 Seater Tempo', price: '20', capacity: '14 Passengers' },
-                { vehicle: '17 Seater Tempo', price: '22', capacity: '17 Passengers' },
-                { vehicle: '20 Seater Tempo', price: '25', capacity: '20 Passengers' },
-                { vehicle: 'Luxury Tempo', price: '30', capacity: '12-14 Passengers' },
-                { vehicle: 'Force Urbania', price: '35', capacity: '13-17 Passengers' },
-              ].map((item) => (
-                <div key={item.vehicle} className="bg-white p-6 rounded-lg shadow-md border-t-4 border-orange-600">
-                  <p className="text-sm text-orange-700 font-semibold mb-2">{item.capacity}</p>
-                  <h3 className="text-xl font-bold mb-2">{item.vehicle}</h3>
-                  <p className="text-2xl font-bold text-orange-700 mb-4">₹{item.price}/km</p>
-                  <button className="w-full bg-orange-600 text-white py-2 rounded hover:bg-orange-700 transition">
-                    Book Tempo
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Available Tempo Travellers — dynamic from vehicle_models */}
+      <TempoFleetSection vehicles={tempoFleet} locationName={locationName} />
 
       {/* Perfect Occasions in City */}
       <section className="py-16">

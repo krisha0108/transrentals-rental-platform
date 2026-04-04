@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Star, Fuel, Settings, Users } from 'lucide-react';
@@ -38,20 +38,52 @@ export function VehicleGrid({
 }: VehicleGridProps) {
   const displayTitle = title || `Available Vehicles${location ? ` in ${location}` : ''}`;
 
+  const [activeBrand, setActiveBrand] = useState('All');
+
+  const brands = useMemo(() => {
+    const set = new Set<string>();
+    vehicles.forEach(v => { if (v.brand) set.add(v.brand); });
+    return ['All', ...Array.from(set).sort()];
+  }, [vehicles]);
+
+  const filtered = activeBrand === 'All'
+    ? vehicles
+    : vehicles.filter(v => v.brand === activeBrand);
+
   return (
     <section className="py-16 bg-gray-50">
       <div className="container-custom">
-        <h2 className="text-3xl font-bold mb-8 text-center">
+        <h2 className="text-3xl font-bold mb-2 text-center">
           {displayTitle}
         </h2>
+
+        {/* Brand Filter Pills */}
+        {brands.length > 1 && (
+          <div className="flex flex-wrap justify-center gap-2 mt-4 mb-8">
+            {brands.map(brand => (
+              <button
+                key={brand}
+                onClick={() => setActiveBrand(brand)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                  activeBrand === brand
+                    ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-orange-400 hover:text-orange-600'
+                }`}
+              >
+                {brand}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {vehicles.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="col-span-full text-center py-12">
               <p className="text-gray-500 text-lg">No vehicles available at this location currently.</p>
               <p className="text-gray-400 text-sm mt-2">Please check back later or try a different location.</p>
             </div>
           ) : (
-            vehicles.map((vehicle) => {
+            filtered.map((vehicle) => {
               // Use ID for vendor fleets, slug for legacy fleet
               const vehicleIdentifier = vehicle.slug || String(vehicle.id);
 
@@ -89,7 +121,7 @@ export function VehicleGrid({
                     )}
 
                     {/* Name */}
-                    <h3 className={`text-lg font-bold text-gray-900 mb-2 ${isClickable ? 'group-hover:text-orange-600' : ''} transition-colors line-clamp-1`}>
+                    <h3 className={`text-sm font-bold text-gray-900 mb-2 ${isClickable ? 'group-hover:text-orange-600' : ''} transition-colors line-clamp-1`}>
                       {vehicle.name}
                     </h3>
 

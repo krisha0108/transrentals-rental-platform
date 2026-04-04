@@ -318,9 +318,8 @@ jobs:
           RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
           RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
           NODE_ENV: production
-          SKIP_DATABASE_CALLS: '1'
         run: |
-          echo "🚀 Starting build (ISR mode — pages generated on-demand at runtime)..."
+          echo "🚀 Starting build (SSG mode — all pages pre-generated from production DB)..."
           echo "🌐 Domain: $NEXT_PUBLIC_APP_URL"
 
           npm run build
