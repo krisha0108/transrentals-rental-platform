@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { permanentRedirect } from 'next/navigation';
+import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';

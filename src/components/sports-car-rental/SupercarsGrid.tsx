@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 
 interface Car {
@@ -20,18 +20,51 @@ interface Props {
   locationName: string;
 }
 
+const SEAT_GROUPS = [
+  { label: 'All', min: 0, max: 9999 },
+  { label: '2 Seater', min: 2, max: 2 },
+  { label: '4 Seater', min: 4, max: 4 },
+  { label: '5+ Seater', min: 5, max: 9999 },
+];
+
 const INITIAL_LIMIT = 8;
 
 export function SupercarsGrid({ cars, locationName }: Props) {
   const [showAll, setShowAll] = useState(false);
+  const [activeBrand, setActiveBrand] = useState('All');
+  const [activeSeat, setActiveSeat] = useState('All');
 
-  const visible = showAll ? cars : cars.slice(0, INITIAL_LIMIT);
-  const hasMore = cars.length > INITIAL_LIMIT;
+  const brands = useMemo(() => {
+    const set = new Set<string>();
+    cars.forEach(c => { if (c.brands?.name) set.add(c.brands.name); });
+    return set.size > 1 ? ['All', ...Array.from(set).sort()] : [];
+  }, [cars]);
+
+  const seatGroups = useMemo(() => {
+    return SEAT_GROUPS.filter(g => {
+      if (g.label === 'All') return true;
+      return cars.some(c => (c.seatingCapacity ?? 0) >= g.min && (c.seatingCapacity ?? 0) <= g.max);
+    });
+  }, [cars]);
+
+  const filtered = useMemo(() => {
+    return cars.filter(c => {
+      const brandOk = activeBrand === 'All' || c.brands?.name === activeBrand;
+      const sg = SEAT_GROUPS.find(g => g.label === activeSeat);
+      const seatOk = activeSeat === 'All' || !sg
+        ? true
+        : (c.seatingCapacity ?? 0) >= sg.min && (c.seatingCapacity ?? 0) <= sg.max;
+      return brandOk && seatOk;
+    });
+  }, [cars, activeBrand, activeSeat]);
+
+  const visible = showAll ? filtered : filtered.slice(0, INITIAL_LIMIT);
+  const hasMore = filtered.length > INITIAL_LIMIT;
 
   const gridClass =
-    cars.length === 1 ? 'max-w-sm mx-auto' :
-    cars.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' :
-    cars.length === 3 ? 'sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto' :
+    filtered.length === 1 ? 'max-w-sm mx-auto' :
+    filtered.length === 2 ? 'sm:grid-cols-2 max-w-2xl mx-auto' :
+    filtered.length === 3 ? 'sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto' :
     'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
   return (
@@ -40,8 +73,52 @@ export function SupercarsGrid({ cars, locationName }: Props) {
         <h2 className="text-3xl font-bold mb-2 text-center">
           Supercars Available in {locationName}
         </h2>
-        <p className="text-center text-gray-500 mb-10">Exotic &amp; luxury fleet · Chauffeur or self-drive</p>
+        <p className="text-center text-gray-500 mb-5">Exotic &amp; luxury fleet · Chauffeur or self-drive</p>
 
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row justify-center gap-3 mb-8">
+          {brands.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2">
+              <span className="text-xs text-gray-400 font-semibold self-center mr-1 uppercase tracking-wide">Brand:</span>
+              {brands.map(b => (
+                <button
+                  key={b}
+                  onClick={() => setActiveBrand(b)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                    activeBrand === b
+                      ? 'bg-red-700 text-white border-red-700 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-red-500 hover:text-red-700'
+                  }`}
+                >
+                  {b}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {seatGroups.length > 1 && (
+            <div className="flex flex-wrap justify-center gap-2">
+              <span className="text-xs text-gray-400 font-semibold self-center mr-1 uppercase tracking-wide">Seats:</span>
+              {seatGroups.map(g => (
+                <button
+                  key={g.label}
+                  onClick={() => setActiveSeat(g.label)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                    activeSeat === g.label
+                      ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-orange-400 hover:text-orange-600'
+                  }`}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">No vehicles found for selected filters.</div>
+        ) : (
         <div className={`grid gap-6 ${gridClass}`}>
           {visible.map((car) => (
             <div
@@ -106,6 +183,7 @@ export function SupercarsGrid({ cars, locationName }: Props) {
             </div>
           ))}
         </div>
+        )}
 
         {/* View All / Show Less button */}
         {hasMore && (
@@ -117,7 +195,7 @@ export function SupercarsGrid({ cars, locationName }: Props) {
               {showAll ? (
                 <>Show Less ↑</>
               ) : (
-                <>View All {cars.length} Supercars ↓</>
+                <>View All {filtered.length} Supercars ↓</>
               )}
             </button>
           </div>

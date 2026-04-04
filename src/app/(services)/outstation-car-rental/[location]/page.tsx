@@ -2,8 +2,8 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { prisma } from '@/lib/db/prisma';
-import Image from 'next/image';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
+import { OutstationCabSection } from '@/components/outstation-cab/OutstationCabSection';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { permanentRedirect } from 'next/navigation';
@@ -197,159 +197,10 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
 
       {/* Dynamic vehicle categories with city-specific pricing */}
       {catsToShow.length > 0 && (
-        <section className="py-12 bg-gray-50">
-          <div className="container-custom">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">
-              Choose Your Cab from {locationName}
-            </h2>
-            <p className="text-center text-gray-500 mb-8 text-sm">Select from our range of well-maintained vehicles</p>
-
-            {catsToShow.length === 1 ? (
-              /* ── Single vehicle: wide horizontal card ── */
-              (() => {
-                const cat = catsToShow[0];
-                let examples: string[] = [];
-                try { examples = cat.exampleVehicles ? JSON.parse(cat.exampleVehicles) : []; } catch {}
-                const pricing = pricingMap.get(cat.id);
-                const rate = pricing?.baseKmRate ?? cat.dailyRate;
-                const minKm = pricing?.minKmPerDay;
-                const driverAllowance = pricing?.driverDayAllowance;
-                return (
-                  <div className={`relative bg-white rounded-2xl shadow-lg overflow-hidden max-w-3xl mx-auto flex flex-col sm:flex-row ${
-                    cat.isPopular ? 'ring-2 ring-purple-500' : 'border border-purple-100'
-                  }`}>
-                    {cat.isPopular && (
-                      <div className="absolute top-0 left-0 right-0 sm:left-0 sm:right-auto flex sm:block justify-center">
-                        <span className="bg-purple-600 text-white text-xs font-bold px-4 py-1 rounded-b-lg sm:rounded-b-none sm:rounded-br-lg">
-                          ⭐ POPULAR
-                        </span>
-                      </div>
-                    )}
-                    {/* Image */}
-                    <div className={`relative sm:w-56 shrink-0 h-48 sm:h-auto bg-gradient-to-br from-purple-50 to-indigo-50 flex items-center justify-center ${cat.isPopular ? 'mt-7 sm:mt-0 sm:ml-0' : ''}`}>
-                      {cat.image ? (
-                        <Image src={cat.image} alt={cat.name} fill className="object-contain p-6" sizes="(max-width:640px) 100vw,224px" />
-                      ) : (
-                        <span className="text-8xl">🚗</span>
-                      )}
-                    </div>
-                    {/* Content */}
-                    <div className="p-6 flex flex-col justify-center flex-1">
-                      <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-                        <div>
-                          <h3 className="text-2xl font-bold text-gray-900 capitalize">{cat.name}</h3>
-                          <p className="text-sm text-gray-500">{cat.seatingCapacity} Seater{cat.acType ? ` · ${cat.acType}` : ''}</p>
-                          {examples.length > 0 && (
-                            <p className="text-sm text-gray-400 mt-0.5">{examples.slice(0, 2).join(', ')}</p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          {rate ? (
-                            <>
-                              <div className="flex items-baseline gap-1">
-                                <span className="text-3xl font-bold text-purple-600">₹{rate.toLocaleString('en-IN')}</span>
-                                <span className="text-sm text-gray-500">/km</span>
-                              </div>
-                              {minKm && <p className="text-xs text-gray-400">Min {minKm} km/day</p>}
-                            </>
-                          ) : (
-                            <p className="text-xl font-bold text-purple-600">Get Quote</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
-                        {[
-                          `${cat.seatingCapacity} passengers`,
-                          'AC & comfortable',
-                          'Professional driver',
-                          ...(driverAllowance ? [`Driver allowance ₹${driverAllowance}/day`] : []),
-                        ].map((f) => (
-                          <p key={f} className="text-sm text-gray-600 flex items-center gap-2">
-                            <span className="text-purple-500">✓</span>{f}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()
-            ) : (
-              /* ── Multiple vehicles: grid ── */
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                {catsToShow.map((cat) => {
-                  let examples: string[] = [];
-                  try { examples = cat.exampleVehicles ? JSON.parse(cat.exampleVehicles) : []; } catch {}
-                  const pricing = pricingMap.get(cat.id);
-                  const rate = pricing?.baseKmRate ?? cat.dailyRate;
-                  const minKm = pricing?.minKmPerDay;
-                  const driverAllowance = pricing?.driverDayAllowance;
-                  return (
-                    <div
-                      key={cat.id}
-                      className={`relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition overflow-hidden flex flex-col ${
-                        cat.isPopular ? 'ring-2 ring-purple-500 scale-[1.02]' : 'border border-purple-100'
-                      }`}
-                    >
-                      {cat.isPopular && (
-                        <div className="absolute top-0 left-0 right-0 flex justify-center">
-                          <span className="bg-purple-600 text-white text-xs font-bold px-4 py-1 rounded-b-lg">
-                            ⭐ POPULAR
-                          </span>
-                        </div>
-                      )}
-                      <div className={`relative h-44 bg-gradient-to-br from-purple-50 to-indigo-50 flex items-center justify-center ${cat.isPopular ? 'mt-6' : ''}`}>
-                        {cat.image ? (
-                          <Image src={cat.image} alt={cat.name} fill className="object-contain p-4" sizes="(max-width:640px) 100vw,(max-width:1024px) 50vw,33vw" />
-                        ) : (
-                          <span className="text-7xl">🚗</span>
-                        )}
-                      </div>
-                      <div className="p-5 flex flex-col flex-1">
-                        <div className="text-center mb-3">
-                          <h3 className="text-xl font-bold text-gray-900 capitalize">{cat.name}</h3>
-                          <p className="text-sm text-gray-500">{cat.seatingCapacity} Seater{cat.acType ? ` · ${cat.acType}` : ''}</p>
-                        </div>
-                        {examples.length > 0 && (
-                          <p className="text-sm text-gray-500 text-center mb-3">{examples.slice(0, 2).join(', ')}</p>
-                        )}
-                        <div className="text-center mb-4">
-                          {rate ? (
-                            <>
-                              <div className="flex items-baseline justify-center gap-1">
-                                <span className="text-3xl font-bold text-purple-600">₹{rate.toLocaleString('en-IN')}</span>
-                                <span className="text-sm text-gray-500">/km</span>
-                              </div>
-                              {minKm && <p className="text-xs text-gray-400 mt-0.5">Min {minKm} km/day</p>}
-                            </>
-                          ) : (
-                            <p className="text-xl font-bold text-purple-600">Get Quote</p>
-                          )}
-                        </div>
-                        <div className="space-y-1.5 mb-4">
-                          {[
-                            `${cat.seatingCapacity} passengers`,
-                            'AC & comfortable',
-                            'Professional driver',
-                            ...(driverAllowance ? [`Driver allowance ₹${driverAllowance}/day`] : []),
-                          ].map((f) => (
-                            <p key={f} className="text-sm text-gray-600 flex items-center gap-2">
-                              <span className="text-purple-500">✓</span>{f}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Price info note */}
-            <p className="text-center text-xs text-gray-400 mt-6">
-              * Rates shown are per km. Final price includes driver allowance + GST (5%). Toll & parking extra.
-            </p>
-          </div>
-        </section>
+        <OutstationCabSection
+          categories={catsToShow}
+          pricingMap={Object.fromEntries(pricingMap)}
+        />
       )}
 
       {/* Popular Round Trip Routes from DB */}

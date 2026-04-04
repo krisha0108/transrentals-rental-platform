@@ -117,6 +117,7 @@ export default async function ActivaLocationPage({ params }: PageProps) {
       {
         id: 1,
         name: 'Honda Activa 6G',
+        brand: 'Honda',
         image: '/images/scooters/activa-6g.jpg',
         price: 299,
         rating: 4.8,
@@ -124,6 +125,7 @@ export default async function ActivaLocationPage({ params }: PageProps) {
       {
         id: 2,
         name: 'TVS Jupiter',
+        brand: 'TVS',
         image: '/images/scooters/jupiter.jpg',
         price: 299,
         rating: 4.7,
@@ -131,6 +133,7 @@ export default async function ActivaLocationPage({ params }: PageProps) {
       {
         id: 3,
         name: 'Suzuki Access 125',
+        brand: 'Suzuki',
         image: '/images/scooters/access-125.jpg',
         price: 349,
         rating: 4.8,
@@ -138,6 +141,7 @@ export default async function ActivaLocationPage({ params }: PageProps) {
       {
         id: 4,
         name: 'Honda Dio',
+        brand: 'Honda',
         image: '/images/scooters/dio.jpg',
         price: 299,
         rating: 4.6,

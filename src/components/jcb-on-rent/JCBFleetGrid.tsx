@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 
 interface Equipment {
@@ -23,9 +23,20 @@ const INITIAL_LIMIT = 8;
 
 export function JCBFleetGrid({ items, locationName }: Props) {
   const [showAll, setShowAll] = useState(false);
+  const [activeBrand, setActiveBrand] = useState('All');
 
-  const visible = showAll ? items : items.slice(0, INITIAL_LIMIT);
-  const hasMore = items.length > INITIAL_LIMIT;
+  const brands = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach(i => { if (i.brands?.name) set.add(i.brands.name); });
+    return set.size > 1 ? ['All', ...Array.from(set).sort()] : [];
+  }, [items]);
+
+  const filtered = useMemo(() => {
+    return activeBrand === 'All' ? items : items.filter(i => i.brands?.name === activeBrand);
+  }, [items, activeBrand]);
+
+  const visible = showAll ? filtered : filtered.slice(0, INITIAL_LIMIT);
+  const hasMore = filtered.length > INITIAL_LIMIT;
 
   return (
     <section className="py-12 bg-gray-50">
@@ -33,8 +44,31 @@ export function JCBFleetGrid({ items, locationName }: Props) {
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">
           Equipment Available in {locationName}
         </h2>
-        <p className="text-center text-gray-500 mb-8">Choose from our verified fleet</p>
+        <p className="text-center text-gray-500 mb-5">Choose from our verified fleet</p>
 
+        {/* Brand Filter */}
+        {brands.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2 mb-8">
+            <span className="text-xs text-gray-400 font-semibold self-center mr-1 uppercase tracking-wide">Brand:</span>
+            {brands.map(b => (
+              <button
+                key={b}
+                onClick={() => setActiveBrand(b)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                  activeBrand === b
+                    ? 'bg-yellow-600 text-white border-yellow-600 shadow-sm'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-yellow-500 hover:text-yellow-700'
+                }`}
+              >
+                {b}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {filtered.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">No equipment found for selected filter.</div>
+        ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {visible.map((item) => (
             <div key={item.id} className="bg-white rounded-xl shadow-md hover:shadow-xl transition border border-yellow-200 overflow-hidden flex flex-col">
@@ -83,6 +117,7 @@ export function JCBFleetGrid({ items, locationName }: Props) {
             </div>
           ))}
         </div>
+        )}
 
         {hasMore && (
           <div className="flex justify-center mt-8">
@@ -90,7 +125,7 @@ export function JCBFleetGrid({ items, locationName }: Props) {
               onClick={() => setShowAll((prev) => !prev)}
               className="flex items-center gap-2 px-8 py-3 rounded-full border-2 border-yellow-600 text-yellow-700 font-semibold text-sm hover:bg-yellow-600 hover:text-white transition-all"
             >
-              {showAll ? 'Show Less ↑' : `View All ${items.length} Equipment ↓`}
+              {showAll ? 'Show Less ↑' : `View All ${filtered.length} Equipment ↓`}
             </button>
           </div>
         )}

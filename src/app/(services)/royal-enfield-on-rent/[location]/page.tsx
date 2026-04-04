@@ -116,6 +116,7 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
       {
         id: 1,
         name: 'Royal Enfield Classic 350',
+        brand: 'Cruiser',
         image: '/images/bikes/classic-350.jpg',
         price: 899,
         rating: 4.9,
@@ -123,6 +124,7 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
       {
         id: 2,
         name: 'Royal Enfield Himalayan',
+        brand: 'Adventure',
         image: '/images/bikes/himalayan.jpg',
         price: 1099,
         rating: 4.8,
@@ -130,6 +132,7 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
       {
         id: 3,
         name: 'Royal Enfield Meteor 350',
+        brand: 'Cruiser',
         image: '/images/bikes/meteor-350.jpg',
         price: 999,
         rating: 4.8,
@@ -137,6 +140,7 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
       {
         id: 4,
         name: 'Royal Enfield Hunter 350',
+        brand: 'Roadster',
         image: '/images/bikes/hunter-350.jpg',
         price: 899,
         rating: 4.7,
