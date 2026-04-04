@@ -1,0 +1,91 @@
+name: Warm ISR Cache
+
+on:
+  # Auto-trigger 5 minutes after main branch deploy (gives Coolify time to deploy)
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    branches: [main]
+    types: [completed]
+
+  # Manual trigger anytime
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Base URL to warm (default: https://transrentals.in)'
+        required: false
+        default: 'https://transrentals.in'
+      concurrency:
+        description: 'Concurrent requests (default: 80)'
+        required: false
+        default: '80'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  warm:
+    name: Warm ISR Cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Only run if CI/CD pipeline succeeded (for auto-trigger)
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Setup SSH Tunnel to Production Database
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/github_key
+          chmod 600 ~/.ssh/github_key
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/github_key \
+              -L 3307:localhost:3306 \
+              -o StrictHostKeyChecking=no \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=10 \
+              -f -N \
+              -p ${{ secrets.SSH_PORT }} \
+              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
+          for i in $(seq 1 15); do
+            if nc -z 127.0.0.1 3307 2>/dev/null; then
+              echo "✅ SSH tunnel ready"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Wait for Coolify deployment (5 min)
+        if: github.event_name == 'workflow_run'
+        run: |
+          echo "⏳ Waiting 5 minutes for Coolify to finish deploying..."
+          sleep 300
+
+      - name: Run Cache Warming Script
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BASE_URL: ${{ github.event.inputs.base_url || 'https://transrentals.in' }}
+        run: |
+          CONCURRENCY=${{ github.event.inputs.concurrency || '80' }}
+          echo "🔥 Starting cache warming..."
+          npx tsx scripts/warm-cache.ts --concurrency=$CONCURRENCY
+
+      - name: Cleanup SSH Tunnel
+        if: always()
+        run: |
+          pkill -f "ssh.*3307:localhost:3306" || true
+          rm -f ~/.ssh/github_key
