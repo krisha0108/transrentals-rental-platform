@@ -1,0 +1,33 @@
+name: Auto Drop Expired Bookings
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # Every hour
+  workflow_dispatch:        # Manual trigger from GitHub UI
+
+jobs:
+  auto-drop:
+    name: Auto Drop Expired Bookings
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Auto Drop Endpoint
+        run: |
+          echo "⏳ Calling auto-drop cron endpoint..."
+
+          RESPONSE=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 120 \
+            "${{ secrets.NEXT_PUBLIC_APP_URL }}/api/cron/auto-drop-bookings")
+
+          echo "HTTP Status: $RESPONSE"
+          echo "Response:"
+          cat /tmp/response.json | python3 -m json.tool 2>/dev/null || cat /tmp/response.json
+
+          if [ "$RESPONSE" != "200" ]; then
+            echo "❌ Auto-drop failed with status $RESPONSE"
+            exit 1
+          fi
+
+          echo "✅ Auto-drop completed successfully"
