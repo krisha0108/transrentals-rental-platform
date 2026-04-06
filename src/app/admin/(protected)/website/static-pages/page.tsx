@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Search, ExternalLink, Check, RotateCcw, ChevronDown, ChevronUp,
@@ -252,13 +253,14 @@ function ServiceCard({ service }: { service: ServiceStat }) {
   );
 }
 
-// ── Main page ──────────────────────────────────────────────────────────────────
-export default function SEODashboard() {
+// ── Inner component (needs useSearchParams) ────────────────────────────────────
+function SEODashboardInner() {
+  const searchParams = useSearchParams();
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [staticPages, setStaticPages] = useState<StaticPageRow[]>([]);
   const [loadingOverview, setLoadingOverview] = useState(true);
   const [loadingStatic, setLoadingStatic] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('q') || '');
 
   useEffect(() => {
     fetch('/api/admin/seo/overview')
@@ -401,5 +403,14 @@ export default function SEODashboard() {
         )}
       </div>
     </div>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────────
+export default function SEODashboard() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" /></div>}>
+      <SEODashboardInner />
+    </Suspense>
   );
 }

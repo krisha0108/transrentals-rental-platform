@@ -40,7 +40,22 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
-    let whereClause: any = { vendorId: vendor.id }; // Fixed: was vendorId instead of vendor.id
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+    const search = searchParams.get('search')?.trim() || '';
+
+    // SEARCH FILTER
+    const searchFilter: any = search ? {
+      OR: [
+        { customerName: { contains: search } },
+        { customerPhone: { contains: search } },
+        { customerEmail: { contains: search } },
+        { bookingNumber: { contains: search } },
+      ],
+    } : {};
+
+    let whereClause: any = { vendorId: vendor.id, ...searchFilter }; // Fixed: was vendorId instead of vendor.id
 
     // Handle mobile app status parameter (priority over type)
     if (status && status !== 'all' && mobileStatusMappings[status]) {
@@ -53,6 +68,19 @@ export async function GET(request: NextRequest) {
       whereClause.status = { in: ['LOADING', 'IN_TRANSIT', 'UNLOADING'] };
     } else if (type === 'completed') {
       whereClause.status = 'COMPLETED';
+    }
+
+    // DATE FILTERING
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) {
+        whereClause.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        whereClause.createdAt.lte = endDateTime;
+      }
     }
 
     const [bookings, total] = await Promise.all([

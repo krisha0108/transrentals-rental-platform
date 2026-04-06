@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
+    const search = searchParams.get('search')?.trim() || '';
 
     // DATE FILTER PARAMS
     const startDate = searchParams.get('startDate');
@@ -56,15 +57,27 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // SEARCH FILTER
+    const searchFilter: any = search
+      ? {
+          OR: [
+            { customerName: { contains: search } },
+            { customerPhone: { contains: search } },
+            { customerEmail: { contains: search } },
+            { requestNumber: { contains: search } },
+            { locationName: { contains: search } },
+            { vehicleModelName: { contains: search } },
+            { vehicleBrand: { contains: search } },
+          ],
+        }
+      : {};
+
     let whereClause: any = {};
 
     if (type === 'open') {
-      // Open requests - vendor hasn't quoted yet
-      // Show all requests in vendor's approved locations
-      // Note: We don't strictly filter by vehicle category to allow vendors flexibility
-      // in quoting on requests even if their fleet categories don't exactly match
       whereClause = {
         ...dateFilter,
+        ...searchFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
         locationId: approvedLocationIds.length > 0 ? { in: approvedLocationIds } : undefined,
@@ -73,54 +86,42 @@ export async function GET(request: NextRequest) {
         },
       };
     } else if (type === 'quoted') {
-      // Requests where vendor has submitted a quote (any status)
       whereClause = {
         ...dateFilter,
+        ...searchFilter,
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
-          some: {
-            vendorId: vendorId,
-          },
+          some: { vendorId: vendorId },
         },
       };
     } else if (type === 'won') {
-      // Requests where vendor's quote was accepted
       whereClause = {
         ...dateFilter,
+        ...searchFilter,
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
-          some: {
-            vendorId: vendorId,
-            status: 'ACCEPTED',
-          },
+          some: { vendorId: vendorId, status: 'ACCEPTED' },
         },
       };
     } else if (type === 'lost') {
-      // Requests where another vendor was chosen
       whereClause = {
         ...dateFilter,
+        ...searchFilter,
         status: 'QUOTE_ACCEPTED',
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
-          some: {
-            vendorId: vendorId,
-            status: 'REJECTED',
-          },
+          some: { vendorId: vendorId, status: 'REJECTED' },
         },
       };
     } else {
-      // All relevant requests
-      const openRequestsFilter: any = {
-        status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
-        quotesOpenTill: { gte: new Date() },
-        locationId: approvedLocationIds.length > 0 ? { in: approvedLocationIds } : undefined,
-        ...dateFilter,
-      };
-
       whereClause = {
+        ...searchFilter,
         OR: [
-          // Open requests in vendor's locations
-          openRequestsFilter,
-          // Requests vendor has quoted on
           {
-            ...dateFilter, // ✅ Add date filter
+            status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
+            quotesOpenTill: { gte: new Date() },
+            locationId: approvedLocationIds.length > 0 ? { in: approvedLocationIds } : undefined,
+            ...dateFilter,
+          },
+          {
+            ...dateFilter,
             self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
               some: { vendorId: vendorId },
             },

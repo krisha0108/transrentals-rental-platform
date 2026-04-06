@@ -42,6 +42,21 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
     const search = searchParams.get('search')?.trim() || '';
 
+    // SEARCH FILTER
+    const searchFilter: any = search
+      ? {
+          OR: [
+            { customerName: { contains: search } },
+            { customerPhone: { contains: search } },
+            { customerEmail: { contains: search } },
+            { requestNumber: { contains: search } },
+            { locationName: { contains: search } },
+            { vehicleModelName: { contains: search } },
+            { vehicleBrand: { contains: search } },
+          ],
+        }
+      : {};
+
     let whereClause: any = {};
 
     // DATE FILTERING
@@ -60,64 +75,53 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === 'open') {
-      // Open requests - vendor hasn't quoted yet
       whereClause = {
+        ...dateFilter,
+        ...searchFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
         locationId: { in: approvedLocationIds },
-        ...dateFilter,
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
           none: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } },
         },
       };
     } else if (type === 'quoted') {
-      // Requests where vendor has submitted a quote
       whereClause = {
         ...dateFilter,
+        ...searchFilter,
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
-          some: {
-            vendorId: vendorId,
-            status: { in: ['SENT', 'VIEWED'] },
-          },
+          some: { vendorId: vendorId, status: { in: ['SENT', 'VIEWED'] } },
         },
       };
     } else if (type === 'won') {
-      // Requests where vendor's quote was accepted
       whereClause = {
         ...dateFilter,
+        ...searchFilter,
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
-          some: {
-            vendorId: vendorId,
-            status: 'ACCEPTED',
-          },
+          some: { vendorId: vendorId, status: 'ACCEPTED' },
         },
       };
     } else if (type === 'lost') {
-      // Requests where another vendor was chosen
       whereClause = {
-        status: 'QUOTE_ACCEPTED',
         ...dateFilter,
+        ...searchFilter,
+        status: 'QUOTE_ACCEPTED',
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
-          some: {
-            vendorId: vendorId,
-            status: 'REJECTED',
-          },
+          some: { vendorId: vendorId, status: 'REJECTED' },
         },
       };
     } else {
-      // All relevant requests
       whereClause = {
+        ...searchFilter,
         OR: [
-          // Open requests in vendor's locations
           {
             status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
             quotesOpenTill: { gte: new Date() },
             locationId: { in: approvedLocationIds },
             ...dateFilter,
           },
-          // Requests vendor has quoted on
           {
-            ...dateFilter, // ✅ Add date filter here
+            ...dateFilter,
             bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
               some: { vendorId: vendorId },
             },

@@ -178,9 +178,9 @@ jobs:
         continue-on-error: true
 
   build:
-    name: Build Application with Production Database
+    name: Build Application (ISR — No DB Required)
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 30
 
     steps:
       # Step 1: Checkout code
@@ -194,7 +194,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      # Step 2.5: Cache Next.js build (.next/cache)
+      # Step 3: Cache Next.js build (.next/cache)
       - name: Cache Next.js build
         uses: actions/cache@v4
         with:
@@ -204,179 +204,59 @@ jobs:
             nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
             nextjs-${{ runner.os }}-
 
-      # Step 3: Setup SSH Tunnel (SECURE DATABASE ACCESS)
-      - name: Setup SSH Tunnel to Production Database
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/github_key
-          chmod 600 ~/.ssh/github_key
-
-          ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
-          chmod 644 ~/.ssh/known_hosts
-
-          echo "🔑 SSH key configured"
-
-          # Start SSH tunnel in background
-          ssh -i ~/.ssh/github_key \
-              -L 3307:localhost:3306 \
-              -o StrictHostKeyChecking=no \
-              -o ServerAliveInterval=30 \
-              -o ServerAliveCountMax=5 \
-              -o ExitOnForwardFailure=yes \
-              -o ConnectTimeout=30 \
-              -f -N \
-              -p ${{ secrets.SSH_PORT }} \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
-
-          # Wait for port 3307 to be ready (retry up to 30s)
-          echo "⏳ Waiting for tunnel on port 3307..."
-          for i in $(seq 1 15); do
-            if nc -z 127.0.0.1 3307 2>/dev/null; then
-              echo "✅ SSH tunnel established on port 3307 (attempt $i)"
-              break
-            fi
-            if [ $i -eq 15 ]; then
-              echo "❌ Tunnel not ready after 30s"
-              echo "--- SSH process status ---"
-              ps aux | grep ssh || true
-              echo "--- Port status ---"
-              netstat -an | grep 3307 || true
-              exit 1
-            fi
-            sleep 2
-          done
-
-          echo "--- Debug: SSH processes ---"
-          ps aux | grep ssh || true
-          echo "--- Debug: Port 3307 ---"
-          netstat -an | grep 3307 || true
-
       # Step 4: Install dependencies
       - name: Install dependencies
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           echo "📦 Installing dependencies..."
           npm ci
+        env:
+          DATABASE_URL: mysql://dummy:dummy@127.0.0.1:3306/dummy
 
       # Step 5: Generate Prisma Client
       - name: Generate Prisma Client
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           echo "🔧 Generating Prisma Client..."
           npx prisma generate
           echo "✅ Prisma Client generated"
-
-      # Step 6: Test Database Connection
-      - name: Test Database Connection
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
-          echo "🔍 Testing database connection through SSH tunnel..."
+          DATABASE_URL: mysql://dummy:dummy@127.0.0.1:3306/dummy
 
-          # Create a simple test script
-          cat > test-db.js << 'EOF'
-          const { PrismaClient } = require('@prisma/client');
-          const prisma = new PrismaClient();
-
-          async function testConnection() {
-            try {
-              const result = await prisma.$queryRaw`SELECT 1 as connection_test`;
-              console.log('✅ Database connection successful:', result);
-
-              const tables = await prisma.$queryRaw`
-                SELECT COUNT(*) as table_count
-                FROM information_schema.tables
-                WHERE table_schema = DATABASE()
-              `;
-              console.log('📊 Database tables accessible:', tables[0].table_count);
-
-              await prisma.$disconnect();
-              process.exit(0);
-            } catch (error) {
-              console.error('❌ Database connection failed:', error.message);
-              await prisma.$disconnect();
-              process.exit(1);
-            }
-          }
-
-          testConnection();
-          EOF
-
-          node test-db.js
-
-# Step 7: Build Application (with database access)
+      # Step 6: Build Application (ISR mode — no DB, no static page generation)
+      # Pages are generated on first request (ISR) and pre-warmed by warm-cache workflow
       - name: Build Application
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
-          RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID }}
-          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET }}
-          NODE_ENV: production
         run: |
-          echo "🚀 Starting build (SSG mode — all pages pre-generated from production DB)..."
-          echo "🌐 Domain: $NEXT_PUBLIC_APP_URL"
-
+          echo "🚀 Building in ISR mode (SKIP_DATABASE_CALLS=1)..."
+          echo "   Pages will be generated on-demand via ISR after deployment"
+          echo "   Cache warming runs automatically after deploy (warm-cache.yml)"
           npm run build
+          echo "✅ Build completed"
+        env:
+          DATABASE_URL: mysql://dummy:dummy@127.0.0.1:3306/dummy
+          SKIP_DATABASE_CALLS: '1'
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'build-time-secret' }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'https://transrentals.in' }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'https://transrentals.in' }}
+          RAZORPAY_KEY_ID: ${{ secrets.RAZORPAY_KEY_ID || 'dummy' }}
+          RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET || 'dummy' }}
+          NODE_ENV: production
 
-          echo "✅ Build completed successfully"
-
-      # Step 8: Show Build Statistics
+      # Step 7: Show Build Statistics
       - name: Build Statistics
         run: |
           echo "📊 Build Statistics:"
           echo "================================"
-
           if [ -d ".next" ]; then
             echo "📁 .next directory size:"
             du -sh .next
-
             echo ""
-            echo "📄 Total HTML pages generated:"
-            find .next -name "*.html" | wc -l
-
-            echo ""
-            echo "🗂️  Server pages:"
-            find .next/server/pages -type f | wc -l
-
+            echo "📄 Pre-rendered HTML pages (should be minimal with ISR):"
+            find .next -name "*.html" 2>/dev/null | wc -l
             echo ""
             echo "📦 Build artifacts:"
-            ls -lh .next/ | head -20
+            ls -lh .next/ | head -10
           else
             echo "⚠️  .next directory not found"
           fi
-
-      # Step 9: Cleanup SSH Tunnel
-      - name: Cleanup SSH Tunnel
-        if: always()
-        run: |
-          echo "🧹 Cleaning up SSH tunnel..."
-
-          # Kill SSH tunnel process
-          pkill -f "ssh.*3307:localhost:3306" || true
-
-          # Remove SSH key
-          rm -f ~/.ssh/github_key
-
-          echo "✅ SSH tunnel closed and cleaned up"
-
-      # Step 10: Upload Build Artifacts (Optional)
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: nextjs-build
-          path: |
-            .next
-            !.next/cache
-          retention-days: 7
-          # Note: .next/cache is saved separately via actions/cache (see Step 2.5)
-          # It persists across builds to enable incremental compilation
 
 
   docker-build-push:

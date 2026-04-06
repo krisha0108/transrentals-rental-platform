@@ -83,7 +83,9 @@ export default function ManagerLocationsPage() {
   };
 
   const getVendorsByLocation = (locationId: string) => {
-    return vendors.filter((v) => v.location?.id === locationId);
+    return vendors.filter((v: any) =>
+      v.vendor_approved_locations?.some((al: any) => al.locationId === locationId)
+    );
   };
 
   const getLocationStats = (locationId: string) => {

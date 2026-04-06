@@ -58,9 +58,9 @@ export async function POST(request: NextRequest) {
     await Promise.all(updates);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error updating settings', error);
-    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update settings', detail: error?.message }, { status: 500 });
   }
 }
 

@@ -45,8 +45,19 @@ export async function GET(request: NextRequest) {
     // DATE FILTER PARAMS
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const search = searchParams.get('search')?.trim() || '';
 
-    let whereClause: any = { vendorId: vendor.id }; // Fixed: was vendorId instead of vendor.id
+    // SEARCH FILTER
+    const searchFilter: any = search ? {
+      OR: [
+        { customerName: { contains: search } },
+        { customerPhone: { contains: search } },
+        { customerEmail: { contains: search } },
+        { bookingNumber: { contains: search } },
+      ],
+    } : {};
+
+    let whereClause: any = { vendorId: vendor.id, ...searchFilter }; // Fixed: was vendorId instead of vendor.id
 
     // Handle mobile app status parameter (priority over type)
     if (status && status !== 'all' && mobileStatusMappings[status]) {

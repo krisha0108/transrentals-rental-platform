@@ -52,6 +52,17 @@ export async function GET(request: NextRequest) {
     // DATE FILTER PARAMS
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const search = searchParams.get('search')?.trim() || '';
+
+    // SEARCH FILTER
+    const searchFilter: any = search ? {
+      OR: [
+        { customerName: { contains: search } },
+        { customerPhone: { contains: search } },
+        { customerEmail: { contains: search } },
+        { bookingNumber: { contains: search } },
+      ],
+    } : {};
 
     // Build date filter
     const dateFilter: any = {};
@@ -76,6 +87,7 @@ export async function GET(request: NextRequest) {
 
       whereClause = {
         ...dateFilter,
+        ...searchFilter,
         OR: [
           {
             acceptedVendorId: vendor.id,
@@ -99,6 +111,7 @@ export async function GET(request: NextRequest) {
       // Direct requests - booking was assigned to this vendor
       whereClause = {
         ...dateFilter,
+        ...searchFilter,
         assignedVendorId: vendor.id,
         status: 'PENDING_VENDOR',
       };
@@ -106,6 +119,7 @@ export async function GET(request: NextRequest) {
       // Open/Broadcasted requests - available to all vendors in approved locations
       whereClause = {
         ...dateFilter,
+        ...searchFilter,
         status: 'BROADCASTED',
         locationId: { in: approvedLocationIds },
       };
@@ -113,12 +127,14 @@ export async function GET(request: NextRequest) {
       // Accepted by this vendor
       whereClause = {
         ...dateFilter,
+        ...searchFilter,
         acceptedVendorId: vendor.id,
         status: { in: ['ACCEPTED', 'IN_PROGRESS'] },
       };
     } else if (type === 'completed') {
       whereClause = {
         ...dateFilter,
+        ...searchFilter,
         acceptedVendorId: vendor.id,
         status: 'COMPLETED',
       };
@@ -126,6 +142,7 @@ export async function GET(request: NextRequest) {
       // All bookings related to this vendor (default for 'all' or no filter)
       whereClause = {
         ...dateFilter,
+        ...searchFilter,
         OR: [
           { acceptedVendorId: vendor.id },
           { assignedVendorId: vendor.id },
