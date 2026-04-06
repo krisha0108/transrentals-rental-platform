@@ -5,7 +5,12 @@ import { buildUrlsetXml, BASE_URL, SitemapEntry } from '@/lib/sitemap/utils';
 export const revalidate = 86400;
 
 const ENTRIES: SitemapEntry[] = [
+  // Core pages
   { url: BASE_URL,                                        changeFrequency: 'daily',  priority: 1.0 },
+  { url: `${BASE_URL}/about`,                             changeFrequency: 'monthly', priority: 0.6 },
+  { url: `${BASE_URL}/contact`,                           changeFrequency: 'monthly', priority: 0.6 },
+  { url: `${BASE_URL}/services`,                          changeFrequency: 'weekly',  priority: 0.8 },
+  { url: `${BASE_URL}/blog`,                              changeFrequency: 'daily',   priority: 0.8 },
   { url: `${BASE_URL}/car-rental`,                        changeFrequency: 'weekly', priority: 0.9 },
   { url: `${BASE_URL}/bike-on-rent`,                      changeFrequency: 'weekly', priority: 0.9 },
   { url: `${BASE_URL}/bus-rental`,                        changeFrequency: 'weekly', priority: 0.9 },
@@ -61,6 +66,14 @@ const ENTRIES: SitemapEntry[] = [
   { url: `${BASE_URL}/17-seater-tempo-traveller`,         changeFrequency: 'weekly', priority: 0.7 },
   { url: `${BASE_URL}/20-seater-tempo-traveller`,         changeFrequency: 'weekly', priority: 0.7 },
   { url: `${BASE_URL}/26-seater-bus`,                     changeFrequency: 'weekly', priority: 0.7 },
+  // Bike tours & trips
+  { url: `${BASE_URL}/bike-tours`,                        changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/bike-tours/goa`,                    changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/bike-tours/leh-ladakh`,             changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/bike-tours/rajasthan`,              changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/bike-tours/spiti-valley`,           changeFrequency: 'weekly', priority: 0.7 },
+  { url: `${BASE_URL}/bike-trips`,                        changeFrequency: 'weekly', priority: 0.8 },
+  { url: `${BASE_URL}/bike-trips/ladakh`,                 changeFrequency: 'weekly', priority: 0.7 },
 ];
 
 export async function GET() {
