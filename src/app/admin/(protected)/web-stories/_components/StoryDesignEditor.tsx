@@ -1138,6 +1138,10 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const [autoSaveMsg, setAutoSaveMsg] = useState<string | null>(null);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Stores draft ID created during create-mode auto-save (so subsequent saves use PUT)
+  const draftIdRef = useRef<string | null>(null);
   const [showGrid, setShowGrid] = useState(false);
   const [savedColors, setSavedColors] = useState<string[]>(() => {
     try { return JSON.parse(typeof window !== 'undefined' ? (localStorage.getItem('ws_palette') || '[]') : '[]'); } catch { return []; }
@@ -1466,21 +1470,43 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     })),
   });
 
-  const handleSave = async () => {
-    if (!meta.title.trim()) { setMsg({ type: 'err', text: 'Title is required' }); return; }
-    setSaving(true); setMsg(null);
+  const handleSave = async (silent = false) => {
+    if (!meta.title.trim()) { if (!silent) setMsg({ type: 'err', text: 'Title is required' }); return; }
+    setSaving(true); if (!silent) setMsg(null);
     try {
       const payload = buildPayload();
-      const res = mode === 'create'
-        ? await fetch('/api/admin/web-stories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-        : await fetch(`/api/admin/web-stories/${initialData.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      // Determine effective ID: edit mode uses initialData.id, create mode uses draftIdRef (if already auto-saved once)
+      const effectiveId = mode === 'edit' ? initialData?.id : draftIdRef.current;
+      const res = effectiveId
+        ? await fetch(`/api/admin/web-stories/${effectiveId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        : await fetch('/api/admin/web-stories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Save failed');
-      setMsg({ type: 'ok', text: 'Saved!' });
-      if (mode === 'create') router.push(`/admin/web-stories/${data.story.id}`);
-    } catch (e: any) { setMsg({ type: 'err', text: e.message }); }
+      if (silent) {
+        // Store draft ID on first auto-save in create mode so future saves use PUT
+        if (mode === 'create' && !draftIdRef.current) draftIdRef.current = data.story.id;
+        const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        setAutoSaveMsg(`Auto-saved ${t}`);
+        setTimeout(() => setAutoSaveMsg(null), 3000);
+      } else {
+        setMsg({ type: 'ok', text: 'Saved!' });
+        // Manual save in create mode: redirect to edit page (use draftIdRef if already created)
+        if (mode === 'create') router.push(`/admin/web-stories/${draftIdRef.current || data.story.id}`);
+      }
+    } catch (e: any) { if (!silent) setMsg({ type: 'err', text: e.message }); }
     finally { setSaving(false); }
   };
+
+  // Auto-save ref so timer always calls latest handleSave
+  const handleSaveRef = useRef(handleSave);
+  useEffect(() => { handleSaveRef.current = handleSave; });
+
+  // Auto-save every 30s after last change (both create & edit mode)
+  useEffect(() => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => { handleSaveRef.current(true); }, 30000);
+    return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
+  }, [slides, meta]);
 
   const handlePublish = async () => {
     if (mode === 'create') { await handleSave(); return; }
@@ -1706,6 +1732,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
           placeholder="Story title..."
           className="hidden sm:block bg-transparent text-slate-800 text-sm font-semibold text-center outline-none placeholder-slate-400 max-w-[200px] lg:max-w-xs w-full border-b-2 border-transparent focus:border-indigo-400 transition py-1 px-2" />
         <div className="flex items-center gap-1.5">
+          {autoSaveMsg && <span className="hidden sm:inline text-xs font-medium px-2.5 py-1 rounded-full border bg-slate-50 text-slate-500 border-slate-200">{autoSaveMsg}</span>}
           {msg && <span className={`hidden sm:inline text-xs font-medium px-2.5 py-1 rounded-full border ${msg.type === 'ok' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>{msg.text}</span>}
           <span className={`text-xs font-bold hidden sm:inline ${seo >= 80 ? 'text-green-600' : seo >= 50 ? 'text-amber-500' : 'text-red-500'}`}>SEO {seo}</span>
           <button onClick={() => setShowGrid(v => !v)} title="Toggle Grid"
