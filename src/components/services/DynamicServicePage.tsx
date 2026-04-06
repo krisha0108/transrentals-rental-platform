@@ -97,6 +97,7 @@ interface DynamicServicePageProps {
   citiesSection?: React.ReactNode;
   vehicleTypesSection?: React.ReactNode;
   bookingFormSection?: React.ReactNode;
+  hideHero?: boolean;
 }
 
 const iconMap: { [key: string]: React.ComponentType<{ className?: string }> } = {
@@ -129,6 +130,7 @@ export function DynamicServicePage({
   citiesSection,
   vehicleTypesSection,
   bookingFormSection,
+  hideHero = false,
 }: DynamicServicePageProps) {
   const [content, setContent] = useState<PageContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -170,7 +172,7 @@ export function DynamicServicePage({
   return (
     <>
       {/* Hero Section */}
-      <section
+      {!hideHero && <section
         className="relative min-h-[500px] flex items-center justify-center"
         style={{
           backgroundImage: pageContent.hero.backgroundImage
@@ -205,7 +207,7 @@ export function DynamicServicePage({
             </Link>
           )}
         </div>
-      </section>
+      </section>}
 
       {/* Booking Form Section (if provided) */}
       {bookingFormSection}

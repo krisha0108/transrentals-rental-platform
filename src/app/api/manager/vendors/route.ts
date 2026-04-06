@@ -91,6 +91,8 @@ export async function GET(request: NextRequest) {
             email: true,
             status: true,
             createdAt: true,
+            rating: true,
+            totalRatings: true,
             vendor_approved_locations: {
               // ORIGINAL: where: { locationId: { in: assignedLocationIds } },
               include: { locations: { select: { id: true, name: true } } },
@@ -145,8 +147,12 @@ export async function GET(request: NextRequest) {
           email: v.email,
           status: v.status,
           createdAt: v.createdAt,
+          rating: v.rating ?? 0,
+          totalRatings: v.totalRatings ?? 0,
           locations: allLocations,
+          locationNames: approvedLocations,
           services: allServices,
+          serviceNames: approvedServices,
           documentCount: v._count.vendor_documents,
           fleetCount: v._count.vendor_fleets,
         };

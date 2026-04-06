@@ -167,6 +167,7 @@ export default function BikeRentalPage() {
       <DynamicServicePage
         slug="bike-on-rent"
         fallbackContent={fallbackContent}
+        hideHero
       >
         <BikeTypesCards />
         <BikeFleetShowcase />
