@@ -32,10 +32,21 @@ export async function GET(
 
     if (!story) return NextResponse.json({ error: 'Story not found' }, { status: 404 });
 
-    // Read targeting fields via raw SQL
+    // Read targeting fields + canvasData via raw SQL (canvasData may not be in Prisma schema)
     const [targeting] = await prisma.$queryRawUnsafe<any[]>(
       'SELECT targetServices, targetLocations FROM web_stories WHERE id = ?', story.id
     );
+
+    // Fetch canvasData for all slides via raw SQL since Prisma client may not have the field
+    const slideCanvasRows = story.slides.length > 0
+      ? await prisma.$queryRawUnsafe<any[]>(
+          `SELECT id, canvasData FROM web_story_slides WHERE storyId = ?`, story.id
+        )
+      : [];
+    const canvasMap: Record<string, string | null> = {};
+    for (const row of slideCanvasRows) {
+      canvasMap[row.id] = row.canvasData ?? null;
+    }
 
     return NextResponse.json({
       id: story.id,
@@ -76,7 +87,7 @@ export async function GET(
         ctaText: s.ctaText,
         ctaUrl: s.ctaUrl,
         ctaStyle: s.ctaStyle,
-        canvasData: s.canvasData,
+        canvasData: canvasMap[s.id] ?? s.canvasData ?? null,
       })),
       reactions: {
         HEART: (story.reactions as any[]).filter((r) => r.reactionType === 'HEART').length,

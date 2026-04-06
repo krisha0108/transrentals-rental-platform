@@ -266,6 +266,9 @@ export async function POST(request: NextRequest) {
 
       // Vendor message
       vendorMessage,
+
+      // Template (optional)
+      templateId,
     } = body;
 
     // Validate required fields
