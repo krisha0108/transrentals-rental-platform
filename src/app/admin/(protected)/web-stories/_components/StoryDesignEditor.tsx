@@ -10,7 +10,6 @@ import {
   FlipHorizontal, FlipVertical, Sparkles, Lock, Unlock,
   AlignHorizontalJustifyStart, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd,
   AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd,
-  GripVertical,
 } from 'lucide-react';
 
 const CANVAS_W = 390;
@@ -689,74 +688,19 @@ function SlideThumbnail({ s, idx, selected, onClick, onDelete, onDuplicate }: {
   );
 }
 
-// ─── FloatingToolbar ──────────────────────────────────────────────────────────
-function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onSnapshot }: {
-  el: CE; scale: number; onChange: (e: CE) => void;
-  canvasRef: React.RefObject<HTMLDivElement | null>;
+// ─── StaticToolbar ────────────────────────────────────────────────────────────
+function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
+  el: CE; onChange: (e: CE) => void;
   onShapeImageFill?: () => void;
   onSnapshot?: () => void;
 }) {
   const [showFilters, setShowFilters] = useState(false);
   const [showAnim, setShowAnim] = useState(false);
   const [showShadow, setShowShadow] = useState(false);
-  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
-  const toolbarRef = useRef<HTMLDivElement>(null);
-
-  // Reset position when a different element is selected
-  useEffect(() => { setDragPos(null); }, [el.id]);
-
-  if (!canvasRef.current) return null;
-
-  // All positions are in visual pixels (scale already applied)
-  const canvasVisualW = CANVAS_W * scale;
-  const toolbarW = Math.min(420, canvasVisualW);
-  const elTopPx = el.y * scale;
-  const elBottomPx = (el.y + el.h) * scale;
-  let autoLeft = el.x * scale + (el.w * scale) / 2 - toolbarW / 2;
-  autoLeft = Math.max(0, Math.min(canvasVisualW - toolbarW, autoLeft));
-  const showAbove = elTopPx >= 100;
-  const autoStyle: React.CSSProperties = showAbove
-    ? { top: elTopPx - 6, transform: 'translateY(-100%)' }
-    : { top: elBottomPx + 8 };
-
-  const finalStyle: React.CSSProperties = dragPos
-    ? { left: dragPos.x, top: dragPos.y, transform: 'none', width: toolbarW }
-    : { left: autoLeft, width: toolbarW, ...autoStyle };
-
-  const handleGripDrag = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!toolbarRef.current) return;
-    const rect = toolbarRef.current.getBoundingClientRect();
-    const wrapper = canvasRef.current?.parentElement;
-    if (!wrapper) return;
-    const wrapperRect = wrapper.getBoundingClientRect();
-    const startMouseX = e.clientX;
-    const startMouseY = e.clientY;
-    const origX = rect.left - wrapperRect.left;
-    const origY = rect.top - wrapperRect.top;
-    const move = (ev: MouseEvent) => {
-      setDragPos({ x: origX + ev.clientX - startMouseX, y: origY + ev.clientY - startMouseY });
-    };
-    const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
-    document.addEventListener('mousemove', move);
-    document.addEventListener('mouseup', up);
-  };
 
   return (
-    <div ref={toolbarRef} className="absolute z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl shadow-slate-300/60 overflow-visible"
-      style={finalStyle} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
-
-      {/* Drag handle */}
-      <div
-        className="flex items-center justify-center gap-1 py-1 cursor-grab active:cursor-grabbing border-b border-slate-100 select-none bg-slate-50 rounded-t-2xl"
-        onMouseDown={handleGripDrag}
-        title="Drag to reposition toolbar"
-      >
-        <GripVertical className="w-3.5 h-3.5 text-slate-300" />
-        <span className="text-[9px] text-slate-400 uppercase tracking-widest">drag</span>
-        <GripVertical className="w-3.5 h-3.5 text-slate-300" />
-      </div>
+    <div className="bg-white border-b border-slate-200 flex-shrink-0 overflow-x-auto"
+      onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
 
       {/* ROW 1: Text formatting */}
       {(el.type === 'text' || el.type === 'button') && (
@@ -954,7 +898,7 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
             🎨 Filter
           </button>
           {showFilters && (
-            <div className="absolute bottom-full left-0 mb-1 bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-200/80 z-50" style={{ width: 280 }}>
+            <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-200/80 z-50" style={{ width: 280 }}>
               <div className="grid grid-cols-4 gap-1 mb-2">
                 {FILTER_PRESETS.map(fp => (
                   <button key={fp.name} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, filterCss: fp.css, filterIntensity: el.filterIntensity ?? 100 }); }}
@@ -987,7 +931,7 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
             <Sparkles className="w-3 h-3" /> {el.animation || 'Animate'}
           </button>
           {showAnim && (
-            <div className="absolute bottom-full left-0 mb-1 bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-200/80 z-50" style={{ width: 220 }}>
+            <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-200/80 z-50" style={{ width: 220 }}>
               <div className="grid grid-cols-2 gap-1 mb-2">
                 {ANIMATIONS.map(a => (
                   <button key={a.value} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, animation: a.value }); setShowAnim(false); }}
@@ -1032,7 +976,7 @@ function FloatingToolbar({ el, scale, onChange, canvasRef, onShapeImageFill, onS
             🌑 Shadow
           </button>
           {showShadow && (
-            <div className="absolute bottom-full left-0 mb-1 bg-white border border-slate-200 rounded-xl p-3 shadow-2xl shadow-slate-200/80 z-50" style={{ width: 270 }}>
+            <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl p-3 shadow-2xl shadow-slate-200/80 z-50" style={{ width: 270 }}>
               <div className="grid grid-cols-4 gap-1 mb-3">
                 {[
                   { label: '↑ Top', x: 0, y: -8 },
@@ -1743,7 +1687,7 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-slate-600 hover:text-slate-900 text-xs rounded-xl hover:bg-slate-100 border border-slate-200 transition disabled:opacity-30">
             <Eye className="w-3.5 h-3.5" /> Preview
           </button>
-          <button onClick={handleSave} disabled={saving}
+          <button onClick={() => handleSave()} disabled={saving}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium rounded-xl transition disabled:opacity-50 shadow-sm">
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline">Save</span>
@@ -2256,6 +2200,14 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
 
         {/* Center Canvas */}
         <div className="flex-1 flex flex-col overflow-hidden bg-slate-100">
+          {/* Static context toolbar — Canva-style, always at top */}
+          {selectedEl && selectedIds.length === 1 ? (
+            <StaticToolbar el={selectedEl} onChange={updateElement} onShapeImageFill={() => shapeImgInputRef.current?.click()} onSnapshot={snapshot} />
+          ) : (
+            <div className="bg-white border-b border-slate-200 flex-shrink-0 h-9 flex items-center px-4">
+              <span className="text-xs text-slate-400">{selectedIds.length > 1 ? `${selectedIds.length} elements selected` : 'Click an element to edit'}</span>
+            </div>
+          )}
           <div ref={containerRef} className="flex-1 flex items-center justify-center overflow-hidden" onClick={() => setSelectedIds([])}>
             <div style={{ position: 'relative', width: CANVAS_W * scale, height: CANVAS_H * scale, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
               <div ref={canvasRef} className="overflow-visible shadow-2xl rounded-sm"
@@ -2305,10 +2257,6 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                   </div>
                 )}
               </div>
-              {/* FloatingToolbar outside scaled canvas — positioned in visual pixels */}
-              {selectedEl && selectedIds.length === 1 && (
-                <FloatingToolbar el={selectedEl} scale={scale} onChange={updateElement} canvasRef={canvasRef} onShapeImageFill={() => shapeImgInputRef.current?.click()} onSnapshot={snapshot} />
-              )}
             </div>
           </div>
 
