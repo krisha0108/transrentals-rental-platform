@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Wrench,
@@ -14,6 +14,8 @@ import {
   XCircle,
   AlertCircle,
   Clock,
+  Search,
+  X,
 } from 'lucide-react';
 import { EQUIPMENT_CONFIG } from '@/lib/quote-services';
 import Pagination from '@/components/vendor/Pagination';
@@ -82,6 +84,9 @@ export default function VendorEquipmentBookingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [error, setError] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -111,6 +116,7 @@ export default function VendorEquipmentBookingsPage() {
       // DATE FILTER PARAMS
       if (dateFilter.start) params.set('startDate', dateFilter.start);
       if (dateFilter.end) params.set('endDate', dateFilter.end);
+      if (search) params.set('search', search);
 
       const url = `/api/vendor/equipment-bookings?${params}`;
       const res = await fetch(url);
@@ -150,7 +156,16 @@ export default function VendorEquipmentBookingsPage() {
   useEffect(() => {
     fetchBookings(filter);
     fetchStats();
-  }, [filter, currentPage, dateFilter]);
+  }, [filter, currentPage, dateFilter, search]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setSearch(value);
+      setCurrentPage(1);
+    }, 400);
+  };
 
   // API already filters, so just use the bookings directly
   const filteredBookings = bookings;
@@ -199,6 +214,26 @@ export default function VendorEquipmentBookingsPage() {
             <p className="text-gray-600">Manage your rental contracts</p>
           </div>
         </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          placeholder="Search by customer name, phone, email, booking number..."
+          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+        {searchInput && (
+          <button
+            onClick={() => handleSearchChange('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

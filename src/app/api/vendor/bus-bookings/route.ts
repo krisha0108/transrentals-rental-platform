@@ -50,9 +50,25 @@ export async function GET(request: NextRequest) {
     // DATE FILTER PARAMS
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const search = searchParams.get('search')?.trim() || '';
+
+    // SEARCH FILTER
+    const searchFilter: any = search
+      ? {
+          OR: [
+            { customerName: { contains: search } },
+            { customerPhone: { contains: search } },
+            { customerEmail: { contains: search } },
+            { bookingNumber: { contains: search } },
+            { pickupCity: { contains: search } },
+            { dropCity: { contains: search } },
+          ],
+        }
+      : {};
 
     let whereClause: any = {
-      vendorId: vendor.id, // Fixed: was vendorId instead of vendor.id
+      vendorId: vendor.id,
+      ...searchFilter,
     };
 
     // DATE FILTERING
@@ -62,7 +78,6 @@ export async function GET(request: NextRequest) {
         whereClause.createdAt.gte = new Date(startDate);
       }
       if (endDate) {
-        // Set to end of day (23:59:59)
         const endDateTime = new Date(endDate);
         endDateTime.setHours(23, 59, 59, 999);
         whereClause.createdAt.lte = endDateTime;

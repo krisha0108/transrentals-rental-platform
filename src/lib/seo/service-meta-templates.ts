@@ -317,6 +317,43 @@ export const STATIC_PAGES = [
   { pageId: 'static:bike-tours-spiti-valley', url: '/bike-tours/spiti-valley', label: 'Bike Tours — Spiti Valley' },
   { pageId: 'static:bike-trips', url: '/bike-trips', label: 'Bike Trips (Main)' },
   { pageId: 'static:bike-trips-ladakh', url: '/bike-trips/ladakh', label: 'Bike Trips — Ladakh' },
+  // Specific seater pages
+  { pageId: 'static:12-seater-tempo-traveller', url: '/12-seater-tempo-traveller', label: '12 Seater Tempo Traveller' },
+  { pageId: 'static:17-seater-tempo-traveller', url: '/17-seater-tempo-traveller', label: '17 Seater Tempo Traveller' },
+  { pageId: 'static:20-seater-tempo-traveller', url: '/20-seater-tempo-traveller', label: '20 Seater Tempo Traveller' },
+  { pageId: 'static:26-seater-bus', url: '/26-seater-bus', label: '26 Seater Bus' },
+  // Bike model pages
+  { pageId: 'static:activa-on-rent', url: '/activa-on-rent', label: 'Activa on Rent' },
+  { pageId: 'static:apache-on-rent', url: '/apache-on-rent', label: 'Apache on Rent' },
+  { pageId: 'static:himalayan-on-rent', url: '/himalayan-on-rent', label: 'Royal Enfield Himalayan on Rent' },
+  { pageId: 'static:ktm-on-rent', url: '/ktm-on-rent', label: 'KTM on Rent' },
+  { pageId: 'static:pulsar-on-rent', url: '/pulsar-on-rent', label: 'Pulsar on Rent' },
+  { pageId: 'static:royal-enfield-on-rent', url: '/royal-enfield-on-rent', label: 'Royal Enfield on Rent' },
+  { pageId: 'static:splendor-on-rent', url: '/splendor-on-rent', label: 'Splendor on Rent' },
+  { pageId: 'static:electric-scooter-rental', url: '/electric-scooter-rental', label: 'Electric Scooter Rental' },
+  // Car model pages
+  { pageId: 'static:creta-on-rent', url: '/creta-on-rent', label: 'Creta on Rent' },
+  { pageId: 'static:fortuner-on-rent', url: '/fortuner-on-rent', label: 'Fortuner on Rent' },
+  { pageId: 'static:innova-on-rent', url: '/innova-on-rent', label: 'Innova on Rent' },
+  { pageId: 'static:scorpio-on-rent', url: '/scorpio-on-rent', label: 'Scorpio on Rent' },
+  { pageId: 'static:seltos-on-rent', url: '/seltos-on-rent', label: 'Seltos on Rent' },
+  { pageId: 'static:swift-on-rent', url: '/swift-on-rent', label: 'Swift on Rent' },
+  { pageId: 'static:xuv700-on-rent', url: '/xuv700-on-rent', label: 'XUV700 on Rent' },
+  { pageId: 'static:sports-car-rental', url: '/sports-car-rental', label: 'Sports Car Rental' },
+  { pageId: 'static:vintage-car-rental', url: '/vintage-car-rental', label: 'Vintage Car Rental' },
+  // Self drive category pages
+  { pageId: 'static:self-drive-hatchback-rental', url: '/self-drive-hatchback-rental', label: 'Self Drive Hatchback' },
+  { pageId: 'static:self-drive-sedan-rental', url: '/self-drive-sedan-rental', label: 'Self Drive Sedan' },
+  { pageId: 'static:self-drive-suv-rental', url: '/self-drive-suv-rental', label: 'Self Drive SUV' },
+  { pageId: 'static:one-way-car-rental', url: '/one-way-car-rental', label: 'One Way Car Rental' },
+  { pageId: 'static:outstation-car-rental', url: '/outstation-car-rental', label: 'Outstation Car Rental' },
+  // Equipment & heavy vehicle pages
+  { pageId: 'static:crane-on-rent', url: '/crane-on-rent', label: 'Crane on Rent' },
+  { pageId: 'static:excavator-on-rent', url: '/excavator-on-rent', label: 'Excavator on Rent' },
+  { pageId: 'static:generator-on-rent', url: '/generator-on-rent', label: 'Generator on Rent' },
+  { pageId: 'static:hydra-on-rent', url: '/hydra-on-rent', label: 'Hydra Crane on Rent' },
+  { pageId: 'static:jcb-on-rent', url: '/jcb-on-rent', label: 'JCB on Rent' },
+  { pageId: 'static:mini-truck-rental', url: '/mini-truck-rental', label: 'Mini Truck Rental' },
 ];
 
 /** Template meta for static (non-dynamic) pages */
@@ -495,6 +532,171 @@ export const STATIC_PAGE_META: Record<string, { templateTitle: string; templateD
     templateTitle: 'Ladakh Bike Trip | Self Drive Motorcycle Adventure | TransRentals',
     templateDescription: 'Plan your Ladakh bike trip with TransRentals. Rent Royal Enfield or KTM. Manali-Leh & Srinagar-Leh routes. Book now!',
     templateKeywords: 'ladakh bike trip, leh ladakh self drive, motorcycle trip ladakh',
+  },
+  // Specific seater pages
+  'static:12-seater-tempo-traveller': {
+    templateTitle: '12 Seater Tempo Traveller Rental India | @₹18/Km | TransRentals',
+    templateDescription: 'Rent 12 seater tempo traveller across India. AC & non-AC available. Ideal for family trips, group tours & pilgrimages. Best rates. Book now!',
+    templateKeywords: '12 seater tempo traveller, 12 seater minibus rental, 12 seater van rental india',
+  },
+  'static:17-seater-tempo-traveller': {
+    templateTitle: '17 Seater Tempo Traveller Rental India | @₹18/Km | TransRentals',
+    templateDescription: 'Rent 17 seater tempo traveller across India. AC luxury traveller for group tours & corporate travel. Best rates. Book now!',
+    templateKeywords: '17 seater tempo traveller, 17 seater bus rental india, group travel india',
+  },
+  'static:20-seater-tempo-traveller': {
+    templateTitle: '20 Seater Tempo Traveller Rental India | @₹20/Km | TransRentals',
+    templateDescription: 'Rent 20 seater tempo traveller across India. Push back seats, AC, music system. Perfect for weddings & tours. Book now!',
+    templateKeywords: '20 seater tempo traveller, 20 seater bus rental india, 20 seater minibus',
+  },
+  'static:26-seater-bus': {
+    templateTitle: '26 Seater Bus Rental India | Mini Bus Hire | TransRentals',
+    templateDescription: 'Rent 26 seater bus across India. School trips, corporate events, pilgrimages. AC & non-AC options. Book now!',
+    templateKeywords: '26 seater bus rental india, mini bus hire india, 26 seater minibus',
+  },
+  // Bike model pages
+  'static:activa-on-rent': {
+    templateTitle: 'Activa on Rent India | Honda Activa Rental @₹299/Day | TransRentals',
+    templateDescription: 'Rent Honda Activa across India. Scooty rental for daily commute & city rides. Doorstep delivery. Best prices. Book now!',
+    templateKeywords: 'activa on rent india, honda activa rental, scooty on rent india, activa hire',
+  },
+  'static:apache-on-rent': {
+    templateTitle: 'Apache on Rent India | TVS Apache Rental @₹599/Day | TransRentals',
+    templateDescription: 'Rent TVS Apache across India. RTR 160, RTR 200, RR310 available. Doorstep delivery. Best prices. Book now!',
+    templateKeywords: 'apache on rent india, TVS apache rental, apache hire india',
+  },
+  'static:himalayan-on-rent': {
+    templateTitle: 'Royal Enfield Himalayan on Rent India | @₹999/Day | TransRentals',
+    templateDescription: 'Rent Royal Enfield Himalayan across India. Perfect for Leh, Spiti, Ladakh adventure trips. Doorstep delivery. Book now!',
+    templateKeywords: 'himalayan on rent india, RE himalayan rental, adventure bike rental india',
+  },
+  'static:ktm-on-rent': {
+    templateTitle: 'KTM on Rent India | KTM Duke Rental @₹999/Day | TransRentals',
+    templateDescription: 'Rent KTM bikes across India. Duke 200, Duke 390, Adventure available. For thrill riders & adventurers. Book now!',
+    templateKeywords: 'KTM on rent india, KTM duke rental, KTM hire india, KTM adventure rental',
+  },
+  'static:pulsar-on-rent': {
+    templateTitle: 'Pulsar on Rent India | Bajaj Pulsar Rental @₹499/Day | TransRentals',
+    templateDescription: 'Rent Bajaj Pulsar across India. 150cc, 180cc, 220cc, NS200 available. Doorstep delivery. Best prices. Book now!',
+    templateKeywords: 'pulsar on rent india, bajaj pulsar rental, pulsar hire india',
+  },
+  'static:royal-enfield-on-rent': {
+    templateTitle: 'Royal Enfield on Rent India | Bullet Rental @₹799/Day | TransRentals',
+    templateDescription: 'Rent Royal Enfield Bullet across India. Classic 350, Meteor, Himalayan available. Doorstep delivery. Best prices. Book now!',
+    templateKeywords: 'royal enfield on rent india, bullet rental india, royal enfield hire, RE rental',
+  },
+  'static:splendor-on-rent': {
+    templateTitle: 'Splendor on Rent India | Hero Splendor Rental @₹299/Day | TransRentals',
+    templateDescription: 'Rent Hero Splendor across India. Best mileage bike for daily commute. Doorstep delivery. Book now!',
+    templateKeywords: 'splendor on rent india, hero splendor rental, splendor hire india',
+  },
+  'static:electric-scooter-rental': {
+    templateTitle: 'Electric Scooter Rental India | @₹199/Day | TransRentals',
+    templateDescription: 'Rent electric scooters across India. Eco-friendly, cost-effective. Ather, Ola Electric, TVS iQube available. Book now!',
+    templateKeywords: 'electric scooter rental india, EV scooter on rent, e-scooter rental india',
+  },
+  // Car model pages
+  'static:creta-on-rent': {
+    templateTitle: 'Creta on Rent India | Hyundai Creta Rental @₹1499/Day | TransRentals',
+    templateDescription: 'Rent Hyundai Creta across India. Self-drive SUV rental. Premium comfort, great mileage. Best prices. Book now!',
+    templateKeywords: 'creta on rent india, hyundai creta rental, creta hire india, self drive creta',
+  },
+  'static:fortuner-on-rent': {
+    templateTitle: 'Fortuner on Rent India | Toyota Fortuner Rental | TransRentals',
+    templateDescription: 'Rent Toyota Fortuner across India. Luxury SUV rental for trips & events. With or without driver. Book now!',
+    templateKeywords: 'fortuner on rent india, toyota fortuner rental, fortuner hire india',
+  },
+  'static:innova-on-rent': {
+    templateTitle: 'Innova on Rent India | Toyota Innova Crysta Rental | TransRentals',
+    templateDescription: 'Rent Toyota Innova Crysta across India. Self-drive & chauffeur options. 7+1 seater. For family trips & weddings. Book now!',
+    templateKeywords: 'innova on rent india, innova crysta rental, innova hire india, toyota innova',
+  },
+  'static:scorpio-on-rent': {
+    templateTitle: 'Scorpio on Rent India | Mahindra Scorpio Rental | TransRentals',
+    templateDescription: 'Rent Mahindra Scorpio across India. Self-drive & chauffeur options. Great for off-road & family trips. Book now!',
+    templateKeywords: 'scorpio on rent india, mahindra scorpio rental, scorpio hire india',
+  },
+  'static:seltos-on-rent': {
+    templateTitle: 'Seltos on Rent India | Kia Seltos Rental | TransRentals',
+    templateDescription: 'Rent Kia Seltos across India. Self-drive SUV rental. Premium features, great mileage. Best prices. Book now!',
+    templateKeywords: 'seltos on rent india, kia seltos rental, seltos hire india',
+  },
+  'static:swift-on-rent': {
+    templateTitle: 'Swift on Rent India | Maruti Swift Rental @₹799/Day | TransRentals',
+    templateDescription: 'Rent Maruti Swift across India. Self-drive hatchback rental. Best fuel efficiency, best prices. Book now!',
+    templateKeywords: 'swift on rent india, maruti swift rental, swift hire india, swift self drive',
+  },
+  'static:xuv700-on-rent': {
+    templateTitle: 'XUV700 on Rent India | Mahindra XUV700 Rental | TransRentals',
+    templateDescription: 'Rent Mahindra XUV700 across India. Premium SUV with ADAS features. Self-drive & chauffeur options. Book now!',
+    templateKeywords: 'XUV700 on rent india, mahindra XUV700 rental, XUV700 hire india',
+  },
+  'static:sports-car-rental': {
+    templateTitle: 'Sports Car Rental India | Ferrari, Lamborghini | TransRentals',
+    templateDescription: 'Rent sports cars across India. Ferrari, Lamborghini, Porsche, BMW M-series. For shoots, events & experiences. Book now!',
+    templateKeywords: 'sports car rental india, ferrari rental india, lamborghini rental, supercar rental india',
+  },
+  'static:vintage-car-rental': {
+    templateTitle: 'Vintage Car Rental India | Classic Cars for Weddings | TransRentals',
+    templateDescription: 'Rent vintage and classic cars across India for weddings, shoots & events. Ambassador, Jeep & more. Book now!',
+    templateKeywords: 'vintage car rental india, classic car rental india, antique car hire, old car rental',
+  },
+  // Self drive category pages
+  'static:self-drive-hatchback-rental': {
+    templateTitle: 'Self Drive Hatchback Rental India | @₹799/Day | TransRentals',
+    templateDescription: 'Rent hatchback cars across India without driver. Swift, i20, WagonR, Alto available. Best rates. Book now!',
+    templateKeywords: 'hatchback rental india, self drive hatchback india, swift on rent india, i20 rental',
+  },
+  'static:self-drive-sedan-rental': {
+    templateTitle: 'Self Drive Sedan Rental India | @₹999/Day | TransRentals',
+    templateDescription: 'Rent sedan cars across India without driver. Honda City, Hyundai Verna, Maruti Ciaz available. Book now!',
+    templateKeywords: 'sedan rental india, self drive sedan india, honda city rental, sedan on rent india',
+  },
+  'static:self-drive-suv-rental': {
+    templateTitle: 'Self Drive SUV Rental India | @₹1499/Day | TransRentals',
+    templateDescription: 'Rent SUV cars across India without driver. Creta, Seltos, Fortuner, Innova available. Perfect for family trips. Book now!',
+    templateKeywords: 'SUV rental india, self drive SUV india, creta rental india, fortuner rental india',
+  },
+  'static:one-way-car-rental': {
+    templateTitle: 'One Way Car Rental India | No Return Charges | TransRentals',
+    templateDescription: 'Book one way car rental across India. No return fare. Self-drive & chauffeur. Sedan, SUV options. Book now!',
+    templateKeywords: 'one way car rental india, one way self drive, drop car rental india',
+  },
+  'static:outstation-car-rental': {
+    templateTitle: 'Outstation Car Rental India | @₹12/Km | TransRentals',
+    templateDescription: 'Outstation car rental across India. Self-drive & chauffeur options for intercity trips. Starting @₹12/km. Book now!',
+    templateKeywords: 'outstation car rental india, intercity self drive, long distance car rental india',
+  },
+  // Equipment & heavy vehicle pages
+  'static:crane-on-rent': {
+    templateTitle: 'Crane on Rent India | Mobile Crane Hire | TransRentals',
+    templateDescription: 'Rent cranes across India. Mobile cranes, tower cranes, pick & carry cranes. All capacities. With experienced operator. Book now!',
+    templateKeywords: 'crane on rent india, crane rental india, mobile crane hire, crane operator india',
+  },
+  'static:excavator-on-rent': {
+    templateTitle: 'Excavator on Rent India | JCB & Excavator Hire | TransRentals',
+    templateDescription: 'Rent excavators and JCBs across India. PC200, PC300, mini excavators. With experienced operator. Book now!',
+    templateKeywords: 'excavator on rent india, excavator rental india, JCB hire, earth mover india',
+  },
+  'static:generator-on-rent': {
+    templateTitle: 'Generator on Rent India | 5KVA to 500KVA | TransRentals',
+    templateDescription: 'Rent generators across India. Silent DG sets from 5KVA to 500KVA. For events, construction, power backup. Book now!',
+    templateKeywords: 'generator on rent india, generator rental india, DG set rental, power backup india',
+  },
+  'static:hydra-on-rent': {
+    templateTitle: 'Hydra Crane on Rent India | Pick & Carry Crane | TransRentals',
+    templateDescription: 'Rent hydra cranes across India. 12T, 14T pick & carry cranes. With experienced operator. Book now!',
+    templateKeywords: 'hydra crane on rent india, pick and carry crane, hydra rental india',
+  },
+  'static:jcb-on-rent': {
+    templateTitle: 'JCB on Rent India | Backhoe Loader Hire | TransRentals',
+    templateDescription: 'Rent JCB across India. JCB 3DX, 3CX, mini JCB available. With experienced operators. Book now!',
+    templateKeywords: 'JCB on rent india, JCB rental india, backhoe loader hire, JCB hire india',
+  },
+  'static:mini-truck-rental': {
+    templateTitle: 'Mini Truck Rental India | Tata Ace, Bolero Pickup | TransRentals',
+    templateDescription: 'Rent mini trucks across India. Tata Ace, Bolero Pickup, Mahindra Jeeto. For goods transport, local delivery. Book now!',
+    templateKeywords: 'mini truck rental india, tata ace rental, pickup truck india, small truck rental',
   },
 };
 

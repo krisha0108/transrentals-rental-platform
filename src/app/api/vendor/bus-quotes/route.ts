@@ -45,8 +45,34 @@ export async function GET(request: NextRequest) {
     // DATE FILTER PARAMS
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
+    const search = searchParams.get('search')?.trim() || '';
 
-    const whereClause: any = { vendorId: vendorId };
+    // SEARCH FILTER
+    const searchFilter: any = search
+      ? {
+          OR: [
+            { quoteNumber: { contains: search } },
+            { vehicleName: { contains: search } },
+            {
+              bus_quote_requests_bus_quotes_requestIdTobus_quote_requests: {
+                customerName: { contains: search },
+              },
+            },
+            {
+              bus_quote_requests_bus_quotes_requestIdTobus_quote_requests: {
+                requestNumber: { contains: search },
+              },
+            },
+            {
+              bus_quote_requests_bus_quotes_requestIdTobus_quote_requests: {
+                pickupCity: { contains: search },
+              },
+            },
+          ],
+        }
+      : {};
+
+    const whereClause: any = { vendorId: vendorId, ...searchFilter };
     if (status && status !== 'all') {
       const statuses = status.split(",").map((s) => s.trim()).filter(Boolean);
       whereClause.status = statuses.length === 1 ? statuses[0] : { in: statuses };

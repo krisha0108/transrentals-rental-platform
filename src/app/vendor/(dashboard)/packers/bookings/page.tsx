@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Package,
@@ -19,6 +19,8 @@ import {
   Truck,
   Loader2,
   Users,
+  Search,
+  X,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
@@ -81,6 +83,9 @@ export default function VendorPackersBookingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('upcoming');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -96,7 +101,7 @@ export default function VendorPackersBookingsPage() {
   useEffect(() => {
     fetchBookings();
     fetchStats();
-  }, [filter, currentPage, dateFilter]);
+  }, [filter, currentPage, dateFilter, search]);
 
   const fetchBookings = async () => {
     setIsLoading(true);
@@ -115,6 +120,7 @@ export default function VendorPackersBookingsPage() {
       // Date filter params
       if (dateFilter.start) params.set('startDate', dateFilter.start);
       if (dateFilter.end) params.set('endDate', dateFilter.end);
+      if (search) params.set('search', search);
 
       const response = await fetch(`/api/vendor/packers-bookings?${params}`);
       const data = await response.json();
@@ -149,6 +155,15 @@ export default function VendorPackersBookingsPage() {
     }
   };
 
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setSearch(value);
+      setCurrentPage(1);
+    }, 400);
+  };
+
   const getBalanceAmount = (booking: PackersBooking) => {
     return booking.advancePaid ? booking.totalAmount - booking.advanceAmount : booking.totalAmount;
   };
@@ -176,6 +191,26 @@ export default function VendorPackersBookingsPage() {
             <p className="text-gray-600">Manage your confirmed shifting jobs</p>
           </div>
         </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          placeholder="Search by customer name, phone, email, booking number..."
+          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+        {searchInput && (
+          <button
+            onClick={() => handleSearchChange('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {error && (

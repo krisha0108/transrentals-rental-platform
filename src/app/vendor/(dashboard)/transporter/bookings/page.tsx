@@ -1,25 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import {
   Truck,
   CalendarCheck,
   MapPin,
   Calendar,
-
   Eye,
-  Star,
   CheckCircle,
   XCircle,
   AlertCircle,
   Navigation,
   ArrowRight,
-  Weight,
   Clock,
+  Search,
+  X,
 } from 'lucide-react';
 import { TRANSPORTER_CONFIG } from '@/lib/quote-services';
+import Pagination from '@/components/vendor/Pagination';
+import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface TruckBooking {
   id: string;
@@ -48,6 +48,14 @@ interface TruckBooking {
   createdAt: string;
 }
 
+interface Stats {
+  pending: number;
+  confirmed: number;
+  active: number;
+  completed: number;
+  totalEarnings: number;
+}
+
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   PENDING_PAYMENT: { label: 'Pending Payment', color: 'bg-yellow-100 text-yellow-700', icon: AlertCircle },
   PAYMENT_SUBMITTED: { label: 'Payment Submitted', color: 'bg-orange-100 text-orange-700', icon: Clock },
@@ -63,35 +71,80 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
 };
 
 export default function VendorTransporterBookingsPage() {
-  const { data: session, status: sessionStatus } = useSession();
   const [bookings, setBookings] = useState<TruckBooking[]>([]);
+  const [stats, setStats] = useState<Stats>({ pending: 0, confirmed: 0, active: 0, completed: 0, totalEarnings: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('upcoming');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
 
   const config = TRANSPORTER_CONFIG;
 
   useEffect(() => {
-    if (sessionStatus === 'loading') return;
-    if (sessionStatus === 'unauthenticated') return;
-
     fetchBookings();
-  }, [sessionStatus, filter]);
+    fetchStats();
+  }, [filter, currentPage, dateFilter, search]);
 
   const fetchBookings = async () => {
     setIsLoading(true);
     try {
       const type = filter === 'upcoming' ? 'confirmed' : filter === 'active' ? 'active' : filter === 'completed' ? 'completed' : '';
-      const response = await fetch(`/api/vendor/truck-bookings?type=${type}`);
+      const params = new URLSearchParams();
+      if (type) params.set('type', type);
+      params.set('page', currentPage.toString());
+      params.set('limit', '20');
+      if (dateFilter.start) params.set('startDate', dateFilter.start);
+      if (dateFilter.end) params.set('endDate', dateFilter.end);
+      if (search) params.set('search', search);
+
+      const response = await fetch(`/api/vendor/truck-bookings?${params}`);
       const data = await response.json();
 
       if (data.success) {
         setBookings(data.bookings || []);
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotalItems(data.pagination.total);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch bookings:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/vendor/truck-bookings', { method: 'POST' });
+      const data = await res.json();
+      if (data.success && data.stats) {
+        setStats(data.stats);
+      }
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+    }
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setSearch(value);
+      setCurrentPage(1);
+    }, 400);
   };
 
   // Filtering is done server-side now
@@ -123,54 +176,88 @@ export default function VendorTransporterBookingsPage() {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          placeholder="Search by customer name, phone, email, booking number..."
+          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+        />
+        {searchInput && (
+          <button
+            onClick={() => handleSearchChange('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl p-4 border">
           <p className="text-2xl font-bold text-gray-900">
-            {bookings.filter((b) => ['ADVANCE_PAID', 'CONFIRMED', 'VEHICLE_ASSIGNED'].includes(b.status)).length}
+            {stats.pending + stats.confirmed}
           </p>
           <p className="text-sm text-gray-500">Upcoming</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-purple-100">
           <p className="text-2xl font-bold text-purple-600">
-            {bookings.filter((b) => b.status === 'IN_TRANSIT').length}
+            {stats.active}
           </p>
           <p className="text-sm text-gray-500">In Transit</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-green-100">
           <p className="text-2xl font-bold text-green-600">
-            {bookings.filter((b) => b.status === 'COMPLETED').length}
+            {stats.completed}
           </p>
           <p className="text-sm text-gray-500">Completed</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-indigo-100">
           <p className="text-2xl font-bold text-indigo-600">
-            ₹{bookings.reduce((sum, b) => sum + (b.totalAmount - (b.advancePaid ? (b.advanceAmount || 0) : 0)), 0).toLocaleString()}
+            ₹{(stats.totalEarnings || 0).toLocaleString()}
           </p>
-          <p className="text-sm text-gray-500">Pending Balance</p>
+          <p className="text-sm text-gray-500">Total Earnings</p>
         </div>
       </div>
 
       {/* Filter */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {[
-          { value: 'upcoming', label: 'Upcoming' },
-          { value: 'active', label: 'In Transit' },
-          { value: 'completed', label: 'Delivered' },
-          { value: 'all', label: 'All' },
-        ].map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
-              filter === f.value
-                ? 'bg-indigo-100 text-indigo-700'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {[
+            { value: 'upcoming', label: 'Upcoming' },
+            { value: 'active', label: 'In Transit' },
+            { value: 'completed', label: 'Delivered' },
+            { value: 'all', label: 'All' },
+          ].map((f) => (
+            <button
+              key={f.value}
+              onClick={() => {
+                setFilter(f.value);
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
+                filter === f.value
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        <DateFilterDropdown
+          onFilterChange={(start, end) => {
+            setDateFilter({ start, end });
+            setCurrentPage(1);
+          }}
+          initialStartDate={dateFilter.start || undefined}
+          initialEndDate={dateFilter.end || undefined}
+        />
       </div>
 
       {/* Bookings List */}
@@ -312,6 +399,17 @@ export default function VendorTransporterBookingsPage() {
           })
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredBookings.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={20}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
     </div>
   );
 }

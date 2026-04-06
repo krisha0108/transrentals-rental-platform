@@ -418,7 +418,19 @@ const adminItems: NavItem[] = [
 // Website Controls (Global site management)
 const websiteItems: NavItem[] = [
   { name: 'Homepage', href: '/admin/website/homepage', icon: LayoutDashboard },
-  { name: 'Static Pages', href: '/admin/website/static-pages', icon: FileText },
+  {
+    name: 'Static Pages',
+    href: '/admin/website/static-pages',
+    icon: FileText,
+    children: [
+      { name: 'All Pages', href: '/admin/website/static-pages', icon: FileText },
+      { name: 'Seater & Bus Pages', href: '/admin/website/static-pages?q=seater', icon: Bus },
+      { name: 'Bike Pages', href: '/admin/website/static-pages?q=bike', icon: Bike },
+      { name: 'Car Pages', href: '/admin/website/static-pages?q=car', icon: Car },
+      { name: 'Vehicle Models', href: '/admin/website/static-pages?q=on+rent', icon: Wrench },
+      { name: 'Equipment', href: '/admin/website/static-pages?q=equipment', icon: Wrench },
+    ],
+  },
   { name: 'General Blog', href: '/admin/blog', icon: FileEdit },
   { name: 'Web Stories', href: '/admin/web-stories', icon: Film },
   { name: 'Media Library', href: '/admin/media', icon: Image },
