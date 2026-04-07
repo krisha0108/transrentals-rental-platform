@@ -18,12 +18,12 @@ const FAQ_ITEMS = [
   {
     question: 'How do I cancel or modify a booking?',
     answer:
-      'Modify or cancel up to 48 hours before pickup via your dashboard or SmartShivi. We email the updated charges, and any penalties follow the published cancellation policy.',
+      'Modify or cancel up to 48 hours before pickup via your dashboard or by calling 9737965551. We email the updated charges, and any penalties follow the published cancellation policy.',
   },
   {
     question: 'What if the vehicle or vendor is unavailable?',
     answer:
-      'We either assign another verified vendor in the same city or refund you per the refund policy. Contact SmartShivi immediately and we will re-route the replacement.',
+      'We either assign another verified vendor in the same city or refund you per the refund policy. Contact us at 9737965551 immediately and we will re-route the replacement.',
   },
   {
     question: 'How do payments and refunds work?',
@@ -33,7 +33,7 @@ const FAQ_ITEMS = [
   {
     question: 'How can I reach support while on the move?',
     answer:
-      'Use SmartShivi or the helpline in the footer. Premium services add a dedicated booking manager, and every support channel spans our 150+ city network.',
+      'Call or WhatsApp us at 9737965551 for immediate help. Premium services add a dedicated booking manager, and every support channel spans our 150+ city network.',
   },
 ];
 
@@ -134,7 +134,7 @@ export function FAQPage() {
                 </div>
                 <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
                   <p className="font-semibold text-slate-900">Support</p>
-                  <p>SmartShivi and helpline stay live across India.</p>
+                  <p>Call / WhatsApp <strong>9737965551</strong> — helpline live across India.</p>
                 </div>
               </div>
             </div>

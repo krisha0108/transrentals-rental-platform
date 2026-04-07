@@ -31,6 +31,46 @@ export const SERVICE_META_TEMPLATES: Record<string, ServiceMetaTemplate> = {
     description: (city) => `Rent bikes in ${city} with TransRentals. Choose from Royal Enfield, KTM, Activa, Honda & more. Best prices guaranteed. Doorstep delivery available. Book your bike rental in ${city} now!`,
     keywords: (city) => [`bike on rent in ${city}`, `bike rental ${city}`, `two wheeler rental ${city}`, `motorcycle on rent ${city}`, `scooty on rent ${city}`],
   },
+  'bike-rental': {
+    title: (city) => `Bike Rental in ${city} | Starting @₹299/Day | TransRentals`,
+    description: (city) => `Rent bikes in ${city} with TransRentals. Royal Enfield, KTM, Activa & more. Best prices guaranteed. Book now!`,
+    keywords: (city) => [`bike rental in ${city}`, `bike on rent ${city}`, `two wheeler rental ${city}`, `motorcycle rental ${city}`, `scooty on rent ${city}`],
+  },
+  'royal-enfield-on-rent': {
+    title: (city) => `Royal Enfield on Rent in ${city} | Bullet Rental @₹899/Day | TransRentals`,
+    description: (city) => `Rent Royal Enfield bikes in ${city}. Classic 350, Himalayan, Meteor 350, Hunter available. Perfect for road trips & touring. Book now!`,
+    keywords: (city) => [`royal enfield on rent in ${city}`, `bullet rental ${city}`, `${city} royal enfield rental`, `rent bullet in ${city}`, `classic 350 on rent ${city}`],
+  },
+  'himalayan-on-rent': {
+    title: (city) => `Royal Enfield Himalayan on Rent in ${city} | @₹1099/Day | TransRentals`,
+    description: (city) => `Rent Royal Enfield Himalayan in ${city}. Best adventure bike for mountain trips, Ladakh, Spiti. Book now!`,
+    keywords: (city) => [`himalayan on rent ${city}`, `royal enfield himalayan rental ${city}`, `adventure bike rental ${city}`, `himalayan bike ${city}`],
+  },
+  'ktm-on-rent': {
+    title: (city) => `KTM on Rent in ${city} | Duke & Adventure @₹799/Day | TransRentals`,
+    description: (city) => `Rent KTM bikes in ${city}. Duke 200, Duke 390, Adventure 390 available. Book now!`,
+    keywords: (city) => [`ktm on rent in ${city}`, `ktm duke rental ${city}`, `ktm rental ${city}`, `duke 390 on rent ${city}`],
+  },
+  'activa-on-rent': {
+    title: (city) => `Honda Activa on Rent in ${city} | Scooter @₹299/Day | TransRentals`,
+    description: (city) => `Rent Honda Activa in ${city}. Easy riding, fuel efficient scooter. Best for city commute. Book now!`,
+    keywords: (city) => [`activa on rent in ${city}`, `honda activa rental ${city}`, `scooter on rent ${city}`, `scooty on rent ${city}`],
+  },
+  'pulsar-on-rent': {
+    title: (city) => `Bajaj Pulsar on Rent in ${city} | @₹499/Day | TransRentals`,
+    description: (city) => `Rent Bajaj Pulsar in ${city}. Pulsar 150, 200NS, N250 available. Book now!`,
+    keywords: (city) => [`pulsar on rent in ${city}`, `bajaj pulsar rental ${city}`, `pulsar bike rental ${city}`],
+  },
+  'apache-on-rent': {
+    title: (city) => `TVS Apache on Rent in ${city} | @₹499/Day | TransRentals`,
+    description: (city) => `Rent TVS Apache in ${city}. Apache RTR 160, RTR 200 available. Book now!`,
+    keywords: (city) => [`apache on rent in ${city}`, `tvs apache rental ${city}`, `apache rtr rental ${city}`],
+  },
+  'monthly-bike-rental': {
+    title: (city) => `Monthly Bike Rental in ${city} | Long Term @₹3999/Month | TransRentals`,
+    description: (city) => `Rent bikes on monthly basis in ${city}. Best rates for students, working professionals. All bikes available. Book now!`,
+    keywords: (city) => [`monthly bike rental ${city}`, `long term bike rental ${city}`, `bike on monthly rent ${city}`, `monthly two wheeler rental ${city}`],
+  },
   'self-drive-car-rentals': {
     title: (city) => `Self Drive Car Rental in ${city} | @₹999/Day | TransRentals`,
     description: (city) => `Book self drive cars in ${city}. No driver needed. Economy, sedan, SUV options. 24/7 roadside assistance. Book online now!`,
