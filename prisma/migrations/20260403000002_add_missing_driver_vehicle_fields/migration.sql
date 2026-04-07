@@ -28,6 +28,4 @@ ALTER TABLE `driver_vehicles`
   ADD COLUMN `nextServiceDate`   DATETIME(3) NULL,
   ADD COLUMN `currentOdometer`   INTEGER NULL;
 
--- Add indexes (plain CREATE INDEX — IF NOT EXISTS not supported in MySQL)
-CREATE INDEX `driver_vehicles_driverId_idx` ON `driver_vehicles`(`driverId`);
-CREATE INDEX `driver_vehicles_staffId_idx` ON `driver_vehicles`(`staffId`);
+-- Indexes already exist from initial table creation, skipped
