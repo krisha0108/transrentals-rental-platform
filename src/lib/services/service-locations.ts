@@ -4,6 +4,7 @@
  */
 
 import { prisma } from '@/lib/db/prisma';
+import { getParentServiceSlug } from '@/lib/constants/service-mapping';
 
 /**
  * Get locations for a specific service from database
@@ -17,9 +18,12 @@ export async function getServiceLocations(serviceSlug: string) {
       return [];
     }
 
+    // Sub-services (e.g. royal-enfield-on-rent) are stored under their parent slug (e.g. bike-rental)
+    const dbSlug = getParentServiceSlug(serviceSlug);
+
     // Fetch enabled locations from database
     const service = await prisma.services.findUnique({
-      where: { slug: serviceSlug },
+      where: { slug: dbSlug },
       include: {
         service_locations: {
           where: { isActive: true },

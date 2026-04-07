@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { STATIC_PAGES } from '@/lib/seo/service-meta-templates';
+import { SERVICE_PARENT_MAP } from '@/lib/constants/service-mapping';
 
 export const dynamic = 'force-dynamic';
+
+// Build a map: parentSlug → number of public sub-service slugs
+// Exclude nested paths like 'bike-trips/ladakh'
+const SUB_SERVICE_COUNT: Record<string, number> = {};
+for (const [childSlug, parentSlug] of Object.entries(SERVICE_PARENT_MAP)) {
+  if (!childSlug.includes('/')) {
+    SUB_SERVICE_COUNT[parentSlug] = (SUB_SERVICE_COUNT[parentSlug] || 0) + 1;
+  }
+}
 
 export async function GET() {
   try {
@@ -24,7 +34,7 @@ export async function GET() {
       orderBy: { displayOrder: 'asc' },
     });
 
-    // Route pairs for car-rental (non-airport) → 2 pages each (one-way + round-trip)
+    // Route pairs (non-airport) → 2 pages each (one-way + round-trip)
     const nonAirportRoutes = await prisma.chauffeur_route_packages.findMany({
       where: {
         isActive: true,
@@ -51,12 +61,16 @@ export async function GET() {
     });
 
     const routePageCount = nonAirportRoutes.length * 2; // one-way + round-trip per pair
-    const airportPageCount = airportRoutes.length;
+    const airportPageCount = airportRoutes.length * 2; // both directions
 
     const serviceStats = services.map((s) => {
-      const locationCount = s._count.service_locations;
-      const routeCount = s.slug === 'car-rental' ? routePageCount : 0;
-      const airportCount = s.slug === 'car-rental' ? airportPageCount : 0;
+      const rawLocationCount = s._count.service_locations;
+      // Multiply by number of public sub-service slugs that share this parent's locations
+      const subCount = SUB_SERVICE_COUNT[s.slug] || 1;
+      const locationCount = rawLocationCount * subCount;
+      // Route pages belong to car-rental-with-driver (its sub-services include one-way-cab, round-trip, airport-transfer)
+      const routeCount = s.slug === 'car-rental-with-driver' ? routePageCount : 0;
+      const airportCount = s.slug === 'car-rental-with-driver' ? airportPageCount : 0;
       return {
         id: s.id,
         name: s.name,

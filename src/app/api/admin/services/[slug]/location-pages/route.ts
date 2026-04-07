@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getTemplateMeta, STATIC_PAGES, STATIC_PAGE_META } from '@/lib/seo/service-meta-templates';
+import { getParentServiceSlug } from '@/lib/constants/service-mapping';
 
 /** Default page heading & description templates per service (visible on customer page) */
 const PAGE_CONTENT_TEMPLATES: Record<string, { heading: (city: string) => string; description: (city: string) => string }> = {
@@ -15,6 +16,38 @@ const PAGE_CONTENT_TEMPLATES: Record<string, { heading: (city: string) => string
   'bike-on-rent': {
     heading: (city) => `Bike on Rent in ${city}`,
     description: (city) => `Rent bikes and scooters in ${city}. Royal Enfield, KTM, Honda Activa and more starting ₹299/day.`,
+  },
+  'bike-rental': {
+    heading: (city) => `Bike Rental in ${city}`,
+    description: (city) => `Rent bikes and scooters in ${city}. Royal Enfield, KTM, Honda Activa and more starting ₹299/day.`,
+  },
+  'royal-enfield-on-rent': {
+    heading: (city) => `Royal Enfield on Rent in ${city}`,
+    description: (city) => `Rent Royal Enfield bikes in ${city}. Classic 350, Himalayan, Meteor, Hunter available. Perfect for road trips. Starting ₹899/day.`,
+  },
+  'himalayan-on-rent': {
+    heading: (city) => `Royal Enfield Himalayan on Rent in ${city}`,
+    description: (city) => `Rent Royal Enfield Himalayan in ${city}. Best for adventure and mountain trips. Starting ₹1099/day.`,
+  },
+  'ktm-on-rent': {
+    heading: (city) => `KTM on Rent in ${city}`,
+    description: (city) => `Rent KTM Duke, Adventure bikes in ${city}. Starting ₹799/day.`,
+  },
+  'activa-on-rent': {
+    heading: (city) => `Honda Activa on Rent in ${city}`,
+    description: (city) => `Rent Honda Activa scooter in ${city}. Easy riding, fuel efficient. Starting ₹299/day.`,
+  },
+  'pulsar-on-rent': {
+    heading: (city) => `Bajaj Pulsar on Rent in ${city}`,
+    description: (city) => `Rent Bajaj Pulsar in ${city}. 150cc to 250cc options available. Starting ₹499/day.`,
+  },
+  'apache-on-rent': {
+    heading: (city) => `TVS Apache on Rent in ${city}`,
+    description: (city) => `Rent TVS Apache in ${city}. RTR 160, RTR 200 available. Starting ₹499/day.`,
+  },
+  'monthly-bike-rental': {
+    heading: (city) => `Monthly Bike Rental in ${city}`,
+    description: (city) => `Rent bikes on monthly basis in ${city}. Best rates for long-term rentals. Starting ₹3999/month.`,
   },
   'bus-rental': {
     heading: (city) => `Bus Rental in ${city}`,
@@ -178,8 +211,10 @@ export async function GET(
     }
 
     // ── Location pages (default) ──────────────────────────────────────────────
+    // Sub-services (e.g. royal-enfield-on-rent) map to a parent service in DB (e.g. bike-rental)
+    const dbSlug = getParentServiceSlug(slug);
     const service = await prisma.services.findFirst({
-      where: { slug },
+      where: { slug: dbSlug },
       select: { id: true, name: true },
     });
     if (!service) {

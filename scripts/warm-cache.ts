@@ -19,6 +19,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { STATIC_PAGES } from '../src/lib/seo/service-meta-templates';
+import { SERVICE_PARENT_MAP } from '../src/lib/constants/service-mapping';
 
 const prisma = new PrismaClient();
 
@@ -100,7 +101,24 @@ function getServiceMainUrls(): string[] {
   return ALL_SERVICE_SLUGS.map((slug) => `${BASE_URL}/${slug}`);
 }
 
-/** Service + location pages — only actually configured ones from DB */
+// Build reverse map: parentSlug → all child slugs (including itself if it appears in ALL_SERVICE_SLUGS)
+const CHILD_SLUGS_BY_PARENT: Record<string, string[]> = {};
+for (const [childSlug, parentSlug] of Object.entries(SERVICE_PARENT_MAP)) {
+  // Only include child slugs that are real public-facing pages (in ALL_SERVICE_SLUGS)
+  if (!ALL_SERVICE_SLUGS.includes(childSlug)) continue;
+  if (!CHILD_SLUGS_BY_PARENT[parentSlug]) CHILD_SLUGS_BY_PARENT[parentSlug] = [];
+  CHILD_SLUGS_BY_PARENT[parentSlug].push(childSlug);
+}
+// Also include parent slug itself if it's a public page
+for (const slug of ALL_SERVICE_SLUGS) {
+  if (!SERVICE_PARENT_MAP[slug]) {
+    // slug is its own parent (not in map) — include as-is
+    if (!CHILD_SLUGS_BY_PARENT[slug]) CHILD_SLUGS_BY_PARENT[slug] = [];
+    if (!CHILD_SLUGS_BY_PARENT[slug].includes(slug)) CHILD_SLUGS_BY_PARENT[slug].push(slug);
+  }
+}
+
+/** Service + location pages — expands sub-services using parent's locations */
 async function getServiceLocationUrls(): Promise<string[]> {
   try {
     const rows = await (prisma as any).service_locations.findMany({
@@ -110,7 +128,23 @@ async function getServiceLocationUrls(): Promise<string[]> {
         locations: { select: { slug: true } },
       },
     });
-    return rows.map((r: any) => `${BASE_URL}/${r.services.slug}/${r.locations.slug}`);
+
+    const urls: string[] = [];
+    for (const r of rows) {
+      const parentSlug = r.services.slug as string;
+      const locationSlug = r.locations.slug as string;
+      const childSlugs = CHILD_SLUGS_BY_PARENT[parentSlug];
+      if (childSlugs && childSlugs.length > 0) {
+        // Generate one URL per sub-service for this location
+        for (const slug of childSlugs) {
+          urls.push(`${BASE_URL}/${slug}/${locationSlug}`);
+        }
+      } else {
+        // Parent not in our map — use parent slug directly
+        urls.push(`${BASE_URL}/${parentSlug}/${locationSlug}`);
+      }
+    }
+    return urls;
   } catch (err) {
     console.warn('⚠️  Could not fetch service_locations:', (err as Error).message);
     return [];
@@ -189,7 +223,7 @@ async function getBlogUrls(): Promise<string[]> {
 async function getStoryUrls(): Promise<string[]> {
   try {
     const stories = await (prisma as any).web_stories.findMany({
-      where: { status: 'PUBLISHED' },
+      where: { isPublished: true, isArchived: false },
       select: { slug: true },
     });
     return stories.map((s: any) => `${BASE_URL}/stories/${s.slug}`);
