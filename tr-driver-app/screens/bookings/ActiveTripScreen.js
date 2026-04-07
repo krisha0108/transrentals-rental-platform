@@ -203,7 +203,7 @@ export default function ActiveTripScreen({ route, navigation }) {
     try {
       const res = await completeTrip(booking.id, {}, 'truck');
       if (res.data.success) {
-        navigation.navigate('BookingDetail', { booking: { ...booking, status: 'COMPLETED' } });
+        navigation.reset({ index: 1, routes: [{ name: 'Main' }, { name: 'BookingDetail', params: { booking: { ...booking, status: 'COMPLETED' } } }] });
       }
     } catch (err) {
       Alert.alert('Error', err.response?.data?.error || 'Failed to complete delivery');
@@ -279,7 +279,7 @@ export default function ActiveTripScreen({ route, navigation }) {
     try {
       const res = await completeTrip(booking.id, {}, 'packers');
       if (res.data.success) {
-        navigation.navigate('BookingDetail', { booking: { ...booking, status: 'COMPLETED' } });
+        navigation.reset({ index: 1, routes: [{ name: 'Main' }, { name: 'BookingDetail', params: { booking: { ...booking, status: 'COMPLETED' } } }] });
       }
     } catch (err) {
       Alert.alert('Error', err.response?.data?.error || 'Failed to complete job');
@@ -343,7 +343,7 @@ export default function ActiveTripScreen({ route, navigation }) {
     try {
       const res = await completeTrip(booking.id, {}, 'equipment');
       if (res.data.success) {
-        navigation.navigate('BookingDetail', { booking: { ...booking, status: 'COMPLETED' } });
+        navigation.reset({ index: 1, routes: [{ name: 'Main' }, { name: 'BookingDetail', params: { booking: { ...booking, status: 'COMPLETED' } } }] });
       }
     } catch (err) {
       Alert.alert('Error', err.response?.data?.error || 'Failed to complete rental');
@@ -356,7 +356,7 @@ export default function ActiveTripScreen({ route, navigation }) {
     try {
       const res = await b2bEndTrip(booking.id);
       if (res.data.success) {
-        navigation.navigate('BookingDetail', { booking: { ...booking, status: 'COMPLETED' } });
+        navigation.reset({ index: 1, routes: [{ name: 'Main' }, { name: 'BookingDetail', params: { booking: { ...booking, status: 'COMPLETED' } } }] });
       }
     } catch (err) {
       Alert.alert('Error', err.response?.data?.error || 'Failed to end trip');
@@ -373,7 +373,7 @@ export default function ActiveTripScreen({ route, navigation }) {
         parkingCharges: parking  || null,
       }, booking.source || 'chauffeur');
       if (res.data.success) {
-        navigation.navigate('BookingDetail', { booking: { ...booking, status: 'COMPLETED' } });
+        navigation.reset({ index: 1, routes: [{ name: 'Main' }, { name: 'BookingDetail', params: { booking: { ...booking, status: 'COMPLETED' } } }] });
       }
     } catch (err) {
       Alert.alert('Error', err.response?.data?.error || 'Failed to complete trip');

@@ -592,7 +592,7 @@ export default function BookingDetailScreen({ route, navigation }) {
             <Text style={styles.actionBtnText}>Manage Packers Job</Text>
           </TouchableOpacity>
         </View>
-      ) : ['DRIVER_ASSIGNED','VEHICLE_ASSIGNED','vehicle_assigned'].includes(booking.status) && ['chauffeur','bus','luxury','truck'].includes(booking.source) ? (
+      ) : ['DRIVER_ASSIGNED','VEHICLE_ASSIGNED','vehicle_assigned'].includes(booking.status) ? (
         <View style={styles.footer}>
           <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#EA580C' }]}
             onPress={() => navigation.navigate('ActiveTrip', { booking })} activeOpacity={0.85}>

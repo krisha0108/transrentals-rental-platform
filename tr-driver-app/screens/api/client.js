@@ -339,3 +339,8 @@ export async function markDriverBookingNotificationsRead(ids) {
   const c = await getClient();
   return c.post(`${BASE}/booking-notifications`, { action: ids ? 'markRead' : 'markAllRead', ids });
 }
+
+export async function getDriverAppVersion() {
+  const base = await getBaseURL();
+  return axios.get(`${base}/api/driver-app/app-version`);
+}

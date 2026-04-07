@@ -1,17 +1,20 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar, Modal, Linking } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import LinearGradient from 'react-native-linear-gradient';
 import { getMessaging, getToken, onMessage, setBackgroundMessageHandler, onNotificationOpenedApp, getInitialNotification } from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 
 export const navigationRef = createNavigationContainerRef();
 
 import { AuthProvider } from './contexts/AuthContext';
-import { updateDriverFcmToken } from './screens/api/client';
+import { updateDriverFcmToken, getDriverAppVersion } from './screens/api/client';
+
+const APP_VERSION = '1.0.0';
 
 // Auth Screens
 import SplashScreen from './screens/auth/SplashScreen';
@@ -37,6 +40,8 @@ import EarningsScreen from './screens/earnings/EarningsScreen';
 import TripHistoryScreen from './screens/earnings/TripHistoryScreen';
 import ProfileScreen from './screens/profile/ProfileScreen';
 import EditProfileScreen from './screens/profile/EditProfileScreen';
+import AboutScreen from './screens/profile/AboutScreen';
+import SupportScreen from './screens/profile/SupportScreen';
 import NotificationsScreen from './screens/notifications/NotificationsScreen';
 
 const Stack = createNativeStackNavigator();
@@ -238,6 +243,8 @@ function AppNavigator() {
       <Stack.Screen name="TripHistory" component={TripHistoryScreen} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+      <Stack.Screen name="About" component={AboutScreen} />
+      <Stack.Screen name="Support" component={SupportScreen} />
     </Stack.Navigator>
   );
 }
@@ -265,6 +272,37 @@ async function setupNotificationChannel() {
 }
 
 export default function App() {
+  const [updateInfo, setUpdateInfo]         = useState(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  const isVersionLower = (current, latest) => {
+    const c = current.split('.').map(Number);
+    const l = latest.split('.').map(Number);
+    const len = Math.max(c.length, l.length);
+    for (let i = 0; i < len; i++) {
+      const cv = c[i] || 0;
+      const lv = l[i] || 0;
+      if (cv < lv) return true;
+      if (cv > lv) return false;
+    }
+    return false;
+  };
+
+  const checkForUpdate = useCallback(async () => {
+    try {
+      const res = await getDriverAppVersion();
+      if (res.data?.success) {
+        const { latestVersion, forceUpdate, updateMessage, playStoreUrl } = res.data;
+        if (latestVersion && isVersionLower(APP_VERSION, latestVersion)) {
+          setUpdateInfo({ latestVersion, forceUpdate, updateMessage, playStoreUrl });
+          setShowUpdateModal(true);
+        }
+      }
+    } catch { /* non-critical */ }
+  }, []);
+
+  useEffect(() => { checkForUpdate(); }, [checkForUpdate]);
+
   useEffect(() => {
     let unsubForeground = () => {};
     let unsubNotifee = () => {};
@@ -343,6 +381,51 @@ export default function App() {
         <NavigationContainer ref={navigationRef}>
           <AppNavigator />
         </NavigationContainer>
+
+        {/* ── App Update Modal ── */}
+        <Modal
+          visible={showUpdateModal}
+          transparent
+          animationType="slide"
+          statusBarTranslucent
+          onRequestClose={() => { if (!updateInfo?.forceUpdate) setShowUpdateModal(false); }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHandle} />
+              {!updateInfo?.forceUpdate && (
+                <TouchableOpacity style={styles.modalClose} onPress={() => setShowUpdateModal(false)}>
+                  <Ionicons name="close" size={20} color="#64748B" />
+                </TouchableOpacity>
+              )}
+              <View style={styles.modalIconWrap}>
+                <LinearGradient colors={['#043927', '#16A34A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.modalIconGrad}>
+                  <Ionicons name="download-outline" size={28} color="#fff" />
+                </LinearGradient>
+              </View>
+              <Text style={styles.modalTitle}>Update Available</Text>
+              <Text style={styles.modalVersion}>Version {updateInfo?.latestVersion}</Text>
+              <Text style={styles.modalMsg}>
+                {updateInfo?.updateMessage || 'A new version is available with improvements and bug fixes.'}
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => { if (updateInfo?.playStoreUrl) Linking.openURL(updateInfo.playStoreUrl); }}
+              >
+                <LinearGradient colors={['#043927', '#16A34A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.modalBtn}>
+                  <Ionicons name="download-outline" size={18} color="#fff" />
+                  <Text style={styles.modalBtnTxt}>Update Now</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              {!updateInfo?.forceUpdate && (
+                <TouchableOpacity style={styles.modalSkip} onPress={() => setShowUpdateModal(false)}>
+                  <Text style={styles.modalSkipTxt}>Not now</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </Modal>
+
       </AuthProvider>
     </SafeAreaProvider>
   );
@@ -350,4 +433,19 @@ export default function App() {
 
 const styles = StyleSheet.create({
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F6F8FB' },
+
+  // Update modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  modalSheet:   { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, alignItems: 'center' },
+  modalHandle:  { width: 36, height: 4, borderRadius: 2, backgroundColor: '#E2E8F0', marginBottom: 20 },
+  modalClose:   { position: 'absolute', top: 20, right: 20 },
+  modalIconWrap:{ marginBottom: 16 },
+  modalIconGrad:{ width: 64, height: 64, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  modalTitle:   { fontSize: 22, fontWeight: '900', color: '#0F172A', marginBottom: 4 },
+  modalVersion: { fontSize: 13, color: '#64748B', marginBottom: 12 },
+  modalMsg:     { fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 21, marginBottom: 24 },
+  modalBtn:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 15, paddingHorizontal: 36, borderRadius: 14 },
+  modalBtnTxt:  { fontSize: 16, fontWeight: '800', color: '#fff' },
+  modalSkip:    { marginTop: 14 },
+  modalSkipTxt: { fontSize: 13, color: '#94A3B8', fontWeight: '600' },
 });

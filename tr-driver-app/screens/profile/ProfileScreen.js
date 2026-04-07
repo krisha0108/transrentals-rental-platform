@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../contexts/AuthContext';
-import { logoutDriver, getBaseURL } from '../api/client';
+import { logoutDriver, getBaseURL, getDriverAppVersion } from '../api/client';
 import moment from 'moment';
 
 const C = {
@@ -62,7 +62,13 @@ function Section({ title, children }) {
 export default function ProfileScreen({ navigation }) {
   const { driver, signOut } = useAuth();
   const [baseURL, setBaseURL] = useState('');
+  const [appVersion, setAppVersion] = useState('1.0.0');
   useEffect(() => { getBaseURL().then(url => setBaseURL(url)); }, []);
+  useEffect(() => {
+    getDriverAppVersion()
+      .then(res => { if (res.data?.latestVersion) setAppVersion(res.data.latestVersion); })
+      .catch(() => {});
+  }, []);
 
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -264,6 +270,16 @@ export default function ProfileScreen({ navigation }) {
             onPress={() => navigation.navigate('EditProfile')} isLast />
         </Section>
 
+        {/* ── Support ── */}
+        <Section title="Support">
+          <MenuRow icon="headset-outline" iconBg="#EFF6FF" iconColor={C.blue}
+            label="Help & Support" sublabel="FAQs, contact & assistance"
+            onPress={() => navigation.navigate('Support')} />
+          <MenuRow icon="information-circle-outline" iconBg="#F0FDF4" iconColor={C.primary}
+            label="About TransRentals" sublabel="Our mission, services & app info"
+            onPress={() => navigation.navigate('About')} isLast />
+        </Section>
+
         {/* ── Logout ── */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
@@ -274,7 +290,7 @@ export default function ProfileScreen({ navigation }) {
 
         <View style={styles.versionRow}>
           <View style={styles.versionDot} />
-          <Text style={styles.versionText}>TransRentals Driver · v1.0.0</Text>
+          <Text style={styles.versionText}>TransRentals Driver · v{appVersion}</Text>
           <View style={styles.versionDot} />
         </View>
 
