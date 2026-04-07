@@ -246,7 +246,12 @@
       "Bash(grep -n \"slice\\(0, 6\\)\\\\|maxLength={6}\\\\|length !== 6\\\\|length < 6\" \"src/app/driver/\\(dashboard\\)/bookings/[bookingNumber]/page.tsx\")",
       "Bash(grep -n \"slice\\(0, 6\\)\\\\|maxLength={6}\\\\|length !== 6\\\\|6-digit\\\\|isTruck.*4.*6\\\\|isBus.*4.*6\" \"src/app/driver/\\(dashboard\\)/bookings/[bookingNumber]/page.tsx\")",
       "Bash(rm -rf \"C:\\\\Users\\\\Admin\\\\Desktop\\\\tran_stable\\\\src\\\\app\\\\driver\\\\\\(dashboard\\)\\\\bookings\\\\[bookingNumber]\\\\assign-vehicle\")",
-      "Bash(rm -rf \"C:\\\\Users\\\\Admin\\\\Desktop\\\\tran_stable\\\\src\\\\app\\\\api\\\\driver\\\\bookings\\\\[bookingNumber]\\\\assign-vehicle\")"
+      "Bash(rm -rf \"C:\\\\Users\\\\Admin\\\\Desktop\\\\tran_stable\\\\src\\\\app\\\\api\\\\driver\\\\bookings\\\\[bookingNumber]\\\\assign-vehicle\")",
+      "Bash(identify \"C:\\\\Users\\\\Admin\\\\Desktop\\\\tran_stable\\\\tr-driver-app\\\\android\\\\app\\\\src\\\\main\\\\res\\\\mipmap-mdpi\\\\ic_launcher.png\")",
+      "Read(//^model / {model=$2; print \"===MODEL===\" model; next} /^}/ && model {model=\"\"; next} model && /^ /**)",
+      "Read(//tmp/**)",
+      "Bash(?\\\\K[a-zA-Z_]+\" | sort | uniq)",
+      "Bash(']?\\\\K[a-zA-Z0-9_]+\" \\\\:*)"
     ],
     "deny": [],
     "ask": [],
