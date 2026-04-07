@@ -107,13 +107,5 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
 
   if (!story || !story.slides.length) notFound();
 
-  const ampUrl = `${SITE_URL}/stories/${slug}/amp`;
-
-  return (
-    <>
-      {/* Tells Google the AMP version exists → shows in Discover carousel */}
-      <link rel="amphtml" href={ampUrl} />
-      <StoryViewer story={story} />
-    </>
-  );
+  return <StoryViewer story={story} />;
 }
