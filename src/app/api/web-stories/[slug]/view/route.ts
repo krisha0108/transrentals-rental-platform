@@ -4,12 +4,12 @@ import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
-function getClientIp(request: NextRequest): string | null {
+function getClientIp(request: NextRequest): string {
   return (
     request.headers.get('cf-connecting-ip') ||
     request.headers.get('x-real-ip') ||
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    null
+    '0.0.0.0'
   );
 }
 
@@ -32,7 +32,7 @@ export async function POST(
     const userIp = getClientIp(request);
 
     // Dedup: same IP can only add 1 view per story per day
-    if (userIp) {
+    if (userIp && userIp !== '0.0.0.0') {
       const dayStart = new Date();
       dayStart.setHours(0, 0, 0, 0);
 

@@ -49,17 +49,43 @@ function getRecentBookingsDateRange(dateFilter: string): { startDate: Date | nul
   return { startDate, endDate };
 }
 
-// Map service slugs to their booking models
-const SERVICE_BOOKING_MAP: Record<string, string> = {
-  'self-drive-car-rental': 'carBooking',
-  'bike-rental': 'bikeBooking',
-  'car-rental-with-driver': 'chauffeurBooking',
-  'luxury-car-rental': 'luxuryBooking',
-  'bus-rental': 'busBooking',
-  'truck-tempo-rental': 'truckBooking',
-  'packers-movers': 'packersBooking',
-  'equipment-rental': 'equipmentBooking',
-};
+// Normalize specific model/variant slugs to their parent service slug
+function normalizeServiceSlug(slug: string): string {
+  const BIKE_SLUGS = [
+    'himalayan-on-rent', 'royal-enfield-on-rent', 'ktm-on-rent',
+    'pulsar-on-rent', 'activa-on-rent', 'apache-on-rent',
+    'splendor-on-rent', 'electric-scooter-rental',
+  ];
+  const SELF_DRIVE_SLUGS = [
+    'self-drive-hatchback-rental', 'self-drive-sedan-rental', 'self-drive-suv-rental',
+    'creta-on-rent', 'swift-on-rent', 'seltos-on-rent', 'xuv700-on-rent',
+    'scorpio-on-rent', 'monthly-car-rental',
+  ];
+  const CHAUFFEUR_SLUGS = [
+    'innova-on-rent', 'fortuner-on-rent', 'outstation-car-rental',
+    'outstation-cab', 'local-taxi', 'corporate-car-rental', 'hourly-car-rental',
+  ];
+  const LUXURY_SLUGS = ['sports-car-rental', 'vintage-car-rental'];
+  const BUS_SLUGS = [
+    '12-seater-tempo-traveller', '17-seater-tempo-traveller',
+    '20-seater-tempo-traveller', '26-seater-bus',
+    'corporate-bus-rental', 'wedding-bus-rental',
+  ];
+  const EQUIPMENT_SLUGS = [
+    'crane-on-rent', 'excavator-on-rent', 'generator-on-rent',
+    'hydra-on-rent', 'jcb-on-rent',
+  ];
+  const TRUCK_SLUGS = ['mini-truck-rental', 'trailer-on-rent'];
+
+  if (BIKE_SLUGS.includes(slug)) return 'bike-on-rent';
+  if (SELF_DRIVE_SLUGS.includes(slug)) return 'self-drive-car-rentals';
+  if (CHAUFFEUR_SLUGS.includes(slug)) return 'chauffeur-service';
+  if (LUXURY_SLUGS.includes(slug)) return 'luxury-car-rental';
+  if (BUS_SLUGS.includes(slug)) return 'bus-rental';
+  if (EQUIPMENT_SLUGS.includes(slug)) return 'equipment-rental';
+  if (TRUCK_SLUGS.includes(slug)) return 'truck-rental';
+  return slug;
+}
 
 // GET - Get comprehensive stats for a specific service
 export async function GET(
@@ -160,7 +186,7 @@ export async function GET(
 
     // Determine booking type based on service name/slug
     const serviceName = service.name.toLowerCase();
-    const serviceSlug = slug.toLowerCase();
+    const serviceSlug = normalizeServiceSlug(slug.toLowerCase());
 
     // Helper to check if service matches a type
     const isServiceType = (keywords: string[]) =>
