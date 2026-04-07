@@ -92,12 +92,11 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   // Customer 0
   const [customer, setCustomer] = useState(null);
 
-  // Payment details
-  const [bankDetails, setBankDetails] = useState(null);
-
-  // Booking confirmation tracking
-  const [bookingConfirmed, setBookingConfirmed] = useState(false);
-  const [confirmedBookingId, setConfirmedBookingId] = useState(null);
+  // B2B
+  const [isB2BCustomer, setIsB2BCustomer] = useState(false);
+  const [bookingFor, setBookingFor] = useState('personal'); // 'personal' | 'company'
+  const [numberOfVehicles, setNumberOfVehicles] = useState('1');
+  const [numberOfPersons, setNumberOfPersons] = useState('');
 
   // Step management
   const [step, setStep] = useState(1); // 1: Trip details, 2: Select vehicle, 3: Confirm
@@ -115,35 +114,31 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   // Handle Android hardware back button
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (step === 4 && bookingConfirmed) {
-        // After booking confirmation, redirect to booking details
-        navigation.navigate('BookingConfirmation', {
-          booking_id: confirmedBookingId,
-          bookingType: 'chauffeur',
-        });
-        return true;
-      } else if (step > 1) {
-        // Go to previous step
+      if (step > 1) {
         setStep(step - 1);
         return true;
       }
-      // On step 1, allow default back behavior
       return false;
     });
 
     return () => backHandler.remove();
-  }, [step, bookingConfirmed, confirmedBookingId, navigation]);
+  }, [step]);
 
   const loadInitialData = async () => {
     try {
-      const [customerData, locationsRes, categoriesRes, bankDetailsRes] = await Promise.all([
+      const [customerData, locationsRes, categoriesRes] = await Promise.all([
         AsyncStorage.getItem('customer'),
         locationService.getLocations(),
         bookingService.getChauffeurVehicleCategories(),
-        fetch(`${BASE_URL}/api/payment-details?service=car-rental`).then(r => r.json()),
       ]);
 
-      if (customerData) setCustomer(JSON.parse(customerData));
+      if (customerData) {
+        const parsed = JSON.parse(customerData);
+        setCustomer(parsed);
+        if (parsed.isB2B && parsed.b2bStatus === 'APPROVED') {
+          setIsB2BCustomer(true);
+        }
+      }
 
       if (locationsRes.success) {
         const locs = locationsRes.locations || [];
@@ -153,10 +148,6 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
       if (categoriesRes.success) {
         setVehicleCategories(categoriesRes.categories || []);
-      }
-
-      if (bankDetailsRes.success && bankDetailsRes.primaryAccount) {
-        setBankDetails(bankDetailsRes.primaryAccount);
       }
     } catch (error) {
       console.log('Error loading initial data:', error);
@@ -513,6 +504,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
     setSubmitting(true);
     try {
       const vehiclePrice = pricing[selectedVehicle.id];
+      const advanceAmount = Math.round((vehiclePrice?.totalBeforeGst || 0) * 0.2);
 
       const bookingData = {
         customerId: customer.id,
@@ -531,10 +523,11 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         baseFare: vehiclePrice?.totalBeforeGst || 0,
         gstAmount: 0,
         estimatedAmount: vehiclePrice?.totalBeforeGst || 0,
-        advancePaid: Math.round((vehiclePrice?.totalBeforeGst || 0) * 0.2),
-        paymentMethod: 'UPI',
-        transactionId: utr,
-        paymentStatus: 'pending_verification',
+        advancePaid: 0,
+        paymentStatus: 'pending',
+        isB2B: bookingFor === 'company' && isB2BCustomer,
+        numberOfVehicles: bookingFor === 'company' ? numberOfVehicles : undefined,
+        numberOfPersons: bookingFor === 'company' && numberOfPersons ? numberOfPersons : undefined,
       };
 
       if (tripType === 'local') {
@@ -564,22 +557,28 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       const response = await bookingService.createChauffeurBooking(bookingData);
 
       if (response.success || response.booking) {
-        setBookingConfirmed(true);
-        setConfirmedBookingId(response.booking?.bookingNumber || response.booking?.id || 'unknown');
+        const bookingDbId = response.booking?.id;
+        const bookingNumber = response.booking?.bookingNumber || bookingDbId;
 
-        Alert.alert(
-          'Booking Confirmed!',
-          'Your booking has been successfully created.',
-          [
-            {
-              text: 'View Booking',
-              onPress: () => navigation.navigate('BookingConfirmation', {
-                booking_id: response.booking?.bookingNumber || response.booking?.id || 'unknown',
-                bookingType: 'chauffeur',
-              }),
-            },
-          ]
-        );
+        // Reset B2B fields
+        setBookingFor('personal');
+        setNumberOfVehicles('1');
+        setNumberOfPersons('');
+
+        if (bookingFor === 'company' && isB2BCustomer) {
+          // B2B company booking → post-paid, skip payment, go directly to confirmation
+          navigation.navigate('BookingConfirmation', {
+            booking_id: bookingNumber,
+            bookingType: 'chauffeur',
+          });
+        } else {
+          navigation.navigate('PaymentScreen', {
+            bookingId: bookingDbId,
+            bookingType: 'chauffeur',
+            amount: advanceAmount,
+            bookingNumber,
+          });
+        }
       } else {
         Alert.alert('Error', response.message || 'Failed to create booking');
       }
@@ -1211,133 +1210,86 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         </View>
       </View>
 
+      {/* B2B: Personal vs Company — only for approved B2B customers */}
+      {isB2BCustomer && (
+        <View style={styles.b2bSection}>
+          <Text style={styles.contactTitle}>Booking For</Text>
+          <View style={styles.b2bToggle}>
+            <TouchableOpacity
+              style={[styles.b2bBtn, bookingFor === 'personal' && styles.b2bBtnActive]}
+              onPress={() => setBookingFor('personal')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="person" size={16} color={bookingFor === 'personal' ? '#fff' : GREEN} />
+              <Text style={[styles.b2bBtnText, bookingFor === 'personal' && styles.b2bBtnTextActive]}>Personal</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.b2bBtn, bookingFor === 'company' && styles.b2bBtnActive]}
+              onPress={() => setBookingFor('company')}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="business" size={16} color={bookingFor === 'company' ? '#fff' : GREEN} />
+              <Text style={[styles.b2bBtnText, bookingFor === 'company' && styles.b2bBtnTextActive]}>For Company</Text>
+            </TouchableOpacity>
+          </View>
+
+          {bookingFor === 'company' && (
+            <View style={styles.b2bFieldsWrap}>
+              <View style={styles.b2bFieldRow}>
+                <View style={styles.b2bField}>
+                  <Text style={styles.b2bFieldLabel}>No. of Vehicles *</Text>
+                  <View style={styles.b2bInputWrap}>
+                    <TouchableOpacity
+                      style={styles.b2bStepBtn}
+                      onPress={() => setNumberOfVehicles(String(Math.max(1, parseInt(numberOfVehicles || '1') - 1)))}
+                    >
+                      <Ionicons name="remove" size={16} color={GREEN} />
+                    </TouchableOpacity>
+                    <TextInput
+                      style={styles.b2bInput}
+                      value={numberOfVehicles}
+                      onChangeText={(t) => setNumberOfVehicles(t.replace(/[^0-9]/g, ''))}
+                      keyboardType="number-pad"
+                      textAlign="center"
+                      maxLength={3}
+                    />
+                    <TouchableOpacity
+                      style={styles.b2bStepBtn}
+                      onPress={() => setNumberOfVehicles(String(Math.min(500, parseInt(numberOfVehicles || '1') + 1)))}
+                    >
+                      <Ionicons name="add" size={16} color={GREEN} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.b2bField}>
+                  <Text style={styles.b2bFieldLabel}>No. of Persons</Text>
+                  <View style={styles.b2bInputWrap}>
+                    <TextInput
+                      style={[styles.b2bInput, { flex: 1 }]}
+                      value={numberOfPersons}
+                      onChangeText={(t) => setNumberOfPersons(t.replace(/[^0-9]/g, ''))}
+                      keyboardType="number-pad"
+                      placeholder="Optional"
+                      placeholderTextColor={TEXT_SECONDARY}
+                      textAlign="center"
+                      maxLength={4}
+                    />
+                  </View>
+                </View>
+              </View>
+              <View style={styles.b2bInfoPill}>
+                <Ionicons name="information-circle" size={15} color={GREEN} />
+                <Text style={styles.b2bInfoText}>Company booking — post-paid billing, no advance required</Text>
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
       <View style={{ height: 120 }} />
     </ScrollView>
   );
 
-  const [utr, setUtr] = useState('');
-
-  const handlePayVia = (app) => {
-    const advanceAmount = Math.round((pricing[selectedVehicle?.id]?.totalBeforeGst || 0) * 0.2);
-    const upiId = bankDetails?.upiId || 'transrentals@kotak';
-    const payeeName = bankDetails?.accountHolderName || 'TransRentals';
-
-    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${advanceAmount}&cu=INR`;
-
-    let appUrl = '';
-    switch(app) {
-      case 'gpay':
-        appUrl = `gpay://upi/pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${advanceAmount}&cu=INR`;
-        break;
-      case 'phonepe':
-        appUrl = `phonepe://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${advanceAmount}&cu=INR`;
-        break;
-      case 'paytm':
-        appUrl = `paytmmp://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${advanceAmount}&cu=INR`;
-        break;
-      default:
-        appUrl = upiUrl;
-    }
-
-    Linking.canOpenURL(appUrl)
-      .then((supported) => {
-        if (supported) {
-          return Linking.openURL(appUrl);
-        } else {
-          // Fallback to generic UPI
-          return Linking.openURL(upiUrl);
-        }
-      })
-      .catch((err) => {
-        Alert.alert('Error', 'Unable to open payment app. Please pay manually using UPI ID.');
-        console.log('Payment app error:', err);
-      });
-  };
-
-  const renderStep4 = () => {
-    const advanceAmount = Math.round((pricing[selectedVehicle?.id]?.totalBeforeGst || 0) * 0.2);
-    const upiId = bankDetails?.upiId || 'transrentals@kotak';
-    const qrCodeUrl = bankDetails?.upiQrCode
-      ? `${BASE_URL}${bankDetails.upiQrCode}`
-      : `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=${upiId}&pn=TransRentals&am=${advanceAmount}`;
-
-    return (
-      <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.paymentCard}>
-          <Text style={styles.paymentTitle}>Advance Payment</Text>
-          <Text style={styles.paymentSubtitle}>Please pay the advance amount using UPI</Text>
-
-          <View style={styles.advanceRow}>
-            <Text style={styles.advanceLabel}>Advance to Pay (20%):</Text>
-            <Text style={styles.advanceValue}>
-              ₹{advanceAmount.toLocaleString()}
-            </Text>
-          </View>
-
-          {/* Pay Via Buttons */}
-          <View style={styles.payViaSection}>
-            <Text style={styles.payViaTitle}>Pay via</Text>
-            <View style={styles.payViaButtons}>
-              <TouchableOpacity style={styles.payViaBtn} onPress={() => handlePayVia('gpay')}>
-                <Image
-                  source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg' }}
-                  style={styles.payViaIcon}
-                  resizeMode="contain"
-                />
-                <Text style={styles.payViaBtnText}>Google Pay</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.payViaBtn} onPress={() => handlePayVia('phonepe')}>
-                <Image
-                  source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/0/09/Phonepe-logo.svg' }}
-                  style={styles.payViaIcon}
-                  resizeMode="contain"
-                />
-                <Text style={styles.payViaBtnText}>PhonePe</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.payViaBtn} onPress={() => handlePayVia('paytm')}>
-                <Image
-                  source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/2/24/Paytm_Logo_%28standalone%29.svg' }}
-                  style={styles.payViaIcon}
-                  resizeMode="contain"
-                />
-                <Text style={styles.payViaBtnText}>Paytm</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.dividerWithText}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR SCAN QR CODE</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <View style={styles.qrContainer}>
-            <Image
-              source={{ uri: qrCodeUrl }}
-              style={styles.qrImage}
-            />
-            <Text style={styles.upiId}>UPI ID: {upiId}</Text>
-          </View>
-
-          <View style={styles.utrSection}>
-            <Text style={styles.inputLabel}>Enter UTR / Transaction ID</Text>
-            <TextInput
-              style={styles.utrInput}
-              value={utr}
-              onChangeText={setUtr}
-              placeholder="e.g. 123456789012"
-              keyboardType="number-pad"
-            />
-            <Text style={styles.utrHint}>Please enter the 12-digit UTR number after payment</Text>
-          </View>
-        </View>
-
-        <View style={{ height: 120 }} />
-      </ScrollView>
-    );
-  };
 
 
   if (loading) {
@@ -1358,17 +1310,9 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => {
-            if (step === 4 && bookingConfirmed) {
-              // After booking confirmation, redirect to booking details
-              navigation.navigate('BookingConfirmation', {
-                booking_id: confirmedBookingId,
-                bookingType: 'chauffeur',
-              });
-            } else if (step > 1) {
-              // Go to previous step
+            if (step > 1) {
               setStep(step - 1);
             } else {
-              // On step 1, go back to previous screen
               navigation.goBack();
             }
           }}
@@ -1376,7 +1320,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           <Icon name="arrow-left" size={20} color="#0F172A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {step === 1 ? 'Car Rental' : step === 2 ? 'Select Vehicle' : step === 3 ? 'Confirm Booking' : 'Payment'}
+          {step === 1 ? 'Car Rental' : step === 2 ? 'Select Vehicle' : 'Confirm Booking'}
         </Text>
         <View style={{ width: 40 }} />
           <TouchableOpacity
@@ -1389,7 +1333,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
       {/* Steps Indicator */}
       <View style={styles.stepsRow}>
-        {[1, 2, 3, 4].map((s) => (
+        {[1, 2, 3].map((s) => (
           <View key={s} style={styles.stepItem}>
             <View style={[styles.stepCircle, step >= s && styles.stepCircleActive]}>
               {step > s ? (
@@ -1399,7 +1343,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
               )}
             </View>
             <Text style={[styles.stepLabel, step >= s && styles.stepLabelActive]}>
-              {s === 1 ? 'Details' : s === 2 ? 'Vehicle' : s === 3 ? 'Confirm' : 'Payment'}
+              {s === 1 ? 'Details' : s === 2 ? 'Vehicle' : 'Confirm'}
             </Text>
           </View>
         ))}
@@ -1409,15 +1353,13 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       {step === 1 && renderStep1()}
       {step === 2 && renderStep2()}
       {step === 3 && renderStep3()}
-      {step === 4 && renderStep4()}
 
       {/* Bottom Button */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={[styles.nextBtn, submitting && styles.nextBtnDisabled]}
           onPress={() => {
-            if (step === 3) setStep(4);
-            else if (step === 4) handleBooking();
+            if (step === 3) handleBooking();
             else handleNext();
           }}
           disabled={submitting || loadingPrices}
@@ -1426,7 +1368,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.nextBtnText}>
-              {step === 3 ? 'Proceed to Payment' : step === 4 ? 'Confirm & Book' : 'Continue'}
+              {step === 3 ? (bookingFor === 'company' && isB2BCustomer ? 'Create Booking' : 'Proceed to Payment') : 'Continue'}
             </Text>
           )}
         </TouchableOpacity>
@@ -2101,136 +2043,85 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   pickerDoneBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  // Payment Card
-  paymentCard: {
+
+  // B2B Section
+  b2bSection: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-  },
-  paymentTitle: { fontSize: 20, fontWeight: '800', color: TEXT_PRIMARY, marginBottom: 4 },
-  paymentSubtitle: { fontSize: 13, color: TEXT_SECONDARY, marginBottom: 20 },
-
-  advanceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'rgba(9, 179, 104, 0.05)',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
-  },
-  advanceLabel: { fontSize: 14, fontWeight: '600', color: TEXT_PRIMARY },
-  advanceValue: { fontSize: 20, fontWeight: '800', color: BRAND_TEAL },
-
-  // Pay Via Section
-  payViaSection: {
-    marginTop: 20,
-    marginBottom: 16,
-  },
-  payViaTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  payViaButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    gap: 10,
-  },
-  payViaBtn: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: BRAND_TEAL,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    alignItems: 'center',
     elevation: 2,
-    shadowColor: BRAND_TEAL,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+  },
+  b2bToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    padding: 4,
+    gap: 4,
+    marginTop: 10,
+  },
+  b2bBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 6,
+  },
+  b2bBtnActive: {
+    backgroundColor: GREEN,
+    elevation: 2,
+    shadowColor: GREEN,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
     shadowRadius: 4,
   },
-  payViaIcon: {
-    width: 32,
-    height: 32,
-    marginBottom: 4,
+  b2bBtnText: { fontSize: 13, fontWeight: '600', color: GREEN },
+  b2bBtnTextActive: { color: '#fff' },
+  b2bFieldsWrap: { marginTop: 14 },
+  b2bFieldRow: { flexDirection: 'row', gap: 12 },
+  b2bField: { flex: 1 },
+  b2bFieldLabel: { fontSize: 12, fontWeight: '600', color: TEXT_SECONDARY, marginBottom: 6 },
+  b2bInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFB',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(9,179,104,0.2)',
+    overflow: 'hidden',
+    minHeight: 44,
   },
-  payViaBtnText: {
-    fontSize: 11,
-    fontWeight: '600',
+  b2bStepBtn: {
+    width: 36,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(9,179,104,0.08)',
+  },
+  b2bInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
     color: TEXT_PRIMARY,
     textAlign: 'center',
   },
-
-  // Divider with text
-  dividerWithText: {
+  b2bInfoPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E2E8F0',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 12,
-    fontWeight: '600',
-    color: TEXT_SECONDARY,
-  },
-
-  qrContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  qrImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 12,
-    backgroundColor: '#f8fafc',
-    marginBottom: 12,
-  },
-  upiId: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: TEXT_PRIMARY,
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 16,
+    gap: 8,
+    backgroundColor: 'rgba(9,179,104,0.08)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    marginTop: 12,
   },
-
-  utrSection: {
-    marginTop: 8,
-  },
-  utrInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: TEXT_PRIMARY,
-    fontWeight: '600',
-    marginTop: 8,
-  },
-  utrHint: {
-    fontSize: 12,
-    color: TEXT_SECONDARY,
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
+  b2bInfoText: { fontSize: 12, color: '#065f46', fontWeight: '500', flex: 1 },
 });

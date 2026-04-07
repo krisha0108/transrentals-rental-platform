@@ -70,18 +70,26 @@ async function getStory(rawSlug: string) {
   }
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://transrentals.in';
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const story = await getStory(decodeURIComponent(slug));
   if (!story) return { title: 'Story Not Found' };
 
+  const canonicalUrl = `${SITE_URL}/stories/${slug}`;
+
   return {
     title: story.title,
     description: story.metaDescription || story.description || `Read ${story.title} on TransRentals Web Stories`,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title: story.title,
       description: story.metaDescription || story.description || '',
       type: 'article',
+      url: canonicalUrl,
       images: story.coverImage ? [{ url: story.coverImage }] : [],
     },
     twitter: {
@@ -99,8 +107,7 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
 
   if (!story || !story.slides.length) notFound();
 
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const ampUrl  = `${siteUrl}/stories/${slug}/amp`;
+  const ampUrl = `${SITE_URL}/stories/${slug}/amp`;
 
   return (
     <>
