@@ -77,6 +77,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  isHeader?: boolean;
   children?: NavItem[];
 }
 
@@ -264,18 +265,36 @@ const getSubmenuBySlug = (slug: string): NavItem[] => {
   return serviceSubMenu(slug);
 };
 
-// Map database service to NavItem
+// Map database service to NavItem (includes sub-services if present)
 const mapServiceToNavItem = (service: {
   name: string;
   slug: string;
   icon?: string | null;
   flowType?: string;
-}): NavItem => ({
-  name: service.name,
-  href: `/admin/services/${service.slug}`,
-  icon: ICON_MAP[service.icon || ''] || Car,
-  children: getSubmenuBySlug(service.slug),
-});
+  other_services?: Array<{ name: string; slug: string; icon?: string | null }>;
+}): NavItem => {
+  const baseChildren = getSubmenuBySlug(service.slug);
+  const subServices = service.other_services || [];
+
+  const children: NavItem[] = subServices.length > 0
+    ? [
+        ...baseChildren,
+        { name: 'Sub-Services', href: '#', icon: Layers, isHeader: true },
+        ...subServices.map(sub => ({
+          name: sub.name,
+          href: `/admin/services/${sub.slug}/bookings`,
+          icon: ICON_MAP[sub.icon || ''] || Car,
+        })),
+      ]
+    : baseChildren;
+
+  return {
+    name: service.name,
+    href: `/admin/services/${service.slug}`,
+    icon: ICON_MAP[service.icon || ''] || Car,
+    children,
+  };
+};
 
 // 8 Mission Controls (Primary Services) - Fallback when API fails
 const FALLBACK_MISSION_CONTROLS: NavItem[] = [
@@ -534,6 +553,16 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
             <div className="ml-4 pl-3 border-l border-gray-700 space-y-0.5">
               {item.children!.map((child) => {
                 const ChildIcon = child.icon;
+
+                // Render section header (non-clickable)
+                if (child.isHeader) {
+                  return (
+                    <div key={child.name} className="px-3 pt-3 pb-1">
+                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">{child.name}</p>
+                    </div>
+                  );
+                }
+
                 const isChildActive = pathname === child.href || pathname.startsWith(child.href + '/');
 
                 return (
