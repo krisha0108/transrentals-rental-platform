@@ -180,8 +180,7 @@ function renderSlide(slide: any, idx: number, siteUrl: string): string {
   const dur = slide.duration || 5;
   const canvasEls: any[] = Array.isArray(slide.canvasData) ? slide.canvasData : [];
 
-  // Background
-  let bgStyle = '';
+  // Background — always use a grid-layer so amp-story-page is never childless
   let bgLayer = '';
 
   if (slide.bgType === 'IMAGE' && slide.bgImage) {
@@ -191,11 +190,11 @@ function renderSlide(slide: any, idx: number, siteUrl: string): string {
     const src = abs(slide.bgVideo, siteUrl);
     bgLayer = `<amp-story-grid-layer template="fill"><amp-video src="${esc(src)}" layout="fill" autoplay loop muted playsinline></amp-video></amp-story-grid-layer>`;
   } else if (slide.bgType === 'GRADIENT' && slide.bgGradient) {
-    bgStyle = `background:${slide.bgGradient};`;
+    bgLayer = `<amp-story-grid-layer template="fill"><div style="width:100%;height:100%;background:${slide.bgGradient}"></div></amp-story-grid-layer>`;
   } else if (slide.bgType === 'COLOR' && slide.bgColor) {
-    bgStyle = `background-color:${slide.bgColor};`;
+    bgLayer = `<amp-story-grid-layer template="fill"><div style="width:100%;height:100%;background-color:${slide.bgColor}"></div></amp-story-grid-layer>`;
   } else {
-    bgStyle = 'background-color:#1a1a2e;';
+    bgLayer = `<amp-story-grid-layer template="fill"><div style="width:100%;height:100%;background-color:#1a1a2e"></div></amp-story-grid-layer>`;
   }
 
   // Canvas elements layer
@@ -219,7 +218,7 @@ function renderSlide(slide: any, idx: number, siteUrl: string): string {
     </amp-story-grid-layer>`;
   }
 
-  return `<amp-story-page id="page-${idx + 1}" auto-advance-after="${dur}s" style="${bgStyle}">${bgLayer}${canvasLayer}${legacyLayer}</amp-story-page>`;
+  return `<amp-story-page id="page-${idx + 1}" auto-advance-after="${dur}s">${bgLayer}${canvasLayer}${legacyLayer}</amp-story-page>`;
 }
 
 // ─── Route Handler ────────────────────────────────────────────────────────────
@@ -273,7 +272,7 @@ export async function GET(
     const publisherName = story.publisherName || 'TransRentals';
     const description   = (story as any).metaDescription || story.description
       || `${story.title} — Read on ${publisherName}`;
-    const canonicalUrl  = `${siteUrl}/stories/${slug}`;
+    const canonicalUrl  = `${siteUrl}/stories/${slug}/amp`;
     const publishedAt   = story.publishedAt?.toISOString() || new Date().toISOString();
 
     // Schema.org Article
@@ -291,7 +290,7 @@ export async function GET(
         name:    publisherName,
         logo:    { '@type': 'ImageObject', url: publisherLogo },
       },
-      mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': `${siteUrl}/stories/${slug}` },
     });
 
     // Bookend JSON (safe for <script type="application/json">)
