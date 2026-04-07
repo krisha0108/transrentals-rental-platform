@@ -697,6 +697,49 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
   const [showFilters, setShowFilters] = useState(false);
   const [showAnim, setShowAnim] = useState(false);
   const [showShadow, setShowShadow] = useState(false);
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
+  const filterBtnRef = useRef<HTMLButtonElement>(null);
+  const animBtnRef = useRef<HTMLButtonElement>(null);
+  const shadowBtnRef = useRef<HTMLButtonElement>(null);
+
+  const calcPos = (ref: React.RefObject<HTMLButtonElement | null>, width: number) => {
+    const rect = ref.current?.getBoundingClientRect();
+    if (!rect) return { top: 60, left: 8 };
+    const left = Math.min(rect.left, window.innerWidth - width - 8);
+    return { top: rect.bottom + 6, left: Math.max(8, left) };
+  };
+
+  const openFilter = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    if (showFilters) { setShowFilters(false); return; }
+    setPopupPos(calcPos(filterBtnRef, 288));
+    setShowFilters(true); setShowAnim(false); setShowShadow(false);
+  };
+  const openAnim = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    if (showAnim) { setShowAnim(false); return; }
+    setPopupPos(calcPos(animBtnRef, 228));
+    setShowAnim(true); setShowFilters(false); setShowShadow(false);
+  };
+  const openShadow = (ev: React.MouseEvent) => {
+    ev.preventDefault();
+    if (showShadow) { setShowShadow(false); return; }
+    setPopupPos(calcPos(shadowBtnRef, 278));
+    setShowShadow(true); setShowFilters(false); setShowAnim(false);
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    if (!showFilters && !showAnim && !showShadow) return;
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (!filterBtnRef.current?.contains(t) && !animBtnRef.current?.contains(t) && !shadowBtnRef.current?.contains(t)) {
+        setShowFilters(false); setShowAnim(false); setShowShadow(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showFilters, showAnim, showShadow]);
 
   return (
     <div className="bg-white border-b border-slate-200 flex-shrink-0 overflow-x-auto"
@@ -893,12 +936,12 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
       <div className="flex items-center gap-1 px-2 py-1.5">
         {/* Filter toggle */}
         <div className="relative">
-          <button onMouseDown={ev => { ev.preventDefault(); setShowFilters(v => !v); setShowAnim(false); setShowShadow(false); }}
+          <button ref={filterBtnRef} onMouseDown={openFilter}
             className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition ${showFilters ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
             🎨 Filter
           </button>
-          {showFilters && (
-            <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-200/80 z-50" style={{ width: 280 }}>
+          {showFilters && popupPos && (
+            <div className="fixed bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 288, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
               <div className="grid grid-cols-4 gap-1 mb-2">
                 {FILTER_PRESETS.map(fp => (
                   <button key={fp.name} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, filterCss: fp.css, filterIntensity: el.filterIntensity ?? 100 }); }}
@@ -926,12 +969,12 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
 
         {/* Animation toggle */}
         <div className="relative">
-          <button onMouseDown={ev => { ev.preventDefault(); setShowAnim(v => !v); setShowFilters(false); setShowShadow(false); }}
+          <button ref={animBtnRef} onMouseDown={openAnim}
             className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition ${showAnim ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
             <Sparkles className="w-3 h-3" /> {el.animation || 'Animate'}
           </button>
-          {showAnim && (
-            <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-200/80 z-50" style={{ width: 220 }}>
+          {showAnim && popupPos && (
+            <div className="fixed bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 228, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
               <div className="grid grid-cols-2 gap-1 mb-2">
                 {ANIMATIONS.map(a => (
                   <button key={a.value} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, animation: a.value }); setShowAnim(false); }}
@@ -971,12 +1014,12 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
 
         {/* Shadow toggle */}
         <div className="relative">
-          <button onMouseDown={ev => { ev.preventDefault(); setShowShadow(v => !v); setShowFilters(false); setShowAnim(false); }}
+          <button ref={shadowBtnRef} onMouseDown={openShadow}
             className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium transition ${showShadow || el.shadowBlur !== undefined || el.shadowX !== undefined || el.shadowY !== undefined ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
             🌑 Shadow
           </button>
-          {showShadow && (
-            <div className="absolute top-full left-0 mt-1 bg-white border border-slate-200 rounded-xl p-3 shadow-2xl shadow-slate-200/80 z-50" style={{ width: 270 }}>
+          {showShadow && popupPos && (
+            <div className="fixed bg-white border border-slate-200 rounded-xl p-3 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 278, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
               <div className="grid grid-cols-4 gap-1 mb-3">
                 {[
                   { label: '↑ Top', x: 0, y: -8 },
@@ -1104,6 +1147,9 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const fitScaleRef = useRef(1);
+  const isManualZoomRef = useRef(false);
+  const scaleRef = useRef(1);
   const multiDragOriginsRef = useRef<{ [id: string]: { x: number; y: number } }>({});
   const imgInputRef = useRef<HTMLInputElement>(null);
   const bgImgInputRef = useRef<HTMLInputElement>(null);
@@ -1149,12 +1195,56 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
     const measure = () => {
       if (!containerRef.current) return;
       const { clientWidth, clientHeight } = containerRef.current;
-      setScale(Math.max(0.4, Math.min((clientWidth - 48) / CANVAS_W, (clientHeight - 160) / CANVAS_H, 1.4)));
+      const newFit = Math.max(0.25, Math.min((clientWidth - 48) / CANVAS_W, (clientHeight - 160) / CANVAS_H, 1.4));
+      fitScaleRef.current = newFit;
+      if (!isManualZoomRef.current) setScale(newFit);
     };
     measure();
     const ro = new ResizeObserver(measure);
     if (containerRef.current) ro.observe(containerRef.current);
     return () => ro.disconnect();
+  }, []);
+
+  // Keep scaleRef in sync with scale state
+  useEffect(() => { scaleRef.current = scale; }, [scale]);
+
+  // Ctrl+Scroll zoom — zooms toward mouse cursor (Canva-style)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      isManualZoomRef.current = true;
+
+      const oldScale = scaleRef.current;
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      const newScale = Math.round(Math.max(0.1, Math.min(3, oldScale + delta)) * 100) / 100;
+
+      // Capture mouse position relative to canvas before zoom
+      const canvasEl = canvasRef.current;
+      if (!canvasEl) { scaleRef.current = newScale; setScale(newScale); return; }
+      const canvasRect = canvasEl.getBoundingClientRect();
+      const mouseInCanvasX = (e.clientX - canvasRect.left) / oldScale;
+      const mouseInCanvasY = (e.clientY - canvasRect.top) / oldScale;
+      const mouseClientX = e.clientX;
+      const mouseClientY = e.clientY;
+
+      scaleRef.current = newScale;
+      setScale(newScale);
+
+      // After React re-renders, scroll so the canvas point stays under cursor
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (!containerRef.current || !canvasRef.current) return;
+        const newCanvasRect = canvasRef.current.getBoundingClientRect();
+        const actualX = newCanvasRect.left + mouseInCanvasX * newScale;
+        const actualY = newCanvasRect.top + mouseInCanvasY * newScale;
+        containerRef.current.scrollLeft += actualX - mouseClientX;
+        containerRef.current.scrollTop += actualY - mouseClientY;
+      }));
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
   }, []);
 
   // Load services + locations for targeting (when document tab opens)
@@ -2208,7 +2298,8 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
               <span className="text-xs text-slate-400">{selectedIds.length > 1 ? `${selectedIds.length} elements selected` : 'Click an element to edit'}</span>
             </div>
           )}
-          <div ref={containerRef} className="flex-1 flex items-center justify-center overflow-hidden" onClick={() => setSelectedIds([])}>
+          <div ref={containerRef} className="flex-1 overflow-auto" onClick={() => setSelectedIds([])}>
+            <div style={{ minWidth: '100%', minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, boxSizing: 'border-box' }}>
             <div style={{ position: 'relative', width: CANVAS_W * scale, height: CANVAS_H * scale, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
               <div ref={canvasRef} className="overflow-visible shadow-2xl rounded-sm"
                 style={{ width: CANVAS_W, height: CANVAS_H, transform: `scale(${scale})`, transformOrigin: 'top left' }}
@@ -2258,10 +2349,31 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
                 )}
               </div>
             </div>
+            </div>
           </div>
 
           {/* Slide Strip */}
           <div className="h-36 bg-white border-t border-slate-200 flex items-center px-4 gap-3 overflow-x-auto flex-shrink-0 shadow-sm">
+            {/* Zoom Controls */}
+            <div className="flex items-center gap-0.5 flex-shrink-0 bg-slate-100 rounded-lg px-1 py-0.5 border border-slate-200">
+              <button
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => { isManualZoomRef.current = true; setScale(s => Math.round(Math.max(0.1, s - 0.1) * 100) / 100); }}
+                className="w-6 h-6 rounded flex items-center justify-center hover:bg-white text-slate-600 font-bold text-base transition select-none"
+                title="Zoom Out (Ctrl+Scroll)">−</button>
+              <button
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => { isManualZoomRef.current = false; setScale(fitScaleRef.current); }}
+                className="w-12 h-6 text-[11px] font-semibold text-slate-700 hover:bg-white rounded transition text-center select-none"
+                title="Click to fit screen">
+                {Math.round(scale * 100)}%
+              </button>
+              <button
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => { isManualZoomRef.current = true; setScale(s => Math.round(Math.min(3, s + 0.1) * 100) / 100); }}
+                className="w-6 h-6 rounded flex items-center justify-center hover:bg-white text-slate-600 font-bold text-base transition select-none"
+                title="Zoom In (Ctrl+Scroll)">+</button>
+            </div>
             <span className="text-slate-400 text-xs font-medium whitespace-nowrap flex-shrink-0">{activeIdx + 1} / {slides.length}</span>
             <div className="flex items-center gap-2">
               {slides.map((s, i) => (
