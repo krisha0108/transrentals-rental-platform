@@ -3,11 +3,11 @@ import { NavigationContainer, createNavigationContainerRef } from '@react-naviga
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar, Modal, Linking, PermissionsAndroid, Platform } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar, Modal, Linking } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { getMessaging, getToken, onMessage, onTokenRefresh, setBackgroundMessageHandler, onNotificationOpenedApp, getInitialNotification } from '@react-native-firebase/messaging';
-import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
+import notifee, { AndroidImportance, AuthorizationStatus, EventType } from '@notifee/react-native';
 
 export const navigationRef = createNavigationContainerRef();
 
@@ -271,23 +271,11 @@ async function setupNotificationChannel() {
   }
 }
 
-async function requestNotificationPermission() {
-  try {
-    if (Platform.OS === 'android' && Platform.Version >= 33) {
-      const result = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-      );
-      return result === PermissionsAndroid.RESULTS.GRANTED;
-    }
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export default function App() {
   const [updateInfo, setUpdateInfo]         = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showNotifModal, setShowNotifModal]   = useState(false);
 
   const isVersionLower = (current, latest) => {
     const c = current.split('.').map(Number);
@@ -317,15 +305,41 @@ export default function App() {
 
   useEffect(() => { checkForUpdate(); }, [checkForUpdate]);
 
+  // Check notification permission on startup and show modal if needed
+  useEffect(() => {
+    async function checkPermission() {
+      try {
+        const settings = await notifee.getNotificationSettings();
+        const isGranted = settings.authorizationStatus === AuthorizationStatus.AUTHORIZED
+          || settings.authorizationStatus === AuthorizationStatus.PROVISIONAL;
+        if (!isGranted) {
+          // Small delay so splash/navigation settles first
+          setTimeout(() => setShowNotifModal(true), 1500);
+        }
+      } catch {}
+    }
+    checkPermission();
+  }, []);
+
+  async function handleEnableNotifications() {
+    setShowNotifModal(false);
+    try {
+      const settings = await notifee.requestPermission();
+      const isGranted = settings.authorizationStatus === AuthorizationStatus.AUTHORIZED
+        || settings.authorizationStatus === AuthorizationStatus.PROVISIONAL;
+      if (!isGranted) {
+        // User denied — open app settings so they can enable manually
+        Linking.openSettings();
+      }
+    } catch {}
+  }
+
   useEffect(() => {
     let unsubForeground = () => {};
     let unsubNotifee = () => {};
 
     async function setupFCM() {
       try {
-        // Request notification permission (Android 13+)
-        await requestNotificationPermission();
-
         await setupNotificationChannel();
 
         const messagingInstance = getMessaging();
@@ -454,6 +468,71 @@ export default function App() {
           </View>
         </Modal>
 
+        {/* ── Notification Permission Modal ── */}
+        <Modal
+          visible={showNotifModal}
+          transparent
+          animationType="slide"
+          statusBarTranslucent
+          onRequestClose={() => setShowNotifModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHandle} />
+
+              {/* Bell icon with gradient */}
+              <View style={styles.notifIconWrap}>
+                <LinearGradient
+                  colors={['#043927', '#16A34A']}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                  style={styles.notifIconGrad}
+                >
+                  <Ionicons name="notifications" size={32} color="#fff" />
+                </LinearGradient>
+                {/* Pulse rings */}
+                <View style={styles.notifRing1} />
+                <View style={styles.notifRing2} />
+              </View>
+
+              <Text style={styles.notifTitle}>Stay in the Loop!</Text>
+              <Text style={styles.notifSubtitle}>Enable notifications to get</Text>
+
+              {/* Feature list */}
+              <View style={styles.notifFeatures}>
+                {[
+                  { icon: 'car',            text: 'New booking requests instantly' },
+                  { icon: 'checkmark-circle', text: 'Booking confirmations & updates' },
+                  { icon: 'cash',           text: 'Payment & earnings alerts' },
+                ].map((f, i) => (
+                  <View key={i} style={styles.notifFeatureRow}>
+                    <View style={styles.notifFeatureDot}>
+                      <Ionicons name={f.icon} size={14} color="#16A34A" />
+                    </View>
+                    <Text style={styles.notifFeatureTxt}>{f.text}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Enable button */}
+              <TouchableOpacity activeOpacity={0.85} onPress={handleEnableNotifications} style={{ width: '100%' }}>
+                <LinearGradient
+                  colors={['#043927', '#16A34A']}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={styles.notifBtn}
+                >
+                  <Ionicons name="notifications-outline" size={20} color="#fff" />
+                  <Text style={styles.notifBtnTxt}>Enable Notifications</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Skip */}
+              <TouchableOpacity style={styles.modalSkip} onPress={() => setShowNotifModal(false)}>
+                <Text style={styles.modalSkipTxt}>Maybe later</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
       </AuthProvider>
     </SafeAreaProvider>
   );
@@ -476,4 +555,18 @@ const styles = StyleSheet.create({
   modalBtnTxt:  { fontSize: 16, fontWeight: '800', color: '#fff' },
   modalSkip:    { marginTop: 14 },
   modalSkipTxt: { fontSize: 13, color: '#94A3B8', fontWeight: '600' },
+
+  // Notification permission modal
+  notifIconWrap: { alignItems: 'center', justifyContent: 'center', marginBottom: 20, width: 80, height: 80 },
+  notifIconGrad: { width: 72, height: 72, borderRadius: 24, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  notifRing1:    { position: 'absolute', width: 80, height: 80, borderRadius: 40, borderWidth: 1.5, borderColor: 'rgba(22,163,74,0.25)', zIndex: 1 },
+  notifRing2:    { position: 'absolute', width: 96, height: 96, borderRadius: 48, borderWidth: 1, borderColor: 'rgba(22,163,74,0.12)', zIndex: 0 },
+  notifTitle:    { fontSize: 24, fontWeight: '900', color: '#0F172A', marginBottom: 6, textAlign: 'center' },
+  notifSubtitle: { fontSize: 14, color: '#64748B', marginBottom: 18, textAlign: 'center' },
+  notifFeatures: { width: '100%', gap: 10, marginBottom: 26 },
+  notifFeatureRow:{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 4 },
+  notifFeatureDot:{ width: 32, height: 32, borderRadius: 10, backgroundColor: '#F0FDF4', alignItems: 'center', justifyContent: 'center' },
+  notifFeatureTxt:{ fontSize: 14, color: '#334155', fontWeight: '500', flex: 1 },
+  notifBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16, borderRadius: 14, width: '100%' },
+  notifBtnTxt:   { fontSize: 16, fontWeight: '800', color: '#fff' },
 });
