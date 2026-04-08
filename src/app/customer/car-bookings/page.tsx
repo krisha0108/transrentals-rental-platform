@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 // Car booking status types
 type CarBookingStatus =
@@ -238,7 +239,8 @@ export default function CustomerCarBookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100" pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <header className="bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 text-white">
         <div className="container mx-auto px-4 max-w-6xl">

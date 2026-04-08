@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { BUS_CATEGORIES, BUS_TRIP_TYPES } from '@/lib/bus-categories';
 import { useCustomerAuth } from '@/hooks/useCustomer';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 interface QuoteRequest {
   id: string;
@@ -113,7 +114,8 @@ export default function CustomerBusQuotesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-8">
         <div className="container-custom">

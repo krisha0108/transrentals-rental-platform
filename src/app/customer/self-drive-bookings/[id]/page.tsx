@@ -36,6 +36,7 @@ import {
 import { Button } from '@/components/ui/button';
 import CustomerBookingChat from '@/components/customer/CustomerBookingChat';
 import { BookingPayment } from '@/components/payment/BookingPayment';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 interface BankAccount {
   id: string;
@@ -274,7 +275,8 @@ export default function CustomerSelfDriveBookingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-white mt-6 border-b sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">

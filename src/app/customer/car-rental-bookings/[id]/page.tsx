@@ -25,6 +25,7 @@ import {
 import { BikeBookingChat } from '@/components/bike/BikeBookingChat';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import { useCustomerAuth } from '@/hooks/useCustomer';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 interface BookingDetails {
   id: string;
@@ -235,7 +236,8 @@ export default function CarRentalBookingDetailPage() {
   const canRate = booking.status === 'COMPLETED' && !booking.rating;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" pt-16">
+      <CustomerHeader showBackButton />
       {/* Success Banner for new booking */}
       {isNew && (
         <div className="bg-green-500 text-white py-3 px-4">

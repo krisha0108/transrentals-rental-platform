@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 // Chat will be inline - no external component needed
 import { BookingPayment } from '@/components/payment/BookingPayment';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 interface BookingDetail {
   id: string;
@@ -426,7 +427,8 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
   const StatusIcon = statusConfig.icon;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-gray-900 via-amber-900 to-gray-900 text-white py-6">
         <div className="container mx-auto px-4">

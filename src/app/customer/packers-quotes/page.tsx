@@ -19,6 +19,7 @@ import {
   Inbox,
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 interface QuoteRequest {
   id: string;
@@ -104,7 +105,8 @@ export default function CustomerPackersQuotesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-green-800 text-white py-8">
         <div className="container mx-auto px-4">

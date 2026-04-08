@@ -23,6 +23,7 @@ import {
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import { BUS_CATEGORIES, BUS_TRIP_TYPES } from '@/lib/bus-categories';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 interface QuoteRequest {
   id: string;
@@ -264,7 +265,8 @@ export default function CustomerBusQuoteDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
+    <div className="min-h-screen bg-gray-50 pb-32" pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-6">
         <div className="container mx-auto px-4">

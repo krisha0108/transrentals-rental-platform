@@ -24,6 +24,7 @@ import {
   X,
 } from 'lucide-react';
 import { BookingPayment } from '@/components/payment/BookingPayment';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 interface Customer {
   id: string;
@@ -281,7 +282,8 @@ export default function CustomerTruckBookingDetailPage() {
   const StatusIcon = statusConfig.icon;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
         <div className="max-w-4xl mx-auto px-4 py-6">
