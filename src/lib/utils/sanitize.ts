@@ -9,7 +9,8 @@ import xss from 'xss';
  * Sanitize user input to prevent XSS attacks
  * Removes dangerous HTML/JavaScript while preserving safe text
  */
-export function sanitizeInput(input: string | null | undefined): string {
+export function sanitizeInput(input: string | null | undefined): string | undefined {
+  if (input === undefined) return undefined;
   if (!input) return '';
 
   // Remove all HTML tags and dangerous characters
