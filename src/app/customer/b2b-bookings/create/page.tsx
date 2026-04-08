@@ -4,6 +4,7 @@
 import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 import {
   Loader2, ArrowLeft, Truck, MapPin, Calendar, Clock, FileText,
   Users, Car, ChevronRight, Home, CheckCircle, Bike, Bus, AlertTriangle
@@ -89,7 +90,8 @@ function CreateB2BBookingForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <header className="bg-gradient-to-r from-slate-900 via-green-900 to-slate-900 text-white">
         <div className="container mx-auto px-4 max-w-4xl">

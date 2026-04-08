@@ -5,6 +5,7 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 const B2BBookingChat = lazy(() => import('@/components/b2b/B2BBookingChat'));
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 import {
   Loader2, ArrowLeft, Calendar, MapPin, Clock, CheckCircle,
   Copy, ExternalLink, Share2, Building2, Car, Users, Route,
@@ -254,7 +255,9 @@ export default function CustomerB2BBookingDetailPage() {
   const selfDrivePref = isSelfDrive ? parseSelfDrivePreference(booking.specialNotes) : null;
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto pt-20">
+    <>
+      <CustomerHeader showBackButton />
+      <div className="p-4 sm:p-6 max-w-4xl mx-auto pt-20">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6 mt-4">
         <Link href={`/customer/b2b-bookings`} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -1196,5 +1199,6 @@ export default function CustomerB2BBookingDetailPage() {
         </div>
       )}
     </div>
+    </>
   );
 }
