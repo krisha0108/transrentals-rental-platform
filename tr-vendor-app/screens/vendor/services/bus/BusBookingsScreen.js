@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, ActivityIndicator, LayoutAnimation,
-  Platform, UIManager, StatusBar,
+  Platform, UIManager, StatusBar, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -58,6 +58,7 @@ export default function BusBookingsScreen({ navigation, route }) {
   const [showDateFilter,  setShowDateFilter]  = useState(false);
   const [selectedFilter,  setSelectedFilter]  = useState('active');
   const [expandedId,      setExpandedId]      = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const {
     data: allBookings, loading, refreshing, hasMore,
@@ -66,9 +67,18 @@ export default function BusBookingsScreen({ navigation, route }) {
 
   useEffect(() => { initialLoad(); }, [initialLoad]);
 
-  const bookings = selectedFilter === 'completed'
+  const tabFiltered = selectedFilter === 'completed'
     ? allBookings.filter(b => b.status === 'COMPLETED')
     : allBookings.filter(b => b.status !== 'COMPLETED');
+  const q = searchQuery.trim().toLowerCase();
+  const bookings = q
+    ? tabFiltered.filter(b =>
+        (b.bookingNumber || '').toLowerCase().includes(q) ||
+        (b.customerName  || '').toLowerCase().includes(q) ||
+        (b.pickupCity    || '').toLowerCase().includes(q) ||
+        (b.dropCity      || '').toLowerCase().includes(q)
+      )
+    : tabFiltered;
 
   const activeCount    = allBookings.filter(b => b.status !== 'COMPLETED').length;
   const completedCount = allBookings.filter(b => b.status === 'COMPLETED').length;
@@ -240,6 +250,28 @@ export default function BusBookingsScreen({ navigation, route }) {
             </TouchableOpacity>
           );
         })}
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchWrap}>
+        <View style={styles.searchBox}>
+          <Icon name="search" size={16} color={C.muted} style={{ marginRight: 8 }} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name, booking #, city…"
+            placeholderTextColor={C.muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Icon name="x" size={15} color={C.muted} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {loading && allBookings.length === 0 ? (
@@ -435,4 +467,9 @@ const styles = StyleSheet.create({
   },
   emptyTitle:    { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 6 },
   emptySubtitle: { fontSize: 13, color: C.muted, textAlign: 'center' },
+
+  /* Search */
+  searchWrap: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.bg, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: C.border },
+  searchInput: { flex: 1, fontSize: 14, color: C.text, padding: 0 },
 });
