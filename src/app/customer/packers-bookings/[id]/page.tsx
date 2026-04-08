@@ -321,7 +321,7 @@ export default function CustomerPackersBookingDetailPage() {
   const StatusIcon = statusConfig.icon;
 
   return (
-    <div className="min-h-screen bg-gray-50" pt-16">
+    <div className="min-h-screen bg-gray-50 pt-16">
       <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-teal-600 to-green-600 text-white">

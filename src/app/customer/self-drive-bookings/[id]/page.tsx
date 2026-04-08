@@ -275,7 +275,7 @@ export default function CustomerSelfDriveBookingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50" pt-16">
+    <div className="min-h-screen bg-gray-50 pt-16">
       <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-white mt-6 border-b sticky top-0 z-10">

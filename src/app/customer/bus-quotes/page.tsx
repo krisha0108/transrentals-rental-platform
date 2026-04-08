@@ -114,7 +114,7 @@ export default function CustomerBusQuotesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" pt-16">
+    <div className="min-h-screen bg-gray-50 pt-16">
       <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white py-8">

@@ -239,7 +239,7 @@ export default function CustomerCarBookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100" pt-16">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 pt-16">
       <CustomerHeader showBackButton />
       {/* Header */}
       <header className="bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-900 text-white">

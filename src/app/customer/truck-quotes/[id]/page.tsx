@@ -259,7 +259,7 @@ export default function CustomerTruckQuoteDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32" pt-16">
+    <div className="min-h-screen bg-gray-50 pb-32 pt-16">
       <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-6">

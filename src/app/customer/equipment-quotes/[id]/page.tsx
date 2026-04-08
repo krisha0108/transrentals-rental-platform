@@ -274,7 +274,7 @@ export default function CustomerEquipmentQuoteDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32" pt-16">
+    <div className="min-h-screen bg-gray-50 pb-32 pt-16">
       <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-amber-600 to-amber-800 text-white py-6">

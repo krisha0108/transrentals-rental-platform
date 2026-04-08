@@ -113,7 +113,7 @@ export default function CustomerSelfDriveQuotesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" pt-16">
+    <div className="min-h-screen bg-gray-50 pt-16">
       <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-8">
