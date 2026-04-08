@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, RefreshControl, ActivityIndicator,
+  StatusBar, RefreshControl, ActivityIndicator, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -89,6 +89,7 @@ export default function BookingsListScreen({ navigation }) {
   const [counts, setCounts]         = useState({});
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [query, setQuery]           = useState('');
 
   const fetchCounts = useCallback(async () => {
     const results = await Promise.allSettled(
@@ -124,8 +125,15 @@ export default function BookingsListScreen({ navigation }) {
   const completedBookings = Object.values(counts).reduce((s, c) => s + (c.completed || 0), 0);
   const completionRate    = totalBookings > 0 ? Math.round((completedBookings / totalBookings) * 100) : 0;
 
+  const q = query.trim().toLowerCase();
+  const filteredServices = q
+    ? SERVICES.filter(s =>
+        s.name.toLowerCase().includes(q) || s.sub.toLowerCase().includes(q)
+      )
+    : SERVICES;
+
   // Services that have active bookings right now
-  const activeServices = SERVICES.filter(s => (counts[s.id]?.active ?? 0) > 0);
+  const activeServices = filteredServices.filter(s => (counts[s.id]?.active ?? 0) > 0);
 
   return (
     <SafeAreaView style={st.safe} edges={['top']}>
@@ -168,6 +176,28 @@ export default function BookingsListScreen({ navigation }) {
           ))}
         </View>
       </LinearGradient>
+
+      {/* ─────────────── SEARCH BAR ─────────────── */}
+      <View style={st.searchWrap}>
+        <View style={st.searchBox}>
+          <Icon name="search" size={16} color={C.muted} style={{ marginRight: 8 }} />
+          <TextInput
+            style={st.searchInput}
+            placeholder="Search services…"
+            placeholderTextColor={C.muted}
+            value={query}
+            onChangeText={setQuery}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+            autoCorrect={false}
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Icon name="x" size={15} color={C.muted} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
 
       <ScrollView
         style={st.scroll}
@@ -260,19 +290,27 @@ export default function BookingsListScreen({ navigation }) {
           <View style={st.sectionHead}>
             <View style={st.sectionHeadLeft}>
               <Icon name="grid" size={15} color={C.g700} />
-              <Text style={st.sectionTitle}>All Services</Text>
+              <Text style={st.sectionTitle}>
+                {q ? 'Results' : 'All Services'}
+              </Text>
             </View>
             <View style={st.countPill}>
-              <Text style={st.countPillTxt}>{SERVICES.length}</Text>
+              <Text style={st.countPillTxt}>{filteredServices.length}</Text>
             </View>
           </View>
 
+          {filteredServices.length === 0 ? (
+            <View style={st.emptyWrap}>
+              <Icon name="search" size={28} color={C.muted} />
+              <Text style={st.emptyTxt}>No services match "{query}"</Text>
+            </View>
+          ) : (
           <View style={st.listCard}>
-            {SERVICES.map((svc, idx) => {
+            {filteredServices.map((svc, idx) => {
               const c     = counts[svc.id];
               const total  = c?.total  ?? 0;
               const active = c?.active ?? 0;
-              const isLast = idx === SERVICES.length - 1;
+              const isLast = idx === filteredServices.length - 1;
 
               return (
                 <TouchableOpacity
@@ -316,6 +354,7 @@ export default function BookingsListScreen({ navigation }) {
               );
             })}
           </View>
+          )}
         </View>
 
         <View style={{ height: 100 }} />
@@ -328,6 +367,22 @@ const st = StyleSheet.create({
   safe:    { flex: 1, backgroundColor: C.bg },
   scroll:  { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 16 },
+
+  /* ─── Search ─── */
+  searchWrap: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.g900 },
+  searchBox: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  },
+  searchInput: {
+    flex: 1, fontSize: 14, color: '#fff', padding: 0,
+  },
+
+  /* ─── Empty ─── */
+  emptyWrap: { alignItems: 'center', paddingVertical: 32, gap: 10 },
+  emptyTxt:  { fontSize: 13, color: C.muted, fontWeight: '600' },
 
   /* ─── Hero ─── */
   hero: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20, overflow: 'hidden' },
