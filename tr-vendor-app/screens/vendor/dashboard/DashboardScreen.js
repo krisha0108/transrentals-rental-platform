@@ -10,10 +10,10 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
 import axios from 'axios';
-import { getVendorProfile, getVendorBookings, getVendorEarnings, getBaseURL } from '../../api/client';
+import { getVendorProfile, getVendorBookings, getVendorEarnings, getBaseURL, getBookings } from '../../api/client';
 import { NotifBadgeContext } from '../../../contexts/NotifBadgeContext';
 
-const APP_VERSION = '3.0.9';
+const APP_VERSION = '4.0.2';
 const { width: W } = Dimensions.get('window');
 
 // ── Design tokens ──────────────────────────────────────────────
@@ -47,6 +47,40 @@ const SERVICE_IDS = {
   BIKE: 'SVC_1', SELF_DRIVE: 'SVC_2', BUS: 'SVC_3',
   TRANSPORTER: 'SVC_4', CAR_RENTAL: 'SVC_5',
   PACKERS: 'SVC_6', EQUIPMENT: 'SVC_7', LUXURY: 'SVC_8',
+};
+
+const SVC_ID_TO_SERVICE = {
+  SVC_1: 'bike', SVC_2: 'self-drive', SVC_3: 'bus',
+  SVC_4: 'truck', SVC_5: 'car', SVC_6: 'packers', SVC_7: 'equipment', SVC_8: 'luxury',
+};
+const SVC_META = {
+  bike:         { name: 'Bike Rental',  icon: 'motorbike',       color: C.amber  },
+  'self-drive': { name: 'Self Drive',   icon: 'car-side',        color: C.cyan   },
+  bus:          { name: 'Bus Rental',   icon: 'bus',             color: C.pink   },
+  truck:        { name: 'Truck',        icon: 'truck-delivery',  color: C.orange },
+  car:          { name: 'Car Rental',   icon: 'car',             color: C.g600   },
+  packers:      { name: 'Packers',      icon: 'package-variant', color: C.purple },
+  equipment:    { name: 'Equipment',    icon: 'crane',           color: C.indigo },
+  luxury:       { name: 'Luxury Car',   icon: 'car-sports',      color: C.blue   },
+};
+const DETAIL_SCREEN_MAP = {
+  bike: 'BikeBookingDetail', 'self-drive': 'SelfDriveBookingDetail',
+  bus: 'BusBookingDetail',   truck: 'TruckBookingDetail',
+  car: 'CarRentalBookingDetail', packers: 'PackersBookingDetail',
+  equipment: 'EquipmentBookingDetail', luxury: 'LuxuryBookingDetail',
+};
+const BOOKINGS_SCREEN_MAP = {
+  bike: 'BikeBookings', 'self-drive': 'SelfDriveBookings',
+  bus: 'BusBookings',   truck: 'TruckBookings',
+  car: 'CarRentalBookings', packers: 'PackersBookings',
+  equipment: 'EquipmentBookings', luxury: 'LuxuryBookings',
+};
+const OPEN_STATUSES = ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED', 'PAYMENT_SUBMITTED'];
+const OPEN_STATUS_CFG = {
+  PENDING_VENDOR:    { label: 'Action Needed', color: C.amber,  bg: C.amberL  },
+  BROADCASTED:       { label: 'Open',          color: C.blue,   bg: C.blueL   },
+  PAYMENT_VERIFIED:  { label: 'Ready',         color: C.g600,   bg: C.g50     },
+  PAYMENT_SUBMITTED: { label: 'Pmt. Review',   color: C.orange, bg: C.orangeL },
 };
 
 // ── Avatar ─────────────────────────────────────────────────────
@@ -97,8 +131,33 @@ export default function DashboardScreen({ navigation }) {
   const [profile, setProfile]           = useState(null);
   const [earnings, setEarnings]         = useState(null);
   const [bookingsData, setBookingsData] = useState(null);
+  const [openBookings, setOpenBookings] = useState([]);
+  const [openLoading, setOpenLoading]   = useState(false);
   const [updateInfo, setUpdateInfo]     = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  const fetchOpenBookings = useCallback(async (svcIds) => {
+    setOpenLoading(true);
+    try {
+      const services = (svcIds || []).map(id => SVC_ID_TO_SERVICE[id]).filter(Boolean);
+      if (!services.length) { setOpenBookings([]); return; }
+      const results = await Promise.allSettled(
+        services.map(async svc => {
+          const res = await getBookings(svc, { limit: 20 });
+          return (res?.bookings || [])
+            .filter(b => OPEN_STATUSES.includes(b.status))
+            .map(b => ({ ...b, _serviceType: svc }));
+        })
+      );
+      const all = results
+        .filter(r => r.status === 'fulfilled')
+        .flatMap(r => r.value)
+        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+        .slice(0, 8);
+      setOpenBookings(all);
+    } catch (_) {}
+    finally { setOpenLoading(false); }
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -111,10 +170,11 @@ export default function DashboardScreen({ navigation }) {
           const er = await getVendorEarnings();
           if (er?.success) { setEarnings(er.earnings); setBookingsData(er.bookings); }
         } catch (_) {}
+        fetchOpenBookings(p?.approvedServiceIds || []);
       }
     } catch (_) {}
     finally { setLoading(false); }
-  }, []);
+  }, [fetchOpenBookings]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -163,6 +223,12 @@ export default function DashboardScreen({ navigation }) {
     if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
     if (v >= 1000)   return `₹${(v / 1000).toFixed(1)}K`;
     return `₹${Math.round(v)}`;
+  };
+
+  const fmtDate = d => {
+    if (!d) return '';
+    try { return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }); }
+    catch { return ''; }
   };
 
   const steps = [
@@ -537,6 +603,94 @@ export default function DashboardScreen({ navigation }) {
             </View>
           )}
 
+          {/* ── Open Bookings ────────────────────────── */}
+          {isApproved && (openLoading || openBookings.length > 0) && (
+            <View style={s.section}>
+              <View style={s.sectionRow}>
+                <Text style={s.sectionTitle}>Open Bookings</Text>
+                {openBookings.length > 0 && (
+                  <View style={[s.countPill, { backgroundColor: C.amberL, borderColor: '#FDE68A' }]}>
+                    <Text style={[s.countPillTxt, { color: C.amber }]}>
+                      {openBookings.length} need attention
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Loading skeleton */}
+              {openLoading && (
+                <View style={{ gap: 8 }}>
+                  {[0, 1, 2].map(i => (
+                    <View key={i} style={[s.obCard, { opacity: 0.6 }]}>
+                      <Bone w={40} h={40} r={12} />
+                      <View style={{ flex: 1, marginLeft: 12, gap: 6 }}>
+                        <Bone w={W * 0.38} h={12} r={4} />
+                        <Bone w={W * 0.52} h={9}  r={3} />
+                        <Bone w={80}       h={18} r={9} />
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Booking cards */}
+              {!openLoading && openBookings.map(bk => {
+                const meta  = SVC_META[bk._serviceType] || { name: bk._serviceType, icon: 'car', color: C.g600 };
+                const stCfg = OPEN_STATUS_CFG[bk.status] || { label: bk.status, color: C.sub, bg: C.border };
+                const datePart = fmtDate(bk.pickupDate || bk.startDate || bk.scheduledDate || bk.createdAt);
+                const locPart  = bk.pickupLocation || bk.pickupCity || bk.pickupAddress || '';
+                const subtitle = [datePart, locPart].filter(Boolean).join('  ·  ');
+                return (
+                  <TouchableOpacity
+                    key={bk.id}
+                    style={s.obCard}
+                    onPress={() => {
+                      navigation.navigate(BOOKINGS_SCREEN_MAP[bk._serviceType] || 'CarRentalBookings');
+                      navigation.navigate(
+                        DETAIL_SCREEN_MAP[bk._serviceType] || 'CarRentalBookingDetail',
+                        { bookingId: bk.id, serviceType: bk._serviceType }
+                      );
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <View style={[s.obSvcIcon, { backgroundColor: meta.color + '15' }]}>
+                      <MaterialCommunityIcons name={meta.icon} size={19} color={meta.color} />
+                    </View>
+                    <View style={s.obInfo}>
+                      <View style={s.obRow}>
+                        <Text style={s.obCustomer} numberOfLines={1}>
+                          {bk.customerName || 'Customer'}
+                        </Text>
+                        <Text style={s.obNum}>#{bk.bookingNumber || String(bk.id).slice(-6)}</Text>
+                      </View>
+                      {!!subtitle && (
+                        <Text style={s.obMeta} numberOfLines={1}>{subtitle}</Text>
+                      )}
+                      <View style={s.obFooter}>
+                        <View style={[s.obSvcTag, { backgroundColor: meta.color + '12' }]}>
+                          <Text style={[s.obSvcTagTxt, { color: meta.color }]}>{meta.name}</Text>
+                        </View>
+                        <View style={[s.obStatusPill, { backgroundColor: stCfg.bg }]}>
+                          <Text style={[s.obStatusTxt, { color: stCfg.color }]}>{stCfg.label}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={14} color={C.muted} />
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* See all button */}
+              {!openLoading && openBookings.length > 0 && (
+                <TouchableOpacity style={s.obSeeAll}
+                  onPress={() => navigation.navigate('Bookings')} activeOpacity={0.75}>
+                  <Ionicons name="list-outline" size={14} color={C.g700} />
+                  <Text style={s.obSeeAllTxt}>See all bookings</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
           {/* ── Quick Actions ─────────────────────────── */}
           {isApproved && (
             <View style={s.section}>
@@ -873,6 +1027,34 @@ const s = StyleSheet.create({
   guideTitle:  { fontSize: 12, fontWeight: '700', color: C.text, marginBottom: 2 },
   guideDesc:   { fontSize: 11, color: C.muted, lineHeight: 15 },
   guideLine:   { height: 1, backgroundColor: C.border, marginLeft: 38 },
+
+  // ── Open Bookings ─────────────────────────────────────────────
+  obCard: {
+    backgroundColor: C.card, borderRadius: 14, padding: 13,
+    flexDirection: 'row', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: C.border, marginBottom: 8,
+  },
+  obSvcIcon:   { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  obInfo:      { flex: 1, marginLeft: 12, marginRight: 4 },
+  obRow:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
+  obCustomer:  { fontSize: 13, fontWeight: '700', color: C.text, flex: 1, marginRight: 6 },
+  obNum:       { fontSize: 10, fontWeight: '600', color: C.muted },
+  obMeta:      { fontSize: 11, color: C.sub, marginBottom: 5 },
+  obFooter:    { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5 },
+  obSvcTag:    { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  obSvcTagTxt: { fontSize: 9, fontWeight: '700' },
+  obStatusPill:{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
+  obStatusTxt: { fontSize: 9, fontWeight: '800' },
+  obEmpty:     { alignItems: 'center', paddingVertical: 20, gap: 8 },
+  obEmptyTxt:  { fontSize: 12, color: C.muted, fontWeight: '600' },
+  obSeeAll: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 10, borderRadius: 10, gap: 5, marginTop: 2,
+    backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
+  },
+  obSeeAllTxt: { fontSize: 12, fontWeight: '700', color: C.g700 },
 
   // ── Update modal ──────────────────────────────────────────────
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },

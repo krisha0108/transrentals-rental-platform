@@ -319,7 +319,7 @@ export async function GET(
 <title>${esc(story.title)}</title>
 <link rel="canonical" href="${canonicalUrl}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&amp;family=Poppins:wght@400;600;700;900&amp;display=swap" rel="stylesheet">
 <script async src="https://cdn.ampproject.org/v0.js"></script>
 <script async custom-element="amp-story" src="https://cdn.ampproject.org/v0/amp-story-1.0.js"></script>
 <script async custom-element="amp-video" src="https://cdn.ampproject.org/v0/amp-video-0.1.js"></script>
