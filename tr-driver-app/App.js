@@ -3,10 +3,10 @@ import { NavigationContainer, createNavigationContainerRef } from '@react-naviga
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar, Modal, Linking } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar, Modal, Linking, PermissionsAndroid, Platform } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
-import { getMessaging, getToken, onMessage, setBackgroundMessageHandler, onNotificationOpenedApp, getInitialNotification } from '@react-native-firebase/messaging';
+import { getMessaging, getToken, onMessage, onTokenRefresh, setBackgroundMessageHandler, onNotificationOpenedApp, getInitialNotification } from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 
 export const navigationRef = createNavigationContainerRef();
@@ -264,10 +264,24 @@ async function setupNotificationChannel() {
       id: 'driver_default',
       name: 'Driver Notifications',
       importance: AndroidImportance.HIGH,
-      sound: 'default',
+      sound: 'notification_sound',
     });
   } catch (e) {
     console.log('Notifee channel setup failed:', e);
+  }
+}
+
+async function requestNotificationPermission() {
+  try {
+    if (Platform.OS === 'android' && Platform.Version >= 33) {
+      const result = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+      );
+      return result === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -309,9 +323,23 @@ export default function App() {
 
     async function setupFCM() {
       try {
+        // Request notification permission (Android 13+)
+        await requestNotificationPermission();
+
         await setupNotificationChannel();
 
         const messagingInstance = getMessaging();
+
+        // Save FCM token to backend (in case it refreshed since last login)
+        try {
+          const token = await getToken(messagingInstance);
+          if (token) await updateDriverFcmToken(token);
+        } catch {}
+
+        // Token refresh handler — keep backend in sync
+        onTokenRefresh(messagingInstance, async (newToken) => {
+          try { await updateDriverFcmToken(newToken); } catch {}
+        });
 
         // FCM background handler — display notification when app is in background
         setBackgroundMessageHandler(messagingInstance, async (remoteMessage) => {
