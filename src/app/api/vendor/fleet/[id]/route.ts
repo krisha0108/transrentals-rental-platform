@@ -320,7 +320,13 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ success: true, vehicle: updated });
+    const parsedImages = updated.images
+      ? (typeof updated.images === 'string'
+        ? (updated.images === 'null' ? null : (() => { try { return JSON.parse(updated.images as string); } catch { return null; } })())
+        : updated.images)
+      : null;
+
+    return NextResponse.json({ success: true, vehicle: { ...updated, images: parsedImages } });
   } catch (error: any) {
     logger.error('Patch fleet vehicle error', error);
     return NextResponse.json(

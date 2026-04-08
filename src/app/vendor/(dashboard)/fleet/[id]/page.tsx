@@ -26,7 +26,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn, resolveAssetUrl } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import FleetBlockedDatesCalendar from '@/components/vendor/FleetBlockedDatesCalendar';
 
 interface FleetVehicle {
@@ -131,6 +131,7 @@ export default function VehicleDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [failedImageIndexes, setFailedImageIndexes] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const fetchVehicle = async () => {
@@ -254,29 +255,39 @@ export default function VehicleDetailPage() {
     return 'Unknown Vehicle';
   };
 
+  // Resolve image URL — relative /uploads/ paths served from same host, absolute URLs as-is
+  const resolveImg = (path?: string | null): string | null => {
+    if (!path) return null;
+    if (path.startsWith('data:') || /^https?:\/\//i.test(path)) return path;
+    return path.startsWith('/') ? path : `/${path}`;
+  };
+
   // Helper to get all images for slider (featured + vendor images)
   const getAllImages = () => {
     const images: { url: string; label: string; isFeatured?: boolean }[] = [];
 
-    // Add featured image first (admin's image from model/category)
     if (!vehicle) return images;
 
-    let featuredImageUrl = null;
-    if (vehicleModel?.sideImage) featuredImageUrl = vehicleModel.sideImage;
-    else if (vehicleCategory?.image) featuredImageUrl = vehicleCategory.image;
-    else if (brandData?.logo) featuredImageUrl = brandData.logo;
-
-    if (featuredImageUrl) {
-      images.push({ url: resolveAssetUrl(featuredImageUrl), label: 'Featured Image', isFeatured: true });
+    // Featured image first (admin's image from model/category)
+    const featuredRaw = vehicleModel?.sideImage || vehicleCategory?.image || brandData?.logo;
+    const featuredUrl = resolveImg(featuredRaw);
+    if (featuredUrl) {
+      images.push({ url: featuredUrl, label: 'Featured Image', isFeatured: true });
     }
 
-    // Add vendor-uploaded images
+    // Vendor-uploaded images
     if (vehicle.images) {
-      if (vehicle.images.front) images.push({ url: resolveAssetUrl(vehicle.images.front), label: 'Front View' });
-      if (vehicle.images.back) images.push({ url: resolveAssetUrl(vehicle.images.back), label: 'Back View' });
-      if (vehicle.images.leftSide) images.push({ url: resolveAssetUrl(vehicle.images.leftSide), label: 'Left Side' });
-      if (vehicle.images.rightSide) images.push({ url: resolveAssetUrl(vehicle.images.rightSide), label: 'Right Side' });
-      if (vehicle.images.inside) images.push({ url: resolveAssetUrl(vehicle.images.inside), label: 'Interior' });
+      const slots = [
+        { key: 'front',     label: 'Front View' },
+        { key: 'back',      label: 'Back View' },
+        { key: 'leftSide',  label: 'Left Side' },
+        { key: 'rightSide', label: 'Right Side' },
+        { key: 'inside',    label: 'Interior' },
+      ] as const;
+      for (const slot of slots) {
+        const url = resolveImg((vehicle.images as any)[slot.key]);
+        if (url) images.push({ url, label: slot.label });
+      }
     }
 
     return images;
@@ -392,22 +403,21 @@ export default function VehicleDetailPage() {
             {hasImages ? (
               <div className="relative bg-gradient-to-br from-blue-50 to-indigo-100">
                 <div className="w-full h-56 flex items-center justify-center">
-                  <img
-                    src={allImages[currentImageIndex].url}
-                    alt={allImages[currentImageIndex].label}
-                    className="w-full h-full object-contain p-4"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      const placeholder = isBikeService
-                        ? '<svg class="w-24 h-24 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>'
-                        : '<svg class="w-24 h-24 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
-
-                      // Null check before accessing parentElement
-                      if (e.currentTarget.parentElement) {
-                        e.currentTarget.parentElement.innerHTML = `<div class="flex items-center justify-center w-full h-full">${placeholder}</div>`;
-                      }
-                    }}
-                  />
+                  {failedImageIndexes.has(currentImageIndex) ? (
+                    <div className="flex items-center justify-center w-full h-full">
+                      {isBikeService
+                        ? <Bike className="w-24 h-24 text-blue-300" />
+                        : <Car className="w-24 h-24 text-blue-300" />}
+                    </div>
+                  ) : (
+                    <img
+                      key={allImages[currentImageIndex].url}
+                      src={allImages[currentImageIndex].url}
+                      alt={allImages[currentImageIndex].label}
+                      className="w-full h-full object-contain p-4"
+                      onError={() => setFailedImageIndexes(prev => new Set(prev).add(currentImageIndex))}
+                    />
+                  )}
                 </div>
 
                 {/* Featured Badge */}

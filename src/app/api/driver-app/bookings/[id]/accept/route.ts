@@ -39,7 +39,7 @@ export async function POST(
         where: { id: params.id },
         data: {
           ...(isStaff
-            ? { acceptedVendorId: (driver as any).vendorId }
+            ? { acceptedVendorId: (driver as any).vendorId, acceptedStaffId: driver.id }
             : { acceptedDriverId: driver.id }
           ),
           status: 'ACCEPTED',
