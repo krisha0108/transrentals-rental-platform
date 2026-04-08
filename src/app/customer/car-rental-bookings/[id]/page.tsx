@@ -63,6 +63,7 @@ interface BookingDetails {
   driverEmail?: string;
   driverPhoto?: string;
   acceptedDriverId?: string;
+  acceptedStaffId?: string;
   vehicleNumber?: string;
   vehicleModel?: string;
   vehicleColor?: string;
@@ -70,9 +71,26 @@ interface BookingDetails {
   vehicleSeats?: number;
   vehicleYear?: number;
   vehiclePhoto?: string;
+  vehiclePhotos?: {
+    front?: string | null;
+    back?: string | null;
+    leftSide?: string | null;
+    rightSide?: string | null;
+    interior?: string | null;
+  };
+  vendorVehicleImages?: string[];
   tripStartOtp?: string;
   tripStartedAt?: string;
   tripEndedAt?: string;
+  vendor?: {
+    id: string;
+    businessName: string;
+    ownerName: string;
+    phone: string;
+    logo?: string | null;
+    city?: string | null;
+    rating?: number | null;
+  } | null;
   rating?: number;
   review?: string;
   paymentStatus?: string;
@@ -94,6 +112,15 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
 };
 
 
+function InitialAvatar({ name, className }: { name: string; className?: string }) {
+  const initials = name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  return (
+    <div className={`flex items-center justify-center bg-emerald-100 text-emerald-700 font-bold text-sm select-none ${className}`}>
+      {initials}
+    </div>
+  );
+}
+
 export default function CarRentalBookingDetailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -106,6 +133,7 @@ export default function CarRentalBookingDetailPage() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState('');
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
 
   const fetchBooking = async (silent = false) => {
     try {
@@ -219,21 +247,21 @@ export default function CarRentalBookingDetailPage() {
       )}
 
       {/* Header */}
-      <div className="bg-emerald-900 text-white py-6">
+      <div className="bg-emerald-900 text-white py-4">
         <div className="container-custom">
           <Link
             href="/customer/car-rental-bookings"
-            className="inline-flex items-center gap-2 text-emerald-200 hover:text-white mb-4"
+            className="inline-flex items-center gap-1.5 text-emerald-300 hover:text-white mb-3 text-xs"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             Back to Bookings
           </Link>
-          <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-xl font-bold">Booking #{booking.bookingNumber}</h1>
-              <p className="text-emerald-200">{booking.carCategoryName} - {booking.tripType.replace(/_/g, ' ')}</p>
+              <h1 className="text-sm font-semibold text-white">#{booking.bookingNumber}</h1>
+              <p className="text-xs text-emerald-300 mt-0.5">{booking.carCategoryName} · {booking.tripType.replace(/_/g, ' ')}</p>
             </div>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusConfig.bgColor} ${statusConfig.color}`}>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${statusConfig.bgColor} ${statusConfig.color}`}>
               {statusConfig.label}
             </span>
           </div>
@@ -245,85 +273,187 @@ export default function CarRentalBookingDetailPage() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* Driver Card (if assigned) */}
-            {(booking.driverName || booking.acceptedDriverId) && !['COMPLETED', 'CANCELLED'].includes(booking.status) && (
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                <h2 className="font-semibold text-gray-900 mb-4">Your Driver</h2>
-                <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center overflow-hidden">
-                    {booking.driverPhoto
-                      ? <img src={booking.driverPhoto} alt="Driver" className="w-full h-full object-cover" />
-                      : <User className="w-8 h-8 text-emerald-600" />}
+            {/* Vendor Card (if vendor accepted from dashboard — not driver/staff app) */}
+            {booking.vendor && !booking.acceptedDriverId && !booking.acceptedStaffId && !['COMPLETED', 'CANCELLED'].includes(booking.status) && (
+              <div className="bg-white rounded-xl shadow-sm border p-4">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Service Provider</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-100 flex-shrink-0">
+                    {booking.vendor.logo
+                      ? <img src={booking.vendor.logo} alt="Vendor"
+                          className="w-full h-full object-cover"
+                          onError={e => { e.currentTarget.style.display='none'; (e.currentTarget.nextSibling as HTMLElement).style.display='flex'; }}
+                        />
+                      : null}
+                    <InitialAvatar name={booking.vendor.businessName} className={`w-full h-full rounded-lg ${booking.vendor.logo ? 'hidden' : ''}`} />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg text-gray-900">{booking.driverName || 'Driver Assigned'}</h3>
-                    {booking.driverEmail && <p className="text-sm text-gray-500">{booking.driverEmail}</p>}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{booking.vendor.businessName}</p>
+                    <p className="text-xs text-gray-500">{booking.vendor.ownerName}{booking.vendor.city ? ` · ${booking.vendor.city}` : ''}</p>
+                    {booking.vendor.rating && booking.vendor.rating > 0 && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                        <span className="text-xs text-gray-600 font-medium">{booking.vendor.rating.toFixed(1)}</span>
+                      </div>
+                    )}
                   </div>
+                  <a href={`tel:${booking.vendor.phone}`}
+                    className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-semibold hover:bg-emerald-100 flex-shrink-0">
+                    <Phone className="w-3.5 h-3.5" />
+                    Call
+                  </a>
                 </div>
+
+                {/* Driver assigned by vendor */}
+                {(booking.driverName || booking.acceptedDriverId) && (
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Assigned Driver</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full overflow-hidden bg-indigo-50 flex-shrink-0">
+                        {booking.driverPhoto
+                          ? <img src={booking.driverPhoto} alt="Driver"
+                              className="w-full h-full object-cover"
+                              onError={e => { e.currentTarget.style.display='none'; (e.currentTarget.nextSibling as HTMLElement).style.display='flex'; }}
+                            />
+                          : null}
+                        <InitialAvatar name={booking.driverName || 'D'} className={`w-full h-full rounded-full bg-indigo-100 text-indigo-700 ${booking.driverPhoto ? 'hidden' : ''}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{booking.driverName || 'Driver Assigned'}</p>
+                        {booking.driverPhone && <p className="text-xs text-gray-500">{booking.driverPhone}</p>}
+                      </div>
+                      {booking.driverPhone && (
+                        <a href={`tel:${booking.driverPhone}`}
+                          className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-semibold hover:bg-indigo-100 flex-shrink-0">
+                          <Phone className="w-3.5 h-3.5" />
+                          Call
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+
 
 
                 {/* Vehicle Details */}
                 {(booking.vehicleNumber || booking.vehicleModel) && (
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-2">Vehicle</p>
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Vehicle</p>
                     <div className="flex items-start gap-3">
                       {booking.vehiclePhoto && (
-                        <img src={booking.vehiclePhoto} alt="Vehicle" className="w-20 h-14 object-cover rounded-lg border" />
+                        <img src={booking.vehiclePhoto} alt="Vehicle" className="w-16 h-11 object-cover rounded-lg border"
+                          onError={e => { e.currentTarget.style.display='none'; }} />
                       )}
                       <div className="flex-1">
                         {booking.vehicleModel && (
-                          <p className="font-semibold text-gray-900">{booking.vehicleModel}</p>
+                          <p className="text-sm font-semibold text-gray-900">{booking.vehicleModel}</p>
                         )}
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-gray-600">
+                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
                           {booking.vehicleNumber && (
-                            <span className="font-mono bg-gray-100 px-2 py-0.5 rounded text-xs">{booking.vehicleNumber}</span>
+                            <span className="font-mono bg-gray-100 px-2 py-0.5 rounded text-xs text-gray-700">{booking.vehicleNumber}</span>
                           )}
-                          {booking.vehicleColor && <span>{booking.vehicleColor}</span>}
-                          {booking.vehicleYear && <span>{booking.vehicleYear}</span>}
-                          {booking.vehicleFuelType && <span>{booking.vehicleFuelType}</span>}
-                          {booking.vehicleSeats && <span>{booking.vehicleSeats} Seats</span>}
+                          {booking.vehicleColor && <span className="text-xs text-gray-500">{booking.vehicleColor}</span>}
+                          {booking.vehicleYear && <span className="text-xs text-gray-500">{booking.vehicleYear}</span>}
+                          {booking.vehicleFuelType && <span className="text-xs text-gray-500">{booking.vehicleFuelType}</span>}
+                          {booking.vehicleSeats && <span className="text-xs text-gray-500">{booking.vehicleSeats} Seats</span>}
                         </div>
                       </div>
                     </div>
+
+                    {/* Vehicle Photo Gallery */}
+                    {(() => {
+                      // Collect all available photos into one list
+                      const allPhotos: string[] = [];
+                      const slots = [
+                        { key: 'front' as const, label: 'Front' },
+                        { key: 'back' as const, label: 'Back' },
+                        { key: 'leftSide' as const, label: 'Left' },
+                        { key: 'rightSide' as const, label: 'Right' },
+                        { key: 'interior' as const, label: 'Interior' },
+                      ];
+                      slots.forEach(s => { if (booking.vehiclePhotos?.[s.key]) allPhotos.push(booking.vehiclePhotos[s.key]!); });
+                      (booking.vendorVehicleImages || []).forEach(u => { if (u && !allPhotos.includes(u)) allPhotos.push(u); });
+                      if (!allPhotos.length) return null;
+                      return (
+                        <div className="mt-3">
+                          <p className="text-[11px] text-gray-400 font-medium mb-2">Vehicle Photos</p>
+                          <div className="flex gap-2 flex-wrap">
+                            {allPhotos.map((url, i) => (
+                              <button key={i} onClick={() => setLightbox({ images: allPhotos, index: i })}
+                                className="focus:outline-none rounded-lg overflow-hidden border border-gray-100 hover:border-emerald-400 transition">
+                                <img src={url} alt={`Photo ${i + 1}`}
+                                  className="w-16 h-12 object-cover"
+                                  onError={e => { (e.currentTarget.closest('button') as HTMLElement).style.display='none'; }} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
               </div>
             )}
 
-            {/* OTP for trip start — standalone card, always visible when active */}
+            {/* Direct Driver Card (driver or vendor_staff accepted via driver app) */}
+            {(booking.acceptedDriverId || booking.acceptedStaffId || (!booking.vendor && booking.driverName)) && !['COMPLETED', 'CANCELLED'].includes(booking.status) && (
+              <div className="bg-white rounded-xl shadow-sm border p-4">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Service Provider</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                    {booking.driverPhoto
+                      ? <img src={booking.driverPhoto} alt="Driver" className="w-full h-full object-cover"
+                          onError={e => { e.currentTarget.style.display='none'; (e.currentTarget.nextSibling as HTMLElement).style.display='flex'; }} />
+                      : null}
+                    <InitialAvatar name={booking.driverName || 'D'} className={`w-full h-full rounded-full ${booking.driverPhoto ? 'hidden' : ''}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{booking.driverName || 'Driver Assigned'}</p>
+                    {booking.driverPhone && <p className="text-xs text-gray-500">{booking.driverPhone}</p>}
+                  </div>
+                  {booking.driverPhone && (
+                    <a href={`tel:${booking.driverPhone}`}
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-semibold hover:bg-emerald-100 flex-shrink-0">
+                      <Phone className="w-3.5 h-3.5" />
+                      Call
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* OTP for trip start */}
             {['ACCEPTED', 'DRIVER_ASSIGNED'].includes(booking.status) && (
-              <div className="bg-white rounded-xl shadow-sm border p-6">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                 {booking.tripStartOtp ? (
-                  <>
-                    <p className="text-sm font-semibold text-amber-700 mb-2">Trip Start OTP</p>
-                    <p className="text-4xl font-bold text-amber-700 tracking-widest mb-2">
-                      {booking.tripStartOtp}
-                    </p>
-                    <p className="text-xs text-amber-600">
-                      Share this OTP with your driver to start the trip
-                    </p>
-                  </>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1">Trip Start OTP</p>
+                      <p className="text-2xl font-bold text-amber-700 tracking-widest">{booking.tripStartOtp}</p>
+                      <p className="text-xs text-amber-600 mt-1">Share this with your driver to start the trip</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                      <Navigation className="w-5 h-5 text-amber-600" />
+                    </div>
+                  </div>
                 ) : (
-                  <>
-                    <p className="text-sm font-semibold text-amber-700 mb-1">Trip Start OTP</p>
-                    <p className="text-xs text-gray-500 mb-2">
-                      Waiting for driver to send OTP. Share the OTP with your driver to begin the journey.
-                    </p>
-                    <button
-                      onClick={() => fetchBooking(true)}
-                      className="text-xs text-amber-700 underline"
-                    >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1">Trip Start OTP</p>
+                      <p className="text-xs text-amber-600">Waiting for driver to assign vehicle. OTP will appear here.</p>
+                    </div>
+                    <button onClick={() => fetchBooking(true)} className="text-xs text-amber-700 underline font-medium flex-shrink-0">
                       Refresh
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
             )}
 
             {/* Trip Details */}
-            <div className="bg-white rounded-xl shadow-sm border p-6 space-y-5">
-              <h2 className="font-semibold text-gray-900">Trip Details</h2>
+            <div className="bg-white rounded-xl shadow-sm border p-4 space-y-4">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Trip Details</p>
 
               {/* Trip Type Badge */}
               <div className="flex flex-wrap gap-2">
@@ -381,8 +511,8 @@ export default function CarRentalBookingDetailPage() {
                           <p className="text-xs text-gray-400 uppercase tracking-wide font-medium">
                             {point.type === 'pickup' ? 'Pickup' : point.type === 'drop' ? 'Drop' : `Stop ${i}`}
                           </p>
-                          <p className="font-semibold text-gray-900 mt-0.5">{point.label}</p>
-                          {point.sub && <p className="text-sm text-gray-500 mt-0.5">{point.sub}</p>}
+                          <p className="text-sm font-semibold text-gray-900 mt-0.5">{point.label}</p>
+                          {point.sub && <p className="text-xs text-gray-500 mt-0.5">{point.sub}</p>}
                         </div>
                       ))}
                     </div>
@@ -415,8 +545,8 @@ export default function CarRentalBookingDetailPage() {
               )}
 
               {/* Fare Breakdown */}
-              <div className="border-t pt-4 space-y-2 text-sm">
-                <p className="font-semibold text-gray-900 mb-3">Fare Breakdown</p>
+              <div className="border-t pt-3 space-y-1.5 text-xs">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Fare Breakdown</p>
                 {booking.kmCharges && booking.kmCharges > 0 ? (
                   <div className="flex justify-between text-gray-600">
                     <span>Distance charge{booking.chargeableKm ? ` (${booking.chargeableKm} km)` : ''}</span>
@@ -452,9 +582,9 @@ export default function CarRentalBookingDetailPage() {
                     <span>₹{booking.gstAmount.toLocaleString()}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-bold text-gray-900 border-t pt-2 text-base">
+                <div className="flex justify-between font-bold text-gray-900 border-t pt-2 text-sm">
                   <span>Total</span>
-                  <span className="text-blue-600">₹{booking.grandTotal.toLocaleString()}</span>
+                  <span className="text-emerald-700">₹{booking.grandTotal.toLocaleString()}</span>
                 </div>
                 {booking.paidAmount && booking.paidAmount > 0 && (
                   <div className="flex justify-between text-emerald-600 font-medium">
@@ -474,11 +604,11 @@ export default function CarRentalBookingDetailPage() {
 
             {/* Vendor Messages / Notes */}
             {booking.vendorNotes && (
-              <div className="bg-white rounded-xl border border-emerald-200 p-6">
-                <h2 className="font-semibold text-emerald-800 mb-3 flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5 text-emerald-600" />
-                  Messages from Vendor
-                </h2>
+              <div className="bg-white rounded-xl border border-emerald-200 p-4">
+                <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  Message from Vendor
+                </p>
                 <div className="space-y-3">
                   {(() => {
                     let notes: { text: string; sentAt: string }[] = [];
@@ -504,27 +634,27 @@ export default function CarRentalBookingDetailPage() {
             )}
 
             {/* Timeline */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h2 className="font-semibold text-gray-900 mb-4">Booking Timeline</h2>
-              <div className="space-y-4">
+            <div className="bg-white rounded-xl shadow-sm border p-4">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Booking Timeline</p>
+              <div className="space-y-3">
                 {[
                   { label: 'Booking Created', time: booking.createdAt, done: true },
                   { label: 'Driver Assigned', time: booking.status !== 'PENDING_VENDOR' ? new Date().toISOString() : null, done: !!booking.driverName },
                   { label: 'Trip Started', time: booking.tripStartedAt, done: !!booking.tripStartedAt },
                   { label: 'Trip Completed', time: booking.tripEndedAt, done: booking.status === 'COMPLETED' },
                 ].map((step, idx) => (
-                  <div key={idx} className="flex items-start gap-3">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                      step.done ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'
+                  <div key={idx} className="flex items-start gap-2.5">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                      step.done ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-400'
                     }`}>
-                      {step.done ? <CheckCircle className="w-4 h-4" /> : idx + 1}
+                      {step.done ? <CheckCircle className="w-3 h-3" /> : <span className="text-[10px] font-bold">{idx + 1}</span>}
                     </div>
                     <div className="flex-1">
-                      <p className={`font-medium ${step.done ? 'text-gray-900' : 'text-gray-400'}`}>
+                      <p className={`text-xs font-semibold ${step.done ? 'text-gray-800' : 'text-gray-400'}`}>
                         {step.label}
                       </p>
                       {step.time && step.done && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-[11px] text-gray-400 mt-0.5">
                           {new Date(step.time).toLocaleString('en-IN')}
                         </p>
                       )}
@@ -536,14 +666,14 @@ export default function CarRentalBookingDetailPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Payment Summary */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h2 className="font-semibold text-gray-900 mb-4">Payment Summary</h2>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Grand Total</span>
-                  <span className="font-bold text-blue-600 text-base">₹{booking.grandTotal.toLocaleString()}</span>
+            <div className="bg-white rounded-xl shadow-sm border p-4">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Payment Summary</p>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">Grand Total</span>
+                  <span className="font-bold text-emerald-700 text-sm">₹{booking.grandTotal.toLocaleString()}</span>
                 </div>
                 {booking.paidAmount && booking.paidAmount > 0 && (
                   <div className="flex justify-between text-emerald-600">
@@ -552,28 +682,24 @@ export default function CarRentalBookingDetailPage() {
                   </div>
                 )}
                 {booking.paidAmount && booking.grandTotal - booking.paidAmount > 0 && (
-                  <div className="flex justify-between text-amber-600 font-semibold border-t pt-2">
+                  <div className="flex justify-between text-amber-600 font-semibold border-t pt-1.5 mt-1">
                     <span>Balance due</span>
                     <span>₹{(booking.grandTotal - booking.paidAmount).toLocaleString()}</span>
                   </div>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-4">
-                * Toll, parking & state permit charges are extra
-              </p>
+              <p className="text-[11px] text-gray-400 mt-3">* Toll, parking & state permit charges are extra</p>
             </div>
 
             {/* Actions */}
-            <div className="bg-white rounded-xl shadow-sm border p-6 space-y-3">
+            <div className="bg-white rounded-xl shadow-sm border p-4 space-y-2.5">
               {(booking.status === 'PAYMENT_SUBMITTED' || (booking.status === 'PENDING_PAYMENT' && booking.paymentStatus === 'SUBMITTED')) && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
-                  <CheckCircle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-                  <p className="font-semibold text-amber-800">Payment Under Verification</p>
-                  <p className="text-sm text-amber-600 mt-1">
-                    Your payment has been submitted. Our team will verify and confirm your booking within 15–30 minutes.
-                  </p>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                  <CheckCircle className="w-6 h-6 text-amber-500 mx-auto mb-1.5" />
+                  <p className="text-sm font-semibold text-amber-800">Payment Under Verification</p>
+                  <p className="text-xs text-amber-600 mt-1">Our team will verify and confirm within 15–30 minutes.</p>
                   {booking.transactionId && (
-                    <p className="text-xs text-amber-500 mt-2">Ref: {booking.transactionId}</p>
+                    <p className="text-[11px] text-amber-500 mt-1">Ref: {booking.transactionId}</p>
                   )}
                 </div>
               )}
@@ -591,9 +717,9 @@ export default function CarRentalBookingDetailPage() {
               {canRate && (
                 <button
                   onClick={() => setShowRatingModal(true)}
-                  className="w-full px-4 py-3 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 flex items-center justify-center gap-2"
+                  className="w-full px-3 py-2.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 flex items-center justify-center gap-1.5"
                 >
-                  <Star className="w-5 h-5" />
+                  <Star className="w-4 h-4" />
                   Rate Your Trip
                 </button>
               )}
@@ -601,29 +727,56 @@ export default function CarRentalBookingDetailPage() {
               {canCancel && (
                 <button
                   onClick={handleCancel}
-                  className="w-full px-4 py-3 bg-red-50 text-red-600 font-medium rounded-lg hover:bg-red-100 flex items-center justify-center gap-2"
+                  className="w-full px-3 py-2.5 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 flex items-center justify-center gap-1.5"
                 >
-                  <XCircle className="w-5 h-5" />
+                  <XCircle className="w-4 h-4" />
                   Cancel Booking
                 </button>
               )}
 
               <button
                 onClick={() => window.open(`/api/car-rental/bookings/${booking.bookingNumber}/invoice`, '_blank')}
-                className="w-full px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 flex items-center justify-center gap-2"
+                className="w-full px-3 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 flex items-center justify-center gap-1.5"
               >
-                <Download className="w-5 h-5" />
+                <Download className="w-4 h-4" />
                 Download Invoice
               </button>
 
-              <button className="w-full px-4 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 flex items-center justify-center gap-2">
-                <HelpCircle className="w-5 h-5" />
+              <button className="w-full px-3 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 flex items-center justify-center gap-1.5">
+                <HelpCircle className="w-4 h-4" />
                 Need Help?
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50"
+          onClick={() => setLightbox(null)}>
+          <button className="absolute top-4 right-4 text-white text-3xl leading-none z-10" onClick={() => setLightbox(null)}>×</button>
+          {lightbox.images.length > 1 && (
+            <button className="absolute left-4 top-1/2 -translate-y-1/2 text-white text-4xl leading-none z-10 px-2"
+              onClick={e => { e.stopPropagation(); setLightbox(prev => prev ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length } : null); }}>‹</button>
+          )}
+          <img
+            src={lightbox.images[lightbox.index]}
+            alt={`Photo ${lightbox.index + 1}`}
+            className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg"
+            onClick={e => e.stopPropagation()}
+          />
+          {lightbox.images.length > 1 && (
+            <button className="absolute right-4 top-1/2 -translate-y-1/2 text-white text-4xl leading-none z-10 px-2"
+              onClick={e => { e.stopPropagation(); setLightbox(prev => prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : null); }}>›</button>
+          )}
+          {lightbox.images.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-xs">
+              {lightbox.index + 1} / {lightbox.images.length}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Rating Modal */}
       {showRatingModal && (

@@ -39,7 +39,7 @@ export async function POST(
         where: { id: params.id },
         data: {
           ...(isStaff
-            ? { acceptedVendorId: (driver as any).vendorId }
+            ? { acceptedVendorId: (driver as any).vendorId, acceptedStaffId: driver.id }
             : { acceptedDriverId: driver.id }
           ),
           status: 'ACCEPTED',
@@ -51,7 +51,7 @@ export async function POST(
       });
     });
 
-    return NextResponse.json({ success: true, booking });
+    return NextResponse.json({ success: true, booking: { ...booking, source: 'chauffeur' } });
   } catch (error: any) {
     const msg = error?.message || String(error) || 'Unknown error';
     console.error('[accept booking]', msg, error?.code, error?.meta);

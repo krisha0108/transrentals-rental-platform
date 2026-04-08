@@ -25,6 +25,10 @@ export default function SettingsPage() {
     vendor_app_latest_version: '4.0.0',
     vendor_app_force_update: 'false',
     vendor_app_update_message: 'New features and improvements available.',
+    // Driver App Version
+    driver_app_latest_version: '1.0.0',
+    driver_app_force_update: 'false',
+    driver_app_update_message: 'New features and improvements available.',
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -329,7 +333,7 @@ export default function SettingsPage() {
         <hr className="my-6 border-gray-200" />
 
         {/* Vendor App */}
-        <div>
+        <div className="mb-6">
           <h3 className="text-sm font-semibold text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg inline-block mb-4">Vendor App</h3>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -363,6 +367,49 @@ export default function SettingsPage() {
                 onChange={(e) => setSettings({ ...settings, vendor_app_update_message: e.target.value })}
                 rows={2}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="What's new in this version..."
+              />
+            </div>
+          </div>
+        </div>
+
+        <hr className="my-6 border-gray-200" />
+
+        {/* Driver App */}
+        <div>
+          <h3 className="text-sm font-semibold text-green-700 bg-green-50 px-3 py-1.5 rounded-lg inline-block mb-4">Driver App</h3>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Latest Version</label>
+                <input
+                  type="text"
+                  value={(settings as any).driver_app_latest_version}
+                  onChange={(e) => setSettings({ ...settings, driver_app_latest_version: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="e.g. 1.0.0"
+                />
+                <p className="text-xs text-gray-500 mt-1">Version on Play Store</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Force Update</label>
+                <select
+                  value={(settings as any).driver_app_force_update}
+                  onChange={(e) => setSettings({ ...settings, driver_app_force_update: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="false">No — User can skip</option>
+                  <option value="true">Yes — Must update</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Update Message</label>
+              <textarea
+                value={(settings as any).driver_app_update_message}
+                onChange={(e) => setSettings({ ...settings, driver_app_update_message: e.target.value })}
+                rows={2}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="What's new in this version..."
               />
             </div>

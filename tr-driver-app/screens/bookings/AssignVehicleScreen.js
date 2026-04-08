@@ -78,7 +78,7 @@ export default function AssignVehicleScreen({ route, navigation }) {
 
       const res = await assignVehicle(booking.id, data);
       if (res.data.success) {
-        navigation.navigate('BookingDetail', { booking: { ...booking, status: 'DRIVER_ASSIGNED' } });
+        navigation.navigate('BookingDetail', { booking: res.data.booking });
       }
     } catch (err) {
       Alert.alert('Error', err.response?.data?.error || 'Failed to assign vehicle');
