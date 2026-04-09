@@ -24,48 +24,6 @@ export const metadata: Metadata = {
   },
 };
 
-const movingTypes = [
-  {
-    name: 'Local Shifting',
-    description: 'Within city relocation services',
-    price: '₹4999',
-    features: [
-      'Complete packing materials',
-      'Loading & unloading',
-      'Local transportation',
-      'Furniture dismantling',
-      'Same-day service available',
-    ],
-  },
-  {
-    name: 'Domestic Moving',
-    description: 'Intercity and interstate relocation',
-    price: '₹9999',
-    features: [
-      'Professional packing team',
-      'Safe long-distance transport',
-      'Transit insurance included',
-      'Unpacking services',
-      'Real-time tracking',
-      'Dedicated move coordinator',
-    ],
-    popular: true,
-  },
-  {
-    name: 'Office Shifting',
-    description: 'Corporate relocation services',
-    price: '₹14,999',
-    features: [
-      'Minimal business disruption',
-      'IT equipment handling',
-      'Furniture installation',
-      'After-hours moving available',
-      'Comprehensive insurance',
-      'Project management',
-    ],
-  },
-];
-
 export default function PackersAndMoversPage() {
 
   return (
@@ -84,12 +42,6 @@ export default function PackersAndMoversPage() {
       />
 
       
-
-      <ServiceTypesGrid
-        title="Choose Your Moving Service"
-        subtitle="Select the right relocation package based on your moving requirements"
-        types={movingTypes}
-      />
 
       <LocationsGrid service="packers-and-movers" />
 

@@ -12,11 +12,6 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://transrentals.in/himalayan-on-rent' },
 };
 
-const variants = [
-  { name: 'Himalayan 411cc', price: 1499, features: 'Classic adventure tourer, proven reliability' },
-  { name: 'Himalayan 450', price: 1799, features: 'New gen, more power, better suspension' },
-];
-
 const topCities = ALL_CITIES.slice(0, 12);
 
 export default function HimalayanOnRentPage() {
@@ -63,32 +58,6 @@ export default function HimalayanOnRentPage() {
                 <div className="text-3xl mb-2">{item.icon}</div>
                 <h3 className="font-bold mb-1">{item.title}</h3>
                 <p className="text-sm text-gray-600">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="variants" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12">Himalayan Variants</h2>
-          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-            {variants.map((v) => (
-              <div key={v.name} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition">
-                <div className="bg-slate-800 text-white p-6">
-                  <h3 className="text-xl font-bold">{v.name}</h3>
-                  <p className="text-3xl font-bold mt-2">₹{v.price}<span className="text-sm opacity-75">/day</span></p>
-                </div>
-                <div className="p-6">
-                  <p className="text-gray-600 mb-4">{v.features}</p>
-                  <ul className="text-sm text-gray-600 space-y-2 mb-6">
-                    <li>✓ Helmet included</li>
-                    <li>✓ Panniers available</li>
-                    <li>✓ Insurance covered</li>
-                    <li>✓ Roadside assistance</li>
-                  </ul>
-                  <button className="w-full bg-slate-800 text-white py-3 rounded-lg hover:bg-slate-900 transition">Book Now</button>
-                </div>
               </div>
             ))}
           </div>

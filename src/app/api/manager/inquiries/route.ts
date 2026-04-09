@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
       truckInquiries,
     ] = await Promise.all([
       // Bike Rental Quote Requests
-      shouldFetchService('bike-rental', 'bike')
+      shouldFetchService('bike-rental', 'bike', 'bike-rental-activa', 'bike-on-rent')
         ? prisma.bike_quote_requests.findMany({
             where: locationIdFilter,
             include: {
@@ -163,7 +163,7 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
 
       // Truck Transport Quote Requests
-      shouldFetchService('truck-transport', 'truck', 'transporter')
+      shouldFetchService('truck-transport', 'truck', 'transporter', 'truck-rental', 'truck-tempo-rental', 'mini-truck-rental', 'trailer-on-rent')
         ? prisma.truck_quote_requests.findMany({
             where: pickupCityFilter,
             include: {

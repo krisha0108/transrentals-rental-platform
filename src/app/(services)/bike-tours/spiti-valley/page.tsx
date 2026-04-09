@@ -79,10 +79,6 @@ export default function SpitiValleyTourPage() {
             </p>
             <div className="flex flex-wrap gap-4 mb-8">
               <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Starting from</p>
-                <p className="text-2xl font-bold">₹26,999</p>
-              </div>
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
                 <p className="text-xs opacity-75">Duration</p>
                 <p className="text-2xl font-bold">8 Days</p>
               </div>
@@ -96,7 +92,7 @@ export default function SpitiValleyTourPage() {
               </div>
             </div>
             <button className="bg-yellow-400 text-black px-8 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
-              Book Now - ₹26,999
+              Book Now
             </button>
           </div>
         </div>

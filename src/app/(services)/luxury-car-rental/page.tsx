@@ -117,53 +117,6 @@ export default function LuxuryCarRentalPage() {
         </div>
       </section>
 
-      {/* Pricing Packages */}
-      <section className="py-16 bg-gradient-to-br from-purple-900 via-purple-800 to-gray-900 text-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-3">
-              Rental Packages
-            </h2>
-            <p className="text-purple-200 text-lg">
-              Flexible options for every requirement
-            </p>
-          </div>
-          <div className="grid md:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            {[
-              { duration: 'Hourly', price: '₹1,500+', desc: '4 hours minimum', best: 'Events & Parties' },
-              { duration: 'Daily', price: '₹5,999+', desc: '24 hours full day', best: 'Weddings', featured: true },
-              { duration: 'Weekly', price: '₹35,000+', desc: '7 days package', best: 'Film Shoots' },
-              { duration: 'Monthly', price: '₹1,20,000+', desc: '30 days luxury', best: 'Executives' },
-            ].map((plan) => (
-              <div
-                key={plan.duration}
-                className={`rounded-xl p-6 text-center ${
-                  plan.featured
-                    ? 'bg-gradient-to-br from-amber-500 to-yellow-500 text-gray-900 shadow-xl transform scale-105'
-                    : 'bg-white/10 backdrop-blur-sm'
-                }`}
-              >
-                {plan.featured && (
-                  <span className="inline-block bg-gray-900 text-amber-400 text-xs font-bold px-3 py-1 rounded-full mb-3">
-                    MOST POPULAR
-                  </span>
-                )}
-                <h3 className="font-semibold text-xl mb-2">{plan.duration}</h3>
-                <p className={`text-3xl font-bold mb-2 ${plan.featured ? 'text-gray-900' : 'text-white'}`}>
-                  {plan.price}
-                </p>
-                <p className={`text-sm mb-3 ${plan.featured ? 'text-gray-700' : 'text-purple-200'}`}>
-                  {plan.desc}
-                </p>
-                <p className={`text-xs font-semibold ${plan.featured ? 'text-gray-800' : 'text-amber-300'}`}>
-                  Best for: {plan.best}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* FAQs */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4 max-w-4xl">

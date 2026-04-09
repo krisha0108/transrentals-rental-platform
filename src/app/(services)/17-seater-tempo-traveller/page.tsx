@@ -16,13 +16,6 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://transrentals.in/17-seater-tempo-traveller' },
 };
 
-const variants = [
-  { name: '17 Seater Non-AC', price: 20, features: 'Push-back seats, Music System, Luggage Carrier' },
-  { name: '17 Seater AC', price: 25, features: 'Air Conditioned, Push-back Seats, LCD Screen' },
-  { name: '17 Seater Deluxe', price: 30, features: 'Premium Interiors, Reclining Seats, LED TV' },
-  { name: '17 Seater Maharaja', price: 38, features: '2x1 Seating, Luxury Interiors, Premium Sound' },
-];
-
 const topCities = ALL_CITIES.slice(0, 12);
 
 export default function SeventeenSeaterTempoTravellerPage() {
@@ -75,35 +68,6 @@ export default function SeventeenSeaterTempoTravellerPage() {
         </div>
       </section>
 
-      <section id="variants" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-4">17 Seater Variants & Pricing</h2>
-          <p className="text-center text-gray-600 mb-12">Choose based on comfort level and budget</p>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {variants.map((variant) => (
-              <div key={variant.name} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition">
-                <div className="bg-purple-700 text-white p-4">
-                  <h3 className="text-lg font-bold">{variant.name}</h3>
-                  <div className="mt-2">
-                    <span className="text-3xl font-bold">₹{variant.price}</span>
-                    <span className="text-sm opacity-75">/km</span>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <p className="text-sm text-gray-600 mb-4">{variant.features}</p>
-                  <ul className="text-sm text-gray-600 space-y-1 mb-4">
-                    <li>✓ Professional driver</li>
-                    <li>✓ Fuel included</li>
-                    <li>✓ All permits & tolls</li>
-                  </ul>
-                  <button className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition">Book Now</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="py-12 bg-purple-50">
         <div className="container-custom">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Perfect For</h2>
@@ -135,34 +99,6 @@ export default function SeventeenSeaterTempoTravellerPage() {
             ))}
           </div>
           <div className="text-center mt-6"><p className="text-gray-600">+ 190 more cities available</p></div>
-        </div>
-      </section>
-
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Other Tempo Traveller Options</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href="/12-seater-tempo-traveller" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🚐</div>
-              <h3 className="font-bold text-lg group-hover:text-purple-600">12 Seater</h3>
-              <p className="text-sm text-gray-600 mt-2">Smaller groups from ₹18/km</p>
-            </Link>
-            <Link href="/20-seater-tempo-traveller" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🚌</div>
-              <h3 className="font-bold text-lg group-hover:text-purple-600">20 Seater</h3>
-              <p className="text-sm text-gray-600 mt-2">Larger groups from ₹22/km</p>
-            </Link>
-            <Link href="/26-seater-bus" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🚍</div>
-              <h3 className="font-bold text-lg group-hover:text-purple-600">26 Seater Bus</h3>
-              <p className="text-sm text-gray-600 mt-2">Full-size bus from ₹28/km</p>
-            </Link>
-            <Link href="/tempo-traveller" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🚎</div>
-              <h3 className="font-bold text-lg group-hover:text-purple-600">All Options</h3>
-              <p className="text-sm text-gray-600 mt-2">View all tempo travellers</p>
-            </Link>
-          </div>
         </div>
       </section>
 

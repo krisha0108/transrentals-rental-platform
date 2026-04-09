@@ -33,31 +33,6 @@ export const metadata: Metadata = {
   },
 };
 
-const packages = [
-  {
-    name: 'Manali - Leh - Manali',
-    duration: '10 Days / 9 Nights',
-    distance: '1,000 km',
-    price: 32999,
-    highlights: ['Rohtang Pass', 'Keylong', 'Jispa', 'Sarchu', 'Leh', 'Khardung La', 'Nubra Valley', 'Pangong Lake'],
-  },
-  {
-    name: 'Manali - Leh - Srinagar',
-    duration: '12 Days / 11 Nights',
-    distance: '1,400 km',
-    price: 38999,
-    highlights: ['Rohtang Pass', 'Leh', 'Khardung La', 'Nubra Valley', 'Pangong Lake', 'Tso Moriri', 'Kargil', 'Srinagar'],
-    popular: true,
-  },
-  {
-    name: 'Srinagar - Leh - Manali',
-    duration: '12 Days / 11 Nights',
-    distance: '1,400 km',
-    price: 38999,
-    highlights: ['Srinagar', 'Kargil', 'Leh', 'Khardung La', 'Pangong Lake', 'Tso Moriri', 'Sarchu', 'Manali'],
-  },
-];
-
 const itinerary = [
   { day: 1, title: 'Arrival in Manali', desc: 'Arrive Manali, bike allocation, briefing. Acclimatization day.', stay: 'Hotel in Manali' },
   { day: 2, title: 'Manali to Jispa', desc: 'Cross Rohtang Pass (13,050 ft). Scenic ride through Lahaul Valley.', distance: '140 km', stay: 'Camp in Jispa' },
@@ -114,10 +89,6 @@ export default function LehLadakhTourPage() {
             </p>
             <div className="flex flex-wrap gap-4 mb-8">
               <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Starting from</p>
-                <p className="text-2xl font-bold">₹32,999</p>
-              </div>
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
                 <p className="text-xs opacity-75">Duration</p>
                 <p className="text-2xl font-bold">10-12 Days</p>
               </div>
@@ -133,48 +104,6 @@ export default function LehLadakhTourPage() {
             <a href="#packages" className="inline-block bg-yellow-400 text-black px-8 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
               View Packages & Dates
             </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Tour Packages */}
-      <section id="packages" className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-4">Choose Your Route</h2>
-          <p className="text-center text-gray-600 mb-12">All packages include bike, guide, backup vehicle, accommodation & meals</p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {packages.map((pkg) => (
-              <div key={pkg.name} className={`bg-white rounded-xl shadow-lg overflow-hidden ${pkg.popular ? 'ring-2 ring-blue-500' : ''}`}>
-                {pkg.popular && (
-                  <div className="bg-blue-500 text-white text-center py-1 text-sm font-semibold">
-                    MOST POPULAR
-                  </div>
-                )}
-                <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2">{pkg.name}</h3>
-                  <div className="flex gap-4 text-sm text-gray-600 mb-4">
-                    <span>{pkg.duration}</span>
-                    <span>•</span>
-                    <span>{pkg.distance}</span>
-                  </div>
-                  <div className="mb-4">
-                    <p className="text-3xl font-bold text-blue-600">₹{pkg.price.toLocaleString()}</p>
-                    <p className="text-sm text-gray-500">per person (twin sharing)</p>
-                  </div>
-                  <div className="mb-6">
-                    <p className="text-sm font-semibold mb-2">Highlights:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {pkg.highlights.slice(0, 5).map((h) => (
-                        <span key={h} className="text-xs bg-gray-100 px-2 py-1 rounded">{h}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
-                    Book This Package
-                  </button>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
