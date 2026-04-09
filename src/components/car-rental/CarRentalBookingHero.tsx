@@ -1275,6 +1275,14 @@ export function CarRentalBookingHero({
                     {/* LOCAL TRIP */}
                     {tripType === 'local' && (
                       <>
+                        {/* Local trip note */}
+                        <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                          <span className="text-amber-500 mt-0.5 text-base flex-shrink-0">⚠️</span>
+                          <p className="text-xs text-amber-800 leading-relaxed">
+                            <span className="font-semibold">Local packages are for within-city travel only.</span> For travel to another city (e.g. Ahmedabad to Surat), please use the <span className="font-semibold">Outstation</span> tab.
+                          </p>
+                        </div>
+
                         {/* City */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
