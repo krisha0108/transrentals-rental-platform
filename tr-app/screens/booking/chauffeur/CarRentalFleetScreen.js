@@ -86,6 +86,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
 
   // Loading states
   const [loading, setLoading] = useState(true);
+  const [loadingPackages, setLoadingPackages] = useState(false);
   const [loadingPrices, setLoadingPrices] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -157,6 +158,7 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   };
 
   const fetchLocalPackages = async (locationSlug) => {
+    setLoadingPackages(true);
     try {
       const params = locationSlug ? { locationSlug } : {};
       const res = await bookingService.getChauffeurLocalPackages(params);
@@ -166,6 +168,8 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       }
     } catch (error) {
       console.log('Error fetching local packages:', error);
+    } finally {
+      setLoadingPackages(false);
     }
   };
 
@@ -985,6 +989,18 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         </View>
       </View>
 
+      {/* Local trip note */}
+      {tripType === 'local' && (
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#fffbeb', borderWidth: 1, borderColor: '#f59e0b', borderRadius: 8, padding: 10, marginHorizontal: 4, marginBottom: 8 }}>
+          <Text style={{ fontSize: 14, marginRight: 6 }}>⚠️</Text>
+          <Text style={{ flex: 1, fontSize: 12, color: '#92400e', lineHeight: 18 }}>
+            <Text style={{ fontWeight: '700' }}>Local packages are for within-city travel only.</Text>
+            {' '}For travel to another city (e.g. Ahmedabad to Surat), please use the{' '}
+            <Text style={{ fontWeight: '700' }}>Outstation</Text> tab.
+          </Text>
+        </View>
+      )}
+
       {/* Airport Direction (only for airport trips) */}
       {tripType === 'airport' && (
         <View style={styles.airportDirectionWrap}>
@@ -1021,7 +1037,12 @@ export default function CarRentalFleetScreen({ navigation, route }) {
       </View>
 
       {/* Package Selector (for local trips) */}
-      {tripType === 'local' && localPackages.length > 0 && renderPackageSelector()}
+      {tripType === 'local' && loadingPackages && (
+        <View style={{ alignItems: 'center', paddingVertical: 16 }}>
+          <ActivityIndicator size="small" color={BRAND_TEAL} />
+        </View>
+      )}
+      {tripType === 'local' && !loadingPackages && localPackages.length > 0 && renderPackageSelector()}
 
       {/* Date & Time */}
       <View style={styles.dateTimeRow}>

@@ -17,7 +17,13 @@ export async function GET(request: NextRequest) {
     const where: any = {};
     if (vehicleCategoryId) where.vehicleCategoryId = vehicleCategoryId;
     if (locationId) where.locationId = locationId;
-    if (locationSlug) where.locations = { slug: locationSlug };
+    if (locationSlug) {
+      // Return packages for this specific city AND packages with no city (global/all-city packages)
+      where.OR = [
+        { locations: { slug: locationSlug } },
+        { locationId: null },
+      ];
+    }
     if (activeOnly === 'true') where.isActive = true;
 
     const packages = await prisma.chauffeur_local_packages.findMany({
