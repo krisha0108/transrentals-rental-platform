@@ -89,6 +89,9 @@ interface BookingDetail {
     exclusions: string[];
     vendorMessage: string | null;
   } | null;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
   createdAt: string;
 }
 
@@ -194,6 +197,8 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
   const [rating, setRating] = useState(5);
   const [review, setReview] = useState('');
   const [cancelling, setCancelling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
   const [submittingPayment, setSubmittingPayment] = useState(false);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [transactionId, setTransactionId] = useState('');
@@ -347,21 +352,21 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
   };
 
   const handleCancel = async () => {
-    const reason = prompt('Please provide a reason for cancellation:');
-    if (!reason) return;
+    if (!cancelReason.trim()) return;
 
     setCancelling(true);
     try {
       const res = await fetch(`/api/luxury-bookings/${bookingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'cancel', reason }),
+        body: JSON.stringify({ action: 'cancel', reason: cancelReason.trim(), cancelledBy: 'customer' }),
       });
 
       const data = await res.json();
 
       if (data.success) {
-        alert('Booking cancelled');
+        setShowCancelModal(false);
+        setCancelReason('');
         fetchBooking();
       } else {
         alert(data.error || 'Failed to cancel booking');
@@ -802,6 +807,36 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
           </div>
         )}
 
+        {/* Cancellation Details */}
+        {booking.status === 'CANCELLED' && booking.cancelledAt && (
+          <div className="bg-red-50 rounded-xl border border-red-200 p-4">
+            <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <XCircle className="w-3.5 h-3.5" />
+              Cancellation Details
+            </p>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-500">Cancelled At</span>
+                <span className="text-xs font-semibold text-gray-800">
+                  {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                </span>
+              </div>
+              {booking.cancelledBy && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-500">Cancelled By</span>
+                  <span className="text-xs font-semibold text-gray-800 capitalize">{booking.cancelledBy}</span>
+                </div>
+              )}
+              {booking.cancellationReason && (
+                <div className="pt-1 border-t border-red-200 mt-1">
+                  <p className="text-xs text-gray-500 mb-1">Reason</p>
+                  <p className="text-sm text-red-800 bg-red-100 rounded-lg px-3 py-2">{booking.cancellationReason}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Rate Trip */}
         {booking.status === 'COMPLETED' && !booking.rating && (
           <button
@@ -816,11 +851,11 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
         {/* Cancel Option */}
         {['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
           <button
-            onClick={handleCancel}
+            onClick={() => setShowCancelModal(true)}
             disabled={cancelling}
             className="w-full py-3 text-red-600 font-medium hover:underline disabled:opacity-50"
           >
-            {cancelling ? 'Cancelling...' : 'Cancel Booking'}
+            Cancel Booking
           </button>
         )}
 
@@ -996,6 +1031,53 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Booking Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <XCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Cancel Booking</h3>
+                <p className="text-xs text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Why do you want to cancel? <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Please tell us the reason for cancellation..."
+                rows={3}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400 resize-none"
+              />
+              {cancelReason.trim() === '' && (
+                <p className="text-xs text-red-500 mt-1">Reason is required to cancel</p>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowCancelModal(false); setCancelReason(''); }}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={!cancelReason.trim() || cancelling}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cancelling ? 'Cancelling...' : 'Confirm Cancel'}
+              </button>
             </div>
           </div>
         </div>
