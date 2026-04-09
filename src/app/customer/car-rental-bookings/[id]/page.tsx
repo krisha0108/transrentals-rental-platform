@@ -137,6 +137,9 @@ export default function CarRentalBookingDetailPage() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState('');
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
 
   const fetchBooking = async (silent = false) => {
@@ -169,22 +172,36 @@ export default function CarRentalBookingDetailPage() {
   }, [booking?.status, booking?.tripStartOtp]);
 
   const handleCancel = async () => {
-    if (!confirm('Are you sure you want to cancel this booking?')) return;
+    if (!cancelReason.trim()) return;
+    setIsCancelling(true);
     try {
       const response = await fetch(`/api/car-rental/bookings/${params.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'cancel', cancellationReason: 'Customer cancelled' }),
+        body: JSON.stringify({
+          action: 'cancel',
+          cancellationReason: cancelReason.trim(),
+          cancelledBy: 'customer',
+        }),
       });
       const data = await response.json();
       if (data.success) {
-        setBooking((prev) => prev ? { ...prev, status: 'CANCELLED' } : null);
-        alert('Booking cancelled successfully');
+        setBooking((prev) => prev ? {
+          ...prev,
+          status: 'CANCELLED',
+          cancelledAt: new Date().toISOString(),
+          cancelledBy: 'customer',
+          cancellationReason: cancelReason.trim(),
+        } : null);
+        setShowCancelModal(false);
+        setCancelReason('');
       } else {
         alert(data.error || 'Failed to cancel booking');
       }
-    } catch (error) {
+    } catch {
       alert('Failed to cancel booking');
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -761,7 +778,7 @@ export default function CarRentalBookingDetailPage() {
 
               {canCancel && (
                 <button
-                  onClick={handleCancel}
+                  onClick={() => setShowCancelModal(true)}
                   className="w-full px-3 py-2.5 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 flex items-center justify-center gap-1.5"
                 >
                   <XCircle className="w-4 h-4" />
@@ -810,6 +827,55 @@ export default function CarRentalBookingDetailPage() {
               {lightbox.index + 1} / {lightbox.images.length}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Cancel Booking Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <XCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Cancel Booking</h3>
+                <p className="text-xs text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Why do you want to cancel? <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Please tell us the reason for cancellation..."
+                rows={3}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400 resize-none"
+              />
+              {cancelReason.trim() === '' && (
+                <p className="text-xs text-red-500 mt-1">Reason is required to cancel</p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowCancelModal(false); setCancelReason(''); }}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={!cancelReason.trim() || isCancelling}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isCancelling ? 'Cancelling...' : 'Confirm Cancel'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

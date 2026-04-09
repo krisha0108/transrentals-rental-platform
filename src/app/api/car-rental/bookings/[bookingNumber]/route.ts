@@ -255,6 +255,7 @@ export async function PATCH(
           data: {
             status: 'CANCELLED',
             cancelledAt: new Date(),
+            cancelledBy: body.cancelledBy || 'customer',
             cancellationReason: body.cancellationReason || 'Customer cancelled',
           },
         });
