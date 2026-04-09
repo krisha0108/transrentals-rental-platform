@@ -27,15 +27,6 @@ export const metadata: Metadata = {
   },
 };
 
-const hatchbackModels = [
-  { name: 'Maruti Swift', price: 899, category: 'Premium Hatchback', fuel: 'Petrol/CNG', features: 'Sporty, Fun to Drive' },
-  { name: 'Hyundai i20', price: 999, category: 'Premium Hatchback', fuel: 'Petrol', features: 'Feature Rich, Connected' },
-  { name: 'Maruti Baleno', price: 949, category: 'Premium Hatchback', fuel: 'Petrol/CNG', features: 'Spacious, Fuel Efficient' },
-  { name: 'Tata Tiago', price: 799, category: 'Compact Hatchback', fuel: 'Petrol/CNG', features: 'Safe, Value for Money' },
-  { name: 'Hyundai Grand i10', price: 849, category: 'Compact Hatchback', fuel: 'Petrol', features: 'City Friendly, Reliable' },
-  { name: 'Maruti Wagon R', price: 799, category: 'Tall Boy Hatchback', fuel: 'Petrol/CNG', features: 'Spacious, Best Mileage' },
-];
-
 const topCities = ALL_CITIES.slice(0, 12);
 
 export default function SelfDriveHatchbackRentalPage() {
@@ -101,41 +92,6 @@ export default function SelfDriveHatchbackRentalPage() {
       </section>
 
       {/* Hatchback Models */}
-      <section id="hatchbacks" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-4">Available Hatchback Models</h2>
-          <p className="text-center text-gray-600 mb-12">All cars are well-maintained, insured, and sanitized</p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {hatchbackModels.map((car) => (
-              <div key={car.name} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition">
-                <div className="bg-green-700 text-white p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm opacity-75">{car.category}</p>
-                      <h3 className="text-xl font-bold">{car.name}</h3>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold">₹{car.price}</p>
-                      <p className="text-xs opacity-75">/day</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <div className="flex gap-4 text-sm text-gray-600 mb-3">
-                    <span>👥 5 Seats</span>
-                    <span>⛽ {car.fuel}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4">{car.features}</p>
-                  <button className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
-                    Book Now
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Cities */}
       <section id="cities" className="py-12 bg-white">
         <div className="container-custom">
@@ -178,32 +134,6 @@ export default function SelfDriveHatchbackRentalPage() {
                 <p className="text-sm text-gray-600">{item.desc}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Related */}
-      <section className="py-12 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Need More Space?
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <Link href="/self-drive-sedan-rental" className="bg-gray-50 p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🚗</div>
-              <h3 className="font-bold text-lg group-hover:text-green-600">Sedan Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">City, Verna from ₹1299/day</p>
-            </Link>
-            <Link href="/self-drive-suv-rental" className="bg-gray-50 p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🚙</div>
-              <h3 className="font-bold text-lg group-hover:text-green-600">SUV Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">Creta, Seltos from ₹1999/day</p>
-            </Link>
-            <Link href="/outstation-car-rental" className="bg-gray-50 p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🛣️</div>
-              <h3 className="font-bold text-lg group-hover:text-green-600">Outstation Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">With driver from ₹12/km</p>
-            </Link>
           </div>
         </div>
       </section>

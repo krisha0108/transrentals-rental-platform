@@ -84,37 +84,7 @@ export default function WeddingCarRentalPage() {
                   {city.name}
                 </h3>
                 <p className="text-sm text-gray-600">{city.state}</p>
-                <p className="text-sm text-rose-700 mt-2">{formatPriceHighlight('From @₹2999')} →</p>
               </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Wedding Cars Available */}
-      <section id="cars" className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Our Wedding Car Collection
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { name: 'Fortuner (Premium SUV)', price: '4999', features: 'Perfect for groom baraat, spacious, commanding presence', category: 'Premium Baraat Car' },
-              { name: 'Mercedes E-Class', price: '6999', features: 'Ultimate luxury, elegant design, premium interiors', category: 'Luxury Wedding Car' },
-              { name: 'BMW 5 Series', price: '7499', features: 'Sporty luxury, sophisticated look, wedding perfect', category: 'Premium Luxury' },
-              { name: 'Vintage Ambassador', price: '3999', features: 'Classic Indian wedding car, retro charm, decorated', category: 'Vintage Wedding Car' },
-              { name: 'Audi A6 (White)', price: '7999', features: 'Pure elegance, pristine white, stunning photos', category: 'Luxury Sedan' },
-              { name: 'Range Rover', price: '9999', features: 'Royal arrival, luxury SUV, VIP experience', category: 'Royal Wedding Car' },
-            ].map((car) => (
-              <div key={car.name} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition border-t-4 border-rose-600">
-                <p className="text-sm text-rose-700 font-semibold mb-2">{car.category}</p>
-                <h3 className="text-xl font-bold mb-2">{car.name}</h3>
-                <p className="text-3xl font-bold text-rose-700 mb-2">₹{car.price}/event</p>
-                <p className="text-sm text-gray-600 mb-4">{car.features}</p>
-                <button className="w-full bg-rose-600 text-white py-2 rounded hover:bg-rose-700 transition">
-                  Book for Wedding
-                </button>
-              </div>
             ))}
           </div>
         </div>
@@ -141,86 +111,6 @@ export default function WeddingCarRentalPage() {
                 <div className="text-4xl mb-3">{item.icon}</div>
                 <h3 className="font-semibold text-lg mb-2">{item.occasion}</h3>
                 <p className="text-sm text-gray-600">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Decoration Options */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Wedding Car Decoration Options
-          </h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-rose-50 p-6 rounded-lg">
-              <h3 className="font-bold text-xl mb-4 text-rose-800">Standard Decoration (Free)</h3>
-              <ul className="space-y-3 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-700 mt-1">✓</span>
-                  <span>Fresh flower garlands</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-700 mt-1">✓</span>
-                  <span>Ribbon & bows on bonnet</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-700 mt-1">✓</span>
-                  <span>Side door decorations</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-700 mt-1">✓</span>
-                  <span>Basic floral arrangements</span>
-                </li>
-              </ul>
-            </div>
-            <div className="bg-amber-50 p-6 rounded-lg">
-              <h3 className="font-bold text-xl mb-4 text-amber-900">Premium Decoration (+₹1500)</h3>
-              <ul className="space-y-3 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Premium flower arrangements</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>LED lights & decorative lights</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Custom name board</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Full car floral wrapping</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-800 mt-1">✓</span>
-                  <span>Interior decoration</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Rental Packages */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Wedding Car Rental Packages
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { duration: 'Baraat Only', price: '2999-4999', desc: '4 hours package', best: 'Groom entry only' },
-              { duration: 'Full Day', price: '5999-9999', desc: '12 hours coverage', best: 'Multiple functions' },
-              { duration: 'Weekend Package', price: '15000-25000', desc: '2-3 days rental', best: 'Destination weddings' },
-            ].map((plan) => (
-              <div key={plan.duration} className="bg-white p-6 rounded-lg shadow-md text-center">
-                <h3 className="font-semibold text-lg mb-2">{plan.duration}</h3>
-                <p className="text-2xl font-bold text-rose-700 mb-2">₹{plan.price}</p>
-                <p className="text-sm text-gray-600 mb-2">{plan.desc}</p>
-                <p className="text-xs text-rose-700 font-semibold">Best for: {plan.best}</p>
               </div>
             ))}
           </div>

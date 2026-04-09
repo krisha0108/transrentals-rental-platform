@@ -192,6 +192,7 @@ export async function GET(
         review: booking.review,
         vendorNotes: booking.vendorNotes,
         cancelledAt: booking.cancelledAt,
+        cancelledBy: (booking as any).cancelledBy || null,
         cancellationReason: booking.cancellationReason,
         droppedAt: booking.droppedAt,
         dropReason: booking.dropReason,
@@ -254,6 +255,7 @@ export async function PATCH(
           data: {
             status: 'CANCELLED',
             cancelledAt: new Date(),
+            cancelledBy: body.cancelledBy || 'customer',
             cancellationReason: body.cancellationReason || 'Customer cancelled',
           },
         });

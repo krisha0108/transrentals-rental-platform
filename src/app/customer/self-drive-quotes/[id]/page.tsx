@@ -27,6 +27,7 @@ import {
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import { formatBookingDuration } from '@/lib/utils/duration';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 interface QuoteRequest {
   id: string;
@@ -300,7 +301,8 @@ export default function CustomerSelfDriveQuoteDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
+    <div className="min-h-screen bg-gray-50 pb-32 pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-6">
         <div className="container mx-auto px-4">

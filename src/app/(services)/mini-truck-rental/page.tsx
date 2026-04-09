@@ -69,62 +69,6 @@ export default function MiniTruckRentalPage() {
         </div>
       </section>
 
-      {/* Available Models */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Mini Truck Models Available
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              {
-                name: 'Tata Ace',
-                capacity: '750 KG',
-                dimensions: '7\'L x 4.5\'W',
-                price: '₹799/day',
-                features: ['Most popular', 'Easy to drive', 'Compact size'],
-              },
-              {
-                name: 'Tata Ace Mega',
-                capacity: '1 TON',
-                dimensions: '8\'L x 5\'W',
-                price: '₹899/day',
-                features: ['Extended deck', 'More capacity', 'Reliable'],
-              },
-              {
-                name: 'Mahindra Jeeto',
-                capacity: '1.5 TON',
-                dimensions: '8.5\'L x 5.5\'W',
-                price: '₹999/day',
-                features: ['Heavy load', 'Strong build', 'Fuel efficient'],
-              },
-            ].map((model) => (
-              <div key={model.name} className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition border-2 border-blue-200">
-                <div className="text-5xl mb-4">🚚</div>
-                <h3 className="text-2xl font-bold mb-2">{model.name}</h3>
-                <div className="space-y-2 mb-4">
-                  <p className="text-gray-600">
-                    <span className="font-semibold">Capacity:</span> {model.capacity}
-                  </p>
-                  <p className="text-gray-600">
-                    <span className="font-semibold">Size:</span> {model.dimensions}
-                  </p>
-                </div>
-                <p className="text-3xl font-bold text-primary mb-4">{model.price}</p>
-                <ul className="space-y-2">
-                  {model.features.map((feature) => (
-                    <li key={feature} className="text-sm text-gray-600 flex items-center gap-2">
-                      <span className="text-primary">✓</span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Benefits */}
       <section className="py-16 bg-white">
         <div className="container-custom">

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import { formatBookingDuration } from '@/lib/utils/duration';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 interface QuoteRequest {
   id: string;
@@ -112,7 +113,8 @@ export default function CustomerSelfDriveQuotesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-8">
         <div className="container mx-auto px-4">

@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 import {
   Loader2, FileText, Calendar, ExternalLink, CheckCircle, Clock,
   AlertCircle, IndianRupee, ArrowLeft, Filter, CreditCard, Download,
@@ -79,7 +80,8 @@ function CustomerB2BInvoicesContent() {
   }, [invoices]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-500 to-amber-600 px-4 sm:px-6 pt-20 pb-6">
         <div className="max-w-4xl mx-auto">

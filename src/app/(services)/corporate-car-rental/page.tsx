@@ -130,38 +130,7 @@ export default function CorporateCarRentalPage() {
                   {city.name}
                 </h3>
                 <p className="text-sm text-gray-600">{city.state}</p>
-                <p className="text-sm text-gray-800 mt-2">From @₹15k/month →</p>
               </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Corporate Solutions */}
-      <section id="solutions" className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Corporate Car Rental Solutions
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { solution: 'Employee Transport', price: '15000-25000', features: 'Daily commute, Fixed routes, Regular timing, Multiple pickups', seats: '4-7 Seater', best: 'Staff transport' },
-              { solution: 'Executive Car Service', price: '25000-40000', features: 'CXO transport, Luxury sedans, Professional chauffeur, Flexible', seats: 'Premium Sedan', best: 'Senior management' },
-              { solution: 'Airport Transfer', price: '500-1500/trip', features: 'On-time pickup, Flight tracking, Professional service, Luggage assist', seats: '4-7 Seater', best: 'Business travelers' },
-              { solution: 'Client Meetings', price: '2000-4000/day', features: 'Multiple stops, Presentation-ready, Professional driver, AC cars', seats: 'Sedan/SUV', best: 'Sales teams' },
-              { solution: 'Event Transport', price: '3000-8000/day', features: 'Conferences, Seminars, Group transport, Coordinated service', seats: '7-17 Seater', best: 'Corporate events' },
-              { solution: 'Fleet Management', price: 'Custom Quote', features: 'Multiple vehicles, Centralized billing, Monthly reports, Dedicated manager', seats: 'Any Size Fleet', best: 'Large corporations' },
-            ].map((item) => (
-              <div key={item.solution} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition border-t-4 border-gray-700">
-                <p className="text-sm text-gray-600 font-semibold mb-2">{item.seats}</p>
-                <h3 className="text-xl font-bold mb-2">{item.solution}</h3>
-                <p className="text-3xl font-bold text-gray-800 mb-3">₹{item.price}</p>
-                <p className="text-sm text-gray-600 mb-3">{item.features}</p>
-                <p className="text-xs text-gray-500 mb-4">Best for: {item.best}</p>
-                <button className="w-full bg-gray-800 text-white py-2 rounded hover:bg-gray-900 transition">
-                  Get Quote
-                </button>
-              </div>
             ))}
           </div>
         </div>

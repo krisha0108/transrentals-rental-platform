@@ -11,6 +11,7 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
+  XCircle,
   Star,
   Loader2,
   FileText,
@@ -21,6 +22,7 @@ import {
   X,
 } from 'lucide-react';
 import { BookingPayment } from '@/components/payment/BookingPayment';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 interface Customer {
   id: string;
@@ -66,6 +68,9 @@ interface EquipmentBooking {
   };
   deliveryOtp?: string;
   returnOtp?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
   createdAt: string;
 }
 
@@ -266,7 +271,8 @@ export default function CustomerEquipmentBookingDetailPage() {
   const StatusIcon = statusConfig.icon;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-amber-600 to-yellow-600 text-white">
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -507,6 +513,36 @@ export default function CustomerEquipmentBookingDetailPage() {
             )}
           </div>
         </div>
+
+        {/* Cancellation Details */}
+        {booking.status === 'CANCELLED' && booking.cancelledAt && (
+          <div className="bg-red-50 rounded-xl border border-red-200 p-4">
+            <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <XCircle className="w-3.5 h-3.5" />
+              Cancellation Details
+            </p>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-500">Cancelled At</span>
+                <span className="text-xs font-semibold text-gray-800">
+                  {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                </span>
+              </div>
+              {booking.cancelledBy && (
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-500">Cancelled By</span>
+                  <span className="text-xs font-semibold text-gray-800 capitalize">{booking.cancelledBy}</span>
+                </div>
+              )}
+              {booking.cancellationReason && (
+                <div className="pt-1 border-t border-red-200 mt-1">
+                  <p className="text-xs text-gray-500 mb-1">Reason</p>
+                  <p className="text-sm text-red-800 bg-red-100 rounded-lg px-3 py-2">{booking.cancellationReason}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Rating (for completed rentals) */}
         {booking.status === 'COMPLETED' && booking.rating && (

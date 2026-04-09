@@ -131,38 +131,7 @@ export default function SportsCarRentalPage() {
                   {city.name}
                 </h3>
                 <p className="text-sm text-gray-600">{city.state}</p>
-                <p className="text-sm text-red-800 mt-2">From @₹25k/day →</p>
               </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Sports Cars Available */}
-      <section id="cars" className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Our Supercar Collection
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { name: 'Lamborghini Huracan', price: '75000', features: 'V10 engine, 610 HP, 0-100 in 3.2s, Iconic design', category: 'Italian Supercar', best: 'Ultimate thrill' },
-              { name: 'Ferrari 488', price: '80000', features: 'Twin-turbo V8, 660 HP, Racing heritage, Exotic', category: 'Italian Legend', best: 'Dream driving' },
-              { name: 'Porsche 911', price: '35000', features: 'Iconic sports car, 450 HP, Precision handling', category: 'German Excellence', best: 'Daily supercar' },
-              { name: 'McLaren 570S', price: '70000', features: 'British supercar, 562 HP, Carbon fiber, Lightweight', category: 'British Supercar', best: 'Track performance' },
-              { name: 'Audi R8', price: '40000', features: 'V10 engine, 562 HP, Daily usable, Luxury comfort', category: 'German Supercar', best: 'Comfortable exotic' },
-              { name: 'Nissan GT-R', price: '25000', features: 'Japanese supercar, 565 HP, AWD, Tech-packed', category: 'JDM Legend', best: 'Value supercar' },
-            ].map((car) => (
-              <div key={car.name} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition border-t-4 border-red-700">
-                <p className="text-sm text-red-800 font-semibold mb-2">{car.category}</p>
-                <h3 className="text-xl font-bold mb-2">{car.name}</h3>
-                <p className="text-3xl font-bold text-red-800 mb-3">₹{car.price}/day</p>
-                <p className="text-sm text-gray-600 mb-3">{car.features}</p>
-                <p className="text-xs text-gray-500 mb-4">Best for: {car.best}</p>
-                <button className="w-full bg-red-700 text-white py-2 rounded hover:bg-red-800 transition">
-                  Book Supercar
-                </button>
-              </div>
             ))}
           </div>
         </div>
@@ -260,29 +229,6 @@ export default function SportsCarRentalPage() {
                 </li>
               </ul>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Rental Packages */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Sports Car Rental Packages
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { duration: 'Hourly (4 hrs)', price: '15000-40000', desc: 'Minimum 4 hours', best: 'Events, Joy rides' },
-              { duration: 'Daily (24 hrs)', price: '25000-80000', desc: 'Full day rental', best: 'Wedding, Celebration' },
-              { duration: 'Weekend', price: '50000-150000', desc: '2-3 days package', best: 'Long drives, Tours' },
-            ].map((plan) => (
-              <div key={plan.duration} className="bg-white p-6 rounded-lg shadow-md text-center">
-                <h3 className="font-semibold text-lg mb-2">{plan.duration}</h3>
-                <p className="text-2xl font-bold text-red-800 mb-2">₹{plan.price}</p>
-                <p className="text-sm text-gray-600 mb-2">{plan.desc}</p>
-                <p className="text-xs text-red-800 font-semibold">Best for: {plan.best}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>

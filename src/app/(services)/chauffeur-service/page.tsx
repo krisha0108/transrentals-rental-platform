@@ -115,7 +115,6 @@ export default async function ChauffeurServicePage() {
                   {city.name}
                 </h3>
                 <p className="text-sm text-gray-600">{city.state}</p>
-                <p className="text-sm text-indigo-700 mt-2">From @₹599/day →</p>
               </Link>
             ))}
           </div>

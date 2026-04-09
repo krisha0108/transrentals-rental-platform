@@ -56,32 +56,6 @@ export default function TempoTravellerPage() {
     </section>
   );
 
-  const popularRoutesSection = (
-    <section className="py-16 bg-white">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <h2 className="text-3xl font-bold text-center mb-8">
-          Popular Tempo Traveller Routes
-        </h2>
-        <div className="grid md:grid-cols-2 gap-4">
-          {[
-            'Delhi to Manali - ₹25,000 (round trip)',
-            'Mumbai to Shirdi - ₹12,000 (round trip)',
-            'Bangalore to Ooty - ₹15,000 (round trip)',
-            'Delhi to Agra - ₹6,000 (round trip)',
-            'Jaipur to Pushkar - ₹5,500 (round trip)',
-            'Chennai to Pondicherry - ₹8,000 (round trip)',
-            'Delhi to Haridwar/Rishikesh - ₹10,000',
-            'Mumbai to Lonavala - ₹7,000 (round trip)',
-          ].map((route) => (
-            <div key={route} className="bg-gray-50 p-4 rounded-lg shadow-md border-l-4 border-orange-600">
-              <p className="text-gray-700">{route}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-
   return (
     <>
       {/* Hero with Chat Booking System */}
@@ -117,7 +91,6 @@ export default function TempoTravellerPage() {
       />
 
       {occasionsSection}
-      {popularRoutesSection}
     </>
   );
 }

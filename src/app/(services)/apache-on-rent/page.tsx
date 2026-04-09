@@ -41,13 +41,6 @@ export const metadata: Metadata = {
   },
 };
 
-const apacheModels = [
-  { name: 'Apache RTR 160', cc: '160cc', price: '₹499/day', type: 'Street Sport', power: '16 HP' },
-  { name: 'Apache RTR 180', cc: '177cc', price: '₹549/day', type: 'Street Sport', power: '17 HP' },
-  { name: 'Apache RTR 200 4V', cc: '197cc', price: '₹699/day', type: 'Street Sport', power: '20 HP' },
-  { name: 'Apache RR 310', cc: '312cc', price: '₹1,299/day', type: 'Super Sport', power: '34 HP' },
-];
-
 const topCities = ALL_CITIES.slice(0, 12);
 
 export default function ApacheRentalPage() {
@@ -118,26 +111,6 @@ export default function ApacheRentalPage() {
         </div>
       </section>
 
-      {/* Apache Models */}
-      <section id="models" className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Apache Models Available for Rent
-          </h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            {apacheModels.map((model) => (
-              <div key={model.name} className="bg-white p-5 rounded-lg shadow-md border-t-4 border-red-500 hover:shadow-xl transition">
-                <div className="text-3xl mb-2">🏍️</div>
-                <h3 className="font-bold text-lg mb-1">{model.name}</h3>
-                <p className="text-sm text-gray-600 mb-1">{model.cc} • {model.type}</p>
-                <p className="text-sm text-gray-600 mb-2">Power: {model.power}</p>
-                <p className="text-red-600 font-bold text-xl">{model.price}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Cities */}
       <section id="cities" className="py-12 bg-white">
         <div className="container-custom">
@@ -157,37 +130,6 @@ export default function ApacheRentalPage() {
           </div>
           <div className="text-center mt-6">
             <p className="text-gray-600">+ 190 more cities available</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Related Services */}
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Other Bike Rentals
-          </h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href="/ktm-on-rent" className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group">
-              <div className="text-3xl mb-3">🏍️</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary">KTM Bikes</h3>
-              <p className="text-sm text-gray-600 mt-2">High performance from ₹999/day</p>
-            </Link>
-            <Link href="/pulsar-on-rent" className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group">
-              <div className="text-3xl mb-3">🏍️</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary">Bajaj Pulsar</h3>
-              <p className="text-sm text-gray-600 mt-2">Popular sports bikes from ₹499/day</p>
-            </Link>
-            <Link href="/royal-enfield-on-rent" className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group">
-              <div className="text-3xl mb-3">🏍️</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary">Royal Enfield</h3>
-              <p className="text-sm text-gray-600 mt-2">Classic touring bikes from ₹899/day</p>
-            </Link>
-            <Link href="/bike-on-rent" className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition group">
-              <div className="text-3xl mb-3">🏍️</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary">All Bikes</h3>
-              <p className="text-sm text-gray-600 mt-2">Browse all bikes from ₹299/day</p>
-            </Link>
           </div>
         </div>
       </section>

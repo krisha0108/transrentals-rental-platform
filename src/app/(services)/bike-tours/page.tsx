@@ -39,65 +39,6 @@ export const metadata: Metadata = {
   },
 };
 
-const tours = [
-  {
-    name: 'Leh Ladakh Bike Tour',
-    slug: 'leh-ladakh',
-    tagline: 'The Ultimate Himalayan Adventure',
-    description: 'Conquer the highest motorable roads, experience Pangong Lake, and ride through Nubra Valley',
-    duration: '10 Days / 9 Nights',
-    distance: '1,200+ km',
-    difficulty: 'Challenging',
-    bestTime: 'May - September',
-    startingPrice: 32999,
-    gradient: 'from-blue-600 to-indigo-700',
-    highlights: ['Khardung La (18,380 ft)', 'Pangong Lake', 'Nubra Valley', 'Magnetic Hill', 'Tso Moriri'],
-    routes: ['Delhi - Manali - Leh - Srinagar', 'Manali - Leh - Manali'],
-  },
-  {
-    name: 'Spiti Valley Expedition',
-    slug: 'spiti-valley',
-    tagline: 'The Cold Desert Adventure',
-    description: 'Explore ancient monasteries, pristine lakes, and the rugged beauty of Spiti',
-    duration: '8 Days / 7 Nights',
-    distance: '900+ km',
-    difficulty: 'Challenging',
-    bestTime: 'June - October',
-    startingPrice: 26999,
-    gradient: 'from-teal-600 to-emerald-700',
-    highlights: ['Kunzum Pass', 'Key Monastery', 'Chandratal Lake', 'Kaza', 'Pin Valley'],
-    routes: ['Shimla - Spiti - Manali', 'Manali - Spiti - Shimla'],
-  },
-  {
-    name: 'Rajasthan Royal Ride',
-    slug: 'rajasthan',
-    tagline: 'Palaces, Forts & Desert Dunes',
-    description: 'Ride through royal heritage, golden sand dunes, and vibrant Rajasthani culture',
-    duration: '7 Days / 6 Nights',
-    distance: '800+ km',
-    difficulty: 'Moderate',
-    bestTime: 'October - March',
-    startingPrice: 24999,
-    gradient: 'from-orange-600 to-red-700',
-    highlights: ['Jaipur Forts', 'Jodhpur Blue City', 'Jaisalmer Desert', 'Udaipur Lakes', 'Pushkar'],
-    routes: ['Delhi - Jaipur - Jodhpur - Jaisalmer - Udaipur'],
-  },
-  {
-    name: 'Goa Coastal Explorer',
-    slug: 'goa',
-    tagline: 'Beaches, Backroads & Good Vibes',
-    description: 'Beach hopping, scenic coastal roads, waterfalls, and Portuguese heritage',
-    duration: '4 Days / 3 Nights',
-    distance: '400+ km',
-    difficulty: 'Easy',
-    bestTime: 'November - March',
-    startingPrice: 14999,
-    gradient: 'from-cyan-600 to-blue-700',
-    highlights: ['North Goa Beaches', 'Dudhsagar Falls', 'Old Goa Churches', 'Coastal Highway', 'Spice Plantations'],
-    routes: ['Goa - Dudhsagar - Karnataka Border - Goa'],
-  },
-];
-
 const inclusions = [
   { icon: '🏍️', title: 'Royal Enfield Bike', desc: 'Himalayan/Classic 350 with full tank' },
   { icon: '👨‍✈️', title: 'Ride Captain', desc: 'Experienced guide leading the group' },
@@ -137,7 +78,7 @@ export default function BikeToursPage() {
               Ride Captain • Backup Vehicle • Accommodation • Meals
             </p>
             <p className="text-lg opacity-75 mb-8">
-              Starting from ₹14,999 | Small Groups of 6-12 Riders
+              Small Groups of 6-12 Riders
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <a href="#tours" className="bg-yellow-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
@@ -163,66 +104,6 @@ export default function BikeToursPage() {
                 <div className="text-3xl mb-2">{item.icon}</div>
                 <h3 className="font-bold text-sm mb-1">{item.title}</h3>
                 <p className="text-xs text-gray-600">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Tours Grid */}
-      <section id="tours" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-4">
-            Our Guided Motorcycle Tours
-          </h2>
-          <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-            Choose your adventure. All tours include bike, guide, backup vehicle, accommodation, and meals.
-          </p>
-          <div className="grid md:grid-cols-2 gap-8">
-            {tours.map((tour) => (
-              <div
-                key={tour.slug}
-                className={`relative bg-gradient-to-br ${tour.gradient} text-white rounded-xl overflow-hidden shadow-lg`}
-              >
-                <div className="p-8">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <p className="text-sm opacity-75 mb-1">{tour.tagline}</p>
-                      <h3 className="text-2xl font-bold">{tour.name}</h3>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs opacity-75">Starting from</p>
-                      <p className="text-2xl font-bold">₹{tour.startingPrice.toLocaleString()}</p>
-                    </div>
-                  </div>
-
-                  <p className="opacity-90 mb-4">{tour.description}</p>
-
-                  <div className="flex flex-wrap gap-3 text-sm mb-4">
-                    <span className="bg-white/20 px-3 py-1 rounded">{tour.duration}</span>
-                    <span className="bg-white/20 px-3 py-1 rounded">{tour.distance}</span>
-                    <span className="bg-white/20 px-3 py-1 rounded">{tour.difficulty}</span>
-                    <span className="bg-white/20 px-3 py-1 rounded">{tour.bestTime}</span>
-                  </div>
-
-                  <div className="mb-4">
-                    <p className="text-xs opacity-75 mb-2">Highlights:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {tour.highlights.slice(0, 4).map((h) => (
-                        <span key={h} className="text-xs bg-white/10 px-2 py-1 rounded">
-                          {h}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Link
-                    href={`/bike-tours/${tour.slug}`}
-                    className="inline-block bg-white text-gray-900 px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition"
-                  >
-                    View Itinerary & Book →
-                  </Link>
-                </div>
               </div>
             ))}
           </div>

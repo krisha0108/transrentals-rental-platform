@@ -25,13 +25,6 @@ export const metadata: Metadata = {
   },
 };
 
-const variants = [
-  { name: '12 Seater Non-AC', price: 18, features: 'Push-back seats, Music System, Luggage Carrier' },
-  { name: '12 Seater AC', price: 22, features: 'Air Conditioned, Push-back Seats, LCD Screen' },
-  { name: '12 Seater Deluxe', price: 26, features: 'Premium Interiors, Reclining Seats, LED TV' },
-  { name: '12 Seater Maharaja', price: 32, features: 'Luxury Sofa Seats, Mini Fridge, Premium Sound' },
-];
-
 const topCities = ALL_CITIES.slice(0, 12);
 
 export default function TwelveSeaterTempoTravellerPage() {
@@ -90,74 +83,6 @@ export default function TwelveSeaterTempoTravellerPage() {
                 <p className="text-sm text-gray-600">{item.desc}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="variants" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-4">12 Seater Variants & Pricing</h2>
-          <p className="text-center text-gray-600 mb-12">Choose based on comfort level and budget</p>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {variants.map((variant) => (
-              <div key={variant.name} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition">
-                <div className="bg-blue-700 text-white p-4">
-                  <h3 className="text-lg font-bold">{variant.name}</h3>
-                  <div className="mt-2">
-                    <span className="text-3xl font-bold">₹{variant.price}</span>
-                    <span className="text-sm opacity-75">/km</span>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <p className="text-sm text-gray-600 mb-4">{variant.features}</p>
-                  <ul className="text-sm text-gray-600 space-y-1 mb-4">
-                    <li>✓ Professional driver</li>
-                    <li>✓ Fuel included</li>
-                    <li>✓ All permits & tolls</li>
-                  </ul>
-                  <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
-                    Book Now
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            12 Seater Tempo Traveller Pricing
-          </h2>
-          <div className="max-w-3xl mx-auto">
-            <div className="bg-gray-50 rounded-xl overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-blue-700 text-white">
-                  <tr>
-                    <th className="py-3 px-4 text-left">Trip Type</th>
-                    <th className="py-3 px-4 text-right">Non-AC</th>
-                    <th className="py-3 px-4 text-right">AC</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  <tr>
-                    <td className="py-3 px-4">Per Kilometer</td>
-                    <td className="py-3 px-4 text-right">₹18/km</td>
-                    <td className="py-3 px-4 text-right font-semibold">₹22/km</td>
-                  </tr>
-                  <tr className="bg-white">
-                    <td className="py-3 px-4">Full Day (250km)</td>
-                    <td className="py-3 px-4 text-right">₹4,500</td>
-                    <td className="py-3 px-4 text-right font-semibold">₹5,500</td>
-                  </tr>
-                  <tr>
-                    <td className="py-3 px-4">Driver Allowance</td>
-                    <td className="py-3 px-4 text-right" colSpan={2}>₹400/day</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
           </div>
         </div>
       </section>

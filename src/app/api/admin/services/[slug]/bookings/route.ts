@@ -72,17 +72,20 @@ function normalizeServiceSlug(slug: string): string {
     'himalayan-on-rent', 'royal-enfield-on-rent', 'ktm-on-rent',
     'pulsar-on-rent', 'activa-on-rent', 'apache-on-rent',
     'splendor-on-rent', 'electric-scooter-rental',
+    'bike-rental-activa', 'bike-rental', 'bike-on-rent',
+    'monthly-bike-rental', 'bike-tours', 'bike-trips',
   ];
   const SELF_DRIVE_SLUGS = [
     'self-drive-hatchback-rental', 'self-drive-sedan-rental', 'self-drive-suv-rental',
     'creta-on-rent', 'swift-on-rent', 'seltos-on-rent', 'xuv700-on-rent',
-    'scorpio-on-rent', 'monthly-car-rental',
+    'scorpio-on-rent', 'monthly-car-rental', 'self-drive-car-rental',
   ];
   const CHAUFFEUR_SLUGS = [
     'innova-on-rent', 'fortuner-on-rent', 'outstation-car-rental',
     'outstation-cab', 'local-taxi', 'corporate-car-rental', 'hourly-car-rental',
+    'airport-transfer', 'one-way-car-rental', 'car-rental-with-driver',
   ];
-  const LUXURY_SLUGS = ['sports-car-rental', 'vintage-car-rental'];
+  const LUXURY_SLUGS = ['sports-car-rental', 'vintage-car-rental', 'wedding-car-rental', 'luxury-cars'];
   const BUS_SLUGS = [
     '12-seater-tempo-traveller', '17-seater-tempo-traveller',
     '20-seater-tempo-traveller', '26-seater-bus',
@@ -90,9 +93,9 @@ function normalizeServiceSlug(slug: string): string {
   ];
   const EQUIPMENT_SLUGS = [
     'crane-on-rent', 'excavator-on-rent', 'generator-on-rent',
-    'hydra-on-rent', 'jcb-on-rent',
+    'hydra-on-rent', 'jcb-on-rent', 'equipment-rental',
   ];
-  const TRUCK_SLUGS = ['mini-truck-rental', 'trailer-on-rent'];
+  const TRUCK_SLUGS = ['mini-truck-rental', 'trailer-on-rent', 'truck-transport', 'truck-tempo-rental'];
 
   if (BIKE_SLUGS.includes(slug)) return 'bike-on-rent';
   if (SELF_DRIVE_SLUGS.includes(slug)) return 'self-drive-car-rentals';

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import WanderChat from '@/components/wander/WanderChat';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 function fmt(date: string) {
   if (!date) return '—';
@@ -159,7 +160,8 @@ export default function CustomerWanderQuoteDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16">
+      <CustomerHeader showBackButton />
 
       {/* ══ HERO — full-width image slider ════════════════════════════════════ */}
       <div className="relative bg-[#0a0f1e]">

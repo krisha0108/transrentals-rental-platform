@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 interface QuoteRequest {
   id: string;
@@ -273,7 +274,8 @@ export default function CustomerEquipmentQuoteDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
+    <div className="min-h-screen bg-gray-50 pb-32 pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-amber-600 to-amber-800 text-white py-6">
         <div className="container mx-auto px-4">

@@ -12,15 +12,6 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://transrentals.in/generator-on-rent' },
 };
 
-const generatorTypes = [
-  { name: '5 KVA Generator', price: 1500, power: '5 KVA', useCase: 'Small events, home backup' },
-  { name: '15 KVA Generator', price: 3000, power: '15 KVA', useCase: 'Medium events, shops' },
-  { name: '25 KVA Generator', price: 4500, power: '25 KVA', useCase: 'Large events, construction' },
-  { name: '62.5 KVA Generator', price: 7000, power: '62.5 KVA', useCase: 'Industrial, large sites' },
-  { name: '125 KVA Generator', price: 12000, power: '125 KVA', useCase: 'Heavy industrial, factories' },
-  { name: '250 KVA Generator', price: 20000, power: '250 KVA', useCase: 'Large factories, malls' },
-];
-
 const topCities = ALL_CITIES.slice(0, 12);
 
 export default function GeneratorOnRentPage() {
@@ -70,32 +61,6 @@ export default function GeneratorOnRentPage() {
         </div>
       </section>
 
-      <section id="types" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12">Generator Sizes & Pricing</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {generatorTypes.map((g) => (
-              <div key={g.name} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition">
-                <div className="bg-blue-700 text-white p-4">
-                  <p className="text-sm opacity-75">{g.power}</p>
-                  <h3 className="text-lg font-bold">{g.name}</h3>
-                  <p className="text-2xl font-bold mt-2">₹{g.price.toLocaleString()}<span className="text-sm opacity-75">/day</span></p>
-                </div>
-                <div className="p-4">
-                  <p className="text-sm text-gray-600 mb-4">{g.useCase}</p>
-                  <ul className="text-sm text-gray-600 space-y-1 mb-4">
-                    <li>✓ Silent operation</li>
-                    <li>✓ Fuel extra (optional)</li>
-                    <li>✓ Delivery included</li>
-                  </ul>
-                  <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">Get Quote</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="py-12 bg-blue-50">
         <div className="container-custom">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Use Cases</h2>
@@ -125,30 +90,6 @@ export default function GeneratorOnRentPage() {
                 <span className="font-medium text-gray-800">{city.name}</span>
               </Link>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Other Equipment</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href="/jcb-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-blue-600">JCB on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">Backhoe loader</p>
-            </Link>
-            <Link href="/crane-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-blue-600">Crane on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹8,000/day</p>
-            </Link>
-            <Link href="/excavator-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-blue-600">Excavator on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹5,000/day</p>
-            </Link>
-            <Link href="/equipment-rental" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-blue-600">All Equipment</h3>
-              <p className="text-sm text-gray-600 mt-2">View all options</p>
-            </Link>
           </div>
         </div>
       </section>

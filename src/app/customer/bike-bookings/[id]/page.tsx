@@ -117,6 +117,8 @@ export default function BikeBookingDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [booking, setBooking] = useState<typeof MOCK_BOOKING | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showRegisterPrompt, setShowRegisterPrompt] = useState(true);
   const [rating, setRating] = useState(0);
@@ -414,10 +416,32 @@ export default function BikeBookingDetailPage() {
     alert('Copied to clipboard!');
   };
 
-  const handleCancelBooking = () => {
-    // API call to cancel booking
-    alert('Booking cancellation request submitted.');
-    setShowCancelModal(false);
+  const handleCancelBooking = async () => {
+    if (!cancelReason.trim() || !booking) return;
+    setIsCancelling(true);
+    try {
+      const response = await fetch(`/api/bike-bookings/${booking.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel', reason: cancelReason.trim() }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setBooking((prev) => prev ? {
+          ...prev,
+          status: 'CANCELLED' as BikeBookingStatus,
+          cancellationReason: cancelReason.trim(),
+        } : null);
+        setShowCancelModal(false);
+        setCancelReason('');
+      } else {
+        alert(data.error || 'Failed to cancel booking');
+      }
+    } catch {
+      alert('Failed to cancel booking');
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   const handleSubmitRating = () => {
@@ -931,6 +955,22 @@ export default function BikeBookingDetailPage() {
         </div>
 
         {/* Actions */}
+        {/* Cancellation Details */}
+        {booking.status === 'CANCELLED' && booking.cancellationReason && (
+          <div className="bg-red-50 rounded-xl border border-red-200 p-4 mb-3">
+            <p className="text-xs font-bold text-red-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <XCircle className="w-3.5 h-3.5" />
+              Cancellation Details
+            </p>
+            <div className="space-y-2">
+              <div className="pt-1">
+                <p className="text-xs text-gray-500 mb-1">Reason</p>
+                <p className="text-sm text-red-800 bg-red-100 rounded-lg px-3 py-2">{booking.cancellationReason}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           {booking.status === 'COMPLETED' && (
             <Button
@@ -965,18 +1005,35 @@ export default function BikeBookingDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl max-w-md w-full p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-2">Cancel Booking?</h2>
-            <p className="text-gray-600 mb-4">
-              Are you sure you want to cancel this booking? This action cannot be undone.
-            </p>
+            <p className="text-gray-600 mb-3">This action cannot be undone.</p>
             <div className="bg-amber-50 rounded-lg p-3 mb-4 text-sm text-amber-700">
               <p>{booking.cancellationPolicy}</p>
             </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reason for cancellation <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Please tell us why you're cancelling..."
+                rows={3}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
+              />
+              {cancelReason.trim() === '' && (
+                <p className="text-xs text-red-500 mt-1">Reason is required</p>
+              )}
+            </div>
             <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setShowCancelModal(false)}>
+              <Button variant="outline" className="flex-1" onClick={() => { setShowCancelModal(false); setCancelReason(''); }}>
                 Keep Booking
               </Button>
-              <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white" onClick={handleCancelBooking}>
-                Confirm Cancel
+              <Button
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                onClick={handleCancelBooking}
+                disabled={!cancelReason.trim() || isCancelling}
+              >
+                {isCancelling ? 'Cancelling...' : 'Confirm Cancel'}
               </Button>
             </div>
           </div>

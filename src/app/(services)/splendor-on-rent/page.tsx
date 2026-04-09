@@ -41,13 +41,6 @@ export const metadata: Metadata = {
   },
 };
 
-const splendorModels = [
-  { name: 'Splendor Plus', cc: '97cc', price: '₹299/day', type: 'Commuter', mileage: '70 km/l' },
-  { name: 'Splendor iSmart', cc: '110cc', price: '₹349/day', type: 'Smart Commuter', mileage: '75 km/l' },
-  { name: 'Super Splendor', cc: '125cc', price: '₹399/day', type: 'Premium Commuter', mileage: '65 km/l' },
-  { name: 'HF Deluxe', cc: '97cc', price: '₹279/day', type: 'Economy', mileage: '70 km/l' },
-];
-
 const topCities = ALL_CITIES.slice(0, 12);
 
 export default function SplendorRentalPage() {
@@ -118,26 +111,6 @@ export default function SplendorRentalPage() {
         </div>
       </section>
 
-      {/* Splendor Models */}
-      <section id="models" className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Splendor Models Available for Rent
-          </h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            {splendorModels.map((model) => (
-              <div key={model.name} className="bg-white p-5 rounded-lg shadow-md border-t-4 border-green-500 hover:shadow-xl transition">
-                <div className="text-3xl mb-2">🏍️</div>
-                <h3 className="font-bold text-lg mb-1">{model.name}</h3>
-                <p className="text-sm text-gray-600 mb-1">{model.cc} • {model.type}</p>
-                <p className="text-sm text-gray-600 mb-2">Mileage: {model.mileage}</p>
-                <p className="text-green-600 font-bold text-xl">{model.price}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Use Cases */}
       <section className="py-12 bg-white">
         <div className="container-custom">
@@ -179,37 +152,6 @@ export default function SplendorRentalPage() {
           </div>
           <div className="text-center mt-6">
             <p className="text-gray-600">+ 190 more cities available</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Related Services */}
-      <section className="py-12 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Other Bike Rentals
-          </h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href="/activa-on-rent" className="bg-gray-50 p-6 rounded-lg shadow-md hover:shadow-xl transition group">
-              <div className="text-3xl mb-3">🛵</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary">Activa & Scooters</h3>
-              <p className="text-sm text-gray-600 mt-2">Automatic scooters from ₹299/day</p>
-            </Link>
-            <Link href="/pulsar-on-rent" className="bg-gray-50 p-6 rounded-lg shadow-md hover:shadow-xl transition group">
-              <div className="text-3xl mb-3">🏍️</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary">Bajaj Pulsar</h3>
-              <p className="text-sm text-gray-600 mt-2">Sports bikes from ₹499/day</p>
-            </Link>
-            <Link href="/monthly-bike-rental" className="bg-gray-50 p-6 rounded-lg shadow-md hover:shadow-xl transition group">
-              <div className="text-3xl mb-3">📅</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary">Monthly Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">Long term from ₹2,499/month</p>
-            </Link>
-            <Link href="/bike-on-rent" className="bg-gray-50 p-6 rounded-lg shadow-md hover:shadow-xl transition group">
-              <div className="text-3xl mb-3">🏍️</div>
-              <h3 className="font-semibold text-lg group-hover:text-primary">All Bikes</h3>
-              <p className="text-sm text-gray-600 mt-2">Browse all bikes from ₹299/day</p>
-            </Link>
           </div>
         </div>
       </section>

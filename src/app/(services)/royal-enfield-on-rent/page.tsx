@@ -87,34 +87,6 @@ export default function RoyalEnfieldOnRentPage() {
         gradientTo="orange-50"
       />
 
-      {/* Models Section */}
-      <section className="py-16 bg-white">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Available Royal Enfield Models
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { name: 'Classic 350', cc: '350cc', price: '₹599/day', type: 'Cruiser' },
-              { name: 'Meteor 350', cc: '350cc', price: '₹699/day', type: 'Cruiser' },
-              { name: 'Himalayan', cc: '411cc', price: '₹799/day', type: 'Adventure' },
-              { name: 'Hunter 350', cc: '350cc', price: '₹649/day', type: 'Roadster' },
-              { name: 'Interceptor 650', cc: '648cc', price: '₹999/day', type: 'Twin' },
-              { name: 'Continental GT 650', cc: '648cc', price: '₹999/day', type: 'Cafe Racer' },
-              { name: 'Super Meteor 650', cc: '648cc', price: '₹1099/day', type: 'Cruiser' },
-              { name: 'Scram 411', cc: '411cc', price: '₹749/day', type: 'Adventure' },
-            ].map((model) => (
-              <div key={model.name} className="bg-gradient-to-br from-amber-50 to-white p-6 rounded-lg shadow-md hover:shadow-xl transition border-2 border-amber-200">
-                <div className="text-4xl mb-3">🏍️</div>
-                <h3 className="text-lg font-bold mb-1">{model.name}</h3>
-                <p className="text-sm text-gray-600 mb-1">{model.cc} • {model.type}</p>
-                <p className="text-primary font-bold text-lg">{model.price}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Popular Routes */}
       <section className="py-16 bg-gray-50">
         <div className="container-custom">

@@ -126,7 +126,6 @@ export default async function LocalTaxiPage() {
                   {city.name}
                 </h3>
                 <p className="text-sm text-gray-600">{city.state}</p>
-                <p className="text-sm text-green-700 mt-2">From @₹399 →</p>
               </Link>
             ))}
           </div>

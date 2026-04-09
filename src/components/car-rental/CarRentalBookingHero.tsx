@@ -658,6 +658,7 @@ export function CarRentalBookingHero({
   const [airports, setAirports] = useState<Airport[]>([]);
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [loadingData, setLoadingData] = useState(true);
+  const [loadingPackages, setLoadingPackages] = useState(false);
 
   // Form state
   const [pickupCity, setPickupCity] = useState(city);
@@ -797,6 +798,23 @@ export function CarRentalBookingHero({
     defaultReturn.setDate(defaultReturn.getDate() + 1);
     setReturnDate(defaultReturn.toISOString().split('T')[0]);
   }, []);
+
+  // Re-fetch local packages when city changes in the form
+  useEffect(() => {
+    if (!currentLocation?.slug) return;
+    // Skip if this is the initial load (citySlug matches currentLocation)
+    if (currentLocation.slug === citySlug) return;
+
+    setLoadingPackages(true);
+    fetch(`${apiBasePath}/packages?locationSlug=${currentLocation.slug}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setLocalPackages(data.packages || []);
+        setSelectedPackageId(''); // reset selection for new city
+      })
+      .catch(() => {})
+      .finally(() => setLoadingPackages(false));
+  }, [currentLocation?.slug, citySlug, apiBasePath]);
 
   // Set default package when packages load
   useEffect(() => {
@@ -1275,6 +1293,14 @@ export function CarRentalBookingHero({
                     {/* LOCAL TRIP */}
                     {tripType === 'local' && (
                       <>
+                        {/* Local trip note */}
+                        <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                          <span className="text-amber-500 mt-0.5 text-base flex-shrink-0">⚠️</span>
+                          <p className="text-xs text-amber-800 leading-relaxed">
+                            <span className="font-semibold">Local packages are for within-city travel only.</span> For travel to another city (e.g. Ahmedabad to Surat), please use the <span className="font-semibold">Outstation</span> tab.
+                          </p>
+                        </div>
+
                         {/* City */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1299,23 +1325,34 @@ export function CarRentalBookingHero({
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Select Package
                           </label>
-                          <div className="grid grid-cols-3 gap-2">
-                            {uniquePackages.slice(0, 3).map((pkg) => (
-                              <button
-                                key={pkg.id}
-                                onClick={() => setSelectedPackageId(pkg.id)}
-                                className={`p-3 rounded-lg border-2 text-center transition ${
-                                  selectedPackage?.hours === pkg.hours &&
-                                  selectedPackage?.kms === pkg.kms
-                                    ? 'border-blue-500 bg-blue-50'
-                                    : 'border-gray-200 hover:border-blue-200'
-                                }`}
-                              >
-                                <div className="font-semibold text-gray-900">{pkg.hours} Hrs</div>
-                                <div className="text-xs text-gray-500">{pkg.kms} Km</div>
-                              </button>
-                            ))}
-                          </div>
+                          {loadingPackages ? (
+                            <div className="grid grid-cols-3 gap-2">
+                              {[1, 2, 3].map((i) => (
+                                <div key={i} className="p-3 rounded-lg border-2 border-gray-100 animate-pulse">
+                                  <div className="h-4 bg-gray-200 rounded mb-1.5 mx-auto w-12" />
+                                  <div className="h-3 bg-gray-100 rounded mx-auto w-10" />
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-3 gap-2">
+                              {uniquePackages.slice(0, 3).map((pkg) => (
+                                <button
+                                  key={pkg.id}
+                                  onClick={() => setSelectedPackageId(pkg.id)}
+                                  className={`p-3 rounded-lg border-2 text-center transition ${
+                                    selectedPackage?.hours === pkg.hours &&
+                                    selectedPackage?.kms === pkg.kms
+                                      ? 'border-blue-500 bg-blue-50'
+                                      : 'border-gray-200 hover:border-blue-200'
+                                  }`}
+                                >
+                                  <div className="font-semibold text-gray-900">{pkg.hours} Hrs</div>
+                                  <div className="text-xs text-gray-500">{pkg.kms} Km</div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
                         {/* Date & Time */}
