@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 import {
   Wrench,
   ArrowLeft,
@@ -160,7 +161,8 @@ function EquipmentBookingsContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-amber-600 to-yellow-600 text-white">
         <div className="max-w-4xl mx-auto px-4 py-6">

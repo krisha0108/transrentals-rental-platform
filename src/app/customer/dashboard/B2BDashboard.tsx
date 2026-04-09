@@ -147,63 +147,70 @@ export default function B2BDashboard({ customerId, customerName, companyName }: 
   return (
     <div className="space-y-4 pb-8">
       {/* Company Header with Stats */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-5 text-white shadow-lg">
-        <div className="flex items-center justify-between mb-4">
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#022B1A] via-[#045030] to-[#09B368] rounded-2xl p-5 text-white shadow-lg">
+        {/* checkered grid overlay */}
+        <div className="absolute inset-0 opacity-[0.06] rounded-2xl"
+          style={{backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '32px 32px'}} />
+        {/* glow blobs */}
+        <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-[#09B368]/30 blur-3xl" />
+        <div className="absolute bottom-0 left-1/4 w-36 h-36 rounded-full bg-[#056040]/40 blur-2xl" />
+
+        <div className="relative flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-              <Building2 className="w-6 h-6" />
+            <div className="w-12 h-12 bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl flex items-center justify-center">
+              <Building2 className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold">{companyName || 'B2B Corporate'}</h2>
-              <p className="text-emerald-100 text-xs">Corporate Transport Dashboard</p>
+              <p className="text-white/70 text-xs font-medium mb-0.5">Corporate Transport Dashboard</p>
+              <h2 className="text-lg font-bold text-white">{companyName || 'B2B Corporate'}</h2>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Link href={`/customer/b2b-bookings/invoices?customer_id=${customerId}`}
-              className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+              className="px-3 py-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 backdrop-blur-sm">
               <FileText className="w-3.5 h-3.5" /> Invoices
             </Link>
             <Link href={`/customer/b2b-bookings?customer_id=${customerId}`}
-              className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-semibold transition flex items-center gap-1.5">
+              className="px-3 py-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 backdrop-blur-sm">
               View All <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
 
         {/* Booking Count Stats */}
-        <div className="grid grid-cols-4 gap-2.5">
+        <div className="relative grid grid-cols-4 gap-2.5">
           {[
             { label: 'Total', value: stats.total },
             { label: 'Active', value: stats.active },
             { label: 'Pending', value: stats.pending },
             { label: 'Completed', value: stats.completed },
           ].map(s => (
-            <div key={s.label} className="bg-white/15 rounded-xl p-2.5 text-center">
-              <div className="text-xl font-bold">{s.value}</div>
-              <div className="text-[11px] text-emerald-100">{s.label}</div>
+            <div key={s.label} className="bg-white/15 border border-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
+              <div className="text-xl font-bold text-white">{s.value}</div>
+              <div className="text-[11px] text-white/70">{s.label}</div>
             </div>
           ))}
         </div>
 
         {/* Payment Summary */}
         {stats.totalValue > 0 && (
-          <div className="bg-white/10 rounded-xl p-3.5 mt-3 flex items-center justify-between">
-            <div className="flex items-center gap-5">
+          <div className="relative bg-white/10 border border-white/10 rounded-xl p-3.5 mt-3 flex items-center justify-between backdrop-blur-sm">
+            <div className="flex items-center gap-5 flex-wrap">
               <div>
-                <div className="text-[11px] text-emerald-200">Total Booking Value</div>
-                <div className="text-lg font-bold">{formatCurrency(stats.totalValue)}</div>
+                <div className="text-[11px] text-white/60">Total Booking Value</div>
+                <div className="text-lg font-bold text-white">{formatCurrency(stats.totalValue)}</div>
               </div>
               <div className="w-px h-8 bg-white/20" />
               <div>
-                <div className="text-[11px] text-green-200">Paid</div>
-                <div className="text-base font-bold text-green-200">{formatCurrency(stats.paidValue)}</div>
+                <div className="text-[11px] text-white/60">Paid</div>
+                <div className="text-base font-bold text-green-300">{formatCurrency(stats.paidValue)}</div>
               </div>
               {stats.unpaidValue > 0 && (
                 <>
                   <div className="w-px h-8 bg-white/20" />
                   <div>
-                    <div className="text-[11px] text-yellow-200">Pending Payment</div>
-                    <div className="text-base font-bold text-yellow-200">{formatCurrency(stats.unpaidValue)}</div>
+                    <div className="text-[11px] text-white/60">Pending Payment</div>
+                    <div className="text-base font-bold text-yellow-300">{formatCurrency(stats.unpaidValue)}</div>
                   </div>
                 </>
               )}

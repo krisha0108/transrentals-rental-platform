@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 
 const LUXURY_CATEGORIES: Record<string, string> = {
   luxury_sedan: 'Luxury Sedan',
@@ -305,7 +306,8 @@ export default function CustomerLuxuryQuoteDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
+    <div className="min-h-screen bg-gray-50 pb-32 pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-gradient-to-r from-gray-900 via-amber-900 to-gray-900 text-white py-6">
         <div className="container mx-auto px-4">

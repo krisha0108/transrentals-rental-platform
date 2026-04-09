@@ -179,6 +179,8 @@ export async function GET(
         acceptedAt: booking.acceptedAt,
         pickedUpAt: booking.pickedUpAt,
         returnedAt: booking.returnedAt,
+        cancelledAt: booking.cancelledAt,
+        cancelledBy: booking.cancelledBy,
         cancellationReason: booking.cancellationReason,
         isB2B: booking.customers?.isB2B || false,
         createdAt: booking.createdAt,
@@ -229,6 +231,8 @@ export async function PATCH(
         where: { id },
         data: {
           status: 'CANCELLED',
+          cancelledAt: new Date(),
+          cancelledBy: 'CUSTOMER',
           cancellationReason: reason || 'Cancelled by customer',
         },
       });

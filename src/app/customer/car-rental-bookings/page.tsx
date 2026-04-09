@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
+import CustomerHeader from '@/components/customer/CustomerHeader';
   Car,
   Calendar,
   Clock,
@@ -100,7 +101,8 @@ export default function CustomerCarRentalBookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16">
+      <CustomerHeader showBackButton />
       {/* Header */}
       <div className="bg-emerald-900 text-white py-8">
         <div className="container-custom">

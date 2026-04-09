@@ -44,7 +44,9 @@ export default async function TrailerLocationPage({ params }: Props) {
 
   const location = cities.find(
     (city) => city.slug === params.location.toLowerCase()
-  )!;
+  );
+
+  if (!location) return null;
 
   const highlights = [
     {
