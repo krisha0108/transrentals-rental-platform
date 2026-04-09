@@ -798,6 +798,21 @@ export function CarRentalBookingHero({
     setReturnDate(defaultReturn.toISOString().split('T')[0]);
   }, []);
 
+  // Re-fetch local packages when city changes in the form
+  useEffect(() => {
+    if (!currentLocation?.slug) return;
+    // Skip if this is the initial load (citySlug matches currentLocation)
+    if (currentLocation.slug === citySlug) return;
+
+    fetch(`${apiBasePath}/packages?locationSlug=${currentLocation.slug}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setLocalPackages(data.packages || []);
+        setSelectedPackageId(''); // reset selection for new city
+      })
+      .catch(() => {});
+  }, [currentLocation?.slug, citySlug, apiBasePath]);
+
   // Set default package when packages load
   useEffect(() => {
     if (localPackages.length > 0 && !selectedPackageId) {

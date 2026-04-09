@@ -106,10 +106,10 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   }, []);
 
   useEffect(() => {
-    if (tripType === 'local' && fromLocation && localPackages.length === 0) {
-      fetchLocalPackages();
+    if (tripType === 'local' && fromLocation) {
+      fetchLocalPackages(fromLocation.slug);
     }
-  }, [tripType, fromLocation]);
+  }, [tripType, fromLocation?.id]);
 
   // Handle Android hardware back button
   useEffect(() => {
@@ -156,13 +156,13 @@ export default function CarRentalFleetScreen({ navigation, route }) {
     }
   };
 
-  const fetchLocalPackages = async () => {
+  const fetchLocalPackages = async (locationSlug) => {
     try {
-      // Fetch all packages and filter/group them locally if needed
-      // To match web, we don't pass locationId here if we want global ones
-      const res = await bookingService.getChauffeurLocalPackages();
+      const params = locationSlug ? { locationSlug } : {};
+      const res = await bookingService.getChauffeurLocalPackages(params);
       if (res.success) {
         setLocalPackages(res.packages || []);
+        setSelectedPackage(null); // reset selection for new city
       }
     } catch (error) {
       console.log('Error fetching local packages:', error);

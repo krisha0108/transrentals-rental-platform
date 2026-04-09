@@ -11,11 +11,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const vehicleCategoryId = searchParams.get('vehicleCategoryId');
     const locationId = searchParams.get('locationId');
+    const locationSlug = searchParams.get('locationSlug');
     const activeOnly = searchParams.get('activeOnly');
 
     const where: any = {};
     if (vehicleCategoryId) where.vehicleCategoryId = vehicleCategoryId;
     if (locationId) where.locationId = locationId;
+    if (locationSlug) where.locations = { slug: locationSlug };
     if (activeOnly === 'true') where.isActive = true;
 
     const packages = await prisma.chauffeur_local_packages.findMany({
