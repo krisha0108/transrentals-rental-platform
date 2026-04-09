@@ -78,7 +78,6 @@ export default function OneWayCarRentalPage() {
                   {city.name}
                 </h3>
                 <p className="text-sm text-gray-600">{city.state}</p>
-                <p className="text-sm text-green-600 mt-2">From @₹1299 →</p>
               </Link>
             ))}
           </div>
@@ -86,66 +85,6 @@ export default function OneWayCarRentalPage() {
       </section>
 
       {/* One Way Car Options */}
-      <section id="routes" className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            One Way Car Options
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { name: 'Hatchbacks', price: '1299', models: 'Swift, i20, Baleno, Tiago', features: 'AC, 4 Seater, Luggage Space' },
-              { name: 'Sedans', price: '1799', models: 'City, Verna, Ciaz, Dzire', features: 'AC, 4 Seater, Spacious Boot' },
-              { name: 'SUVs', price: '2999', models: 'Creta, Seltos, XUV, Scorpio', features: 'AC, 6-7 Seater, Large Boot' },
-              { name: 'Compact SUVs', price: '2199', models: 'Venue, Nexon, Brezza, Sonet', features: 'AC, 5 Seater, Good Space' },
-              { name: 'Premium Sedans', price: '3499', models: 'Octavia, Camry, Accord', features: 'Luxury, Comfort, Premium' },
-              { name: 'MUVs', price: '2699', models: 'Ertiga, XL6, Innova', features: 'AC, 7 Seater, Family Trips' },
-            ].map((category) => (
-              <div key={category.name} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition">
-                <h3 className="text-xl font-bold mb-2">{category.name}</h3>
-                <p className="text-3xl font-bold text-green-600 mb-2">₹{category.price}+</p>
-                <p className="text-gray-700 mb-3 font-medium">{category.models}</p>
-                <p className="text-sm text-gray-600 mb-4">{category.features}</p>
-                <button className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition">
-                  Book One Way
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Popular One Way Routes */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Popular One Way Routes
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { from: 'Delhi', to: 'Jaipur', distance: '280 km', price: '3499' },
-              { from: 'Mumbai', to: 'Pune', distance: '150 km', price: '2499' },
-              { from: 'Bangalore', to: 'Chennai', distance: '350 km', price: '4499' },
-              { from: 'Hyderabad', to: 'Vijayawada', distance: '275 km', price: '3499' },
-              { from: 'Delhi', to: 'Chandigarh', distance: '250 km', price: '3199' },
-              { from: 'Kolkata', to: 'Bhubaneswar', distance: '440 km', price: '5499' },
-              { from: 'Chennai', to: 'Coimbatore', distance: '500 km', price: '5999' },
-              { from: 'Ahmedabad', to: 'Udaipur', distance: '260 km', price: '3299' },
-              { from: 'Jaipur', to: 'Udaipur', distance: '390 km', price: '4799' },
-            ].map((route, idx) => (
-              <div key={idx} className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-lg">{route.from}</span>
-                  <span className="text-green-600">→</span>
-                  <span className="font-semibold text-lg">{route.to}</span>
-                </div>
-                <p className="text-sm text-gray-600 mb-2">{route.distance}</p>
-                <p className="text-xl font-bold text-green-600">₹{route.price}+</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* How It Works */}
       <section className="py-16">
         <div className="container-custom max-w-4xl">

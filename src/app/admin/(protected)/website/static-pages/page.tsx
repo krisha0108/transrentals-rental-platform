@@ -5,8 +5,95 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Search, ExternalLink, Check, RotateCcw, ChevronDown, ChevronUp,
-  Globe, FileText, Car, Bike, Bus, Truck, Package, Wrench, Crown, CarTaxiFront,
+  Globe, FileText, Car, Bike, Bus, Truck, Package, Wrench, Crown, CarTaxiFront, Link as LinkIcon,
 } from 'lucide-react';
+
+// ── Sub-service page groups ────────────────────────────────────────────────────
+const SUB_SERVICE_GROUPS = [
+  {
+    name: 'Bike Rental',
+    icon: 'Bike',
+    color: 'blue',
+    slugs: [
+      'bike-on-rent', 'activa-on-rent', 'royal-enfield-on-rent', 'ktm-on-rent',
+      'pulsar-on-rent', 'apache-on-rent', 'splendor-on-rent', 'himalayan-on-rent',
+      'monthly-bike-rental', 'electric-scooter-rental',
+      'bike-tours', 'bike-tours/leh-ladakh', 'bike-tours/spiti-valley',
+      'bike-tours/rajasthan', 'bike-tours/goa', 'bike-trips/ladakh',
+    ],
+  },
+  {
+    name: 'Self-Drive Car Rental',
+    icon: 'Car',
+    color: 'purple',
+    slugs: [
+      'self-drive-car-rentals', 'hourly-car-rental',
+      'self-drive-suv-rental', 'self-drive-sedan-rental', 'self-drive-hatchback-rental',
+      'swift-on-rent', 'creta-on-rent', 'innova-on-rent', 'fortuner-on-rent',
+      'seltos-on-rent', 'xuv700-on-rent', 'scorpio-on-rent',
+    ],
+  },
+  {
+    name: 'Car Rental with Driver',
+    icon: 'CarTaxiFront',
+    color: 'emerald',
+    slugs: [
+      'car-rental', 'chauffeur-service', 'airport-transfer', 'local-taxi',
+      'outstation-cab', 'outstation-car-rental', 'one-way-car-rental',
+      'monthly-car-rental', 'corporate-car-rental',
+    ],
+  },
+  {
+    name: 'Luxury Car Rental',
+    icon: 'Crown',
+    color: 'amber',
+    slugs: [
+      'luxury-car-rental', 'wedding-car-rental', 'sports-car-rental', 'vintage-car-rental',
+    ],
+  },
+  {
+    name: 'Bus Rental',
+    icon: 'Bus',
+    color: 'orange',
+    slugs: [
+      'bus-rental', 'tempo-traveller', 'wedding-bus-rental', 'corporate-bus-rental',
+      '12-seater-tempo-traveller', '17-seater-tempo-traveller',
+      '20-seater-tempo-traveller', '26-seater-bus',
+    ],
+  },
+  {
+    name: 'Truck & Tempo',
+    icon: 'Truck',
+    color: 'red',
+    slugs: ['mini-truck-rental', 'transporter', 'trailer-on-rent'],
+  },
+  {
+    name: 'Packers & Movers',
+    icon: 'Package',
+    color: 'pink',
+    slugs: ['packers-and-movers'],
+  },
+  {
+    name: 'Equipment Rental',
+    icon: 'Wrench',
+    color: 'cyan',
+    slugs: [
+      'equipment-rental', 'jcb-on-rent', 'crane-on-rent',
+      'hydra-on-rent', 'excavator-on-rent', 'generator-on-rent',
+    ],
+  },
+] as const;
+
+const COLOR_MAP: Record<string, { bg: string; text: string; badge: string; border: string }> = {
+  blue:    { bg: 'bg-blue-50',    text: 'text-blue-600',    badge: 'bg-blue-100 text-blue-700',    border: 'border-blue-200' },
+  purple:  { bg: 'bg-purple-50',  text: 'text-purple-600',  badge: 'bg-purple-100 text-purple-700',  border: 'border-purple-200' },
+  emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', badge: 'bg-emerald-100 text-emerald-700', border: 'border-emerald-200' },
+  amber:   { bg: 'bg-amber-50',   text: 'text-amber-600',   badge: 'bg-amber-100 text-amber-700',   border: 'border-amber-200' },
+  orange:  { bg: 'bg-orange-50',  text: 'text-orange-600',  badge: 'bg-orange-100 text-orange-700',  border: 'border-orange-200' },
+  red:     { bg: 'bg-red-50',     text: 'text-red-600',     badge: 'bg-red-100 text-red-700',     border: 'border-red-200' },
+  pink:    { bg: 'bg-pink-50',    text: 'text-pink-600',    badge: 'bg-pink-100 text-pink-700',    border: 'border-pink-200' },
+  cyan:    { bg: 'bg-cyan-50',    text: 'text-cyan-600',    badge: 'bg-cyan-100 text-cyan-700',    border: 'border-cyan-200' },
+};
 
 // ── Icon map ───────────────────────────────────────────────────────────────────
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -401,6 +488,113 @@ function SEODashboardInner() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Sub-service pages */}
+      <SubServicePages search={search} />
+    </div>
+  );
+}
+
+// ── Sub-service pages section ─────────────────────────────────────────────────
+function SubServicePages({ search }: { search: string }) {
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (name: string) => {
+    setOpenGroups((prev) => ({ ...prev, [name]: !prev[name] }));
+  };
+
+  const total = SUB_SERVICE_GROUPS.reduce((acc, g) => acc + g.slugs.length, 0);
+  const q = search.toLowerCase();
+
+  // Filter groups based on search
+  const filteredGroups = SUB_SERVICE_GROUPS.map((g) => ({
+    ...g,
+    filtered: q
+      ? g.slugs.filter((s) => s.includes(q) || g.name.toLowerCase().includes(q))
+      : [...g.slugs],
+  })).filter((g) => g.filtered.length > 0);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+          <LinkIcon className="w-4 h-4 text-blue-500" />
+          Sub-Service Pages
+          <span className="text-xs font-normal text-gray-400">({total} URLs)</span>
+        </h2>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const allOpen = SUB_SERVICE_GROUPS.every((g) => openGroups[g.name]);
+              const next: Record<string, boolean> = {};
+              SUB_SERVICE_GROUPS.forEach((g) => { next[g.name] = !allOpen; });
+              setOpenGroups(next);
+            }}
+            className="text-xs text-blue-600 hover:text-blue-800 transition"
+          >
+            {SUB_SERVICE_GROUPS.every((g) => openGroups[g.name]) ? 'Collapse all' : 'Expand all'}
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {filteredGroups.map((group) => {
+          const colors = COLOR_MAP[group.color];
+          const isOpen = openGroups[group.name] || (q.length > 0);
+          const icon = ICON_MAP[group.icon] || <Car className="w-4 h-4" />;
+
+          return (
+            <div key={group.name} className={`border ${colors.border} rounded-xl overflow-hidden`}>
+              {/* Group header */}
+              <button
+                onClick={() => toggleGroup(group.name)}
+                className={`w-full flex items-center gap-3 px-4 py-3 ${colors.bg} hover:brightness-95 transition text-left`}
+              >
+                <div className={`w-7 h-7 rounded-lg ${colors.bg} border ${colors.border} flex items-center justify-center ${colors.text}`}>
+                  {icon}
+                </div>
+                <span className={`font-semibold text-sm ${colors.text}`}>{group.name}</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors.badge}`}>
+                  {group.filtered.length}
+                </span>
+                <span className="ml-auto">
+                  {isOpen
+                    ? <ChevronUp className="w-4 h-4 text-gray-400" />
+                    : <ChevronDown className="w-4 h-4 text-gray-400" />
+                  }
+                </span>
+              </button>
+
+              {/* Slug rows */}
+              {isOpen && (
+                <div className="divide-y divide-gray-100 bg-white">
+                  {group.filtered.map((slug) => {
+                    const url = `/${slug}`;
+                    const label = slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+                    return (
+                      <div key={slug} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate">{label}</p>
+                          <p className="text-xs text-gray-400 font-mono truncate">{url}</p>
+                        </div>
+                        <a
+                          href={`https://transrentals.in${url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 p-1.5 text-gray-400 hover:text-blue-600 transition rounded-md hover:bg-blue-50"
+                          title={`Open ${url}`}
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

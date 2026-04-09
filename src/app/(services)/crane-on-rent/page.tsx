@@ -13,13 +13,6 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://transrentals.in/crane-on-rent' },
 };
 
-const craneTypes = [
-  { name: 'Hydra Crane (12T)', price: 8000, capacity: '12 Ton', useCase: 'Loading/unloading, small construction' },
-  { name: 'Mobile Crane (20T)', price: 12000, capacity: '20 Ton', useCase: 'Medium construction, industrial' },
-  { name: 'Mobile Crane (35T)', price: 18000, capacity: '35 Ton', useCase: 'Heavy construction, infrastructure' },
-  { name: 'Mobile Crane (50T)', price: 25000, capacity: '50 Ton', useCase: 'Large projects, heavy lifting' },
-  { name: 'Crawler Crane (100T)', price: 45000, capacity: '100 Ton', useCase: 'Major infrastructure, ports' },
-];
 
 const topCities = ALL_CITIES.slice(0, 12);
 
@@ -73,32 +66,6 @@ export default function CraneOnRentPage() {
         </div>
       </section>
 
-      <section id="types" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12">Crane Types & Pricing</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {craneTypes.map((crane) => (
-              <div key={crane.name} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition">
-                <div className="bg-orange-600 text-white p-4">
-                  <p className="text-sm opacity-75">{crane.capacity}</p>
-                  <h3 className="text-lg font-bold">{crane.name}</h3>
-                  <p className="text-2xl font-bold mt-2">₹{crane.price.toLocaleString()}<span className="text-sm opacity-75">/day</span></p>
-                </div>
-                <div className="p-4">
-                  <p className="text-sm text-gray-600 mb-4">{crane.useCase}</p>
-                  <ul className="text-sm text-gray-600 space-y-1 mb-4">
-                    <li>✓ Operator included</li>
-                    <li>✓ Fuel extra</li>
-                    <li>✓ Insurance covered</li>
-                  </ul>
-                  <button className="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition">Get Quote</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="py-12 bg-orange-50">
         <div className="container-custom">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Applications</h2>
@@ -128,30 +95,6 @@ export default function CraneOnRentPage() {
                 <span className="font-medium text-gray-800">{city.name}</span>
               </Link>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Other Equipment</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href="/hydra-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-orange-600">Hydra on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹6,000/day</p>
-            </Link>
-            <Link href="/jcb-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-orange-600">JCB on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹4,000/day</p>
-            </Link>
-            <Link href="/excavator-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-orange-600">Excavator on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹5,000/day</p>
-            </Link>
-            <Link href="/equipment-rental" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-orange-600">All Equipment</h3>
-              <p className="text-sm text-gray-600 mt-2">View all options</p>
-            </Link>
           </div>
         </div>
       </section>

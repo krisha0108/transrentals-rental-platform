@@ -135,30 +135,6 @@ export default function HourlyCarRentalPage() {
         </div>
       </section>
 
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Other Rental Options</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href="/self-drive-car-rentals" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-cyan-600">Daily Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹799/day</p>
-            </Link>
-            <Link href="/airport-self-drive" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-cyan-600">Airport Self-Drive</h3>
-              <p className="text-sm text-gray-600 mt-2">Pickup at airport</p>
-            </Link>
-            <Link href="/local-taxi" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-cyan-600">With Driver</h3>
-              <p className="text-sm text-gray-600 mt-2">If you prefer a driver</p>
-            </Link>
-            <Link href="/outstation-car-rental" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-cyan-600">Outstation</h3>
-              <p className="text-sm text-gray-600 mt-2">Long distance trips</p>
-            </Link>
-          </div>
-        </div>
-      </section>
-
       <FAQSection service="self-drive-car-rental" />
     </>
   );

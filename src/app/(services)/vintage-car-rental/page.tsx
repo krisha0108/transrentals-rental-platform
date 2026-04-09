@@ -131,38 +131,7 @@ export default function VintageCarRentalPage() {
                   {city.name}
                 </h3>
                 <p className="text-sm text-gray-600">{city.state}</p>
-                <p className="text-sm text-amber-800 mt-2">{formatPriceHighlight('From @₹8999')} →</p>
               </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Vintage Cars Available */}
-      <section id="cars" className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Our Vintage Car Collection
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { name: 'Ambassador Classic (White)', price: '8999', features: 'Iconic Indian car, Traditional appeal, Wedding ready, Pristine condition', era: '1950s-1980s', best: 'Traditional weddings' },
-              { name: 'Ambassador Mark II', price: '9999', features: 'Premium vintage, Elegant design, Photo perfect, Well-maintained', era: '1960s-1970s', best: 'Heritage weddings' },
-              { name: 'Fiat Vintage', price: '12999', features: 'Italian classic, Unique charm, Rare model, Collector piece', era: '1960s', best: 'Unique weddings' },
-              { name: 'Standard Herald', price: '14999', features: 'British classic, Convertible option, Premium vintage, Elegant', era: '1960s-1970s', best: 'Luxury vintage feel' },
-              { name: 'Premier Padmini', price: '10999', features: 'Classic Indian sedan, Nostalgic appeal, Well-preserved, Iconic', era: '1970s-1980s', best: 'Retro theme' },
-              { name: 'Vintage Jeep/Willy', price: '11999', features: 'Rugged classic, Open-top option, Adventure appeal, Unique', era: '1950s-1960s', best: 'Destination weddings' },
-            ].map((car) => (
-              <div key={car.name} className="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition border-t-4 border-amber-700">
-                <p className="text-sm text-amber-800 font-semibold mb-2">{car.era}</p>
-                <h3 className="text-xl font-bold mb-2">{car.name}</h3>
-                <p className="text-3xl font-bold text-amber-800 mb-3">₹{car.price}/event</p>
-                <p className="text-sm text-gray-600 mb-3">{car.features}</p>
-                <p className="text-xs text-gray-500 mb-4">Best for: {car.best}</p>
-                <button className="w-full bg-amber-700 text-white py-2 rounded hover:bg-amber-800 transition">
-                  Book Vintage Car
-                </button>
-              </div>
             ))}
           </div>
         </div>
@@ -260,29 +229,6 @@ export default function VintageCarRentalPage() {
                 </li>
               </ul>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Rental Packages */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Vintage Car Rental Packages
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { duration: 'Baraat Only', price: '8999-11999', desc: '4 hours package', best: 'Groom entry' },
-              { duration: 'Full Day', price: '15999-24999', desc: '12 hours coverage', best: 'Multiple events' },
-              { duration: 'Photo Shoot', price: '6999-9999', desc: '2-3 hours rental', best: 'Pre-wedding shoots' },
-            ].map((plan) => (
-              <div key={plan.duration} className="bg-white p-6 rounded-lg shadow-md text-center">
-                <h3 className="font-semibold text-lg mb-2">{plan.duration}</h3>
-                <p className="text-2xl font-bold text-amber-800 mb-2">₹{plan.price}</p>
-                <p className="text-sm text-gray-600 mb-2">{plan.desc}</p>
-                <p className="text-xs text-amber-800 font-semibold">Best for: {plan.best}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>

@@ -93,37 +93,6 @@ export default function JCBOnRentPage() {
         </div>
       </section>
 
-      {/* Pricing Note */}
-      <section className="py-12 bg-amber-50">
-        <div className="container-custom">
-          <div className="max-w-3xl mx-auto bg-white rounded-xl p-8 shadow-lg border-2 border-amber-300">
-            <h3 className="text-2xl font-bold mb-4 text-center">Pricing Information</h3>
-            <div className="space-y-3 text-gray-700">
-              <p className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span><strong>Machine Rental:</strong> ₹2,499/day onwards</span>
-              </p>
-              <p className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span><strong>Operator Charges:</strong> ₹500-800/day (separate)</span>
-              </p>
-              <p className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span><strong>Fuel:</strong> Can be included or excluded based on requirement</span>
-              </p>
-              <p className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span><strong>Transportation:</strong> Charged based on distance from depot</span>
-              </p>
-              <p className="flex items-start gap-2">
-                <span className="text-primary mt-1">•</span>
-                <span><strong>Duration:</strong> 8-hour, 12-hour, or 24-hour rentals available</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <LocationsGrid service="jcb-on-rent" />
 
       <FAQSection service="equipment-rental" />

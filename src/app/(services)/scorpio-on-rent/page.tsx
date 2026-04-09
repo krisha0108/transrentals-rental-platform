@@ -13,14 +13,6 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://transrentals.in/scorpio-on-rent' },
 };
 
-const variants = [
-  { name: 'Scorpio-N Z4', price: 2499, fuel: 'Diesel', seats: 6 },
-  { name: 'Scorpio-N Z6', price: 2799, fuel: 'Diesel', seats: 6 },
-  { name: 'Scorpio-N Z8', price: 2999, fuel: 'Diesel', seats: 7 },
-  { name: 'Scorpio-N Z8 L AT', price: 3499, fuel: 'Diesel', seats: 7 },
-  { name: 'Scorpio Classic', price: 2299, fuel: 'Diesel', seats: 7 },
-];
-
 const topCities = ALL_CITIES.slice(0, 12);
 
 export default function ScorpioOnRentPage() {
@@ -73,27 +65,6 @@ export default function ScorpioOnRentPage() {
         </div>
       </section>
 
-      <section id="variants" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12">Scorpio Variants & Pricing</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {variants.map((v) => (
-              <div key={v.name} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition">
-                <div className="bg-amber-700 text-white p-4">
-                  <p className="text-sm opacity-75">{v.seats} Seater</p>
-                  <h3 className="text-lg font-bold">{v.name}</h3>
-                  <p className="text-2xl font-bold mt-2">₹{v.price}<span className="text-sm opacity-75">/day</span></p>
-                </div>
-                <div className="p-4">
-                  <p className="text-sm text-gray-600 mb-4">⛽ {v.fuel}</p>
-                  <button className="w-full bg-amber-600 text-white py-2 rounded-lg hover:bg-amber-700 transition">Book Now</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="py-12 bg-amber-50">
         <div className="container-custom">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Perfect For</h2>
@@ -123,30 +94,6 @@ export default function ScorpioOnRentPage() {
                 <span className="font-medium text-gray-800">{city.name}</span>
               </Link>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Similar SUVs</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href="/xuv700-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-amber-600">XUV700 on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹2,999/day</p>
-            </Link>
-            <Link href="/fortuner-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-amber-600">Fortuner on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹4,999/day</p>
-            </Link>
-            <Link href="/creta-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-amber-600">Creta on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹1,999/day</p>
-            </Link>
-            <Link href="/self-drive-suv-rental" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-amber-600">All SUVs</h3>
-              <p className="text-sm text-gray-600 mt-2">View all options</p>
-            </Link>
           </div>
         </div>
       </section>

@@ -26,14 +26,6 @@ export const metadata: Metadata = {
   },
 };
 
-const innovaVariants = [
-  { name: 'Toyota Innova Crysta GX', price: 2499, fuel: 'Diesel', transmission: 'Manual', seats: 7, features: 'AC, Music System, Power Steering' },
-  { name: 'Toyota Innova Crysta GX AT', price: 2799, fuel: 'Diesel', transmission: 'Automatic', seats: 7, features: 'Automatic, Touchscreen, Cruise Control' },
-  { name: 'Toyota Innova Crysta VX', price: 2999, fuel: 'Diesel', transmission: 'Manual', seats: 7, features: 'Captain Seats, Leather Interior' },
-  { name: 'Toyota Innova Crysta ZX AT', price: 3499, fuel: 'Diesel', transmission: 'Automatic', seats: 7, features: 'Top Variant, All Features' },
-  { name: 'Toyota Innova HyCross', price: 3999, fuel: 'Hybrid', transmission: 'Automatic', seats: 7, features: 'Hybrid, Premium, Best Mileage' },
-];
-
 const topCities = ALL_CITIES.slice(0, 12);
 
 export default function InnovaOnRentPage() {
@@ -99,41 +91,6 @@ export default function InnovaOnRentPage() {
       </section>
 
       {/* Innova Variants */}
-      <section id="variants" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-4">Innova Variants Available</h2>
-          <p className="text-center text-gray-600 mb-12">Choose from multiple variants based on your needs</p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {innovaVariants.map((variant) => (
-              <div key={variant.name} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition">
-                <div className="bg-purple-700 text-white p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm opacity-75">{variant.transmission}</p>
-                      <h3 className="text-xl font-bold">{variant.name}</h3>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold">₹{variant.price}</p>
-                      <p className="text-xs opacity-75">/day</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <div className="flex gap-4 text-sm text-gray-600 mb-3">
-                    <span>👥 {variant.seats} Seats</span>
-                    <span>⛽ {variant.fuel}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4">{variant.features}</p>
-                  <button className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition">
-                    Book Now
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Perfect For */}
       <section className="py-12 bg-white">
         <div className="container-custom">
@@ -157,50 +114,6 @@ export default function InnovaOnRentPage() {
         </div>
       </section>
 
-      {/* Innova vs HyCross */}
-      <section className="py-12 bg-purple-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Innova Crysta vs HyCross
-          </h2>
-          <div className="max-w-3xl mx-auto">
-            <div className="bg-white rounded-xl overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-purple-700 text-white">
-                  <tr>
-                    <th className="py-3 px-4 text-left">Feature</th>
-                    <th className="py-3 px-4 text-center">Crysta</th>
-                    <th className="py-3 px-4 text-center">HyCross</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  <tr>
-                    <td className="py-3 px-4">Engine</td>
-                    <td className="py-3 px-4 text-center">2.4L Diesel</td>
-                    <td className="py-3 px-4 text-center">2.0L Hybrid</td>
-                  </tr>
-                  <tr className="bg-gray-50">
-                    <td className="py-3 px-4">Mileage</td>
-                    <td className="py-3 px-4 text-center">14-16 km/l</td>
-                    <td className="py-3 px-4 text-center">21-23 km/l</td>
-                  </tr>
-                  <tr>
-                    <td className="py-3 px-4">Seating</td>
-                    <td className="py-3 px-4 text-center">7+1 Seats</td>
-                    <td className="py-3 px-4 text-center">7 Seats</td>
-                  </tr>
-                  <tr className="bg-gray-50">
-                    <td className="py-3 px-4">Price/Day</td>
-                    <td className="py-3 px-4 text-center font-semibold">₹2,499</td>
-                    <td className="py-3 px-4 text-center font-semibold">₹3,999</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Cities */}
       <section id="cities" className="py-12 bg-white">
         <div className="container-custom">
@@ -220,37 +133,6 @@ export default function InnovaOnRentPage() {
           </div>
           <div className="text-center mt-6">
             <p className="text-gray-600">+ 190 more cities available</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Related */}
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Similar Cars You May Like
-          </h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href="/fortuner-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🚙</div>
-              <h3 className="font-bold text-lg group-hover:text-purple-600">Fortuner on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">Premium 7-seater SUV from ₹4,999/day</p>
-            </Link>
-            <Link href="/creta-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🚘</div>
-              <h3 className="font-bold text-lg group-hover:text-purple-600">Creta on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">5-seater SUV from ₹1,999/day</p>
-            </Link>
-            <Link href="/self-drive-suv-rental" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🚐</div>
-              <h3 className="font-bold text-lg group-hover:text-purple-600">All SUVs</h3>
-              <p className="text-sm text-gray-600 mt-2">Seltos, Scorpio, XUV700</p>
-            </Link>
-            <Link href="/outstation-car-rental" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <div className="text-3xl mb-3">🛣️</div>
-              <h3 className="font-bold text-lg group-hover:text-purple-600">Outstation Rental</h3>
-              <p className="text-sm text-gray-600 mt-2">With driver from ₹16/km</p>
-            </Link>
           </div>
         </div>
       </section>

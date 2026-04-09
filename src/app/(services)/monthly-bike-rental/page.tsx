@@ -164,72 +164,6 @@ export default function MonthlyBikeRentalPage() {
       </section>
 
       {/* Monthly Plans */}
-      <section id="plans" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Monthly Bike Subscription Plans
-          </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                category: 'Scooter',
-                bikes: 'Activa, Jupiter, Access',
-                price: '2,999-3,999',
-                km: '1500 km/month',
-                deposit: '₹3,000',
-                best: 'Students, Daily commute',
-                color: 'emerald'
-              },
-              {
-                category: 'Commuter Bike',
-                bikes: 'Splendor, Shine, Pulsar',
-                price: '3,999-4,999',
-                km: '2000 km/month',
-                deposit: '₹4,000',
-                best: 'Office goers, Delivery',
-                color: 'blue'
-              },
-              {
-                category: 'Sports Bike',
-                bikes: 'FZ, Duke 200, Apache',
-                price: '5,999-7,999',
-                km: '1500 km/month',
-                deposit: '₹7,000',
-                best: 'Enthusiasts, Weekend rides',
-                color: 'orange'
-              },
-              {
-                category: 'Premium/RE',
-                bikes: 'Classic 350, Himalayan',
-                price: '9,999-14,999',
-                km: '2000 km/month',
-                deposit: '₹10,000',
-                best: 'Long trips, Touring',
-                color: 'red'
-              },
-            ].map((plan) => (
-              <div key={plan.category} className={`bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition border-t-4 border-${plan.color}-600`}>
-                <h3 className="text-xl font-bold mb-2">{plan.category}</h3>
-                <p className="text-sm text-gray-600 mb-3">{plan.bikes}</p>
-                <p className="text-3xl font-bold text-emerald-700 mb-2">₹{plan.price}</p>
-                <p className="text-sm text-gray-500 mb-1">/month</p>
-                <div className="border-t pt-3 mt-3 space-y-2 text-sm">
-                  <p><span className="text-gray-500">KM Limit:</span> {plan.km}</p>
-                  <p><span className="text-gray-500">Deposit:</span> {plan.deposit}</p>
-                  <p><span className="text-gray-500">Best for:</span> {plan.best}</p>
-                </div>
-                <button className="w-full mt-4 bg-emerald-600 text-white py-2 rounded hover:bg-emerald-700 transition">
-                  Subscribe Now
-                </button>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-gray-500 mt-6 text-sm">
-            * 3+ month subscription gets 10% discount | 6+ months gets 15% discount
-          </p>
-        </div>
-      </section>
-
       {/* Popular Cities */}
       <section id="locations" className="py-16">
         <div className="container-custom">
@@ -247,7 +181,6 @@ export default function MonthlyBikeRentalPage() {
                   {city.name}
                 </h3>
                 <p className="text-sm text-gray-600">{city.state}</p>
-                <p className="text-sm text-emerald-700 mt-2 font-medium">From ₹2,999/month →</p>
               </Link>
             ))}
           </div>
@@ -255,75 +188,6 @@ export default function MonthlyBikeRentalPage() {
       </section>
 
       <LocationsGrid service="monthly-bike-rental" />
-
-      {/* What's Included */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            What&apos;s Included in Monthly Package
-          </h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-emerald-50 p-6 rounded-lg">
-              <h3 className="font-bold text-xl mb-4 text-emerald-900">Package Includes</h3>
-              <ul className="space-y-3 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-700 mt-1">✓</span>
-                  <span>Bike/Scooty for 30 days</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-700 mt-1">✓</span>
-                  <span>1500-2000 km/month (varies by plan)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-700 mt-1">✓</span>
-                  <span>Free maintenance & servicing</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-700 mt-1">✓</span>
-                  <span>Comprehensive insurance</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-700 mt-1">✓</span>
-                  <span>24/7 roadside assistance</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-700 mt-1">✓</span>
-                  <span>Free replacement if breakdown</span>
-                </li>
-              </ul>
-            </div>
-            <div className="bg-teal-50 p-6 rounded-lg">
-              <h3 className="font-bold text-xl mb-4 text-teal-900">Not Included</h3>
-              <ul className="space-y-3 text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-teal-700 mt-1">•</span>
-                  <span>Fuel (you pay for petrol)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-teal-700 mt-1">•</span>
-                  <span>Helmet (₹50/day or bring own)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-teal-700 mt-1">•</span>
-                  <span>Extra km: ₹2-5/km</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-teal-700 mt-1">•</span>
-                  <span>Security deposit (refundable)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-teal-700 mt-1">•</span>
-                  <span>Traffic fines (customer liable)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-teal-700 mt-1">•</span>
-                  <span>Parking charges</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Perfect For */}
       <section className="py-16">

@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
       wanderBookings,
     ] = await Promise.all([
       // Bike Rental
-      shouldFetchService('bike-rental') || shouldFetchService('bike')
+      shouldFetchService('bike-rental') || shouldFetchService('bike') || shouldFetchService('bike-rental-activa') || shouldFetchService('bike-on-rent')
         ? prisma.bike_bookings.findMany({
             where: locationIdFilter,
             include: {
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
 
       // Self Drive
-      shouldFetchService('self-drive-car-rental') || shouldFetchService('self-drive')
+      shouldFetchService('self-drive-car-rental') || shouldFetchService('self-drive') || shouldFetchService('self-drive-car-rentals')
         ? prisma.car_bookings.findMany({
             where: locationIdFilter,
             include: {
@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
 
       // Chauffeur / Car Rental
-      shouldFetchService('chauffeur-driven-car-rental') || shouldFetchService('car-rental') || shouldFetchService('chauffeur')
+      shouldFetchService('chauffeur-driven-car-rental') || shouldFetchService('car-rental') || shouldFetchService('chauffeur') || shouldFetchService('car-rental-with-driver') || shouldFetchService('chauffeur-service')
         ? prisma.chauffeur_bookings.findMany({
             where: pickupCityFilter,
             include: {
@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
         : Promise.resolve([]),
 
       // Truck Transport
-      shouldFetchService('truck-transport') || shouldFetchService('truck') || shouldFetchService('transporter')
+      shouldFetchService('truck-transport') || shouldFetchService('truck') || shouldFetchService('transporter') || shouldFetchService('truck-rental') || shouldFetchService('truck-tempo-rental')
         ? prisma.truck_bookings.findMany({
             where: pickupCityFilter,
             include: {

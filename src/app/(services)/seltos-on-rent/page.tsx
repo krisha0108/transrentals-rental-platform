@@ -16,14 +16,6 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://transrentals.in/seltos-on-rent' },
 };
 
-const variants = [
-  { name: 'Kia Seltos HTK', price: 1899, fuel: 'Petrol', transmission: 'Manual' },
-  { name: 'Kia Seltos HTX', price: 2199, fuel: 'Petrol', transmission: 'Manual' },
-  { name: 'Kia Seltos HTX+ IVT', price: 2499, fuel: 'Petrol', transmission: 'Automatic' },
-  { name: 'Kia Seltos GTX Diesel', price: 2699, fuel: 'Diesel', transmission: 'Manual' },
-  { name: 'Kia Seltos GTX+ AT', price: 2999, fuel: 'Diesel', transmission: 'Automatic' },
-];
-
 const topCities = ALL_CITIES.slice(0, 12);
 
 export default function SeltosOnRentPage() {
@@ -76,30 +68,6 @@ export default function SeltosOnRentPage() {
         </div>
       </section>
 
-      <section id="variants" className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold text-center mb-12">Seltos Variants & Pricing</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {variants.map((v) => (
-              <div key={v.name} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition">
-                <div className="bg-red-600 text-white p-4">
-                  <p className="text-sm opacity-75">{v.transmission}</p>
-                  <h3 className="text-xl font-bold">{v.name}</h3>
-                  <div className="mt-2">
-                    <span className="text-2xl font-bold">₹{v.price}</span>
-                    <span className="text-sm opacity-75">/day</span>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <p className="text-sm text-gray-600 mb-4">👥 5 Seats • ⛽ {v.fuel}</p>
-                  <button className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">Book Now</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section id="cities" className="py-12 bg-white">
         <div className="container-custom">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Seltos on Rent in 200+ Cities</h2>
@@ -109,30 +77,6 @@ export default function SeltosOnRentPage() {
                 <span className="font-medium text-gray-800">{city.name}</span>
               </Link>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12 bg-gray-50">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Similar SUVs</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <Link href="/creta-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-red-600">Creta on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹1,999/day</p>
-            </Link>
-            <Link href="/xuv700-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-red-600">XUV700 on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹2,999/day</p>
-            </Link>
-            <Link href="/scorpio-on-rent" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-red-600">Scorpio on Rent</h3>
-              <p className="text-sm text-gray-600 mt-2">From ₹2,499/day</p>
-            </Link>
-            <Link href="/self-drive-suv-rental" className="bg-white p-6 rounded-lg hover:shadow-lg transition group">
-              <h3 className="font-bold text-lg group-hover:text-red-600">All SUVs</h3>
-              <p className="text-sm text-gray-600 mt-2">View all options</p>
-            </Link>
           </div>
         </div>
       </section>
