@@ -2580,9 +2580,9 @@ export function ChatBookingHero({
       const isFleetBus = selectedFleetVehicle?.category === 'bus';
       const isFleetBike = selectedFleetVehicle?.category === 'bike';
 
-      // For bike services, bus services, truck services, round trip car, fleet bikes, or outstation luxury/self-drive, ask for return datetime
-      // Equipment services don't need return date (duration is already asked)
-      const needsReturnDate = !isEquipmentService && (isBikeService || isBusService || isFleetBus || isFleetBike || isTruckService ||
+      // For bike services, bus services, round trip car, fleet bikes, or outstation luxury/self-drive, ask for return datetime
+      // Equipment services and truck/transporter services don't need return date
+      const needsReturnDate = !isEquipmentService && !isTruckService && (isBikeService || isBusService || isFleetBus || isFleetBike ||
         (isCarService && bookingData.tripType === 'roundtrip') ||
         (isFleetCar && bookingData.tripType === 'roundtrip') || // Fleet car with round trip
         (isLuxuryService && bookingData.luxuryPackage === '3') || // Outstation luxury package
