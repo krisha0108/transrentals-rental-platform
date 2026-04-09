@@ -75,6 +75,8 @@ interface BookingData {
   packersPropertySize?: string; // 1bhk, 2bhk, villa, etc.
   packersPickupAddress?: string;
   packersDropAddress?: string;
+  // Intermediate stops (outstation car rental)
+  intermediateStops?: { id: string; locationId: string; cityText: string }[];
   // B2B specific fields
   b2bPurpose?: 'personal' | 'company';
   b2bVehiclesRequired?: number;
@@ -1483,7 +1485,21 @@ export function SmartShivi() {
       return;
     }
 
-    // Show vendor prices for this vehicle
+    // Auto-select if only one vendor — skip vendor selection step entirely
+    if (vehicle.vendorPrices.length === 1) {
+      const vp = vehicle.vendorPrices[0];
+      await handleVendorPriceSelection(JSON.stringify({
+        vehicleId: vehicle.id,
+        vehicleName: `${vehicle.brandName} ${vehicle.name}`,
+        vendorId: vp.vendorId,
+        vendorFleetId: vp.vendorFleetId,
+        dailyRate: vp.dailyRate,
+        deposit: vp.deposit,
+      }));
+      return;
+    }
+
+    // Multiple vendors — show selection
     setBookingStep('select-vendor');
 
     const vendorOptions = vehicle.vendorPrices.slice(0, 4).map(vp => {
@@ -1836,6 +1852,38 @@ export function SmartShivi() {
       }
     } else if (action === 'skip-drop') {
       await skipDropLocation();
+    } else if (action === 'add-stop') {
+      const stopIndex = parseInt(value || '0', 10);
+      addShiviMessage(
+        `📍 Stop ${stopIndex + 1} — Which city?`,
+        locations.slice(0, 8).map(loc => ({
+          label: loc.name,
+          action: 'confirm-stop',
+          value: JSON.stringify({ index: stopIndex, name: loc.name, id: loc.id?.toString() || '' }),
+        })),
+        'text',
+        '🔍 Search city...'
+      );
+      setBookingStep('add-stops');
+    } else if (action === 'confirm-stop') {
+      const { index, name, id } = JSON.parse(value!);
+      const currentStops = bookingData.intermediateStops || [];
+      const newStops = [...currentStops, { id: String(index), locationId: id, cityText: name }];
+      setBookingData(prev => ({ ...prev, intermediateStops: newStops }));
+      addUserMessage(name);
+      const nextIndex = newStops.length;
+      const options = nextIndex < 3
+        ? [
+            { label: `➕ Add Stop ${nextIndex + 1}`, action: 'add-stop', value: String(nextIndex) },
+            { label: '✅ Done — No More Stops', action: 'skip-stops' },
+          ]
+        : [{ label: '✅ Done', action: 'skip-stops' }];
+      addShiviMessage(
+        `Stop ${index + 1}: ${name} added ✓${nextIndex < 3 ? '\n\nAdd another stop?' : '\n\nMaximum 3 stops reached.'}`,
+        options
+      );
+    } else if (action === 'skip-stops') {
+      await askForPickupDate();
     } else if (action === 'add-requirements') {
       await askForRequirements();
     } else if (action === 'skip-requirements') {
@@ -2242,12 +2290,12 @@ export function SmartShivi() {
       pickupLocationId: selectedLocation?.id?.toString() || '',
     }));
 
-    // BROWSE_FIRST services OR Local taxi: skip drop location, go straight to pickup date
+    // BROWSE_FIRST services OR Local services: skip drop location, go straight to pickup date
     const currentServiceType = currentServiceTypeRef.current;
     const isBrowseFirst = BROWSE_FIRST_SERVICES.includes(currentServiceType);
-    const isLocalTaxi = currentServiceType === 'local-taxi';
+    const isLocalService = currentServiceType === 'local-taxi' || currentServiceType === 'luxury-local';
 
-    if (isBrowseFirst || isLocalTaxi) {
+    if (isBrowseFirst || isLocalService) {
       // Same pickup and drop for self-drive/bike/local
       setBookingData((prev) => ({ ...prev, dropLocation: location }));
       addShiviMessage(
@@ -2298,6 +2346,19 @@ export function SmartShivi() {
       `Perfect! ${pickupLoc} → ${location} 🎯`,
       undefined
     );
+
+    // For outstation car rental — ask for intermediate stops
+    if (['outstation-car-rental', 'one-way-car-rental'].includes(currentServiceType)) {
+      addShiviMessage(
+        `🛣️ Would you like to add any stops along the way?\n\n(Optional — up to 3 intermediate cities)`,
+        [
+          { label: '➕ Add a Stop', action: 'add-stop', value: '0' },
+          { label: '⏭️ Skip — No Stops', action: 'skip-stops' },
+        ]
+      );
+      setBookingStep('add-stops');
+      return;
+    }
 
     // For Packers & Movers, show property size options
     if (currentServiceType === 'packers-and-movers') {
@@ -3284,6 +3345,9 @@ Ready to confirm?
           estimatedPrice: bookingData.carEstimatedPrice || null,
           airportId: bookingData.airportId || null,
           airportName: bookingData.airportName || null,
+          intermediateStops: bookingData.intermediateStops?.length
+            ? bookingData.intermediateStops
+            : undefined,
         };
 
         console.log('Car rental payload:', payload);
@@ -3429,7 +3493,7 @@ Ready to confirm?
           customerPhone: bookingData.phone || '',
           tripType: tripTypeMap[currentServiceType] || 'local',
           occasion: bookingData.luxuryOccasion || null,
-          vehicleCategory: bookingData.luxuryVehicleCategory || 'Premium Sedan',
+          vehicle_category: bookingData.luxuryVehicleCategory || 'Premium Sedan',
           vehicleCategoryName: bookingData.luxuryVehicleCategory || 'Premium Sedan',
           specificModel: bookingData.luxuryVehiclePreference || null,
           pickupCity: bookingData.pickupLocation || '',
