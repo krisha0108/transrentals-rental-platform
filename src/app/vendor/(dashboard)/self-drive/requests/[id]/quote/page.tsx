@@ -132,6 +132,7 @@ export default function SendSelfDriveQuotePage() {
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [totalPrice, setTotalPrice] = useState('');
   const [securityDeposit, setSecurityDeposit] = useState('');
+  const [noSecurityDeposit, setNoSecurityDeposit] = useState(false);
   const [kmLimitPerDay, setKmLimitPerDay] = useState('200');
   const [extraKmRate, setExtraKmRate] = useState('10');
   const [deliveryCharges, setDeliveryCharges] = useState('');
@@ -702,12 +703,25 @@ export default function SendSelfDriveQuotePage() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
                   type="number"
-                  value={securityDeposit}
+                  value={noSecurityDeposit ? '' : securityDeposit}
                   onChange={(e) => setSecurityDeposit(e.target.value)}
                   placeholder="5000"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  disabled={noSecurityDeposit}
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${noSecurityDeposit ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-200'}`}
                 />
               </div>
+              <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={noSecurityDeposit}
+                  onChange={(e) => {
+                    setNoSecurityDeposit(e.target.checked);
+                    if (e.target.checked) setSecurityDeposit('0');
+                  }}
+                  className="w-4 h-4 rounded accent-orange-500"
+                />
+                <span className="text-sm text-gray-600">No security deposit required</span>
+              </label>
             </div>
           </div>
 
@@ -747,10 +761,11 @@ export default function SendSelfDriveQuotePage() {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
                   type="number"
-                  value={extraKmRate}
+                  value={kmLimitPerDay === 'unlimited' ? '' : extraKmRate}
                   onChange={(e) => setExtraKmRate(e.target.value)}
                   placeholder="10"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  disabled={kmLimitPerDay === 'unlimited'}
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${kmLimitPerDay === 'unlimited' ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-200'}`}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">/km</span>
               </div>

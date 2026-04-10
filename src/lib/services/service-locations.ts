@@ -18,8 +18,17 @@ export async function getServiceLocations(serviceSlug: string) {
       return [];
     }
 
-    // Sub-services (e.g. royal-enfield-on-rent) are stored under their parent slug (e.g. bike-rental)
-    const dbSlug = getParentServiceSlug(serviceSlug);
+    // SERVICE_PARENT_MAP parent slugs → actual DB service slugs
+    const PARENT_SLUG_TO_DB: Record<string, string> = {
+      'bike-rental': 'bike-on-rent',
+      'self-drive-car-rental': 'self-drive-car-rentals',
+      'car-rental-with-driver': 'car-rental',
+      'truck-tempo-rental': 'transporter',
+      'packers-movers': 'packers-and-movers',
+    };
+    // Sub-services (e.g. royal-enfield-on-rent) are stored under their parent slug in DB
+    const parentSlug = getParentServiceSlug(serviceSlug);
+    const dbSlug = PARENT_SLUG_TO_DB[parentSlug] || parentSlug;
 
     // Fetch enabled locations from database
     const service = await prisma.services.findUnique({

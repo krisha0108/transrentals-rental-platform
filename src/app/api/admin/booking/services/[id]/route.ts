@@ -26,7 +26,7 @@ export async function GET(
         other_services: {
           orderBy: { displayOrder: 'asc' },
         },
-        parent: true,
+        services: true,
         serviceTripTypes: {
           include: {
             tripType: true,
@@ -159,7 +159,7 @@ export async function PUT(
       where: { id },
       include: {
         other_services: true,
-        parent: true,
+        services: true,
         serviceTripTypes: {
           include: {
             tripType: true,

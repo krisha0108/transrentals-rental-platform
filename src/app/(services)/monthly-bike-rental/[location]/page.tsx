@@ -12,6 +12,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -107,6 +108,12 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
 
   const seoData = await resolvePageMeta(`monthly-bike-rental:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'What is included in the monthly bike rental plan?', answer: 'Monthly plans include the bike, helmet, insurance, and free maintenance. You only pay for fuel — no hidden charges.' },
+    { question: 'Can I switch bikes during my monthly rental period?', answer: 'Yes, bike switching is allowed once per month at no extra cost. Subject to availability of the requested model.' },
+    { question: 'Is there a minimum rental period for monthly plans?', answer: 'The minimum period is 30 days. You can subscribe for 1, 3, or 6 months with increasing discounts for longer commitments.' },
+    { question: 'What happens if the bike breaks down during my monthly rental?', answer: 'We provide free doorstep maintenance and repair. If the bike is off-road for more than 24 hours, we provide a replacement bike at no cost.' },
+  ];
 
   return (
     <>
@@ -136,11 +143,16 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
         badge={`Monthly Bike Rental in ${locationName}`}
-        title={`Monthly Bike & Scooty Rental`}
-        titleHighlight="Starting @₹2,999/Month"
-        description={`Rent bikes & scooters on monthly basis in ${locationName}. Zero maintenance, flexible plans, doorstep delivery across ${locationName}.`}
-        gradientFrom="emerald-50"
-        gradientTo="teal-50"
+        title="Monthly Bike Rental"
+        titleHighlight="Save 40% vs Daily @₹3999/mo"
+        description={`Staying in ${locationName} for a month? Skip EMIs and ownership costs. Any bike you want — Royal Enfield, Activa, Pulsar — with maintenance and insurance included.`}
+        features={[
+          { icon: 'star', text: '40% Cheaper Than Daily', color: 'text-amber-500' },
+          { icon: 'shield', text: 'Free Maintenance', color: 'text-emerald-600' },
+          { icon: 'zap', text: 'Switch Bikes Anytime', color: 'text-purple-600' },
+        ]}
+        gradientFrom="purple-50"
+        gradientTo="violet-50"
       />
 
       {/* Breadcrumb */}
@@ -423,7 +435,24 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="bike-on-rent" customFaqs={pageFaqs} />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bike-on-rent"
+        parentName="Bike Rental"
+        currentSlug="monthly-bike-rental"
+        siblings={[
+          { slug: 'activa-on-rent', name: 'Activa on Rent' },
+          { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
+          { slug: 'ktm-on-rent', name: 'KTM on Rent' },
+          { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
+          { slug: 'apache-on-rent', name: 'Apache on Rent' },
+          { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
+          { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },
+          { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
+          { slug: 'electric-scooter-rental', name: 'Electric Scooter' },
+        ]}
+      />
     </>
   );
 }

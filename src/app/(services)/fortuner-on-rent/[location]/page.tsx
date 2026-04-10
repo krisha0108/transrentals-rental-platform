@@ -11,6 +11,8 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -53,6 +55,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/fortuner-on-rent/${locationSlug}`,
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Fortuner on Rent in ${locationName} | TransRentals`,
+      description: `Rent Toyota Fortuner without driver in ${locationName} starting @₹3499/day.`,
+    },
   };
 }
 
@@ -73,6 +80,12 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
 
   const seoData = await resolvePageMeta(`fortuner-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Is Toyota Fortuner available for self-drive without a driver?', answer: 'Yes, Toyota Fortuner (4x2 and 4x4) is available for self-drive. A valid LMV licence with minimum 2 years of driving experience is required.' },
+    { question: 'What is the daily rent for a Fortuner self-drive?', answer: 'Toyota Fortuner self-drive rental starts from ₹3499/day for 2WD manual and ₹4299/day for 4WD automatic, including insurance.' },
+    { question: 'Can I drive the Fortuner to hill stations or off-road?', answer: 'Yes, Fortuner 4x4 is cleared for hill stations and moderate off-road trails. Notify us at booking for route-specific insurance clearance.' },
+    { question: 'What is the security deposit for renting a Fortuner?', answer: 'A refundable security deposit of ₹10,000–₹15,000 is collected at pickup and returned within 48 hours of damage-free return.' },
+  ];
 
   return (
     <>
@@ -93,15 +106,15 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
         pageDescription={seoData?.pageDescription || undefined}
         badge={`Fortuner Rental in ${locationName}`}
         title="Toyota Fortuner on Rent"
-        titleHighlight="Starting @₹4999/Day"
-        description={`Rent Toyota Fortuner without driver in ${locationName}. India's most aspirational SUV with commanding presence and premium luxury.`}
+        titleHighlight="Command the Road @₹3499/day"
+        description={`India's most aspirational SUV, self-drive in ${locationName}. Fortuner's 4WD capability, powerful diesel engine, and imposing presence — for those who drive to dominate.`}
         features={[
+          { icon: 'zap', text: '4WD Capability', color: 'text-gray-700' },
+          { icon: 'shield', text: 'Diesel Powerhouse', color: 'text-emerald-600' },
           { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Luxury SUV', color: 'text-yellow-600' },
         ]}
-        gradientFrom="yellow-50"
-        gradientTo="amber-50"
+        gradientFrom="gray-50"
+        gradientTo="slate-50"
       />
 
       <section className="bg-gradient-to-br from-gray-900 to-gray-800 text-white py-12">
@@ -185,7 +198,34 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="self-drive-car-rental" location={locationName} />
+      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="Fortuner on Rent"
+        serviceSlug="fortuner-on-rent"
+        description={`Rent Toyota Fortuner without driver in ${locationName} starting @₹3499/day.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="self-drive-car-rentals"
+        parentName="Self Drive Car Rental"
+        currentSlug="fortuner-on-rent"
+        siblings={[
+          { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
+          { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
+          { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
+          { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
+          { slug: 'swift-on-rent', name: 'Swift on Rent' },
+          { slug: 'creta-on-rent', name: 'Creta on Rent' },
+          { slug: 'innova-on-rent', name: 'Innova on Rent' },
+          { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
+          { slug: 'seltos-on-rent', name: 'Seltos on Rent' },
+          { slug: 'xuv700-on-rent', name: 'XUV700 on Rent' },
+          { slug: 'scorpio-on-rent', name: 'Scorpio on Rent' },
+        ]}
+      />
     </>
   );
 }

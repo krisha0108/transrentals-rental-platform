@@ -11,6 +11,8 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps { params: { location: string }; }
 
@@ -33,6 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: _seoDb?.metaTitle || `Crane on Rent in ${locationName} | @₹8000/Day | TransRentals`,
     description: _seoDb?.metaDescription || `Hire crane in ${locationName} for construction & industrial projects. Mobile, tower, hydra cranes available.`,
     alternates: { canonical: `https://transrentals.in/crane-on-rent/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Crane on Rent in ${locationName} | TransRentals`,
+      description: `Hire crane in ${locationName} starting @₹4999/day. Mobile, tower, hydra cranes with operators.`,
+    },
   };
 }
 
@@ -45,6 +52,12 @@ export default async function CraneLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`crane-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'What types of cranes are available on rent?', answer: 'We offer Hydra (12T), Mobile Crane (20T–50T), Pick-and-Carry Crane, and Tower Crane for construction and industrial projects.' },
+    { question: 'Is an operator included with crane rental?', answer: 'Yes, a certified crane operator with HMV licence and safety training is mandatory and included in all crane rental packages.' },
+    { question: 'What is the daily rental rate for a mobile crane?', answer: 'Mobile crane (20T) starts from ₹12,000/day; 50-ton crane from ₹25,000/day. Hydra crane (12T) starts from ₹8,000/day.' },
+    { question: 'Can I rent a crane for a single day?', answer: 'Yes, minimum 1-day (8 hours) rental is available. For weekend or holiday work, advance booking of at least 48 hours is required.' },
+  ];
 
   return (
     <>
@@ -63,17 +76,17 @@ export default async function CraneLocationPage({ params }: PageProps) {
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Crane in ${locationName}`}
+        badge={`Crane Rental in ${locationName}`}
         title="Crane on Rent"
-        titleHighlight="Starting @₹8000/Day"
-        description={`Hire crane in ${locationName} for construction, industrial projects. All capacities with trained operators.`}
+        titleHighlight="Heavy Lifting @₹4999/day"
+        description={`Industrial-grade crane rental in ${locationName} for construction sites, factory installations, and heavy lifting projects. Mobile and tower cranes with certified operators.`}
         features={[
-          { icon: 'star', text: 'All Capacities', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Operator Included', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Pan India', color: 'text-orange-600' },
+          { icon: 'zap', text: 'Up to 50-Ton Lift', color: 'text-yellow-600' },
+          { icon: 'shield', text: 'Certified Operator', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
         ]}
-        gradientFrom="orange-50"
-        gradientTo="yellow-50"
+        gradientFrom="yellow-50"
+        gradientTo="orange-50"
       />
 
       <section className="bg-gradient-to-br from-orange-600 to-yellow-600 text-white py-12">
@@ -138,7 +151,28 @@ export default async function CraneLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="equipment-rental" location={locationName} />
+      <FAQSection service="equipment-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="Crane on Rent"
+        serviceSlug="crane-on-rent"
+        description={`Hire crane in ${locationName} starting @₹4999/day. Mobile, tower, hydra cranes with operators.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="equipment-rental"
+        parentName="Equipment Rental"
+        currentSlug="crane-on-rent"
+        siblings={[
+          { slug: 'jcb-on-rent', name: 'JCB on Rent' },
+          { slug: 'crane-on-rent', name: 'Crane on Rent' },
+          { slug: 'hydra-on-rent', name: 'Hydra on Rent' },
+          { slug: 'excavator-on-rent', name: 'Excavator on Rent' },
+          { slug: 'generator-on-rent', name: 'Generator on Rent' },
+        ]}
+      />
     </>
   );
 }

@@ -11,11 +11,8 @@ export const dynamic = 'force-dynamic';
 // Helper to generate request number
 function generateRequestNumber(): string {
   const prefix = 'SDQ'; // Self-Drive Quote Request
-  const year = new Date().getFullYear();
-  const random = Math.floor(Math.random() * 10000)
-    .toString()
-    .padStart(4, '0');
-  return `${prefix}-${year}-${random}`;
+  const random = Math.random().toString(36).substr(2, 5).toUpperCase();
+  return `${prefix}-${Date.now()}-${random}`;
 }
 
 function generateB2BId(): string {

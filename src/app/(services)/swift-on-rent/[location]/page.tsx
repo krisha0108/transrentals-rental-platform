@@ -11,6 +11,8 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -53,6 +55,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/swift-on-rent/${locationSlug}`,
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Swift on Rent in ${locationName} | TransRentals`,
+      description: `Rent Maruti Swift without driver in ${locationName} starting @₹899/day.`,
+    },
   };
 }
 
@@ -73,6 +80,12 @@ export default async function SwiftOnRentLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`swift-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Is Maruti Swift available as automatic for self-drive?', answer: 'Yes, both manual and AMT (automatic) variants of Maruti Swift are available — choose based on your driving preference.' },
+    { question: 'What is the fuel type for the rental Swift?', answer: 'We offer Maruti Swift in Petrol and CNG variants. CNG is more economical for city driving; petrol is ideal for highway trips.' },
+    { question: 'Can I rent a Swift for just 1 day?', answer: 'Yes, single-day rentals are available. Minimum booking is 12 hours with 120 km included. Additional km at ₹12/km.' },
+    { question: 'What documents are needed to rent a Maruti Swift?', answer: 'You need a valid driving licence (LMV category), government-issued photo ID, and a security deposit of ₹3000–₹5000.' },
+  ];
 
   return (
     <>
@@ -93,12 +106,12 @@ export default async function SwiftOnRentLocationPage({ params }: PageProps) {
         pageDescription={seoData?.pageDescription || undefined}
         badge={`Swift Rental in ${locationName}`}
         title="Maruti Swift on Rent"
-        titleHighlight="Starting @₹899/Day"
-        description={`Rent Maruti Swift without driver in ${locationName}. India's most popular hatchback with sporty design and excellent mileage.`}
+        titleHighlight="India's Favourite @₹899/day"
+        description={`The hatchback that changed India — now self-drive in ${locationName}. Swift's punchy engine, sporty handling, and 22 km/l mileage make it the perfect everyday companion.`}
         features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
+          { icon: 'zap', text: '22km/l Mileage', color: 'text-green-600' },
           { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: '22 km/l Mileage', color: 'text-green-600' },
+          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
         ]}
         gradientFrom="red-50"
         gradientTo="orange-50"
@@ -185,7 +198,34 @@ export default async function SwiftOnRentLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="self-drive-car-rental" location={locationName} />
+      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="Swift on Rent"
+        serviceSlug="swift-on-rent"
+        description={`Rent Maruti Swift without driver in ${locationName} starting @₹899/day.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="self-drive-car-rentals"
+        parentName="Self Drive Car Rental"
+        currentSlug="swift-on-rent"
+        siblings={[
+          { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
+          { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
+          { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
+          { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
+          { slug: 'swift-on-rent', name: 'Swift on Rent' },
+          { slug: 'creta-on-rent', name: 'Creta on Rent' },
+          { slug: 'innova-on-rent', name: 'Innova on Rent' },
+          { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
+          { slug: 'seltos-on-rent', name: 'Seltos on Rent' },
+          { slug: 'xuv700-on-rent', name: 'XUV700 on Rent' },
+          { slug: 'scorpio-on-rent', name: 'Scorpio on Rent' },
+        ]}
+      />
     </>
   );
 }

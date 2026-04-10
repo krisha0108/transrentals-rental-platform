@@ -72,6 +72,32 @@ const SERVICES_WITH_BOOK_PAGE = [
 const SERVICES_WITH_CARS_PAGE = ['self-drive-car-rentals'];
 const SERVICES_WITH_BIKES_PAGE = ['bike-on-rent'];
 
+// Sub-services per parent DB slug (excludes airport-transfer — route-based, not location-based)
+const DB_SLUG_TO_SUB_SERVICES: Record<string, string[]> = {
+  'bike-on-rent': [
+    'activa-on-rent', 'royal-enfield-on-rent', 'ktm-on-rent', 'pulsar-on-rent',
+    'apache-on-rent', 'splendor-on-rent', 'himalayan-on-rent',
+    'monthly-bike-rental', 'electric-scooter-rental',
+  ],
+  'self-drive-car-rentals': [
+    'hourly-car-rental', 'self-drive-suv-rental', 'self-drive-sedan-rental',
+    'self-drive-hatchback-rental', 'swift-on-rent', 'creta-on-rent',
+    'innova-on-rent', 'fortuner-on-rent', 'seltos-on-rent', 'xuv700-on-rent', 'scorpio-on-rent',
+  ],
+  'car-rental': [
+    'chauffeur-service', 'local-taxi', 'outstation-cab', 'one-way-car-rental',
+    'outstation-car-rental', 'monthly-car-rental', 'corporate-car-rental',
+  ],
+  'bus-rental': [
+    'tempo-traveller', 'wedding-bus-rental', 'corporate-bus-rental',
+    '12-seater-tempo-traveller', '17-seater-tempo-traveller',
+    '20-seater-tempo-traveller', '26-seater-bus',
+  ],
+  'luxury-car-rental': ['wedding-car-rental', 'sports-car-rental', 'vintage-car-rental'],
+  'transporter': ['mini-truck-rental', 'trailer-on-rent'],
+  'equipment-rental': ['jcb-on-rent', 'crane-on-rent', 'hydra-on-rent', 'excavator-on-rent', 'generator-on-rent'],
+};
+
 // =============================================================================
 // STATIC PAGES
 // =============================================================================
@@ -320,9 +346,20 @@ async function generateServiceLocationsSitemap(currentDate: string): Promise<Sit
           priority,
         });
       }
+
+      // Sub-service location pages (inherit parent's enabled locations)
+      const subServices = DB_SLUG_TO_SUB_SERVICES[serviceSlug] || [];
+      subServices.forEach((subSlug) => {
+        urls.push({
+          url: `${BASE_URL}/${subSlug}/${locationSlug}`,
+          lastModified: currentDate,
+          changeFrequency: 'monthly',
+          priority: Math.max(0.4, priority - 0.1),
+        });
+      });
     });
 
-    console.log(`[Sitemap 1] ${urls.length} service location URLs`);
+    console.log(`[Sitemap 1] ${urls.length} service location URLs (including sub-services)`);
   } catch (error) {
     console.error('[Sitemap 1] Error:', error);
   }

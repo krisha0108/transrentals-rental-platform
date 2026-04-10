@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
 
     await prisma.chat_interactions.create({
       data: {
+        id: crypto.randomUUID(),
         sessionId: sessionId || `chat_${Date.now()}`,
         interactionType: interactionType || 'MESSAGE_SENT',
         userMessage: userMessage || null,

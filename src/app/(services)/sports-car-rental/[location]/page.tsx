@@ -10,6 +10,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import { getLuxuryServiceId, getLocationId } from '@/lib/db/build-cache';
 import { SupercarsGrid } from '@/components/sports-car-rental/SupercarsGrid';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -59,6 +60,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/sports-car-rental/${params.location}`,
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Sports Car Rental in ${locationName} | TransRentals`,
+      description: `Rent sports cars in ${locationName}. Ferrari, Lamborghini, Porsche available @₹25000/day.`,
+    },
   };
 }
 
@@ -72,6 +78,13 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
   const locationName = city.name;
 
   const seoData = await resolvePageMeta(`sports-car-rental:${params.location}`);
+
+  const pageFaqs = [
+    { question: 'Which sports cars are available for rent?', answer: 'We offer Porsche 911, Lamborghini Huracán, Ferrari California, BMW M3, and Mustang GT — all insured and ready for city and track experiences.' },
+    { question: 'Do I need a special licence to rent a sports car?', answer: 'You need a valid LMV licence with at least 3 years of driving experience. For supercars above 500hp, prior experience verification is required.' },
+    { question: 'Is insurance included in the sports car rental?', answer: 'Yes, comprehensive insurance is included. An additional damage waiver is strongly recommended. Security deposit of ₹50,000–₹2,00,000 applies.' },
+    { question: 'Can I rent a sports car just for a photo shoot?', answer: 'Yes, 2-hour photo shoot packages are available with a designated location. Contact us for custom packages with multiple car combinations.' },
+  ];
 
   const [luxuryServiceId, locationId] = await Promise.all([
     getLuxuryServiceId(),
@@ -106,17 +119,17 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Sports Car Rental in ${locationName}`}
-        title="Exotic Sports Car Rental"
-        titleHighlight="Ferrari, Lamborghini @₹25k/day"
-        description={`Rent exotic supercars in ${locationName}. Ferrari, Lamborghini, Porsche, McLaren. Perfect for weddings, celebrations, and making memories.`}
+        badge={`Sports Car in ${locationName}`}
+        title="Sports Car Rental"
+        titleHighlight="Feel the Thrill @₹4999/day"
+        description={`Live the dream for a day in ${locationName}. Rent a sports car — feel the roar, the speed, the stares. Perfect for weekend drives, special occasions, and bucket list moments.`}
         features={[
+          { icon: 'zap', text: 'Pure Adrenaline', color: 'text-red-600' },
+          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
           { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Premium Fleet', color: 'text-red-600' },
-          { icon: 'zap', text: 'Instant Booking', color: 'text-orange-600' },
         ]}
         gradientFrom="red-50"
-        gradientTo="orange-50"
+        gradientTo="rose-50"
       />
 
       {/* Why Sports Car */}
@@ -321,6 +334,18 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
             },
           }),
         }}
+      />
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="luxury-car-rental"
+        parentName="Luxury Car Rental"
+        currentSlug="sports-car-rental"
+        siblings={[
+          { slug: 'wedding-car-rental', name: 'Wedding Car Rental' },
+          { slug: 'sports-car-rental', name: 'Sports Car Rental' },
+          { slug: 'vintage-car-rental', name: 'Vintage Car Rental' },
+        ]}
       />
 
     </>

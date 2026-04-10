@@ -13,6 +13,8 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -50,6 +52,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `Wedding Bus Rental in ${locationName} - TransRentals`,
       description: `Luxury AC buses for weddings in ${locationName} starting @₹5999/day.`,
+    },
+    alternates: { canonical: `https://transrentals.in/wedding-bus-rental/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Wedding Bus Rental in ${locationName} | TransRentals`,
+      description: `Book luxury AC buses for weddings in ${locationName} starting @₹4999/day.`,
     },
   };
 }
@@ -106,6 +114,12 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`wedding-bus-rental:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'What types of buses are available for wedding rental?', answer: 'We offer AC luxury coaches (26–49 seater), decorated mini buses (17–20 seater), and Tempo Travellers (9–17 seater) for wedding functions.' },
+    { question: 'Is wedding decoration included in the bus rental?', answer: 'Yes, basic floral decoration is included for wedding packages. Premium decoration with lights and custom themes is available at extra cost.' },
+    { question: 'How early should I book a wedding bus rental?', answer: 'We recommend booking at least 2–4 weeks in advance, especially for peak wedding season (Nov–Feb). Last-minute bookings are possible but subject to availability.' },
+    { question: 'Can the wedding bus be used for baraat procession and multiple wedding events?', answer: 'Yes, our wedding bus packages cover multiple functions — baraat, reception, and return drop. Full-day packages are available for all wedding needs.' },
+  ];
 
   return (
     <div className="flex flex-col">
@@ -127,15 +141,15 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
         pageDescription={seoData?.pageDescription || undefined}
         badge={`Wedding Bus in ${locationName}`}
         title="Wedding Bus Rental"
-        titleHighlight="Starting @₹5999/day"
-        description={`Book luxury AC buses for your wedding in ${locationName}. Guest transportation, baraat, family travel. Decorated buses with professional drivers.`}
+        titleHighlight="Baraat Ready @₹4999/day"
+        description={`Make your ${locationName} baraat unforgettable. Decorated AC buses for wedding processions, guest transport, and multi-day functions — driver and decoration included.`}
         features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Decorated Buses', color: 'text-rose-600' },
-          { icon: 'zap', text: 'AC Comfort', color: 'text-pink-600' },
+          { icon: 'star', text: 'Baraat Decoration', color: 'text-pink-500' },
+          { icon: 'shield', text: 'AC & Non-AC Options', color: 'text-emerald-600' },
+          { icon: 'zap', text: 'Professional Driver', color: 'text-rose-500' },
         ]}
-        gradientFrom="rose-50"
-        gradientTo="pink-50"
+        gradientFrom="pink-50"
+        gradientTo="fuchsia-50"
       />
 
       {/* Wedding Packages */}
@@ -231,7 +245,7 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
 
       <WhyRentHere locationName={locationName} />
 
-      <FAQSection service="bus-rental" location={locationName} />
+      <FAQSection service="bus-rental" location={locationName} customFaqs={pageFaqs} />
 
       <NearbyLocations
         locationSlug={params.location}
@@ -243,6 +257,29 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
         serviceSlug="wedding-bus-rental"
         cityName={locationName}
         stateCode={city?.stateCode}
+      />
+      <BikeServiceSchema
+        serviceName="Wedding Bus Rental"
+        serviceSlug="wedding-bus-rental"
+        description={`Book luxury AC buses for weddings in ${locationName} starting @₹4999/day.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bus-rental"
+        parentName="Bus Rental"
+        currentSlug="wedding-bus-rental"
+        siblings={[
+          { slug: 'tempo-traveller', name: 'Tempo Traveller' },
+          { slug: 'wedding-bus-rental', name: 'Wedding Bus' },
+          { slug: 'corporate-bus-rental', name: 'Corporate Bus' },
+          { slug: '12-seater-tempo-traveller', name: '12 Seater Tempo' },
+          { slug: '17-seater-tempo-traveller', name: '17 Seater Tempo' },
+          { slug: '20-seater-tempo-traveller', name: '20 Seater Tempo' },
+          { slug: '26-seater-bus', name: '26 Seater Bus' },
+        ]}
       />
     </div>
   );

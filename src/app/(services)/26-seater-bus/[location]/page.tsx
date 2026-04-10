@@ -11,6 +11,8 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps { params: { location: string }; }
 
@@ -33,6 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: _seoDb?.metaTitle || `26 Seater Bus in ${locationName} | Mini Bus @₹28/km | TransRentals`,
     description: _seoDb?.metaDescription || `Book 26 seater bus in ${locationName}. AC/Non-AC with driver for weddings, corporate events.`,
     alternates: { canonical: `https://transrentals.in/26-seater-bus/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `26 Seater Bus in ${locationName} | TransRentals`,
+      description: `Book 26 seater bus in ${locationName} starting @₹25/km with driver.`,
+    },
   };
 }
 
@@ -45,6 +52,12 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
 
   const seoData = await resolvePageMeta(`26-seater-bus:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Is a 26-seater classified as a mini bus or full-size bus?', answer: 'A 26-seater is a mini bus — larger than a tempo traveller but compact enough for city roads. Ideal for 24–26 passengers with hand luggage.' },
+    { question: 'What is the rental rate for a 26-seater bus per km?', answer: '26-seater Non-AC starts from ₹28/km, AC from ₹35/km, and Luxury from ₹45/km. Minimum 150 km per day for outstation trips.' },
+    { question: 'Is a 26-seater bus available for school picnic or college trip?', answer: 'Yes — 26-seater AC buses are popular for school picnics, college tours, and religious group travel. Advance booking recommended.' },
+    { question: 'Does the 26-seater bus have luggage space?', answer: 'Yes, 26-seater mini buses have overhead racks and optional roof carrier for large luggage on outstation trips.' },
+  ];
 
   return (
     <>
@@ -63,17 +76,17 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`26 Seater in ${locationName}`}
-        title="26 Seater Bus on Rent"
-        titleHighlight="Starting @₹28/km"
-        description={`Hire 26 seater mini bus in ${locationName} for weddings, corporate events & group travel. AC/Non-AC with driver.`}
+        badge={`26 Seater Bus in ${locationName}`}
+        title="26 Seater Bus Rental"
+        titleHighlight="Full Group Travel @₹25/km"
+        description={`Move your entire group in one bus from ${locationName}. 26-seater AC mini bus — ideal for large corporate events, school picnics, and multi-city tour packages.`}
         features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Driver Included', color: 'text-emerald-600' },
-          { icon: 'zap', text: '26 Seats', color: 'text-green-600' },
+          { icon: 'zap', text: '26 Reclining Seats', color: 'text-red-600' },
+          { icon: 'shield', text: 'AC & Entertainment', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
         ]}
-        gradientFrom="green-50"
-        gradientTo="teal-50"
+        gradientFrom="red-50"
+        gradientTo="orange-50"
       />
 
       <section className="bg-gradient-to-br from-green-700 to-teal-700 text-white py-12">
@@ -138,7 +151,30 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="bus-rental" location={locationName} />
+      <FAQSection service="bus-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="26 Seater Bus"
+        serviceSlug="26-seater-bus"
+        description={`Book 26 seater bus in ${locationName} starting @₹25/km with driver.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bus-rental"
+        parentName="Bus Rental"
+        currentSlug="26-seater-bus"
+        siblings={[
+          { slug: 'tempo-traveller', name: 'Tempo Traveller' },
+          { slug: 'wedding-bus-rental', name: 'Wedding Bus' },
+          { slug: 'corporate-bus-rental', name: 'Corporate Bus' },
+          { slug: '12-seater-tempo-traveller', name: '12 Seater Tempo' },
+          { slug: '17-seater-tempo-traveller', name: '17 Seater Tempo' },
+          { slug: '20-seater-tempo-traveller', name: '20 Seater Tempo' },
+          { slug: '26-seater-bus', name: '26 Seater Bus' },
+        ]}
+      />
     </>
   );
 }

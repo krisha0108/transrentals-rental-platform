@@ -11,6 +11,9 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { HourlyCarBookingHero } from '@/components/hourly-car-rental/HourlyCarBookingHero';
+import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps { params: { location: string }; }
 
@@ -29,6 +32,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: seoDb?.metaTitle || `Hourly Car Rental in ${locationName} | Book with Driver | TransRentals`,
     description: seoDb?.metaDescription || `Book hourly cab in ${locationName} with driver. Packages starting from 2 hrs. Driver + fuel included.`,
     alternates: { canonical: `https://transrentals.in/hourly-car-rental/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Hourly Car Rental in ${locationName} | TransRentals`,
+      description: `Book hourly cab in ${locationName} with driver. Packages starting from ₹149/hr.`,
+    },
   };
 }
 
@@ -46,6 +54,15 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
+  const seoData = await resolvePageMeta(`hourly-car-rental:${params.location}`);
+
+  const pageFaqs = [
+    { question: 'What is the minimum hourly booking for a car with driver?', answer: 'The minimum booking is 2 hours, covering up to 20 km. Additional km are charged at ₹12–₹18/km depending on the car category.' },
+    { question: 'Is the driver included in the hourly car rental rate?', answer: 'Yes, a professional driver is always included. The rate covers driver charges, fuel, and tolls within city limits.' },
+    { question: 'Can I extend my hourly car rental booking mid-trip?', answer: 'Yes, you can extend by calling our support. Extension charges apply per hour at the same rate as the original booking.' },
+    { question: 'Which cars are available for hourly rental?', answer: 'We offer Dzire, Etios (Sedan), Swift (Hatchback), Ertiga (MUV), and Innova (SUV) for hourly city packages.' },
+  ];
+
   return (
     <>
       {/* Breadcrumb */}
@@ -60,6 +77,22 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
           </nav>
         </div>
       </section>
+
+      <ServiceHeroWithChat
+        pageHeading={seoData?.pageHeading || undefined}
+        pageDescription={seoData?.pageDescription || undefined}
+        badge={`Hourly Car Rental in ${locationName}`}
+        title="Hourly Self Drive Car Rental"
+        titleHighlight="Pay Only for Hours @₹149/hr"
+        description={`No need to book a full day. Rent a self-drive car in ${locationName} for exactly the hours you need — airport drops, meetings, errands, or evening outings.`}
+        features={[
+          { icon: 'zap', text: '1-Hour Minimum Booking', color: 'text-purple-600' },
+          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
+        ]}
+        gradientFrom="purple-50"
+        gradientTo="fuchsia-50"
+      />
 
       {/* Hero with live packages from admin */}
       <HourlyCarBookingHero cityName={locationName} citySlug={params.location} />
@@ -95,7 +128,34 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="self-drive-car-rental" location={locationName} />
+      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="Hourly Car Rental"
+        serviceSlug="hourly-car-rental"
+        description={`Book hourly cab in ${locationName} with driver. Packages starting from ₹149/hr.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="self-drive-car-rentals"
+        parentName="Self Drive Car Rental"
+        currentSlug="hourly-car-rental"
+        siblings={[
+          { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
+          { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
+          { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
+          { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
+          { slug: 'swift-on-rent', name: 'Swift on Rent' },
+          { slug: 'creta-on-rent', name: 'Creta on Rent' },
+          { slug: 'innova-on-rent', name: 'Innova on Rent' },
+          { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
+          { slug: 'seltos-on-rent', name: 'Seltos on Rent' },
+          { slug: 'xuv700-on-rent', name: 'XUV700 on Rent' },
+          { slug: 'scorpio-on-rent', name: 'Scorpio on Rent' },
+        ]}
+      />
     </>
   );
 }

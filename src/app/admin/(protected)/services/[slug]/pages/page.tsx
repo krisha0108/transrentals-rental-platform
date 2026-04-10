@@ -2,7 +2,69 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { Search, ExternalLink, Check, RotateCcw, ChevronDown, ChevronUp, MapPin, Route, Plane } from 'lucide-react';
+import { Search, ExternalLink, Check, RotateCcw, ChevronDown, ChevronUp, MapPin, Route, Plane, Layers } from 'lucide-react';
+
+// Sub-services per parent DB service slug
+const SUB_SERVICES_MAP: Record<string, { slug: string; name: string }[]> = {
+  'bike-on-rent': [
+    { slug: 'activa-on-rent', name: 'Activa on Rent' },
+    { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
+    { slug: 'ktm-on-rent', name: 'KTM on Rent' },
+    { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
+    { slug: 'apache-on-rent', name: 'Apache on Rent' },
+    { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
+    { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },
+    { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
+    { slug: 'electric-scooter-rental', name: 'Electric Scooter Rental' },
+  ],
+  'self-drive-car-rentals': [
+    { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
+    { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
+    { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
+    { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
+    { slug: 'swift-on-rent', name: 'Swift on Rent' },
+    { slug: 'creta-on-rent', name: 'Creta on Rent' },
+    { slug: 'innova-on-rent', name: 'Innova on Rent' },
+    { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
+    { slug: 'seltos-on-rent', name: 'Seltos on Rent' },
+    { slug: 'xuv700-on-rent', name: 'XUV700 on Rent' },
+    { slug: 'scorpio-on-rent', name: 'Scorpio on Rent' },
+  ],
+  'car-rental': [
+    { slug: 'chauffeur-service', name: 'Chauffeur Service' },
+    { slug: 'local-taxi', name: 'Local Taxi' },
+    { slug: 'outstation-cab', name: 'Outstation Cab' },
+    { slug: 'one-way-car-rental', name: 'One Way Car Rental' },
+    { slug: 'outstation-car-rental', name: 'Outstation Car Rental' },
+    { slug: 'monthly-car-rental', name: 'Monthly Car Rental' },
+    { slug: 'corporate-car-rental', name: 'Corporate Car Rental' },
+  ],
+  'bus-rental': [
+    { slug: 'tempo-traveller', name: 'Tempo Traveller' },
+    { slug: 'wedding-bus-rental', name: 'Wedding Bus Rental' },
+    { slug: 'corporate-bus-rental', name: 'Corporate Bus Rental' },
+    { slug: '12-seater-tempo-traveller', name: '12 Seater Tempo' },
+    { slug: '17-seater-tempo-traveller', name: '17 Seater Tempo' },
+    { slug: '20-seater-tempo-traveller', name: '20 Seater Tempo' },
+    { slug: '26-seater-bus', name: '26 Seater Bus' },
+  ],
+  'luxury-car-rental': [
+    { slug: 'wedding-car-rental', name: 'Wedding Car Rental' },
+    { slug: 'sports-car-rental', name: 'Sports Car Rental' },
+    { slug: 'vintage-car-rental', name: 'Vintage Car Rental' },
+  ],
+  'transporter': [
+    { slug: 'mini-truck-rental', name: 'Mini Truck Rental' },
+    { slug: 'trailer-on-rent', name: 'Trailer on Rent' },
+  ],
+  'equipment-rental': [
+    { slug: 'jcb-on-rent', name: 'JCB on Rent' },
+    { slug: 'crane-on-rent', name: 'Crane on Rent' },
+    { slug: 'hydra-on-rent', name: 'Hydra on Rent' },
+    { slug: 'excavator-on-rent', name: 'Excavator on Rent' },
+    { slug: 'generator-on-rent', name: 'Generator on Rent' },
+  ],
+};
 
 interface PageRow {
   pageId: string;
@@ -332,9 +394,13 @@ export default function ServiceLocationPagesAdmin() {
   const slug = (params?.slug as string) || '';
   const isCarRental = slug === 'car-rental';
 
+  const subServices = SUB_SERVICES_MAP[slug] || [];
+  // activeSlug: which slug to show pages for (parent or a sub-service)
+  const [activeSlug, setActiveSlug] = useState(slug);
+
   const tabs = [
     { key: 'location', label: 'Location Pages', icon: <MapPin className="w-4 h-4" /> },
-    ...(isCarRental ? [
+    ...(isCarRental && activeSlug === slug ? [
       { key: 'routes', label: 'One Way & Round Trip', icon: <Route className="w-4 h-4" /> },
       { key: 'airport', label: 'Airport Transfers', icon: <Plane className="w-4 h-4" /> },
     ] : []),
@@ -342,10 +408,18 @@ export default function ServiceLocationPagesAdmin() {
 
   const [activeTab, setActiveTab] = useState('location');
 
+  // Reset tab when sub-service changes
+  const handleSlugChange = (newSlug: string) => {
+    setActiveSlug(newSlug);
+    setActiveTab('location');
+  };
+
   const serviceName = slug
     .split('-')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
+
+  const activeSubName = subServices.find((s) => s.slug === activeSlug)?.name;
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -357,6 +431,32 @@ export default function ServiceLocationPagesAdmin() {
           <span className="ml-1 text-blue-600">Blue = custom override</span> | <span className="text-gray-400">White = using template</span>
         </p>
       </div>
+
+      {/* Sub-service selector */}
+      {subServices.length > 0 && (
+        <div className="flex items-center gap-3 mb-5">
+          <Layers className="w-4 h-4 text-gray-500 shrink-0" />
+          <span className="text-sm text-gray-600 shrink-0">Viewing pages for:</span>
+          <select
+            value={activeSlug}
+            onChange={(e) => handleSlugChange(e.target.value)}
+            className="flex-1 max-w-xs px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+          >
+            <option value={slug}>{serviceName} (Parent)</option>
+            {subServices.map((s) => (
+              <option key={s.slug} value={s.slug}>{s.name}</option>
+            ))}
+          </select>
+          {activeSlug !== slug && (
+            <button
+              onClick={() => handleSlugChange(slug)}
+              className="text-xs text-blue-600 hover:underline"
+            >
+              ← Back to parent
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6 overflow-x-auto">
@@ -371,15 +471,15 @@ export default function ServiceLocationPagesAdmin() {
             }`}
           >
             {tab.icon}
-            {tab.label}
+            {tab.key === 'location' && activeSubName ? `${activeSubName} Pages` : tab.label}
           </button>
         ))}
       </div>
 
       {/* Tab content */}
       <TabPanel
-        key={activeTab}
-        slug={slug}
+        key={`${activeSlug}-${activeTab}`}
+        slug={activeSlug}
         type={activeTab}
         label={tabs.find((t) => t.key === activeTab)?.label || ''}
         icon={tabs.find((t) => t.key === activeTab)?.icon}

@@ -5,12 +5,22 @@ import { SERVICE_PARENT_MAP } from '@/lib/constants/service-mapping';
 
 export const dynamic = 'force-dynamic';
 
-// Build a map: parentSlug → number of public sub-service slugs
+// Map SERVICE_PARENT_MAP parent slugs → actual DB service slugs
+const PARENT_TO_DB_SLUG: Record<string, string> = {
+  'bike-rental': 'bike-on-rent',
+  'self-drive-car-rental': 'self-drive-car-rentals',
+  'car-rental-with-driver': 'car-rental',
+  'truck-tempo-rental': 'transporter',
+  'packers-movers': 'packers-and-movers',
+};
+
+// Build a map: dbSlug → number of public sub-service slugs
 // Exclude nested paths like 'bike-trips/ladakh'
 const SUB_SERVICE_COUNT: Record<string, number> = {};
 for (const [childSlug, parentSlug] of Object.entries(SERVICE_PARENT_MAP)) {
   if (!childSlug.includes('/')) {
-    SUB_SERVICE_COUNT[parentSlug] = (SUB_SERVICE_COUNT[parentSlug] || 0) + 1;
+    const dbSlug = PARENT_TO_DB_SLUG[parentSlug] || parentSlug;
+    SUB_SERVICE_COUNT[dbSlug] = (SUB_SERVICE_COUNT[dbSlug] || 0) + 1;
   }
 }
 
@@ -69,8 +79,8 @@ export async function GET() {
       const subCount = SUB_SERVICE_COUNT[s.slug] || 1;
       const locationCount = rawLocationCount * subCount;
       // Route pages belong to car-rental-with-driver (its sub-services include one-way-cab, round-trip, airport-transfer)
-      const routeCount = s.slug === 'car-rental-with-driver' ? routePageCount : 0;
-      const airportCount = s.slug === 'car-rental-with-driver' ? airportPageCount : 0;
+      const routeCount = s.slug === 'car-rental' ? routePageCount : 0;
+      const airportCount = s.slug === 'car-rental' ? airportPageCount : 0;
       return {
         id: s.id,
         name: s.name,

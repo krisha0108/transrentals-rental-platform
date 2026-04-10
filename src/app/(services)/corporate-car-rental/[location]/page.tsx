@@ -10,6 +10,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { prisma } from '@/lib/db/prisma';
 import { getCarRentalServiceId, getLocationId } from '@/lib/db/build-cache';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -59,6 +60,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/corporate-car-rental/${params.location}`,
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Corporate Car Rental in ${locationName} | TransRentals`,
+      description: `Corporate car rental in ${locationName}. Employee transport & business meetings @₹15000/month.`,
+    },
   };
 }
 
@@ -70,6 +76,13 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
   // Fallback: getAllCities().find(c => c.slug === params.location);
 
   const locationName = city.name;
+
+  const pageFaqs = [
+    { question: 'What types of corporate car rental plans are available?', answer: 'We offer monthly corporate fleet plans, daily employee cab services, airport transfer contracts, and event-based car hire for businesses.' },
+    { question: 'Is GST invoice provided for corporate car rental?', answer: 'Yes, GST invoices with HSN codes are provided for all corporate bookings. Advance invoices available for monthly billing cycles.' },
+    { question: 'Can companies book a fleet of cars for multiple employees?', answer: 'Yes, fleet bookings from 3 to 50+ cars are available with a dedicated account manager and 24/7 priority support.' },
+    { question: 'What is the minimum contract duration for corporate car rental?', answer: 'Minimum 1-month contracts for regular fleet. For event or project-based requirements, even 1-week arrangements are possible.' },
+  ];
 
   const [seoData, carServiceId, locationId] = await Promise.all([
     resolvePageMeta(`corporate-car-rental:${params.location}`),
@@ -315,6 +328,22 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
             },
           }),
         }}
+      />
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="car-rental"
+        parentName="Car Rental with Driver"
+        currentSlug="corporate-car-rental"
+        siblings={[
+          { slug: 'chauffeur-service', name: 'Chauffeur Service' },
+          { slug: 'local-taxi', name: 'Local Taxi' },
+          { slug: 'outstation-cab', name: 'Outstation Cab' },
+          { slug: 'one-way-car-rental', name: 'One Way Car Rental' },
+          { slug: 'outstation-car-rental', name: 'Outstation Car Rental' },
+          { slug: 'monthly-car-rental', name: 'Monthly Car Rental' },
+          { slug: 'corporate-car-rental', name: 'Corporate Car Rental' },
+        ]}
       />
 
     </>

@@ -19,18 +19,25 @@ const FAQS = [
   },
 ];
 
+interface FAQ {
+  question: string;
+  answer: string;
+}
+
 interface FAQSectionProps {
   service: string;
   location?: string;
+  customFaqs?: FAQ[];
 }
 
-export function FAQSection({ service, location }: FAQSectionProps) {
+export function FAQSection({ service, location, customFaqs }: FAQSectionProps) {
+  const faqs = customFaqs && customFaqs.length > 0 ? customFaqs : FAQS;
   return (
     <section className="py-16 bg-white">
       <div className="container-custom max-w-4xl">
         <h2 className="text-3xl font-bold text-center mb-12">Frequently Asked Questions</h2>
         <div className="space-y-6">
-          {FAQS.map((faq, index) => (
+          {faqs.map((faq, index) => (
             <div key={index} className="bg-gray-50 rounded-lg p-6">
               <h3 className="font-bold text-lg mb-2 text-gray-900">{faq.question}</h3>
               <p className="text-gray-600">{faq.answer}</p>

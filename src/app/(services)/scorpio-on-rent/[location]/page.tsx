@@ -11,6 +11,8 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps { params: { location: string }; }
 
@@ -33,6 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: _seoDb?.metaTitle || `Scorpio on Rent in ${locationName} | @₹2499/Day | TransRentals`,
     description: _seoDb?.metaDescription || `Rent Mahindra Scorpio without driver in ${locationName}. Rugged SUV for adventure & outstation.`,
     alternates: { canonical: `https://transrentals.in/scorpio-on-rent/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Scorpio on Rent in ${locationName} | TransRentals`,
+      description: `Rent Mahindra Scorpio without driver in ${locationName} starting @₹1499/day.`,
+    },
   };
 }
 
@@ -45,6 +52,12 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`scorpio-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Which Scorpio model is available for self-drive rental?', answer: 'We offer Mahindra Scorpio N (2022+) and Scorpio Classic — both available in diesel manual variants with 4WD options.' },
+    { question: 'What is the rental price for Mahindra Scorpio per day?', answer: 'Scorpio Classic starts from ₹1499/day; Scorpio N starts from ₹1799/day. 250 km included per day in all packages.' },
+    { question: 'Is Scorpio 4WD available for self-drive on hill roads?', answer: 'Yes, Scorpio N Z8 4WD variant is available and cleared for hill stations and rough terrain with prior route intimation.' },
+    { question: 'How many people can travel in the rental Scorpio?', answer: 'Scorpio N and Classic seat up to 7 passengers. All three rows are functional for full-family group travel.' },
+  ];
 
   return (
     <>
@@ -63,14 +76,14 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Scorpio in ${locationName}`}
+        badge={`Scorpio Rental in ${locationName}`}
         title="Mahindra Scorpio on Rent"
-        titleHighlight="Starting @₹2499/Day"
-        description={`Rent Scorpio without driver in ${locationName}. Rugged, powerful SUV for adventure trips.`}
+        titleHighlight="Built Tough @₹1499/day"
+        description={`Rent Scorpio in ${locationName} — the rugged icon that handles broken roads, off-trails, and highway runs with ease. Scorpio Classic or Scorpio-N available for self-drive.`}
         features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: '4x4 Available', color: 'text-amber-600' },
+          { icon: 'zap', text: 'Off-Road Ready', color: 'text-amber-600' },
+          { icon: 'shield', text: 'Tough Body-on-Frame', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
         ]}
         gradientFrom="amber-50"
         gradientTo="orange-50"
@@ -139,7 +152,34 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="self-drive-car-rental" location={locationName} />
+      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="Scorpio on Rent"
+        serviceSlug="scorpio-on-rent"
+        description={`Rent Mahindra Scorpio without driver in ${locationName} starting @₹1499/day.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="self-drive-car-rentals"
+        parentName="Self Drive Car Rental"
+        currentSlug="scorpio-on-rent"
+        siblings={[
+          { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
+          { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
+          { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
+          { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
+          { slug: 'swift-on-rent', name: 'Swift on Rent' },
+          { slug: 'creta-on-rent', name: 'Creta on Rent' },
+          { slug: 'innova-on-rent', name: 'Innova on Rent' },
+          { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
+          { slug: 'seltos-on-rent', name: 'Seltos on Rent' },
+          { slug: 'xuv700-on-rent', name: 'XUV700 on Rent' },
+          { slug: 'scorpio-on-rent', name: 'Scorpio on Rent' },
+        ]}
+      />
     </>
   );
 }

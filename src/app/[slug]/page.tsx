@@ -28,7 +28,6 @@ async function getCMSPage(slug: string) {
         status: 'PUBLISHED',
       },
       include: {
-        seo_meta: true,
         admin_users: {
           select: {
             name: true,
