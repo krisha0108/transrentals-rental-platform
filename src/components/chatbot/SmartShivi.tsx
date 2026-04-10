@@ -2208,6 +2208,8 @@ export function SmartShivi() {
     const isBrowseFirst = BROWSE_FIRST_SERVICES.includes(subType);
 
     // Check if we already know the city from page context
+    const isTruckService = ['mini-truck-rental', 'transporter', 'trailer-on-rent'].includes(subType);
+
     if (pageContext.detectedCity && isBrowseFirst) {
       // Pre-fill city and skip to dates
       const city = pageContext.detectedCity;
@@ -2229,6 +2231,25 @@ export function SmartShivi() {
       setCalendarMode('date');
       setBookingStep('pickup-date');
       setShowDatePicker(true);
+      return;
+    }
+
+    // Truck services with detected city: pre-fill pickup, ask for drop city
+    if (pageContext.detectedCity && isTruckService) {
+      const city = pageContext.detectedCity;
+      setBookingData((prev) => ({ ...prev, pickupLocation: city, pickupLocationId: '' }));
+      const smartSuggestions = getSmartLocationSuggestions(city);
+      addShiviMessage(
+        `Pickup: ${city} ✓\n\n📍 Where do you want to deliver?\n\n💡 Type to search or select below`,
+        [
+          ...smartSuggestions,
+          { label: '📍 Same city', action: 'skip-drop' },
+        ],
+        'text',
+        '🔍 Search destination city...'
+      );
+      setBookingStep('drop-location');
+      setTimeout(() => inputRef.current?.focus(), 900);
       return;
     }
 
@@ -2558,6 +2579,9 @@ export function SmartShivi() {
       'luxury-local',
       'luxury-airport-transfer',
       'packers-and-movers',
+      'mini-truck-rental',
+      'transporter',
+      'trailer-on-rent',
     ];
 
     // Quote-based services: go directly to contact details after date
@@ -2566,6 +2590,9 @@ export function SmartShivi() {
       'luxury-outstation',
       'luxury-airport-transfer',
       'packers-and-movers',
+      'mini-truck-rental',
+      'transporter',
+      'trailer-on-rent',
     ];
 
     // Check if this is a quote-based service
