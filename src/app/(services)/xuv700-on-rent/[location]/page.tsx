@@ -13,6 +13,8 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { formatPriceHighlight } from '@/lib/utils';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps { params: { location: string }; }
 
@@ -35,6 +37,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: _seoDb?.metaTitle || formatPriceHighlight(`XUV700 on Rent in ${locationName} | @₹2999/Day | TransRentals`),
     description: _seoDb?.metaDescription || formatPriceHighlight(`Rent Mahindra XUV700 without driver in ${locationName}. India's safest SUV with ADAS.`),
     alternates: { canonical: `https://transrentals.in/xuv700-on-rent/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `XUV700 on Rent in ${locationName} | TransRentals`,
+      description: `Rent Mahindra XUV700 without driver in ${locationName} starting @₹1999/day.`,
+    },
   };
 }
 
@@ -47,6 +54,12 @@ export default async function XUV700LocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`xuv700-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Is Mahindra XUV700 available for self-drive without a chauffeur?', answer: 'Yes, Mahindra XUV700 AX5 and AX7 are available for self-drive with ADAS features and panoramic sunroof.' },
+    { question: 'What is the daily rent for XUV700 self-drive?', answer: 'XUV700 self-drive rental starts from ₹1999/day for petrol and ₹2299/day for diesel, including insurance and 250 km limit.' },
+    { question: 'Does the XUV700 rental include ADAS features?', answer: 'Yes, the rental XUV700 includes ADAS (auto emergency braking, lane keep assist) — all systems are active and tested before delivery.' },
+    { question: 'Can I rent XUV700 for a 7-seater family trip?', answer: 'Absolutely — XUV700 is a true 7-seater SUV with 3 rows. Ideal for family vacations and long-distance road trips.' },
+  ];
 
   return (
     <>
@@ -65,14 +78,14 @@ export default async function XUV700LocationPage({ params }: PageProps) {
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`XUV700 in ${locationName}`}
+        badge={`XUV700 Rental in ${locationName}`}
         title="Mahindra XUV700 on Rent"
-        titleHighlight="Starting @₹2999/Day"
-        description={`Rent XUV700 without driver in ${locationName}. India's safest SUV with ADAS & panoramic sunroof.`}
+        titleHighlight="7-Seater Flagship @₹1999/day"
+        description={`Experience ${locationName} in Mahindra's flagship — XUV700 with ADAS Level 2, 200HP diesel, panoramic sunroof, and 7 spacious seats. Self-drive India's most feature-rich SUV.`}
         features={[
-          { icon: 'star', text: '5-Star Safety', color: 'text-amber-500' },
-          { icon: 'shield', text: 'ADAS Equipped', color: 'text-emerald-600' },
-          { icon: 'zap', text: '5 & 7 Seater', color: 'text-red-600' },
+          { icon: 'zap', text: '200HP Diesel Engine', color: 'text-red-600' },
+          { icon: 'shield', text: 'ADAS Level 2', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
         ]}
         gradientFrom="red-50"
         gradientTo="rose-50"
@@ -142,7 +155,34 @@ export default async function XUV700LocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="self-drive-car-rental" location={locationName} />
+      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="XUV700 on Rent"
+        serviceSlug="xuv700-on-rent"
+        description={`Rent Mahindra XUV700 without driver in ${locationName} starting @₹1999/day.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="self-drive-car-rentals"
+        parentName="Self Drive Car Rental"
+        currentSlug="xuv700-on-rent"
+        siblings={[
+          { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
+          { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
+          { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
+          { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
+          { slug: 'swift-on-rent', name: 'Swift on Rent' },
+          { slug: 'creta-on-rent', name: 'Creta on Rent' },
+          { slug: 'innova-on-rent', name: 'Innova on Rent' },
+          { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
+          { slug: 'seltos-on-rent', name: 'Seltos on Rent' },
+          { slug: 'xuv700-on-rent', name: 'XUV700 on Rent' },
+          { slug: 'scorpio-on-rent', name: 'Scorpio on Rent' },
+        ]}
+      />
     </>
   );
 }

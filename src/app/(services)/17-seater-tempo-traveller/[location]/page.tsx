@@ -11,6 +11,8 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: { location: string };
@@ -41,6 +43,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       url: `https://transrentals.in/17-seater-tempo-traveller/${params.location}`,
     },
     alternates: { canonical: `https://transrentals.in/17-seater-tempo-traveller/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `17 Seater Tempo Traveller in ${locationName} | TransRentals`,
+      description: `Book 17 seater tempo traveller in ${locationName} starting @₹20/km with driver.`,
+    },
   };
 }
 
@@ -60,6 +67,12 @@ export default async function SeventeenSeaterLocationPage({ params }: PageProps)
 
   const seoData = await resolvePageMeta(`17-seater-tempo-traveller:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'What is the seating capacity of a 17-seater tempo traveller?', answer: 'A 17-seater seats 16–17 adults comfortably with push-back seats, overhead luggage, and rear boot space for bags.' },
+    { question: 'Is a 17-seater tempo traveller suitable for a wedding group?', answer: 'Yes, 17-seater AC Deluxe with LED lighting and music system is ideal for wedding parties, baraat, and family functions.' },
+    { question: 'What is the rental rate for a 17-seater tempo traveller?', answer: '17-seater non-AC starts from ₹20/km; AC starts from ₹25/km; Maharaja variant from ₹38/km. Driver bata included.' },
+    { question: 'Can a 17-seater tempo traveller travel interstate?', answer: 'Yes, our tempo travellers have all-India permits and valid interstate registration. Long-distance outstation trips are fully supported.' },
+  ];
 
   return (
     <>
@@ -78,17 +91,17 @@ export default async function SeventeenSeaterLocationPage({ params }: PageProps)
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`17 Seater in ${locationName}`}
+        badge={`17 Seater Tempo in ${locationName}`}
         title="17 Seater Tempo Traveller"
-        titleHighlight="Starting @₹20/km"
-        description={`Hire 17 seater tempo traveller in ${locationName} for large groups, weddings & corporate events. AC/Non-AC with professional driver.`}
+        titleHighlight="Medium Groups @₹20/km"
+        description={`The most popular group size — 17-seater AC Tempo Traveller for ${locationName} trips. Extended legroom, luggage space, perfect for wedding parties and tour groups.`}
         features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Driver Included', color: 'text-emerald-600' },
-          { icon: 'zap', text: '17 Seats', color: 'text-purple-600' },
+          { icon: 'zap', text: 'Extended Legroom', color: 'text-orange-600' },
+          { icon: 'shield', text: 'Large Luggage Space', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
         ]}
-        gradientFrom="purple-50"
-        gradientTo="indigo-50"
+        gradientFrom="orange-50"
+        gradientTo="red-50"
       />
 
       <section className="bg-gradient-to-br from-purple-700 to-indigo-800 text-white py-12">
@@ -166,7 +179,30 @@ export default async function SeventeenSeaterLocationPage({ params }: PageProps)
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="bus-rental" location={locationName} />
+      <FAQSection service="bus-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="17 Seater Tempo Traveller"
+        serviceSlug="17-seater-tempo-traveller"
+        description={`Book 17 seater tempo traveller in ${locationName} starting @₹20/km with driver.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bus-rental"
+        parentName="Bus Rental"
+        currentSlug="17-seater-tempo-traveller"
+        siblings={[
+          { slug: 'tempo-traveller', name: 'Tempo Traveller' },
+          { slug: 'wedding-bus-rental', name: 'Wedding Bus' },
+          { slug: 'corporate-bus-rental', name: 'Corporate Bus' },
+          { slug: '12-seater-tempo-traveller', name: '12 Seater Tempo' },
+          { slug: '17-seater-tempo-traveller', name: '17 Seater Tempo' },
+          { slug: '20-seater-tempo-traveller', name: '20 Seater Tempo' },
+          { slug: '26-seater-bus', name: '26 Seater Bus' },
+        ]}
+      />
     </>
   );
 }

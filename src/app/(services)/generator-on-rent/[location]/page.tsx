@@ -11,6 +11,8 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps { params: { location: string }; }
 
@@ -33,6 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: _seoDb?.metaTitle || `Generator on Rent in ${locationName} | DG Set @₹1500/Day | TransRentals`,
     description: _seoDb?.metaDescription || `Hire generator in ${locationName} for events, construction, industrial backup. 5KVA to 500KVA.`,
     alternates: { canonical: `https://transrentals.in/generator-on-rent/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Generator on Rent in ${locationName} | TransRentals`,
+      description: `Hire generator in ${locationName} starting @₹999/day. Silent DG sets for events & construction.`,
+    },
   };
 }
 
@@ -45,6 +52,12 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`generator-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'What KVA generator sizes are available on rent?', answer: 'We offer 15 KVA, 25 KVA, 62.5 KVA, 125 KVA, and 250 KVA silent diesel generators for events, construction, and office backup.' },
+    { question: 'Is the generator rental inclusive of fuel?', answer: 'Fuel is charged separately at actuals. We deliver with a full tank and bill fuel consumption on return or daily based on contract type.' },
+    { question: 'Can I rent a generator for a wedding or outdoor event?', answer: 'Yes, silent DG sets are perfect for weddings and outdoor events. We provide delivery, installation, and a technician on-site for the event duration.' },
+    { question: 'What is the daily rental rate for a generator?', answer: '15 KVA generator starts from ₹3,000/day; 62.5 KVA from ₹7,000/day; 125 KVA from ₹12,000/day. Monthly rates available with 20% discount.' },
+  ];
 
   return (
     <>
@@ -63,17 +76,17 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Generator in ${locationName}`}
+        badge={`Generator Rental in ${locationName}`}
         title="Generator on Rent"
-        titleHighlight="Starting @₹1500/Day"
-        description={`Hire generator in ${locationName} for events, construction, industrial power backup. Silent DG sets.`}
+        titleHighlight="Power Backup @₹999/day"
+        description={`Never face power cuts in ${locationName}. Silent DG sets for events, construction sites, and offices. 5kVA to 250kVA generators with instant delivery and setup.`}
         features={[
-          { icon: 'star', text: '5-500 KVA', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Silent Operation', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'With Fuel Option', color: 'text-blue-600' },
+          { icon: 'zap', text: '5kVA to 250kVA', color: 'text-yellow-600' },
+          { icon: 'shield', text: 'Silent DG Sets', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
         ]}
-        gradientFrom="blue-50"
-        gradientTo="indigo-50"
+        gradientFrom="yellow-50"
+        gradientTo="lime-50"
       />
 
       <section className="bg-gradient-to-br from-blue-700 to-indigo-800 text-white py-12">
@@ -134,7 +147,28 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="equipment-rental" location={locationName} />
+      <FAQSection service="equipment-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="Generator on Rent"
+        serviceSlug="generator-on-rent"
+        description={`Hire generator in ${locationName} starting @₹999/day. Silent DG sets for events & construction.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="equipment-rental"
+        parentName="Equipment Rental"
+        currentSlug="generator-on-rent"
+        siblings={[
+          { slug: 'jcb-on-rent', name: 'JCB on Rent' },
+          { slug: 'crane-on-rent', name: 'Crane on Rent' },
+          { slug: 'hydra-on-rent', name: 'Hydra on Rent' },
+          { slug: 'excavator-on-rent', name: 'Excavator on Rent' },
+          { slug: 'generator-on-rent', name: 'Generator on Rent' },
+        ]}
+      />
     </>
   );
 }

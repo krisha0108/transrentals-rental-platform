@@ -11,6 +11,8 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps { params: { location: string }; }
 
@@ -33,6 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: _seoDb?.metaTitle || `20 Seater Tempo Traveller in ${locationName} | @₹22/km | TransRentals`,
     description: _seoDb?.metaDescription || `Book 20 seater tempo traveller in ${locationName}. AC/Non-AC with driver for large groups.`,
     alternates: { canonical: `https://transrentals.in/20-seater-tempo-traveller/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `20 Seater Tempo Traveller in ${locationName} | TransRentals`,
+      description: `Book 20 seater tempo traveller in ${locationName} starting @₹22/km with driver.`,
+    },
   };
 }
 
@@ -45,6 +52,12 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`20-seater-tempo-traveller:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Is 20-seater tempo traveller suitable for large family trips?', answer: 'Yes — a 20-seater is perfect for 18–20 family members with overhead luggage racks and individual reclining seats.' },
+    { question: 'What is the AC option for 20-seater tempo traveller?', answer: 'We offer Non-AC (₹22/km), AC (₹28/km), and Deluxe AC (₹34/km) variants — Deluxe has premium seats and better legroom.' },
+    { question: 'Is the 20-seater available for school or college trip rental?', answer: 'Yes, 20-seater tempo travellers are popular for school picnics and college trips. Student group discounts available on advance booking.' },
+    { question: 'What is the minimum booking duration for a 20-seater tempo traveller?', answer: 'For local city use, minimum 4 hours. For outstation, minimum 1 day. Multi-day bookings get 10–15% discount.' },
+  ];
 
   return (
     <>
@@ -63,17 +76,17 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`20 Seater in ${locationName}`}
+        badge={`20 Seater Tempo in ${locationName}`}
         title="20 Seater Tempo Traveller"
-        titleHighlight="Starting @₹22/km"
-        description={`Hire 20 seater tempo traveller in ${locationName} for large groups. AC/Non-AC with driver.`}
+        titleHighlight="Large Groups @₹22/km"
+        description={`Big group? No problem. 20-seater AC Tempo Traveller for ${locationName} outings — school trips, large family gatherings, corporate team outings with comfort for all.`}
         features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Driver Included', color: 'text-emerald-600' },
-          { icon: 'zap', text: '20 Seats', color: 'text-orange-600' },
+          { icon: 'zap', text: '20 Comfortable Seats', color: 'text-red-600' },
+          { icon: 'shield', text: 'Overhead Storage', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
         ]}
-        gradientFrom="orange-50"
-        gradientTo="red-50"
+        gradientFrom="red-50"
+        gradientTo="rose-50"
       />
 
       <section className="bg-gradient-to-br from-orange-600 to-red-700 text-white py-12">
@@ -138,7 +151,30 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="bus-rental" location={locationName} />
+      <FAQSection service="bus-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="20 Seater Tempo Traveller"
+        serviceSlug="20-seater-tempo-traveller"
+        description={`Book 20 seater tempo traveller in ${locationName} starting @₹22/km with driver.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bus-rental"
+        parentName="Bus Rental"
+        currentSlug="20-seater-tempo-traveller"
+        siblings={[
+          { slug: 'tempo-traveller', name: 'Tempo Traveller' },
+          { slug: 'wedding-bus-rental', name: 'Wedding Bus' },
+          { slug: 'corporate-bus-rental', name: 'Corporate Bus' },
+          { slug: '12-seater-tempo-traveller', name: '12 Seater Tempo' },
+          { slug: '17-seater-tempo-traveller', name: '17 Seater Tempo' },
+          { slug: '20-seater-tempo-traveller', name: '20 Seater Tempo' },
+          { slug: '26-seater-bus', name: '26 Seater Bus' },
+        ]}
+      />
     </>
   );
 }

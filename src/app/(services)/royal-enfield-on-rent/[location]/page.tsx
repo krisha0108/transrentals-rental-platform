@@ -15,6 +15,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -154,6 +155,12 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`royal-enfield-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Which Royal Enfield models are available on rent?', answer: 'We offer Classic 350, Bullet 350, Meteor 350, and Himalayan — all well-maintained with valid insurance and permits.' },
+    { question: 'What documents are required to rent a Royal Enfield?', answer: 'You need a valid two-wheeler driving licence and one government-issued photo ID (Aadhaar, passport, or voter card).' },
+    { question: 'Is a security deposit required for Royal Enfield rental?', answer: 'Yes, a refundable security deposit of ₹2000–₹5000 is collected at the time of delivery, returned on safe return of the bike.' },
+    { question: 'Can I take the Royal Enfield on a highway or outstation trip?', answer: 'Yes, highway and outstation trips are permitted. Inform us in advance so we can ensure the bike is fully serviced and cleared for long-distance.' },
+  ];
 
   return (
     <>
@@ -245,11 +252,28 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
         serviceSlug="royal-enfield-on-rent"
       />
 
-      <FAQSection service="bike-on-rent" location={locationName} />
+      <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
 
       <NearbyLocations
         locationSlug={params.location}
         service="royal-enfield-on-rent"
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bike-on-rent"
+        parentName="Bike Rental"
+        currentSlug="royal-enfield-on-rent"
+        siblings={[
+          { slug: 'activa-on-rent', name: 'Activa on Rent' },
+          { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
+          { slug: 'ktm-on-rent', name: 'KTM on Rent' },
+          { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
+          { slug: 'apache-on-rent', name: 'Apache on Rent' },
+          { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
+          { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },
+          { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
+          { slug: 'electric-scooter-rental', name: 'Electric Scooter' },
+        ]}
       />
     </div>
     </>

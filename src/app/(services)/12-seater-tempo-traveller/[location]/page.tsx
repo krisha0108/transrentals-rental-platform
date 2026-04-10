@@ -11,6 +11,8 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: { location: string };
@@ -42,6 +44,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       url: `https://transrentals.in/12-seater-tempo-traveller/${params.location}`,
     },
     alternates: { canonical: `https://transrentals.in/12-seater-tempo-traveller/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `12 Seater Tempo Traveller in ${locationName} | TransRentals`,
+      description: `Book 12 seater tempo traveller in ${locationName} starting @₹18/km with driver.`,
+    },
   };
 }
 
@@ -61,6 +68,12 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`12-seater-tempo-traveller:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'How many people can travel in a 12-seater tempo traveller?', answer: 'A 12-seater tempo traveller comfortably seats 11–12 adults with small luggage. It\'s ideal for family picnics, pilgrimages, and corporate offsites.' },
+    { question: 'Is a 12-seater available with push-back seats and AC?', answer: 'Yes, AC 12-seater with push-back seats, music system, and curtains is available for both local and outstation trips.' },
+    { question: 'What is the per-km rate for a 12-seater tempo traveller?', answer: '12-seater non-AC starts from ₹18/km; AC starts from ₹22/km. Driver bata and toll charges are additional.' },
+    { question: 'Can I book a 12-seater tempo traveller for a one-day local trip?', answer: 'Yes, half-day (4 hours) and full-day (8 hours, 80 km) local packages are available in addition to outstation per-km pricing.' },
+  ];
 
   return (
     <>
@@ -79,17 +92,17 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`12 Seater in ${locationName}`}
+        badge={`12 Seater Tempo in ${locationName}`}
         title="12 Seater Tempo Traveller"
-        titleHighlight="Starting @₹18/km"
-        description={`Hire 12 seater tempo traveller in ${locationName} for family trips, weddings & group travel. AC/Non-AC with professional driver.`}
+        titleHighlight="Small Groups @₹18/km"
+        description={`The perfect 12-seater for small group trips from ${locationName}. Family outings, pilgrimage tours, corporate offsites — AC Force Tempo Traveller with push-back seats.`}
         features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Driver Included', color: 'text-emerald-600' },
-          { icon: 'zap', text: '12 Seats', color: 'text-blue-600' },
+          { icon: 'zap', text: 'Push-Back Seats', color: 'text-orange-600' },
+          { icon: 'shield', text: 'AC & Non-AC', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
         ]}
-        gradientFrom="blue-50"
-        gradientTo="indigo-50"
+        gradientFrom="orange-50"
+        gradientTo="amber-50"
       />
 
       <section className="bg-gradient-to-br from-blue-700 to-indigo-800 text-white py-12">
@@ -175,7 +188,30 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="bus-rental" location={locationName} />
+      <FAQSection service="bus-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="12 Seater Tempo Traveller"
+        serviceSlug="12-seater-tempo-traveller"
+        description={`Book 12 seater tempo traveller in ${locationName} starting @₹18/km with driver.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bus-rental"
+        parentName="Bus Rental"
+        currentSlug="12-seater-tempo-traveller"
+        siblings={[
+          { slug: 'tempo-traveller', name: 'Tempo Traveller' },
+          { slug: 'wedding-bus-rental', name: 'Wedding Bus' },
+          { slug: 'corporate-bus-rental', name: 'Corporate Bus' },
+          { slug: '12-seater-tempo-traveller', name: '12 Seater Tempo' },
+          { slug: '17-seater-tempo-traveller', name: '17 Seater Tempo' },
+          { slug: '20-seater-tempo-traveller', name: '20 Seater Tempo' },
+          { slug: '26-seater-bus', name: '26 Seater Bus' },
+        ]}
+      />
     </>
   );
 }

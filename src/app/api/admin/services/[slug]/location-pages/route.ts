@@ -211,8 +211,16 @@ export async function GET(
     }
 
     // ── Location pages (default) ──────────────────────────────────────────────
-    // Sub-services (e.g. royal-enfield-on-rent) map to a parent service in DB (e.g. bike-rental)
-    const dbSlug = getParentServiceSlug(slug);
+    // SERVICE_PARENT_MAP parent slugs → actual DB service slugs
+    const PARENT_SLUG_TO_DB: Record<string, string> = {
+      'bike-rental': 'bike-on-rent',
+      'self-drive-car-rental': 'self-drive-car-rentals',
+      'car-rental-with-driver': 'car-rental',
+      'truck-tempo-rental': 'transporter',
+      'packers-movers': 'packers-and-movers',
+    };
+    const parentSlug = getParentServiceSlug(slug);
+    const dbSlug = PARENT_SLUG_TO_DB[parentSlug] || parentSlug;
     const service = await prisma.services.findFirst({
       where: { slug: dbSlug },
       select: { id: true, name: true },

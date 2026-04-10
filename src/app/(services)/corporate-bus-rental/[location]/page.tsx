@@ -14,6 +14,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import { getBusRentalServiceId, getLocationId } from '@/lib/db/build-cache';
+import { RelatedServices } from '@/components/services/RelatedServices';
+import { BikeServiceSchema } from '@/components/seo/schemas';
 
 interface PageProps {
   params: {
@@ -52,6 +54,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: `Corporate Bus Rental in ${locationName} - TransRentals`,
       description: `Professional corporate bus rental in ${locationName} starting @₹4999/day.`,
     },
+    alternates: { canonical: `https://transrentals.in/corporate-bus-rental/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Corporate Bus Rental in ${locationName} | TransRentals`,
+      description: `Corporate bus rental in ${locationName} starting @₹4999/day for employee transport & events.`,
+    },
   };
 }
 
@@ -62,6 +70,13 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
   const city = pageContext.city;
 
   const locationName = capitalize(params.location.replace(/-/g, ' '));
+
+  const pageFaqs = [
+    { question: 'What is corporate bus rental and what does it cover?', answer: 'Corporate bus rental covers daily employee pick-up/drop, office event transportation, team outings, and airport transfers for groups.' },
+    { question: 'Can I get a fixed monthly contract for corporate bus rental?', answer: 'Yes, monthly fixed contracts with dedicated routes, fixed timings, and dedicated driver are available for corporate clients.' },
+    { question: 'Is GST invoice provided for corporate bus rental?', answer: 'Yes, GST-compliant invoices with SAC code are provided for all corporate bookings. Monthly consolidated billing is available.' },
+    { question: 'What bus sizes are available for corporate hire?', answer: 'We offer 17, 20, 26, 32, and 49-seater buses for corporate use — AC and non-AC — based on employee count and route requirements.' },
+  ];
 
   const [seoData, busServiceId, locationId] = await Promise.all([
     resolvePageMeta(`corporate-bus-rental:${params.location}`),
@@ -127,12 +142,12 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
         pageDescription={seoData?.pageDescription || undefined}
         badge={`Corporate Bus in ${locationName}`}
         title="Corporate Bus Rental"
-        titleHighlight="Starting @₹4999/day"
-        description={`Reliable corporate bus rental in ${locationName} for employee transport, office events, conferences & team outings. Professional service guaranteed.`}
+        titleHighlight="Employee Transport @₹4999/day"
+        description={`Reliable daily employee transport in ${locationName}. Fixed routes, GPS tracking, on-time service — daily, monthly, and annual corporate contracts available.`}
         features={[
+          { icon: 'zap', text: 'GPS Tracked Routes', color: 'text-blue-600' },
+          { icon: 'shield', text: 'Professional Driver', color: 'text-emerald-600' },
           { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Professional Service', color: 'text-blue-600' },
-          { icon: 'zap', text: 'On-Time Pickup', color: 'text-cyan-600' },
         ]}
         gradientFrom="blue-50"
         gradientTo="cyan-50"
@@ -193,7 +208,7 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
 
       <WhyRentHere locationName={locationName} />
 
-      <FAQSection service="bus-rental" location={locationName} />
+      <FAQSection service="bus-rental" location={locationName} customFaqs={pageFaqs} />
 
       <NearbyLocations
         locationSlug={params.location}
@@ -205,6 +220,29 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
         serviceSlug="corporate-bus-rental"
         cityName={locationName}
         stateCode={city?.stateCode}
+      />
+      <BikeServiceSchema
+        serviceName="Corporate Bus Rental"
+        serviceSlug="corporate-bus-rental"
+        description={`Corporate bus rental in ${locationName} starting @₹4999/day for employee transport & events.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bus-rental"
+        parentName="Bus Rental"
+        currentSlug="corporate-bus-rental"
+        siblings={[
+          { slug: 'tempo-traveller', name: 'Tempo Traveller' },
+          { slug: 'wedding-bus-rental', name: 'Wedding Bus' },
+          { slug: 'corporate-bus-rental', name: 'Corporate Bus' },
+          { slug: '12-seater-tempo-traveller', name: '12 Seater Tempo' },
+          { slug: '17-seater-tempo-traveller', name: '17 Seater Tempo' },
+          { slug: '20-seater-tempo-traveller', name: '20 Seater Tempo' },
+          { slug: '26-seater-bus', name: '26 Seater Bus' },
+        ]}
       />
     </div>
   );

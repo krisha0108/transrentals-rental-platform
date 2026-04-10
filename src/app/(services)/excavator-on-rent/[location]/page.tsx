@@ -11,6 +11,8 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps { params: { location: string }; }
 
@@ -33,6 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: _seoDb?.metaTitle || `Excavator on Rent in ${locationName} | @₹5000/Day | TransRentals`,
     description: _seoDb?.metaDescription || `Hire excavator in ${locationName} for digging, trenching, construction. Mini to large excavators.`,
     alternates: { canonical: `https://transrentals.in/excavator-on-rent/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Excavator on Rent in ${locationName} | TransRentals`,
+      description: `Hire excavator in ${locationName} starting @₹3499/day. Mini to large excavators with operators.`,
+    },
   };
 }
 
@@ -45,6 +52,12 @@ export default async function ExcavatorLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`excavator-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'What excavator sizes are available on rent?', answer: 'We offer Mini Excavator (3T), standard excavator (11T JCB 110), and large excavator (20T JCB 200) for all excavation needs.' },
+    { question: 'What is the daily rate for renting an excavator?', answer: 'Mini excavator from ₹5,000/day; standard 11T excavator from ₹9,000/day; 20T excavator from ₹12,000/day — operator included.' },
+    { question: 'Is the excavator operator trained and certified?', answer: 'Yes, all our excavator operators hold valid HMV licences and have minimum 3 years of experience on construction and mining sites.' },
+    { question: 'Can the excavator be transported to a remote project site?', answer: 'Yes, we arrange trailer transport of excavators to your site. Transportation cost depends on site distance and road conditions.' },
+  ];
 
   return (
     <>
@@ -63,17 +76,17 @@ export default async function ExcavatorLocationPage({ params }: PageProps) {
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Excavator in ${locationName}`}
+        badge={`Excavator Rental in ${locationName}`}
         title="Excavator on Rent"
-        titleHighlight="Starting @₹5000/Day"
-        description={`Hire excavator in ${locationName} for digging, trenching, earthmoving. Operator included.`}
+        titleHighlight="Earthmoving Power @₹3499/day"
+        description={`Rent excavators in ${locationName} for foundation digging, road construction, mining, and demolition. Mini to large excavators available with skilled operators.`}
         features={[
-          { icon: 'star', text: '3T-35T', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Operator Included', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Quick Deployment', color: 'text-amber-600' },
+          { icon: 'zap', text: 'Mini to Large Excavators', color: 'text-orange-600' },
+          { icon: 'shield', text: 'Skilled Operators', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
         ]}
-        gradientFrom="amber-50"
-        gradientTo="yellow-50"
+        gradientFrom="orange-50"
+        gradientTo="amber-50"
       />
 
       <section className="bg-gradient-to-br from-amber-600 to-yellow-600 text-white py-12">
@@ -134,7 +147,28 @@ export default async function ExcavatorLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="equipment-rental" location={locationName} />
+      <FAQSection service="equipment-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="Excavator on Rent"
+        serviceSlug="excavator-on-rent"
+        description={`Hire excavator in ${locationName} starting @₹3499/day. Mini to large excavators with operators.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="equipment-rental"
+        parentName="Equipment Rental"
+        currentSlug="excavator-on-rent"
+        siblings={[
+          { slug: 'jcb-on-rent', name: 'JCB on Rent' },
+          { slug: 'crane-on-rent', name: 'Crane on Rent' },
+          { slug: 'hydra-on-rent', name: 'Hydra on Rent' },
+          { slug: 'excavator-on-rent', name: 'Excavator on Rent' },
+          { slug: 'generator-on-rent', name: 'Generator on Rent' },
+        ]}
+      />
     </>
   );
 }

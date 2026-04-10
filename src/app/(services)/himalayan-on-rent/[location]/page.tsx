@@ -11,6 +11,8 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps { params: { location: string }; }
 
@@ -33,6 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: _seoDb?.metaTitle || `Himalayan on Rent in ${locationName} | @₹1499/Day | TransRentals`,
     description: _seoDb?.metaDescription || `Rent Royal Enfield Himalayan in ${locationName}. Adventure touring bike for mountain trips.`,
     alternates: { canonical: `https://transrentals.in/himalayan-on-rent/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Royal Enfield Himalayan on Rent in ${locationName} | TransRentals`,
+      description: `Rent Royal Enfield Himalayan in ${locationName} starting @₹1499/day. Adventure touring bike for mountain trips.`,
+    },
   };
 }
 
@@ -45,6 +52,12 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`himalayan-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Is the Royal Enfield Himalayan good for mountain trips?', answer: 'Yes — the Himalayan 411 is built for adventure touring with long-travel suspension, 21-inch front wheel, and fuel range of 400+ km.' },
+    { question: 'What documents do I need to rent a Himalayan?', answer: 'A valid gear motorcycle licence (MCWG), one government ID (Aadhaar/passport), and a refundable security deposit are required.' },
+    { question: 'Can I ride the Himalayan on unpaved or off-road trails?', answer: 'Light off-road use on gravel and forest tracks is permitted. Extreme off-roading voids the damage waiver — contact us for specific route approval.' },
+    { question: 'How much does Himalayan rental cost per day?', answer: 'Royal Enfield Himalayan rental starts at ₹1499/day including helmet and insurance. Weekly packages offer up to 20% savings.' },
+  ];
 
   return (
     <>
@@ -63,17 +76,17 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Himalayan in ${locationName}`}
+        badge={`Himalayan Rental in ${locationName}`}
         title="Royal Enfield Himalayan on Rent"
-        titleHighlight="Starting @₹1499/Day"
-        description={`Rent Himalayan in ${locationName} for adventure touring. Built for mountains and tough terrains.`}
+        titleHighlight="Adventure Ready @₹1099/day"
+        description={`Your ${locationName} adventure starts here. Built for Ladakh, Spiti & Rajasthan — the Himalayan's long-travel suspension, dual-purpose tyres, and windshield handle any road you dare to take.`}
         features={[
+          { icon: 'zap', text: 'All-Terrain Tyres', color: 'text-slate-600' },
+          { icon: 'shield', text: 'Long-Travel Suspension', color: 'text-emerald-600' },
           { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Adventure Ready', color: 'text-blue-600' },
         ]}
         gradientFrom="slate-50"
-        gradientTo="blue-50"
+        gradientTo="gray-50"
       />
 
       <section className="bg-gradient-to-br from-slate-800 to-blue-900 text-white py-12">
@@ -142,7 +155,32 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="bike-rental" location={locationName} />
+      <FAQSection service="bike-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="Royal Enfield Himalayan on Rent"
+        serviceSlug="himalayan-on-rent"
+        description={`Rent Royal Enfield Himalayan in ${locationName}. Adventure touring bike for mountain trips.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bike-on-rent"
+        parentName="Bike Rental"
+        currentSlug="himalayan-on-rent"
+        siblings={[
+          { slug: 'activa-on-rent', name: 'Activa on Rent' },
+          { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
+          { slug: 'ktm-on-rent', name: 'KTM on Rent' },
+          { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
+          { slug: 'apache-on-rent', name: 'Apache on Rent' },
+          { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
+          { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },
+          { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
+          { slug: 'electric-scooter-rental', name: 'Electric Scooter' },
+        ]}
+      />
     </>
   );
 }

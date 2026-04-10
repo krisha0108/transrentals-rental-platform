@@ -10,6 +10,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import { getLuxuryServiceId, getLocationId } from '@/lib/db/build-cache';
 import { VintageCarsGrid } from '@/components/vintage-car-rental/VintageCarsGrid';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -59,6 +60,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/vintage-car-rental/${params.location}`,
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Vintage Car Rental in ${locationName} | TransRentals`,
+      description: `Rent vintage classic cars in ${locationName} for weddings & photo shoots @₹8999.`,
+    },
   };
 }
 
@@ -72,6 +78,13 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
   const locationName = city.name;
 
   const seoData = await resolvePageMeta(`vintage-car-rental:${params.location}`);
+
+  const pageFaqs = [
+    { question: 'Which vintage cars are available for rent?', answer: 'We offer Ambassador Classic, Fiat 1100, Standard Herald, Premier Padmini, and retro Jeeps — all restored and photo-shoot ready.' },
+    { question: 'Is the vintage car available with a uniformed chauffeur?', answer: 'Yes, all vintage car rentals include a uniformed professional chauffeur. The driver is trained in ceremonial etiquette for weddings.' },
+    { question: 'What occasions are vintage cars best for?', answer: 'Vintage cars are ideal for baraat entry, pre-wedding shoots, anniversary celebrations, heritage-theme events, and movie/ad shoots.' },
+    { question: 'What is the rental cost for a vintage car for a wedding baraat?', answer: 'Baraat packages (4 hours) start from ₹8999. Full-day packages from ₹15999. Photo shoot packages from ₹6999 for 2–3 hours.' },
+  ];
 
   // Fetch luxury car models for this location (service id cached across pages)
   const [luxuryServiceId, locationId] = await Promise.all([
@@ -107,17 +120,17 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Vintage Car Rental in ${locationName}`}
-        title="Vintage & Classic Cars"
-        titleHighlight="Heritage Cars @₹8999/day"
-        description={`Rent vintage and classic cars in ${locationName}. Ambassador, retro cars for weddings and photo shoots. Make your event truly memorable.`}
+        badge={`Vintage Car in ${locationName}`}
+        title="Vintage Car Rental"
+        titleHighlight="Timeless Elegance @₹3999/day"
+        description={`Add old-world charm to your ${locationName} wedding, photoshoot, or special event. Restored vintage cars with a touch of nostalgia — because some moments deserve a classic entrance.`}
         features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Well Maintained', color: 'text-amber-600' },
-          { icon: 'zap', text: 'Photo Ready', color: 'text-yellow-600' },
+          { icon: 'star', text: 'Photoshoot Ready', color: 'text-amber-500' },
+          { icon: 'shield', text: 'Beautifully Restored', color: 'text-emerald-600' },
+          { icon: 'zap', text: 'Professional Chauffeur', color: 'text-yellow-600' },
         ]}
-        gradientFrom="amber-50"
-        gradientTo="yellow-50"
+        gradientFrom="yellow-50"
+        gradientTo="amber-50"
       />
 
       {/* Why Vintage Car */}
@@ -322,6 +335,18 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
             },
           }),
         }}
+      />
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="luxury-car-rental"
+        parentName="Luxury Car Rental"
+        currentSlug="vintage-car-rental"
+        siblings={[
+          { slug: 'wedding-car-rental', name: 'Wedding Car Rental' },
+          { slug: 'sports-car-rental', name: 'Sports Car Rental' },
+          { slug: 'vintage-car-rental', name: 'Vintage Car Rental' },
+        ]}
       />
 
     </>

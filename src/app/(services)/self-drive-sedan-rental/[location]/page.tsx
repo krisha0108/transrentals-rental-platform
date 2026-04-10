@@ -11,6 +11,8 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -53,6 +55,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/self-drive-sedan-rental/${locationSlug}`,
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Self Drive Sedan Rental in ${locationName} | TransRentals`,
+      description: `Rent sedan without driver in ${locationName} starting @₹999/day. Honda City, Verna, Ciaz available.`,
+    },
   };
 }
 
@@ -74,6 +81,12 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`self-drive-sedan-rental:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Which sedan models are available for self-drive rental?', answer: 'We offer Honda City, Hyundai Verna, Maruti Ciaz, Skoda Slavia — comfortable sedans perfect for business and family travel.' },
+    { question: 'What is the daily rate for a self-drive sedan?', answer: 'Self-drive sedan rental starts at ₹999/day for Maruti Dzire and goes up to ₹1899/day for premium sedans like Skoda Slavia.' },
+    { question: 'Is fuel included in the self-drive sedan package?', answer: 'Fuel is not included. You receive the car with a full tank and must return it with the same fuel level to avoid surcharges.' },
+    { question: 'Can I take the self-drive sedan for an outstation trip?', answer: 'Yes, outstation travel is permitted. Inform us of your plan at booking time to ensure correct permit and insurance coverage.' },
+  ];
 
   return (
     <>
@@ -92,17 +105,17 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Sedan Rental in ${locationName}`}
+        badge={`Self Drive Sedan in ${locationName}`}
         title="Self Drive Sedan Rental"
-        titleHighlight="Starting @₹1299/Day"
-        description={`Rent sedan without driver in ${locationName}. Honda City, Verna, Ciaz, Dzire available. Comfortable for business and outstation travel.`}
+        titleHighlight="Business Comfort @₹999/day"
+        description={`Drive in style across ${locationName}. Self-drive Honda City, Dzire, Ciaz — smooth, comfortable, fuel-efficient sedans perfect for business trips and outstation travel.`}
         features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
+          { icon: 'zap', text: 'Smooth Highway Ride', color: 'text-slate-600' },
           { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Great Mileage', color: 'text-blue-600' },
+          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
         ]}
-        gradientFrom="gray-50"
-        gradientTo="blue-50"
+        gradientFrom="slate-50"
+        gradientTo="gray-50"
       />
 
       <section className="bg-gradient-to-br from-gray-800 to-blue-900 text-white py-12">
@@ -180,7 +193,34 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="self-drive-car-rental" location={locationName} />
+      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="Self Drive Sedan Rental"
+        serviceSlug="self-drive-sedan-rental"
+        description={`Rent sedan without driver in ${locationName} starting @₹999/day. Honda City, Verna, Ciaz available.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="self-drive-car-rentals"
+        parentName="Self Drive Car Rental"
+        currentSlug="self-drive-sedan-rental"
+        siblings={[
+          { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
+          { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
+          { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
+          { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
+          { slug: 'swift-on-rent', name: 'Swift on Rent' },
+          { slug: 'creta-on-rent', name: 'Creta on Rent' },
+          { slug: 'innova-on-rent', name: 'Innova on Rent' },
+          { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
+          { slug: 'seltos-on-rent', name: 'Seltos on Rent' },
+          { slug: 'xuv700-on-rent', name: 'XUV700 on Rent' },
+          { slug: 'scorpio-on-rent', name: 'Scorpio on Rent' },
+        ]}
+      />
     </>
   );
 }

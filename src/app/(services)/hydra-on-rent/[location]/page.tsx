@@ -11,6 +11,8 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps { params: { location: string }; }
 
@@ -33,6 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: _seoDb?.metaTitle || `Hydra on Rent in ${locationName} | @₹6000/Day | TransRentals`,
     description: _seoDb?.metaDescription || `Hire hydra crane in ${locationName} for loading, unloading, construction. 8T-14T capacity.`,
     alternates: { canonical: `https://transrentals.in/hydra-on-rent/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Hydra Crane on Rent in ${locationName} | TransRentals`,
+      description: `Hire hydra crane in ${locationName} starting @₹3999/day for loading & construction.`,
+    },
   };
 }
 
@@ -45,6 +52,12 @@ export default async function HydraLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`hydra-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'What is a hydra crane and when is it used?', answer: 'A hydra crane is a pick-and-carry crane (8T–14T) mounted on a vehicle — ideal for factory floors, construction sites, and loading operations in tight spaces.' },
+    { question: 'What is the rental rate for a hydra crane per day?', answer: 'Hydra 8T starts from ₹6,000/day; Hydra 10T from ₹7,000/day; Hydra 12T from ₹8,000/day — all with certified operator included.' },
+    { question: 'Can a hydra crane be used indoors or in tight spaces?', answer: 'Yes — hydra cranes are specifically designed for tight spaces like warehouse floors, factory bays, and areas inaccessible to mobile cranes.' },
+    { question: 'Is the hydra crane available for weekly or monthly rental?', answer: 'Yes, weekly and monthly contracts are available with up to 20% discount. Priority deployment and dedicated operator for long-term hire.' },
+  ];
 
   return (
     <>
@@ -63,17 +76,17 @@ export default async function HydraLocationPage({ params }: PageProps) {
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Hydra in ${locationName}`}
+        badge={`Hydra Crane in ${locationName}`}
         title="Hydra Crane on Rent"
-        titleHighlight="Starting @₹6000/Day"
-        description={`Hire hydra crane in ${locationName} for loading, unloading, construction work. Operator included.`}
+        titleHighlight="Loading Made Easy @₹3999/day"
+        description={`Hydra crane rental in ${locationName} for construction loading, unloading, and material handling. Versatile, compact, and manoeuvrable in tight construction sites.`}
         features={[
-          { icon: 'star', text: '8T-14T', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Operator Included', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Quick Setup', color: 'text-yellow-600' },
+          { icon: 'zap', text: '12-Ton Lifting Capacity', color: 'text-cyan-600' },
+          { icon: 'shield', text: 'Experienced Operator', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
         ]}
-        gradientFrom="yellow-50"
-        gradientTo="amber-50"
+        gradientFrom="cyan-50"
+        gradientTo="blue-50"
       />
 
       <section className="bg-gradient-to-br from-yellow-600 to-amber-700 text-white py-12">
@@ -135,7 +148,28 @@ export default async function HydraLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="equipment-rental" location={locationName} />
+      <FAQSection service="equipment-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="Hydra Crane on Rent"
+        serviceSlug="hydra-on-rent"
+        description={`Hire hydra crane in ${locationName} starting @₹3999/day for loading & construction.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="equipment-rental"
+        parentName="Equipment Rental"
+        currentSlug="hydra-on-rent"
+        siblings={[
+          { slug: 'jcb-on-rent', name: 'JCB on Rent' },
+          { slug: 'crane-on-rent', name: 'Crane on Rent' },
+          { slug: 'hydra-on-rent', name: 'Hydra on Rent' },
+          { slug: 'excavator-on-rent', name: 'Excavator on Rent' },
+          { slug: 'generator-on-rent', name: 'Generator on Rent' },
+        ]}
+      />
     </>
   );
 }

@@ -207,8 +207,32 @@ export async function resolveServicePage(
   locationSlug: string,
   options?: { comingSoonIfUnavailable?: boolean }
 ): Promise<ServicePageContext> {
-  // Step 1: Is it a known city?
-  const city = getCityBySlug(locationSlug);
+  // Step 1: Is it a known city in static data?
+  let city = getCityBySlug(locationSlug);
+
+  // Step 1b: Not in static data — check DB locations table (cities added later)
+  if (!city && prisma && process.env.SKIP_DATABASE_CALLS !== '1') {
+    try {
+      const dbLoc = await prisma.locations.findFirst({
+        where: { slug: locationSlug, type: { in: ['CITY', 'UNION_TERRITORY'] }, isActive: true },
+        select: { name: true, slug: true, code: true },
+      });
+      if (dbLoc) {
+        city = {
+          name: dbLoc.name,
+          slug: dbLoc.slug,
+          state: '',
+          stateCode: dbLoc.code || '',
+          tier: 3,
+          keywords: [],
+          priority: 5,
+        };
+      }
+    } catch {
+      // ignore - will fall through to state/redirect
+    }
+  }
+
   if (city) {
     const isAvailable = await isServiceAvailableInLocation(serviceSlug, locationSlug);
     if (!isAvailable) {

@@ -12,6 +12,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -94,6 +95,12 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
 
   const seoData = await resolvePageMeta(`electric-scooter-rental:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Which electric scooters are available on rent?', answer: 'We offer Ola S1 Pro, Ather 450X, and TVS iQube — all with full charge, app connectivity, and fast charger included.' },
+    { question: 'How far can I travel on a single charge?', answer: 'Ola S1 Pro offers 130+ km, Ather 450X offers 85+ km, and TVS iQube offers 100+ km per charge under normal city riding conditions.' },
+    { question: 'Where do I charge the electric scooter during the rental?', answer: 'You can charge at home using a regular 15A socket. We also provide a list of public charging stations near your location.' },
+    { question: 'Is there an extra charge if the battery runs out mid-trip?', answer: 'No penalty — just charge at any available point. We recommend planning routes with charging stops for longer trips outside city limits.' },
+  ];
 
   return (
     <>
@@ -113,12 +120,17 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`EV Rental in ${locationName}`}
+        badge={`Electric Scooter in ${locationName}`}
         title="Electric Scooter Rental"
-        titleHighlight="Zero Fuel Cost @₹399/Day"
-        description={`Rent Ola S1, Ather 450X, TVS iQube in ${locationName}. Eco-friendly, silent, smart. Save on fuel!`}
+        titleHighlight="Zero Fuel Cost @₹399/day"
+        description={`Go green in ${locationName} — zero fuel bills, zero emissions, zero noise. Ola S1, Ather 450, TVS iQube available. Charge at home or any public charger.`}
+        features={[
+          { icon: 'zap', text: '₹0 Fuel Cost', color: 'text-green-600' },
+          { icon: 'shield', text: 'Eco-Friendly', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
+        ]}
         gradientFrom="green-50"
-        gradientTo="emerald-50"
+        gradientTo="teal-50"
       />
 
       {/* Breadcrumb */}
@@ -270,7 +282,24 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="bike-on-rent" customFaqs={pageFaqs} />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bike-on-rent"
+        parentName="Bike Rental"
+        currentSlug="electric-scooter-rental"
+        siblings={[
+          { slug: 'activa-on-rent', name: 'Activa on Rent' },
+          { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
+          { slug: 'ktm-on-rent', name: 'KTM on Rent' },
+          { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
+          { slug: 'apache-on-rent', name: 'Apache on Rent' },
+          { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
+          { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },
+          { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
+          { slug: 'electric-scooter-rental', name: 'Electric Scooter' },
+        ]}
+      />
     </>
   );
 }

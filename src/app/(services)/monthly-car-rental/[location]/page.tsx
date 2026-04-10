@@ -11,6 +11,7 @@ import { prisma } from '@/lib/db/prisma';
 import { getSelfDriveServiceId, getLocationId } from '@/lib/db/build-cache';
 import Image from 'next/image';
 import { MonthlyCarPlans } from '@/components/monthly-car-rental/MonthlyCarPlans';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -60,6 +61,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/monthly-car-rental/${params.location}`,
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Monthly Car Rental in ${locationName} | TransRentals`,
+      description: `Rent car monthly in ${locationName}. Car subscription service @₹12000/month.`,
+    },
   };
 }
 
@@ -73,6 +79,13 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
   const locationName = city.name;
 
   const seoData = await resolvePageMeta(`monthly-car-rental:${params.location}`);
+
+  const pageFaqs = [
+    { question: 'What is included in the monthly car rental plan?', answer: 'Monthly car rental includes the car, driver (if applicable), insurance, maintenance, and a fixed km allowance per month. Fuel is extra.' },
+    { question: 'Is a driver included in the monthly car rental?', answer: 'Driver-included monthly plans start from ₹25,000/month. Self-drive monthly plans start from ₹12,000/month depending on vehicle category.' },
+    { question: 'Can I customize the km limit for monthly car rental?', answer: 'Yes, standard plans include 2500 km/month. Higher km packages (3500 km, 5000 km) are available at a marginal extra cost.' },
+    { question: 'What happens if I exceed the monthly km limit?', answer: 'Additional km beyond the plan limit are charged at ₹10–₹15/km depending on the vehicle category.' },
+  ];
 
   // Fetch self-drive vehicle models for monthly plans
   const [selfDriveServiceId, locationId] = await Promise.all([
@@ -305,6 +318,22 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
             },
           }),
         }}
+      />
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="car-rental"
+        parentName="Car Rental with Driver"
+        currentSlug="monthly-car-rental"
+        siblings={[
+          { slug: 'chauffeur-service', name: 'Chauffeur Service' },
+          { slug: 'local-taxi', name: 'Local Taxi' },
+          { slug: 'outstation-cab', name: 'Outstation Cab' },
+          { slug: 'one-way-car-rental', name: 'One Way Car Rental' },
+          { slug: 'outstation-car-rental', name: 'Outstation Car Rental' },
+          { slug: 'monthly-car-rental', name: 'Monthly Car Rental' },
+          { slug: 'corporate-car-rental', name: 'Corporate Car Rental' },
+        ]}
       />
 
     </>

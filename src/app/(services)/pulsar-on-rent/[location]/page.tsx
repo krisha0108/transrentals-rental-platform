@@ -15,6 +15,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -135,6 +136,12 @@ export default async function PulsarLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`pulsar-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Which Pulsar models are available for rent?', answer: 'We offer Bajaj Pulsar 150, Pulsar 180, Pulsar NS200, and Pulsar RS200 — well-maintained bikes for daily and weekend rides.' },
+    { question: 'What is the daily rent for a Pulsar bike?', answer: 'Pulsar rental starts at ₹499/day for Pulsar 150 and goes up to ₹799/day for Pulsar RS200, including fuel for the first tank.' },
+    { question: 'Is insurance covered during the Pulsar rental period?', answer: 'Yes, all our Pulsar bikes carry valid third-party insurance. Comprehensive coverage is optional at an additional fee.' },
+    { question: 'Can I extend my Pulsar rental period mid-trip?', answer: 'Yes, rental extensions are allowed subject to availability. Contact our support team at least 4 hours before your current booking expires.' },
+  ];
 
   return (
     <>
@@ -169,12 +176,12 @@ export default async function PulsarLocationPage({ params }: PageProps) {
           pageDescription={seoData?.pageDescription || undefined}
           badge={`Pulsar Rental in ${locationName}`}
           title="Bajaj Pulsar on Rent"
-          titleHighlight="Starting @₹499/day"
-          description={`Rent Bajaj Pulsar bikes in ${locationName}. India's most popular sports bike. Reliable, powerful, fuel-efficient. Perfect for daily rides.`}
+          titleHighlight="Street Fighter @₹499/day"
+          description={`The street fighter of ${locationName} — Pulsar 150, 200NS, N250. Perfect blend of sporty looks, everyday practicality, and punchy performance.`}
           features={[
-            { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
+            { icon: 'zap', text: 'Sporty Twin-Disc', color: 'text-blue-600' },
             { icon: 'shield', text: 'Well Maintained', color: 'text-emerald-600' },
-            { icon: 'zap', text: 'Fuel Efficient', color: 'text-blue-600' },
+            { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
           ]}
           gradientFrom="blue-50"
           gradientTo="indigo-50"
@@ -217,7 +224,7 @@ export default async function PulsarLocationPage({ params }: PageProps) {
           serviceSlug="pulsar-on-rent"
         />
 
-        <FAQSection service="bike-on-rent" location={locationName} />
+        <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
 
         <NearbyLocations
           locationSlug={params.location}
@@ -229,6 +236,23 @@ export default async function PulsarLocationPage({ params }: PageProps) {
         serviceSlug="pulsar-on-rent"
         cityName={locationName}
         stateCode={city?.stateCode}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bike-on-rent"
+        parentName="Bike Rental"
+        currentSlug="pulsar-on-rent"
+        siblings={[
+          { slug: 'activa-on-rent', name: 'Activa on Rent' },
+          { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
+          { slug: 'ktm-on-rent', name: 'KTM on Rent' },
+          { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
+          { slug: 'apache-on-rent', name: 'Apache on Rent' },
+          { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
+          { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },
+          { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
+          { slug: 'electric-scooter-rental', name: 'Electric Scooter' },
+        ]}
       />
       </div>
     </>

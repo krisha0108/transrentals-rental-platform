@@ -7,6 +7,8 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface Props {
   params: { location: string };
@@ -33,6 +35,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       `heavy trailer ${location.name}`,
       `cargo trailer rent ${location.name}`,
     ],
+    alternates: { canonical: `https://transrentals.in/trailer-on-rent/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Trailer on Rent in ${location.name} | TransRentals`,
+      description: `Rent heavy duty trailers in ${location.name} starting @₹5999/day for cargo transportation.`,
+    },
   };
 }
 
@@ -69,6 +77,12 @@ export default async function TrailerLocationPage({ params }: Props) {
 
   const seoData = await resolvePageMeta(`trailer-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'What sizes of trailers are available on rent?', answer: 'We offer 20ft, 32ft, and 40ft flatbed and lowbed trailers for heavy cargo, machinery, and construction equipment transport.' },
+    { question: 'What is the load capacity of the rental trailer?', answer: 'Flatbed trailers handle up to 25 tons; lowbed trailers up to 40 tons. All trailers come with all-India permits and valid insurance.' },
+    { question: 'Is an experienced driver included in the trailer rental?', answer: 'Yes, all trailers come with experienced heavy-vehicle drivers licensed for transport of oversized and overweight cargo.' },
+    { question: 'Can I rent a trailer for interstate transport of machinery?', answer: 'Yes, our trailers have all-India permits for interstate movement. Route survey and escort vehicles can be arranged for oversized loads.' },
+  ];
 
   return (
     <>
@@ -76,15 +90,15 @@ export default async function TrailerLocationPage({ params }: Props) {
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
         badge={`Trailer Rental in ${location.name}`}
-        title="Heavy Duty Trailer Rental"
-        titleHighlight="20ft-40ft Trailers @₹5999/day"
-        description={`Rent heavy duty trailers in ${location.name} for cargo transportation. 20ft to 40ft trailers with professional drivers and 24/7 support.`}
+        title="Trailer on Rent"
+        titleHighlight="Heavy Cargo @₹5999/day"
+        description={`Move the heaviest loads from ${location.name}. Flatbed, lowbed, and container trailers for industrial equipment, construction machinery, and oversized cargo transport.`}
         features={[
+          { icon: 'zap', text: 'Up to 40-Ton Capacity', color: 'text-red-700' },
+          { icon: 'shield', text: 'All-India Permits', color: 'text-emerald-600' },
           { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Heavy Duty', color: 'text-stone-600' },
-          { icon: 'zap', text: '24/7 Support', color: 'text-gray-600' },
         ]}
-        gradientFrom="stone-50"
+        gradientFrom="red-50"
         gradientTo="gray-50"
       />
 
@@ -99,6 +113,24 @@ export default async function TrailerLocationPage({ params }: Props) {
         serviceSlug="trailer-on-rent"
         cityName={location.name}
         stateCode={undefined}
+      />
+      <BikeServiceSchema
+        serviceName="Trailer on Rent"
+        serviceSlug="trailer-on-rent"
+        description={`Rent heavy duty trailers in ${location.name} starting @₹5999/day for cargo transportation.`}
+        city={location.name}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="transporter"
+        parentName="Truck & Tempo Rental"
+        currentSlug="trailer-on-rent"
+        siblings={[
+          { slug: 'mini-truck-rental', name: 'Mini Truck Rental' },
+          { slug: 'trailer-on-rent', name: 'Trailer on Rent' },
+        ]}
       />
     </>
   );
