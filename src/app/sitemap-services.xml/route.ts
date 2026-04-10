@@ -15,6 +15,15 @@ export const revalidate = 3600;
 // Services that generate pages for ALL indian cities (coming-soon model)
 const COMING_SOON_SERVICES = ['bike-on-rent', 'self-drive-car-rentals'];
 
+// DB service slug → SERVICE_PARENT_MAP parent slug (for child lookup)
+const DB_SLUG_TO_PARENT: Record<string, string> = {
+  'bike-on-rent': 'bike-rental',
+  'self-drive-car-rentals': 'self-drive-car-rental',
+  'car-rental': 'car-rental-with-driver',
+  'transporter': 'truck-tempo-rental',
+  'packers-and-movers': 'packers-movers',
+};
+
 // Build parentSlug → public child slugs map (only slugs that are real public pages)
 const CHILD_SLUGS_BY_PARENT: Record<string, string[]> = {};
 for (const [childSlug, parentSlug] of Object.entries(SERVICE_PARENT_MAP)) {
@@ -35,8 +44,11 @@ export async function GET() {
     const dbUrlSet = new Set<string>();
 
     for (const sl of rows) {
-      const parentSlug = sl.services.slug;
+      const dbSlug = sl.services.slug;
       const locationSlug = sl.locations.slug;
+
+      // Map DB slug → SERVICE_PARENT_MAP parent slug to find child services
+      const parentSlug = DB_SLUG_TO_PARENT[dbSlug] || dbSlug;
 
       // Get all public sub-service slugs for this parent (e.g. bike-rental → royal-enfield-on-rent, activa-on-rent, …)
       const childSlugs = CHILD_SLUGS_BY_PARENT[parentSlug];
@@ -49,9 +61,9 @@ export async function GET() {
             entries.push({ url, changeFrequency: 'weekly', priority: 0.8, lastModified: today });
           }
         }
-      } else if (LOCATION_SERVICES.includes(parentSlug)) {
+      } else if (LOCATION_SERVICES.includes(dbSlug)) {
         // Parent is itself a public page (e.g. luxury-car-rental)
-        const url = `${BASE_URL}/${parentSlug}/${locationSlug}`;
+        const url = `${BASE_URL}/${dbSlug}/${locationSlug}`;
         if (!dbUrlSet.has(url)) {
           dbUrlSet.add(url);
           entries.push({ url, changeFrequency: 'weekly', priority: 0.8, lastModified: today });
