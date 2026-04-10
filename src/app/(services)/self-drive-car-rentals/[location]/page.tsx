@@ -41,12 +41,7 @@ export const dynamicParams = true;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
-
-  if (!city) {
-    return { title: 'Self Drive Car Rental | TransRentals' };
-  }
-
-  const locationName = city.name;
+  const locationName = city?.name || params.location.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
   const _seoDb = await resolvePageMeta(`self-drive-car-rentals:${params.location}`);
   return {
@@ -58,16 +53,27 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `car rental without driver ${locationName.toLowerCase()}`,
       `self drive car hire ${locationName.toLowerCase()}`,
       `drive yourself car ${locationName.toLowerCase()}`,
-      ...(city.keywords || []).map(k => `self drive car ${k}`),
+      ...(city?.keywords || []).map(k => `self drive car ${k}`),
     ],
     openGraph: {
       title: `Self Drive Car Rental in ${locationName} - Starting @₹899/Day`,
       description: `Book self-drive cars in ${locationName}. No driver needed. Complete freedom to drive yourself.`,
       url: `https://transrentals.in/self-drive-car-rentals/${params.location}`,
+      images: [{ url: 'https://transrentals.in/images/og/self-drive.jpg', width: 1200, height: 630, alt: `Self Drive Car Rental in ${locationName}` }],
+      type: 'website',
+      locale: 'en_IN',
+      siteName: 'TransRentals',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Self Drive Car Rental in ${locationName} - TransRentals`,
+      description: `Rent self-drive cars in ${locationName} starting @₹899/day. No driver needed.`,
+      images: ['https://transrentals.in/images/og/self-drive.jpg'],
     },
     alternates: {
       canonical: `https://transrentals.in/self-drive-car-rentals/${params.location}`,
     },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
   };
 }
 

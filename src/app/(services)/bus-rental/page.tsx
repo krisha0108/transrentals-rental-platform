@@ -29,6 +29,22 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://transrentals.in/bus-rental',
   },
+  openGraph: {
+    title: 'Bus & Tempo Traveller Rental | TransRentals',
+    description: 'Hire buses and tempo travellers for pilgrimages, weddings, corporate events & tours. Verified operators. 12-50 seater vehicles.',
+    type: 'website',
+    url: 'https://transrentals.in/bus-rental',
+    images: [{ url: 'https://transrentals.in/images/og/bus-rental.jpg', width: 1200, height: 630, alt: 'Bus Rental - TransRentals' }],
+    locale: 'en_IN',
+    siteName: 'TransRentals',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Bus & Tempo Traveller Rental | TransRentals',
+    description: 'Hire buses and tempo travellers across India. Verified operators, best prices.',
+    images: ['https://transrentals.in/images/og/bus-rental.jpg'],
+  },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
 };
 
 const TRIP_TYPES = [

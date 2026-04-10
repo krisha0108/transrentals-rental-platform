@@ -20,9 +20,22 @@ export const metadata: Metadata = {
     'freight transport',
   ],
   openGraph: {
-    title: formatPriceHighlight('Truck Rental & Transport Services - Starting @₹3999/Day | TransRentals'),
-    description: formatPriceHighlight('Professional truck rental services across India. Best prices guaranteed.'),
+    title: 'Truck Rental & Transport Services - Starting @₹3999/Day | TransRentals',
+    description: 'Professional truck rental services across India. Best prices guaranteed.',
+    type: 'website',
+    url: 'https://transrentals.in/transporter',
+    images: [{ url: 'https://transrentals.in/images/og/truck-rental.jpg', width: 1200, height: 630, alt: 'Truck Rental - TransRentals' }],
+    locale: 'en_IN',
+    siteName: 'TransRentals',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Truck Rental & Transport Services | TransRentals',
+    description: 'Professional truck rental and transport services across India. 7-ton to 32-ton trucks.',
+    images: ['https://transrentals.in/images/og/truck-rental.jpg'],
+  },
+  alternates: { canonical: 'https://transrentals.in/transporter' },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
 };
 
 export default function TransporterPage() {

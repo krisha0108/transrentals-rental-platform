@@ -24,8 +24,17 @@ for (const [childSlug, parentSlug] of Object.entries(SERVICE_PARENT_MAP)) {
   }
 }
 
+// Services that generate pages for ALL active DB locations (not just service_locations)
+// because they use comingSoonIfUnavailable:true + generateStaticParams from locations table
+const ALL_LOCATIONS_SERVICES = new Set(['bike-on-rent', 'self-drive-car-rentals']);
+
 export async function GET() {
   try {
+    // Total active city/UT count (for services that generate pages for ALL locations)
+    const totalActiveLocations = await prisma.locations.count({
+      where: { isActive: true, type: { in: ['CITY', 'UNION_TERRITORY'] } },
+    });
+
     // All parent services with location counts
     const services = await prisma.services.findMany({
       where: { parentId: null },
@@ -74,7 +83,11 @@ export async function GET() {
     const airportPageCount = airportRoutes.length * 2; // both directions
 
     const serviceStats = services.map((s) => {
-      const rawLocationCount = s._count.service_locations;
+      // For services that generate pages for ALL DB locations (with coming-soon for disabled),
+      // use totalActiveLocations instead of service_locations count
+      const rawLocationCount = ALL_LOCATIONS_SERVICES.has(s.slug)
+        ? totalActiveLocations
+        : s._count.service_locations;
       // Multiply by number of public sub-service slugs that share this parent's locations
       const subCount = SUB_SERVICE_COUNT[s.slug] || 1;
       const locationCount = rawLocationCount * subCount;

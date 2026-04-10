@@ -10,7 +10,20 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Self Drive Car Rental India - Starting @₹899/Day | TransRentals',
     description: 'Rent self-drive cars across 250+ Indian cities. No driver needed. Freedom to drive yourself. Book online.',
+    type: 'website',
+    url: 'https://transrentals.in/self-drive-car-rentals',
+    images: [{ url: 'https://transrentals.in/images/og/self-drive.jpg', width: 1200, height: 630, alt: 'Self Drive Car Rental - TransRentals' }],
+    locale: 'en_IN',
+    siteName: 'TransRentals',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Self Drive Car Rental India - Starting @₹899/Day | TransRentals',
+    description: 'Rent self-drive cars across 250+ Indian cities. No driver needed. Freedom to drive yourself.',
+    images: ['https://transrentals.in/images/og/self-drive.jpg'],
+  },
+  alternates: { canonical: 'https://transrentals.in/self-drive-car-rentals' },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
 };
 
 export default function SelfDriveCarRentalPage() {
