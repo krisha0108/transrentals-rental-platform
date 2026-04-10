@@ -9,6 +9,7 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import { WeddingFleetSection } from '@/components/wedding-car-rental/WeddingFleetSection';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -62,6 +63,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/wedding-car-rental/${params.location}`,
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Wedding Car Rental in ${locationName} | TransRentals`,
+      description: `Book wedding cars in ${locationName}. Baraat cars, bride/groom cars with decoration @₹2999.`,
+    },
   };
 }
 
@@ -73,6 +79,13 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
   // Fallback: getAllCities().find(c => c.slug === params.location);
 
   const locationName = city.name;
+
+  const pageFaqs = [
+    { question: 'Which luxury cars are available for wedding rental?', answer: 'We offer Mercedes E-Class, BMW 5-Series, Audi A6, Toyota Fortuner, and Jaguar XF — all with professional chauffeurs and wedding decoration.' },
+    { question: 'Is wedding decoration included in car rental?', answer: 'Yes, basic floral decoration is included. Premium decoration packages (LED lights, custom themes, petal showers) are available at extra cost.' },
+    { question: 'Can I rent multiple luxury cars for a wedding procession?', answer: 'Yes, fleet bookings for wedding processions are available with 10–15% group discount. Book 4+ cars for assured convoy pricing.' },
+    { question: 'How far in advance should I book a wedding car rental?', answer: 'We recommend booking 2–4 weeks before the wedding date. For peak wedding season (Oct–Feb), book at least 6 weeks in advance.' },
+  ];
 
   const [seoData, luxuryFleet] = await Promise.all([
     resolvePageMeta(`wedding-car-rental:${params.location}`),
@@ -103,14 +116,14 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Wedding Car Rental in ${locationName}`}
-        title="Wedding Car Services"
-        titleHighlight="Shadi Car @₹2999/day"
-        description={`Book premium wedding cars in ${locationName}. Baraat cars, bride & groom cars with professional decoration. Make your special day memorable.`}
+        badge={`Wedding Car in ${locationName}`}
+        title="Wedding Car Rental"
+        titleHighlight="Make It Memorable @₹2999"
+        description={`Your ${locationName} wedding deserves the perfect car. Decorated baraat cars, bride & groom vehicles, vintage classics — professional chauffeur, floral decoration included.`}
         features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Decorated Cars', color: 'text-pink-600' },
-          { icon: 'zap', text: 'Quick Booking', color: 'text-rose-600' },
+          { icon: 'star', text: 'Floral Decoration Included', color: 'text-pink-500' },
+          { icon: 'shield', text: 'Professional Chauffeur', color: 'text-emerald-600' },
+          { icon: 'zap', text: 'On-Time Guaranteed', color: 'text-rose-500' },
         ]}
         gradientFrom="pink-50"
         gradientTo="rose-50"
@@ -316,6 +329,18 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
             },
           }),
         }}
+      />
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="luxury-car-rental"
+        parentName="Luxury Car Rental"
+        currentSlug="wedding-car-rental"
+        siblings={[
+          { slug: 'wedding-car-rental', name: 'Wedding Car Rental' },
+          { slug: 'sports-car-rental', name: 'Sports Car Rental' },
+          { slug: 'vintage-car-rental', name: 'Vintage Car Rental' },
+        ]}
       />
 
     </>

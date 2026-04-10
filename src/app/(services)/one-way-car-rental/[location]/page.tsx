@@ -9,6 +9,7 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import Image from 'next/image';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -56,6 +57,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
     alternates: {
       canonical: `https://transrentals.in/one-way-car-rental/${params.location}`,
+    },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `One Way Car Rental from ${locationName} | TransRentals`,
+      description: `One-way car rental from ${locationName}. Drop at different city. No return trip needed @₹1299.`,
     },
   };
 }
@@ -120,6 +126,13 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
     }
   }
   const popularRoutes = Array.from(destMap.values()).sort((a, b) => (b.isPopular ? 1 : 0) - (a.isPopular ? 1 : 0)).slice(0, 8);
+
+  const pageFaqs = [
+    { question: 'What is a one-way car rental and how does it work?', answer: 'A one-way rental lets you travel from one city to another and drop the car there — no need to return to the starting city. Pay only for the distance travelled.' },
+    { question: 'Is one-way car rental cheaper than a round trip?', answer: 'For single-direction travel, one-way is cheaper as you pay per km for only one leg. Round-trip pricing includes return journey even if unused.' },
+    { question: 'Is there a dead-km charge for one-way car rental?', answer: 'No dead-km charges. You pay only for the actual distance from pickup to drop. Toll and state taxes are charged extra on actuals.' },
+    { question: 'Which cities can I travel to with a one-way car rental?', answer: 'We offer one-way car rental to 100+ cities across India. Popular routes include metro-to-metro and metro-to-hill-station routes.' },
+  ];
 
   return (
     <>
@@ -398,6 +411,22 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
             },
           }),
         }}
+      />
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="car-rental"
+        parentName="Car Rental with Driver"
+        currentSlug="one-way-car-rental"
+        siblings={[
+          { slug: 'chauffeur-service', name: 'Chauffeur Service' },
+          { slug: 'local-taxi', name: 'Local Taxi' },
+          { slug: 'outstation-cab', name: 'Outstation Cab' },
+          { slug: 'one-way-car-rental', name: 'One Way Car Rental' },
+          { slug: 'outstation-car-rental', name: 'Outstation Car Rental' },
+          { slug: 'monthly-car-rental', name: 'Monthly Car Rental' },
+          { slug: 'corporate-car-rental', name: 'Corporate Car Rental' },
+        ]}
       />
 
     </>

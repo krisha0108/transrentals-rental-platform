@@ -15,6 +15,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -135,6 +136,12 @@ export default async function KTMLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`ktm-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Which KTM bikes are available on rent?', answer: 'We offer KTM Duke 200, Duke 390, RC 200, and RC 390 — all premium performance bikes with regular servicing.' },
+    { question: 'What is the minimum age to rent a KTM bike?', answer: 'You must be at least 21 years old with a valid motorcycle licence to rent a KTM Duke or RC series.' },
+    { question: 'Is riding gear included with KTM rental?', answer: 'A certified helmet is provided. We recommend bringing your own gloves and jacket for best safety on performance bikes.' },
+    { question: 'Can I rent a KTM for a track day or hill station trip?', answer: 'Yes, KTM bikes are available for both track days and adventure road trips. Inform us in advance for route-specific preparation.' },
+  ];
 
   return (
     <>
@@ -168,13 +175,13 @@ export default async function KTMLocationPage({ params }: PageProps) {
           pageHeading={seoData?.pageHeading || undefined}
           pageDescription={seoData?.pageDescription || undefined}
           badge={`KTM Rental in ${locationName}`}
-          title="KTM on Rent"
-          titleHighlight="Starting @₹999/day"
-          description={`Rent KTM Duke & RC bikes in ${locationName}. High performance, aggressive styling. Perfect for thrill seekers and sports bike enthusiasts.`}
+          title="KTM Duke & Adventure on Rent"
+          titleHighlight="Performance Starts @₹799/day"
+          description={`Unleash pure performance in ${locationName}. KTM Duke 200, Duke 390, Adventure 390 — precision engineering for riders who refuse to be ordinary.`}
           features={[
-            { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-            { icon: 'shield', text: 'Well Maintained', color: 'text-emerald-600' },
-            { icon: 'zap', text: 'High Performance', color: 'text-orange-600' },
+            { icon: 'zap', text: '0-100 in 5 Seconds', color: 'text-orange-600' },
+            { icon: 'shield', text: 'ABS & Traction Control', color: 'text-emerald-600' },
+            { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
           ]}
           gradientFrom="orange-50"
           gradientTo="red-50"
@@ -217,7 +224,7 @@ export default async function KTMLocationPage({ params }: PageProps) {
           serviceSlug="ktm-on-rent"
         />
 
-        <FAQSection service="bike-on-rent" location={locationName} />
+        <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
 
         <NearbyLocations
           locationSlug={params.location}
@@ -229,6 +236,23 @@ export default async function KTMLocationPage({ params }: PageProps) {
         serviceSlug="ktm-on-rent"
         cityName={locationName}
         stateCode={city?.stateCode}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bike-on-rent"
+        parentName="Bike Rental"
+        currentSlug="ktm-on-rent"
+        siblings={[
+          { slug: 'activa-on-rent', name: 'Activa on Rent' },
+          { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
+          { slug: 'ktm-on-rent', name: 'KTM on Rent' },
+          { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
+          { slug: 'apache-on-rent', name: 'Apache on Rent' },
+          { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
+          { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },
+          { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
+          { slug: 'electric-scooter-rental', name: 'Electric Scooter' },
+        ]}
       />
       </div>
     </>

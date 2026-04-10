@@ -15,6 +15,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -135,6 +136,12 @@ export default async function SplendorLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`splendor-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Is Splendor available as a daily rental bike?', answer: 'Yes, Hero Splendor Plus and Splendor+ i3S are available for daily rental — India\'s most fuel-efficient commuter bike.' },
+    { question: 'What mileage does the rental Splendor give?', answer: 'The Hero Splendor delivers approximately 60–70 km/l under normal city conditions, making it the most economical rental option.' },
+    { question: 'Can I rent a Splendor for 1 week or 1 month?', answer: 'Yes, we offer weekly and monthly packages with discounted rates. Monthly rentals start from ₹3999 for Hero Splendor.' },
+    { question: 'Does the Splendor rental include fuel?', answer: 'The bike is provided with a full tank. You are responsible for fuel during the rental period and must return with the same level.' },
+  ];
 
   return (
     <>
@@ -169,12 +176,12 @@ export default async function SplendorLocationPage({ params }: PageProps) {
           pageDescription={seoData?.pageDescription || undefined}
           badge={`Splendor Rental in ${locationName}`}
           title="Hero Splendor on Rent"
-          titleHighlight="Starting @₹299/day"
-          description={`Rent Hero Splendor bikes in ${locationName}. India's most trusted bike with best-in-class mileage. Perfect for daily commute.`}
+          titleHighlight="70km/l Mileage @₹249/day"
+          description={`India's most trusted bike for daily commute in ${locationName}. Hero Splendor — ultra fuel-efficient, low maintenance, perfectly suited for long daily rides.`}
           features={[
-            { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
-            { icon: 'shield', text: 'Well Maintained', color: 'text-emerald-600' },
-            { icon: 'zap', text: '70+ km/l Mileage', color: 'text-green-600' },
+            { icon: 'zap', text: '70km/l Mileage', color: 'text-green-600' },
+            { icon: 'shield', text: 'Reliable Engine', color: 'text-emerald-600' },
+            { icon: 'star', text: '4.6/5 Rating', color: 'text-amber-500' },
           ]}
           gradientFrom="green-50"
           gradientTo="emerald-50"
@@ -217,7 +224,7 @@ export default async function SplendorLocationPage({ params }: PageProps) {
           serviceSlug="splendor-on-rent"
         />
 
-        <FAQSection service="bike-on-rent" location={locationName} />
+        <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
 
         <NearbyLocations
           locationSlug={params.location}
@@ -229,6 +236,23 @@ export default async function SplendorLocationPage({ params }: PageProps) {
         serviceSlug="splendor-on-rent"
         cityName={locationName}
         stateCode={city?.stateCode}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bike-on-rent"
+        parentName="Bike Rental"
+        currentSlug="splendor-on-rent"
+        siblings={[
+          { slug: 'activa-on-rent', name: 'Activa on Rent' },
+          { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
+          { slug: 'ktm-on-rent', name: 'KTM on Rent' },
+          { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
+          { slug: 'apache-on-rent', name: 'Apache on Rent' },
+          { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
+          { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },
+          { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
+          { slug: 'electric-scooter-rental', name: 'Electric Scooter' },
+        ]}
       />
       </div>
     </>

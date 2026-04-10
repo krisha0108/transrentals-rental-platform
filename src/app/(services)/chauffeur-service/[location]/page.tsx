@@ -10,6 +10,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import { getCarRentalServiceId, getLocationId } from '@/lib/db/build-cache';
 import { ChauffeurPackages } from '@/components/chauffeur-service/ChauffeurPackages';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -59,6 +60,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
     alternates: {
       canonical: `https://transrentals.in/chauffeur-service/${params.location}`,
+    },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Chauffeur Service in ${locationName} | TransRentals`,
+      description: `Hire professional chauffeur in ${locationName}. Verified drivers for daily & outstation use @₹599/day.`,
     },
   };
 }
@@ -120,6 +126,13 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
     else existing.vehicles.push(pkg);
   }
   const hourGroups = Array.from(packagesByHour.values()).sort((a, b) => a.hours - b.hours);
+
+  const pageFaqs = [
+    { question: 'What is a chauffeur service and how is it different from a cab?', answer: 'A chauffeur service provides a professional, uniformed driver with a premium vehicle for personal use. Unlike cabs, you book for a fixed duration — not a fixed route.' },
+    { question: 'Can I book a chauffeur for the full day in the city?', answer: 'Yes, full-day packages (8 hours / 80 km) are available. Additional hours and km can be added at a per-unit rate.' },
+    { question: 'Is the chauffeur driver police-verified?', answer: 'Yes, all TransRentals chauffeurs are police-verified, background-checked, and trained in professional conduct and safe driving.' },
+    { question: 'Can I hire a chauffeur just for airport drop?', answer: 'Yes, airport pick-up and drop packages are available with meet-and-greet service, luggage assistance, and real-time flight tracking.' },
+  ];
 
   return (
     <>
@@ -354,6 +367,22 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
             },
           }),
         }}
+      />
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="car-rental"
+        parentName="Car Rental with Driver"
+        currentSlug="chauffeur-service"
+        siblings={[
+          { slug: 'chauffeur-service', name: 'Chauffeur Service' },
+          { slug: 'local-taxi', name: 'Local Taxi' },
+          { slug: 'outstation-cab', name: 'Outstation Cab' },
+          { slug: 'one-way-car-rental', name: 'One Way Car Rental' },
+          { slug: 'outstation-car-rental', name: 'Outstation Car Rental' },
+          { slug: 'monthly-car-rental', name: 'Monthly Car Rental' },
+          { slug: 'corporate-car-rental', name: 'Corporate Car Rental' },
+        ]}
       />
 
     </>

@@ -10,6 +10,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import { getCarRentalServiceId, getLocationId } from '@/lib/db/build-cache';
 import { LocalTaxiPackages } from '@/components/local-taxi/LocalTaxiPackages';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -61,6 +62,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/local-taxi/${params.location}`,
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Local Taxi in ${locationName} | TransRentals`,
+      description: `Book local taxi in ${locationName}. Hourly cab rental - 4hr, 8hr, 12hr packages @₹399.`,
+    },
   };
 }
 
@@ -109,6 +115,13 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
     }
   }
   const hourGroups = Array.from(packagesByHour.values()).sort((a, b) => a.hours - b.hours);
+
+  const pageFaqs = [
+    { question: 'What is the difference between a local taxi and an outstation cab?', answer: 'Local taxi is for city travel — short rides, hourly packages, and same-day use. Outstation cabs are for travel between cities with multi-day options.' },
+    { question: 'Is there a fixed rate for local taxi booking?', answer: 'Yes, we offer fixed-rate local taxi packages starting from ₹149/hr for 2 hours. No surge pricing — you pay the package rate.' },
+    { question: 'Can I book a local taxi for airport transfer at odd hours?', answer: 'Yes, 24/7 airport transfers are available. Pre-book at least 2 hours in advance for guaranteed availability at any hour.' },
+    { question: 'What cars are available for local taxi service?', answer: 'We offer Dzire (Sedan), Swift/WagonR (Hatchback), Ertiga (MUV), and Innova (SUV) for local city taxi packages.' },
+  ];
 
   return (
     <>
@@ -341,6 +354,22 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
             },
           }),
         }}
+      />
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="car-rental"
+        parentName="Car Rental with Driver"
+        currentSlug="local-taxi"
+        siblings={[
+          { slug: 'chauffeur-service', name: 'Chauffeur Service' },
+          { slug: 'local-taxi', name: 'Local Taxi' },
+          { slug: 'outstation-cab', name: 'Outstation Cab' },
+          { slug: 'one-way-car-rental', name: 'One Way Car Rental' },
+          { slug: 'outstation-car-rental', name: 'Outstation Car Rental' },
+          { slug: 'monthly-car-rental', name: 'Monthly Car Rental' },
+          { slug: 'corporate-car-rental', name: 'Corporate Car Rental' },
+        ]}
       />
 
     </>

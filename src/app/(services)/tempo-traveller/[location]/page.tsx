@@ -9,6 +9,7 @@ import { formatPriceHighlight } from '@/lib/utils';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { TempoFleetSection } from '@/components/tempo-traveller/TempoFleetSection';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -97,6 +98,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/tempo-traveller/${params.location}`,
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Tempo Traveller in ${locationName} | TransRentals`,
+      description: `Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC tempo for group travel @₹18/km.`,
+    },
   };
 }
 
@@ -106,6 +112,13 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="tempo-traveller" serviceName="Tempo Traveller" />;
   const city = pageContext.city;
   const locationName = city.name;
+
+  const pageFaqs = [
+    { question: 'What sizes of tempo traveller are available for rent?', answer: 'We offer 9, 12, 14, 17, and 20-seater tempo travellers — AC and non-AC — suitable for group sizes of all kinds.' },
+    { question: 'What is the per-km rate for tempo traveller rental?', answer: 'Tempo traveller rental starts from ₹18/km for 12-seater non-AC to ₹28/km for 20-seater AC. Driver bata is included.' },
+    { question: 'Is the tempo traveller available for multi-day outstation trips?', answer: 'Yes, tempo travellers are available for pilgrimages, hill station trips, and multi-city tours. Minimum 2-day booking for outstation.' },
+    { question: 'Does the tempo traveller have a music system and push-back seats?', answer: 'Yes, all our AC tempo travellers come with a music system, push-back seats, curtains, and ample overhead luggage space.' },
+  ];
 
   const [seoData, tempoFleet] = await Promise.all([
     resolvePageMeta(`tempo-traveller:${params.location}`),
@@ -381,6 +394,22 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
             },
           }),
         }}
+      />
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bus-rental"
+        parentName="Bus Rental"
+        currentSlug="tempo-traveller"
+        siblings={[
+          { slug: 'tempo-traveller', name: 'Tempo Traveller' },
+          { slug: 'wedding-bus-rental', name: 'Wedding Bus' },
+          { slug: 'corporate-bus-rental', name: 'Corporate Bus' },
+          { slug: '12-seater-tempo-traveller', name: '12 Seater Tempo' },
+          { slug: '17-seater-tempo-traveller', name: '17 Seater Tempo' },
+          { slug: '20-seater-tempo-traveller', name: '20 Seater Tempo' },
+          { slug: '26-seater-bus', name: '26 Seater Bus' },
+        ]}
       />
 
     </>

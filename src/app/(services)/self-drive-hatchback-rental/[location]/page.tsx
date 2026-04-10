@@ -11,6 +11,8 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -53,6 +55,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/self-drive-hatchback-rental/${locationSlug}`,
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Self Drive Hatchback Rental in ${locationName} | TransRentals`,
+      description: `Rent hatchback without driver in ${locationName} starting @₹699/day. Swift, i20, Baleno available.`,
+    },
   };
 }
 
@@ -74,6 +81,12 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
 
   const seoData = await resolvePageMeta(`self-drive-hatchback-rental:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Which hatchback cars are available for self-drive?', answer: 'We offer Maruti Swift, Hyundai i20, Maruti Baleno, Honda Jazz, and Tata Tiago — affordable and fuel-efficient hatchbacks.' },
+    { question: 'What is the cheapest self-drive hatchback rental option?', answer: 'Maruti Alto and WagonR start from ₹699/day. Baleno and i20 start from ₹899/day including comprehensive insurance.' },
+    { question: 'Is a hatchback suitable for a 4–5 person family trip?', answer: 'Hatchbacks comfortably seat 4 adults. For 5 people with luggage, we recommend upgrading to a sedan or MUV for better comfort.' },
+    { question: 'How do I return the self-drive hatchback?', answer: 'Return at any of our city drop points or we can arrange doorstep pickup. Ensure the car is clean, damage-free, and with the same fuel level.' },
+  ];
 
   return (
     <>
@@ -92,17 +105,17 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Hatchback Rental in ${locationName}`}
+        badge={`Self Drive Hatchback in ${locationName}`}
         title="Self Drive Hatchback Rental"
-        titleHighlight="Starting @₹899/Day"
-        description={`Rent hatchback without driver in ${locationName}. Swift, i20, Baleno, Tiago available. Most affordable and fuel-efficient option.`}
+        titleHighlight="City Smart @₹699/day"
+        description={`Navigate ${locationName}'s busy streets stress-free. Compact hatchbacks — Swift, Baleno, i20 — easy to park, fuel efficient, ideal for solo travel and city errands.`}
         features={[
-          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
+          { icon: 'zap', text: 'Easy City Parking', color: 'text-orange-600' },
           { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Best Mileage', color: 'text-green-600' },
+          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
         ]}
-        gradientFrom="green-50"
-        gradientTo="blue-50"
+        gradientFrom="orange-50"
+        gradientTo="amber-50"
       />
 
       <section className="bg-gradient-to-br from-green-700 to-blue-800 text-white py-12">
@@ -180,7 +193,34 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="self-drive-car-rental" location={locationName} />
+      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="Self Drive Hatchback Rental"
+        serviceSlug="self-drive-hatchback-rental"
+        description={`Rent hatchback without driver in ${locationName} starting @₹699/day. Swift, i20, Baleno available.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="self-drive-car-rentals"
+        parentName="Self Drive Car Rental"
+        currentSlug="self-drive-hatchback-rental"
+        siblings={[
+          { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
+          { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
+          { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
+          { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
+          { slug: 'swift-on-rent', name: 'Swift on Rent' },
+          { slug: 'creta-on-rent', name: 'Creta on Rent' },
+          { slug: 'innova-on-rent', name: 'Innova on Rent' },
+          { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
+          { slug: 'seltos-on-rent', name: 'Seltos on Rent' },
+          { slug: 'xuv700-on-rent', name: 'XUV700 on Rent' },
+          { slug: 'scorpio-on-rent', name: 'Scorpio on Rent' },
+        ]}
+      />
     </>
   );
 }

@@ -14,6 +14,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import { getTransporterServiceId, getLocationId } from '@/lib/db/build-cache';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -52,6 +54,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: `Mini Truck Rental in ${locationName} - TransRentals`,
       description: `Rent mini trucks in ${locationName} starting @₹1499/day. Perfect for deliveries.`,
     },
+    alternates: { canonical: `https://transrentals.in/mini-truck-rental/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Mini Truck Rental in ${locationName} | TransRentals`,
+      description: `Rent mini trucks in ${locationName} starting @₹1499/day. Tata Ace, Mahindra Pickup available.`,
+    },
   };
 }
 
@@ -62,6 +70,13 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
   const city = pageContext.city;
 
   const locationName = capitalize(params.location.replace(/-/g, ' '));
+
+  const pageFaqs = [
+    { question: 'What is the load capacity of a mini truck (Tata Ace)?', answer: 'Tata Ace has a load capacity of 750 kg. Mahindra Pickup and Bolero Pickup handle up to 1000 kg for slightly larger goods.' },
+    { question: 'Is the mini truck available for house shifting?', answer: 'Yes, mini trucks are ideal for small household moves, apartment shifting, and single-room relocations within the city.' },
+    { question: 'What is the mini truck rental rate per day?', answer: 'Tata Ace rental starts from ₹1499/day with driver and fuel included for up to 100 km. Additional km at ₹15/km.' },
+    { question: 'Can I book a mini truck for just 2–3 hours?', answer: 'Yes, half-day (4-hour) packages are available starting from ₹799 including driver and 40 km. Ideal for market runs and shop deliveries.' },
+  ];
 
   const [seoData, transporterServiceId, locationId] = await Promise.all([
     resolvePageMeta(`mini-truck-rental:${params.location}`),
@@ -124,16 +139,16 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
         badge={`Mini Truck Rental in ${locationName}`}
-        title="Mini Truck on Rent"
-        titleHighlight="Starting @₹1499/day"
-        description={`Rent mini trucks in ${locationName} for local goods transport, house shifting, and city deliveries. Tata Ace, Mahindra Pickup available with driver.`}
+        title="Mini Truck Rental"
+        titleHighlight="Last-Mile Delivery @₹1499/day"
+        description={`Fast, affordable goods transport in ${locationName}. Tata Ace, Mahindra Pickup available — house shifting, shop deliveries, market runs. Driver included.`}
         features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Goods Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Quick Delivery', color: 'text-orange-600' },
+          { icon: 'zap', text: '750kg Load Capacity', color: 'text-red-600' },
+          { icon: 'shield', text: 'GPS Tracked', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
         ]}
-        gradientFrom="orange-50"
-        gradientTo="red-50"
+        gradientFrom="red-50"
+        gradientTo="orange-50"
       />
 
       {/* Use Cases */}
@@ -173,7 +188,7 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
 
       <WhyRentHere locationName={locationName} />
 
-      <FAQSection service="transporter" location={locationName} />
+      <FAQSection service="transporter" location={locationName} customFaqs={pageFaqs} />
 
       <NearbyLocations
         locationSlug={params.location}
@@ -185,6 +200,24 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
         serviceSlug="mini-truck-rental"
         cityName={locationName}
         stateCode={city?.stateCode}
+      />
+      <BikeServiceSchema
+        serviceName="Mini Truck Rental"
+        serviceSlug="mini-truck-rental"
+        description={`Rent mini trucks in ${locationName} starting @₹1499/day. Tata Ace, Mahindra Pickup available.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="transporter"
+        parentName="Truck & Tempo Rental"
+        currentSlug="mini-truck-rental"
+        siblings={[
+          { slug: 'mini-truck-rental', name: 'Mini Truck Rental' },
+          { slug: 'trailer-on-rent', name: 'Trailer on Rent' },
+        ]}
       />
     </div>
   );

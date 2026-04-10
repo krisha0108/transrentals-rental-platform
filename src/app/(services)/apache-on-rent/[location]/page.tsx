@@ -15,6 +15,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -135,6 +136,12 @@ export default async function ApacheLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`apache-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Which Apache models are available for rent?', answer: 'We offer TVS Apache RTR 160, RTR 160 4V, RTR 200 4V — sporty commuters and performance bikes.' },
+    { question: 'What is the Apache rental rate per day?', answer: 'Apache RTR 160 starts at ₹499/day; Apache RTR 200 4V starts at ₹699/day, inclusive of helmet and standard permit.' },
+    { question: 'Is a security deposit mandatory for Apache rental?', answer: 'Yes, a refundable security deposit of ₹1500–₹3000 is held at the time of pickup and fully returned upon safe return.' },
+    { question: 'Can I use the Apache bike for daily office commute?', answer: 'Absolutely — Apache bikes are ideal for city commuting. Unlimited km packages are available for monthly rentals.' },
+  ];
 
   return (
     <>
@@ -169,12 +176,12 @@ export default async function ApacheLocationPage({ params }: PageProps) {
           pageDescription={seoData?.pageDescription || undefined}
           badge={`Apache Rental in ${locationName}`}
           title="TVS Apache on Rent"
-          titleHighlight="Starting @₹499/day"
-          description={`Rent TVS Apache bikes in ${locationName}. Racing DNA with sharp handling. RTR 160, RTR 180, RTR 200 4V, RR 310 available.`}
+          titleHighlight="Race DNA @₹499/day"
+          description={`Track-inspired performance for ${locationName} roads. TVS Apache RTR 160, RTR 200 — ABS equipped, race-tuned engine, designed for riders who never settle.`}
           features={[
-            { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-            { icon: 'shield', text: 'Well Maintained', color: 'text-emerald-600' },
-            { icon: 'zap', text: 'Racing DNA', color: 'text-red-600' },
+            { icon: 'zap', text: 'Race-Tuned Engine', color: 'text-red-600' },
+            { icon: 'shield', text: 'Dual ABS', color: 'text-emerald-600' },
+            { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
           ]}
           gradientFrom="red-50"
           gradientTo="rose-50"
@@ -217,7 +224,7 @@ export default async function ApacheLocationPage({ params }: PageProps) {
           serviceSlug="apache-on-rent"
         />
 
-        <FAQSection service="bike-on-rent" location={locationName} />
+        <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
 
         <NearbyLocations
           locationSlug={params.location}
@@ -229,6 +236,23 @@ export default async function ApacheLocationPage({ params }: PageProps) {
         serviceSlug="apache-on-rent"
         cityName={locationName}
         stateCode={city?.stateCode}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bike-on-rent"
+        parentName="Bike Rental"
+        currentSlug="apache-on-rent"
+        siblings={[
+          { slug: 'activa-on-rent', name: 'Activa on Rent' },
+          { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
+          { slug: 'ktm-on-rent', name: 'KTM on Rent' },
+          { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
+          { slug: 'apache-on-rent', name: 'Apache on Rent' },
+          { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
+          { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },
+          { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
+          { slug: 'electric-scooter-rental', name: 'Electric Scooter' },
+        ]}
       />
       </div>
     </>

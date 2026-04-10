@@ -9,7 +9,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
-import { ALL_CITIES, getCityBySlug } from '@/data/indian-cities';
+import { getCityBySlug } from '@/data/indian-cities';
+import { prisma } from '@/lib/db/prisma';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -22,11 +23,20 @@ interface PageProps {
   };
 }
 
-// Generate static params from ALL indian cities (static file - no DB needed)
+// Generate static params from DB locations table
 // Pages for DB-enabled cities → booking form hero
 // Pages for non-enabled cities → coming soon hero
-export function generateStaticParams() {
-  return ALL_CITIES.map((city) => ({ location: city.slug }));
+export async function generateStaticParams() {
+  if (process.env.SKIP_DATABASE_CALLS === '1') return [];
+  try {
+    const locations = await prisma.locations.findMany({
+      where: { type: { in: ['CITY', 'UNION_TERRITORY'] }, isActive: true },
+      select: { slug: true },
+    });
+    return locations.map((loc) => ({ location: loc.slug }));
+  } catch {
+    return [];
+  }
 }
 
 // Enable ISR - Revalidate every hour

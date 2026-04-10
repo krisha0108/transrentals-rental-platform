@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       },
       include: {
         other_services: true,
-        parent: true,
+        services: true,
       },
     });
 

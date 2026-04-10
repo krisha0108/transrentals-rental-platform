@@ -11,6 +11,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { prisma } from '@/lib/db/prisma';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { ComingSoonHero } from '@/components/services/ComingSoonHero';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
@@ -186,9 +188,39 @@ async function getPackagesForLocation(locationSlug: string) {
 }
 
 export default async function CarRentalLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('car-rental', params.location);
+  const pageContext = await resolveServicePage('car-rental', params.location, { comingSoonIfUnavailable: true });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="car-rental" serviceName="Car Rental" />;
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/car-rental" className="hover:text-primary">Car Rental</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ComingSoonHero
+          city={cityName}
+          citySlug={params.location}
+          serviceSlug="car-rental"
+          serviceName="Car Rental"
+          themeColor="emerald"
+        />
+        <NearbyActiveCities
+          currentCitySlug={params.location}
+          serviceSlug="car-rental"
+          serviceName="Car Rental"
+        />
+      </>
+    );
+  }
   const city = pageContext.city;
   const locationName = city.name;
 

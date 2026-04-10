@@ -14,6 +14,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import { JCBFleetGrid } from '@/components/jcb-on-rent/JCBFleetGrid';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -52,6 +54,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: `JCB on Rent in ${locationName} - TransRentals`,
       description: `Rent JCB backhoe loaders in ${locationName} starting @₹2999/day with operators.`,
     },
+    alternates: { canonical: `https://transrentals.in/jcb-on-rent/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `JCB on Rent in ${locationName} | TransRentals`,
+      description: `Rent JCB backhoe loaders in ${locationName} starting @₹2999/day with expert operators.`,
+    },
   };
 }
 
@@ -62,6 +70,13 @@ export default async function JCBLocationPage({ params }: PageProps) {
   const city = pageContext.city;
 
   const locationName = capitalize(params.location.replace(/-/g, ' '));
+
+  const pageFaqs = [
+    { question: 'What is the daily rental rate for JCB backhoe loader?', answer: 'JCB backhoe loader (JCB 3DX) rental starts from ₹3999/day with operator. JCB 4DX and specialized models start from ₹5000/day.' },
+    { question: 'Is an operator included with JCB rental?', answer: 'Yes, a certified JCB operator with valid HMV licence is always included. Independent operation without our operator is not permitted.' },
+    { question: 'For what type of work is JCB rental suitable?', answer: 'JCB is used for foundation digging, road work, utility trenching, demolition, and general excavation on construction sites.' },
+    { question: 'What is the minimum rental period for JCB?', answer: 'Minimum rental is 8 hours (1 shift). Multi-day and weekly contracts are available with 10–15% volume discount.' },
+  ];
 
   const [seoData, equipmentFleet] = await Promise.all([
     resolvePageMeta(`jcb-on-rent:${params.location}`),
@@ -179,7 +194,7 @@ export default async function JCBLocationPage({ params }: PageProps) {
 
       <WhyRentHere locationName={locationName} />
 
-      <FAQSection service="equipment-rental" location={locationName} />
+      <FAQSection service="equipment-rental" location={locationName} customFaqs={pageFaqs} />
 
       <NearbyLocations
         locationSlug={params.location}
@@ -191,6 +206,27 @@ export default async function JCBLocationPage({ params }: PageProps) {
         serviceSlug="jcb-on-rent"
         cityName={locationName}
         stateCode={city?.stateCode}
+      />
+      <BikeServiceSchema
+        serviceName="JCB on Rent"
+        serviceSlug="jcb-on-rent"
+        description={`Rent JCB backhoe loaders in ${locationName} starting @₹2999/day with expert operators.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="equipment-rental"
+        parentName="Equipment Rental"
+        currentSlug="jcb-on-rent"
+        siblings={[
+          { slug: 'jcb-on-rent', name: 'JCB on Rent' },
+          { slug: 'crane-on-rent', name: 'Crane on Rent' },
+          { slug: 'hydra-on-rent', name: 'Hydra on Rent' },
+          { slug: 'excavator-on-rent', name: 'Excavator on Rent' },
+          { slug: 'generator-on-rent', name: 'Generator on Rent' },
+        ]}
       />
     </div>
   );

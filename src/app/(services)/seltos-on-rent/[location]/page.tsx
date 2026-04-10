@@ -11,6 +11,8 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps { params: { location: string }; }
 
@@ -33,6 +35,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: _seoDb?.metaTitle || `Seltos on Rent in ${locationName} | @₹1899/Day | TransRentals`,
     description: _seoDb?.metaDescription || `Rent Kia Seltos without driver in ${locationName}. Self-drive Seltos with connected car features.`,
     alternates: { canonical: `https://transrentals.in/seltos-on-rent/${params.location}` },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Seltos on Rent in ${locationName} | TransRentals`,
+      description: `Rent Kia Seltos without driver in ${locationName} starting @₹1499/day.`,
+    },
   };
 }
 
@@ -45,6 +52,12 @@ export default async function SeltosLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`seltos-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Which Kia Seltos variants are available for self-drive?', answer: 'We offer Kia Seltos HTE, HTK, HTX, and HTX+ in both petrol manual and petrol DCT automatic variants.' },
+    { question: 'What is the daily rate for renting a Kia Seltos?', answer: 'Kia Seltos self-drive rental starts from ₹1499/day for manual and ₹1799/day for automatic, with 250 km included.' },
+    { question: 'Is the Seltos suitable for long highway drives?', answer: 'Yes, Seltos is excellent for highway driving with its 1.5L petrol or 1.4 turbo GDi engine. Expect 14–17 km/l on highway.' },
+    { question: 'What is the fuel type of the rental Seltos?', answer: 'We provide Kia Seltos in petrol variant for self-drive. Diesel variants may be available at select locations — check at booking.' },
+  ];
 
   return (
     <>
@@ -63,17 +76,17 @@ export default async function SeltosLocationPage({ params }: PageProps) {
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Seltos in ${locationName}`}
+        badge={`Seltos Rental in ${locationName}`}
         title="Kia Seltos on Rent"
-        titleHighlight="Starting @₹1899/Day"
-        description={`Rent Kia Seltos without driver in ${locationName}. Connected car SUV with premium features.`}
+        titleHighlight="Smart SUV @₹1499/day"
+        description={`The most tech-loaded SUV in ${locationName} — Kia Seltos with ADAS, 360° surround camera, and panoramic sunroof. Self-drive a car that thinks for you.`}
         features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Connected Car', color: 'text-red-600' },
+          { icon: 'zap', text: 'ADAS Technology', color: 'text-violet-600' },
+          { icon: 'shield', text: '360° Camera', color: 'text-emerald-600' },
+          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
         ]}
-        gradientFrom="red-50"
-        gradientTo="orange-50"
+        gradientFrom="violet-50"
+        gradientTo="purple-50"
       />
 
       <section className="bg-gradient-to-br from-red-600 to-orange-600 text-white py-12">
@@ -138,7 +151,34 @@ export default async function SeltosLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="self-drive-car-rental" location={locationName} />
+      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="Seltos on Rent"
+        serviceSlug="seltos-on-rent"
+        description={`Rent Kia Seltos without driver in ${locationName} starting @₹1499/day.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="self-drive-car-rentals"
+        parentName="Self Drive Car Rental"
+        currentSlug="seltos-on-rent"
+        siblings={[
+          { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
+          { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
+          { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
+          { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
+          { slug: 'swift-on-rent', name: 'Swift on Rent' },
+          { slug: 'creta-on-rent', name: 'Creta on Rent' },
+          { slug: 'innova-on-rent', name: 'Innova on Rent' },
+          { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
+          { slug: 'seltos-on-rent', name: 'Seltos on Rent' },
+          { slug: 'xuv700-on-rent', name: 'XUV700 on Rent' },
+          { slug: 'scorpio-on-rent', name: 'Scorpio on Rent' },
+        ]}
+      />
     </>
   );
 }

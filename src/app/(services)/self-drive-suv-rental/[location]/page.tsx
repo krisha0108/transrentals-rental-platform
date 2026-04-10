@@ -11,6 +11,8 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { BikeServiceSchema } from '@/components/seo/schemas';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -54,6 +56,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/self-drive-suv-rental/${locationSlug}`,
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Self Drive SUV Rental in ${locationName} | TransRentals`,
+      description: `Rent SUV without driver in ${locationName} starting @₹1499/day. Creta, Seltos, Fortuner available.`,
+    },
   };
 }
 
@@ -75,6 +82,12 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`self-drive-suv-rental:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'Which SUVs are available for self-drive rental?', answer: 'We offer Hyundai Creta, Kia Seltos, MG Hector, XUV700, and Fortuner — top SUVs with automatic and manual transmission options.' },
+    { question: 'Do I need a special licence to drive a self-drive SUV?', answer: 'A standard LMV car licence is sufficient for all SUVs except commercial-category vehicles. Minimum 1 year of licence validity required.' },
+    { question: 'Is unlimited km allowed in self-drive SUV rental?', answer: 'We offer both limited and unlimited km packages. Unlimited km packages start from ₹2499/day for a 3-day minimum booking.' },
+    { question: 'What happens if the SUV meets with an accident?', answer: 'All SUVs are insured. Comprehensive damage waiver is available as an add-on. A damage liability applies without the waiver.' },
+  ];
 
   return (
     <>
@@ -94,17 +107,17 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
       <ServiceHeroWithChat
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`SUV Rental in ${locationName}`}
+        badge={`Self Drive SUV in ${locationName}`}
         title="Self Drive SUV Rental"
-        titleHighlight="Starting @₹1999/Day"
-        description={`Rent SUV without driver in ${locationName}. Creta, Seltos, Scorpio, XUV700, Fortuner available. Perfect for road trips and family travel.`}
+        titleHighlight="Road Trip Ready @₹1499/day"
+        description={`Plan the perfect ${locationName} road trip in an SUV — spacious cabin, high ground clearance, powerful engine. Creta, Seltos, XUV700 — no driver, complete freedom.`}
         features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
+          { icon: 'zap', text: 'High Ground Clearance', color: 'text-blue-600' },
           { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Unlimited KM', color: 'text-blue-600' },
+          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
         ]}
-        gradientFrom="slate-50"
-        gradientTo="blue-50"
+        gradientFrom="blue-50"
+        gradientTo="sky-50"
       />
 
       {/* Hero */}
@@ -217,7 +230,34 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={undefined}
       />
-      <FAQSection service="self-drive-car-rental" location={locationName} />
+      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      <BikeServiceSchema
+        serviceName="Self Drive SUV Rental"
+        serviceSlug="self-drive-suv-rental"
+        description={`Rent SUV without driver in ${locationName} starting @₹1499/day. Creta, Seltos, Fortuner available.`}
+        city={locationName}
+        citySlug={params.location}
+        faqs={[]}
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="self-drive-car-rentals"
+        parentName="Self Drive Car Rental"
+        currentSlug="self-drive-suv-rental"
+        siblings={[
+          { slug: 'hourly-car-rental', name: 'Hourly Car Rental' },
+          { slug: 'self-drive-suv-rental', name: 'Self Drive SUV' },
+          { slug: 'self-drive-sedan-rental', name: 'Self Drive Sedan' },
+          { slug: 'self-drive-hatchback-rental', name: 'Self Drive Hatchback' },
+          { slug: 'swift-on-rent', name: 'Swift on Rent' },
+          { slug: 'creta-on-rent', name: 'Creta on Rent' },
+          { slug: 'innova-on-rent', name: 'Innova on Rent' },
+          { slug: 'fortuner-on-rent', name: 'Fortuner on Rent' },
+          { slug: 'seltos-on-rent', name: 'Seltos on Rent' },
+          { slug: 'xuv700-on-rent', name: 'XUV700 on Rent' },
+          { slug: 'scorpio-on-rent', name: 'Scorpio on Rent' },
+        ]}
+      />
     </>
   );
 }

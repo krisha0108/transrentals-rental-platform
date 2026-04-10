@@ -10,6 +10,7 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import { OutstationCabSection } from '@/components/outstation-cab/OutstationCabSection';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -61,6 +62,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/outstation-cab/${params.location}`,
     },
+    twitter: {
+      card: 'summary_large_image' as const,
+      title: `Outstation Cab in ${locationName} | TransRentals`,
+      description: `Book outstation cab from ${locationName}. Intercity taxi, round trip & one-way cabs @₹12/km.`,
+    },
   };
 }
 
@@ -93,6 +99,13 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
   const catsToShow = cityPricing.length > 0
     ? vehicleCategories.filter((cat) => pricingMap.has(cat.id))
     : vehicleCategories;
+
+  const pageFaqs = [
+    { question: 'What is an outstation cab and how to book it?', answer: 'An outstation cab is a car-with-driver service for intercity travel. Book online, select your route, vehicle, and date — driver picks you up at the scheduled time.' },
+    { question: 'Is the outstation cab rate per km or fixed?', answer: 'We offer both per-km pricing (one-way trips) and fixed round-trip packages. One-way starts from ₹12/km; round trips have all-inclusive fixed pricing.' },
+    { question: 'Are toll, parking, and state taxes included in the outstation cab fare?', answer: 'Toll and state taxes are extra and paid by the customer. Parking is also extra. Driver bata is included in the quoted price.' },
+    { question: 'Can I book an outstation cab for multiple days?', answer: 'Yes, multi-day outstation trips are available with a fixed daily rate. Driver accommodation is arranged separately by the driver.' },
+  ];
 
   return (
     <>
@@ -335,6 +348,22 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
             },
           }),
         }}
+      />
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="car-rental"
+        parentName="Car Rental with Driver"
+        currentSlug="outstation-cab"
+        siblings={[
+          { slug: 'chauffeur-service', name: 'Chauffeur Service' },
+          { slug: 'local-taxi', name: 'Local Taxi' },
+          { slug: 'outstation-cab', name: 'Outstation Cab' },
+          { slug: 'one-way-car-rental', name: 'One Way Car Rental' },
+          { slug: 'outstation-car-rental', name: 'Outstation Car Rental' },
+          { slug: 'monthly-car-rental', name: 'Monthly Car Rental' },
+          { slug: 'corporate-car-rental', name: 'Corporate Car Rental' },
+        ]}
       />
 
     </>

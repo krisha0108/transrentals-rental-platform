@@ -13,6 +13,8 @@ import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
+import { ComingSoonHero } from '@/components/services/ComingSoonHero';
+import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { prisma } from '@/lib/db/prisma';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
@@ -60,9 +62,39 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function PackersMoversLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('packers-and-movers', params.location);
+  const pageContext = await resolveServicePage('packers-and-movers', params.location, { comingSoonIfUnavailable: true });
   if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="packers-and-movers" serviceName="Packers and Movers" />;
+  if (pageContext.type === 'coming-soon') {
+    const cityName = pageContext.city.name;
+    return (
+      <>
+        <div className="bg-gray-50 border-b border-gray-200">
+          <div className="container-custom py-3">
+            <nav className="text-sm text-gray-600">
+              <a href="/" className="hover:text-primary">Home</a>
+              <span className="mx-2">/</span>
+              <a href="/packers-and-movers" className="hover:text-primary">Packers & Movers</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">{cityName}</span>
+            </nav>
+          </div>
+        </div>
+        <ComingSoonHero
+          city={cityName}
+          citySlug={params.location}
+          serviceSlug="packers-and-movers"
+          serviceName="Packers & Movers"
+          themeColor="pink"
+        />
+        <NearbyActiveCities
+          currentCitySlug={params.location}
+          serviceSlug="packers-and-movers"
+          serviceName="Packers & Movers"
+        />
+      </>
+    );
+  }
   const city = pageContext.city;
 
   const locationName = capitalize(params.location.replace(/-/g, ' '));

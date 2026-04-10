@@ -15,6 +15,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { RelatedServices } from '@/components/services/RelatedServices';
 
 interface PageProps {
   params: {
@@ -155,6 +156,12 @@ export default async function ActivaLocationPage({ params }: PageProps) {
 
   const seoData = await resolvePageMeta(`activa-on-rent:${params.location}`);
 
+  const pageFaqs = [
+    { question: 'What scooters are available for rent?', answer: 'We offer Honda Activa 6G, TVS Jupiter, Suzuki Access 125, and Honda Dio — all automatic, fuel-efficient scooters.' },
+    { question: 'Do I need a gear bike license for Activa rental?', answer: 'No, a non-transport two-wheeler license (LMV) is sufficient to rent any gearless scooter including Activa.' },
+    { question: 'What is the fuel policy for scooter rental?', answer: 'You receive the scooter with a full tank and must return it full. Fuel charges apply if returned empty.' },
+    { question: 'Can I rent Activa for just 4–5 hours?', answer: 'Yes, we offer half-day (4-hour) packages starting from ₹199 for short city errands.' },
+  ];
 
   return (
     <>
@@ -245,11 +252,28 @@ export default async function ActivaLocationPage({ params }: PageProps) {
         serviceSlug="activa-on-rent"
       />
 
-      <FAQSection service="bike-on-rent" location={locationName} />
+      <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
 
       <NearbyLocations
         locationSlug={params.location}
         service="activa-on-rent"
+      />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bike-on-rent"
+        parentName="Bike Rental"
+        currentSlug="activa-on-rent"
+        siblings={[
+          { slug: 'activa-on-rent', name: 'Activa on Rent' },
+          { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
+          { slug: 'ktm-on-rent', name: 'KTM on Rent' },
+          { slug: 'pulsar-on-rent', name: 'Pulsar on Rent' },
+          { slug: 'apache-on-rent', name: 'Apache on Rent' },
+          { slug: 'splendor-on-rent', name: 'Splendor on Rent' },
+          { slug: 'himalayan-on-rent', name: 'Himalayan on Rent' },
+          { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
+          { slug: 'electric-scooter-rental', name: 'Electric Scooter' },
+        ]}
       />
       </div>
     </>

@@ -19,7 +19,7 @@ const SUB_SERVICE_GROUPS = [
       'pulsar-on-rent', 'apache-on-rent', 'splendor-on-rent', 'himalayan-on-rent',
       'monthly-bike-rental', 'electric-scooter-rental',
       'bike-tours', 'bike-tours/leh-ladakh', 'bike-tours/spiti-valley',
-      'bike-tours/rajasthan', 'bike-tours/goa', 'bike-trips/ladakh',
+      'bike-tours/rajasthan', 'bike-tours/goa', 'bike-trips', 'bike-trips/ladakh',
     ],
   },
   {
@@ -39,8 +39,8 @@ const SUB_SERVICE_GROUPS = [
     color: 'emerald',
     slugs: [
       'car-rental', 'chauffeur-service', 'airport-transfer', 'local-taxi',
-      'outstation-cab', 'outstation-car-rental', 'one-way-car-rental',
-      'monthly-car-rental', 'corporate-car-rental',
+      'outstation-cab', 'outstation-car-rental', 'one-way-cab', 'one-way-car-rental',
+      'round-trip', 'monthly-car-rental', 'corporate-car-rental',
     ],
   },
   {
