@@ -43,10 +43,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const city = getCityBySlug(params.location);
   const locationName = city?.name || params.location.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-  // Check if this is a coming-soon page (city known but service not yet enabled)
-  const pageContext = await resolveServicePage('self-drive-car-rentals', params.location, { comingSoonIfUnavailable: true });
-  const isComingSoon = pageContext.type === 'coming-soon';
-
   const _seoDb = await resolvePageMeta(`self-drive-car-rentals:${params.location}`);
   return {
     title: _seoDb?.metaTitle || `Self Drive Car Rental in ${locationName} | No Driver @₹899/Day | TransRentals`,
@@ -77,9 +73,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/self-drive-car-rentals/${params.location}`,
     },
-    robots: isComingSoon
-      ? { index: false, follow: true }
-      : { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
   };
 }
 
