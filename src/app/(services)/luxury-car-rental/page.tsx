@@ -11,7 +11,20 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Luxury & Exotic Car Rental India | TransRentals',
     description: 'Rent luxury cars across India. Rolls-Royce, Bentley, Ferrari, Lamborghini, Porsche. Premium experience with chauffeur service.',
+    type: 'website',
+    url: 'https://transrentals.in/luxury-car-rental',
+    images: [{ url: 'https://transrentals.in/images/og/luxury-car.jpg', width: 1200, height: 630, alt: 'Luxury Car Rental - TransRentals' }],
+    locale: 'en_IN',
+    siteName: 'TransRentals',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Luxury & Exotic Car Rental India | TransRentals',
+    description: 'Rent luxury cars across India. BMW, Mercedes, Ferrari, Lamborghini, Rolls-Royce.',
+    images: ['https://transrentals.in/images/og/luxury-car.jpg'],
+  },
+  alternates: { canonical: 'https://transrentals.in/luxury-car-rental' },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
 };
 
 export default function LuxuryCarRentalPage() {

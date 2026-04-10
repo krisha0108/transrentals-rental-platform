@@ -21,7 +21,20 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Packers and Movers - Starting @₹4999 | TransRentals',
     description: 'Professional relocation services across India. Insured and reliable.',
+    type: 'website',
+    url: 'https://transrentals.in/packers-and-movers',
+    images: [{ url: 'https://transrentals.in/images/og/packers-movers.jpg', width: 1200, height: 630, alt: 'Packers and Movers - TransRentals' }],
+    locale: 'en_IN',
+    siteName: 'TransRentals',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Packers and Movers | TransRentals',
+    description: 'Professional packers and movers services across India. Local & intercity relocation.',
+    images: ['https://transrentals.in/images/og/packers-movers.jpg'],
+  },
+  alternates: { canonical: 'https://transrentals.in/packers-and-movers' },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
 };
 
 export default function PackersAndMoversPage() {

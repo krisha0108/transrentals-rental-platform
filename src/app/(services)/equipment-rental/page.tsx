@@ -21,7 +21,20 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Equipment Rental - Starting @₹1499/Day | TransRentals',
     description: 'Rent construction and event equipment across India. Best prices guaranteed.',
+    type: 'website',
+    url: 'https://transrentals.in/equipment-rental',
+    images: [{ url: 'https://transrentals.in/images/og/equipment-rental.jpg', width: 1200, height: 630, alt: 'Equipment Rental - TransRentals' }],
+    locale: 'en_IN',
+    siteName: 'TransRentals',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Equipment Rental | TransRentals',
+    description: 'Rent construction and event equipment across India. Excavators, cranes, generators and more.',
+    images: ['https://transrentals.in/images/og/equipment-rental.jpg'],
+  },
+  alternates: { canonical: 'https://transrentals.in/equipment-rental' },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
 };
 
 export default function EquipmentRentalPage() {

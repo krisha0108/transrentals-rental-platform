@@ -51,6 +51,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
+  // Check if this is a coming-soon page (city known but service not yet enabled)
+  const pageContext = await resolveServicePage('bike-on-rent', params.location, { comingSoonIfUnavailable: true });
+  const isComingSoon = pageContext.type === 'coming-soon';
+
   const _seoDb = await resolvePageMeta(`bike-on-rent:${params.location}`);
   return {
     title: _seoDb?.metaTitle || `Bike on Rent in ${locationName} | Starting @₹299/Day | TransRentals`,
@@ -91,17 +95,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `https://transrentals.in/bike-on-rent/${locationSlug}`,
     },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-      },
-    },
+    robots: isComingSoon
+      ? { index: false, follow: true }
+      : {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            'max-video-preview': -1,
+            'max-image-preview': 'large',
+            'max-snippet': -1,
+          },
+        },
   };
 }
 
