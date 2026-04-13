@@ -418,7 +418,7 @@ export default function SendPackersQuotePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="pb-24">
       {/* Full-screen Loader Overlay */}
       {(submitStatus === 'submitting' || submitStatus === 'success') && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -558,9 +558,9 @@ export default function SendPackersQuotePage() {
 
       {/* Template Selector */}
       {templates.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <FileSpreadsheet className="w-5 h-5 text-cyan-500" />
               Use Template
             </h2>
@@ -624,10 +624,12 @@ export default function SendPackersQuotePage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="space-y-5">
         {/* Service Details */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Package className="w-5 h-5 text-cyan-500" />
             Service Details
           </h2>
@@ -745,9 +747,9 @@ export default function SendPackersQuotePage() {
         </div>
 
         {/* Pricing */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <IndianRupee className="w-5 h-5 text-cyan-600" />
               Pricing Breakdown
             </h2>
@@ -1012,9 +1014,9 @@ export default function SendPackersQuotePage() {
         </div>
 
         {/* Inclusions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-500" />
               Inclusions ({inclusions.length})
             </h2>
@@ -1073,9 +1075,9 @@ export default function SendPackersQuotePage() {
         </div>
 
         {/* Exclusions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <XCircle className="w-5 h-5 text-red-500" />
               Exclusions ({exclusions.length})
             </h2>
@@ -1134,9 +1136,9 @@ export default function SendPackersQuotePage() {
         </div>
 
         {/* Terms & Conditions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">Terms & Conditions ({termsConditions.length})</h2>
+            <h2 className="text-sm font-bold text-gray-900">Terms & Conditions ({termsConditions.length})</h2>
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'terms' ? null : 'terms')}
@@ -1193,8 +1195,8 @@ export default function SendPackersQuotePage() {
         </div>
 
         {/* Additional Info */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4">Additional Information</h2>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4">Additional Information</h2>
 
           <div className="space-y-4">
             <div>
