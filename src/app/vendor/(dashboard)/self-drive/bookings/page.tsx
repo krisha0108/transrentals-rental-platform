@@ -46,7 +46,7 @@ interface Booking {
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'PENDING_VENDOR':
-      return 'bg-yellow-100 text-yellow-700';
+      return 'bg-emerald-100 text-emerald-700';
     case 'BROADCASTED':
       return 'bg-emerald-100 text-emerald-700';
     case 'ACCEPTED':
@@ -178,7 +178,7 @@ export default function VendorSelfDriveBookingsPage() {
       value: stats.direct,
       description: 'Awaiting your response',
       icon: Inbox,
-      color: 'orange',
+      color: 'emerald',
       href: '/vendor/self-drive/bookings/direct',
     },
     {
@@ -202,7 +202,7 @@ export default function VendorSelfDriveBookingsPage() {
       value: stats.completed,
       description: 'This month',
       icon: TrendingUp,
-      color: 'purple',
+      color: 'emerald2',
       href: '#completed',
     },
   ];
@@ -253,7 +253,7 @@ export default function VendorSelfDriveBookingsPage() {
               href={stat.href}
               className={cn(
                 'bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition group',
-                stat.value > 0 && stat.color === 'orange' && 'border-emerald-200 bg-emerald-50/50'
+                stat.value > 0 && stat.color === 'emerald' && 'border-emerald-200 bg-emerald-50/50'
               )}
             >
               <div className="flex items-start justify-between">
@@ -265,19 +265,19 @@ export default function VendorSelfDriveBookingsPage() {
                 <div
                   className={cn(
                     'p-3 rounded-xl',
-                    stat.color === 'orange' && 'bg-emerald-100',
+                    stat.color === 'emerald' && 'bg-emerald-100',
                     stat.color === 'blue' && 'bg-emerald-100',
                     stat.color === 'green' && 'bg-green-100',
-                    stat.color === 'purple' && 'bg-emerald-100'
+                    stat.color === 'emerald2' && 'bg-emerald-100'
                   )}
                 >
                   <Icon
                     className={cn(
                       'w-6 h-6',
-                      stat.color === 'orange' && 'text-emerald-600',
+                      stat.color === 'emerald' && 'text-emerald-600',
                       stat.color === 'blue' && 'text-emerald-600',
                       stat.color === 'green' && 'text-green-600',
-                      stat.color === 'purple' && 'text-emerald-600'
+                      stat.color === 'emerald2' && 'text-emerald-600'
                     )}
                   />
                 </div>
@@ -295,7 +295,7 @@ export default function VendorSelfDriveBookingsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link
           href="/vendor/self-drive/bookings/direct"
-          className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl p-6 text-white hover:from-orange-600 hover:to-amber-600 transition"
+          className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl p-6 text-white hover:from-emerald-600 hover:to-emerald-700 transition"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -313,7 +313,7 @@ export default function VendorSelfDriveBookingsPage() {
 
         <Link
           href="/vendor/self-drive/bookings/open"
-          className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl p-6 text-white hover:from-blue-600 hover:to-indigo-600 transition"
+          className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl p-6 text-white hover:from-emerald-600 hover:to-emerald-700 transition"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -321,7 +321,7 @@ export default function VendorSelfDriveBookingsPage() {
               <p className="text-emerald-100 mt-1">
                 Browse available bookings in your area
               </p>
-              <p className="text-sm text-blue-200 mt-3">
+              <p className="text-sm text-emerald-200 mt-3">
                 {stats.open} open request{stats.open !== 1 ? 's' : ''} to explore
               </p>
             </div>

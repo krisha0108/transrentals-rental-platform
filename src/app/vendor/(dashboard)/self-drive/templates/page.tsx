@@ -305,7 +305,7 @@ export default function VendorSelfDriveTemplatesPage() {
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <h3 className="text-base font-bold text-gray-900 truncate">{template.name}</h3>
                       {template.isDefault && (
-                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-full">
+                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded-full">
                           <Star className="w-2.5 h-2.5" /> Default
                         </span>
                       )}
@@ -438,7 +438,7 @@ export default function VendorSelfDriveTemplatesPage() {
                 {!template.isDefault && (
                   <button
                     onClick={() => setAsDefault(template.id)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 active:scale-[0.97] transition-all"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100 active:scale-[0.97] transition-all"
                   >
                     <Star className="w-3.5 h-3.5" /> Default
                   </button>

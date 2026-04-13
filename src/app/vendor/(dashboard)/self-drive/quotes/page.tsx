@@ -75,7 +75,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   VIEWED:    { label: 'Viewed',    color: 'text-emerald-600',  bg: 'bg-emerald-50',   border: 'border-emerald-200',  accent: 'bg-emerald-500',  icon: Eye },
   ACCEPTED:  { label: 'Won',       color: 'text-emerald-700', bg: 'bg-emerald-50',  border: 'border-emerald-300', accent: 'bg-emerald-500', icon: CheckCircle },
   REJECTED:  { label: 'Rejected',  color: 'text-red-600',     bg: 'bg-red-50',      border: 'border-red-200',     accent: 'bg-red-400',     icon: XCircle },
-  EXPIRED:   { label: 'Expired',   color: 'text-amber-600',   bg: 'bg-amber-50',    border: 'border-amber-200',   accent: 'bg-amber-400',   icon: AlertCircle },
+  EXPIRED:   { label: 'Expired',   color: 'text-emerald-600',   bg: 'bg-emerald-50',    border: 'border-emerald-200',   accent: 'bg-emerald-400',   icon: AlertCircle },
   WITHDRAWN: { label: 'Withdrawn', color: 'text-gray-500',    bg: 'bg-gray-50',     border: 'border-gray-200',    accent: 'bg-gray-300',    icon: XCircle },
 };
 
@@ -164,7 +164,7 @@ export default function VendorSelfDriveQuotesPage() {
     { value: 'all',      label: 'All',     icon: Send,        count: stats.total,    activeColor: 'bg-white text-gray-900 shadow-lg shadow-gray-200/50' },
     { value: 'active',   label: 'Active',  icon: Zap,         count: stats.pending,  activeColor: 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' },
     { value: 'accepted', label: 'Won',     icon: Award,       count: stats.accepted, activeColor: 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' },
-    { value: 'expired',  label: 'Closed',  icon: AlertCircle, count: 0,              activeColor: 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' },
+    { value: 'expired',  label: 'Closed',  icon: AlertCircle, count: 0,              activeColor: 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' },
   ];
 
   const shimmer = 'relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-shimmer before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent';
@@ -461,7 +461,7 @@ export default function VendorSelfDriveQuotesPage() {
                   isWon
                     ? 'border-emerald-200 shadow-sm ring-1 ring-emerald-100'
                     : expiringSoon
-                    ? 'border-amber-200 shadow-sm'
+                    ? 'border-emerald-200 shadow-sm'
                     : 'border-gray-100 hover:border-gray-200'
                 }`}
               >
@@ -487,9 +487,9 @@ export default function VendorSelfDriveQuotesPage() {
                 {/* Card Body */}
                 <div className="px-4 pb-4">
                   {expiringSoon && (
-                    <div className="flex items-center gap-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl px-3 py-2 mb-3 animate-pulse">
-                      <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                      <span className="text-[11px] font-bold text-amber-700">Expiring soon!</span>
+                    <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-50 to-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 mb-3 animate-pulse">
+                      <Zap className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span className="text-[11px] font-bold text-emerald-700">Expiring soon!</span>
                     </div>
                   )}
 

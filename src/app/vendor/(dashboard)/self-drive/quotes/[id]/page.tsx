@@ -121,7 +121,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
   VIEWED:    { label: 'Viewed',    color: 'text-emerald-600',  bg: 'bg-emerald-50',   border: 'border-emerald-200',  accent: 'from-emerald-500 to-emerald-600', icon: Eye },
   ACCEPTED:  { label: 'Won',       color: 'text-emerald-700', bg: 'bg-emerald-50',  border: 'border-emerald-300', accent: 'from-emerald-500 to-emerald-600', icon: Award },
   REJECTED:  { label: 'Rejected',  color: 'text-red-600',     bg: 'bg-red-50',      border: 'border-red-200',     accent: 'from-red-400 to-red-500',       icon: XCircle },
-  EXPIRED:   { label: 'Expired',   color: 'text-amber-600',   bg: 'bg-amber-50',    border: 'border-amber-200',   accent: 'from-amber-400 to-amber-500',   icon: AlertCircle },
+  EXPIRED:   { label: 'Expired',   color: 'text-emerald-600',   bg: 'bg-emerald-50',    border: 'border-emerald-200',   accent: 'from-emerald-400 to-emerald-500',   icon: AlertCircle },
   WITHDRAWN: { label: 'Withdrawn', color: 'text-gray-500',    bg: 'bg-gray-50',     border: 'border-gray-200',    accent: 'from-gray-400 to-gray-500',     icon: XCircle },
 };
 
@@ -489,13 +489,13 @@ export default function VendorSelfDriveQuoteDetailPage() {
 
       {/* ══════════ Expiring Alert ══════════ */}
       {isExpiringSoon && isActive && (
-        <div className="flex items-center gap-2.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl px-3.5 py-2.5 animate-pulse">
-          <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
-            <Zap className="w-4 h-4 text-amber-600" />
+        <div className="flex items-center gap-2.5 bg-gradient-to-r from-emerald-50 to-emerald-50 border border-emerald-200 rounded-xl px-3.5 py-2.5 animate-pulse">
+          <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center shrink-0">
+            <Zap className="w-4 h-4 text-emerald-600" />
           </div>
           <div>
-            <p className="text-xs font-bold text-amber-800">Expiring soon!</p>
-            <p className="text-[10px] text-amber-600">Valid until {new Date(quote.validTill).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+            <p className="text-xs font-bold text-emerald-800">Expiring soon!</p>
+            <p className="text-[10px] text-emerald-600">Valid until {new Date(quote.validTill).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
           </div>
         </div>
       )}
@@ -771,11 +771,11 @@ export default function VendorSelfDriveQuoteDetailPage() {
               </div>
 
               {quote.request.isDeliveryRequested && (
-                <div className="bg-amber-50 rounded-lg px-3 py-2 flex items-center gap-2 border border-amber-100">
-                  <Truck className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <div className="bg-emerald-50 rounded-lg px-3 py-2 flex items-center gap-2 border border-emerald-100">
+                  <Truck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                   <div>
-                    <p className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">Home Delivery</p>
-                    {quote.request.pickupAddress && <p className="text-xs text-amber-800">{quote.request.pickupAddress}</p>}
+                    <p className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">Home Delivery</p>
+                    {quote.request.pickupAddress && <p className="text-xs text-emerald-800">{quote.request.pickupAddress}</p>}
                   </div>
                 </div>
               )}
@@ -835,10 +835,10 @@ export default function VendorSelfDriveQuoteDetailPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className={`w-1.5 h-1.5 rounded-full ${isExpiringSoon ? 'bg-amber-500 animate-pulse' : 'bg-gray-300'} shrink-0`} />
+                <div className={`w-1.5 h-1.5 rounded-full ${isExpiringSoon ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'} shrink-0`} />
                 <div className="flex-1 flex items-center justify-between">
                   <span className="text-xs text-gray-500">Expires</span>
-                  <span className={`text-xs font-bold ${isExpiringSoon ? 'text-amber-600' : 'text-gray-700'}`}>{new Date(quote.validTill).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                  <span className={`text-xs font-bold ${isExpiringSoon ? 'text-emerald-600' : 'text-gray-700'}`}>{new Date(quote.validTill).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -920,10 +920,10 @@ export default function VendorSelfDriveQuoteDetailPage() {
           )}
           {/* Customer Notes */}
           {quote.request.customerNotes && (
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-xl border border-amber-200 overflow-hidden">
-              <div className="px-3.5 py-2.5 border-b border-amber-100">
+            <div className="bg-gradient-to-br from-emerald-50 to-emerald-50/50 rounded-xl border border-emerald-200 overflow-hidden">
+              <div className="px-3.5 py-2.5 border-b border-emerald-100">
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
-                  <MessageCircle className="w-3.5 h-3.5 text-amber-500" /> Customer Notes
+                  <MessageCircle className="w-3.5 h-3.5 text-emerald-500" /> Customer Notes
                 </h3>
               </div>
               <div className="px-3.5 py-2.5">

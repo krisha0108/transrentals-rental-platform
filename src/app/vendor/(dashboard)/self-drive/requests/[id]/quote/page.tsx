@@ -402,7 +402,7 @@ export default function SendSelfDriveQuotePage() {
   if (isLoading || !request) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -419,7 +419,7 @@ export default function SendSelfDriveQuotePage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Send className="w-6 h-6 text-orange-500" />
+            <Send className="w-6 h-6 text-emerald-500" />
             Send Quote
           </h1>
           <p className="text-gray-600">#{request.requestNumber}</p>
@@ -427,11 +427,11 @@ export default function SendSelfDriveQuotePage() {
       </div>
 
       {/* Request Summary */}
-      <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
-        <h3 className="font-semibold text-orange-800 mb-3">Request Summary</h3>
+      <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+        <h3 className="font-semibold text-emerald-800 mb-3">Request Summary</h3>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="flex items-start gap-3">
-            <Car className="w-5 h-5 text-orange-600 mt-0.5" />
+            <Car className="w-5 h-5 text-emerald-600 mt-0.5" />
             <div>
               <p className="font-medium text-gray-900">
                 {request.vehicle_modelsName || request.vehicleCategoryName || 'Any Car'}
@@ -443,16 +443,16 @@ export default function SendSelfDriveQuotePage() {
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <MapPin className="w-5 h-5 text-orange-600 mt-0.5" />
+            <MapPin className="w-5 h-5 text-emerald-600 mt-0.5" />
             <div>
               <p className="font-medium text-gray-900">{request.locationName || 'N/A'}</p>
               {request.isDeliveryRequested && (
-                <p className="text-sm text-yellow-600">Delivery requested</p>
+                <p className="text-sm text-emerald-600">Delivery requested</p>
               )}
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <Calendar className="w-5 h-5 text-orange-600 mt-0.5" />
+            <Calendar className="w-5 h-5 text-emerald-600 mt-0.5" />
             <div>
               <p className="font-medium text-gray-900">
                 {new Date(request.pickupDate).toLocaleDateString('en-IN', {
@@ -473,7 +473,7 @@ export default function SendSelfDriveQuotePage() {
           </div>
           <div className="flex flex-wrap gap-2">
             {request.transmission && (
-              <span className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+              <span className="flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full">
                 <Settings2 className="w-3 h-3" />
                 {request.transmission}
               </span>
@@ -485,7 +485,7 @@ export default function SendSelfDriveQuotePage() {
               </span>
             )}
             {request.minSeats && (
-              <span className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+              <span className="flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs rounded-full">
                 <Users className="w-3 h-3" />
                 {request.minSeats}+ seats
               </span>
@@ -494,7 +494,7 @@ export default function SendSelfDriveQuotePage() {
         </div>
         {request.customerNotes && (
           <div className="mt-3 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5" />
+            <AlertCircle className="w-4 h-4 text-emerald-600 mt-0.5" />
             <p className="text-sm text-gray-600">{request.customerNotes}</p>
           </div>
         )}
@@ -502,16 +502,16 @@ export default function SendSelfDriveQuotePage() {
 
       {/* Template Selector */}
       {templates.length > 0 && (
-        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-4 border border-orange-200">
+        <div className="bg-gradient-to-r from-emerald-50 to-emerald-50/50 rounded-xl p-4 border border-emerald-200">
           <div className="flex items-center gap-2 mb-3">
-            <Lightbulb className="w-5 h-5 text-orange-600" />
-            <h3 className="font-semibold text-orange-900">Quick Fill with Template</h3>
+            <Lightbulb className="w-5 h-5 text-emerald-600" />
+            <h3 className="font-semibold text-emerald-900">Quick Fill with Template</h3>
           </div>
-          <p className="text-sm text-orange-700 mb-3">Load saved template to auto-fill inclusions, exclusions, terms & rates</p>
+          <p className="text-sm text-emerald-700 mb-3">Load saved template to auto-fill inclusions, exclusions, terms & rates</p>
           <select
             value={selectedTemplateId}
             onChange={(e) => handleTemplateSelection(e.target.value)}
-            className="w-full px-4 py-2.5 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white"
+            className="w-full px-4 py-2.5 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white"
           >
             <option value="">-- Select a template (optional) --</option>
             {templates.map((template) => (
@@ -533,7 +533,7 @@ export default function SendSelfDriveQuotePage() {
         {/* Vehicle Details */}
         <div className="bg-white rounded-xl shadow-sm p-6 border">
           <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <Car className="w-5 h-5 text-orange-500" />
+            <Car className="w-5 h-5 text-emerald-500" />
             Vehicle Details
           </h2>
 
@@ -545,7 +545,7 @@ export default function SendSelfDriveQuotePage() {
               <select
                 value={selectedFleetId}
                 onChange={(e) => handleFleetSelection(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white"
               >
                 <option value="">-- Select a car from fleet (or enter manually) --</option>
                 {fleetVehicles.map((vehicle) => {
@@ -583,7 +583,7 @@ export default function SendSelfDriveQuotePage() {
                   setSelectedFleetId('');
                 }}
                 placeholder="e.g., Swift Dzire, Honda City"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 required
               />
             </div>
@@ -599,7 +599,7 @@ export default function SendSelfDriveQuotePage() {
                   setSelectedFleetId('');
                 }}
                 placeholder="e.g., Maruti, Honda"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             <div>
@@ -614,7 +614,7 @@ export default function SendSelfDriveQuotePage() {
                   setSelectedFleetId('');
                 }}
                 placeholder="e.g., DL 01 AB 1234"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             <div>
@@ -624,7 +624,7 @@ export default function SendSelfDriveQuotePage() {
               <select
                 value={transmission}
                 onChange={(e) => setTransmission(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="">Select</option>
                 <option value="Manual">Manual</option>
@@ -638,7 +638,7 @@ export default function SendSelfDriveQuotePage() {
               <select
                 value={fuelType}
                 onChange={(e) => setFuelType(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="">Select</option>
                 <option value="Petrol">Petrol</option>
@@ -655,7 +655,7 @@ export default function SendSelfDriveQuotePage() {
               <select
                 value={seats}
                 onChange={(e) => setSeats(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="">Select</option>
                 <option value="4">4 Seater</option>
@@ -671,7 +671,7 @@ export default function SendSelfDriveQuotePage() {
         {/* Pricing */}
         <div className="bg-white rounded-xl shadow-sm p-6 border">
           <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <IndianRupee className="w-5 h-5 text-orange-500" />
+            <IndianRupee className="w-5 h-5 text-emerald-500" />
             Pricing
           </h2>
 
@@ -687,7 +687,7 @@ export default function SendSelfDriveQuotePage() {
                   value={totalPrice}
                   onChange={(e) => setTotalPrice(e.target.value)}
                   placeholder={`${(request.totalDays || 1) * 2500}`}
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   required
                 />
               </div>
@@ -707,7 +707,7 @@ export default function SendSelfDriveQuotePage() {
                   onChange={(e) => setSecurityDeposit(e.target.value)}
                   placeholder="5000"
                   disabled={noSecurityDeposit}
-                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${noSecurityDeposit ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-200'}`}
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${noSecurityDeposit ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-200'}`}
                 />
               </div>
               <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
@@ -718,7 +718,7 @@ export default function SendSelfDriveQuotePage() {
                     setNoSecurityDeposit(e.target.checked);
                     if (e.target.checked) setSecurityDeposit('0');
                   }}
-                  className="w-4 h-4 rounded accent-orange-500"
+                  className="w-4 h-4 rounded accent-emerald-500"
                 />
                 <span className="text-sm text-gray-600">No security deposit required</span>
               </label>
@@ -738,14 +738,14 @@ export default function SendSelfDriveQuotePage() {
                   onChange={(e) => setKmLimitPerDay(e.target.value)}
                   placeholder="200"
                   disabled={kmLimitPerDay === 'unlimited'}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:text-gray-400"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-100 disabled:text-gray-400"
                 />
                 <button
                   type="button"
                   onClick={() => setKmLimitPerDay(kmLimitPerDay === 'unlimited' ? '200' : 'unlimited')}
                   className={`px-3 py-2.5 text-xs font-semibold rounded-lg border transition whitespace-nowrap ${
                     kmLimitPerDay === 'unlimited'
-                      ? 'bg-orange-100 text-orange-700 border-orange-300'
+                      ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
                       : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                   }`}
                 >
@@ -765,7 +765,7 @@ export default function SendSelfDriveQuotePage() {
                   onChange={(e) => setExtraKmRate(e.target.value)}
                   placeholder="10"
                   disabled={kmLimitPerDay === 'unlimited'}
-                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${kmLimitPerDay === 'unlimited' ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-200'}`}
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${kmLimitPerDay === 'unlimited' ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-200'}`}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">/km</span>
               </div>
@@ -786,7 +786,7 @@ export default function SendSelfDriveQuotePage() {
                       value={deliveryCharges}
                       onChange={(e) => setDeliveryCharges(e.target.value)}
                       placeholder="500"
-                      className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                      className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -801,7 +801,7 @@ export default function SendSelfDriveQuotePage() {
                       value={pickupCharges}
                       onChange={(e) => setPickupCharges(e.target.value)}
                       placeholder="500"
-                      className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                      className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -816,11 +816,11 @@ export default function SendSelfDriveQuotePage() {
               </label>
               <div className="flex gap-1 mb-2 bg-gray-100 rounded-lg p-0.5">
                 <button type="button" onClick={() => setAdvanceMode('percent')}
-                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'percent' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}>
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'percent' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500'}`}>
                   By Percentage
                 </button>
                 <button type="button" onClick={() => setAdvanceMode('manual')}
-                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'manual' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}>
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'manual' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500'}`}>
                   Custom Amount
                 </button>
               </div>
@@ -829,7 +829,7 @@ export default function SendSelfDriveQuotePage() {
                   <select
                     value={advancePercent}
                     onChange={(e) => setAdvancePercent(e.target.value)}
-                    className="w-24 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    className="w-24 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="20">20%</option>
                     <option value="25">25%</option>
@@ -850,7 +850,7 @@ export default function SendSelfDriveQuotePage() {
                     onChange={(e) => setCustomAdvanceAmount(e.target.value)}
                     placeholder="Enter advance amount"
                     min="0"
-                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
                   {customAdvanceAmount && calculateTotal() > 0 && (
                     <p className="text-xs text-gray-500 mt-1">
@@ -871,12 +871,12 @@ export default function SendSelfDriveQuotePage() {
               <div className="flex gap-1 mb-2 bg-gray-100 rounded-lg p-0.5">
                 <button type="button"
                   onClick={() => setValidityMode('days')}
-                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${validityMode === 'days' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${validityMode === 'days' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                   Quick (Days)
                 </button>
                 <button type="button"
                   onClick={() => setValidityMode('custom')}
-                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${validityMode === 'custom' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${validityMode === 'custom' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                   Custom Date & Time
                 </button>
               </div>
@@ -885,7 +885,7 @@ export default function SendSelfDriveQuotePage() {
                 <select
                   value={validityDays}
                   onChange={(e) => setValidityDays(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="1">1 day</option>
                   <option value="2">2 days</option>
@@ -900,14 +900,14 @@ export default function SendSelfDriveQuotePage() {
                     value={customValidDate}
                     onChange={(e) => setCustomValidDate(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 text-sm"
+                    className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
                     required={validityMode === 'custom'}
                   />
                   <input
                     type="time"
                     value={customValidTime}
                     onChange={(e) => setCustomValidTime(e.target.value)}
-                    className="w-[120px] px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 text-sm"
+                    className="w-[120px] px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
                   />
                 </div>
               )}
@@ -922,11 +922,11 @@ export default function SendSelfDriveQuotePage() {
           </div>
 
           {/* Summary */}
-          <div className="mt-6 rounded-xl border border-orange-200 overflow-hidden">
-            <div className="bg-orange-100 px-4 py-2.5">
-              <h3 className="text-sm font-semibold text-orange-800">Quote Summary</h3>
+          <div className="mt-6 rounded-xl border border-emerald-200 overflow-hidden">
+            <div className="bg-emerald-100 px-4 py-2.5">
+              <h3 className="text-sm font-semibold text-emerald-800">Quote Summary</h3>
             </div>
-            <div className="bg-orange-50 p-4 space-y-2.5">
+            <div className="bg-emerald-50 p-4 space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Rental Price ({request.totalDays} days)</span>
                 <span className="text-sm font-medium text-gray-800">₹{(parseFloat(totalPrice) || 0).toLocaleString()}</span>
@@ -943,13 +943,13 @@ export default function SendSelfDriveQuotePage() {
                   <span className="text-sm font-medium text-gray-800">₹{(parseFloat(securityDeposit) || 0).toLocaleString()}</span>
                 </div>
               )}
-              <div className="border-t border-orange-200 pt-2.5">
+              <div className="border-t border-emerald-200 pt-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-gray-900">Total Amount to Pay</span>
-                  <span className="text-lg font-bold text-orange-600">₹{(calculateTotal() + (parseFloat(securityDeposit) || 0)).toLocaleString()}</span>
+                  <span className="text-lg font-bold text-emerald-600">₹{(calculateTotal() + (parseFloat(securityDeposit) || 0)).toLocaleString()}</span>
                 </div>
               </div>
-              <div className="border-t border-orange-200 pt-2.5 space-y-1.5">
+              <div className="border-t border-emerald-200 pt-2.5 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-green-700 font-medium">Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Custom)'}</span>
                   <span className="text-sm font-bold text-green-700">₹{calculateAdvance().toLocaleString()}</span>
@@ -959,7 +959,7 @@ export default function SendSelfDriveQuotePage() {
                   <span className="text-xs text-gray-500">₹{(calculateTotal() + (parseFloat(securityDeposit) || 0) - calculateAdvance()).toLocaleString()}</span>
                 </div>
               </div>
-              <div className="text-xs text-gray-500 pt-1.5 border-t border-orange-100">
+              <div className="text-xs text-gray-500 pt-1.5 border-t border-emerald-100">
                 KM Limit: {kmLimitPerDay === 'unlimited' ? 'Unlimited' : `${kmLimitPerDay} km/day`} • Extra KM: ₹{extraKmRate}/km
               </div>
             </div>
@@ -976,7 +976,7 @@ export default function SendSelfDriveQuotePage() {
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'inclusions' ? null : 'inclusions')}
-              className="text-sm text-orange-600 hover:underline flex items-center gap-1"
+              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
             >
               <Edit3 className="w-4 h-4" />
               {editMode === 'inclusions' ? 'Done' : 'Edit'}
@@ -1011,7 +1011,7 @@ export default function SendSelfDriveQuotePage() {
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addItem(inclusions, setInclusions))}
                 placeholder="Add inclusion..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="button"
@@ -1034,7 +1034,7 @@ export default function SendSelfDriveQuotePage() {
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'exclusions' ? null : 'exclusions')}
-              className="text-sm text-orange-600 hover:underline flex items-center gap-1"
+              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
             >
               <Edit3 className="w-4 h-4" />
               {editMode === 'exclusions' ? 'Done' : 'Edit'}
@@ -1069,7 +1069,7 @@ export default function SendSelfDriveQuotePage() {
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addItem(exclusions, setExclusions))}
                 placeholder="Add exclusion..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="button"
@@ -1089,7 +1089,7 @@ export default function SendSelfDriveQuotePage() {
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'terms' ? null : 'terms')}
-              className="text-sm text-orange-600 hover:underline flex items-center gap-1"
+              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
             >
               <Edit3 className="w-4 h-4" />
               {editMode === 'terms' ? 'Done' : 'Edit'}
@@ -1099,7 +1099,7 @@ export default function SendSelfDriveQuotePage() {
           <div className="space-y-2">
             {termsConditions.map((item, idx) => (
               <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                <span className="text-orange-500 font-bold">{idx + 1}.</span>
+                <span className="text-emerald-500 font-bold">{idx + 1}.</span>
                 <span className="flex-1 text-sm text-gray-700">{item}</span>
                 {editMode === 'terms' && (
                   <button
@@ -1122,12 +1122,12 @@ export default function SendSelfDriveQuotePage() {
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addItem(termsConditions, setTermsConditions))}
                 placeholder="Add term..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="button"
                 onClick={() => addItem(termsConditions, setTermsConditions)}
-                className="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200"
+                className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
               >
                 <Plus className="w-5 h-5" />
               </button>
@@ -1143,7 +1143,7 @@ export default function SendSelfDriveQuotePage() {
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Any special notes or messages for the customer..."
             rows={3}
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
           />
         </div>
 
@@ -1158,7 +1158,7 @@ export default function SendSelfDriveQuotePage() {
           <button
             type="submit"
             disabled={isSubmitting || !totalPrice || !vehicleName || advanceExceedsTotal}
-            className="flex-1 py-3 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>

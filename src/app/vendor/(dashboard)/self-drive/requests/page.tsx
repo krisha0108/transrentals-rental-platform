@@ -333,7 +333,7 @@ export default function VendorSelfDriveRequestsPage() {
                     </span>
                   )}
                   {request.isDeliveryRequested && (
-                    <span className="px-2 py-1 bg-yellow-50 text-yellow-700 text-xs rounded-full">
+                    <span className="px-2 py-1 bg-emerald-50 text-emerald-700 text-xs rounded-full">
                       Delivery Requested
                     </span>
                   )}
