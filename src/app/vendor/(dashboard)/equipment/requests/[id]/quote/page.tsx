@@ -581,7 +581,7 @@ export default function SendEquipmentQuotePage() {
             <div className="flex items-start gap-3">
               <User className="w-5 h-5 text-emerald-600 mt-0.5" />
               <div>
-                <p className="text-sm text-blue-600 font-medium">Operator Required</p>
+                <p className="text-sm text-emerald-600 font-medium">Operator Required</p>
               </div>
             </div>
           )}

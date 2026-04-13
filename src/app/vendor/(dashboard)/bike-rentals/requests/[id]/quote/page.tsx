@@ -447,16 +447,16 @@ export default function SendBikeQuotePage() {
 
       {/* Template Selector */}
       {templates.length > 0 && (
-        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-4 border border-emerald-200">
+        <div className="bg-gradient-to-r from-emerald-50 to-emerald-50/50 rounded-xl p-4 border border-emerald-200">
           <div className="flex items-center gap-2 mb-3">
             <Lightbulb className="w-5 h-5 text-emerald-600" />
-            <h3 className="font-semibold text-orange-900">Quick Fill with Template</h3>
+            <h3 className="font-semibold text-emerald-900">Quick Fill with Template</h3>
           </div>
           <p className="text-sm text-emerald-700 mb-3">Load saved template to auto-fill inclusions, exclusions, terms & rates</p>
           <select
             value={selectedTemplateId}
             onChange={(e) => handleTemplateSelection(e.target.value)}
-            className="w-full px-4 py-2.5 border border-orange-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white"
+            className="w-full px-4 py-2.5 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white"
           >
             <option value="">-- Select a template (optional) --</option>
             {templates.map((template) => (
@@ -631,7 +631,7 @@ export default function SendBikeQuotePage() {
                     setNoSecurityDeposit(e.target.checked);
                     if (e.target.checked) setSecurityDeposit('0');
                   }}
-                  className="w-4 h-4 rounded accent-orange-500"
+                  className="w-4 h-4 rounded accent-emerald-500"
                 />
                 <span className="text-sm text-gray-600">No security deposit required</span>
               </label>
@@ -658,7 +658,7 @@ export default function SendBikeQuotePage() {
                   onClick={() => setKmLimitPerDay(kmLimitPerDay === 'unlimited' ? '' : 'unlimited')}
                   className={`px-3 py-2.5 text-xs font-semibold rounded-lg border transition whitespace-nowrap ${
                     kmLimitPerDay === 'unlimited'
-                      ? 'bg-emerald-100 text-emerald-700 border-orange-300'
+                      ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
                       : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                   }`}
                 >
@@ -989,7 +989,7 @@ export default function SendBikeQuotePage() {
               <button
                 type="button"
                 onClick={() => addItem(termsConditions, setTermsConditions)}
-                className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-orange-200"
+                className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
               >
                 <Plus className="w-5 h-5" />
               </button>
