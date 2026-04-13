@@ -17,18 +17,9 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // Fetch ALL bookings (like mobile app earnings API does) - no date filter
-    const [
-      bikeBookings,
-      chauffeurBookings,
-      selfDriveBookings,
-      busBookings,
-      luxuryBookings,
-      packersBookings,
-      truckBookings,
-      equipmentBookings,
-    ] = await Promise.all([
-      // Bike bookings - fetch all with multiple statuses
+    // Fetch ALL bookings in 2 batches of 4 (connection pool limit = 15, max 4 at a time)
+    // Batch 1: bike, chauffeur, self-drive, bus
+    const [bikeBookings, chauffeurBookings, selfDriveBookings, busBookings] = await Promise.all([
       prisma.bike_bookings.findMany({
         where: {
           OR: [
@@ -37,14 +28,9 @@ export async function GET(request: NextRequest) {
           ],
           status: { in: ['COMPLETED', 'IN_PROGRESS', 'READY_FOR_PICKUP', 'ACCEPTED'] },
         },
-        select: {
-          totalAmount: true,
-          status: true,
-          createdAt: true,
-        },
+        select: { totalAmount: true, status: true, createdAt: true },
       }).catch(() => []),
 
-      // Chauffeur bookings (Car Rental with driver)
       prisma.chauffeur_bookings.findMany({
         where: {
           OR: [
@@ -53,14 +39,9 @@ export async function GET(request: NextRequest) {
           ],
           status: { in: ['COMPLETED', 'IN_PROGRESS', 'DRIVER_ASSIGNED', 'ACCEPTED'] },
         },
-        select: {
-          grandTotal: true,
-          status: true,
-          createdAt: true,
-        },
+        select: { grandTotal: true, status: true, createdAt: true },
       }).catch(() => []),
 
-      // Self-Drive bookings (car_bookings)
       prisma.car_bookings.findMany({
         where: {
           OR: [
@@ -69,27 +50,20 @@ export async function GET(request: NextRequest) {
           ],
           status: { in: ['COMPLETED', 'IN_PROGRESS', 'READY_FOR_PICKUP', 'ACCEPTED'] },
         },
-        select: {
-          grandTotal: true,
-          status: true,
-          createdAt: true,
-        },
+        select: { grandTotal: true, status: true, createdAt: true },
       }).catch(() => []),
 
-      // Bus bookings
       prisma.bus_bookings.findMany({
         where: {
           vendorId,
           status: { in: ['COMPLETED', 'IN_PROGRESS', 'CONFIRMED', 'VEHICLE_ASSIGNED', 'ADVANCE_PAID'] },
         },
-        select: {
-          totalAmount: true,
-          status: true,
-          createdAt: true,
-        },
+        select: { totalAmount: true, status: true, createdAt: true },
       }).catch(() => []),
+    ]);
 
-      // Luxury bookings
+    // Batch 2: luxury, packers, truck, equipment
+    const [luxuryBookings, packersBookings, truckBookings, equipmentBookings] = await Promise.all([
       prisma.luxury_bookings.findMany({
         where: {
           OR: [
@@ -98,50 +72,31 @@ export async function GET(request: NextRequest) {
           ],
           status: { in: ['COMPLETED', 'IN_PROGRESS', 'DRIVER_ASSIGNED', 'ACCEPTED', 'CONFIRMED', 'ADVANCE_PAID'] },
         },
-        select: {
-          grandTotal: true,
-          status: true,
-          createdAt: true,
-        },
+        select: { grandTotal: true, status: true, createdAt: true },
       }).catch(() => []),
 
-      // Packers bookings
       prisma.packers_bookings.findMany({
         where: {
           vendorId,
           status: { in: ['COMPLETED', 'IN_TRANSIT', 'PACKING', 'LOADING', 'UNLOADING', 'UNPACKING', 'CONFIRMED', 'TEAM_ASSIGNED', 'ADVANCE_PAID'] },
         },
-        select: {
-          totalAmount: true,
-          status: true,
-          createdAt: true,
-        },
+        select: { totalAmount: true, status: true, createdAt: true },
       }).catch(() => []),
 
-      // Truck bookings
       prisma.truck_bookings.findMany({
         where: {
           vendorId,
           status: { in: ['COMPLETED', 'IN_TRANSIT', 'LOADING', 'UNLOADING', 'CONFIRMED', 'VEHICLE_ASSIGNED', 'ADVANCE_PAID'] },
         },
-        select: {
-          totalAmount: true,
-          status: true,
-          createdAt: true,
-        },
+        select: { totalAmount: true, status: true, createdAt: true },
       }).catch(() => []),
 
-      // Equipment bookings
       prisma.equipment_bookings.findMany({
         where: {
           vendorId,
           status: { in: ['COMPLETED', 'IN_USE', 'DELIVERED', 'CONFIRMED', 'ADVANCE_PAID'] },
         },
-        select: {
-          totalAmount: true,
-          status: true,
-          createdAt: true,
-        },
+        select: { totalAmount: true, status: true, createdAt: true },
       }).catch(() => []),
     ]);
 
