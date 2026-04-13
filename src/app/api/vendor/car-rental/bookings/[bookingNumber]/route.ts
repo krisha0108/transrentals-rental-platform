@@ -8,7 +8,6 @@ import { saveDriverNotification } from '@/lib/utils/driver-notification-sender';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
-import { canStartTrip, canCompleteTrip } from '@/lib/utils/booking-date-guard';
 export const dynamic = 'force-dynamic';
 
 // GET - Get booking details
@@ -30,9 +29,14 @@ export async function GET(
     const resolvedParams = 'then' in params ? await params : params;
     const { bookingNumber } = resolvedParams;
 
-    // Try by bookingNumber first, then by ID (for notification redirects that pass DB ID)
-    let booking = await prisma.chauffeur_bookings.findUnique({
-      where: { bookingNumber },
+    // Support lookup by bookingNumber or by id (from chat conversations)
+    const booking = await prisma.chauffeur_bookings.findFirst({
+      where: {
+        OR: [
+          { bookingNumber },
+          { id: bookingNumber },
+        ],
+      },
       include: {
         locations: {
           select: {
@@ -43,21 +47,6 @@ export async function GET(
         },
       },
     });
-
-    if (!booking) {
-      booking = await prisma.chauffeur_bookings.findUnique({
-        where: { id: bookingNumber },
-        include: {
-          locations: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-        },
-      });
-    }
 
     if (!booking) {
       return NextResponse.json(
@@ -101,16 +90,7 @@ export async function GET(
         localPackageId: booking.localPackageId,
         localPackageHours: booking.localPackageHours,
         localPackageKm: booking.localPackageKm,
-        intermediateStops: booking.intermediateStops
-          ? (() => { try { return JSON.parse(booking.intermediateStops); } catch { return []; } })()
-          : [],
         baseFare: booking.baseFare,
-        chargeableKm: booking.chargeableKm,
-        perKmRate: booking.perKmRate,
-        kmCharges: booking.kmCharges,
-        driverBatta: booking.driverBatta,
-        nightCharges: booking.nightCharges,
-        tollCharges: booking.tollCharges,
         gstAmount: booking.gstAmount,
         platformFee: booking.platformFee,
         grandTotal: booking.grandTotal,
@@ -138,8 +118,6 @@ export async function GET(
         review: booking.review,
         acceptedVendorId: booking.acceptedVendorId,
         isOwnBooking: isOwner,
-        droppedAt: booking.droppedAt,
-        dropReason: booking.dropReason,
         location: booking.locations,
         createdAt: booking.createdAt,
         updatedAt: booking.updatedAt,
@@ -419,7 +397,6 @@ export async function PATCH(
           vehicleNumber: data.vehicleNumber,
           vehicleModel: data.vehicleModel || data.vehicle_models || null,
           driverAssignedAt: new Date(),
-          tripStartOtp: Math.floor(100000 + Math.random() * 900000).toString(),
         };
         message = 'Driver assigned successfully';
         break;
@@ -438,14 +415,6 @@ export async function PATCH(
             { success: false, error: 'Trip can only be started when driver is assigned' },
             { status: 400 }
           );
-        }
-
-        // Block trip start before pickup date/time
-        {
-          const startCheck = canStartTrip(booking.pickupDate, booking.pickupTime);
-          if (!startCheck.allowed) {
-            return NextResponse.json({ success: false, error: startCheck.message }, { status: 400 });
-          }
         }
 
         // Verify OTP if provided
@@ -477,16 +446,6 @@ export async function PATCH(
             { success: false, error: 'Only in-progress trips can be completed' },
             { status: 400 }
           );
-        }
-
-        // Block completion before return date/time
-        {
-          const endDate = booking.returnDate || booking.pickupDate;
-          const endTime = booking.returnTime || booking.pickupTime;
-          const completeCheck = canCompleteTrip(endDate, endTime);
-          if (!completeCheck.allowed) {
-            return NextResponse.json({ success: false, error: completeCheck.message }, { status: 400 });
-          }
         }
 
         // Calculate extra charges based on actual km travelled
@@ -675,19 +634,6 @@ export async function PATCH(
       } catch (driverNotifError: any) {
         logger.error('Failed to send driver notification for car rental assignment', driverNotifError);
       }
-    }
-
-    // Notify vendor on trip completion
-    if (updatedBooking.status === 'COMPLETED') {
-      sendVendorDirectNotification({
-        vendorId,
-        title: '✅ Trip Completed!',
-        body: `Car rental booking #${updatedBooking.bookingNumber} has been completed successfully.`,
-        type: 'trip_completed',
-        serviceType: 'car',
-        bookingId: updatedBooking.id,
-        bookingNumber: updatedBooking.bookingNumber,
-      }).catch((err: any) => logger.error('[CarRentalComplete] Vendor notify failed:', err));
     }
 
     return NextResponse.json({

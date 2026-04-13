@@ -22,6 +22,9 @@ import {
   XCircle,
   User,
   Phone,
+  ArrowLeft,
+  Sparkles,
+  TrendingUp,
 } from 'lucide-react';
 import { formatPrice, formatDate, getRelativeTime } from '@/lib/utils';
 
@@ -107,10 +110,10 @@ type TxCategory = 'VEHICLE_SHARED' | 'VEHICLE_RECEIVED' | 'BOOKING_SHARED' | 'BO
 const CATEGORY_CONFIG: Record<TxCategory, { label: string; badge: string; border: string; iconBg: string; iconColor: string }> = {
   VEHICLE_SHARED: {
     label: 'Vehicle Shared',
-    badge: 'bg-blue-100 text-blue-700',
-    border: 'border-l-blue-500',
-    iconBg: 'bg-blue-50',
-    iconColor: 'text-blue-600',
+    badge: 'bg-emerald-100 text-emerald-700',
+    border: 'border-l-emerald-500',
+    iconBg: 'bg-emerald-50',
+    iconColor: 'text-emerald-600',
   },
   VEHICLE_RECEIVED: {
     label: 'Vehicle Received',
@@ -121,10 +124,10 @@ const CATEGORY_CONFIG: Record<TxCategory, { label: string; badge: string; border
   },
   BOOKING_SHARED: {
     label: 'Booking Shared',
-    badge: 'bg-purple-100 text-purple-700',
-    border: 'border-l-purple-500',
-    iconBg: 'bg-purple-50',
-    iconColor: 'text-purple-600',
+    badge: 'bg-emerald-100 text-emerald-700',
+    border: 'border-l-emerald-500',
+    iconBg: 'bg-emerald-50',
+    iconColor: 'text-emerald-600',
   },
   BOOKING_RECEIVED: {
     label: 'Booking Received',
@@ -137,8 +140,8 @@ const CATEGORY_CONFIG: Record<TxCategory, { label: string; badge: string; border
 
 const TRIP_STATUS_CONFIG: Record<string, { bg: string; text: string; icon: React.ElementType }> = {
   COMPLETED: { bg: 'bg-green-100', text: 'text-green-700', icon: CheckCircle },
-  IN_PROGRESS: { bg: 'bg-blue-100', text: 'text-blue-700', icon: Play },
-  CONFIRMED: { bg: 'bg-amber-100', text: 'text-amber-700', icon: Clock },
+  IN_PROGRESS: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: Play },
+  CONFIRMED: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: Clock },
   CANCELLED: { bg: 'bg-red-100', text: 'text-red-700', icon: XCircle },
   PENDING: { bg: 'bg-gray-100', text: 'text-gray-600', icon: Clock },
 };
@@ -338,8 +341,14 @@ export default function P2PActivityPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full border-4 border-emerald-100" />
+            <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-emerald-600 border-r-emerald-600 animate-spin" />
+          </div>
+          <p className="text-sm font-medium text-gray-500">Loading your activity...</p>
+        </div>
       </div>
     );
   }
@@ -349,65 +358,104 @@ export default function P2PActivityPage() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+      <style jsx global>{`
+        @keyframes float-slow { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-12px) translateX(8px); } }
+        @keyframes float-rev { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(10px) translateX(-6px); } }
+        @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+        @keyframes fade-up { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes pop-in { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes gradient-x { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+        .animate-float-rev { animation: float-rev 7s ease-in-out infinite; }
+        .animate-fade-up { animation: fade-up 0.5s ease-out both; }
+        .animate-pop-in { animation: pop-in 0.4s ease-out both; }
+        .animate-gradient-x { background-size: 200% 200%; animation: gradient-x 6s ease infinite; }
+        .shimmer-bg { background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.4) 50%, transparent 65%); background-size: 200% 100%; animation: shimmer 2.5s linear infinite; }
+      `}</style>
+      <div className="max-w-[1600px] mx-auto space-y-6">
       {/* Header */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl p-6 md:p-8 text-white">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-        <div className="relative">
-          <div className="flex items-center gap-3 mb-1">
-            <Activity className="h-7 w-7" />
-            <h1 className="text-2xl md:text-3xl font-bold">My P2P Activity</h1>
+      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 animate-gradient-x rounded-2xl p-6 sm:p-8 shadow-lg animate-fade-up text-white">
+        <div className="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-3xl animate-float-slow" />
+        <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-emerald-300/20 rounded-full blur-3xl animate-float-rev" />
+        <div className="absolute top-1/2 right-1/3 w-24 h-24 bg-white/5 rounded-full blur-2xl" />
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/vendor/p2p"
+              className="p-2 hover:bg-white/20 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl transition"
+            >
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </Link>
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg ring-1 ring-white/30">
+              <Activity className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2">
+                My P2P Activity
+                <Sparkles className="w-5 h-5 text-emerald-200 animate-pulse" />
+              </h1>
+              <p className="text-emerald-100 mt-1 text-sm sm:text-base">
+                Track all your peer-to-peer transactions, earnings and activity.
+              </p>
+            </div>
           </div>
-          <p className="text-blue-100 text-sm md:text-base">
-            Track all your peer-to-peer transactions, earnings and activity.
-          </p>
+          {pagination && (
+            <div className="hidden sm:flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2.5 transition-all">
+              <TrendingUp className="w-5 h-5" />
+              <span className="text-lg font-bold">{pagination.total}</span>
+              <span className="text-xs text-emerald-100 font-medium">deals</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="relative overflow-hidden bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 text-white shadow-sm">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="group relative overflow-hidden bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-lg transition-all animate-fade-up" style={{ animationDelay: '0ms' }}>
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 shimmer-bg pointer-events-none" />
           <div className="relative flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-lg">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-md group-hover:rotate-6 group-hover:scale-110 transition-transform">
               <DollarSign className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-lg font-bold">{formatPrice(stats?.totalEarnings || 0)}</p>
-              <p className="text-xs text-green-100">Total Earnings</p>
+              <p className="text-lg font-bold text-gray-900">{formatPrice(stats?.totalEarnings || 0)}</p>
+              <p className="text-xs text-gray-500 font-medium">Total Earnings</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Truck className="h-5 w-5 text-blue-600" />
+        <div className="group relative overflow-hidden bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-lg transition-all animate-fade-up" style={{ animationDelay: '60ms' }}>
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 shimmer-bg pointer-events-none" />
+          <div className="relative flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md group-hover:rotate-6 group-hover:scale-110 transition-transform">
+              <Truck className="h-5 w-5" />
             </div>
             <div>
               <p className="text-lg font-bold text-gray-900">{stats?.totalTransactions || 0}</p>
-              <p className="text-xs text-gray-500">Total Deals</p>
+              <p className="text-xs text-gray-500 font-medium">Total Deals</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <CheckCircle className="h-5 w-5 text-purple-600" />
+        <div className="group relative overflow-hidden bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-lg transition-all animate-fade-up" style={{ animationDelay: '120ms' }}>
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 shimmer-bg pointer-events-none" />
+          <div className="relative flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md group-hover:rotate-6 group-hover:scale-110 transition-transform">
+              <CheckCircle className="h-5 w-5" />
             </div>
             <div>
               <p className="text-lg font-bold text-gray-900">{stats?.completedTransactions || 0}</p>
-              <p className="text-xs text-gray-500">Completed</p>
+              <p className="text-xs text-gray-500 font-medium">Completed</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <Star className="h-5 w-5 text-yellow-600" />
+        <div className="group relative overflow-hidden bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-lg transition-all animate-fade-up" style={{ animationDelay: '180ms' }}>
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 shimmer-bg pointer-events-none" />
+          <div className="relative flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md group-hover:rotate-6 group-hover:scale-110 transition-transform">
+              <Star className="h-5 w-5" />
             </div>
             <div>
               <p className="text-lg font-bold text-gray-900">
@@ -416,15 +464,15 @@ export default function P2PActivityPage() {
                   <span className="text-sm font-normal text-gray-400"> ({stats.totalRatings})</span>
                 ) : null}
               </p>
-              <p className="text-xs text-gray-500">P2P Rating</p>
+              <p className="text-xs text-gray-500 font-medium">P2P Rating</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Tabs: Vehicle Deals | Booking Deals */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="flex border-b border-gray-200">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-fade-up">
+        <div className="flex gap-2 p-2 bg-gradient-to-r from-emerald-50/50 via-emerald-50/40 to-emerald-50/50 border-b border-gray-100">
           {MAIN_TABS.map((tab) => {
             const TabIcon = tab.icon;
             const isActive = mainTab === tab.key;
@@ -432,17 +480,14 @@ export default function P2PActivityPage() {
               <button
                 key={tab.key}
                 onClick={() => setMainTab(tab.key)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold transition-colors relative ${
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all ${
                   isActive
-                    ? 'text-blue-600 bg-blue-50/50'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    ? 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-white hover:text-gray-900'
                 }`}
               >
-                <TabIcon className="h-4.5 w-4.5" />
+                <TabIcon className="h-4 w-4" />
                 {tab.label}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
-                )}
               </button>
             );
           })}
@@ -450,13 +495,17 @@ export default function P2PActivityPage() {
 
         {/* Status filter inside tab area */}
         <div className="flex items-center gap-2 px-4 py-3 flex-wrap">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 mr-1">
+            <Filter className="h-3.5 w-3.5" />
+            Status:
+          </div>
           {STATUS_FILTERS.map((f) => (
             <button
               key={f.key}
               onClick={() => setStatusFilter(f.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
                 statusFilter === f.key
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md scale-105'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -469,43 +518,55 @@ export default function P2PActivityPage() {
       {/* Transaction List */}
       {txLoading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <div className="w-14 h-14 rounded-full border-4 border-emerald-100" />
+              <div className="absolute inset-0 w-14 h-14 rounded-full border-4 border-transparent border-t-emerald-600 border-r-emerald-600 animate-spin" />
+            </div>
+            <p className="text-xs font-medium text-gray-500">Loading transactions...</p>
+          </div>
         </div>
       ) : transactions.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-16 text-center">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-16 text-center animate-fade-up">
           {mainTab === 'vehicles' ? (
             <>
-              <Truck className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No vehicle deals yet</h3>
+              <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gradient-to-br from-emerald-100 via-emerald-100 to-emerald-100 flex items-center justify-center shadow-inner">
+                <Truck className="h-10 w-10 text-emerald-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">No vehicle deals yet</h3>
               <p className="text-gray-500 text-sm max-w-md mx-auto">
                 Share your empty vehicles or request vehicles from other vendors to see deals here.
               </p>
               <Link
                 href="/vendor/p2p/vehicles"
-                className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition"
               >
                 Browse Vehicles
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </>
           ) : (
             <>
-              <CalendarCheck className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No booking deals yet</h3>
+              <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-gradient-to-br from-emerald-100 via-emerald-100 to-rose-100 flex items-center justify-center shadow-inner">
+                <CalendarCheck className="h-10 w-10 text-emerald-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">No booking deals yet</h3>
               <p className="text-gray-500 text-sm max-w-md mx-auto">
                 Share bookings you can&apos;t fulfill or accept bookings from other vendors to see deals here.
               </p>
               <Link
                 href="/vendor/p2p/bookings"
-                className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition"
+                className="inline-flex items-center gap-2 mt-6 px-5 py-2.5 bg-gradient-to-r from-emerald-500 via-pink-600 to-rose-600 text-white rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition"
               >
                 Browse Bookings
+                <ArrowRight className="h-4 w-4" />
               </Link>
             </>
           )}
         </div>
       ) : (
         <div className="space-y-4">
-          {transactions.map((tx) => {
+          {transactions.map((tx, idx) => {
             const partner = getPartner(tx);
             const myEarning = getMyEarning(tx);
             const category = getCategory(tx);
@@ -516,27 +577,31 @@ export default function P2PActivityPage() {
             return (
               <div
                 key={tx.id}
-                className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${config.border} overflow-hidden hover:shadow-md transition-all`}
+                style={{ animationDelay: `${Math.min(idx * 40, 400)}ms` }}
+                className={`group bg-white rounded-2xl shadow-sm border border-gray-100 border-l-4 ${config.border} overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all animate-fade-up`}
               >
                 {/* Top bar: Category badge + Status + Time */}
-                <div className="flex items-center justify-between px-4 pt-3 pb-2 bg-gray-50/50">
+                <div className="flex items-center justify-between px-4 pt-3 pb-2 bg-gradient-to-r from-gray-50/80 via-slate-50/60 to-gray-50/80 border-b border-gray-100">
                   <div className="flex items-center gap-2">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${config.badge}`}>
+                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ring-1 ring-inset ring-black/5 ${config.badge}`}>
                       {config.label}
                     </span>
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${tripConfig.bg} ${tripConfig.text}`}>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold ring-1 ring-inset ring-black/5 ${tripConfig.bg} ${tripConfig.text}`}>
                       <TripIcon className="h-3 w-3" />
                       {tx.tripStatus.replace(/_/g, ' ')}
                     </span>
                   </div>
-                  <span className="text-[11px] text-gray-400">{getRelativeTime(tx.createdAt)}</span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white text-[11px] text-gray-500 border border-gray-100">
+                    <Clock className="h-3 w-3" />
+                    {getRelativeTime(tx.createdAt)}
+                  </span>
                 </div>
 
                 {/* Main content */}
                 <div className="px-4 pb-4 pt-2">
                   <div className="flex items-start gap-3">
                     {/* Icon */}
-                    <div className={`flex-shrink-0 p-2.5 rounded-xl ${config.iconBg}`}>
+                    <div className={`flex-shrink-0 p-3 rounded-2xl ${config.iconBg} ring-1 ring-black/5 shadow-sm group-hover:rotate-6 group-hover:scale-110 transition-transform`}>
                       {isCar(tx) ? (
                         <Car className={`h-5 w-5 ${config.iconColor}`} />
                       ) : (
@@ -558,7 +623,7 @@ export default function P2PActivityPage() {
                         {partner.logo ? (
                           <img src={partner.logo} alt="" className="w-5 h-5 rounded-full object-cover" />
                         ) : (
-                          <div className="w-5 h-5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+                          <div className="w-5 h-5 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
                             {partner.businessName?.charAt(0) || '?'}
                           </div>
                         )}
@@ -570,11 +635,11 @@ export default function P2PActivityPage() {
 
                       {/* Route */}
                       <div className="flex items-center gap-2 text-sm mb-2">
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 rounded-lg">
-                          <MapPin className="h-3.5 w-3.5 text-blue-500" />
-                          <span className="font-medium text-gray-700">{tx.fromCity}</span>
-                          <ArrowRight className="h-3 w-3 text-gray-400" />
-                          <span className="font-medium text-gray-700">{tx.toCity || '—'}</span>
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 via-emerald-50 to-emerald-50 rounded-xl border border-emerald-100/60">
+                          <MapPin className="h-3.5 w-3.5 text-emerald-500" />
+                          <span className="font-semibold text-gray-700">{tx.fromCity}</span>
+                          <ArrowRight className="h-3 w-3 text-emerald-400" />
+                          <span className="font-semibold text-gray-700">{tx.toCity || '—'}</span>
                         </div>
                       </div>
 
@@ -607,34 +672,39 @@ export default function P2PActivityPage() {
                     </div>
 
                     {/* Right: Amount */}
-                    <div className="text-right flex-shrink-0 pl-2">
-                      <p className="text-base font-bold text-gray-900">{formatPrice(tx.agreedAmount)}</p>
-                      <p className="text-sm font-bold text-green-600">+{formatPrice(myEarning)}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Your earning</p>
-                      <div className="mt-1">
-                        <span className={`text-[10px] font-medium ${
-                          tx.paymentStatus === 'PAID' ? 'text-green-600' :
-                          tx.paymentStatus === 'SETTLED' ? 'text-blue-600' : 'text-orange-500'
-                        }`}>
-                          {tx.paymentStatus === 'PAID' && <CheckCircle className="h-2.5 w-2.5 inline mr-0.5" />}
-                          {tx.paymentStatus}
-                        </span>
+                    <div className="text-right flex-shrink-0 pl-2 border-l border-dashed border-gray-200 ml-2">
+                      <div className="pl-3">
+                        <p className="text-base font-bold text-gray-900">{formatPrice(tx.agreedAmount)}</p>
+                        <p className="text-sm font-extrabold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">+{formatPrice(myEarning)}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5 font-medium">Your earning</p>
+                        <div className="mt-1.5">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            tx.paymentStatus === 'PAID' ? 'bg-green-50 text-green-700 ring-1 ring-green-200' :
+                            tx.paymentStatus === 'SETTLED' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200'
+                          }`}>
+                            {tx.paymentStatus === 'PAID' && <CheckCircle className="h-2.5 w-2.5 inline" />}
+                            {tx.paymentStatus}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
                   {(tx.tripStatus === 'CONFIRMED' || tx.tripStatus === 'IN_PROGRESS' || tx.tripStatus === 'PENDING') && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="mt-3 pt-3 border-t border-dashed border-gray-200">
                       {startOtpResult && startOtpResult.txId === tx.id && (
-                        <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                          <p className="text-sm font-semibold text-green-800">Trip Started!</p>
-                          <p className="text-xs text-green-600 mt-1">Click &quot;Complete Trip&quot; when done.</p>
+                        <div className="mb-3 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl animate-pop-in">
+                          <p className="text-sm font-bold text-green-800 flex items-center gap-1.5"><CheckCircle className="h-4 w-4" /> Trip Started!</p>
+                          <p className="text-xs text-green-700 mt-1">Click &quot;Complete Trip&quot; when done.</p>
                         </div>
                       )}
 
                       {actionError && actionLoading === null && (
-                        <p className="text-xs text-red-600 mb-2">{actionError}</p>
+                        <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded-lg flex items-center gap-1.5">
+                          <AlertCircle className="h-3.5 w-3.5 text-red-600" />
+                          <p className="text-xs font-medium text-red-600">{actionError}</p>
+                        </div>
                       )}
 
                       <div className="flex items-center gap-2 flex-wrap">
@@ -643,7 +713,7 @@ export default function P2PActivityPage() {
                           <button
                             onClick={(e) => handleStartTrip(e, tx.id)}
                             disabled={actionLoading === tx.id}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 transition-all"
                           >
                             {actionLoading === tx.id && actionType === 'start' ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -659,7 +729,7 @@ export default function P2PActivityPage() {
                           <button
                             onClick={(e) => handleCompleteTrip(e, tx.id)}
                             disabled={actionLoading === tx.id}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-xs font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 transition-all"
                           >
                             {actionLoading === tx.id && actionType === 'complete' ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -675,7 +745,7 @@ export default function P2PActivityPage() {
                           <button
                             onClick={(e) => handleCancel(e, tx.id)}
                             disabled={actionLoading === tx.id}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-50 text-red-600 text-xs font-semibold rounded-lg hover:bg-red-100 disabled:opacity-50 transition"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-200 hover:bg-red-100 hover:shadow-md disabled:opacity-50 transition-all"
                           >
                             {actionLoading === tx.id && actionType === 'cancel' ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -688,8 +758,8 @@ export default function P2PActivityPage() {
 
                         {/* IN_PROGRESS message for vendorB */}
                         {tx.tripStatus === 'IN_PROGRESS' && !isVendorA(tx) && (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg">
-                            <Clock className="h-3.5 w-3.5" />
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-50 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200">
+                            <Clock className="h-3.5 w-3.5 animate-pulse" />
                             Trip in progress...
                           </span>
                         )}
@@ -741,6 +811,7 @@ export default function P2PActivityPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

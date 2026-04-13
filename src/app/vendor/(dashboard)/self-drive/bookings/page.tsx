@@ -48,13 +48,13 @@ const getStatusColor = (status: string) => {
     case 'PENDING_VENDOR':
       return 'bg-yellow-100 text-yellow-700';
     case 'BROADCASTED':
-      return 'bg-blue-100 text-blue-700';
+      return 'bg-emerald-100 text-emerald-700';
     case 'ACCEPTED':
       return 'bg-green-100 text-green-700';
     case 'READY_FOR_PICKUP':
       return 'bg-cyan-100 text-cyan-700';
     case 'IN_PROGRESS':
-      return 'bg-purple-100 text-purple-700';
+      return 'bg-emerald-100 text-emerald-700';
     case 'COMPLETED':
       return 'bg-gray-100 text-gray-700';
     case 'CANCELLED':
@@ -210,7 +210,7 @@ export default function VendorSelfDriveBookingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     );
   }
@@ -231,7 +231,7 @@ export default function VendorSelfDriveBookingsPage() {
           value={searchInput}
           onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="Search by customer name, phone, email, booking number..."
-          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
         />
         {searchInput && (
           <button
@@ -253,7 +253,7 @@ export default function VendorSelfDriveBookingsPage() {
               href={stat.href}
               className={cn(
                 'bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition group',
-                stat.value > 0 && stat.color === 'orange' && 'border-orange-200 bg-orange-50/50'
+                stat.value > 0 && stat.color === 'orange' && 'border-emerald-200 bg-emerald-50/50'
               )}
             >
               <div className="flex items-start justify-between">
@@ -265,24 +265,24 @@ export default function VendorSelfDriveBookingsPage() {
                 <div
                   className={cn(
                     'p-3 rounded-xl',
-                    stat.color === 'orange' && 'bg-orange-100',
-                    stat.color === 'blue' && 'bg-blue-100',
+                    stat.color === 'orange' && 'bg-emerald-100',
+                    stat.color === 'blue' && 'bg-emerald-100',
                     stat.color === 'green' && 'bg-green-100',
-                    stat.color === 'purple' && 'bg-purple-100'
+                    stat.color === 'purple' && 'bg-emerald-100'
                   )}
                 >
                   <Icon
                     className={cn(
                       'w-6 h-6',
-                      stat.color === 'orange' && 'text-orange-600',
-                      stat.color === 'blue' && 'text-blue-600',
+                      stat.color === 'orange' && 'text-emerald-600',
+                      stat.color === 'blue' && 'text-emerald-600',
                       stat.color === 'green' && 'text-green-600',
-                      stat.color === 'purple' && 'text-purple-600'
+                      stat.color === 'purple' && 'text-emerald-600'
                     )}
                   />
                 </div>
               </div>
-              <div className="mt-4 flex items-center text-sm text-blue-600 group-hover:text-blue-700">
+              <div className="mt-4 flex items-center text-sm text-emerald-600 group-hover:text-emerald-700">
                 <span>View details</span>
                 <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
               </div>
@@ -300,10 +300,10 @@ export default function VendorSelfDriveBookingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-bold">Direct Requests</h3>
-              <p className="text-orange-100 mt-1">
+              <p className="text-emerald-100 mt-1">
                 Customers have requested your specific cars
               </p>
-              <p className="text-sm text-orange-200 mt-3">
+              <p className="text-sm text-emerald-200 mt-3">
                 {stats.direct} request{stats.direct !== 1 ? 's' : ''} awaiting your response
               </p>
             </div>
@@ -318,7 +318,7 @@ export default function VendorSelfDriveBookingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-bold">Open Requests</h3>
-              <p className="text-blue-100 mt-1">
+              <p className="text-emerald-100 mt-1">
                 Browse available bookings in your area
               </p>
               <p className="text-sm text-blue-200 mt-3">
@@ -366,8 +366,8 @@ export default function VendorSelfDriveBookingsPage() {
                 className="p-6 hover:bg-gray-50 transition flex flex-col md:flex-row md:items-center gap-4 cursor-pointer block"
               >
                 {/* Car Icon */}
-                <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Car className="w-6 h-6 text-indigo-600" />
+                <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Car className="w-6 h-6 text-emerald-600" />
                 </div>
 
                 {/* Booking Info */}

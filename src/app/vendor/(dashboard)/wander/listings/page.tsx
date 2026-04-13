@@ -12,7 +12,7 @@ import {
 const STATUS_CONFIG = {
   DRAFT:    { label: 'Draft',    cls: 'bg-slate-100 text-slate-600 border-slate-200',     dot: 'bg-slate-400' },
   ACTIVE:   { label: 'Active',   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  PAUSED:   { label: 'Paused',   cls: 'bg-amber-50 text-amber-700 border-amber-200',       dot: 'bg-amber-400' },
+  PAUSED:   { label: 'Paused',   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200',       dot: 'bg-emerald-400' },
   INACTIVE: { label: 'Inactive', cls: 'bg-red-50 text-red-700 border-red-200',             dot: 'bg-red-400' },
 };
 
@@ -91,26 +91,26 @@ export default function VendorWanderListingsPage() {
     <div className="-mx-6 -mt-6 bg-slate-50 min-h-screen">
 
       {/* ── Dark Header ── */}
-      <div className="relative bg-[#071a0d] overflow-hidden px-8 pt-8 pb-6">
+      <div className="relative bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700 overflow-hidden px-8 pt-8 pb-6">
         {/* Glow blobs */}
-        <div className="absolute -top-20 -right-20 w-80 h-80 bg-green-600/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-0 left-1/3 w-64 h-64 bg-emerald-700/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 left-1/3 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex items-start justify-between gap-4 mb-7">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-green-400">
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-emerald-200">
                 <Compass className="w-3 h-3" /> Wander Tours
               </span>
             </div>
             <h1 className="text-[28px] font-black text-white tracking-tight leading-none mb-2">
               My Tour Listings
             </h1>
-            <p className="text-green-200/50 text-sm">Manage, publish and track all your tour packages</p>
+            <p className="text-emerald-100/70 text-sm">Manage, publish and track all your tour packages</p>
           </div>
           <Link
             href="/vendor/wander/listings/new"
-            className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-500 active:bg-green-700 transition font-semibold text-sm shadow-lg shadow-green-900/40 flex-shrink-0 mt-1"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white/20 backdrop-blur-sm text-white border border-white/20 rounded-xl hover:bg-white/30 active:bg-white/10 transition font-semibold text-sm shadow-lg shadow-black/10 flex-shrink-0 mt-1"
           >
             <Plus className="w-4 h-4" /> Create Tour
           </Link>
@@ -119,14 +119,14 @@ export default function VendorWanderListingsPage() {
         {/* Metric Cards */}
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Total Listings',  value: listings.length,  icon: Compass,      iconBg: 'bg-white/10',         iconColor: 'text-green-300',   valColor: 'text-white' },
-            { label: 'Active',          value: counts.active,    icon: PackageCheck, iconBg: 'bg-green-500/25',     iconColor: 'text-green-400',   valColor: 'text-green-300' },
-            { label: 'Drafts',          value: counts.draft,     icon: FileEdit,     iconBg: 'bg-amber-500/20',     iconColor: 'text-amber-400',   valColor: 'text-amber-300' },
+            { label: 'Total Listings',  value: listings.length,  icon: Compass,      iconBg: 'bg-white/10',         iconColor: 'text-emerald-200',   valColor: 'text-white' },
+            { label: 'Active',          value: counts.active,    icon: PackageCheck, iconBg: 'bg-white/15',     iconColor: 'text-emerald-200',   valColor: 'text-emerald-200' },
+            { label: 'Drafts',          value: counts.draft,     icon: FileEdit,     iconBg: 'bg-emerald-500/20',     iconColor: 'text-emerald-400',   valColor: 'text-emerald-300' },
             { label: 'Quote Requests',  value: totalRequests,    icon: TrendingUp,   iconBg: 'bg-teal-500/20',      iconColor: 'text-teal-400',    valColor: 'text-teal-300' },
           ].map(m => (
-            <div key={m.label} className="bg-white/[0.06] hover:bg-white/[0.09] border border-white/[0.08] rounded-2xl px-4 py-4 transition-colors">
+            <div key={m.label} className="bg-white/15 hover:bg-white/20 border border-white/20 rounded-2xl px-4 py-4 transition-colors">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{m.label}</p>
+                <p className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">{m.label}</p>
                 <div className={`w-7 h-7 rounded-lg ${m.iconBg} flex items-center justify-center`}>
                   <m.icon className={`w-3.5 h-3.5 ${m.iconColor}`} />
                 </div>
@@ -146,13 +146,13 @@ export default function VendorWanderListingsPage() {
               onClick={() => setTab(t.key)}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${
                 tab === t.key
-                  ? 'bg-green-700 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
               {t.label}
               <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${
-                tab === t.key ? 'bg-green-900/40 text-green-200' : 'bg-gray-100 text-gray-500'
+                tab === t.key ? 'bg-emerald-700/40 text-emerald-100' : 'bg-gray-100 text-gray-500'
               }`}>
                 {counts[t.key]}
               </span>
@@ -165,7 +165,7 @@ export default function VendorWanderListingsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search listings..."
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-400 bg-gray-50 transition"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 bg-gray-50 transition"
           />
         </div>
       </div>
@@ -180,19 +180,19 @@ export default function VendorWanderListingsPage() {
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-44 gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
             <p className="text-sm text-gray-400 font-medium">Loading listings...</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 bg-white border border-dashed border-gray-200 rounded-2xl">
-            <div className="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
-              <Compass className="w-8 h-8 text-green-400" />
+            <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4">
+              <Compass className="w-8 h-8 text-emerald-200" />
             </div>
             <p className="font-bold text-gray-800 mb-1 text-base">No tour listings yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first tour to start receiving bookings</p>
             <Link
               href="/vendor/wander/listings/new"
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition text-sm font-semibold shadow-md shadow-green-500/20"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-white/20 backdrop-blur-sm text-white border border-white/20 rounded-xl hover:bg-emerald-600 transition text-sm font-semibold shadow-md shadow-emerald-500/20"
             >
               <Plus className="w-4 h-4" /> Create Your First Tour
             </Link>
@@ -205,10 +205,10 @@ export default function VendorWanderListingsPage() {
               return (
                 <div
                   key={listing.id}
-                  className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-200 flex flex-col group"
+                  className="bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-2xl hover:shadow-emerald-500/10 hover:-translate-y-1 transition-all duration-200 flex flex-col group"
                 >
                   {/* Image */}
-                  <div className="h-48 bg-gradient-to-br from-slate-100 to-indigo-100 relative flex-shrink-0 overflow-hidden">
+                  <div className="h-48 bg-gradient-to-br from-slate-100 to-emerald-100 relative flex-shrink-0 overflow-hidden">
                     {images[0] ? (
                       <img
                         src={images[0]}
@@ -217,7 +217,7 @@ export default function VendorWanderListingsPage() {
                       />
                     ) : (
                       <div className="flex items-center justify-center h-full">
-                        <Compass className="w-14 h-14 text-indigo-100" />
+                        <Compass className="w-14 h-14 text-emerald-100" />
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
@@ -247,7 +247,7 @@ export default function VendorWanderListingsPage() {
                         </span>
                       )}
                       {listing.rating > 0 && (
-                        <span className="inline-flex items-center gap-1 bg-amber-400 text-gray-900 text-[11px] font-black px-2 py-0.5 rounded-lg shadow">
+                        <span className="inline-flex items-center gap-1 bg-emerald-400 text-gray-900 text-[11px] font-black px-2 py-0.5 rounded-lg shadow">
                           <Star className="w-3 h-3 fill-gray-900" /> {listing.rating.toFixed(1)}
                         </span>
                       )}
@@ -259,10 +259,10 @@ export default function VendorWanderListingsPage() {
                     <h3 className="font-bold text-gray-900 text-[13px] leading-snug mb-3 line-clamp-2">{listing.title}</h3>
 
                     <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-gray-500 mb-4">
-                      <span className="flex items-center gap-1.5"><Clock className="w-3 h-3 text-indigo-400" />{listing.duration || '—'}</span>
-                      <span className="flex items-center gap-1.5"><Users className="w-3 h-3 text-indigo-400" />Min {listing.minGroupSize || '—'}</span>
-                      <span className="flex items-center gap-1.5"><Tag className="w-3 h-3 text-indigo-400" />{listing._count?.quoteRequests || 0} requests</span>
-                      <span className="flex items-center gap-1.5 font-bold text-green-700 text-[11px]">
+                      <span className="flex items-center gap-1.5"><Clock className="w-3 h-3 text-emerald-400" />{listing.duration || '—'}</span>
+                      <span className="flex items-center gap-1.5"><Users className="w-3 h-3 text-emerald-400" />Min {listing.minGroupSize || '—'}</span>
+                      <span className="flex items-center gap-1.5"><Tag className="w-3 h-3 text-emerald-400" />{listing._count?.quoteRequests || 0} requests</span>
+                      <span className="flex items-center gap-1.5 font-bold text-emerald-700 text-[11px]">
                         {listing.priceType === 'ON_REQUEST'
                           ? 'On Request'
                           : `₹${listing.basePrice?.toLocaleString('en-IN')}${listing.priceType === 'PER_PERSON' ? '/pp' : '/grp'}`
@@ -274,7 +274,7 @@ export default function VendorWanderListingsPage() {
                     <div className="flex items-center gap-2 pt-3 border-t border-gray-50 mt-auto">
                       <Link
                         href={`/vendor/wander/listings/${listing.id}`}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-green-700 bg-green-50 hover:bg-green-100 rounded-xl transition"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition"
                       >
                         <Pencil className="w-3.5 h-3.5" /> Edit
                       </Link>

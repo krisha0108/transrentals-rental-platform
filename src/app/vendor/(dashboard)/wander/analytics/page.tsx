@@ -23,7 +23,7 @@ export default function VendorWanderAnalyticsPage() {
 
   if (loading) return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-      <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+      <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
       <p className="text-sm text-gray-400 font-medium">Loading analytics...</p>
     </div>
   );
@@ -51,19 +51,19 @@ export default function VendorWanderAnalyticsPage() {
     <div className="-mx-6 -mt-6 bg-slate-50 min-h-screen">
 
       {/* ── Dark Header ── */}
-      <div className="relative bg-[#071a0d] overflow-hidden px-8 pt-8 pb-6">
-        <div className="absolute -top-20 -right-20 w-80 h-80 bg-green-600/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-10 left-1/4 w-72 h-72 bg-emerald-700/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700 overflow-hidden px-8 pt-8 pb-6">
+        <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 left-1/4 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex items-start justify-between gap-4 mb-7">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-green-400">
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-emerald-200">
                 <BarChart3 className="w-3 h-3" /> Wander Tours
               </span>
             </div>
             <h1 className="text-[28px] font-black text-white tracking-tight leading-none mb-2">Tour Analytics</h1>
-            <p className="text-green-200/50 text-sm">Performance overview for all your wander listings</p>
+            <p className="text-emerald-100/70 text-sm">Performance overview for all your wander listings</p>
           </div>
           <Link
             href="/vendor/wander/listings"
@@ -76,14 +76,14 @@ export default function VendorWanderAnalyticsPage() {
         {/* Metric Cards */}
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Total Revenue',  value: `₹${Number(data.revenue?.total || 0).toLocaleString('en-IN')}`, icon: IndianRupee, iconBg: 'bg-green-500/25',  iconColor: 'text-green-400',  valColor: 'text-green-300' },
-            { label: 'Total Bookings', value: data.bookings?.total || 0,                                       icon: CheckCircle, iconBg: 'bg-white/10',      iconColor: 'text-green-300',  valColor: 'text-white' },
+            { label: 'Total Revenue',  value: `₹${Number(data.revenue?.total || 0).toLocaleString('en-IN')}`, icon: IndianRupee, iconBg: 'bg-white/15',  iconColor: 'text-emerald-200',  valColor: 'text-emerald-200' },
+            { label: 'Total Bookings', value: data.bookings?.total || 0,                                       icon: CheckCircle, iconBg: 'bg-white/10',      iconColor: 'text-emerald-200',  valColor: 'text-white' },
             { label: 'Conversion',     value: `${data.conversion?.rate || 0}%`,                                icon: Percent,     iconBg: 'bg-teal-500/20',   iconColor: 'text-teal-400',   valColor: 'text-teal-300' },
-            { label: 'Avg Rating',     value: data.reviews?.avgRating || '—',                                 icon: Star,        iconBg: 'bg-amber-500/20',  iconColor: 'text-amber-400',  valColor: 'text-amber-300' },
+            { label: 'Avg Rating',     value: data.reviews?.avgRating || '—',                                 icon: Star,        iconBg: 'bg-emerald-500/20',  iconColor: 'text-emerald-400',  valColor: 'text-emerald-300' },
           ].map(m => (
-            <div key={m.label} className="bg-white/[0.06] hover:bg-white/[0.09] border border-white/[0.08] rounded-2xl px-4 py-4 transition-colors">
+            <div key={m.label} className="bg-white/15 hover:bg-white/20 border border-white/20 rounded-2xl px-4 py-4 transition-colors">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{m.label}</p>
+                <p className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">{m.label}</p>
                 <div className={`w-7 h-7 rounded-lg ${m.iconBg} flex items-center justify-center`}>
                   <m.icon className={`w-3.5 h-3.5 ${m.iconColor}`} />
                 </div>
@@ -99,7 +99,7 @@ export default function VendorWanderAnalyticsPage() {
 
         {/* ── Detailed Stats Grid ── */}
         <div>
-          <h2 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Detailed Metrics</h2>
+          <h2 className="text-[11px] font-bold text-white/70 uppercase tracking-widest mb-4">Detailed Metrics</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               {
@@ -115,32 +115,32 @@ export default function VendorWanderAnalyticsPage() {
                 label: 'Active Listings',
                 value: data.listings?.active || 0,
                 sub: `of ${data.listings?.total || 0} total`,
-                iconBg: 'bg-indigo-100', iconColor: 'text-indigo-600', valColor: 'text-indigo-700',
-                border: 'border-indigo-100', bg: 'bg-white',
+                iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', valColor: 'text-emerald-700',
+                border: 'border-emerald-100', bg: 'bg-white',
               },
               {
                 icon: CheckCircle,
                 label: 'Completed Tours',
                 value: data.bookings?.completed || 0,
                 sub: `of ${data.bookings?.total || 0} bookings`,
-                iconBg: 'bg-blue-100', iconColor: 'text-green-700', valColor: 'text-blue-700',
-                border: 'border-blue-100', bg: 'bg-white',
+                iconBg: 'bg-emerald-100', iconColor: 'text-emerald-700', valColor: 'text-emerald-700',
+                border: 'border-emerald-100', bg: 'bg-white',
               },
               {
                 icon: Star,
                 label: 'Average Rating',
                 value: data.reviews?.avgRating || '—',
                 sub: `${data.reviews?.totalReviews || 0} reviews`,
-                iconBg: 'bg-amber-100', iconColor: 'text-amber-600', valColor: 'text-amber-700',
-                border: 'border-amber-100', bg: 'bg-white',
+                iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', valColor: 'text-emerald-700',
+                border: 'border-emerald-100', bg: 'bg-white',
               },
               {
                 icon: MessageSquare,
                 label: 'Pending Quotes',
                 value: data.quotes?.pending || 0,
                 sub: `${data.quotes?.submitted || 0} submitted`,
-                iconBg: 'bg-violet-100', iconColor: 'text-violet-600', valColor: 'text-violet-700',
-                border: 'border-violet-100', bg: 'bg-white',
+                iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', valColor: 'text-emerald-700',
+                border: 'border-emerald-100', bg: 'bg-white',
               },
               {
                 icon: Percent,
@@ -189,14 +189,14 @@ export default function VendorWanderAnalyticsPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="font-black text-gray-900 text-base flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-green-600" /> Monthly Revenue
+                  <TrendingUp className="w-5 h-5 text-emerald-600" /> Monthly Revenue
                 </h3>
                 <p className="text-xs text-gray-400 mt-0.5">Revenue from completed bookings</p>
               </div>
               {monthlyData.length > 0 && (
                 <div className="text-right">
                   <p className="text-[11px] text-gray-400 uppercase tracking-wider">Latest</p>
-                  <p className="font-black text-green-700 text-base">₹{monthlyData.at(-1)?.value?.toLocaleString('en-IN') || '0'}</p>
+                  <p className="font-black text-emerald-700 text-base">₹{monthlyData.at(-1)?.value?.toLocaleString('en-IN') || '0'}</p>
                 </div>
               )}
             </div>
@@ -213,7 +213,7 @@ export default function VendorWanderAnalyticsPage() {
                       ₹{(d.value / 1000).toFixed(1)}k
                     </span>
                     <div
-                      className="w-full bg-gradient-to-t from-green-600 to-green-400 rounded-t-lg min-h-[4px] transition-all group-hover:from-indigo-600 group-hover:to-violet-400 shadow-sm"
+                      className="w-full bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t-lg min-h-[4px] transition-all group-hover:from-emerald-500 group-hover:to-teal-400 shadow-sm"
                       style={{ height: `${Math.max((d.value / maxRevenue) * 190, 4)}px` }}
                     />
                     <span className="text-[9px] text-gray-400 leading-none whitespace-nowrap">{d.label}</span>
@@ -226,12 +226,12 @@ export default function VendorWanderAnalyticsPage() {
           {/* Conversion Funnel */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h3 className="font-black text-gray-900 text-base flex items-center gap-2 mb-6">
-              <Users className="w-5 h-5 text-green-600" /> Conversion Funnel
+              <Users className="w-5 h-5 text-emerald-600" /> Conversion Funnel
             </h3>
             <div className="space-y-5">
               {[
-                { label: 'Quote Requests', value: data.quotes?.totalRequests || 0, pct: 100,                                                                                                       color: 'from-indigo-500 to-indigo-400',   bg: 'bg-indigo-50' },
-                { label: 'Quotes Sent',    value: data.quotes?.submitted || 0,     pct: data.quotes?.totalRequests > 0 ? Math.round((data.quotes.submitted / data.quotes.totalRequests) * 100) : 0, color: 'from-blue-500 to-blue-400',       bg: 'bg-blue-50' },
+                { label: 'Quote Requests', value: data.quotes?.totalRequests || 0, pct: 100,                                                                                                       color: 'from-emerald-500 to-emerald-400',   bg: 'bg-emerald-50' },
+                { label: 'Quotes Sent',    value: data.quotes?.submitted || 0,     pct: data.quotes?.totalRequests > 0 ? Math.round((data.quotes.submitted / data.quotes.totalRequests) * 100) : 0, color: 'from-teal-500 to-teal-400',       bg: 'bg-emerald-50' },
                 { label: 'Bookings',       value: data.bookings?.total || 0,       pct: data.conversion?.rate || 0,                                                                                color: 'from-emerald-500 to-emerald-400', bg: 'bg-emerald-50' },
                 { label: 'Completed',      value: data.bookings?.completed || 0,   pct: data.bookings?.total > 0 ? Math.round((data.bookings.completed / data.bookings.total) * 100) : 0,          color: 'from-teal-500 to-teal-400',       bg: 'bg-teal-50' },
               ].map((row, i) => (
@@ -255,7 +255,7 @@ export default function VendorWanderAnalyticsPage() {
 
             <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
               <span className="text-xs text-gray-500 font-medium">Overall conversion</span>
-              <span className="text-xl font-black text-green-700">{data.conversion?.rate || 0}%</span>
+              <span className="text-xl font-black text-emerald-700">{data.conversion?.rate || 0}%</span>
             </div>
           </div>
         </div>
@@ -263,8 +263,8 @@ export default function VendorWanderAnalyticsPage() {
         {/* ── Quick Links ── */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: 'View Listings',  href: '/vendor/wander/listings', icon: Compass,        cls: 'bg-green-700 hover:bg-green-600' },
-            { label: 'Quote Requests', href: '/vendor/wander/quotes',   icon: MessageSquare,  cls: 'bg-green-800 hover:bg-green-700' },
+            { label: 'View Listings',  href: '/vendor/wander/listings', icon: Compass,        cls: 'bg-emerald-600 hover:bg-emerald-600' },
+            { label: 'Quote Requests', href: '/vendor/wander/quotes',   icon: MessageSquare,  cls: 'bg-emerald-700 hover:bg-emerald-600' },
             { label: 'Bookings',       href: '/vendor/wander/bookings', icon: CheckCircle,    cls: 'bg-teal-700 hover:bg-teal-600' },
           ].map(link => (
             <Link

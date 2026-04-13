@@ -64,12 +64,12 @@ interface Stats {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   PENDING_PAYMENT: { label: 'Pending Payment', color: 'bg-yellow-100 text-yellow-700', icon: AlertCircle },
-  ADVANCE_PAID: { label: 'Advance Paid', color: 'bg-blue-100 text-blue-700', icon: CheckCircle },
+  ADVANCE_PAID: { label: 'Advance Paid', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
   CONFIRMED: { label: 'Confirmed', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-  TEAM_ASSIGNED: { label: 'Team Assigned', color: 'bg-indigo-100 text-indigo-700', icon: Users },
-  PACKING: { label: 'Packing', color: 'bg-orange-100 text-orange-700', icon: Package },
+  TEAM_ASSIGNED: { label: 'Team Assigned', color: 'bg-emerald-100 text-emerald-700', icon: Users },
+  PACKING: { label: 'Packing', color: 'bg-emerald-100 text-emerald-700', icon: Package },
   LOADING: { label: 'Loading', color: 'bg-cyan-100 text-cyan-700', icon: Truck },
-  IN_TRANSIT: { label: 'In Transit', color: 'bg-purple-100 text-purple-700', icon: Navigation },
+  IN_TRANSIT: { label: 'In Transit', color: 'bg-emerald-100 text-emerald-700', icon: Navigation },
   UNLOADING: { label: 'Unloading', color: 'bg-teal-100 text-teal-700', icon: Truck },
   UNPACKING: { label: 'Unpacking', color: 'bg-pink-100 text-pink-700', icon: Package },
   COMPLETED: { label: 'Completed', color: 'bg-gray-100 text-gray-700', icon: CheckCircle },
@@ -172,7 +172,7 @@ export default function VendorPackersBookingsPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-500 mx-auto mb-4" />
           <p className="text-gray-600">Loading bookings...</p>
         </div>
       </div>
@@ -183,8 +183,8 @@ export default function VendorPackersBookingsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-            <CalendarCheck className="w-5 h-5 text-blue-600" />
+          <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+            <CalendarCheck className="w-5 h-5 text-emerald-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
@@ -201,7 +201,7 @@ export default function VendorPackersBookingsPage() {
           value={searchInput}
           onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="Search by customer name, phone, email, booking number..."
-          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
         />
         {searchInput && (
           <button
@@ -229,7 +229,7 @@ export default function VendorPackersBookingsPage() {
           <p className="text-sm text-gray-500">Upcoming</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-purple-100">
-          <p className="text-2xl font-bold text-purple-600">
+          <p className="text-2xl font-bold text-emerald-600">
             {stats?.active || 0}
           </p>
           <p className="text-sm text-gray-500">In Progress</p>
@@ -240,8 +240,8 @@ export default function VendorPackersBookingsPage() {
           </p>
           <p className="text-sm text-gray-500">Completed</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-blue-100">
-          <p className="text-2xl font-bold text-blue-600">
+        <div className="bg-white rounded-xl p-4 border border-emerald-100">
+          <p className="text-2xl font-bold text-emerald-600">
             ₹{(stats?.totalEarnings || 0).toLocaleString()}
           </p>
           <p className="text-sm text-gray-500">Total Earnings</p>
@@ -267,7 +267,7 @@ export default function VendorPackersBookingsPage() {
                 }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
                   filter === f.value
-                    ? 'bg-blue-100 text-blue-700'
+                    ? 'bg-emerald-100 text-emerald-700'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
@@ -329,8 +329,8 @@ export default function VendorPackersBookingsPage() {
                 <div className="p-4 md:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                        <Package className="w-6 h-6 text-blue-600" />
+                      <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                        <Package className="w-6 h-6 text-emerald-600" />
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-900">{booking.customerName}</h3>
@@ -349,7 +349,7 @@ export default function VendorPackersBookingsPage() {
                         ₹{booking.totalAmount.toLocaleString()}
                       </p>
                       {balanceAmount > 0 && (
-                        <p className="text-sm text-blue-600">
+                        <p className="text-sm text-emerald-600">
                           Balance: ₹{balanceAmount.toLocaleString()}
                         </p>
                       )}
@@ -363,7 +363,7 @@ export default function VendorPackersBookingsPage() {
 
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
                     <div className="flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-blue-500" />
+                      <Calendar className="w-4 h-4 text-emerald-500" />
                       {new Date(booking.scheduledDate).toLocaleDateString('en-IN', {
                         day: 'numeric',
                         month: 'short',
@@ -371,7 +371,7 @@ export default function VendorPackersBookingsPage() {
                       })}
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Users className="w-4 h-4 text-blue-500" />
+                      <Users className="w-4 h-4 text-emerald-500" />
                       Team Size: {booking.teamSize}
                     </div>
                   </div>
@@ -418,7 +418,7 @@ export default function VendorPackersBookingsPage() {
                     {!booking.teamLeaderName && ['ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && isUpcoming && (
                       <Link
                         href={`/vendor/packers/bookings/${booking.id}`}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-1"
+                        className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition flex items-center gap-1"
                       >
                         <Users className="w-4 h-4" />
                         Assign Team

@@ -681,7 +681,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
                 {!isSelfDrive && booking.dropLocation && ` → ${booking.dropLocation}`}
               </div>
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-blue-500" />
+                <Calendar className="w-4 h-4 text-emerald-500" />
                 {isSelfDrive
                   ? `${formatDate(booking.scheduledDate)}${booking.returnDate ? ` → ${formatDate(booking.returnDate)}` : ''} (${rentalDays} day${rentalDays > 1 ? 's' : ''})`
                   : `${formatDate(booking.scheduledDate)} at ${booking.scheduledTime}${booking.returnDate ? ` — Return: ${formatDate(booking.returnDate)}` : ''}`
@@ -689,7 +689,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
               </div>
               {!isSelfDrive && booking.vehicleCategory && (
                 <div className="flex items-center gap-2">
-                  <Car className="w-4 h-4 text-purple-500" />
+                  <Car className="w-4 h-4 text-emerald-500" />
                   Category: {booking.vehicleCategory}
                 </div>
               )}
@@ -726,10 +726,10 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
               <p className="text-xs text-teal-600">Vehicles</p>
             </div>
             {booking.passengerCount && (
-              <div className="bg-blue-50 rounded-xl p-4 text-center min-w-[80px]">
-                <Users className="w-6 h-6 text-blue-600 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-blue-700">{booking.passengerCount}</p>
-                <p className="text-xs text-blue-600">Persons</p>
+              <div className="bg-emerald-50 rounded-xl p-4 text-center min-w-[80px]">
+                <Users className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-emerald-700">{booking.passengerCount}</p>
+                <p className="text-xs text-emerald-600">Persons</p>
               </div>
             )}
           </div>
@@ -787,7 +787,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
             </p>
 
             {fleet.length === 0 && (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm flex items-center gap-2">
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 No self-drive vehicles found in your fleet. Please add self-drive vehicles first.
               </div>

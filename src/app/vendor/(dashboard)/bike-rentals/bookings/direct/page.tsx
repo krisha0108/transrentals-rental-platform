@@ -197,284 +197,211 @@ export default function VendorDirectRequestsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div className="space-y-5">
+        <div className="flex items-center gap-3 animate-pulse">
+          <div className="w-9 h-9 rounded-xl bg-gray-200" />
+          <div className="space-y-2"><div className="h-5 w-36 bg-gray-200 rounded-lg" /><div className="h-3 w-56 bg-gray-100 rounded" /></div>
+        </div>
+        <div className="space-y-3">
+          {[1, 2].map(i => (
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-pulse">
+              <div className="h-10 bg-orange-100" />
+              <div className="p-5 space-y-3">
+                <div className="flex items-center gap-2"><div className="h-5 w-28 bg-gray-200 rounded-lg" /><div className="h-5 w-24 bg-amber-100 rounded-full" /></div>
+                <div className="flex gap-3"><div className="h-3 w-24 bg-gray-100 rounded" /><div className="h-3 w-28 bg-gray-100 rounded" /></div>
+                <div className="grid grid-cols-2 gap-3"><div className="h-20 bg-gray-50 rounded-xl" /><div className="h-20 bg-gray-50 rounded-xl" /></div>
+                <div className="flex gap-2"><div className="h-10 flex-1 bg-emerald-100 rounded-xl" /><div className="h-10 flex-1 bg-gray-100 rounded-xl" /></div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
-        <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Error Loading Bookings</h2>
-        <p className="text-gray-600 mb-4">{error}</p>
-        <Button onClick={fetchBookings}>Try Again</Button>
+      <div className="max-w-md mx-auto mt-20 bg-white rounded-2xl border border-gray-100 p-8 text-center shadow-sm">
+        <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <AlertTriangle className="w-7 h-7 text-red-400" />
+        </div>
+        <h3 className="font-bold text-gray-900 mb-1">Error Loading Bookings</h3>
+        <p className="text-gray-400 text-sm mb-5">{error}</p>
+        <button onClick={fetchBookings} className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-bold transition-all active:scale-95">
+          <RefreshCw className="w-4 h-4" /> Try Again
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Accept Booking Modal */}
       <AcceptBookingModal
         isOpen={acceptModalOpen}
-        onClose={() => {
-          setAcceptModalOpen(false);
-          setSelectedBooking(null);
-        }}
+        onClose={() => { setAcceptModalOpen(false); setSelectedBooking(null); }}
         booking={selectedBooking ? {
-          id: selectedBooking.id,
-          bookingNumber: selectedBooking.bookingNumber,
-          customerName: selectedBooking.customerName,
-          customerPhone: selectedBooking.customerPhone,
-          vehicleName: selectedBooking.vehicleName,
-          pickupDate: selectedBooking.pickupDate,
-          pickupTime: selectedBooking.pickupTime,
-          dropDate: selectedBooking.dropDate,
-          dropTime: selectedBooking.dropTime,
-          locationId: selectedBooking.locationId,
-          locationName: selectedBooking.locationName,
-          totalDays: selectedBooking.totalDays,
-          dailyRate: selectedBooking.dailyRate,
-          totalAmount: selectedBooking.totalAmount,
-          type: 'direct'
+          id: selectedBooking.id, bookingNumber: selectedBooking.bookingNumber,
+          customerName: selectedBooking.customerName, customerPhone: selectedBooking.customerPhone,
+          vehicleName: selectedBooking.vehicleName, pickupDate: selectedBooking.pickupDate,
+          pickupTime: selectedBooking.pickupTime, dropDate: selectedBooking.dropDate,
+          dropTime: selectedBooking.dropTime, locationId: selectedBooking.locationId,
+          locationName: selectedBooking.locationName, totalDays: selectedBooking.totalDays,
+          dailyRate: selectedBooking.dailyRate, totalAmount: selectedBooking.totalAmount, type: 'direct',
         } : null}
         vehicles={vendor_fleet}
         onAccept={handleAcceptBooking}
       />
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/vendor/bike-rentals/bookings"
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <Link href="/vendor/bike-rentals/bookings" className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+            <ArrowLeft className="w-4 h-4 text-gray-600" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Direct Requests</h1>
-            <p className="text-gray-600">Bookings for your specific vehicles - respond within 2 hours</p>
+            <h1 className="text-lg font-bold text-gray-900">Direct Requests</h1>
+            <p className="text-xs text-gray-400">Respond within 2 hours to keep these bookings</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchBookings}>
-          <RefreshCw className={cn('w-4 h-4 mr-2', loading && 'animate-spin')} />
-          Refresh
-        </Button>
+        <button onClick={fetchBookings} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 transition">
+          <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} /> Refresh
+        </button>
       </div>
 
-      {/* Alert */}
+      {/* ── Alert ── */}
       {bookings.length > 0 && (
-        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-orange-800">Action Required</h3>
-            <p className="text-orange-700 text-sm">
-              You have {bookings.length} pending request{bookings.length > 1 ? 's' : ''}. Respond within the deadline or
-              the booking will be automatically broadcasted to other vendors.
-            </p>
-          </div>
+        <div className="flex items-center gap-3 bg-orange-50 border-l-4 border-l-orange-400 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0" />
+          <p className="text-sm text-orange-700">
+            <strong className="font-bold">{bookings.length}</strong> pending request{bookings.length > 1 ? 's' : ''} — respond before deadline or they&apos;ll go to other vendors
+          </p>
         </div>
       )}
 
-      {/* Requests List */}
+      {/* ── Requests List ── */}
       {bookings.length === 0 ? (
-        <div className="bg-white rounded-xl p-12 text-center">
-          <CheckCircle className="w-12 h-12 text-green-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">All caught up!</h3>
-          <p className="text-gray-500">No pending direct requests at the moment</p>
+        <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center shadow-sm">
+          <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <CheckCircle className="w-7 h-7 text-emerald-400" />
+          </div>
+          <p className="text-gray-700 font-bold text-sm">All caught up!</p>
+          <p className="text-gray-400 text-xs mt-1">No pending direct requests at the moment</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {bookings.map((booking) => (
-            <div
-              key={booking.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
-            >
-              {/* Deadline Banner */}
-              <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-6 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Timer className="w-5 h-5" />
-                  <span className="font-medium">{getTimeRemaining(booking.responseDeadline)}</span>
+        <div className="space-y-3">
+          {bookings.map((booking) => {
+            const timeLeft = getTimeRemaining(booking.responseDeadline);
+            const isExpired = timeLeft === 'Expired';
+
+            return (
+              <div key={booking.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all duration-200">
+                {/* Deadline strip */}
+                <div className={`px-5 py-2.5 flex items-center justify-between text-sm ${isExpired ? 'bg-red-500' : 'bg-gradient-to-r from-orange-500 to-amber-500'} text-white`}>
+                  <div className="flex items-center gap-1.5">
+                    <Timer className="w-4 h-4" />
+                    <span className="font-bold text-xs">{timeLeft}</span>
+                  </div>
+                  <span className="text-[11px] opacity-80">Respond to keep this booking</span>
                 </div>
-                <span className="text-sm">Respond before deadline to keep this booking</span>
-              </div>
 
-              <div className="p-6">
-                <div className="flex flex-col lg:flex-row gap-6">
-                  {/* Booking Details */}
-                  <div className="flex-1 space-y-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl font-bold text-gray-900">
-                        #{booking.bookingNumber}
-                      </span>
-                      <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
-                        Awaiting Response
-                      </span>
-                    </div>
-
-                    {/* Customer Info */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="font-semibold text-gray-900 mb-2">Customer Details</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-gray-400" />
-                          <span>{booking.customerName}</span>
+                <div className="p-5">
+                  {/* Top row: Booking# + Vehicle + Price */}
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-2xl shrink-0">🏍️</div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-bold text-gray-900 text-sm">#{booking.bookingNumber}</h3>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-50 text-amber-700 border border-amber-200">Awaiting Response</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-gray-400" />
-                          <span>{booking.locationName}</span>
-                        </div>
+                        <p className="text-sm font-semibold text-gray-800 mt-1">{booking.vehicleBrand} {booking.vehicleName}</p>
+                        {booking.chauffeur_vehicle_categories && <p className="text-xs text-gray-400">{booking.chauffeur_vehicle_categories}</p>}
                       </div>
                     </div>
-
-                    {/* Vehicle & Trip Info */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-blue-50 rounded-lg p-4">
-                        <h4 className="font-semibold text-gray-900 mb-2">Vehicle</h4>
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <Bike className="w-6 h-6 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {booking.vehicleBrand} {booking.vehicleName}
-                            </p>
-                            <p className="text-sm text-gray-500">{booking.chauffeur_vehicle_categories}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-green-50 rounded-lg p-4">
-                        <h4 className="font-semibold text-gray-900 mb-2">Trip Duration</h4>
-                        <div className="flex items-center gap-2">
-                          <CalendarCheck className="w-5 h-5 text-green-600" />
-                          <div>
-                            <p className="font-medium text-gray-900">{booking.totalDays} Day{booking.totalDays > 1 ? 's' : ''}</p>
-                            <p className="text-sm text-gray-500">
-                              {formatDate(booking.pickupDate)} → {formatDate(booking.dropDate)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xl font-extrabold text-gray-900">₹{booking.grandTotal.toLocaleString()}</p>
+                      <p className="text-[10px] text-gray-400">₹{booking.dailyRate}/day × {booking.totalDays}d</p>
                     </div>
-
-                    {/* Customer Notes */}
-                    {booking.customerNotes && (
-                      <div className="bg-amber-50 rounded-lg p-4">
-                        <h4 className="font-semibold text-gray-900 mb-1">Customer Notes</h4>
-                        <p className="text-sm text-gray-700">{booking.customerNotes}</p>
-                      </div>
-                    )}
                   </div>
 
-                  {/* Pricing & Actions */}
-                  <div className="lg:w-72 space-y-4">
-                    {/* Price Breakdown */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="font-semibold text-gray-900 mb-3">Price Breakdown</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">
-                            ₹{booking.dailyRate} × {booking.totalDays} day{booking.totalDays > 1 ? 's' : ''}
-                          </span>
-                          <span>₹{booking.totalAmount}</span>
-                        </div>
-                        <div className="flex justify-between pt-2 border-t border-gray-200 font-bold">
-                          <span>Total</span>
-                          <span className="text-green-600">₹{booking.grandTotal}</span>
-                        </div>
-                      </div>
-                    </div>
+                  {/* Info row */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-500 mb-4">
+                    <span className="flex items-center gap-1 font-medium text-gray-700"><User className="w-3 h-3 text-gray-400" /> {booking.customerName}</span>
+                    <span className="text-gray-300">·</span>
+                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-gray-400" /> {booking.locationName}</span>
+                    <span className="text-gray-300">·</span>
+                    <span className="flex items-center gap-1">
+                      <CalendarCheck className="w-3 h-3 text-gray-400" />
+                      {formatDate(booking.pickupDate)} → {formatDate(booking.dropDate)}
+                    </span>
+                    <span className="font-semibold text-orange-600">({booking.totalDays}d)</span>
+                  </div>
 
-                    {/* Action Buttons */}
-                    <div className="space-y-2">
-                      <Button
-                        onClick={() => {
-                          setSelectedBooking(booking);
-                          setAcceptModalOpen(true);
-                        }}
-                        disabled={actionLoading === booking.id}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
-                        size="lg"
-                      >
-                        {actionLoading === booking.id ? (
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                        ) : (
-                          <CheckCircle className="w-5 h-5 mr-2" />
-                        )}
-                        Accept Booking
-                      </Button>
-                      <Button
-                        onClick={() => handleReject(booking)}
-                        disabled={actionLoading === booking.id}
-                        variant="outline"
-                        className="w-full text-red-600 border-red-200 hover:bg-red-50"
-                        size="lg"
-                      >
-                        <XCircle className="w-5 h-5 mr-2" />
-                        Reject
-                      </Button>
+                  {/* Customer Notes */}
+                  {booking.customerNotes && (
+                    <div className="bg-amber-50/60 border border-amber-100 rounded-xl px-4 py-2.5 mb-4">
+                      <p className="text-xs text-gray-600"><span className="font-bold text-amber-700">Note:</span> {booking.customerNotes}</p>
                     </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-3.5 border-t border-gray-100">
+                    <button
+                      onClick={() => { setSelectedBooking(booking); setAcceptModalOpen(true); }}
+                      disabled={actionLoading === booking.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl text-sm transition-all disabled:opacity-50 active:scale-[0.98] shadow-sm shadow-emerald-500/20"
+                    >
+                      {actionLoading === booking.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => handleReject(booking)}
+                      disabled={actionLoading === booking.id}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border border-red-200 text-red-500 font-semibold rounded-xl text-sm hover:bg-red-50 transition-all disabled:opacity-50"
+                    >
+                      <XCircle className="w-4 h-4" /> Reject
+                    </button>
+                    <Link href={`/vendor/bike-rentals/bookings/${booking.id}`} className="flex items-center justify-center w-10 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-all">
+                      <ArrowLeft className="w-4 h-4 rotate-180" />
+                    </Link>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* Reject Modal */}
+      {/* ── Reject Modal ── */}
       {showRejectModal && selectedBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Reject Booking</h2>
-            <p className="text-gray-600 mb-4">
-              Are you sure you want to reject booking #{selectedBooking.bookingNumber}? It will be
-              broadcasted to other vendors in the location.
-            </p>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Rejection Reason (optional)
-              </label>
-              <select
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select a reason...</option>
-                <option value="vehicle_unavailable">Vehicle not available</option>
-                <option value="maintenance">Vehicle under maintenance</option>
-                <option value="already_booked">Already booked for these dates</option>
-                <option value="location_issue">Cannot serve this location</option>
-                <option value="other">Other reason</option>
-              </select>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => { setShowRejectModal(false); setRejectReason(''); setSelectedBooking(null); }}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-red-50 px-6 py-4 border-b border-red-100">
+              <h2 className="text-base font-bold text-gray-900">Reject Booking</h2>
+              <p className="text-xs text-gray-500 mt-0.5">#{selectedBooking.bookingNumber} will be broadcasted to other vendors</p>
             </div>
-
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  setShowRejectModal(false);
-                  setRejectReason('');
-                  setSelectedBooking(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                onClick={confirmReject}
-                disabled={actionLoading === selectedBooking.id}
-              >
-                {actionLoading === selectedBooking.id ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : null}
-                Confirm Reject
-              </Button>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">Rejection Reason (optional)</label>
+                <select value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-300 transition-all bg-white">
+                  <option value="">Select a reason...</option>
+                  <option value="vehicle_unavailable">Vehicle not available</option>
+                  <option value="maintenance">Vehicle under maintenance</option>
+                  <option value="already_booked">Already booked for these dates</option>
+                  <option value="location_issue">Cannot serve this location</option>
+                  <option value="other">Other reason</option>
+                </select>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => { setShowRejectModal(false); setRejectReason(''); setSelectedBooking(null); }} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold rounded-xl text-sm transition-all">
+                  Cancel
+                </button>
+                <button onClick={confirmReject} disabled={actionLoading === selectedBooking.id} className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 active:scale-95">
+                  {actionLoading === selectedBooking.id && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Confirm Reject
+                </button>
+              </div>
             </div>
           </div>
         </div>

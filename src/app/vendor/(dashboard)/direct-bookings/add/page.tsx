@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -91,8 +91,8 @@ const EQUIP_DURATION_OPTIONS = [
 ];
 
 /* ─────────────────────────── Shared styles ───────────────────────── */
-const inp     = 'w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition';
-const inpIcon = 'w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition';
+const inp     = 'w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition';
+const inpIcon = 'w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition';
 const iconPos = 'absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400';
 const lbl     = 'block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2';
 
@@ -410,9 +410,119 @@ function ServiceFields({ serviceType, form, set, extraState }: {
   return null; // general — no extra fields
 }
 
+/* ─────────────────────────── Skeleton ──────────────────────────── */
+function Skeleton() {
+  const shimmer = 'animate-pulse bg-gray-200 rounded-xl';
+  const block = 'animate-pulse bg-gray-200 rounded-2xl';
+  return (
+    <div className="min-h-screen -m-6 bg-gray-50">
+      {/* Header skeleton */}
+      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 pt-5 pb-16">
+        <div className="h-4 w-28 bg-white/20 rounded-lg mb-5" />
+        <div className="h-7 w-52 bg-white/20 rounded-lg" />
+        <div className="h-4 w-72 bg-white/10 rounded-lg mt-2" />
+      </div>
+      <div className="px-4 sm:px-6 -mt-10 pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
+          {/* Left column */}
+          <div className="space-y-4">
+            {/* Service type card */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <div className="flex items-center gap-3 mb-5">
+                <div className={`w-8 h-8 ${shimmer}`} />
+                <div className={`h-4 w-28 ${shimmer}`} />
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <div key={i} className={`h-[72px] ${block}`} />
+                ))}
+              </div>
+            </div>
+            {/* Service fields card */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <div className="flex items-center gap-3 mb-5">
+                <div className={`w-8 h-8 ${shimmer}`} />
+                <div className={`h-4 w-32 ${shimmer}`} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className={`h-[52px] ${block}`} />
+                <div className={`h-[52px] ${block}`} />
+              </div>
+            </div>
+            {/* Customer card */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <div className="flex items-center gap-3 mb-5">
+                <div className={`w-8 h-8 ${shimmer}`} />
+                <div className={`h-4 w-36 ${shimmer}`} />
+              </div>
+              <div className="space-y-3">
+                <div className={`h-[52px] ${block}`} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className={`h-[52px] ${block}`} />
+                  <div className={`h-[52px] ${block}`} />
+                </div>
+              </div>
+            </div>
+            {/* Schedule card */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <div className="flex items-center gap-3 mb-5">
+                <div className={`w-8 h-8 ${shimmer}`} />
+                <div className={`h-4 w-40 ${shimmer}`} />
+              </div>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className={`h-[52px] ${block}`} />
+                  <div className={`h-[52px] ${block}`} />
+                </div>
+                <div className={`h-[52px] ${block}`} />
+                <div className={`h-[52px] ${block}`} />
+                <div className={`h-[72px] ${block}`} />
+              </div>
+            </div>
+          </div>
+          {/* Right column */}
+          <div className="space-y-4">
+            {/* Payment card */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <div className="flex items-center gap-3 mb-5">
+                <div className={`w-8 h-8 ${shimmer}`} />
+                <div className={`h-4 w-20 ${shimmer}`} />
+              </div>
+              <div className="space-y-3">
+                <div className={`h-[52px] ${block}`} />
+                <div className="grid grid-cols-3 gap-2">
+                  <div className={`h-[44px] ${block}`} />
+                  <div className={`h-[44px] ${block}`} />
+                  <div className={`h-[44px] ${block}`} />
+                </div>
+              </div>
+            </div>
+            {/* Summary card */}
+            <div className={`rounded-2xl border-2 border-gray-200 p-4 bg-gray-50`}>
+              <div className={`h-3 w-28 ${shimmer} mb-4`} />
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex justify-between">
+                    <div className={`h-4 w-16 ${shimmer}`} />
+                    <div className={`h-4 w-24 ${shimmer}`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Submit button */}
+            <div className={`h-[56px] ${block}`} />
+            <div className={`h-[48px] ${block}`} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─────────────────────────── Main page ──────────────────────────── */
 export default function AddDirectBookingPage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [showAllTrucks, setShowAllTrucks] = useState(false);
@@ -436,10 +546,14 @@ export default function AddDirectBookingPage() {
     totalAmount: '', paymentStatus: 'pending', paymentMode: '', paidAmount: '',
   });
 
+  useEffect(() => { setMounted(true); }, []);
+
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
   const vehicles = VEHICLE_OPTIONS[form.serviceType] ?? [];
   const today = new Date().toISOString().split('T')[0];
   const selectedSvc = SERVICE_TYPES.find(s => s.value === form.serviceType)!;
+
+  if (!mounted) return <Skeleton />;
 
   /* Reset service-specific fields when service changes */
   const changeService = (svc: string) => {
@@ -524,12 +638,12 @@ export default function AddDirectBookingPage() {
     <div className="min-h-screen -m-6 bg-gray-50">
 
       {/* ── Header ── */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 pt-5 pb-16">
+      <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 pt-5 pb-16">
         <Link href="/vendor/direct-bookings" className="inline-flex items-center gap-2 text-white/80 hover:text-white transition text-sm font-medium mb-5">
           <ArrowLeft className="w-4 h-4" /> All Bookings
         </Link>
         <h1 className="text-2xl font-bold text-white">Add Direct Booking</h1>
-        <p className="text-blue-200 text-sm mt-1">Manually create a booking from your personal client</p>
+        <p className="text-emerald-200 text-sm mt-1">Manually create a booking from your personal client</p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -541,7 +655,7 @@ export default function AddDirectBookingPage() {
 
               {/* 1. Service type picker */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-                <SectionTitle icon={<Car className="w-4 h-4 text-blue-500" />} title="Service Type" color="bg-blue-50" />
+                <SectionTitle icon={<Car className="w-4 h-4 text-emerald-500" />} title="Service Type" color="bg-emerald-50" />
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                   {SERVICE_TYPES.map(s => {
                     const active = form.serviceType === s.value;
@@ -596,7 +710,7 @@ export default function AddDirectBookingPage() {
 
               {/* 3. Customer details */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-                <SectionTitle icon={<User className="w-4 h-4 text-indigo-500" />} title="Customer Details" color="bg-indigo-50" />
+                <SectionTitle icon={<User className="w-4 h-4 text-emerald-500" />} title="Customer Details" color="bg-emerald-50" />
                 <div className="space-y-3">
                   <div>
                     <label className={lbl}>Full Name <span className="text-red-400 normal-case">*</span></label>
@@ -852,7 +966,7 @@ export default function AddDirectBookingPage() {
               <div className="space-y-2.5">
                 <button
                   type="submit" disabled={saving}
-                  className="w-full flex items-center justify-center gap-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-60 text-white font-bold py-4 rounded-2xl transition-all shadow-md shadow-blue-200 active:scale-[0.98] text-base"
+                  className="w-full flex items-center justify-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold py-4 rounded-2xl transition-all shadow-md shadow-emerald-200 active:scale-[0.98] text-base"
                 >
                   {saving ? <><Loader2 className="w-5 h-5 animate-spin" /> Saving…</> : <><Save className="w-5 h-5" /> Save Booking</>}
                 </button>

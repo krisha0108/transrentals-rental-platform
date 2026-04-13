@@ -15,18 +15,18 @@ function CustomerAvatar({ name }: { name?: string }) {
     ? name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
     : 'C';
   return (
-    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white text-xs font-black flex-shrink-0 shadow-sm">
+    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white text-xs font-black flex-shrink-0 shadow-sm">
       {initials}
     </div>
   );
 }
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string; dot: string; pill: string }> = {
-  PAYMENT_PENDING:   { label: 'Payment Pending',   cls: 'bg-amber-50 text-amber-700 border-amber-200',     dot: 'bg-amber-400',   pill: 'bg-amber-100' },
-  PAYMENT_SUBMITTED: { label: 'Under Review',       cls: 'bg-orange-50 text-orange-700 border-orange-200', dot: 'bg-orange-400',  pill: 'bg-orange-100' },
+  PAYMENT_PENDING:   { label: 'Payment Pending',   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200',     dot: 'bg-emerald-400',   pill: 'bg-emerald-100' },
+  PAYMENT_SUBMITTED: { label: 'Under Review',       cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-400',  pill: 'bg-emerald-100' },
   CONFIRMED:         { label: 'Confirmed',           cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500', pill: 'bg-emerald-100' },
-  GUIDE_ASSIGNED:    { label: 'Guide Assigned',      cls: 'bg-blue-50 text-blue-700 border-blue-200',       dot: 'bg-blue-500',    pill: 'bg-blue-100' },
-  STARTED:           { label: 'In Progress',         cls: 'bg-indigo-50 text-indigo-700 border-indigo-200', dot: 'bg-indigo-500',  pill: 'bg-indigo-100' },
+  GUIDE_ASSIGNED:    { label: 'Guide Assigned',      cls: 'bg-emerald-50 text-emerald-700 border-emerald-200',       dot: 'bg-emerald-500',    pill: 'bg-emerald-100' },
+  STARTED:           { label: 'In Progress',         cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500',  pill: 'bg-emerald-100' },
   COMPLETED:         { label: 'Completed',           cls: 'bg-teal-50 text-teal-700 border-teal-200',       dot: 'bg-teal-500',    pill: 'bg-teal-100' },
   CANCELLED:         { label: 'Cancelled',           cls: 'bg-red-50 text-red-600 border-red-200',          dot: 'bg-red-400',     pill: 'bg-red-100' },
   DROPPED:           { label: 'Dropped',             cls: 'bg-gray-50 text-gray-400 border-gray-200',       dot: 'bg-gray-300',    pill: 'bg-gray-100' },
@@ -74,19 +74,19 @@ export default function VendorWanderBookingsPage() {
     <div className="-mx-6 -mt-6 bg-slate-50 min-h-screen">
 
       {/* ── Dark Header ── */}
-      <div className="relative bg-[#071a0d] overflow-hidden px-8 pt-8 pb-6">
-        <div className="absolute -top-20 -right-20 w-80 h-80 bg-green-600/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-0 left-1/4 w-56 h-56 bg-emerald-700/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700 overflow-hidden px-8 pt-8 pb-6">
+        <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 left-1/4 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex items-start justify-between gap-4 mb-7">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-green-400">
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-emerald-200">
                 <CalendarCheck className="w-3 h-3" /> Wander Tours
               </span>
             </div>
             <h1 className="text-[28px] font-black text-white tracking-tight leading-none mb-2">Wander Bookings</h1>
-            <p className="text-green-200/50 text-sm">{total} booking{total !== 1 ? 's' : ''} total</p>
+            <p className="text-emerald-100/70 text-sm">{total} booking{total !== 1 ? 's' : ''} total</p>
           </div>
           <button
             onClick={() => fetchBookings(tab)}
@@ -99,14 +99,14 @@ export default function VendorWanderBookingsPage() {
         {/* Metric Cards */}
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Total Bookings',      value: total,                                  icon: CalendarCheck, iconBg: 'bg-white/10',         iconColor: 'text-green-300',   valColor: 'text-white' },
-            { label: 'Confirmed / Active',  value: confirmed,                              icon: CheckCircle2,  iconBg: 'bg-green-500/25',     iconColor: 'text-green-400',   valColor: 'text-green-300' },
+            { label: 'Total Bookings',      value: total,                                  icon: CalendarCheck, iconBg: 'bg-white/10',         iconColor: 'text-emerald-200',   valColor: 'text-white' },
+            { label: 'Confirmed / Active',  value: confirmed,                              icon: CheckCircle2,  iconBg: 'bg-white/15',     iconColor: 'text-emerald-200',   valColor: 'text-emerald-200' },
             { label: 'Completed',           value: completed,                              icon: TrendingUp,    iconBg: 'bg-teal-500/20',      iconColor: 'text-teal-400',    valColor: 'text-teal-300' },
-            { label: 'Revenue (confirmed)', value: `₹${totalRevenue.toLocaleString('en-IN')}`, icon: Wallet,   iconBg: 'bg-amber-500/20',     iconColor: 'text-amber-400',   valColor: 'text-amber-300' },
+            { label: 'Revenue (confirmed)', value: `₹${totalRevenue.toLocaleString('en-IN')}`, icon: Wallet,   iconBg: 'bg-emerald-500/20',     iconColor: 'text-emerald-400',   valColor: 'text-emerald-300' },
           ].map(m => (
-            <div key={m.label} className="bg-white/[0.06] hover:bg-white/[0.09] border border-white/[0.08] rounded-2xl px-4 py-4 transition-colors">
+            <div key={m.label} className="bg-white/15 hover:bg-white/20 border border-white/20 rounded-2xl px-4 py-4 transition-colors">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{m.label}</p>
+                <p className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">{m.label}</p>
                 <div className={`w-7 h-7 rounded-lg ${m.iconBg} flex items-center justify-center`}>
                   <m.icon className={`w-3.5 h-3.5 ${m.iconColor}`} />
                 </div>
@@ -126,7 +126,7 @@ export default function VendorWanderBookingsPage() {
               onClick={() => setTab(t.key)}
               className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition ${
                 tab === t.key
-                  ? 'bg-green-700 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
@@ -140,13 +140,13 @@ export default function VendorWanderBookingsPage() {
       <div className="px-8 py-7">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-44 gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
             <p className="text-sm text-gray-400 font-medium">Loading bookings...</p>
           </div>
         ) : bookings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 bg-white border border-dashed border-gray-200 rounded-2xl">
-            <div className="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
-              <CalendarCheck className="w-8 h-8 text-green-400" />
+            <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4">
+              <CalendarCheck className="w-8 h-8 text-emerald-200" />
             </div>
             <p className="font-bold text-gray-800 mb-1 text-base">No bookings found</p>
             <p className="text-gray-400 text-sm">
@@ -158,7 +158,7 @@ export default function VendorWanderBookingsPage() {
         ) : (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             {/* Table header */}
-            <div className="grid grid-cols-[2fr_1.2fr_1fr_0.8fr_1fr_1.2fr_auto] gap-4 px-6 py-3.5 bg-slate-50 border-b border-gray-100 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+            <div className="grid grid-cols-[2fr_1.2fr_1fr_0.8fr_1fr_1.2fr_auto] gap-4 px-6 py-3.5 bg-slate-50 border-b border-gray-100 text-[11px] font-bold text-white/70 uppercase tracking-widest">
               <span>Tour / Booking ID</span>
               <span>Customer</span>
               <span>Travel Date</span>
@@ -180,12 +180,12 @@ export default function VendorWanderBookingsPage() {
                     key={booking.id}
                     href={`/vendor/wander/bookings/${booking.id}`}
                     className={`grid grid-cols-[2fr_1.2fr_1fr_0.8fr_1fr_1.2fr_auto] gap-4 px-6 py-4 items-center transition group ${
-                      isPending ? 'bg-amber-50/40 hover:bg-amber-50' : 'hover:bg-slate-50/70'
+                      isPending ? 'bg-emerald-50/40 hover:bg-emerald-50' : 'hover:bg-slate-50/70'
                     }`}
                   >
                     {/* Tour + ID */}
                     <div className="min-w-0">
-                      <p className="font-bold text-gray-900 text-[13px] truncate group-hover:text-green-700 transition">{tourTitle}</p>
+                      <p className="font-bold text-gray-900 text-[13px] truncate group-hover:text-emerald-700 transition">{tourTitle}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-[11px] text-gray-400 font-mono bg-gray-50 px-1.5 py-0.5 rounded">{booking.bookingId}</span>
                         {duration && (
@@ -205,7 +205,7 @@ export default function VendorWanderBookingsPage() {
                           <a
                             href={`tel:${booking.customer.phone}`}
                             onClick={e => e.stopPropagation()}
-                            className="text-[11px] text-indigo-500 hover:text-indigo-700 flex items-center gap-1 mt-0.5"
+                            className="text-[11px] text-emerald-500 hover:text-emerald-700 flex items-center gap-1 mt-0.5"
                           >
                             <Phone className="w-2.5 h-2.5" />{booking.customer.phone}
                           </a>
@@ -242,7 +242,7 @@ export default function VendorWanderBookingsPage() {
                       </span>
                     </div>
 
-                    <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-green-500 transition flex-shrink-0" />
+                    <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-500 transition flex-shrink-0" />
                   </Link>
                 );
               })}

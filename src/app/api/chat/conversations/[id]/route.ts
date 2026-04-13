@@ -2,15 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db/prisma';
-import crypto from 'crypto';
-
-function generateId(): string {
-  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
-}
 
 import logger from '@/lib/security/logger';
 import { sendPushNotification, sendNotificationToCustomer } from '@/lib/services/push-notification-service';
-import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // GET - Get conversation with messages
@@ -138,7 +132,7 @@ export async function POST(
     // Verify conversation exists
     const conversation = await prisma.chat_conversations.findUnique({
       where: { id: conversationId },
-      select: { id: true, vendorId: true, customerId: true, status: true, bookingId: true },
+      select: { id: true, vendorId: true, customerId: true, status: true },
     });
 
     if (!conversation) {
@@ -149,25 +143,38 @@ export async function POST(
       return NextResponse.json({ error: 'This conversation is blocked' }, { status: 403 });
     }
 
+    // Generate next message ID
+    const lastMsg = await prisma.chat_messages.findFirst({
+      where: { id: { startsWith: 'MSG_' } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    let nextMsgNum = 1;
+    if (lastMsg) {
+      const num = parseInt(lastMsg.id.replace('MSG_', ''));
+      if (!isNaN(num)) nextMsgNum = num + 1;
+    }
+    const msgId = `MSG_${nextMsgNum}`;
+
     // Create the message
     const message = await prisma.chat_messages.create({
       data: {
-        id: generateId(),
+        id: msgId,
         conversationId,
         senderType,
-        senderId,
-        senderName,
+        senderId: senderId || undefined,
+        senderName: senderName || undefined,
         messageType,
         content,
-        attachmentUrl,
-        attachmentName,
-        attachmentSize,
-        attachmentType,
-        latitude,
-        longitude,
-        locationName,
-        quickReplyId,
-        metadata,
+        attachmentUrl: attachmentUrl || undefined,
+        attachmentName: attachmentName || undefined,
+        attachmentSize: attachmentSize || undefined,
+        attachmentType: attachmentType || undefined,
+        latitude: latitude || undefined,
+        longitude: longitude || undefined,
+        locationName: locationName || undefined,
+        quickReplyId: quickReplyId || undefined,
+        metadata: metadata ? (typeof metadata === 'string' ? metadata : JSON.stringify(metadata)) : undefined,
         status: 'SENT',
       },
     });
@@ -186,40 +193,29 @@ export async function POST(
       },
     });
 
-    // Send notifications (FCM push + in-app) for new message
+    // Send FCM push notification for new message (no DB storage)
     try {
       const msgPreview = content.length > 60 ? content.substring(0, 60) + '...' : content;
       if (isFromVendor && conversation.customerId) {
-        // Vendor sent → notify customer (FCM + in-app DB notification)
+        // Vendor sent → notify customer
         await sendNotificationToCustomer(
           conversation.customerId,
           { title: '💬 New message from vendor', body: msgPreview },
-          { type: 'chat', screen: 'BookingChat', conversationId, bookingId: conversation.bookingId || '', bookingType: conversation.bookingType || '' }
+          { type: 'chat', screen: 'Chat', conversationId }
         );
-        // Save in-app notification for customer
-        try {
-          await prisma.notifications.create({
-            data: {
-              customerId: conversation.customerId,
-              title: '💬 New message from vendor',
-              body: msgPreview,
-              type: 'chat',
-              serviceType: 'wander',
-              bookingId: conversation.bookingId || null,
-            },
-          });
-        } catch {}
       } else if (!isFromVendor && conversation.vendorId) {
-        // Customer sent → notify vendor (FCM push + in-app settings notification)
-        await sendVendorDirectNotification({
-          vendorId: conversation.vendorId,
-          title: '💬 New message from customer',
-          body: msgPreview,
-          type: 'new_message',
-          serviceType: conversation.bookingType || 'wander',
-          bookingId: conversation.bookingId || undefined,
-          data: { screen: 'ChatDetail', conversationId, bookingId: conversation.bookingId || '' },
+        // Customer sent → notify vendor
+        const vendor = await prisma.vendors.findUnique({
+          where: { id: conversation.vendorId },
+          select: { fcmToken: true },
         });
+        if (vendor?.fcmToken) {
+          await sendPushNotification(
+            vendor.fcmToken,
+            { title: '💬 New message from customer', body: msgPreview },
+            { type: 'chat', screen: 'ChatDetail', conversationId }
+          );
+        }
       }
     } catch (notifErr) {
       console.error('[Chat] Push notification failed:', notifErr);

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Link2, Copy, CheckCheck, QrCode, Settings2,
   ExternalLink, X, Save, MessageCircle, Eye,
   BookOpen, Download, Zap, Share2, Globe,
   ToggleLeft, ToggleRight, Check,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface BookingLink {
   id: string;
@@ -20,19 +21,55 @@ interface BookingLink {
   bookingCount: number;
 }
 
-/* ── Service meta ──────────────────────────────────────────────────────── */
-const SVC_META: Record<string, { icon: string; from: string; to: string; ring: string; badge: string; text: string }> = {
-  'car-with-driver': { icon: '🚗', from: 'from-blue-500',    to: 'to-cyan-500',     ring: 'ring-blue-200',   badge: 'bg-blue-50 text-blue-700',   text: 'text-blue-600' },
-  'self-drive':      { icon: '🚙', from: 'from-violet-500',  to: 'to-purple-600',   ring: 'ring-violet-200', badge: 'bg-violet-50 text-violet-700',text: 'text-violet-600' },
-  bike:              { icon: '🏍️', from: 'from-orange-400',  to: 'to-amber-500',    ring: 'ring-orange-200', badge: 'bg-orange-50 text-orange-700',text: 'text-orange-600' },
-  bus:               { icon: '🚌', from: 'from-emerald-500', to: 'to-green-600',    ring: 'ring-emerald-200',badge: 'bg-emerald-50 text-emerald-700',text: 'text-emerald-600' },
-  luxury:            { icon: '✨', from: 'from-yellow-400',  to: 'to-orange-500',   ring: 'ring-yellow-200', badge: 'bg-yellow-50 text-yellow-700',text: 'text-yellow-600' },
-  transporter:       { icon: '🚛', from: 'from-slate-500',   to: 'to-gray-600',     ring: 'ring-slate-200',  badge: 'bg-slate-50 text-slate-700',  text: 'text-slate-600' },
-  'packers-movers':  { icon: '📦', from: 'from-sky-500',     to: 'to-cyan-600',     ring: 'ring-sky-200',    badge: 'bg-sky-50 text-sky-700',      text: 'text-sky-600' },
-  equipment:         { icon: '🔧', from: 'from-red-500',     to: 'to-rose-600',     ring: 'ring-red-200',    badge: 'bg-red-50 text-red-700',      text: 'text-red-600' },
-  all:               { icon: '🌐', from: 'from-indigo-500',  to: 'to-violet-600',   ring: 'ring-indigo-200', badge: 'bg-indigo-50 text-indigo-700',text: 'text-indigo-600' },
+/* ── Fade-in ── */
+function FadeIn({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setShow(true); obs.disconnect(); } }, { threshold: 0.05 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className={className} style={{ opacity: show ? 1 : 0, transform: show ? 'translateY(0)' : 'translateY(14px)', transition: `opacity .5s cubic-bezier(.22,1,.36,1) ${delay}ms, transform .5s cubic-bezier(.22,1,.36,1) ${delay}ms` }}>
+      {children}
+    </div>
+  );
+}
+
+/* ── Animated counter ── */
+function useCountUp(target: number, duration = 1200) {
+  const [count, setCount] = useState(0);
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current || target === 0) { setCount(target); return; }
+    started.current = true;
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min((now - t0) / duration, 1);
+      setCount(Math.floor((1 - Math.pow(1 - p, 3)) * target));
+      if (p < 1) requestAnimationFrame(tick); else setCount(target);
+    };
+    requestAnimationFrame(tick);
+  }, [target, duration]);
+  return count;
+}
+
+/* ── Service meta ── */
+const SVC_META: Record<string, { icon: string; color: string; bg: string; text: string; border: string; activeDot: string }> = {
+  'car-with-driver': { icon: '🚗', color: '#059669', bg: 'bg-emerald-50',  text: 'text-emerald-600',  border: 'border-l-emerald-500',  activeDot: 'bg-emerald-400' },
+  'self-drive':      { icon: '🚙', color: '#059669', bg: 'bg-emerald-50',  text: 'text-emerald-600',  border: 'border-l-emerald-500',  activeDot: 'bg-emerald-400' },
+  bike:              { icon: '🏍️', color: '#F97316', bg: 'bg-orange-50',  text: 'text-orange-600',  border: 'border-l-orange-500',  activeDot: 'bg-orange-400' },
+  bus:               { icon: '🚌', color: '#10B981', bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-l-emerald-500', activeDot: 'bg-emerald-400' },
+  luxury:            { icon: '✨', color: '#F59E0B', bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-l-amber-500',   activeDot: 'bg-amber-400' },
+  transporter:       { icon: '🚛', color: '#64748B', bg: 'bg-slate-50',   text: 'text-slate-600',   border: 'border-l-slate-500',   activeDot: 'bg-slate-400' },
+  'packers-movers':  { icon: '📦', color: '#059669', bg: 'bg-emerald-50',  text: 'text-emerald-600',  border: 'border-l-emerald-500',  activeDot: 'bg-emerald-400' },
+  equipment:         { icon: '🔧', color: '#EF4444', bg: 'bg-red-50',     text: 'text-red-600',     border: 'border-l-red-500',     activeDot: 'bg-red-400' },
+  all:               { icon: '🌐', color: '#059669', bg: 'bg-emerald-50',  text: 'text-emerald-600',  border: 'border-l-emerald-500',  activeDot: 'bg-emerald-400' },
 };
-const DEFAULT_META = { icon: '🔗', from: 'from-gray-400', to: 'to-gray-500', ring: 'ring-gray-200', badge: 'bg-gray-50 text-gray-600', text: 'text-gray-600' };
+const DEFAULT_META = { icon: '🔗', color: '#6B7280', bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-l-gray-400', activeDot: 'bg-gray-400' };
 
 export default function BookingLinksPage() {
   const [links, setLinks]             = useState<BookingLink[]>([]);
@@ -85,7 +122,6 @@ export default function BookingLinksPage() {
     a.click();
   };
 
-  /** Convert a base64 data-URL to a Blob without using fetch() */
   const dataUrlToBlob = (dataUrl: string): Blob => {
     const [header, b64] = dataUrl.split(',');
     const mime = header.match(/:(.*?);/)![1];
@@ -104,29 +140,17 @@ export default function BookingLinksPage() {
       const file = new File([blob], fileName, { type: 'image/png' });
 
       if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
-        // Mobile: native share sheet with the actual image file
-        await navigator.share({
-          files: [file],
-          title: `Book ${qrModal.label}`,
-          text:  `Scan this QR to book ${qrModal.label}`,
-        });
+        await navigator.share({ files: [file], title: `Book ${qrModal.label}`, text: `Scan this QR to book ${qrModal.label}` });
         setShareStatus('done');
       } else if (typeof navigator.share === 'function') {
-        // Desktop Chrome / partial support: share just the URL
         await navigator.share({ title: `Book ${qrModal.label}`, url: qrModal.url });
         setShareStatus('done');
       } else {
-        // No Web Share API — download as fallback
         downloadQr();
         setShareStatus('done');
       }
     } catch (err: any) {
-      // AbortError = user cancelled — treat as idle, not error
-      if (err?.name === 'AbortError') {
-        setShareStatus('idle');
-      } else {
-        setShareStatus('error');
-      }
+      if (err?.name === 'AbortError') { setShareStatus('idle'); } else { setShareStatus('error'); }
     } finally {
       setTimeout(() => setShareStatus(s => s !== 'error' ? 'idle' : s), 2500);
     }
@@ -141,9 +165,7 @@ export default function BookingLinksPage() {
 
   const shareQrWhatsApp = () => {
     if (!qrModal) return;
-    const msg = encodeURIComponent(
-      `Book ${qrModal.label} with us!\nScan the QR code or click here: ${qrModal.url}`
-    );
+    const msg = encodeURIComponent(`Book ${qrModal.label} with us!\nScan the QR code or click here: ${qrModal.url}`);
     window.open(`https://wa.me/?text=${msg}`, '_blank');
   };
 
@@ -174,27 +196,52 @@ export default function BookingLinksPage() {
     setCustomizeId(null);
   };
 
-  /* ── totals ── */
   const totalViews    = links.reduce((s, l) => s + l.clickCount,  0);
   const totalBookings = links.reduce((s, l) => s + l.bookingCount, 0);
   const activeCount   = links.filter(l => l.isActive).length;
 
-  /* ── loading skeleton ─────────────────────────────────────────────────── */
+  const animViews    = useCountUp(loading ? 0 : totalViews, 1400);
+  const animBookings = useCountUp(loading ? 0 : totalBookings, 1200);
+
+  /* ── Skeleton ── */
   if (loading) {
     return (
-      <div className="-m-6">
-        {/* Header skeleton */}
-        <div className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 px-6 pt-16 lg:pt-10 pb-20" />
-        <div className="relative z-10 px-4 sm:px-6 -mt-12 pb-10 max-w-4xl mx-auto space-y-3">
-          {[1,2,3].map(i => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
-              <div className="flex gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gray-100" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-100 rounded w-1/3" />
-                  <div className="h-3 bg-gray-100 rounded w-2/3" />
-                  <div className="h-3 bg-gray-100 rounded w-1/4" />
+      <div className="space-y-5 pb-8 bg-[#F9FAFB] min-h-screen">
+        <div className="bg-gradient-to-br from-emerald-600 via-emerald-600 to-emerald-700 rounded-2xl p-6 pb-5 animate-pulse">
+          <div className="flex items-center gap-3.5 mb-6">
+            <div className="h-12 w-12 rounded-2xl bg-white/15 ring-1 ring-white/20" />
+            <div className="space-y-2">
+              <div className="h-5 w-36 bg-white/20 rounded-md" />
+              <div className="h-3.5 w-48 bg-white/10 rounded" />
+            </div>
+          </div>
+          <div className="flex items-center gap-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-3.5 h-3.5 bg-white/15 rounded" />
+                <div className="h-6 w-6 bg-white/20 rounded" />
+                <div className="h-3.5 w-14 bg-white/10 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="bg-white rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-gray-100 p-4 animate-pulse">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-9 h-9 rounded-xl bg-gray-100" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-4 w-24 bg-gray-200 rounded" />
+                  <div className="h-3 w-12 bg-gray-100 rounded-full" />
                 </div>
+              </div>
+              <div className="h-3 w-full bg-gray-50 rounded mb-3" />
+              <div className="flex gap-3 mb-3">
+                <div className="h-3 w-14 bg-gray-100 rounded" />
+                <div className="h-3 w-16 bg-gray-100 rounded" />
+              </div>
+              <div className="flex gap-1.5 pt-3 border-t border-gray-50">
+                {[1, 2, 3, 4, 5].map(j => <div key={j} className="h-8 w-10 bg-gray-100 rounded-lg" />)}
               </div>
             </div>
           ))}
@@ -204,277 +251,212 @@ export default function BookingLinksPage() {
   }
 
   return (
-    <div className="-m-6">
+    <div className="space-y-5 pb-8 bg-[#F9FAFB] min-h-screen">
 
-      {/* ── Full-bleed header ─────────────────────────────────────────────── */}
-      <div className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 relative overflow-hidden px-6 pt-16 lg:pt-10 pb-24">
-        {/* Decorative blobs */}
-        <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white/5 blur-2xl pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-white/5 blur-2xl pointer-events-none" />
-
-        <div className="relative max-w-4xl mx-auto">
-          {/* Title */}
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-              <Link2 className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Booking Links</h1>
-              <p className="text-indigo-200 text-sm">Share links to get direct booking requests</p>
-            </div>
+      {/* ══════════ Header ══════════ */}
+      <FadeIn>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-600 to-emerald-700 p-6 pb-5">
+          {/* Animated mesh bg */}
+          <div className="absolute inset-0">
+            <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-emerald-400/20 blur-3xl animate-[headerFloat_6s_ease-in-out_infinite]" />
+            <div className="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-emerald-300/15 blur-3xl animate-[headerFloat_6s_ease-in-out_infinite_reverse]" />
+            <div className="absolute top-1/2 right-1/4 w-40 h-40 rounded-full bg-emerald-300/10 blur-2xl animate-[headerFloat_8s_ease-in-out_infinite_1s]" />
           </div>
+          {/* Grid overlay */}
+          <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
-          {/* Stats row */}
-          <div className="flex gap-3 mt-6 flex-wrap">
-            {[
-              { label: 'Active Links',    value: activeCount,   icon: <Zap className="w-4 h-4" />,      color: 'bg-white/15' },
-              { label: 'Total Views',     value: totalViews,    icon: <Eye className="w-4 h-4" />,      color: 'bg-white/15' },
-              { label: 'Total Bookings',  value: totalBookings, icon: <BookOpen className="w-4 h-4" />, color: 'bg-white/15' },
-            ].map(stat => (
-              <div key={stat.label} className={`${stat.color} backdrop-blur-sm rounded-2xl px-4 py-3 flex items-center gap-2.5`}>
-                <div className="text-white/70">{stat.icon}</div>
+          <div className="relative z-10">
+            {/* Title row */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3.5">
+                <div className="h-12 w-12 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center shadow-xl shadow-black/10 ring-1 ring-white/20 group/icon relative overflow-hidden cursor-default">
+                  <div className="absolute inset-0 -translate-x-full group-hover/icon:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                  <Link2 className="w-5.5 h-5.5 text-white relative z-10 animate-[iconFloat_3s_ease-in-out_infinite]" />
+                </div>
                 <div>
-                  <p className="text-xl font-bold text-white leading-none">{stat.value}</p>
-                  <p className="text-indigo-200 text-xs mt-0.5">{stat.label}</p>
+                  <h1 className="text-xl font-bold text-white leading-tight tracking-tight">Booking Links</h1>
+                  <p className="text-emerald-200/80 text-sm mt-0.5">Share & track your booking links</p>
                 </div>
               </div>
-            ))}
+              <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 bg-white/10 backdrop-blur-md rounded-xl border border-white/15 shadow-lg shadow-black/5">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-lg shadow-emerald-400/50" />
+                <span className="text-sm font-bold text-white">{activeCount} active</span>
+              </div>
+            </div>
+
+            {/* Stats — inline pills */}
+            <div className="flex items-center gap-6">
+              {[
+                { label: 'Links',    value: activeCount,  icon: <Zap className="w-3.5 h-3.5" /> },
+                { label: 'Views',    value: animViews,    icon: <Eye className="w-3.5 h-3.5" /> },
+                { label: 'Bookings', value: animBookings, icon: <BookOpen className="w-3.5 h-3.5" /> },
+              ].map(stat => (
+                <div key={stat.label} className="flex items-center gap-2 cursor-default group">
+                  <div className="text-white/40 group-hover:text-white/70 transition-colors duration-200">{stat.icon}</div>
+                  <span className="text-2xl font-extrabold text-white tabular-nums">{stat.value}</span>
+                  <span className="text-sm text-white/40 font-medium">{stat.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      </FadeIn>
 
-      {/* ── Cards ──────────────────────────────────────────────────────────── */}
-      <div className="relative z-10 px-4 sm:px-6 -mt-14 pb-12 max-w-4xl mx-auto space-y-4">
-        {links.map(link => {
-          const meta       = SVC_META[link.serviceType] ?? DEFAULT_META;
-          const isCopied   = copiedId === link.id;
-
-          return (
-            <div
-              key={link.id}
-              className={`bg-white rounded-2xl border shadow-sm transition-all duration-200 overflow-hidden ${
-                link.isActive ? 'border-gray-200 shadow-sm' : 'border-gray-100 opacity-60'
-              }`}
-            >
-              {/* Coloured top strip */}
-              <div className={`h-1 w-full bg-gradient-to-r ${meta.from} ${meta.to}`} />
-
-              <div className="p-5">
-                {/* ── Top row ── */}
-                <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${meta.from} ${meta.to} flex items-center justify-center text-2xl shadow-sm ring-4 ${meta.ring} shrink-0`}>
-                    {meta.icon}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-bold text-gray-900 text-base">{link.serviceLabel}</h3>
-                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${
-                        link.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        {link.isActive ? '● Active' : '○ Paused'}
-                      </span>
-                    </div>
-
-                    {/* URL */}
-                    <p className={`text-xs mt-1 truncate font-mono ${meta.text}`}>{link.url}</p>
-
-                    {/* Custom title if set */}
-                    {link.formTitle && (
-                      <p className="text-xs text-gray-400 mt-0.5 truncate italic">"{link.formTitle}"</p>
-                    )}
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-4 mt-2">
-                      <span className="flex items-center gap-1 text-xs text-gray-400">
-                        <Eye className="w-3 h-3" /> <span className="font-semibold text-gray-600">{link.clickCount}</span> views
-                      </span>
-                      <span className="flex items-center gap-1 text-xs text-gray-400">
-                        <BookOpen className="w-3 h-3" /> <span className="font-semibold text-gray-600">{link.bookingCount}</span> bookings
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Toggle */}
-                  <button
-                    onClick={() => toggleActive(link)}
-                    title={link.isActive ? 'Pause link' : 'Activate link'}
-                    className="shrink-0 mt-0.5"
-                  >
-                    {link.isActive
-                      ? <ToggleRight className="w-8 h-8 text-emerald-500" />
-                      : <ToggleLeft  className="w-8 h-8 text-gray-300" />
-                    }
-                  </button>
-                </div>
-
-                {/* ── Action buttons ── */}
-                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-dashed border-gray-100">
-                  {/* Copy */}
-                  <button
-                    onClick={() => copyLink(link)}
-                    className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl transition-all ${
-                      isCopied
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                    }`}
-                  >
-                    {isCopied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    {isCopied ? 'Copied!' : 'Copy Link'}
-                  </button>
-
-                  {/* WhatsApp */}
-                  <button
-                    onClick={() => shareWhatsApp(link)}
-                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] transition-all"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
-                    WhatsApp
-                  </button>
-
-                  {/* QR */}
-                  <button
-                    onClick={() => openQr(link)}
-                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 transition-all"
-                  >
-                    <QrCode className="w-3.5 h-3.5" />
-                    QR Code
-                  </button>
-
-                  {/* Customize */}
-                  <button
-                    onClick={() => openCustomize(link)}
-                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 transition-all"
-                  >
-                    <Settings2 className="w-3.5 h-3.5" />
-                    Customize
-                  </button>
-
-                  {/* Preview */}
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-all"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Preview
-                  </a>
-                </div>
+      {/* ══════════ Link Cards ══════════ */}
+      <div>
+        {links.length === 0 ? (
+          <FadeIn delay={100}>
+            <div className="bg-white rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-gray-100 py-16 text-center">
+              <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Globe className="w-7 h-7 text-emerald-300" />
               </div>
+              <h3 className="text-sm font-bold text-gray-900">No booking links yet</h3>
+              <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">Your links will appear once your services are configured and approved.</p>
             </div>
-          );
-        })}
+          </FadeIn>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {links.map((link, index) => {
+              const meta     = SVC_META[link.serviceType] ?? DEFAULT_META;
+              const isCopied = copiedId === link.id;
 
-        {/* Empty state */}
-        {links.length === 0 && (
-          <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center">
-            <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Globe className="w-8 h-8 text-indigo-400" />
-            </div>
-            <h3 className="font-bold text-gray-800 text-lg">No booking links yet</h3>
-            <p className="text-gray-400 text-sm mt-1">Your booking links will appear here once configured.</p>
+              return (
+                <FadeIn key={link.id} delay={100 + index * 40}>
+                  <div
+                    className={cn(
+                      'bg-white rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.06)] border transition-all duration-300 overflow-hidden group h-full flex flex-col',
+                      link.isActive
+                        ? 'border-gray-100 hover:shadow-lg hover:shadow-emerald-100 hover:-translate-y-1 hover:border-emerald-200'
+                        : 'border-gray-100 opacity-50 hover:opacity-80'
+                    )}
+                    style={{ borderTop: `3px solid ${meta.color}` }}
+                  >
+                    <div className="p-4 flex-1 flex flex-col">
+                      {/* ── Header: icon + name + toggle ── */}
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className={cn('w-9 h-9 shrink-0 text-lg rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200', meta.bg)}>
+                          {meta.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base font-bold text-gray-900 truncate">{link.serviceLabel}</h3>
+                          <span className={cn(
+                            'text-xs px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider inline-block mt-0.5',
+                            link.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'
+                          )}>
+                            {link.isActive ? 'Active' : 'Paused'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => toggleActive(link)}
+                          title={link.isActive ? 'Pause' : 'Activate'}
+                          className="shrink-0 hover:scale-110 active:scale-95 transition-all"
+                        >
+                          {link.isActive
+                            ? <ToggleRight className="w-7 h-7 text-emerald-500" />
+                            : <ToggleLeft  className="w-7 h-7 text-gray-300" />}
+                        </button>
+                      </div>
+
+                      {/* ── URL ── */}
+                      <p className="text-xs font-mono text-gray-300 truncate mb-3">{link.url}</p>
+
+                      {/* ── Stats ── */}
+                      <div className="flex items-center gap-4 mb-3">
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Eye className="w-3 h-3 text-gray-300" />
+                          <span className="font-bold text-gray-700 tabular-nums">{link.clickCount}</span>
+                          <span className="text-gray-400">views</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <BookOpen className="w-3 h-3 text-gray-300" />
+                          <span className="font-bold text-gray-700 tabular-nums">{link.bookingCount}</span>
+                          <span className="text-gray-400">bookings</span>
+                        </div>
+                      </div>
+
+                      {/* ── Actions ── */}
+                      <div className="flex flex-wrap gap-1.5 mt-auto pt-3 border-t border-gray-50">
+                        <button
+                          onClick={() => copyLink(link)}
+                          className={cn(
+                            'flex items-center gap-1 text-xs font-bold px-2.5 py-2 rounded-lg transition-all duration-200 active:scale-[0.97]',
+                            isCopied
+                              ? 'bg-emerald-500 text-white shadow-sm'
+                              : 'bg-gray-900 hover:bg-gray-800 text-white shadow-sm'
+                          )}
+                        >
+                          {isCopied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          {isCopied ? 'Copied!' : 'Copy'}
+                        </button>
+                        <button onClick={() => shareWhatsApp(link)} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg border border-[#25D366]/20 hover:bg-[#25D366]/10 text-[#128C7E] transition-all active:scale-[0.97]">
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        </button>
+                        <button onClick={() => openQr(link)} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 transition-all active:scale-[0.97]">
+                          <QrCode className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => openCustomize(link)} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 transition-all active:scale-[0.97]">
+                          <Settings2 className="w-3.5 h-3.5" />
+                        </button>
+                        <a href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 transition-all active:scale-[0.97]">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </FadeIn>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* ── QR Modal ──────────────────────────────────────────────────────── */}
+      {/* ══════════ QR Modal ══════════ */}
       {qrModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-violet-700 px-6 py-5 flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => { setQrModal(null); setShareStatus('idle'); }}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-gray-900 px-5 py-4 flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-white text-lg">QR Code</h3>
-                <p className="text-purple-200 text-sm">{qrModal.label}</p>
+                <h3 className="font-bold text-white text-sm">QR Code</h3>
+                <p className="text-gray-400 text-xs mt-0.5">{qrModal.label}</p>
               </div>
-              <button onClick={() => { setQrModal(null); setShareStatus('idle'); }} className="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition">
+              <button onClick={() => { setQrModal(null); setShareStatus('idle'); }} className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
                 <X className="w-4 h-4 text-white" />
               </button>
             </div>
 
-            <div className="p-6">
-              {/* QR image */}
+            <div className="p-5">
               <div className="flex justify-center">
                 {qrDataUrl ? (
-                  <img src={qrDataUrl} alt="QR Code" className="rounded-2xl w-52 h-52 shadow-lg" />
+                  <img src={qrDataUrl} alt="QR Code" className="rounded-xl w-48 h-48 shadow-md" />
                 ) : (
-                  <div className="w-52 h-52 bg-gray-50 rounded-2xl flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-purple-600 border-t-transparent" />
+                  <div className="w-48 h-48 bg-gray-50 rounded-xl flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-gray-900 border-t-transparent" />
                   </div>
                 )}
               </div>
 
-              {/* URL pill */}
-              <div className="mt-4 bg-gray-50 rounded-xl px-3 py-2 flex items-center gap-2">
-                <p className="text-[11px] text-gray-500 font-mono truncate flex-1">{qrModal.url}</p>
-                <button
-                  onClick={copyQrLink}
-                  className={`shrink-0 flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg transition ${
-                    qrLinkCopied ? 'bg-emerald-100 text-emerald-700' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  {qrLinkCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              <div className="mt-3 bg-gray-50 rounded-xl px-3 py-2 flex items-center gap-2">
+                <p className="text-xs text-gray-400 font-mono truncate flex-1">{qrModal.url}</p>
+                <button onClick={copyQrLink} className={cn('shrink-0 flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition-all', qrLinkCopied ? 'bg-emerald-100 text-emerald-700' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100')}>
+                  {qrLinkCopied ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
                   {qrLinkCopied ? 'Copied!' : 'Copy'}
                 </button>
               </div>
 
-              {/* Share actions */}
-              <div className="mt-4 space-y-2">
-                {/* Native share — primary CTA */}
-                <button
-                  onClick={shareQr}
-                  disabled={!qrDataUrl || shareStatus === 'sharing'}
-                  className={`w-full font-bold py-3.5 rounded-2xl transition flex items-center justify-center gap-2 ${
-                    shareStatus === 'done'
-                      ? 'bg-emerald-500 text-white'
-                      : shareStatus === 'error'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-gradient-to-r from-purple-600 to-violet-700 hover:from-purple-700 hover:to-violet-800 disabled:opacity-40 text-white'
-                  }`}
-                >
-                  {shareStatus === 'sharing' ? (
-                    <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Sharing…</>
-                  ) : shareStatus === 'done' ? (
-                    <><Check className="w-4 h-4" /> Shared!</>
-                  ) : shareStatus === 'error' ? (
-                    <><Download className="w-4 h-4" /> Tap to Download instead</>
-                  ) : (
-                    <><Share2 className="w-4 h-4" /> Share QR Image</>
-                  )}
+              <div className="mt-3 space-y-2">
+                <button onClick={shareQr} disabled={!qrDataUrl || shareStatus === 'sharing'} className={cn('w-full font-bold py-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 text-sm active:scale-[0.98]', shareStatus === 'done' ? 'bg-emerald-500 text-white' : shareStatus === 'error' ? 'bg-red-500 text-white' : 'bg-gray-900 hover:bg-gray-800 disabled:opacity-40 text-white')}>
+                  {shareStatus === 'sharing' ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Sharing…</> : shareStatus === 'done' ? <><Check className="w-4 h-4" /> Shared!</> : shareStatus === 'error' ? <><Download className="w-4 h-4" /> Download instead</> : <><Share2 className="w-4 h-4" /> Share QR Image</>}
                 </button>
 
-                {/* Error hint */}
-                {shareStatus === 'error' && (
-                  <p className="text-center text-xs text-red-400 -mt-1">
-                    Sharing not supported on this browser — use WhatsApp or Download below
-                  </p>
-                )}
+                {shareStatus === 'error' && <p className="text-center text-xs text-red-400">Sharing not supported — use WhatsApp or Download</p>}
 
-                {/* WhatsApp + Download row */}
                 <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={shareQrWhatsApp}
-                    disabled={!qrDataUrl}
-                    className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-[#25D366]/10 hover:bg-[#25D366]/20 disabled:opacity-40 text-[#128C7E] font-semibold text-sm transition"
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
+                  <button onClick={shareQrWhatsApp} disabled={!qrDataUrl} className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 disabled:opacity-40 text-[#128C7E] font-semibold text-xs transition active:scale-[0.97]">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                     WhatsApp
                   </button>
-
-                  <button
-                    onClick={downloadQr}
-                    disabled={!qrDataUrl}
-                    className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-700 font-semibold text-sm transition"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download
+                  <button onClick={downloadQr} disabled={!qrDataUrl} className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-700 font-semibold text-xs transition active:scale-[0.97]">
+                    <Download className="w-3.5 h-3.5" /> Download
                   </button>
                 </div>
               </div>
@@ -483,63 +465,38 @@ export default function BookingLinksPage() {
         </div>
       )}
 
-      {/* ── Customize Modal ────────────────────────────────────────────────── */}
+      {/* ══════════ Customize Modal ══════════ */}
       {customizeId && (() => {
         const link = links.find(l => l.id === customizeId);
         const meta = link ? (SVC_META[link.serviceType] ?? DEFAULT_META) : DEFAULT_META;
         return (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
-              {/* Header */}
-              <div className={`bg-gradient-to-r ${meta.from} ${meta.to} px-6 py-5 flex items-center justify-between`}>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setCustomizeId(null)}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="bg-gray-900 px-5 py-4 flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-white text-lg">Customize Form</h3>
-                  <p className="text-white/70 text-sm">{link?.serviceLabel}</p>
+                  <h3 className="font-bold text-white text-sm">Customize Form</h3>
+                  <p className="text-gray-400 text-xs mt-0.5">{link?.serviceLabel}</p>
                 </div>
-                <button onClick={() => setCustomizeId(null)} className="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition">
+                <button onClick={() => setCustomizeId(null)} className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition">
                   <X className="w-4 h-4 text-white" />
                 </button>
               </div>
 
-              <div className="p-6 space-y-4">
+              <div className="p-5 space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Form Title</label>
-                  <input
-                    type="text"
-                    value={customizeData.formTitle}
-                    onChange={e => setCustomizeData({ ...customizeData, formTitle: e.target.value })}
-                    placeholder="e.g. Book a Bike with Rahul Travels"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Shown as the heading on your booking form</p>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">Form Title</label>
+                  <input type="text" value={customizeData.formTitle} onChange={e => setCustomizeData({ ...customizeData, formTitle: e.target.value })} placeholder="e.g. Book a Bike with Rahul Travels" className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 transition-all" />
+                  <p className="text-xs text-gray-400 mt-1">Heading on your booking form</p>
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Welcome Message</label>
-                  <textarea
-                    value={customizeData.welcomeMsg}
-                    onChange={e => setCustomizeData({ ...customizeData, welcomeMsg: e.target.value })}
-                    placeholder="e.g. Best rates in Pune. We offer Royal Enfield, Activa & more."
-                    rows={3}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent resize-none"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Shown as a note below your business name</p>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">Welcome Message</label>
+                  <textarea value={customizeData.welcomeMsg} onChange={e => setCustomizeData({ ...customizeData, welcomeMsg: e.target.value })} placeholder="e.g. Best rates in Pune..." rows={3} className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 transition-all resize-none" />
+                  <p className="text-xs text-gray-400 mt-1">Note below your business name</p>
                 </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={() => setCustomizeId(null)}
-                    className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-semibold hover:bg-gray-50 transition text-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={saveCustomize}
-                    disabled={saving}
-                    className={`flex-1 bg-gradient-to-r ${meta.from} ${meta.to} hover:opacity-90 disabled:opacity-60 text-white py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 text-sm`}
-                  >
-                    <Save className="w-4 h-4" />
-                    {saving ? 'Saving…' : 'Save Changes'}
+                <div className="flex gap-3 pt-1">
+                  <button onClick={() => setCustomizeId(null)} className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl font-semibold hover:bg-gray-50 transition text-sm active:scale-[0.98]">Cancel</button>
+                  <button onClick={saveCustomize} disabled={saving} className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold transition flex items-center justify-center gap-2 text-sm active:scale-[0.98]">
+                    <Save className="w-4 h-4" /> {saving ? 'Saving…' : 'Save'}
                   </button>
                 </div>
               </div>
@@ -547,6 +504,24 @@ export default function BookingLinksPage() {
           </div>
         );
       })()}
+
+      {/* Keyframes */}
+      <style jsx>{`
+        @keyframes headerFloat {
+          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+          33% { transform: translate(15px, -10px) scale(1.1); opacity: 0.8; }
+          66% { transform: translate(-10px, 8px) scale(0.95); opacity: 0.5; }
+        }
+        @keyframes iconFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-2px); }
+        }
+        @keyframes iconPulse {
+          0%, 70%, 100% { transform: scale(1); opacity: 0; }
+          20% { transform: scale(1.3); opacity: 0.25; }
+          40% { transform: scale(1.6); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }

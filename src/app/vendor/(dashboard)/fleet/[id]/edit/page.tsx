@@ -312,10 +312,29 @@ export default function EditVehiclePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600">Loading vehicle...</p>
+      <div className="animate-pulse space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <div className="h-8 w-8 bg-gray-200 rounded-lg"></div>
+          <div className="h-8 bg-gray-200 rounded-xl w-1/3"></div>
+        </div>
+        {/* Form sections */}
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+            <div className="h-5 bg-gray-200 rounded w-1/4"></div>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="h-10 bg-gray-100 rounded-xl"></div>
+                <div className="h-10 bg-gray-100 rounded-xl"></div>
+              </div>
+              <div className="h-10 bg-gray-100 rounded-xl"></div>
+              <div className="h-10 bg-gray-100 rounded-xl w-2/3"></div>
+            </div>
+          </div>
+        ))}
+        {/* Submit button */}
+        <div className="flex justify-end">
+          <div className="h-10 bg-gray-200 rounded-lg w-32"></div>
         </div>
       </div>
     );
@@ -410,7 +429,7 @@ export default function EditVehiclePage() {
                 value={registrationNumber}
                 onChange={(e) => setRegistrationNumber(e.target.value.toUpperCase())}
                 placeholder="e.g., MH01AB1234"
-                className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             <div>
@@ -424,7 +443,7 @@ export default function EditVehiclePage() {
                 placeholder="e.g., 2022"
                 min="2000"
                 max={new Date().getFullYear()}
-                className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             <div>
@@ -436,16 +455,16 @@ export default function EditVehiclePage() {
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 placeholder="e.g., White"
-                className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
 
           {/* Vehicle Images Section - Only for specific services */}
           {needsVehicleImages && (
-            <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+            <div className="mt-6 p-4 bg-gradient-to-br from-emerald-50 to-emerald-50 rounded-xl border border-emerald-200">
               <div className="flex items-center gap-2 mb-4">
-                <ImageIcon className="w-5 h-5 text-blue-600" />
+                <ImageIcon className="w-5 h-5 text-emerald-600" />
                 <h3 className="font-semibold text-gray-900">Vehicle Images (Optional)</h3>
               </div>
               <p className="text-sm text-gray-600 mb-4">
@@ -491,7 +510,7 @@ export default function EditVehiclePage() {
                         </div>
                       </div>
                     ) : (
-                      <label className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 hover:bg-white transition block">
+                      <label className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-emerald-400 hover:bg-white transition block">
                         <input
                           type="file"
                           accept="image/*"
@@ -569,7 +588,7 @@ export default function EditVehiclePage() {
                 placeholder="Search locations..."
                 value={locationSearch}
                 onChange={(e) => setLocationSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             <div className="flex gap-2">
@@ -595,7 +614,7 @@ export default function EditVehiclePage() {
           {/* Selected Count */}
           <div className="mb-4 flex items-center gap-2">
             <span className="text-sm text-gray-500">Selected:</span>
-            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+            <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
               {selectedLocations.length} of {approvedLocations.length} locations
             </span>
           </div>
@@ -611,21 +630,21 @@ export default function EditVehiclePage() {
                   className={cn(
                     'relative p-4 rounded-xl border-2 transition-all text-left',
                     isSelected
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-blue-300'
+                      ? 'border-emerald-500 bg-emerald-50'
+                      : 'border-gray-200 hover:border-emerald-300'
                   )}
                 >
                   <div className="flex items-center gap-2">
                     <MapPin
                       className={cn(
                         'w-4 h-4 flex-shrink-0',
-                        isSelected ? 'text-blue-600' : 'text-gray-400'
+                        isSelected ? 'text-emerald-600' : 'text-gray-400'
                       )}
                     />
                     <span
                       className={cn(
                         'font-medium truncate',
-                        isSelected ? 'text-blue-700' : 'text-gray-700'
+                        isSelected ? 'text-emerald-700' : 'text-gray-700'
                       )}
                     >
                       {location.name}
@@ -633,7 +652,7 @@ export default function EditVehiclePage() {
                   </div>
                   {isSelected && (
                     <div className="absolute top-2 right-2">
-                      <Check className="w-4 h-4 text-blue-600" />
+                      <Check className="w-4 h-4 text-emerald-600" />
                     </div>
                   )}
                 </button>
@@ -652,8 +671,8 @@ export default function EditVehiclePage() {
 
           <div className="p-6 space-y-6">
             {/* Daily Rate */}
-            <div className="p-6 bg-blue-50 rounded-xl border border-blue-200">
-              <label className="block text-sm font-semibold text-blue-800 mb-3">
+            <div className="p-6 bg-emerald-50 rounded-xl border border-emerald-200">
+              <label className="block text-sm font-semibold text-emerald-800 mb-3">
                 Per Day Rate <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -663,7 +682,7 @@ export default function EditVehiclePage() {
                   value={perDayRate}
                   onChange={(e) => setPerDayRate(e.target.value)}
                   placeholder="Enter daily rate"
-                  className="w-full pl-10 pr-4 py-4 text-xl font-bold border-2 border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-4 text-xl font-bold border-2 border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -680,7 +699,7 @@ export default function EditVehiclePage() {
                     value={kmPerDay}
                     onChange={(e) => setKmPerDay(e.target.value)}
                     placeholder="100"
-                    className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">km</span>
                 </div>
@@ -697,7 +716,7 @@ export default function EditVehiclePage() {
                     value={extraKmRate}
                     onChange={(e) => setExtraKmRate(e.target.value)}
                     placeholder="5"
-                    className="w-full pl-10 pr-16 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-16 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">/km</span>
                 </div>
@@ -714,7 +733,7 @@ export default function EditVehiclePage() {
                     value={securityDeposit}
                     onChange={(e) => setSecurityDeposit(e.target.value)}
                     placeholder="2000"
-                    className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>

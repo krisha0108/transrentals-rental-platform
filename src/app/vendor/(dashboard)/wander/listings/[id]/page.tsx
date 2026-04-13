@@ -353,7 +353,7 @@ export default function EditWanderListingPage() {
   if (loading) {
     return (
       <div className="p-6 max-w-3xl mx-auto flex items-center justify-center min-h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+        <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
       </div>
     );
   }
@@ -377,8 +377,8 @@ export default function EditWanderListingPage() {
         <button onClick={() => router.push('/vendor/wander/listings')} className="text-gray-400 hover:text-gray-600">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-          <Compass className="w-5 h-5 text-indigo-600" />
+        <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+          <Compass className="w-5 h-5 text-emerald-600" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-900">Edit Tour</h1>
@@ -389,7 +389,7 @@ export default function EditWanderListingPage() {
       {/* Progress bar */}
       <div className="flex gap-1 mb-6">
         {STEPS.map((s) => (
-          <div key={s.id} className={`h-1.5 flex-1 rounded-full transition-colors ${s.id <= step ? 'bg-indigo-600' : 'bg-gray-200'}`} />
+          <div key={s.id} className={`h-1.5 flex-1 rounded-full transition-colors ${s.id <= step ? 'bg-emerald-600' : 'bg-gray-200'}`} />
         ))}
       </div>
 
@@ -415,7 +415,7 @@ export default function EditWanderListingPage() {
                     type="button"
                     onClick={() => update('categoryId', cat.id)}
                     className={`flex items-center gap-2 p-3 rounded-xl border-2 transition text-left ${
-                      form.categoryId === cat.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-200'
+                      form.categoryId === cat.id ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-emerald-200'
                     }`}
                   >
                     <span className="text-2xl">{cat.icon || '🗺️'}</span>
@@ -438,7 +438,7 @@ export default function EditWanderListingPage() {
                 <select
                   value={form.experienceId}
                   onChange={(e) => update('experienceId', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                 >
                   <option value="">— Don't link (list as standalone) —</option>
                   {experiences.map((exp) => (
@@ -459,7 +459,7 @@ export default function EditWanderListingPage() {
                 value={form.title}
                 onChange={(e) => update('title', e.target.value)}
                 placeholder='e.g. "1 Day Goa Sightseeing Tour Package"'
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -471,7 +471,7 @@ export default function EditWanderListingPage() {
                 value={form.shortDescription}
                 onChange={(e) => update('shortDescription', e.target.value.slice(0, 120))}
                 placeholder='e.g. "Explore North Goa forts, beaches & markets in one day"'
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <p className="text-xs text-gray-400 mt-1 text-right">{form.shortDescription.length}/120</p>
             </div>
@@ -488,10 +488,10 @@ export default function EditWanderListingPage() {
               <p className="text-xs text-gray-500 mb-3">Primary city/state for this tour (from our database)</p>
 
               {selectedLocation ? (
-                <div className="flex items-center justify-between p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-indigo-600" />
-                    <span className="font-medium text-indigo-800">{selectedLocation.displayName || selectedLocation.name}</span>
+                    <MapPin className="w-4 h-4 text-emerald-600" />
+                    <span className="font-medium text-emerald-800">{selectedLocation.displayName || selectedLocation.name}</span>
                   </div>
                   <button onClick={() => { setSelectedLocation(null); update('mainLocationId', ''); setLocationSearch(''); }} className="text-gray-400 hover:text-gray-600">
                     <X className="w-4 h-4" />
@@ -505,7 +505,7 @@ export default function EditWanderListingPage() {
                     value={locationSearch}
                     onChange={(e) => setLocationSearch(e.target.value)}
                     placeholder="Search city, state or destination..."
-                    className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                   {locationLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />}
                   {locations.length > 0 && (
@@ -515,7 +515,7 @@ export default function EditWanderListingPage() {
                           key={loc.id}
                           type="button"
                           onClick={() => { setSelectedLocation(loc); update('mainLocationId', loc.id); setLocationSearch(loc.displayName || loc.name); setLocations([]); }}
-                          className="flex items-center justify-between w-full px-3 py-2.5 hover:bg-indigo-50 text-sm text-left"
+                          className="flex items-center justify-between w-full px-3 py-2.5 hover:bg-emerald-50 text-sm text-left"
                         >
                           <div className="flex items-center gap-2">
                             <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
@@ -536,9 +536,9 @@ export default function EditWanderListingPage() {
               <p className="text-xs text-gray-500 mb-3">Add all stops/places on this tour — press Enter or comma to add</p>
               <div className="flex flex-wrap gap-2 mb-2">
                 {form.places.map((place) => (
-                  <span key={place} className="flex items-center gap-1 px-3 py-1 bg-indigo-50 border border-indigo-200 rounded-full text-sm text-indigo-800">
+                  <span key={place} className="flex items-center gap-1 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-sm text-emerald-800">
                     {place}
-                    <button onClick={() => update('places', form.places.filter((p) => p !== place))} className="text-indigo-400 hover:text-indigo-700 ml-1">
+                    <button onClick={() => update('places', form.places.filter((p) => p !== place))} className="text-emerald-400 hover:text-emerald-700 ml-1">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
@@ -556,12 +556,12 @@ export default function EditWanderListingPage() {
                     }
                   }}
                   placeholder='Type place name — e.g. "Fort Aguada"'
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button
                   type="button"
                   onClick={() => { if (form.placesTag.trim()) addPlace(form.placesTag); }}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium flex-shrink-0"
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium flex-shrink-0"
                 >
                   <Plus className="w-4 h-4" /> Add
                 </button>
@@ -594,7 +594,7 @@ export default function EditWanderListingPage() {
                     }
                   }}
                   placeholder='Type area — e.g. "Calangute", "Baga", "Panaji"'
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button
                   type="button"
@@ -622,7 +622,7 @@ export default function EditWanderListingPage() {
                     type="button"
                     onClick={() => update('duration', d)}
                     className={`py-2 px-3 rounded-lg border text-sm transition ${
-                      form.duration === d ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-medium' : 'border-gray-200 text-gray-700 hover:border-indigo-200'
+                      form.duration === d ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-medium' : 'border-gray-200 text-gray-700 hover:border-emerald-200'
                     }`}
                   >
                     {d}
@@ -635,7 +635,7 @@ export default function EditWanderListingPage() {
                   value={form.customDuration}
                   onChange={(e) => update('customDuration', e.target.value)}
                   placeholder="e.g. 10 Days 9 Nights"
-                  className="mt-3 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="mt-3 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               )}
             </div>
@@ -647,7 +647,7 @@ export default function EditWanderListingPage() {
                 onChange={(e) => update('description', e.target.value)}
                 rows={4}
                 placeholder="Describe this tour — what makes it special, what customers will experience..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
               />
             </div>
 
@@ -665,7 +665,7 @@ export default function EditWanderListingPage() {
                       update('highlights', updated);
                     }}
                     placeholder="e.g. Visit iconic beaches of North Goa"
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                   {form.highlights.length > 1 && (
                     <button onClick={() => update('highlights', form.highlights.filter((_, idx) => idx !== i))} className="text-gray-400 hover:text-red-500 flex-shrink-0">
@@ -677,7 +677,7 @@ export default function EditWanderListingPage() {
               <button
                 type="button"
                 onClick={() => update('highlights', [...form.highlights, ''])}
-                className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 mt-1"
+                className="flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 mt-1"
               >
                 <Plus className="w-4 h-4" /> Add Highlight
               </button>
@@ -700,7 +700,7 @@ export default function EditWanderListingPage() {
                     <div className="absolute top-full left-0 mt-1 hidden group-hover:flex flex-wrap gap-1 bg-white border border-gray-200 rounded-xl p-2 shadow-lg z-10 w-48">
                       {STOP_EMOJIS.map((em) => (
                         <button key={em} type="button" onClick={() => updateStop(si, 'emoji', em)}
-                          className="w-8 h-8 text-lg hover:bg-indigo-50 rounded-lg flex items-center justify-center">
+                          className="w-8 h-8 text-lg hover:bg-emerald-50 rounded-lg flex items-center justify-center">
                           {em}
                         </button>
                       ))}
@@ -711,14 +711,14 @@ export default function EditWanderListingPage() {
                     value={stop.time}
                     onChange={(e) => updateStop(si, 'time', e.target.value)}
                     placeholder="Time (e.g. 10:00 AM)"
-                    className="w-32 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-32 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                   <input
                     type="text"
                     value={stop.title}
                     onChange={(e) => updateStop(si, 'title', e.target.value)}
                     placeholder="Stop name (e.g. Fort Aguada)"
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
                   />
                   {form.itinerary.length > 1 && (
                     <button onClick={() => removeStop(si)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
@@ -733,7 +733,7 @@ export default function EditWanderListingPage() {
                     onChange={(e) => updateStop(si, 'description', e.target.value)}
                     rows={2}
                     placeholder="Description of this stop..."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
                   />
 
                   <div>
@@ -746,7 +746,7 @@ export default function EditWanderListingPage() {
                           value={act}
                           onChange={(e) => updateActivity(si, ai, e.target.value)}
                           placeholder="e.g. Lighthouse viewpoint, Water sports"
-                          className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         />
                         {stop.activities.length > 1 && (
                           <button onClick={() => removeActivity(si, ai)} className="text-gray-300 hover:text-red-400 flex-shrink-0">
@@ -755,7 +755,7 @@ export default function EditWanderListingPage() {
                         )}
                       </div>
                     ))}
-                    <button type="button" onClick={() => addActivity(si)} className="flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-700 mt-1">
+                    <button type="button" onClick={() => addActivity(si)} className="flex items-center gap-1 text-xs text-emerald-500 hover:text-emerald-700 mt-1">
                       <Plus className="w-3.5 h-3.5" /> Add activity
                     </button>
                   </div>
@@ -767,7 +767,7 @@ export default function EditWanderListingPage() {
                       value={stop.timeSpent}
                       onChange={(e) => updateStop(si, 'timeSpent', e.target.value)}
                       placeholder="Time spent (e.g. 45 minutes, 1 hour)"
-                      className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -777,7 +777,7 @@ export default function EditWanderListingPage() {
             <button
               type="button"
               onClick={addStop}
-              className="flex items-center gap-2 w-full py-3 border-2 border-dashed border-indigo-200 rounded-xl text-sm text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 transition justify-center"
+              className="flex items-center gap-2 w-full py-3 border-2 border-dashed border-emerald-200 rounded-xl text-sm text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50 transition justify-center"
             >
               <Plus className="w-4 h-4" /> Add Stop
             </button>
@@ -800,7 +800,7 @@ export default function EditWanderListingPage() {
                     type="button"
                     onClick={() => update('priceType', pt.value)}
                     className={`p-3 rounded-xl border-2 text-left transition ${
-                      form.priceType === pt.value ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-200'
+                      form.priceType === pt.value ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-emerald-200'
                     }`}
                   >
                     <p className="text-sm font-semibold text-gray-800">{pt.label}</p>
@@ -825,7 +825,7 @@ export default function EditWanderListingPage() {
                         value={tier.groupSize}
                         onChange={(e) => updateTier(i, 'groupSize', e.target.value)}
                         placeholder="e.g. 2, 4, 6 or Upto 4"
-                        className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                       <div className="flex gap-2">
                         <div className="relative flex-1">
@@ -835,7 +835,7 @@ export default function EditWanderListingPage() {
                             value={tier.price}
                             onChange={(e) => updateTier(i, 'price', e.target.value)}
                             placeholder="e.g. 2999"
-                            className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                           />
                         </div>
                         {form.priceTiers.length > 1 && (
@@ -849,7 +849,7 @@ export default function EditWanderListingPage() {
                   <button
                     type="button"
                     onClick={() => update('priceTiers', [...form.priceTiers, { groupSize: '', price: '' }])}
-                    className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 mt-1"
+                    className="flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 mt-1"
                   >
                     <Plus className="w-4 h-4" /> Add Price Tier
                   </button>
@@ -867,7 +867,7 @@ export default function EditWanderListingPage() {
                     value={form.basePrice}
                     onChange={(e) => update('basePrice', e.target.value)}
                     placeholder="e.g. 1500"
-                    className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
@@ -885,7 +885,7 @@ export default function EditWanderListingPage() {
                       update('vehicleOptions', curr.includes(v) ? curr.filter((x) => x !== v) : [...curr, v]);
                     }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border transition ${
-                      form.vehicleOptions.includes(v) ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-medium' : 'border-gray-200 text-gray-600 hover:border-indigo-200'
+                      form.vehicleOptions.includes(v) ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-medium' : 'border-gray-200 text-gray-600 hover:border-emerald-200'
                     }`}
                   >
                     <Car className="w-3 h-3" /> {v}
@@ -901,7 +901,7 @@ export default function EditWanderListingPage() {
                   type="number"
                   value={form.advanceNoticeHours}
                   onChange={(e) => update('advanceNoticeHours', parseInt(e.target.value) || 24)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <div>
@@ -909,7 +909,7 @@ export default function EditWanderListingPage() {
                 <select
                   value={form.cancellationPolicy}
                   onChange={(e) => update('cancellationPolicy', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   {CANCELLATION_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label} — {opt.desc}</option>
@@ -927,7 +927,7 @@ export default function EditWanderListingPage() {
                 onChange={(e) => update('cancellationNotes', e.target.value)}
                 rows={3}
                 placeholder="e.g. Cancellations must be made via WhatsApp. No refund for no-shows or weather-related changes..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
               />
             </div>
 
@@ -942,7 +942,7 @@ export default function EditWanderListingPage() {
                   <p className="text-sm font-semibold text-gray-800">Require Advance Payment</p>
                   <p className="text-xs text-gray-500 mt-0.5">Collect a partial payment upfront when customer accepts a quote</p>
                 </div>
-                <div className={`w-11 h-6 rounded-full flex items-center px-1 transition-colors flex-shrink-0 ml-4 ${form.requireAdvancePayment ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                <div className={`w-11 h-6 rounded-full flex items-center px-1 transition-colors flex-shrink-0 ml-4 ${form.requireAdvancePayment ? 'bg-emerald-600' : 'bg-gray-300'}`}>
                   <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${form.requireAdvancePayment ? 'translate-x-5' : 'translate-x-0'}`} />
                 </div>
               </button>
@@ -962,11 +962,11 @@ export default function EditWanderListingPage() {
                           onClick={() => update('advancePaymentType', opt.value)}
                           className={`flex-1 p-3 rounded-xl border-2 text-left transition ${
                             form.advancePaymentType === opt.value
-                              ? 'border-indigo-500 bg-indigo-50'
-                              : 'border-gray-200 hover:border-indigo-200'
+                              ? 'border-emerald-500 bg-emerald-50'
+                              : 'border-gray-200 hover:border-emerald-200'
                           }`}
                         >
-                          <p className={`text-sm font-bold ${form.advancePaymentType === opt.value ? 'text-indigo-700' : 'text-gray-700'}`}>{opt.label}</p>
+                          <p className={`text-sm font-bold ${form.advancePaymentType === opt.value ? 'text-emerald-700' : 'text-gray-700'}`}>{opt.label}</p>
                           <p className="text-xs text-gray-400 mt-0.5">{opt.hint}</p>
                         </button>
                       ))}
@@ -988,17 +988,17 @@ export default function EditWanderListingPage() {
                         placeholder={form.advancePaymentType === 'PERCENTAGE' ? '30' : '2000'}
                         min="1"
                         max={form.advancePaymentType === 'PERCENTAGE' ? '100' : undefined}
-                        className="w-full border border-gray-300 rounded-lg pl-8 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full border border-gray-300 rounded-lg pl-8 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
                     {form.advancePaymentType === 'PERCENTAGE' && form.advancePaymentValue && (
-                      <p className="text-xs text-indigo-600 mt-1">
+                      <p className="text-xs text-emerald-600 mt-1">
                         e.g. for ₹10,000 tour → advance = ₹{((parseFloat(form.advancePaymentValue) / 100) * 10000).toLocaleString('en-IN')}
                       </p>
                     )}
                   </div>
 
-                  <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2.5 text-xs text-amber-700">
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2.5 text-xs text-emerald-700">
                     💡 Customers will see this advance payment requirement on the quote acceptance screen.
                   </div>
                 </div>
@@ -1041,7 +1041,7 @@ export default function EditWanderListingPage() {
                     }
                   }}
                   placeholder="Type custom inclusion and press Enter"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button
                   type="button"
@@ -1094,7 +1094,7 @@ export default function EditWanderListingPage() {
                     }
                   }}
                   placeholder="Type custom exclusion and press Enter"
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button
                   type="button"
@@ -1132,7 +1132,7 @@ export default function EditWanderListingPage() {
                       update('images', updated);
                     }}
                     placeholder="https://..."
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                   <button onClick={() => update('images', form.images.filter((_, idx) => idx !== i))} className="text-gray-400 hover:text-red-500 flex-shrink-0">
                     <Trash2 className="w-4 h-4" />
@@ -1153,7 +1153,7 @@ export default function EditWanderListingPage() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingImages}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium disabled:opacity-60"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium disabled:opacity-60"
                 >
                   {uploadingImages ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                   {uploadingImages ? 'Uploading...' : 'Upload Photos'}
@@ -1195,7 +1195,7 @@ export default function EditWanderListingPage() {
               <button
                 onClick={() => handleSave(true)}
                 disabled={saving}
-                className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium"
+                className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 Save & Publish
@@ -1204,7 +1204,7 @@ export default function EditWanderListingPage() {
           ) : (
             <button
               onClick={nextStep}
-              className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium"
+              className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
             >
               Next <ChevronRight className="w-4 h-4" />
             </button>

@@ -67,12 +67,12 @@ interface EquipmentBooking {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   PENDING_PAYMENT: { label: 'Pending Payment', color: 'bg-yellow-100 text-yellow-700', icon: AlertCircle },
-  ADVANCE_PAID: { label: 'Advance Paid', color: 'bg-blue-100 text-blue-700', icon: CheckCircle },
+  ADVANCE_PAID: { label: 'Advance Paid', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
   CONFIRMED: { label: 'Confirmed', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-  DISPATCHED: { label: 'Dispatched', color: 'bg-indigo-100 text-indigo-700', icon: Wrench },
+  DISPATCHED: { label: 'Dispatched', color: 'bg-emerald-100 text-emerald-700', icon: Wrench },
   DELIVERED: { label: 'Delivered', color: 'bg-cyan-100 text-cyan-700', icon: CheckCircle },
-  ON_RENT: { label: 'On Rent', color: 'bg-purple-100 text-purple-700', icon: Clock },
-  PICKUP_SCHEDULED: { label: 'Pickup Scheduled', color: 'bg-orange-100 text-orange-700', icon: Calendar },
+  ON_RENT: { label: 'On Rent', color: 'bg-emerald-100 text-emerald-700', icon: Clock },
+  PICKUP_SCHEDULED: { label: 'Pickup Scheduled', color: 'bg-emerald-100 text-emerald-700', icon: Calendar },
   COMPLETED: { label: 'Completed', color: 'bg-gray-100 text-gray-700', icon: CheckCircle },
   CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-700', icon: XCircle },
   DROPPED: { label: 'Dropped', color: 'bg-red-100 text-red-700', icon: XCircle },
@@ -224,7 +224,7 @@ export default function VendorEquipmentBookingsPage() {
           value={searchInput}
           onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="Search by customer name, phone, email, booking number..."
-          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
         />
         {searchInput && (
           <button
@@ -256,7 +256,7 @@ export default function VendorEquipmentBookingsPage() {
           <p className="text-sm text-gray-500">Pending Balance</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-purple-100">
-          <p className="text-2xl font-bold text-purple-600">
+          <p className="text-2xl font-bold text-emerald-600">
             ₹{bookings.reduce((sum, b) => sum + b.totalAmount, 0).toLocaleString()}
           </p>
           <p className="text-sm text-gray-500">Total Value</p>

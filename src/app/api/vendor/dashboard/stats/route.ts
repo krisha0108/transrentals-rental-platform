@@ -15,7 +15,17 @@ export async function GET(request: NextRequest) {
 
     const vendorId = auth.vendorId;
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const period = request.nextUrl.searchParams.get('period') || 'month';
+
+    let periodStart: Date;
+    if (period === 'year') {
+      periodStart = new Date(now.getFullYear(), 0, 1);
+    } else if (period === 'all') {
+      periodStart = new Date(2000, 0, 1);
+    } else {
+      periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+    const startOfMonth = periodStart;
 
     // Fetch ALL bookings (like mobile app earnings API does) - no date filter
     const [

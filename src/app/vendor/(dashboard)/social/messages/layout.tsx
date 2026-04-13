@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, MessageSquare, Clock, ArrowLeft } from 'lucide-react';
+import { Search, MessageSquare, Clock, ArrowLeft, ChevronRight } from 'lucide-react';
 
 interface OtherVendor {
   id: string;
@@ -49,10 +49,12 @@ function VendorAvatar({
   name,
   logo,
   size = 46,
+  ring = false,
 }: {
   name: string;
   logo?: string;
   size?: number;
+  ring?: boolean;
 }) {
   const [err, setErr] = useState(false);
   const colors = [
@@ -61,6 +63,7 @@ function VendorAvatar({
   ];
   const color = colors[name.charCodeAt(0) % colors.length];
   const fontSize = Math.round(size * 0.38);
+  const ringClass = ring ? 'ring-2 ring-emerald-400 ring-offset-1' : '';
 
   if (logo && !err) {
     return (
@@ -68,14 +71,14 @@ function VendorAvatar({
         src={logo}
         alt={name}
         onError={() => setErr(true)}
-        className="rounded-full object-cover flex-shrink-0"
+        className={`rounded-full object-cover flex-shrink-0 ${ringClass}`}
         style={{ width: size, height: size }}
       />
     );
   }
   return (
     <div
-      className={`${color} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 select-none`}
+      className={`${color} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 select-none ${ringClass}`}
       style={{ width: size, height: size, fontSize }}
     >
       {name.charAt(0).toUpperCase()}
@@ -116,6 +119,8 @@ function ConversationList({
     c.other.ownerName.toLowerCase().includes(search.toLowerCase())
   );
 
+  const totalUnread = conversations.reduce((s, c) => s + c.unreadCount, 0);
+
   const handleClick = (convId: string) => {
     onSelect?.(convId);
     router.push(`/vendor/social/messages/${convId}`);
@@ -123,16 +128,35 @@ function ConversationList({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="px-4 pt-5 pb-3 border-b border-gray-100">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-gray-900">Messages</h2>
-          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full font-medium">
-            {conversations.reduce((s, c) => s + c.unreadCount, 0) > 0
-              ? `${conversations.reduce((s, c) => s + c.unreadCount, 0)} new`
-              : `${conversations.length} chats`}
-          </span>
+      {/* Emerald alive header */}
+      <div className="relative bg-emerald-600 py-4 px-4 flex-shrink-0 overflow-hidden">
+        {/* Radial gradient overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.12)_0%,transparent_60%)]" />
+        {/* Shimmer sweep */}
+        <div className="shimmer-sweep absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        {/* Floating ring outlines */}
+        <div className="absolute -top-3 -right-3 w-16 h-16 rounded-full border border-white/10 animate-[float-slow_4s_ease-in-out_infinite]" />
+        <div className="absolute -bottom-2 -left-4 w-12 h-12 rounded-full border border-white/10 animate-[float-rev_5s_ease-in-out_infinite]" />
+        {/* Sparkle dots */}
+        <div className="absolute top-2 right-8 w-1 h-1 bg-white/30 rounded-full animate-[sparkle_3s_ease-in-out_infinite]" />
+        <div className="absolute bottom-3 right-16 w-1.5 h-1.5 bg-white/20 rounded-full animate-[sparkle_4s_ease-in-out_infinite_0.5s]" />
+
+        <div className="relative flex items-center justify-between">
+          <h2 className="text-lg font-bold text-white tracking-tight">Messages</h2>
+          {totalUnread > 0 ? (
+            <span className="text-xs text-white bg-white/20 px-2.5 py-0.5 rounded-full font-semibold backdrop-blur-sm">
+              {totalUnread} new
+            </span>
+          ) : (
+            <span className="text-xs text-white/70 bg-white/10 px-2.5 py-0.5 rounded-full font-medium backdrop-blur-sm">
+              {conversations.length} chats
+            </span>
+          )}
         </div>
+      </div>
+
+      {/* Search bar in white area */}
+      <div className="px-4 pt-3 pb-3 border-b border-gray-100">
         <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus-within:border-emerald-400 focus-within:ring-1 focus-within:ring-emerald-200 transition-all">
           <Search className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
           <input
@@ -187,14 +211,16 @@ function ConversationList({
                 <button
                   key={conv.id}
                   onClick={() => handleClick(conv.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 transition-colors text-left border-l-2 ${
+                  className={`group w-full flex items-center gap-3 px-4 py-3 transition-all duration-200 text-left border-l-2 ${
                     isActive
                       ? 'bg-emerald-50 border-l-emerald-500'
-                      : 'hover:bg-gray-50 border-l-transparent'
+                      : hasUnread
+                        ? 'bg-emerald-50/40 border-l-emerald-400 hover:bg-emerald-50/70'
+                        : 'hover:bg-gray-50 hover:-translate-y-[1px] hover:shadow-sm border-l-transparent'
                   }`}
                 >
                   <div className="relative flex-shrink-0">
-                    <VendorAvatar name={conv.other.businessName} logo={conv.other.logo} size={46} />
+                    <VendorAvatar name={conv.other.businessName} logo={conv.other.logo} size={46} ring={hasUnread && !isActive} />
                     {hasUnread && !isActive && (
                       <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white" />
                     )}
@@ -216,11 +242,14 @@ function ConversationList({
                       ) : (
                         <p className="text-xs text-gray-300 italic">Start chatting</p>
                       )}
-                      {hasUnread && (
-                        <span className="flex-shrink-0 bg-emerald-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                          {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {hasUnread && (
+                          <span className="bg-emerald-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                            {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
+                          </span>
+                        )}
+                        <ChevronRight className="h-3.5 w-3.5 text-gray-300 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200" />
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -229,6 +258,28 @@ function ConversationList({
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+        @keyframes float-rev {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(5px); }
+        }
+        @keyframes sparkle {
+          0%, 100% { opacity: 0.2; transform: scale(0.8); }
+          50% { opacity: 1; transform: scale(1.3); }
+        }
+        .shimmer-sweep {
+          animation: shimmer-sweep 3s ease-in-out infinite;
+        }
+        @keyframes shimmer-sweep {
+          0% { transform: translateX(-100%); }
+          50%, 100% { transform: translateX(100%); }
+        }
+      `}</style>
     </div>
   );
 }
@@ -246,7 +297,7 @@ export default function MessagesLayout({ children }: { children: React.ReactNode
       {/* ── Left Panel: Conversation List ── */}
       <div
         className={`
-          flex-shrink-0 border-r border-gray-200 bg-white flex flex-col
+          flex-shrink-0 border-r border-gray-200 bg-white flex flex-col shadow-[0_2px_8px_rgba(0,0,0,0.04)]
           w-full lg:w-80 xl:w-96
           ${isInConversation ? 'hidden lg:flex' : 'flex'}
         `}

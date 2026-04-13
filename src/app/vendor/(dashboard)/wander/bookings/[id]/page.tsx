@@ -26,11 +26,11 @@ function parseList(val: string | null | undefined): string[] {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string; strip: string }> = {
-  PAYMENT_PENDING:   { label: 'Payment Pending',      cls: 'bg-amber-100 text-amber-700',   strip: 'bg-amber-400' },
-  PAYMENT_SUBMITTED: { label: 'Payment Under Review',  cls: 'bg-orange-100 text-orange-700', strip: 'bg-orange-400' },
+  PAYMENT_PENDING:   { label: 'Payment Pending',      cls: 'bg-emerald-100 text-emerald-700',   strip: 'bg-emerald-400' },
+  PAYMENT_SUBMITTED: { label: 'Payment Under Review',  cls: 'bg-emerald-100 text-emerald-700', strip: 'bg-emerald-400' },
   CONFIRMED:         { label: 'Confirmed',             cls: 'bg-emerald-100 text-emerald-700', strip: 'bg-emerald-400' },
-  GUIDE_ASSIGNED:    { label: 'Guide Assigned',        cls: 'bg-blue-100 text-blue-700',     strip: 'bg-blue-400' },
-  STARTED:           { label: 'Started',               cls: 'bg-indigo-100 text-indigo-700', strip: 'bg-indigo-400' },
+  GUIDE_ASSIGNED:    { label: 'Guide Assigned',        cls: 'bg-emerald-100 text-emerald-700',     strip: 'bg-emerald-400' },
+  STARTED:           { label: 'Started',               cls: 'bg-emerald-100 text-emerald-700', strip: 'bg-emerald-400' },
   COMPLETED:         { label: 'Completed',             cls: 'bg-gray-100 text-gray-600',     strip: 'bg-gray-400' },
   CANCELLED:         { label: 'Cancelled',             cls: 'bg-red-100 text-red-600',       strip: 'bg-red-400' },
   DROPPED:           { label: 'Dropped',               cls: 'bg-gray-100 text-gray-400',     strip: 'bg-gray-300' },
@@ -74,7 +74,7 @@ export default function VendorWanderBookingDetailPage() {
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
-      <Loader2 className="w-7 h-7 animate-spin text-indigo-400" />
+      <Loader2 className="w-7 h-7 animate-spin text-emerald-400" />
     </div>
   );
 
@@ -82,7 +82,7 @@ export default function VendorWanderBookingDetailPage() {
     <div className="p-6 max-w-2xl mx-auto text-center py-20">
       <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
       <p className="text-gray-600">{error || 'Booking not found'}</p>
-      <Link href="/vendor/wander/bookings" className="text-indigo-600 text-sm mt-4 inline-block hover:underline">
+      <Link href="/vendor/wander/bookings" className="text-emerald-600 text-sm mt-4 inline-block hover:underline">
         ← Back to Bookings
       </Link>
     </div>
@@ -118,14 +118,14 @@ export default function VendorWanderBookingDetailPage() {
           <div className="flex items-start justify-between gap-4 mb-3">
             <div>
               {listing?.category && (
-                <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-600 border border-indigo-100 px-2.5 py-1 rounded-full font-semibold mb-2">
+                <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-600 border border-emerald-100 px-2.5 py-1 rounded-full font-semibold mb-2">
                   {listing.category.icon} {listing.category.name}
                 </span>
               )}
               <h1 className="text-xl font-bold text-gray-900">{listing?.title || 'Wander Tour'}</h1>
               {listing?.mainLocation?.name && (
                 <p className="text-sm text-gray-400 flex items-center gap-1 mt-1">
-                  <MapPin className="w-3.5 h-3.5 text-indigo-400" /> {listing.mainLocation.name}
+                  <MapPin className="w-3.5 h-3.5 text-emerald-400" /> {listing.mainLocation.name}
                 </p>
               )}
             </div>
@@ -145,17 +145,17 @@ export default function VendorWanderBookingDetailPage() {
             </div>
           )}
           {booking.status === 'PAYMENT_SUBMITTED' && (
-            <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
-              <Hourglass className="w-4 h-4 text-orange-600 flex-shrink-0" />
-              <p className="text-sm text-orange-700 font-medium">
+            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+              <Hourglass className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <p className="text-sm text-emerald-700 font-medium">
                 Customer has submitted payment — awaiting admin verification.
               </p>
             </div>
           )}
           {booking.status === 'PAYMENT_PENDING' && (
-            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-              <Info className="w-4 h-4 text-amber-600 flex-shrink-0" />
-              <p className="text-sm text-amber-700 font-medium">
+            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+              <Info className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <p className="text-sm text-emerald-700 font-medium">
                 Waiting for customer advance payment to confirm this booking.
               </p>
             </div>
@@ -174,9 +174,9 @@ export default function VendorWanderBookingDetailPage() {
             </div>
           )}
           {booking.status === 'STARTED' && (
-            <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 mb-4">
-              <Play className="w-4 h-4 text-indigo-600 flex-shrink-0" />
-              <p className="text-sm text-indigo-700 font-medium">Tour is currently in progress.</p>
+            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 mb-4">
+              <Play className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <p className="text-sm text-emerald-700 font-medium">Tour is currently in progress.</p>
             </div>
           )}
           <div className="flex gap-3 flex-wrap">
@@ -184,7 +184,7 @@ export default function VendorWanderBookingDetailPage() {
               <button
                 onClick={() => handleAction('start')}
                 disabled={actionLoading}
-                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 transition"
+                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition"
               >
                 {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                 Start Tour
@@ -209,7 +209,7 @@ export default function VendorWanderBookingDetailPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-gray-100">
             <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-              <CalendarCheck className="w-4 h-4 text-indigo-500" /> Trip Details
+              <CalendarCheck className="w-4 h-4 text-emerald-500" /> Trip Details
             </h2>
           </div>
           <div className="p-5 space-y-4">
@@ -219,7 +219,7 @@ export default function VendorWanderBookingDetailPage() {
               label="Group Size"
               value={
                 <span className="flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 text-indigo-400" />
+                  <Users className="w-3.5 h-3.5 text-emerald-400" />
                   {booking.groupSize} person{booking.groupSize !== 1 ? 's' : ''}
                 </span>
               }
@@ -229,16 +229,16 @@ export default function VendorWanderBookingDetailPage() {
                 label="Pickup"
                 value={
                   <span className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-indigo-400" />
+                    <MapPin className="w-3.5 h-3.5 text-emerald-400" />
                     {booking.quoteRequest.pickupLocation}
                   </span>
                 }
               />
             )}
             {booking.quoteRequest?.requirements && (
-              <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3">
-                <p className="text-[10px] text-indigo-400 uppercase tracking-wider mb-1">Special Requirements</p>
-                <p className="text-sm text-indigo-800">{booking.quoteRequest.requirements}</p>
+              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+                <p className="text-[10px] text-emerald-400 uppercase tracking-wider mb-1">Special Requirements</p>
+                <p className="text-sm text-emerald-800">{booking.quoteRequest.requirements}</p>
               </div>
             )}
           </div>
@@ -249,9 +249,9 @@ export default function VendorWanderBookingDetailPage() {
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between gap-2">
             <h2 className="font-bold text-gray-900 text-sm">Customer Details</h2>
             {booking.isB2BBooking && booking.companyName ? (
-              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">🏢 B2B — Company</span>
+              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">🏢 B2B — Company</span>
             ) : booking.isB2BBooking ? (
-              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">👤 B2B — Personal</span>
+              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">👤 B2B — Personal</span>
             ) : (
               <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">👤 Regular</span>
             )}
@@ -259,13 +259,13 @@ export default function VendorWanderBookingDetailPage() {
           <div className="p-5 space-y-4">
             <Row label="Name" value={booking.customer?.name || '—'} />
             {booking.isB2BBooking && booking.companyName && (
-              <Row label="Company" value={<span className="text-blue-700 font-semibold">🏢 {booking.companyName}</span>} />
+              <Row label="Company" value={<span className="text-emerald-700 font-semibold">🏢 {booking.companyName}</span>} />
             )}
             {booking.customer?.phone && (
               <Row
                 label="Phone"
                 value={
-                  <a href={`tel:${booking.customer.phone}`} className="text-indigo-600 hover:underline flex items-center gap-1">
+                  <a href={`tel:${booking.customer.phone}`} className="text-emerald-600 hover:underline flex items-center gap-1">
                     <Phone className="w-3.5 h-3.5" /> {booking.customer.phone}
                   </a>
                 }
@@ -275,7 +275,7 @@ export default function VendorWanderBookingDetailPage() {
               <Row
                 label="Email"
                 value={
-                  <a href={`mailto:${booking.customer.email}`} className="text-indigo-600 hover:underline flex items-center gap-1 text-sm">
+                  <a href={`mailto:${booking.customer.email}`} className="text-emerald-600 hover:underline flex items-center gap-1 text-sm">
                     <Mail className="w-3.5 h-3.5" /> {booking.customer.email}
                   </a>
                 }
@@ -289,14 +289,14 @@ export default function VendorWanderBookingDetailPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-gray-100">
             <h2 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-              <IndianRupee className="w-4 h-4 text-indigo-500" /> Payment Details
+              <IndianRupee className="w-4 h-4 text-emerald-500" /> Payment Details
             </h2>
           </div>
           <div className="p-5 space-y-4">
             <Row
               label="Total Amount"
               value={
-                <span className="text-lg font-black text-indigo-700">
+                <span className="text-lg font-black text-emerald-700">
                   ₹{Number(booking.amount).toLocaleString('en-IN')}
                 </span>
               }
@@ -318,7 +318,7 @@ export default function VendorWanderBookingDetailPage() {
               value={
                 booking.advancePaid
                   ? <span className="text-emerald-600 font-semibold flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Yes</span>
-                  : <span className="text-amber-600 font-semibold">No</span>
+                  : <span className="text-emerald-600 font-semibold">No</span>
               }
             />
             {booking.advancePaymentRef && (
@@ -342,9 +342,9 @@ export default function VendorWanderBookingDetailPage() {
                 <Row label="Per Person" value={`₹${Number(booking.quote.perPersonAmount).toLocaleString('en-IN')}`} />
               )}
               {booking.quote.notes && (
-                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
-                  <p className="text-[10px] text-amber-500 uppercase tracking-wider mb-1">Your Note</p>
-                  <p className="text-sm text-amber-800">{booking.quote.notes}</p>
+                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+                  <p className="text-[10px] text-emerald-500 uppercase tracking-wider mb-1">Your Note</p>
+                  <p className="text-sm text-emerald-800">{booking.quote.notes}</p>
                 </div>
               )}
               {(inclusions.length > 0 || exclusions.length > 0) && (

@@ -58,12 +58,12 @@ interface Stats {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   PENDING_PAYMENT: { label: 'Pending Payment', color: 'bg-yellow-100 text-yellow-700', icon: AlertCircle },
-  PAYMENT_SUBMITTED: { label: 'Payment Submitted', color: 'bg-orange-100 text-orange-700', icon: Clock },
-  ADVANCE_PAID: { label: 'Advance Paid', color: 'bg-blue-100 text-blue-700', icon: CheckCircle },
+  PAYMENT_SUBMITTED: { label: 'Payment Submitted', color: 'bg-emerald-100 text-emerald-700', icon: Clock },
+  ADVANCE_PAID: { label: 'Advance Paid', color: 'bg-emerald-100 text-emerald-700', icon: CheckCircle },
   CONFIRMED: { label: 'Confirmed', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-  VEHICLE_ASSIGNED: { label: 'Vehicle Assigned', color: 'bg-indigo-100 text-indigo-700', icon: Truck },
-  LOADING: { label: 'Loading', color: 'bg-orange-100 text-orange-700', icon: Truck },
-  IN_TRANSIT: { label: 'In Transit', color: 'bg-purple-100 text-purple-700', icon: Navigation },
+  VEHICLE_ASSIGNED: { label: 'Vehicle Assigned', color: 'bg-emerald-100 text-emerald-700', icon: Truck },
+  LOADING: { label: 'Loading', color: 'bg-emerald-100 text-emerald-700', icon: Truck },
+  IN_TRANSIT: { label: 'In Transit', color: 'bg-emerald-100 text-emerald-700', icon: Navigation },
   UNLOADING: { label: 'Unloading', color: 'bg-teal-100 text-teal-700', icon: Truck },
   COMPLETED: { label: 'Completed', color: 'bg-gray-100 text-gray-700', icon: CheckCircle },
   CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-700', icon: XCircle },
@@ -166,8 +166,8 @@ export default function VendorTransporterBookingsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-            <CalendarCheck className="w-5 h-5 text-indigo-600" />
+          <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+            <CalendarCheck className="w-5 h-5 text-emerald-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
@@ -184,7 +184,7 @@ export default function VendorTransporterBookingsPage() {
           value={searchInput}
           onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="Search by customer name, phone, email, booking number..."
-          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
         />
         {searchInput && (
           <button
@@ -205,7 +205,7 @@ export default function VendorTransporterBookingsPage() {
           <p className="text-sm text-gray-500">Upcoming</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-purple-100">
-          <p className="text-2xl font-bold text-purple-600">
+          <p className="text-2xl font-bold text-emerald-600">
             {stats.active}
           </p>
           <p className="text-sm text-gray-500">In Transit</p>
@@ -216,8 +216,8 @@ export default function VendorTransporterBookingsPage() {
           </p>
           <p className="text-sm text-gray-500">Completed</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-indigo-100">
-          <p className="text-2xl font-bold text-indigo-600">
+        <div className="bg-white rounded-xl p-4 border border-emerald-100">
+          <p className="text-2xl font-bold text-emerald-600">
             ₹{(stats.totalEarnings || 0).toLocaleString()}
           </p>
           <p className="text-sm text-gray-500">Total Earnings</p>
@@ -241,7 +241,7 @@ export default function VendorTransporterBookingsPage() {
               }}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
                 filter === f.value
-                  ? 'bg-indigo-100 text-indigo-700'
+                  ? 'bg-emerald-100 text-emerald-700'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -297,8 +297,8 @@ export default function VendorTransporterBookingsPage() {
                 <div className="p-4 md:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-                        <Truck className="w-6 h-6 text-indigo-600" />
+                      <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                        <Truck className="w-6 h-6 text-emerald-600" />
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-900">{booking.vehicleName || getCategoryName(booking.vehicleCategory) || booking.vehicleCategory}</h3>
@@ -317,7 +317,7 @@ export default function VendorTransporterBookingsPage() {
                         ₹{booking.totalAmount?.toLocaleString()}
                       </p>
                       {balanceAmount > 0 && (
-                        <p className="text-sm text-indigo-600">
+                        <p className="text-sm text-emerald-600">
                           Balance: ₹{balanceAmount.toLocaleString()}
                         </p>
                       )}
@@ -326,7 +326,7 @@ export default function VendorTransporterBookingsPage() {
 
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
                     <div className="flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-indigo-500" />
+                      <Calendar className="w-4 h-4 text-emerald-500" />
                       {new Date(booking.pickupDate).toLocaleDateString('en-IN', {
                         day: 'numeric',
                         month: 'short',
@@ -377,7 +377,7 @@ export default function VendorTransporterBookingsPage() {
                     {!booking.vehicleNumber && ['ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
                       <Link
                         href={`/vendor/transporter/bookings/${booking.id}`}
-                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition flex items-center gap-1"
+                        className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition flex items-center gap-1"
                       >
                         <Truck className="w-4 h-4" />
                         Assign Driver & Vehicle
