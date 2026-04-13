@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       return acc;
     }, {} as Record<string, { count: number; revenue: number }>);
 
-    // Get conversion funnel
+    // Get conversion funnel — single groupBy instead of 6 separate count queries
     const funnelSteps = [
       'PAGE_VISIT',
       'SEARCH',
@@ -69,150 +69,107 @@ export async function GET(request: NextRequest) {
       'BOOKING_COMPLETED',
     ];
 
-    const funnelData = await Promise.all(
-      funnelSteps.map(async (step, index) => {
-        const count = await prisma.conversion_events.count({
-          where: {
-            eventType: step as any,
-            timestamp: { gte: startDate },
-          },
-        });
+    const funnelCounts = await prisma.conversion_events.groupBy({
+      by: ['eventType'],
+      where: {
+        eventType: { in: funnelSteps as any[] },
+        timestamp: { gte: startDate },
+      },
+      _count: true,
+    });
 
-        return {
-          step,
-          stepOrder: index + 1,
-          visitors: count,
-          conversionRate: 0, // Will calculate below
-        };
-      })
-    );
-
-    // Calculate conversion rates
+    const funnelCountMap = Object.fromEntries(funnelCounts.map(f => [f.eventType, f._count]));
+    const funnelData = funnelSteps.map((step, index) => ({
+      step,
+      stepOrder: index + 1,
+      visitors: funnelCountMap[step] || 0,
+      conversionRate: 0,
+    }));
     for (let i = 1; i < funnelData.length; i++) {
       if (funnelData[i - 1].visitors > 0) {
-        funnelData[i].conversionRate =
-          (funnelData[i].visitors / funnelData[i - 1].visitors) * 100;
+        funnelData[i].conversionRate = (funnelData[i].visitors / funnelData[i - 1].visitors) * 100;
       }
     }
 
-    // Get traffic sources performance
-    const sourcePerformance = await prisma.conversion_events.groupBy({
-      by: ['source'],
-      where: {
-        timestamp: { gte: startDate },
-        source: { not: null },
-      },
-      _count: true,
+    // Fetch all BOOKING_COMPLETED events once — use in JS for source/page/device breakdown
+    const [allCompletedBookings, sourcePerformance, topPages, devicePerformance, dailyTrend] = await Promise.all([
+      prisma.conversion_events.findMany({
+        where: { eventType: 'BOOKING_COMPLETED', timestamp: { gte: startDate } },
+        select: { source: true, pagePath: true, device: true, bookingValue: true },
+      }),
+      prisma.conversion_events.groupBy({
+        by: ['source'],
+        where: { timestamp: { gte: startDate }, source: { not: null } },
+        _count: true,
+      }),
+      prisma.conversion_events.groupBy({
+        by: ['pagePath'],
+        where: { eventType: 'PAGE_VISIT', timestamp: { gte: startDate } },
+        _count: true,
+        orderBy: { _count: { pagePath: 'desc' } },
+        take: 10,
+      }),
+      prisma.conversion_events.groupBy({
+        by: ['device'],
+        where: { timestamp: { gte: startDate }, device: { not: null } },
+        _count: true,
+      }),
+      prisma.$queryRaw<Array<{ date: Date; visits: number; conversions: number }>>`
+        SELECT
+          DATE(timestamp) as date,
+          COUNT(*) as visits,
+          SUM(CASE WHEN eventType = 'BOOKING_COMPLETED' THEN 1 ELSE 0 END) as conversions
+        FROM conversion_events
+        WHERE timestamp >= ${startDate}
+        GROUP BY DATE(timestamp)
+        ORDER BY date ASC
+      `,
+    ]);
+
+    // Aggregate completed bookings by source, page, device in JS (no extra queries)
+    const completedBySource: Record<string, { count: number; revenue: number }> = {};
+    const completedByPage: Record<string, number> = {};
+    const completedByDevice: Record<string, number> = {};
+    allCompletedBookings.forEach(b => {
+      const src = b.source || 'direct';
+      if (!completedBySource[src]) completedBySource[src] = { count: 0, revenue: 0 };
+      completedBySource[src].count++;
+      completedBySource[src].revenue += b.bookingValue || 0;
+      if (b.pagePath) completedByPage[b.pagePath] = (completedByPage[b.pagePath] || 0) + 1;
+      if (b.device) completedByDevice[b.device] = (completedByDevice[b.device] || 0) + 1;
     });
 
-    const sourceWithConversions = await Promise.all(
-      sourcePerformance.map(async (source) => {
-        const conversions = await prisma.conversion_events.count({
-          where: {
-            source: source.source,
-            eventType: 'BOOKING_COMPLETED',
-            timestamp: { gte: startDate },
-          },
-        });
+    const sourceWithConversions = sourcePerformance.map(s => {
+      const src = s.source || 'direct';
+      const completed = completedBySource[src] || { count: 0, revenue: 0 };
+      return {
+        source: src,
+        visits: s._count,
+        conversions: completed.count,
+        conversionRate: s._count > 0 ? (completed.count / s._count) * 100 : 0,
+        revenue: completed.revenue,
+      };
+    }).sort((a, b) => b.revenue - a.revenue);
 
-        const revenue = await prisma.conversion_events.aggregate({
-          where: {
-            source: source.source,
-            eventType: 'BOOKING_COMPLETED',
-            timestamp: { gte: startDate },
-          },
-          _sum: {
-            bookingValue: true,
-          },
-        });
-
-        return {
-          source: source.source || 'direct',
-          visits: source._count,
-          conversions,
-          conversionRate: (conversions / source._count) * 100,
-          revenue: revenue._sum.bookingValue || 0,
-        };
-      })
-    );
-
-    // Get top pages by traffic
-    const topPages = await prisma.conversion_events.groupBy({
-      by: ['pagePath'],
-      where: {
-        eventType: 'PAGE_VISIT',
-        timestamp: { gte: startDate },
-      },
-      _count: true,
-      orderBy: {
-        _count: {
-          pagePath: 'desc',
-        },
-      },
-      take: 10,
+    const topPagesWithConversions = topPages.map(p => {
+      const conversions = completedByPage[p.pagePath || ''] || 0;
+      return {
+        page: p.pagePath,
+        visits: p._count,
+        conversions,
+        conversionRate: p._count > 0 ? (conversions / p._count) * 100 : 0,
+      };
     });
 
-    const topPagesWithConversions = await Promise.all(
-      topPages.map(async (page) => {
-        const conversions = await prisma.conversion_events.count({
-          where: {
-            pagePath: page.pagePath,
-            eventType: 'BOOKING_COMPLETED',
-            timestamp: { gte: startDate },
-          },
-        });
-
-        return {
-          page: page.pagePath,
-          visits: page._count,
-          conversions,
-          conversionRate: page._count > 0 ? (conversions / page._count) * 100 : 0,
-        };
-      })
-    );
-
-    // Get daily trend
-    const dailyTrend = await prisma.$queryRaw<
-      Array<{ date: Date; visits: number; conversions: number }>
-    >`
-      SELECT
-        DATE(timestamp) as date,
-        COUNT(*) as visits,
-        SUM(CASE WHEN eventType = 'BOOKING_COMPLETED' THEN 1 ELSE 0 END) as conversions
-      FROM conversion_events
-      WHERE timestamp >= ${startDate}
-      GROUP BY DATE(timestamp)
-      ORDER BY date ASC
-    `;
-
-    // Get device performance
-    const devicePerformance = await prisma.conversion_events.groupBy({
-      by: ['device'],
-      where: {
-        timestamp: { gte: startDate },
-        device: { not: null },
-      },
-      _count: true,
+    const deviceWithConversions = devicePerformance.map(d => {
+      const conversions = completedByDevice[d.device || ''] || 0;
+      return {
+        device: d.device || 'unknown',
+        visits: d._count,
+        conversions,
+        conversionRate: d._count > 0 ? (conversions / d._count) * 100 : 0,
+      };
     });
-
-    const deviceWithConversions = await Promise.all(
-      devicePerformance.map(async (device) => {
-        const conversions = await prisma.conversion_events.count({
-          where: {
-            device: device.device,
-            eventType: 'BOOKING_COMPLETED',
-            timestamp: { gte: startDate },
-          },
-        });
-
-        return {
-          device: device.device || 'unknown',
-          visits: device._count,
-          conversions,
-          conversionRate: (conversions / device._count) * 100,
-        };
-      })
-    );
 
     return NextResponse.json({
       summary: {

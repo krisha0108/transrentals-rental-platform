@@ -3,9 +3,32 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
+import { SERVICE_PARENT_MAP } from '@/lib/constants/service-mapping';
+import { STATIC_PAGES } from '@/lib/seo/service-meta-templates';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
+
+// Map SERVICE_PARENT_MAP parent slugs → actual DB service slugs (same as seo/overview)
+const PARENT_TO_DB_SLUG: Record<string, string> = {
+  'bike-rental': 'bike-on-rent',
+  'self-drive-car-rental': 'self-drive-car-rentals',
+  'car-rental-with-driver': 'car-rental',
+  'truck-tempo-rental': 'transporter',
+  'packers-movers': 'packers-and-movers',
+};
+
+// Build dbSlug → number of public sub-service slugs
+const SUB_SERVICE_COUNT: Record<string, number> = {};
+for (const [childSlug, parentSlug] of Object.entries(SERVICE_PARENT_MAP)) {
+  if (!childSlug.includes('/')) {
+    const dbSlug = PARENT_TO_DB_SLUG[parentSlug] || parentSlug;
+    SUB_SERVICE_COUNT[dbSlug] = (SUB_SERVICE_COUNT[dbSlug] || 0) + 1;
+  }
+}
+
+// Services that generate pages for ALL active DB locations
+const ALL_LOCATIONS_SERVICES = new Set(['bike-on-rent', 'self-drive-car-rentals']);
 
 // GET - Get page analytics data
 export async function GET(request: NextRequest) {
@@ -42,31 +65,53 @@ export async function GET(request: NextRequest) {
       createdAt: { gte: startDate, lte: now },
     };
 
-    // Fetch all page-related data
-    const [pageViews, pageAnalytics, pagePerformance, seoAudits, searchQueries, crawlData] = await Promise.all([
+    // Batch 1: analytics data (5 queries — stays within connection pool limit of 5)
+    const [pageViews, pageAnalytics, pagePerformance, seoAudits, crawlData] = await Promise.all([
       prisma.page_views.findMany({
         where: dateFilter,
         orderBy: { createdAt: 'desc' },
+        take: 50000, // cap to avoid memory/timeout issues on large datasets
       }),
       prisma.page_analytics.findMany({
-        where: {
-          date: { gte: startDate, lte: now },
-        },
+        where: { date: { gte: startDate, lte: now } },
         orderBy: { pageViews: 'desc' },
       }),
       prisma.page_performance.findMany({
         orderBy: { totalViews: 'desc' },
       }),
       prisma.seo_audits.findMany(),
-      prisma.search_queries.findMany({
-        where: {
-          date: { gte: startDate, lte: now },
-        },
-      }),
       prisma.crawl_data.findFirst({
         orderBy: { crawlDate: 'desc' },
       }),
     ]);
+
+    // Batch 2: search queries + total site page count (4 queries)
+    const [searchQueries, servicesWithCounts, totalActiveLocations, routeCount] = await Promise.all([
+      prisma.search_queries.findMany({
+        where: { date: { gte: startDate, lte: now } },
+      }),
+      prisma.services.findMany({
+        where: { parentId: null },
+        select: {
+          slug: true,
+          _count: { select: { service_locations: { where: { isActive: true } } } },
+        },
+      }),
+      prisma.locations.count({ where: { isActive: true, type: { in: ['CITY', 'UNION_TERRITORY'] } } }),
+      prisma.chauffeur_route_packages.count({ where: { isActive: true } }),
+    ]);
+
+    // Compute total site pages (same logic as seo/overview)
+    const totalSitePages = (() => {
+      let count = STATIC_PAGES.length;
+      for (const s of servicesWithCounts) {
+        const rawLocs = ALL_LOCATIONS_SERVICES.has(s.slug) ? totalActiveLocations : s._count.service_locations;
+        const subCount = SUB_SERVICE_COUNT[s.slug] || 1;
+        count += rawLocs * subCount;
+      }
+      count += routeCount * 2; // each route pair = 2 pages (one-way + round-trip)
+      return count;
+    })();
 
     // Aggregate page data
     const pageStats: Record<string, {
@@ -86,7 +131,10 @@ export async function GET(request: NextRequest) {
     }> = {};
 
     // Process page views
-    pageViews.forEach((pv: { path: string; sessionId: string | null; ipAddress: string | null; duration: number | null; device: string | null }) => {
+    // Also build session map for entrance/exit computation
+    const sessionMap: Record<string, Array<{ path: string; createdAt: Date }>> = {};
+
+    pageViews.forEach((pv: { path: string; sessionId: string | null; ipAddress: string | null; duration: number | null; device: string | null; createdAt: Date }) => {
       if (!pageStats[pv.path]) {
         pageStats[pv.path] = {
           pageViews: 0,
@@ -112,9 +160,24 @@ export async function GET(request: NextRequest) {
       if (pv.device === 'mobile') pageStats[pv.path].mobileViews++;
       else if (pv.device === 'tablet') pageStats[pv.path].tabletViews++;
       else pageStats[pv.path].desktopViews++;
+
+      // Track page order per session for entrance/exit computation
+      const sessionKey = pv.sessionId || pv.ipAddress || 'unknown';
+      if (!sessionMap[sessionKey]) sessionMap[sessionKey] = [];
+      sessionMap[sessionKey].push({ path: pv.path, createdAt: pv.createdAt });
     });
 
-    // Merge with page analytics data
+    // Compute entrances/exits from session data (first/last page per session)
+    Object.values(sessionMap).forEach(pages => {
+      if (!pages.length) return;
+      const sorted = pages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      const entryPath = sorted[0].path;
+      const exitPath = sorted[sorted.length - 1].path;
+      if (pageStats[entryPath]) pageStats[entryPath].entrances++;
+      if (pageStats[exitPath]) pageStats[exitPath].exits++;
+    });
+
+    // Merge with page analytics data (if available)
     pageAnalytics.forEach((pa: { pagePath: string; entrances: number; exits: number; avgTimeOnPage: number | null }) => {
       if (!pageStats[pa.pagePath]) {
         pageStats[pa.pagePath] = {
@@ -133,8 +196,9 @@ export async function GET(request: NextRequest) {
           visitors: new Set(),
         };
       }
-      pageStats[pa.pagePath].entrances += pa.entrances;
-      pageStats[pa.pagePath].exits += pa.exits;
+      // page_analytics entrances/exits take precedence over session-derived values
+      pageStats[pa.pagePath].entrances = pa.entrances;
+      pageStats[pa.pagePath].exits = pa.exits;
       if (pa.avgTimeOnPage) {
         pageStats[pa.pagePath].avgTimeOnPage.push(pa.avgTimeOnPage);
       }
@@ -168,9 +232,10 @@ export async function GET(request: NextRequest) {
 
         const totalViews = stats.pageViews;
         const exitRate = totalViews > 0 ? Number(((stats.exits / totalViews) * 100).toFixed(1)) : 0;
+        // bounceRate: use exits/entrances ratio as a proxy (single-page sessions / total sessions entering here)
         const bounceRate = stats.entrances > 0
-          ? Number((30 + Math.random() * 25).toFixed(1)) // Estimate if no data
-          : 35;
+          ? Number(Math.min(95, Math.max(5, (stats.exits / stats.entrances) * 100)).toFixed(1))
+          : 0;
 
         // Calculate mobile/desktop scores based on performance
         let mobileScore = 80;
@@ -182,14 +247,14 @@ export async function GET(request: NextRequest) {
           desktopScore = Math.round((lcpScore + clsScore) / 2);
         }
 
-        // Determine status
+        // Determine status — based on crawl/indexability only, NOT performance score
+        // (POOR performance ≠ HTTP error; status badge = indexed/not-indexed/error)
         let status: 'indexed' | 'not-indexed' | 'error' = 'indexed';
         if (audit && !audit.isIndexable) status = 'not-indexed';
-        if (perf && perf.overallStatus === 'POOR') status = 'error';
 
         return {
           url,
-          title: audit?.pageTitle || url,
+          title: audit?.pageTitle || perf?.pageTitle || url,
           pageViews: totalViews,
           uniqueViews: stats.visitors.size,
           avgTimeOnPage: avgTime,
@@ -211,15 +276,17 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.pageViews - a.pageViews);
 
     // Calculate overview stats
-    const totalPages = pages.length;
-    const avgPageViews = totalPages > 0
-      ? Math.round(pages.reduce((sum, p) => sum + p.pageViews, 0) / totalPages)
+    // totalSitePages = actual pages on the site (from DB service-location combos + routes + static)
+    // pages.length = only visited pages (from page_views)
+    const visitedPageCount = pages.length;
+    const avgPageViews = visitedPageCount > 0
+      ? Math.round(pages.reduce((sum, p) => sum + p.pageViews, 0) / visitedPageCount)
       : 0;
-    const avgTimeOnPage = totalPages > 0
-      ? Math.round(pages.reduce((sum, p) => sum + p.avgTimeOnPage, 0) / totalPages)
+    const avgTimeOnPage = visitedPageCount > 0
+      ? Math.round(pages.reduce((sum, p) => sum + p.avgTimeOnPage, 0) / visitedPageCount)
       : 0;
-    const avgBounceRate = totalPages > 0
-      ? Number((pages.reduce((sum, p) => sum + p.bounceRate, 0) / totalPages).toFixed(1))
+    const avgBounceRate = visitedPageCount > 0
+      ? Number((pages.reduce((sum, p) => sum + p.bounceRate, 0) / visitedPageCount).toFixed(1))
       : 0;
 
     // Daily trends
@@ -299,12 +366,15 @@ export async function GET(request: NextRequest) {
         avgViews: data.count > 0 ? Math.round(data.views / data.count) : 0,
       }));
 
-    // Crawl status
+    // Crawl status — prefer crawl_data table, fall back to page status counts
+    const indexedCount = pages.filter(p => p.status === 'indexed').length;
+    const notIndexedCount = pages.filter(p => p.status === 'not-indexed').length;
+    const errorCount = pages.filter(p => p.status === 'error').length;
     const crawlStatus = {
-      indexed: crawlData?.indexedPages || pages.filter(p => p.status === 'indexed').length,
-      discovered: crawlData?.totalPages ? crawlData.totalPages - (crawlData.indexedPages || 0) : 0,
-      excluded: crawlData?.nonIndexedPages || pages.filter(p => p.status === 'not-indexed').length,
-      errors: crawlData?.errorPages || pages.filter(p => p.status === 'error').length,
+      indexed: crawlData?.indexedPages ?? indexedCount,
+      discovered: crawlData ? Math.max(0, crawlData.totalPages - (crawlData.indexedPages || 0)) : 0,
+      excluded: crawlData?.nonIndexedPages ?? notIndexedCount,
+      errors: crawlData?.errorPages ?? errorCount,
     };
 
     // Pagination
@@ -316,7 +386,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       overview: {
-        totalPages,
+        totalPages: totalSitePages,
         avgPageViews,
         avgTimeOnPage,
         avgBounceRate,
@@ -332,8 +402,8 @@ export async function GET(request: NextRequest) {
         hasMore: page < totalPagesCount,
       },
       trends: trends.length > 0 ? trends : generateMockTrends(),
-      entryPages: entryPages.length > 0 ? entryPages : generateMockEntryPages(),
-      exitPages: exitPages.length > 0 ? exitPages : generateMockExitPages(),
+      entryPages,
+      exitPages,
       pageTypesBreakdown,
       crawlStatus,
     });
@@ -351,8 +421,8 @@ export async function GET(request: NextRequest) {
       },
       pages: [],
       trends: generateMockTrends(),
-      entryPages: generateMockEntryPages(),
-      exitPages: generateMockExitPages(),
+      entryPages: [],
+      exitPages: [],
       pageTypesBreakdown: [],
       crawlStatus: { indexed: 0, discovered: 0, excluded: 0, errors: 0 },
     });

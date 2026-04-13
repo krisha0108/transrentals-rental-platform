@@ -21,12 +21,13 @@ export async function GET(request: NextRequest) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    // Fetch page view data
+    // Fetch page view data (capped to avoid memory/timeout on large datasets)
     const pageViews = await prisma.page_views.findMany({
       where: {
         createdAt: { gte: startDate },
       },
       orderBy: { createdAt: 'desc' },
+      take: 50000,
     });
 
     // Calculate overview metrics
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Top pages
+    // Top pages — also track per-page session entrances/exits for bounce rate
     const pageCounts = pageViews.reduce((acc, v) => {
       const page = v.path || '/';
       if (!acc[page]) acc[page] = { views: 0, uniqueViews: 0, sessionIds: new Set<string>(), durations: [] as number[] };
@@ -111,14 +112,38 @@ export async function GET(request: NextRequest) {
       return acc;
     }, {} as Record<string, { views: number; uniqueViews: number; sessionIds: Set<string>; durations: number[] }>);
 
+    // Compute per-page entrances and exits from session order (for bounce rate)
+    const sessionPagesMap: Record<string, Array<{ path: string; createdAt: Date }>> = {};
+    pageViews.forEach(v => {
+      const key = v.sessionId || v.ipAddress || 'unknown';
+      if (!sessionPagesMap[key]) sessionPagesMap[key] = [];
+      sessionPagesMap[key].push({ path: v.path || '/', createdAt: v.createdAt });
+    });
+    const pageEntrances: Record<string, number> = {};
+    const pageExits: Record<string, number> = {};
+    Object.values(sessionPagesMap).forEach(pages => {
+      const sorted = pages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      const entry = sorted[0].path;
+      const exit = sorted[sorted.length - 1].path;
+      pageEntrances[entry] = (pageEntrances[entry] || 0) + 1;
+      pageExits[exit] = (pageExits[exit] || 0) + 1;
+    });
+
     const topPages = Object.entries(pageCounts)
-      .map(([page, data]) => ({
-        page,
-        views: data.views,
-        uniqueViews: data.uniqueViews,
-        avgTime: data.durations.length > 0 ? Math.round(data.durations.reduce((a, b) => a + b, 0) / data.durations.length) : 0,
-        bounceRate: Number((Math.random() * 40 + 20).toFixed(1)),
-      }))
+      .map(([page, data]) => {
+        const entrances = pageEntrances[page] || 0;
+        const exits = pageExits[page] || 0;
+        const bounceRate = entrances > 0
+          ? Number(Math.min(95, Math.max(0, (exits / entrances) * 100)).toFixed(1))
+          : 0;
+        return {
+          page,
+          views: data.views,
+          uniqueViews: data.uniqueViews,
+          avgTime: data.durations.length > 0 ? Math.round(data.durations.reduce((a, b) => a + b, 0) / data.durations.length) : 0,
+          bounceRate,
+        };
+      })
       .sort((a, b) => b.views - a.views)
       .slice(0, 10);
 
