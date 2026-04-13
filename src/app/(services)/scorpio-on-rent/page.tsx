@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { formatPriceHighlight } from '@/lib/utils';
@@ -13,23 +13,14 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://transrentals.in/scorpio-on-rent' },
 };
 
-const topCities = ALL_CITIES.slice(0, 12);
+const topCities = ALL_CITIES.slice(0, 60);
 
 export default function ScorpioOnRentPage() {
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Big Daddy of SUVs"
-        title="Scorpio on Rent Without Driver"
-        titleHighlight="Starting @₹2499/Day"
-        description="Mahindra Scorpio-N - The rugged, powerful SUV for adventure trips and outstation travel. 6 & 7 seater options with 4x4."
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: '4x4 Available', color: 'text-amber-600' },
-        ]}
-        gradientFrom="amber-50"
-        gradientTo="orange-50"
+      <SwiftRentalTypeHero
+        vehicleName="Mahindra Scorpio"
+        selfDrivePrice="₹2,499/day"
       />
 
       <section className="relative bg-gradient-to-br from-amber-700 to-orange-800 text-white py-16">
@@ -38,7 +29,6 @@ export default function ScorpioOnRentPage() {
             <h1 className="text-4xl md:text-5xl font-bold mb-6">Mahindra Scorpio on Rent</h1>
             <p className="text-xl opacity-90 mb-8">Scorpio-N Z4 • Z6 • Z8 • Z8 L • Scorpio Classic</p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <a href="#variants" className="bg-white text-amber-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">View Variants</a>
               <a href="#cities" className="border-2 border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-amber-700 transition">Find Near You</a>
             </div>
           </div>
@@ -87,7 +77,7 @@ export default function ScorpioOnRentPage() {
 
       <section id="cities" className="py-12 bg-white">
         <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Scorpio on Rent in 200+ Cities</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Scorpio on Rent Across India</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {topCities.map((city) => (
               <Link key={city.slug} href={`/scorpio-on-rent/${city.slug}`} className="p-3 bg-gray-50 rounded-lg text-center hover:bg-amber-50 border border-gray-200 transition">

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { formatPriceHighlight } from '@/lib/utils';
@@ -27,23 +27,14 @@ export const metadata: Metadata = {
   },
 };
 
-const topCities = ALL_CITIES.slice(0, 12);
+const topCities = ALL_CITIES.slice(0, 60);
 
 export default function SelfDriveSUVRentalPage() {
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Self Drive SUV Rental"
-        title="Rent SUV Without Driver"
-        titleHighlight="Starting @₹1999/Day"
-        description="Self-drive SUV rental for road trips, family travel, and adventure. Spacious, powerful, and comfortable. Drive yourself with complete freedom."
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Unlimited KM Options', color: 'text-blue-600' },
-        ]}
-        gradientFrom="slate-50"
-        gradientTo="blue-50"
+      <SwiftRentalTypeHero
+        vehicleName="Self Drive SUV"
+        selfDrivePrice="₹1,999/day"
       />
 
       {/* Hero */}
@@ -57,9 +48,6 @@ export default function SelfDriveSUVRentalPage() {
               Creta • Seltos • Scorpio • XUV700 • Fortuner • Harrier
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <a href="#suvs" className="bg-white text-slate-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
-                View SUV Models
-              </a>
               <a href="#cities" className="border-2 border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-slate-800 transition">
                 Find Near You
               </a>
@@ -96,7 +84,7 @@ export default function SelfDriveSUVRentalPage() {
       <section id="cities" className="py-12 bg-white">
         <div className="container-custom">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Self Drive SUV Rental in 200+ Cities
+            Self Drive SUV Rental Across India
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {topCities.map((city) => (
@@ -108,9 +96,6 @@ export default function SelfDriveSUVRentalPage() {
                 <span className="font-medium text-gray-800">{city.name}</span>
               </Link>
             ))}
-          </div>
-          <div className="text-center mt-6">
-            <p className="text-gray-600">+ 190 more cities available</p>
           </div>
         </div>
       </section>

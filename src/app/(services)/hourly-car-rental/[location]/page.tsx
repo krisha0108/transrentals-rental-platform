@@ -11,7 +11,6 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { HourlyCarBookingHero } from '@/components/hourly-car-rental/HourlyCarBookingHero';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
 
@@ -77,22 +76,6 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
           </nav>
         </div>
       </section>
-
-      <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
-        badge={`Hourly Car Rental in ${locationName}`}
-        title="Hourly Self Drive Car Rental"
-        titleHighlight="Pay Only for Hours @₹149/hr"
-        description={`No need to book a full day. Rent a self-drive car in ${locationName} for exactly the hours you need — airport drops, meetings, errands, or evening outings.`}
-        features={[
-          { icon: 'zap', text: '1-Hour Minimum Booking', color: 'text-purple-600' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="purple-50"
-        gradientTo="fuchsia-50"
-      />
 
       {/* Hero with live packages from admin */}
       <HourlyCarBookingHero cityName={locationName} citySlug={params.location} />

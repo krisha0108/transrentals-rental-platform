@@ -14,7 +14,7 @@ const LOCAL_HOST = 'localhost'; // Physical Device -> Your PC's WiFi IP Address 
 // const LOCAL_HOST = '10.0.2.2'; // Android Emulator -> Use this for emulator
 const LOCAL_PORT = 3000; // Next.js dev server port
 
-// New Website API Base URL (transrentals-new backend)
+// New Website API Base URL (transrentals-new backend)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
 const API_BASE_URL = dev
   ? `http://${LOCAL_HOST}:${LOCAL_PORT}/api` // Development
   : 'https://transrentals.in/api'; // Production URL

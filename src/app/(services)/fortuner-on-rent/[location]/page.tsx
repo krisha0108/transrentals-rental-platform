@@ -5,7 +5,7 @@ import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -101,20 +101,11 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
         </div>
       </section>
 
-      <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
-        badge={`Fortuner Rental in ${locationName}`}
-        title="Toyota Fortuner on Rent"
-        titleHighlight="Command the Road @₹3499/day"
-        description={`India's most aspirational SUV, self-drive in ${locationName}. Fortuner's 4WD capability, powerful diesel engine, and imposing presence — for those who drive to dominate.`}
-        features={[
-          { icon: 'zap', text: '4WD Capability', color: 'text-gray-700' },
-          { icon: 'shield', text: 'Diesel Powerhouse', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="gray-50"
-        gradientTo="slate-50"
+      <SwiftRentalTypeHero
+        city={locationName}
+        citySlug={params.location}
+        vehicleName="Toyota Fortuner"
+        selfDrivePrice="₹4,999/day"
       />
 
       <section className="bg-gradient-to-br from-gray-900 to-gray-800 text-white py-12">
