@@ -109,7 +109,22 @@ export async function GET(request: NextRequest) {
       (prisma as any).wander_listings.count({ where }),
     ]);
 
-    return NextResponse.json({ listings, total, page, totalPages: Math.ceil(total / limit) });
+    // Parse JSON string fields stored as LongText
+    const safeJson = (val: any, fallback: any = []) => {
+      if (Array.isArray(val) || (val && typeof val === 'object')) return val;
+      if (!val) return fallback;
+      try { return JSON.parse(val); } catch { return fallback; }
+    };
+
+    const parsed = listings.map((l: any) => ({
+      ...l,
+      images:     safeJson(l.images, []),
+      priceTiers: safeJson(l.priceTiers, []),
+      inclusions: safeJson(l.inclusions, []),
+      vendor: l.vendor ? { ...l.vendor, name: l.vendor.businessName } : null,
+    }));
+
+    return NextResponse.json({ listings: parsed, total, page, totalPages: Math.ceil(total / limit) });
   } catch (error) {
     console.error('[Public Wander Listings]', error);
     return NextResponse.json({ error: 'Failed to fetch listings' }, { status: 500 });

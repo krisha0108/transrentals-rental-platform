@@ -90,13 +90,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fetch Chauffeur Bookings with PARTIAL status (pending verification)
-    // Fetch Chauffeur Bookings (Car Rental) with PENDING_PAYMENT status and payment submitted
+    // Fetch Chauffeur Bookings (Car with Driver) with PAYMENT_SUBMITTED status
     if (bookingType === 'all' || bookingType === 'chauffeur') {
       const chauffeurBookings = await prisma.chauffeur_bookings.findMany({
         where: {
-          status: 'PENDING_PAYMENT', // Only show bookings waiting for admin approval
-          paymentStatus: 'PARTIAL',
+          status: 'PAYMENT_SUBMITTED',
           transactionId: { not: null },
         },
         orderBy: { updatedAt: 'desc' },
@@ -111,12 +109,12 @@ export async function GET(request: NextRequest) {
           customerName: b.customerName,
           customerPhone: b.customerPhone,
           customerEmail: b.customerEmail,
-          serviceType: 'Car Rental',
+          serviceType: 'Car with Driver',
           vehicleName: b.carCategoryName || b.carCategory,
           location: b.pickupCity,
           pickupDate: b.pickupDate,
           grandTotal: b.grandTotal,
-          advanceAmount: b.partialPayment,
+          advanceAmount: b.paidAmount,
           advancePaymentRef: b.transactionId,
           advancePaymentProof: null,
           advancePaymentDate: b.updatedAt,

@@ -134,7 +134,6 @@ const CATEGORIES = [
     image: require('../../assets/packers_movers.png'),
     screen: 'PackerMoverScreen',
   },
- 
 ];
 const TESTIMONIALS = [
   { id: 't1', name: 'Priya S.', text: 'Best rates & super-fast quotes! ⭐⭐⭐⭐⭐', avatar: require('../../assets/yashvi.png') },
@@ -822,6 +821,21 @@ export default function CustomerDashboard() {
             <Text style={styles.statValue}>{recentQuotes.length}</Text>
             <Text style={styles.statLabel}>Active Quotes</Text>
           </TouchableOpacity>
+
+          <View style={styles.statDivider} />
+
+          {/* Wander Tours */}
+          <TouchableOpacity
+            style={styles.statItem}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('MyWanderBookings')}
+          >
+            <View style={[styles.statIconWrap, { backgroundColor: 'rgba(167,243,208,0.25)' }]}>
+              <Ionicons name="compass-outline" size={20} color="#6EE7B7" />
+            </View>
+            <Text style={styles.statValue}>Tours</Text>
+            <Text style={styles.statLabel}>My Wander</Text>
+          </TouchableOpacity>
         </View>
       </LinearGradient>
     </View>
@@ -1101,6 +1115,40 @@ export default function CustomerDashboard() {
               ))}
             </View>
           </View>
+
+          {/* WANDER TOURS QUICK ACCESS */}
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.wanderBanner}
+            onPress={() => navigation.navigate('WanderScreen')}
+          >
+            <LinearGradient
+              colors={['#064E3B', '#065F46', '#047857']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.wanderBannerGrad}
+            >
+              {/* Deco circles */}
+              <View style={[styles.wanderDeco, { width: 90, height: 90, top: -25, right: 60, opacity: 0.12 }]} />
+              <View style={[styles.wanderDeco, { width: 55, height: 55, bottom: -15, right: 10, opacity: 0.1 }]} />
+
+              {/* Left: icon + text */}
+              <View style={styles.wanderBannerLeft}>
+                <View style={styles.wanderIconCircle}>
+                  <Ionicons name="compass" size={26} color="#34D399" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.wanderBannerTitle}>Wander — Tours & Experiences</Text>
+                  <Text style={styles.wanderBannerSub}>Explore curated tours · Get instant quotes</Text>
+                </View>
+              </View>
+
+              {/* Right: pill button */}
+              <View style={styles.wanderViewBtn}>
+                <Text style={styles.wanderViewBtnText}>Explore</Text>
+                <Ionicons name="chevron-forward" size={14} color="#34D399" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
 
           {/* QUICK STATS */}
           <QuickStats />
@@ -2509,5 +2557,48 @@ const styles = StyleSheet.create({
     fontSize: wp('3.3%'),
     color: TEXT_LIGHT,
     fontWeight: '600',
+  },
+
+  /* ── Wander Banner ── */
+  wanderBanner: {
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1.5%'),
+    borderRadius: 20,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: { shadowColor: '#064E3B', shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
+      android: { elevation: 6 },
+    }),
+  },
+  wanderBannerGrad: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: wp('4.5%'), paddingVertical: hp('1.8%'),
+    overflow: 'hidden',
+  },
+  wanderDeco: {
+    position: 'absolute', borderRadius: 999, backgroundColor: '#fff',
+  },
+  wanderBannerLeft: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: wp('3%'),
+  },
+  wanderIconCircle: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: 'rgba(52,211,153,0.18)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  wanderBannerTitle: {
+    fontSize: wp('3.8%'), fontWeight: '800', color: '#fff', marginBottom: 3,
+  },
+  wanderBannerSub: {
+    fontSize: wp('3%'), color: 'rgba(255,255,255,0.65)',
+  },
+  wanderViewBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(52,211,153,0.15)',
+    borderWidth: 1, borderColor: 'rgba(52,211,153,0.35)',
+    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7,
+  },
+  wanderViewBtnText: {
+    fontSize: wp('3.2%'), fontWeight: '700', color: '#34D399',
   },
 });

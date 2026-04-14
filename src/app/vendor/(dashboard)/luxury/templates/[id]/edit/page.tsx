@@ -276,7 +276,7 @@ export default function EditTemplatePage() {
       setSelectedPreset(presetId);
       setFormData({
         ...formData,
-        name: preset.name + ' Blueprint',
+        name: preset.name + ' Template',
         category: preset.category,
         baseAmount: String(preset.baseAmount),
         chauffeurCharges: String(preset.chauffeurCharges),
@@ -419,7 +419,7 @@ export default function EditTemplatePage() {
           <div>
             <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2 tracking-tight leading-none">
               <Crown className="w-5 h-5 text-emerald-600" />
-              Edit Blueprint
+              Edit Template
             </h1>
             <p className="text-sm text-gray-500 mt-1">Synchronizing Asset Protocols</p>
           </div>
@@ -464,7 +464,7 @@ export default function EditTemplatePage() {
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-4 leading-none">
             <Sparkles className="w-4 h-4 text-emerald-600" />
-            <h3 className="font-semibold text-gray-900 text-sm">Blueprint Quick-Start</h3>
+            <h3 className="font-semibold text-gray-900 text-sm">Template Quick-Start</h3>
             <span className="text-xs text-gray-400 ml-2">Flash Overwrite</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -513,7 +513,7 @@ export default function EditTemplatePage() {
           <div className="p-8 border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
             <h3 className="font-semibold text-gray-900 text-sm mb-4 flex items-center gap-2">
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-              Blueprint Core Info
+              Template Core Info
             </h3>
             <div className="space-y-5">
               <div>
@@ -725,7 +725,7 @@ export default function EditTemplatePage() {
           <div className="p-8 border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
             <h3 className="font-semibold text-gray-900 text-sm mb-4 flex items-center gap-2">
               <FileText className="w-4 h-4 text-emerald-600" />
-              Legal Blueprint Directives
+              Legal Template Directives
             </h3>
             <div className="space-y-2 mb-4 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
               {formData.termsConditions.map((item, idx) => (
