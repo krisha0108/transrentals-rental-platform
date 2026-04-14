@@ -89,6 +89,12 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
       return;
     }
 
+    const phoneDigits = customerPhone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10 || !/^[6-9]/.test(phoneDigits)) {
+      alert('Please enter a valid 10-digit Indian mobile number (starting with 6-9)');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -557,8 +563,12 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
                           <input
                             type="tel"
                             value={customerPhone}
-                            onChange={(e) => setCustomerPhone(e.target.value)}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, '');
+                              if (val.length <= 10) setCustomerPhone(val);
+                            }}
                             placeholder="Phone *"
+                            maxLength={10}
                             className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-900"
                           />
                         </div>

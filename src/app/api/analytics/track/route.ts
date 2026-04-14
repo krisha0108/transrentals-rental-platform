@@ -86,24 +86,20 @@ export async function POST(request: NextRequest) {
 
   const prisma = await getPrismaClient();
 
-  try {
-    // Create page view record
-    await prisma.page_views.create({
-      data: {
-        path: path || '/',
-        referrer: referrer || null,
-        userAgent: userAgent.substring(0, 500), // Limit length
-        ipAddress: hashedIP,
-        device,
-        browser,
-        os,
-        sessionId: sessionId || null,
-        duration: duration || null,
-      },
-    });
-  } catch (error) {
-    logger.error('Error tracking page view', error);
-  }
+  // Fire-and-forget: return response immediately, DB write happens in background
+  void prisma.page_views.create({
+    data: {
+      path: path || '/',
+      referrer: referrer || null,
+      userAgent: userAgent.substring(0, 500),
+      ipAddress: hashedIP,
+      device,
+      browser,
+      os,
+      sessionId: sessionId || null,
+      duration: duration || null,
+    },
+  }).catch((error) => logger.error('Error tracking page view', error));
 
   return NextResponse.json({ success: true });
 }

@@ -114,6 +114,12 @@ function BikeBookingPageContent() {
       return;
     }
 
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10 || !/^[6-9]/.test(phoneDigits)) {
+      setError('Please enter a valid 10-digit Indian mobile number (starting with 6-9)');
+      return;
+    }
+
     // Prepare customer info
     const customerInfo = {
       name: formData.name,
@@ -241,8 +247,12 @@ function BikeBookingPageContent() {
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => updateFormData('phone', e.target.value)}
-                    placeholder="+91 9737965551"
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      if (val.length <= 10) updateFormData('phone', val);
+                    }}
+                    placeholder="10-digit mobile number"
+                    maxLength={10}
                     className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
                       }`}
                     required
