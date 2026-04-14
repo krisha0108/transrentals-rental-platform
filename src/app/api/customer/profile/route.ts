@@ -92,6 +92,18 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Validate phone if provided
+    if (updateData.phone !== undefined && updateData.phone !== '') {
+      const digits = String(updateData.phone).replace(/\D/g, '');
+      if (digits.length !== 10 || !/^[6-9]/.test(digits)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid phone number. Must be 10 digits starting with 6-9' },
+          { status: 400 }
+        );
+      }
+      updateData.phone = digits; // store clean digits only
+    }
+
     // Build update/create object
     const customerData: any = {};
     if (updateData.name !== undefined) customerData.name = updateData.name;
@@ -234,8 +246,9 @@ export async function PUT(request: NextRequest) {
     // Handle unique constraint error
     if (error.code === 'P2002') {
       const field = error.meta?.target?.[0];
+      const fieldLabel = field === 'phone' ? 'mobile number' : field === 'email' ? 'email address' : field || 'value';
       return NextResponse.json(
-        { success: false, error: `This ${field || 'value'} is already in use` },
+        { success: false, error: `This ${fieldLabel} is already registered with another account` },
         { status: 400 }
       );
     }
