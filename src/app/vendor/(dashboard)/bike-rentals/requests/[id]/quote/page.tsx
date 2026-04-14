@@ -108,6 +108,9 @@ export default function SendBikeQuotePage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState('');
+  const [apiSuccess, setApiSuccess] = useState('');
 
   // Quote form state
   const [vehicleName, setVehicleName] = useState('');
@@ -309,8 +312,31 @@ export default function SendBikeQuotePage() {
 
   const advanceExceedsTotal = calculateAdvance() > (parseFloat(totalPrice) || 0) && (parseFloat(totalPrice) || 0) > 0;
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!vehicleName.trim()) newErrors.vehicleName = 'Bike name/model is required';
+    if (!totalPrice || parseFloat(totalPrice) <= 0) newErrors.totalPrice = 'Total price must be greater than 0';
+    if (!noSecurityDeposit && (!securityDeposit || parseFloat(securityDeposit) <= 0)) newErrors.securityDeposit = 'Security deposit is required (or check "No security deposit")';
+    if (advanceMode === 'manual' && customAdvanceAmount) {
+      const adv = parseFloat(customAdvanceAmount) || 0;
+      const total = parseFloat(totalPrice) || 0;
+      if (total > 0 && adv > total) newErrors.customAdvanceAmount = 'Advance amount cannot exceed total price';
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      setTimeout(() => {
+        const firstError = document.querySelector('[data-error="true"]');
+        if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setApiError('');
+    if (!validateForm()) return;
     setIsSubmitting(true);
 
     try {
@@ -349,14 +375,17 @@ export default function SendBikeQuotePage() {
       const data = await response.json();
 
       if (data.success) {
-        alert('Quote sent successfully!');
-        router.push('/vendor/bike-rentals/quotes');
+        setApiSuccess('Quote sent successfully! Redirecting...');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => router.push('/vendor/bike-rentals/quotes'), 2000);
       } else {
-        alert(data.error || 'Failed to send quote. Please try again.');
+        setApiError(data.error || 'Failed to send quote. Please try again.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (error) {
       console.error('Failed to submit quote:', error);
-      alert('Failed to send quote. Please try again.');
+      setApiError('Something went wrong. Please try again.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
@@ -372,6 +401,31 @@ export default function SendBikeQuotePage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+
+      {/* Success Modal Overlay */}
+      {apiSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mx-4 max-w-sm w-full flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
+            <div className="relative flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-green-500" />
+              </div>
+              <svg className="absolute w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#22c55e" strokeWidth="4" strokeDasharray="226" strokeDashoffset="226" style={{ animation: 'dash 1.8s ease-out forwards' }} />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">Quote Sent!</h2>
+            <p className="text-sm text-gray-500 text-center">Your quote has been submitted successfully. Redirecting to your quotes...</p>
+            <div className="flex gap-1 mt-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+          <style>{`@keyframes dash { to { stroke-dashoffset: 0; } }`}</style>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
@@ -474,6 +528,16 @@ export default function SendBikeQuotePage() {
         </div>
       )}
 
+      {apiError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <p className="flex-1 text-sm text-red-700 font-medium">{apiError}</p>
+          <button type="button" onClick={() => setApiError('')} className="text-red-400 hover:text-red-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Vehicle Details */}
         <div className="bg-white rounded-xl shadow-sm p-6 border">
@@ -524,14 +588,16 @@ export default function SendBikeQuotePage() {
               <input
                 type="text"
                 value={vehicleName}
+                data-error={!!errors.vehicleName}
                 onChange={(e) => {
                   setVehicleName(e.target.value);
                   setSelectedFleetId('');
+                  if (errors.vehicleName) setErrors(prev => ({ ...prev, vehicleName: '' }));
                 }}
                 placeholder="e.g., Royal Enfield Classic 350"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                required
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.vehicleName ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
               />
+              {errors.vehicleName && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.vehicleName}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -598,15 +664,16 @@ export default function SendBikeQuotePage() {
                 <input
                   type="number"
                   value={totalPrice}
-                  onChange={(e) => setTotalPrice(e.target.value)}
+                  data-error={!!errors.totalPrice}
+                  onChange={(e) => {
+                    setTotalPrice(e.target.value);
+                    if (errors.totalPrice) setErrors(prev => ({ ...prev, totalPrice: '' }));
+                  }}
                   placeholder={`${(request.totalDays || 1) * 800}`}
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  required
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.totalPrice ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Enter your total quote price for the entire rental period
-              </p>
+              {errors.totalPrice ? <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.totalPrice}</p> : <p className="text-xs text-gray-500 mt-1">Enter your total quote price for the entire rental period</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -617,10 +684,14 @@ export default function SendBikeQuotePage() {
                 <input
                   type="number"
                   value={noSecurityDeposit ? '' : securityDeposit}
-                  onChange={(e) => setSecurityDeposit(e.target.value)}
+                  data-error={!!errors.securityDeposit}
+                  onChange={(e) => {
+                    setSecurityDeposit(e.target.value);
+                    if (errors.securityDeposit) setErrors(prev => ({ ...prev, securityDeposit: '' }));
+                  }}
                   placeholder="2000"
                   disabled={noSecurityDeposit}
-                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${noSecurityDeposit ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-200'}`}
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${noSecurityDeposit ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : errors.securityDeposit ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
               <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
@@ -629,12 +700,13 @@ export default function SendBikeQuotePage() {
                   checked={noSecurityDeposit}
                   onChange={(e) => {
                     setNoSecurityDeposit(e.target.checked);
-                    if (e.target.checked) setSecurityDeposit('0');
+                    if (e.target.checked) { setSecurityDeposit('0'); setErrors(prev => ({ ...prev, securityDeposit: '' })); }
                   }}
                   className="w-4 h-4 rounded accent-orange-500"
                 />
                 <span className="text-sm text-gray-600">No security deposit required</span>
               </label>
+              {errors.securityDeposit && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.securityDeposit}</p>}
             </div>
           </div>
 
@@ -719,7 +791,7 @@ export default function SendBikeQuotePage() {
                   </span>
                 </div>
               ) : (
-                <div className="relative">
+                <div className="relative" data-error={!!errors.customAdvanceAmount}>
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                   <input
                     type="number"
@@ -727,11 +799,12 @@ export default function SendBikeQuotePage() {
                     onChange={(e) => setCustomAdvanceAmount(e.target.value)}
                     placeholder="Enter advance amount"
                     min="0"
-                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.customAdvanceAmount ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}
                   />
                 </div>
               )}
-              {advanceExceedsTotal && (
+              {errors.customAdvanceAmount && <p className="text-xs text-red-600 mt-1 font-medium">{errors.customAdvanceAmount}</p>}
+              {!errors.customAdvanceAmount && advanceExceedsTotal && (
                 <p className="text-xs text-red-600 mt-1 font-medium">Advance amount cannot exceed total price (₹{(parseFloat(totalPrice) || 0).toLocaleString()})</p>
               )}
             </div>

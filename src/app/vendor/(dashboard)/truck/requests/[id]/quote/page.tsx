@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -184,6 +184,9 @@ export default function SendTruckQuotePage() {
   const [selectedFleetId, setSelectedFleetId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState('');
+  const [apiSuccess, setApiSuccess] = useState('');
 
   // Quote form state
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -213,6 +216,16 @@ export default function SendTruckQuotePage() {
 
   // Input states
   const [newItem, setNewItem] = useState('');
+
+  // Refs for validated fields
+  const vehicleNameRef = useRef<HTMLInputElement>(null);
+  const vehicleNumberRef = useRef<HTMLInputElement>(null);
+  const vehicleCapacityRef = useRef<HTMLInputElement>(null);
+  const baseAmountRef = useRef<HTMLInputElement>(null);
+  const loadingChargesRef = useRef<HTMLInputElement>(null);
+  const unloadingChargesRef = useRef<HTMLInputElement>(null);
+  const tollChargesRef = useRef<HTMLInputElement>(null);
+  const validUntilRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchRequestDetails();
@@ -419,15 +432,47 @@ export default function SendTruckQuotePage() {
 
   const advanceExceedsTotal = calculateAdvance() > calculateTotal() && calculateTotal() > 0;
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!vehicleName.trim()) newErrors.vehicleName = 'Vehicle name/model is required';
+    if (!vehicleNumber.trim()) newErrors.vehicleNumber = 'Vehicle number is required';
+    if (!vehicleCapacity.trim()) newErrors.vehicleCapacity = 'Vehicle capacity is required';
+    if (!baseAmount || parseFloat(baseAmount) <= 0) newErrors.baseAmount = 'Base fare is required and must be greater than 0';
+    if (loadingCharges === '') newErrors.loadingCharges = 'Loading charges required (enter 0 if not applicable)';
+    if (unloadingCharges === '') newErrors.unloadingCharges = 'Unloading charges required (enter 0 if not applicable)';
+    if (tollCharges === '') newErrors.tollCharges = 'Toll charges required (enter 0 if not applicable)';
+    if (!validUntil) newErrors.validUntil = 'Quote validity date is required';
+    if (advanceMode === 'manual' && customAdvanceAmount) {
+      const adv = parseFloat(customAdvanceAmount) || 0;
+      const total = calculateTotal();
+      if (total > 0 && adv > total) newErrors.customAdvanceAmount = 'Advance amount cannot exceed total price';
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      const firstRef =
+        newErrors.vehicleName ? vehicleNameRef :
+        newErrors.vehicleNumber ? vehicleNumberRef :
+        newErrors.vehicleCapacity ? vehicleCapacityRef :
+        newErrors.baseAmount ? baseAmountRef :
+        newErrors.loadingCharges ? loadingChargesRef :
+        newErrors.unloadingCharges ? unloadingChargesRef :
+        newErrors.tollCharges ? tollChargesRef :
+        newErrors.validUntil ? validUntilRef :
+        null;
+      if (firstRef?.current) {
+        firstRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstRef.current.focus();
+      }
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setApiError('');
+    if (!validateForm()) return;
     setIsSubmitting(true);
-
-    // Debug state values
-    console.log('=== SUBMIT DEBUG ===');
-    console.log('vehicleName state:', vehicleName);
-    console.log('request:', request);
-    console.log('params:', params);
 
     // Ensure vehicleName is never empty/undefined - triple check with explicit string
     let finalVehicleName = 'Truck'; // Start with default
@@ -438,20 +483,9 @@ export default function SendTruckQuotePage() {
     } else if (request?.vehicleCategory) {
       finalVehicleName = request.vehicleCategory;
     }
-    console.log('finalVehicleName:', finalVehicleName);
 
     const finalRequestId = request?.id || String(params.id);
     const finalBaseAmount = parseFloat(baseAmount) || 0;
-
-    console.log('finalRequestId:', finalRequestId);
-    console.log('finalBaseAmount:', finalBaseAmount);
-
-    // Validate required fields before submitting
-    if (!finalRequestId || !finalVehicleName || finalBaseAmount <= 0) {
-      alert(`Please fill in all required fields. Missing: ${!finalRequestId ? 'requestId ' : ''}${!finalVehicleName ? 'vehicleName ' : ''}${finalBaseAmount <= 0 ? 'baseAmount' : ''}`);
-      setIsSubmitting(false);
-      return;
-    }
 
     // Debug: log what we're about to send
     const submitData = {
@@ -482,10 +516,6 @@ export default function SendTruckQuotePage() {
       validityDays: Math.ceil((new Date(`${validUntil}T${validUntilTime || '23:59'}:00`).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
       validUntil: new Date(`${validUntil}T${validUntilTime || '23:59'}:00`).toISOString(),
     };
-    console.log('Submitting truck quote with data:', submitData);
-    console.log('Request object:', request);
-    console.log('Params:', params);
-
     try {
       const response = await fetch('/api/vendor/truck-quotes', {
         method: 'POST',
@@ -498,14 +528,17 @@ export default function SendTruckQuotePage() {
       const data = await response.json();
 
       if (data.success) {
-        alert('Quote sent successfully!');
-        router.push('/vendor/truck/quotes');
+        setApiSuccess('Quote sent successfully! Redirecting...');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => router.push('/vendor/truck/quotes'), 2000);
       } else {
-        alert(data.error || 'Failed to send quote. Please try again.');
+        setApiError(data.error || 'Failed to send quote. Please try again.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (error) {
       console.error('Failed to submit quote:', error);
-      alert('Failed to send quote. Please try again.');
+      setApiError('Something went wrong. Please try again.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
@@ -521,6 +554,29 @@ export default function SendTruckQuotePage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Success Modal Overlay */}
+      {apiSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mx-4 max-w-sm w-full flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
+            <div className="relative flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-green-500" />
+              </div>
+              <svg className="absolute w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#22c55e" strokeWidth="4" strokeDasharray="226" strokeDashoffset="226" style={{ animation: 'dash 1.8s ease-out forwards' }} />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">Quote Sent!</h2>
+            <p className="text-sm text-gray-500 text-center">Your quote has been submitted successfully. Redirecting to your quotes...</p>
+            <div className="flex gap-1 mt-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+          <style>{`@keyframes dash { to { stroke-dashoffset: 0; } }`}</style>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
@@ -618,6 +674,16 @@ export default function SendTruckQuotePage() {
           )}
         </div>
       </div>
+
+      {apiError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <p className="flex-1 text-sm text-red-700 font-medium">{apiError}</p>
+          <button type="button" onClick={() => setApiError('')} className="text-red-400 hover:text-red-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Template Selection */}
@@ -735,45 +801,59 @@ export default function SendTruckQuotePage() {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vehicle Name/Model
+                Vehicle Name/Model <span className="text-red-500">*</span>
               </label>
               <input
+                ref={vehicleNameRef}
                 type="text"
                 value={vehicleName}
+                data-error={!!errors.vehicleName}
                 onChange={(e) => {
                   setVehicleName(e.target.value);
                   setSelectedFleetId(''); // Clear fleet selection when manually typing
+                  if (errors.vehicleName) setErrors(prev => ({ ...prev, vehicleName: '' }));
                 }}
                 placeholder="e.g., Tata 407, Mahindra Bolero Pickup"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.vehicleName ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
               />
+              {errors.vehicleName && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.vehicleName}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vehicle Number
+                Vehicle Number <span className="text-red-500">*</span>
               </label>
               <input
+                ref={vehicleNumberRef}
                 type="text"
                 value={vehicleNumber}
+                data-error={!!errors.vehicleNumber}
                 onChange={(e) => {
                   setVehicleNumber(e.target.value.toUpperCase());
                   setSelectedFleetId(''); // Clear fleet selection when manually typing
+                  if (errors.vehicleNumber) setErrors(prev => ({ ...prev, vehicleNumber: '' }));
                 }}
                 placeholder="e.g., DL 01 AB 1234"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.vehicleNumber ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
               />
+              {errors.vehicleNumber && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.vehicleNumber}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vehicle Capacity
+                Vehicle Capacity <span className="text-red-500">*</span>
               </label>
               <input
+                ref={vehicleCapacityRef}
                 type="text"
                 value={vehicleCapacity}
-                onChange={(e) => setVehicleCapacity(e.target.value)}
+                data-error={!!errors.vehicleCapacity}
+                onChange={(e) => {
+                  setVehicleCapacity(e.target.value);
+                  if (errors.vehicleCapacity) setErrors(prev => ({ ...prev, vehicleCapacity: '' }));
+                }}
                 placeholder="e.g., 1 ton, 3 ton, 7 ton"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.vehicleCapacity ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
               />
+              {errors.vehicleCapacity && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.vehicleCapacity}</p>}
             </div>
           </div>
         </div>
@@ -847,14 +927,19 @@ export default function SendTruckQuotePage() {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={baseAmountRef}
                   type="number"
                   value={baseAmount}
-                  onChange={(e) => setBaseAmount(e.target.value)}
+                  data-error={!!errors.baseAmount}
+                  onChange={(e) => {
+                    setBaseAmount(e.target.value);
+                    if (errors.baseAmount) setErrors(prev => ({ ...prev, baseAmount: '' }));
+                  }}
                   placeholder="10000"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.baseAmount ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.baseAmount && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.baseAmount}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -873,48 +958,66 @@ export default function SendTruckQuotePage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Loading Charges
+                Loading Charges <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={loadingChargesRef}
                   type="number"
                   value={loadingCharges}
-                  onChange={(e) => setLoadingCharges(e.target.value)}
-                  placeholder="0"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  data-error={!!errors.loadingCharges}
+                  onChange={(e) => {
+                    setLoadingCharges(e.target.value);
+                    if (errors.loadingCharges) setErrors(prev => ({ ...prev, loadingCharges: '' }));
+                  }}
+                  placeholder="Enter 0 if not applicable"
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.loadingCharges ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.loadingCharges && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.loadingCharges}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Unloading Charges
+                Unloading Charges <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={unloadingChargesRef}
                   type="number"
                   value={unloadingCharges}
-                  onChange={(e) => setUnloadingCharges(e.target.value)}
-                  placeholder="0"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  data-error={!!errors.unloadingCharges}
+                  onChange={(e) => {
+                    setUnloadingCharges(e.target.value);
+                    if (errors.unloadingCharges) setErrors(prev => ({ ...prev, unloadingCharges: '' }));
+                  }}
+                  placeholder="Enter 0 if not applicable"
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.unloadingCharges ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.unloadingCharges && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.unloadingCharges}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Toll/Permit Charges
+                Toll/Permit Charges <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={tollChargesRef}
                   type="number"
                   value={tollCharges}
-                  onChange={(e) => setTollCharges(e.target.value)}
-                  placeholder="0"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  data-error={!!errors.tollCharges}
+                  onChange={(e) => {
+                    setTollCharges(e.target.value);
+                    if (errors.tollCharges) setErrors(prev => ({ ...prev, tollCharges: '' }));
+                  }}
+                  placeholder="Enter 0 if not applicable"
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.tollCharges ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.tollCharges && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.tollCharges}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1224,12 +1327,16 @@ export default function SendTruckQuotePage() {
               </label>
               <div className="flex gap-2">
                 <input
+                  ref={validUntilRef}
                   type="date"
                   value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
+                  data-error={!!errors.validUntil}
+                  onChange={(e) => {
+                    setValidUntil(e.target.value);
+                    if (errors.validUntil) setErrors(prev => ({ ...prev, validUntil: '' }));
+                  }}
                   min={new Date().toISOString().split('T')[0]}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
+                  className={`flex-1 px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.validUntil ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
                 <input
                   type="time"
@@ -1238,6 +1345,7 @@ export default function SendTruckQuotePage() {
                   className="w-[130px] px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              {errors.validUntil && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.validUntil}</p>}
             </div>
           </div>
         </div>
@@ -1252,7 +1360,7 @@ export default function SendTruckQuotePage() {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting || !baseAmount || calculateTotal() === 0 || advanceExceedsTotal}
+            disabled={isSubmitting}
             className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (

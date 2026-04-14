@@ -150,6 +150,9 @@ export default function SendSelfDriveQuotePage() {
   const [customValidTime, setCustomValidTime] = useState('23:59');
   const [editMode, setEditMode] = useState<'inclusions' | 'exclusions' | 'terms' | null>(null);
   const [newItem, setNewItem] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState('');
+  const [apiSuccess, setApiSuccess] = useState('');
 
   useEffect(() => {
     fetchRequestDetails();
@@ -342,8 +345,47 @@ export default function SendSelfDriveQuotePage() {
 
   const advanceExceedsTotal = calculateAdvance() > calculateTotal() && calculateTotal() > 0;
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!vehicleName.trim()) newErrors.vehicleName = 'Car name/model is required';
+
+    if (!totalPrice || parseFloat(totalPrice) <= 0) newErrors.totalPrice = 'Total price must be greater than ₹0';
+
+    if (!noSecurityDeposit && (!securityDeposit || parseFloat(securityDeposit) <= 0))
+      newErrors.securityDeposit = 'Enter deposit amount > ₹0, or check "No security deposit required"';
+
+    if (kmLimitPerDay !== 'unlimited' && (!kmLimitPerDay || parseInt(kmLimitPerDay) <= 0))
+      newErrors.kmLimitPerDay = 'KM limit must be greater than 0';
+
+    if (kmLimitPerDay !== 'unlimited' && (!extraKmRate || parseFloat(extraKmRate) <= 0))
+      newErrors.extraKmRate = 'Extra KM rate must be greater than ₹0';
+
+    if (advanceMode === 'manual' && (!customAdvanceAmount || parseFloat(customAdvanceAmount) <= 0))
+      newErrors.customAdvanceAmount = 'Enter a valid advance amount';
+
+    if (advanceExceedsTotal)
+      newErrors.customAdvanceAmount = `Advance (₹${calculateAdvance().toLocaleString()}) cannot exceed total (₹${calculateTotal().toLocaleString()})`;
+
+    if (validityMode === 'custom' && !customValidDate)
+      newErrors.customValidDate = 'Please select a validity date';
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      // Scroll to first error field
+      setTimeout(() => {
+        const firstError = document.querySelector('[data-error="true"]');
+        if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 50);
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setApiError('');
+    if (!validateForm()) return;
     setIsSubmitting(true);
 
     try {
@@ -386,14 +428,17 @@ export default function SendSelfDriveQuotePage() {
       const data = await response.json();
 
       if (data.success) {
-        alert('Quote sent successfully!');
-        router.push('/vendor/self-drive/quotes');
+        setApiSuccess('Quote sent successfully! Redirecting...');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => router.push('/vendor/self-drive/quotes'), 2000);
       } else {
-        alert(data.error || 'Failed to send quote. Please try again.');
+        setApiError(data.error || 'Failed to send quote. Please try again.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (error) {
       console.error('Failed to submit quote:', error);
-      alert('Failed to send quote. Please try again.');
+      setApiError('Something went wrong. Please try again.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
@@ -409,6 +454,31 @@ export default function SendSelfDriveQuotePage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+
+      {/* Success Modal Overlay */}
+      {apiSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mx-4 max-w-sm w-full flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
+            <div className="relative flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-green-500" />
+              </div>
+              <svg className="absolute w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#22c55e" strokeWidth="4" strokeDasharray="226" strokeDashoffset="226" style={{ animation: 'dash 1.8s ease-out forwards' }} />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">Quote Sent!</h2>
+            <p className="text-sm text-gray-500 text-center">Your quote has been submitted successfully. Redirecting to your quotes...</p>
+            <div className="flex gap-1 mt-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+          <style>{`@keyframes dash { to { stroke-dashoffset: 0; } }`}</style>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
@@ -529,6 +599,17 @@ export default function SendSelfDriveQuotePage() {
         </div>
       )}
 
+      {/* API Error Banner */}
+      {apiError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <p className="flex-1 text-sm text-red-700 font-medium">{apiError}</p>
+          <button type="button" onClick={() => setApiError('')} className="text-red-400 hover:text-red-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Vehicle Details */}
         <div className="bg-white rounded-xl shadow-sm p-6 border">
@@ -581,11 +662,13 @@ export default function SendSelfDriveQuotePage() {
                 onChange={(e) => {
                   setVehicleName(e.target.value);
                   setSelectedFleetId('');
+                  if (errors.vehicleName) setErrors(prev => ({ ...prev, vehicleName: '' }));
                 }}
                 placeholder="e.g., Swift Dzire, Honda City"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                required
+                data-error={!!errors.vehicleName}
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.vehicleName ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
               />
+              {errors.vehicleName && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.vehicleName}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -685,15 +768,16 @@ export default function SendSelfDriveQuotePage() {
                 <input
                   type="number"
                   value={totalPrice}
-                  onChange={(e) => setTotalPrice(e.target.value)}
+                  onChange={(e) => { setTotalPrice(e.target.value); if (errors.totalPrice) setErrors(prev => ({ ...prev, totalPrice: '' })); }}
                   placeholder={`${(request.totalDays || 1) * 2500}`}
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  required
+                  data-error={!!errors.totalPrice}
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.totalPrice ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Enter your total quote price for the entire rental period
-              </p>
+              {errors.totalPrice
+                ? <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.totalPrice}</p>
+                : <p className="text-xs text-gray-500 mt-1">Enter your total quote price for the entire rental period</p>
+              }
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -704,10 +788,11 @@ export default function SendSelfDriveQuotePage() {
                 <input
                   type="number"
                   value={noSecurityDeposit ? '' : securityDeposit}
-                  onChange={(e) => setSecurityDeposit(e.target.value)}
+                  onChange={(e) => { setSecurityDeposit(e.target.value); if (errors.securityDeposit) setErrors(prev => ({ ...prev, securityDeposit: '' })); }}
                   placeholder="5000"
                   disabled={noSecurityDeposit}
-                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${noSecurityDeposit ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-200'}`}
+                  data-error={!!errors.securityDeposit}
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${noSecurityDeposit ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : errors.securityDeposit ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
               <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
@@ -716,12 +801,13 @@ export default function SendSelfDriveQuotePage() {
                   checked={noSecurityDeposit}
                   onChange={(e) => {
                     setNoSecurityDeposit(e.target.checked);
-                    if (e.target.checked) setSecurityDeposit('0');
+                    if (e.target.checked) { setSecurityDeposit('0'); setErrors(prev => ({ ...prev, securityDeposit: '' })); }
                   }}
                   className="w-4 h-4 rounded accent-orange-500"
                 />
                 <span className="text-sm text-gray-600">No security deposit required</span>
               </label>
+              {errors.securityDeposit && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.securityDeposit}</p>}
             </div>
           </div>
 
@@ -735,10 +821,10 @@ export default function SendSelfDriveQuotePage() {
                 <input
                   type="number"
                   value={kmLimitPerDay === 'unlimited' ? '' : kmLimitPerDay}
-                  onChange={(e) => setKmLimitPerDay(e.target.value)}
+                  onChange={(e) => { setKmLimitPerDay(e.target.value); if (errors.kmLimitPerDay) setErrors(prev => ({ ...prev, kmLimitPerDay: '' })); }}
                   placeholder="200"
                   disabled={kmLimitPerDay === 'unlimited'}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:text-gray-400"
+                  className={`flex-1 px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${kmLimitPerDay === 'unlimited' ? 'bg-gray-100 border-gray-200 text-gray-400' : errors.kmLimitPerDay ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
                 <button
                   type="button"
@@ -752,6 +838,7 @@ export default function SendSelfDriveQuotePage() {
                   Unlimited
                 </button>
               </div>
+              {errors.kmLimitPerDay && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.kmLimitPerDay}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -762,13 +849,14 @@ export default function SendSelfDriveQuotePage() {
                 <input
                   type="number"
                   value={kmLimitPerDay === 'unlimited' ? '' : extraKmRate}
-                  onChange={(e) => setExtraKmRate(e.target.value)}
+                  onChange={(e) => { setExtraKmRate(e.target.value); if (errors.extraKmRate) setErrors(prev => ({ ...prev, extraKmRate: '' })); }}
                   placeholder="10"
                   disabled={kmLimitPerDay === 'unlimited'}
-                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${kmLimitPerDay === 'unlimited' ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-200'}`}
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${kmLimitPerDay === 'unlimited' ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : errors.extraKmRate ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">/km</span>
               </div>
+              {errors.extraKmRate && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.extraKmRate}</p>}
             </div>
           </div>
 
@@ -847,20 +935,20 @@ export default function SendSelfDriveQuotePage() {
                   <input
                     type="number"
                     value={customAdvanceAmount}
-                    onChange={(e) => setCustomAdvanceAmount(e.target.value)}
+                    onChange={(e) => { setCustomAdvanceAmount(e.target.value); if (errors.customAdvanceAmount) setErrors(prev => ({ ...prev, customAdvanceAmount: '' })); }}
                     placeholder="Enter advance amount"
                     min="0"
-                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.customAdvanceAmount ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                   />
-                  {customAdvanceAmount && calculateTotal() > 0 && (
+                  {customAdvanceAmount && calculateTotal() > 0 && !errors.customAdvanceAmount && (
                     <p className="text-xs text-gray-500 mt-1">
                       ≈ {Math.round((parseFloat(customAdvanceAmount) / calculateTotal()) * 100)}% of total ₹{calculateTotal().toLocaleString()}
                     </p>
                   )}
                 </div>
               )}
-              {advanceExceedsTotal && (
-                <p className="text-xs text-red-600 mt-1 font-medium">Advance amount cannot exceed total price (₹{calculateTotal().toLocaleString()})</p>
+              {errors.customAdvanceAmount && (
+                <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.customAdvanceAmount}</p>
               )}
             </div>
             <div>
@@ -898,10 +986,9 @@ export default function SendSelfDriveQuotePage() {
                   <input
                     type="date"
                     value={customValidDate}
-                    onChange={(e) => setCustomValidDate(e.target.value)}
+                    onChange={(e) => { setCustomValidDate(e.target.value); if (errors.customValidDate) setErrors(prev => ({ ...prev, customValidDate: '' })); }}
                     min={new Date().toISOString().split('T')[0]}
-                    className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 text-sm"
-                    required={validityMode === 'custom'}
+                    className={`flex-1 px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 text-sm ${errors.customValidDate ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                   />
                   <input
                     type="time"
@@ -911,13 +998,16 @@ export default function SendSelfDriveQuotePage() {
                   />
                 </div>
               )}
-              <p className="text-xs text-gray-400 mt-1">
-                {validityMode === 'days'
-                  ? `Quote expires in ${validityDays} day${validityDays !== '1' ? 's' : ''} from submission`
-                  : customValidDate
-                    ? `Quote valid till ${new Date(`${customValidDate}T${customValidTime || '23:59'}`).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
-                    : 'Select expiry date and time'}
-              </p>
+              {errors.customValidDate
+                ? <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.customValidDate}</p>
+                : <p className="text-xs text-gray-400 mt-1">
+                    {validityMode === 'days'
+                      ? `Quote expires in ${validityDays} day${validityDays !== '1' ? 's' : ''} from submission`
+                      : customValidDate
+                        ? `Quote valid till ${new Date(`${customValidDate}T${customValidTime || '23:59'}`).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}`
+                        : 'Select expiry date and time'}
+                  </p>
+              }
             </div>
           </div>
 

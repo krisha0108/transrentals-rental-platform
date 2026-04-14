@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -141,6 +141,9 @@ export default function SendQuotePage() {
   const [selectedFleetId, setSelectedFleetId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState('');
+  const [apiSuccess, setApiSuccess] = useState('');
 
   // Quote form state
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -163,6 +166,14 @@ export default function SendQuotePage() {
   const [validUntil, setValidUntil] = useState('');
   const [validUntilTime, setValidUntilTime] = useState('23:59');
   const [editMode, setEditMode] = useState<'inclusions' | 'exclusions' | 'terms' | null>(null);
+
+  // Refs for scroll-to-error
+  const vehicleNameRef = useRef<HTMLInputElement>(null);
+  const vehicleNumberRef = useRef<HTMLInputElement>(null);
+  const baseRateRef = useRef<HTMLInputElement>(null);
+  const driverAllowanceRef = useRef<HTMLInputElement>(null);
+  const quickTotalPriceRef = useRef<HTMLInputElement>(null);
+  const validUntilRef = useRef<HTMLInputElement>(null);
 
   // Input states
   const [newItem, setNewItem] = useState('');
@@ -334,8 +345,46 @@ export default function SendQuotePage() {
 
   const advanceExceedsTotal = calculateAdvance() > calculateTotal() && calculateTotal() > 0;
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!vehicleName.trim()) newErrors.vehicleName = 'Vehicle name/model is required';
+    if (!vehicleNumber.trim()) newErrors.vehicleNumber = 'Vehicle number is required';
+    if (quickQuoteMode) {
+      if (!quickTotalPrice || parseFloat(quickTotalPrice) <= 0) newErrors.quickTotalPrice = 'Total price must be greater than 0';
+    } else {
+      if (!baseRate || parseFloat(baseRate) <= 0) newErrors.baseRate = 'Base rate is required and must be greater than 0';
+      if (driverAllowance === '') newErrors.driverAllowance = 'Driver allowance is required (enter 0 if not applicable)';
+    }
+    if (!validUntil) newErrors.validUntil = 'Quote validity date is required';
+    if (advanceMode === 'manual' && customAdvanceAmount) {
+      const adv = parseFloat(customAdvanceAmount) || 0;
+      const total = calculateTotal();
+      if (total > 0 && adv > total) newErrors.customAdvanceAmount = 'Advance amount cannot exceed total price';
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      // Scroll to first error using refs (reliable, no DOM querying race condition)
+      const firstRef =
+        newErrors.vehicleName ? vehicleNameRef :
+        newErrors.vehicleNumber ? vehicleNumberRef :
+        newErrors.quickTotalPrice ? quickTotalPriceRef :
+        newErrors.baseRate ? baseRateRef :
+        newErrors.driverAllowance ? driverAllowanceRef :
+        newErrors.validUntil ? validUntilRef :
+        null;
+      if (firstRef?.current) {
+        firstRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstRef.current.focus();
+      }
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setApiError('');
+    if (!validateForm()) return;
     setIsSubmitting(true);
 
     try {
@@ -371,14 +420,33 @@ export default function SendQuotePage() {
       const data = await response.json();
 
       if (data.success) {
-        alert('Quote sent successfully!');
-        router.push('/vendor/bus/quotes');
+        setApiSuccess('Quote sent successfully! Redirecting...');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => router.push('/vendor/bus/quotes'), 2000);
       } else {
-        alert(data.error || 'Failed to send quote. Please try again.');
+        if (data.error === 'Vehicle details and pricing are required') {
+          const fieldErrors: Record<string, string> = {};
+          if (!vehicleName.trim()) fieldErrors.vehicleName = 'Vehicle name/model is required';
+          if (quickQuoteMode ? !quickTotalPrice : !baseRate) {
+            if (quickQuoteMode) fieldErrors.quickTotalPrice = 'Total price is required';
+            else fieldErrors.baseRate = 'Base rate is required';
+          }
+          if (Object.keys(fieldErrors).length > 0) {
+            setErrors(fieldErrors);
+            setTimeout(() => {
+              const firstError = document.querySelector('[data-error="true"]');
+              if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 50);
+            return;
+          }
+        }
+        setApiError(data.error || 'Failed to send quote. Please try again.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (error) {
       console.error('Failed to submit quote:', error);
-      alert('Failed to send quote. Please try again.');
+      setApiError('Something went wrong. Please try again.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
@@ -397,6 +465,29 @@ export default function SendQuotePage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Success Modal Overlay */}
+      {apiSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mx-4 max-w-sm w-full flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
+            <div className="relative flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-green-500" />
+              </div>
+              <svg className="absolute w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#22c55e" strokeWidth="4" strokeDasharray="226" strokeDashoffset="226" style={{ animation: 'dash 1.8s ease-out forwards' }} />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">Quote Sent!</h2>
+            <p className="text-sm text-gray-500 text-center">Your quote has been submitted successfully. Redirecting to your quotes...</p>
+            <div className="flex gap-1 mt-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+          <style>{`@keyframes dash { to { stroke-dashoffset: 0; } }`}</style>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
@@ -469,6 +560,16 @@ export default function SendQuotePage() {
         </div>
       </div>
 
+      {apiError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <p className="flex-1 text-sm text-red-700 font-medium">{apiError}</p>
+          <button type="button" onClick={() => setApiError('')} className="text-red-400 hover:text-red-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Template Selection */}
         <div className="bg-white rounded-xl shadow-sm p-6 border">
@@ -536,7 +637,7 @@ export default function SendQuotePage() {
         <div className="bg-white rounded-xl shadow-sm p-6 border">
           <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
             <Bus className="w-5 h-5 text-orange-500" />
-            Vehicle Details (Optional)
+            Vehicle Details
           </h2>
 
           {/* Fleet Vehicle Dropdown */}
@@ -585,33 +686,41 @@ export default function SendQuotePage() {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vehicle Name/Model
+                Vehicle Name/Model <span className="text-red-500">*</span>
               </label>
               <input
+                ref={vehicleNameRef}
                 type="text"
                 value={vehicleName}
+                data-error={!!errors.vehicleName}
                 onChange={(e) => {
                   setVehicleName(e.target.value);
                   setSelectedFleetId(''); // Clear fleet selection when manually typing
+                  if (errors.vehicleName) setErrors(prev => ({ ...prev, vehicleName: '' }));
                 }}
                 placeholder="e.g., Force Traveller 17 Seater"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.vehicleName ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
               />
+              {errors.vehicleName && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.vehicleName}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vehicle Number
+                Vehicle Number <span className="text-red-500">*</span>
               </label>
               <input
+                ref={vehicleNumberRef}
                 type="text"
                 value={vehicleNumber}
+                data-error={!!errors.vehicleNumber}
                 onChange={(e) => {
                   setVehicleNumber(e.target.value.toUpperCase());
-                  setSelectedFleetId(''); // Clear fleet selection when manually typing
+                  setSelectedFleetId('');
+                  if (errors.vehicleNumber) setErrors(prev => ({ ...prev, vehicleNumber: '' }));
                 }}
                 placeholder="e.g., DL 01 AB 1234"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.vehicleNumber ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
               />
+              {errors.vehicleNumber && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.vehicleNumber}</p>}
             </div>
           </div>
         </div>
@@ -641,15 +750,19 @@ export default function SendQuotePage() {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={quickTotalPriceRef}
                   type="number"
                   value={quickTotalPrice}
-                  onChange={(e) => setQuickTotalPrice(e.target.value)}
+                  data-error={!!errors.quickTotalPrice}
+                  onChange={(e) => {
+                    setQuickTotalPrice(e.target.value);
+                    if (errors.quickTotalPrice) setErrors(prev => ({ ...prev, quickTotalPrice: '' }));
+                  }}
                   placeholder="Enter your all-inclusive total price"
-                  className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 text-lg font-semibold"
-                  required
+                  className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 text-lg font-semibold ${errors.quickTotalPrice ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Enter one total price including all charges</p>
+              {errors.quickTotalPrice ? <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.quickTotalPrice}</p> : <p className="text-xs text-gray-500 mt-1">Enter one total price including all charges</p>}
             </div>
           ) : (
           <div className="grid md:grid-cols-2 gap-4">
@@ -660,29 +773,38 @@ export default function SendQuotePage() {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={baseRateRef}
                   type="number"
                   value={baseRate}
-                  onChange={(e) => setBaseRate(e.target.value)}
+                  data-error={!!errors.baseRate}
+                  onChange={(e) => {
+                    setBaseRate(e.target.value);
+                    if (errors.baseRate) setErrors(prev => ({ ...prev, baseRate: '' }));
+                  }}
                   placeholder="15000"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  required
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.baseRate ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.baseRate && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.baseRate}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Driver Allowance (if separate)
+                Driver Allowance <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={driverAllowanceRef}
                   type="number"
                   value={driverAllowance}
-                  onChange={(e) => setDriverAllowance(e.target.value)}
-                  placeholder="0"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  data-error={!!errors.driverAllowance}
+                  onChange={(e) => { setDriverAllowance(e.target.value); if (errors.driverAllowance) setErrors(prev => ({ ...prev, driverAllowance: '' })); }}
+                  placeholder="Enter 0 if not applicable"
+                  min="0"
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.driverAllowance ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.driverAllowance && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.driverAllowance}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -761,24 +883,24 @@ export default function SendQuotePage() {
                   </span>
                 </div>
               ) : (
-                <div className="relative">
+                <div className="relative" data-error={!!errors.customAdvanceAmount}>
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                   <input
                     type="number"
                     value={customAdvanceAmount}
-                    onChange={(e) => setCustomAdvanceAmount(e.target.value)}
+                    onChange={(e) => { setCustomAdvanceAmount(e.target.value); if (errors.customAdvanceAmount) setErrors(prev => ({ ...prev, customAdvanceAmount: '' })); }}
                     placeholder="Enter advance amount"
                     min="0"
-                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.customAdvanceAmount ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                   />
                 </div>
               )}
+              {errors.customAdvanceAmount && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.customAdvanceAmount}</p>}
+              {!errors.customAdvanceAmount && advanceExceedsTotal && (
+                <p className="text-xs text-red-600 mt-1 font-medium">Advance amount cannot exceed total price</p>
+              )}
             </div>
           </div>
-
-          {advanceExceedsTotal && (
-            <p className="text-xs text-red-600 mt-1 font-medium">Advance amount cannot exceed total price</p>
-          )}
 
           {/* Total */}
           <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-100">
@@ -1008,12 +1130,16 @@ export default function SendQuotePage() {
               </label>
               <div className="flex gap-2">
                 <input
+                  ref={validUntilRef}
                   type="date"
                   value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
+                  data-error={!!errors.validUntil}
+                  onChange={(e) => {
+                    setValidUntil(e.target.value);
+                    if (errors.validUntil) setErrors(prev => ({ ...prev, validUntil: '' }));
+                  }}
                   min={new Date().toISOString().split('T')[0]}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  required
+                  className={`flex-1 px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.validUntil ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
                 <input
                   type="time"
@@ -1022,6 +1148,7 @@ export default function SendQuotePage() {
                   className="w-[130px] px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
                 />
               </div>
+              {errors.validUntil && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.validUntil}</p>}
             </div>
           </div>
         </div>
@@ -1036,7 +1163,7 @@ export default function SendQuotePage() {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting || calculateTotal() === 0 || advanceExceedsTotal}
+            disabled={isSubmitting}
             className="flex-1 py-3 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
@@ -1047,7 +1174,7 @@ export default function SendQuotePage() {
             ) : (
               <>
                 <Send className="w-5 h-5" />
-                Send Quote (₹{calculateTotal().toLocaleString()})
+                Send Quote {calculateTotal() > 0 ? `(₹${calculateTotal().toLocaleString()})` : ''}
               </>
             )}
           </button>

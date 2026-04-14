@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -179,6 +179,9 @@ export default function SendMiniTruckQuotePage() {
   const [selectedFleetId, setSelectedFleetId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState('');
+  const [apiSuccess, setApiSuccess] = useState('');
 
   // Quote form state
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -207,6 +210,11 @@ export default function SendMiniTruckQuotePage() {
   const [editMode, setEditMode] = useState<'inclusions' | 'exclusions' | 'terms' | null>(null);
 
   const [newItem, setNewItem] = useState('');
+
+  const vehicleNameRef = useRef<HTMLInputElement>(null);
+  const vehicleNumberRef = useRef<HTMLInputElement>(null);
+  const baseAmountRef = useRef<HTMLInputElement>(null);
+  const validUntilRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchRequestDetails();
@@ -369,8 +377,32 @@ export default function SendMiniTruckQuotePage() {
 
   const advanceExceedsTotal = calculateAdvance() > calculateTotal() && calculateTotal() > 0;
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!vehicleName.trim()) newErrors.vehicleName = 'Vehicle name/model is required';
+    if (!vehicleNumber.trim()) newErrors.vehicleNumber = 'Vehicle number is required';
+    if (!baseAmount || parseFloat(baseAmount) <= 0) newErrors.baseAmount = 'Base amount is required and must be greater than 0';
+    if (!validUntil) newErrors.validUntil = 'Quote validity date is required';
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      const firstRef =
+        newErrors.vehicleName ? vehicleNameRef :
+        newErrors.vehicleNumber ? vehicleNumberRef :
+        newErrors.baseAmount ? baseAmountRef :
+        validUntilRef;
+      if (firstRef?.current) {
+        firstRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstRef.current.focus();
+      }
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setApiError('');
+    if (!validateForm()) return;
     setIsSubmitting(true);
 
     try {
@@ -412,14 +444,17 @@ export default function SendMiniTruckQuotePage() {
       const data = await response.json();
 
       if (data.success) {
-        alert('Quote sent successfully!');
-        router.push('/vendor/mini-truck/requests');
+        setApiSuccess('Quote sent successfully! Redirecting...');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => router.push('/vendor/mini-truck/requests'), 2000);
       } else {
-        alert(data.error || 'Failed to send quote. Please try again.');
+        setApiError(data.error || 'Failed to send quote. Please try again.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (error) {
       console.error('Failed to submit quote:', error);
-      alert('Failed to send quote. Please try again.');
+      setApiError('Something went wrong. Please try again.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
@@ -435,6 +470,29 @@ export default function SendMiniTruckQuotePage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Success Modal Overlay */}
+      {apiSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mx-4 max-w-sm w-full flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
+            <div className="relative flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-green-500" />
+              </div>
+              <svg className="absolute w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#22c55e" strokeWidth="4" strokeDasharray="226" strokeDashoffset="226" style={{ animation: 'dash 1.8s ease-out forwards' }} />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">Quote Sent!</h2>
+            <p className="text-sm text-gray-500 text-center">Your quote has been submitted successfully. Redirecting to your quotes...</p>
+            <div className="flex gap-1 mt-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+          <style>{`@keyframes dash { to { stroke-dashoffset: 0; } }`}</style>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
@@ -533,6 +591,16 @@ export default function SendMiniTruckQuotePage() {
         </div>
       </div>
 
+      {apiError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <p className="flex-1 text-sm text-red-700 font-medium">{apiError}</p>
+          <button type="button" onClick={() => setApiError('')} className="text-red-400 hover:text-red-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Template Selection */}
         <div className="bg-white rounded-xl shadow-sm p-6 border">
@@ -629,33 +697,41 @@ export default function SendMiniTruckQuotePage() {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vehicle Name/Model
+                Vehicle Name/Model <span className="text-red-500">*</span>
               </label>
               <input
+                ref={vehicleNameRef}
                 type="text"
                 value={vehicleName}
+                data-error={!!errors.vehicleName}
                 onChange={(e) => {
                   setVehicleName(e.target.value);
                   setSelectedFleetId('');
+                  if (errors.vehicleName) setErrors(prev => ({ ...prev, vehicleName: '' }));
                 }}
                 placeholder="e.g., Tata Ace, Mahindra Supro"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.vehicleName ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
               />
+              {errors.vehicleName && <p className="mt-1 text-xs text-red-500">{errors.vehicleName}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vehicle Number
+                Vehicle Number <span className="text-red-500">*</span>
               </label>
               <input
+                ref={vehicleNumberRef}
                 type="text"
                 value={vehicleNumber}
+                data-error={!!errors.vehicleNumber}
                 onChange={(e) => {
                   setVehicleNumber(e.target.value.toUpperCase());
                   setSelectedFleetId('');
+                  if (errors.vehicleNumber) setErrors(prev => ({ ...prev, vehicleNumber: '' }));
                 }}
                 placeholder="e.g., DL 01 AB 1234"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.vehicleNumber ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
               />
+              {errors.vehicleNumber && <p className="mt-1 text-xs text-red-500">{errors.vehicleNumber}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -741,14 +817,19 @@ export default function SendMiniTruckQuotePage() {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={baseAmountRef}
                   type="number"
                   value={baseAmount}
-                  onChange={(e) => setBaseAmount(e.target.value)}
+                  data-error={!!errors.baseAmount}
+                  onChange={(e) => {
+                    setBaseAmount(e.target.value);
+                    if (errors.baseAmount) setErrors(prev => ({ ...prev, baseAmount: '' }));
+                  }}
                   placeholder="2000"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  required
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.baseAmount ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
                 />
               </div>
+              {errors.baseAmount && <p className="mt-1 text-xs text-red-500">{errors.baseAmount}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1079,12 +1160,16 @@ export default function SendMiniTruckQuotePage() {
               </label>
               <div className="flex gap-2">
                 <input
+                  ref={validUntilRef}
                   type="date"
                   value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
+                  data-error={!!errors.validUntil}
+                  onChange={(e) => {
+                    setValidUntil(e.target.value);
+                    if (errors.validUntil) setErrors(prev => ({ ...prev, validUntil: '' }));
+                  }}
                   min={new Date().toISOString().split('T')[0]}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  required
+                  className={`flex-1 px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.validUntil ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
                 />
                 <input
                   type="time"
@@ -1093,6 +1178,7 @@ export default function SendMiniTruckQuotePage() {
                   className="w-[130px] px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
                 />
               </div>
+              {errors.validUntil && <p className="mt-1 text-xs text-red-500">{errors.validUntil}</p>}
             </div>
           </div>
         </div>
@@ -1107,7 +1193,7 @@ export default function SendMiniTruckQuotePage() {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting || !baseAmount || calculateTotal() === 0 || advanceExceedsTotal}
+            disabled={isSubmitting}
             className="flex-1 py-3 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
