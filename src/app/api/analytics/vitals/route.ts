@@ -121,55 +121,59 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, note: 'analytics-disabled' });
     }
 
-    // Create web vitals record
-    const vitalsRecord = await prisma.web_vitals.create({
-      data: {
-        id: generateId(),
-        pagePath: pagePath || '/',
-        pageTitle: pageTitle || null,
-        lcp: lcp || null,
-        fid: fid || null,
-        cls: cls || null,
-        fcp: fcp || null,
-        ttfb: ttfb || null,
-        inp: inp || null,
-        domLoad: domLoad || null,
-        windowLoad: windowLoad || null,
-        resourceCount: resourceCount || null,
-        resourceSize: resourceSize || null,
-        connectionType: connectionType || null,
-        effectiveType: effectiveType || null,
-        downlink: downlink || null,
-        rtt: rtt || null,
-        device,
-        browser,
-        browserVersion,
-        os,
-        screenWidth: screenWidth || null,
-        screenHeight: screenHeight || null,
-        sessionId: sessionId || null,
-        lcpRating: lcp ? rateVital('lcp', lcp) : null,
-        fidRating: fid ? rateVital('fid', fid) : null,
-        clsRating: cls ? rateVital('cls', cls) : null,
-        fcpRating: fcp ? rateVital('fcp', fcp) : null,
-        inpRating: inp ? rateVital('inp', inp) : null,
-      },
-    });
-
-    // Update page performance aggregate
-    await updatePagePerformance(prisma, pagePath, {
-      lcp,
-      fid,
-      cls,
-      fcp,
-      ttfb,
-      inp,
+    const vitalsData = {
+      id: generateId(),
+      pagePath: pagePath || '/',
+      pageTitle: pageTitle || null,
+      lcp: lcp || null,
+      fid: fid || null,
+      cls: cls || null,
+      fcp: fcp || null,
+      ttfb: ttfb || null,
+      inp: inp || null,
+      domLoad: domLoad || null,
+      windowLoad: windowLoad || null,
+      resourceCount: resourceCount || null,
+      resourceSize: resourceSize || null,
+      connectionType: connectionType || null,
+      effectiveType: effectiveType || null,
+      downlink: downlink || null,
+      rtt: rtt || null,
+      device,
+      browser,
+      browserVersion,
+      os,
+      screenWidth: screenWidth || null,
+      screenHeight: screenHeight || null,
+      sessionId: sessionId || null,
       lcpRating: lcp ? rateVital('lcp', lcp) : null,
       fidRating: fid ? rateVital('fid', fid) : null,
       clsRating: cls ? rateVital('cls', cls) : null,
-    });
+      fcpRating: fcp ? rateVital('fcp', fcp) : null,
+      inpRating: inp ? rateVital('inp', inp) : null,
+    };
 
-    return NextResponse.json({ success: true, id: vitalsRecord.id });
+    // Fire-and-forget: create vitals + update page performance in background
+    void (async () => {
+      try {
+        await prisma.web_vitals.create({ data: vitalsData });
+        await updatePagePerformance(prisma, pagePath, {
+          lcp,
+          fid,
+          cls,
+          fcp,
+          ttfb,
+          inp,
+          lcpRating: lcp ? rateVital('lcp', lcp) : null,
+          fidRating: fid ? rateVital('fid', fid) : null,
+          clsRating: cls ? rateVital('cls', cls) : null,
+        });
+      } catch (err) {
+        logger.error('Error tracking web vitals (background)', err);
+      }
+    })();
+
+    return NextResponse.json({ success: true, id: vitalsData.id });
   } catch (error) {
     logger.error('Error tracking web vitals', error);
     // Return 200 with success: false to avoid breaking the frontend
