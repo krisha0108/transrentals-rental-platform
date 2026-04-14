@@ -685,6 +685,16 @@ export default function CustomerDashboardPage() {
     setProfileError(null);
     setProfileSuccess(false);
 
+    // Frontend phone validation
+    if (profileForm.phone) {
+      const digits = profileForm.phone.replace(/\D/g, '');
+      if (digits.length !== 10 || !/^[6-9]/.test(digits)) {
+        setProfileError('Please enter a valid 10-digit Indian mobile number (starting with 6-9)');
+        setIsSavingProfile(false);
+        return;
+      }
+    }
+
     try {
       let savedAvatarFilename: string | undefined = customer?.avatar || customer?.image;
 
@@ -756,10 +766,10 @@ export default function CustomerDashboardPage() {
           setProfileSuccess(false);
         }, 1500);
       } else {
-        setProfileError(data.message || 'Failed to update profile');
+        setProfileError(data.error || data.message || 'Failed to update profile');
       }
-    } catch (err) {
-      setProfileError('Network error. Please try again.');
+    } catch (err: any) {
+      setProfileError(err?.message || 'Network error. Please try again.');
     } finally {
       setIsSavingProfile(false);
     }
@@ -1670,11 +1680,13 @@ export default function CustomerDashboardPage() {
                     <input
                       type="tel"
                       value={profileForm.phone}
-                      onChange={(e) =>
-                        setProfileForm((prev) => ({ ...prev, phone: e.target.value }))
-                      }
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        if (val.length <= 10) setProfileForm((prev) => ({ ...prev, phone: val }));
+                      }}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
-                      placeholder="Enter your phone"
+                      placeholder="10-digit mobile number"
+                      maxLength={10}
                     />
                   </div>
                 </div>
