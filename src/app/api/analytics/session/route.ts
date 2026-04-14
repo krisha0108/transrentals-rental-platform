@@ -77,46 +77,53 @@ export async function POST(request: NextRequest) {
     const { prisma } = await import('@/lib/db/prisma');
 
     if (cleanup && sessionId) {
-      await prisma.active_sessions.delete({
+      // Cleanup can be fire-and-forget too
+      void prisma.active_sessions.delete({
         where: { sessionId },
       }).catch(() => {});
 
       return NextResponse.json({ success: true });
     }
 
-    // Try to update existing session, or create new one
-    const existingSession = await prisma.active_sessions.findUnique({
-      where: { sessionId: normalizedSessionId },
-    });
+    // Fire-and-forget: session update/create happens in background
+    void (async () => {
+      try {
+        const existingSession = await prisma.active_sessions.findUnique({
+          where: { sessionId: normalizedSessionId },
+        });
 
-    if (existingSession) {
-      await prisma.active_sessions.update({
-        where: { sessionId: normalizedSessionId },
-        data: {
-          currentPage: currentPage || existingSession.currentPage,
-          pageTitle: pageTitle || existingSession.pageTitle,
-          lastActivity: new Date(),
-          pageCount: existingSession.pageCount + 1,
-        },
-      });
-    } else {
-      await prisma.active_sessions.create({
-        data: {
-          id: generateId(),
-          sessionId: normalizedSessionId,
-          currentPage: currentPage || '/',
-          pageTitle: pageTitle || null,
-          device,
-          browser,
-          os,
-          referrer: referrer || null,
-          utmSource: utmSource || null,
-          utmMedium: utmMedium || null,
-          country: country || null,
-          city: city || null,
-        },
-      });
-    }
+        if (existingSession) {
+          await prisma.active_sessions.update({
+            where: { sessionId: normalizedSessionId },
+            data: {
+              currentPage: currentPage || existingSession.currentPage,
+              pageTitle: pageTitle || existingSession.pageTitle,
+              lastActivity: new Date(),
+              pageCount: existingSession.pageCount + 1,
+            },
+          });
+        } else {
+          await prisma.active_sessions.create({
+            data: {
+              id: generateId(),
+              sessionId: normalizedSessionId,
+              currentPage: currentPage || '/',
+              pageTitle: pageTitle || null,
+              device,
+              browser,
+              os,
+              referrer: referrer || null,
+              utmSource: utmSource || null,
+              utmMedium: utmMedium || null,
+              country: country || null,
+              city: city || null,
+            },
+          });
+        }
+      } catch (err) {
+        logger.error('Error managing session (background)', err);
+      }
+    })();
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -141,7 +148,8 @@ export async function PATCH(request: NextRequest) {
 
     const { prisma } = await import('@/lib/db/prisma');
 
-    await prisma.active_sessions.updateMany({
+    // Fire-and-forget
+    void prisma.active_sessions.updateMany({
       where: { sessionId },
       data: {
         ...(hasInteracted !== undefined && { hasInteracted }),
@@ -149,7 +157,7 @@ export async function PATCH(request: NextRequest) {
         ...(hasSubmittedForm !== undefined && { hasSubmittedForm }),
         lastActivity: new Date(),
       },
-    });
+    }).catch((err) => logger.error('Error updating session (background)', err));
 
     return NextResponse.json({ success: true });
   } catch (error) {

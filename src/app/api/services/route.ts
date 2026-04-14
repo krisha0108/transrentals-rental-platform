@@ -1,56 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { unstable_cache } from 'next/cache';
 import logger from '@/lib/security/logger';
 
-// Force dynamic rendering (API routes with query params should not be static)
-export const dynamic = 'force-dynamic';
-// Cache services for 1 hour
-export const revalidate = 3600;
+const getCachedServices = unstable_cache(
+  async (parentId: string | null, parentsOnly: boolean) => {
+    const where: any = { isActive: true };
+    if (parentsOnly) {
+      where.parentId = null;
+    } else if (parentId) {
+      where.parentId = parentId;
+    }
+    return prisma.services.findMany({
+      where,
+      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        parentId: true,
+        shortDesc: true,
+        icon: true,
+        image: true,
+        flowType: true,
+      },
+    });
+  },
+  ['services-list'],
+  { revalidate: 3600, tags: ['services'] }
+);
 
 export async function GET(request: NextRequest) {
-    try {
-        const { searchParams } = new URL(request.url);
-        const parentId = searchParams.get('parentId');
-        const parentsOnly = searchParams.get('parentsOnly') === 'true';
+  try {
+    const { searchParams } = new URL(request.url);
+    const parentId = searchParams.get('parentId');
+    const parentsOnly = searchParams.get('parentsOnly') === 'true';
 
-        const where: any = {
-            isActive: true,
-        };
+    const services = await getCachedServices(parentId, parentsOnly);
 
-        if (parentsOnly) {
-            where.parentId = null;
-        } else if (parentId) {
-            where.parentId = parentId;
-        }
-
-        const services = await prisma.services.findMany({
-            where,
-            orderBy: [
-                { displayOrder: 'asc' },
-                { name: 'asc' }
-            ],
-            select: {
-                id: true,
-                name: true,
-                slug: true,
-                parentId: true,
-                shortDesc: true,
-                icon: true,
-                image: true,
-                flowType: true,
-            }
-        });
-
-        return NextResponse.json({
-            success: true,
-            services: services
-        });
-    } catch (error: any) {
-        logger.error('Failed to fetch services', error);
-        return NextResponse.json(
-            { success: false, error: 'Failed to fetch services' },
-            { status: 500 }
-        );
-    }
+    return NextResponse.json({ success: true, services });
+  } catch (error: any) {
+    logger.error('Failed to fetch services', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch services' },
+      { status: 500 }
+    );
+  }
 }

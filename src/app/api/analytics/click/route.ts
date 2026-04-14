@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, note: 'analytics-disabled' });
     }
 
-    await prisma.click_events.create({
+    // Fire-and-forget: return response immediately, DB write happens in background
+    void prisma.click_events.create({
       data: {
         id: generateId(),
         eventType: eventType || 'OTHER',
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
         utmMedium: (typeof utmMedium === 'string' ? utmMedium.substring(0, 100) : null),
         utmCampaign: (typeof utmCampaign === 'string' ? utmCampaign.substring(0, 100) : null),
       },
-    });
+    }).catch((error) => logger.error('Error tracking click event', error));
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -142,8 +143,8 @@ export async function PUT(request: NextRequest) {
       return null;
     };
 
-    // Create all events in batch
-    await prisma.click_events.createMany({
+    // Fire-and-forget: return response immediately, DB write happens in background
+    void prisma.click_events.createMany({
       data: events.map((event: Record<string, unknown>) => ({
         id: generateId(),
         eventType: (validEventTypes.includes(event.eventType as ClickType) ? event.eventType : 'OTHER') as ClickType,
@@ -165,7 +166,7 @@ export async function PUT(request: NextRequest) {
         utmMedium: truncate(event.utmMedium, 100),
         utmCampaign: truncate(event.utmCampaign, 100),
       })),
-    });
+    }).catch((error) => logger.error('Error batch tracking clicks', error));
 
     return NextResponse.json({ success: true, count: events.length });
   } catch (error) {

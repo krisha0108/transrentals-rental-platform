@@ -1,59 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { LocationType } from '@prisma/client';
+import { unstable_cache } from 'next/cache';
 import logger from '@/lib/security/logger';
 
-// Force dynamic rendering (API routes with query params should not be static)
-export const dynamic = 'force-dynamic';
-// Cache locations for 1 hour - they rarely change
-export const revalidate = 3600;
+const getCachedLocations = unstable_cache(
+  async (type: string, includeAirports: boolean, serviceSlug: string | null) => {
+    const whereClause: any = { isActive: true };
 
-// GET - Public endpoint to list active locations (cities and/or airports)
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const typeParam = searchParams.get('type') || 'CITY';
-    const includeAirports = searchParams.get('includeAirports') === 'true';
-    const serviceSlug = searchParams.get('serviceSlug');
-
-    // Validate and cast type to LocationType enum
-    const validTypes = ['COUNTRY', 'STATE', 'UNION_TERRITORY', 'CITY', 'AREA', 'AIRPORT'];
-    const type = validTypes.includes(typeParam) ? (typeParam as LocationType) : 'CITY';
-
-    // Build where clause
-    const whereClause: any = {
-      isActive: true,
-    };
-
-    // If includeAirports is true, fetch cities, union territories and airports
     if (includeAirports && type === 'CITY') {
       whereClause.type = { in: ['CITY', 'UNION_TERRITORY', 'AIRPORT'] };
     } else if (type === 'CITY') {
-      // When querying for cities, also include union territories (they're city-level)
       whereClause.type = { in: ['CITY', 'UNION_TERRITORY'] };
     } else {
       whereClause.type = type;
     }
 
-    // If serviceSlug provided, filter by service locations
     if (serviceSlug) {
       const service = await prisma.services.findUnique({
         where: { slug: serviceSlug },
         select: { id: true },
       });
-
       if (service) {
         whereClause.service_locations = {
-          some: {
-            serviceId: service.id,
-            isActive: true,
-          },
+          some: { serviceId: service.id, isActive: true },
         };
       }
     }
 
-    // Fetch active locations of the specified type(s)
     const locations = await prisma.locations.findMany({
       where: whereClause,
       select: {
@@ -66,31 +40,40 @@ export async function GET(request: NextRequest) {
         latitude: true,
         longitude: true,
         locations: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-          },
+          select: { id: true, name: true, type: true },
         },
       },
       orderBy: [
-        { type: 'asc' }, // Cities first, then airports
+        { type: 'asc' },
         { displayOrder: 'asc' },
         { name: 'asc' },
       ],
     });
 
-    // Format response - mark airports clearly
-    const formattedLocations = locations.map((loc) => ({
+    return locations.map((loc) => ({
       ...loc,
       isAirport: loc.type === 'AIRPORT',
       displayName: loc.type === 'AIRPORT' ? `${loc.code} - ${loc.name}` : loc.name,
     }));
+  },
+  ['locations-list'],
+  { revalidate: 3600, tags: ['locations'] }
+);
 
-    return NextResponse.json({
-      success: true,
-      locations: formattedLocations,
-    });
+// GET - Public endpoint to list active locations (cities and/or airports)
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const typeParam = searchParams.get('type') || 'CITY';
+    const includeAirports = searchParams.get('includeAirports') === 'true';
+    const serviceSlug = searchParams.get('serviceSlug');
+
+    const validTypes = ['COUNTRY', 'STATE', 'UNION_TERRITORY', 'CITY', 'AREA', 'AIRPORT'];
+    const type = validTypes.includes(typeParam) ? typeParam : 'CITY';
+
+    const formattedLocations = await getCachedLocations(type, includeAirports, serviceSlug);
+
+    return NextResponse.json({ success: true, locations: formattedLocations });
   } catch (error: any) {
     logger.error('Failed to fetch locations', error);
     return NextResponse.json(
