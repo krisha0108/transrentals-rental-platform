@@ -161,13 +161,12 @@ function renderEl(el: any, siteUrl: string): string {
     const br      = `border-radius:${el.borderRadius ?? 50}px;`;
     const content = String(el.content || 'Tap Here')
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const href    = el.href || el.ctaUrl || '';
-    const inner   = `display:flex;width:100%;height:100%;align-items:center;justify-content:center;background-color:${bgColor};${br}${border}text-decoration:none;`;
+    // Note: <a> tags are NOT allowed inside amp-story-grid-layer.
+    // Buttons with href are rendered as visual-only here; a separate
+    // amp-story-cta-layer is added by renderSlide() for the actual link.
+    const inner   = `display:flex;width:100%;height:100%;align-items:center;justify-content:center;background-color:${bgColor};${br}${border}`;
     const spanS   = `font-size:${fsVw(el.fontSize || 16)};font-family:${el.fontFamily || 'Poppins, sans-serif'};font-weight:bold;color:${color};`;
     const label   = `<span style="${spanS}">${content}</span>`;
-    if (href) {
-      return `<div style="${pos}"><a href="${esc(href)}" target="_top" style="${inner}">${label}</a></div>`;
-    }
     return `<div style="${pos}"><div style="${inner}">${label}</div></div>`;
   }
 
@@ -228,7 +227,26 @@ function renderSlide(slide: any, idx: number, siteUrl: string): string {
     </amp-story-grid-layer>`;
   }
 
-  return `<amp-story-page id="page-${idx + 1}" auto-advance-after="${dur}s">${bgLayer}${canvasLayer}${legacyLayer}</amp-story-page>`;
+  // CTA layer — <a> tags are disallowed in amp-story-grid-layer, so button
+  // elements with href are promoted to amp-story-cta-layer (AMP requirement)
+  let ctaLayer = '';
+  const ctaBtn = canvasEls.find(el => el.type === 'button' && (el.href || el.ctaUrl));
+  if (ctaBtn) {
+    const href     = esc(ctaBtn.href || ctaBtn.ctaUrl || '');
+    const btnText  = String(ctaBtn.content || 'Tap Here')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const bgColor  = ctaBtn.bgColor ? hexToRgba(ctaBtn.bgColor, ctaBtn.bgAlpha ?? 1) : '#ffffff';
+    const color    = ctaBtn.color || '#000000';
+    const br       = `border-radius:${ctaBtn.borderRadius ?? 50}px;`;
+    const fontSize = fsVw(ctaBtn.fontSize || 16);
+    const ff       = ctaBtn.fontFamily || 'Poppins, sans-serif';
+    ctaLayer = `<amp-story-cta-layer><a href="${href}" target="_blank" style="background-color:${bgColor};color:${color};${br}padding:10px 24px;font-weight:bold;text-decoration:none;font-family:${ff};font-size:${fontSize};">${btnText}</a></amp-story-cta-layer>`;
+  } else if (canvasEls.length === 0 && slide.ctaText && slide.ctaUrl) {
+    // Legacy CTA
+    ctaLayer = `<amp-story-cta-layer><a href="${esc(slide.ctaUrl)}" target="_blank" style="background:#fff;color:#111;border-radius:50px;padding:10px 22px;font-weight:700;text-decoration:none;font-size:4vw;font-family:Poppins,sans-serif;">${esc(slide.ctaText)}</a></amp-story-cta-layer>`;
+  }
+
+  return `<amp-story-page id="page-${idx + 1}" auto-advance-after="${dur}s">${bgLayer}${canvasLayer}${legacyLayer}${ctaLayer}</amp-story-page>`;
 }
 
 // ─── Route Handler ────────────────────────────────────────────────────────────
@@ -350,13 +368,13 @@ export async function GET(
 <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
 <title>${esc(story.title)}</title>
 <link rel="canonical" href="${canonicalUrl}">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&amp;family=Poppins:wght@400;600;700;900&amp;family=Montserrat:wght@400;700&amp;family=Open+Sans:wght@400;700&amp;family=Raleway:wght@400;700&amp;family=Playfair+Display:wght@400;700&amp;family=Oswald:wght@400;700&amp;family=Lobster&amp;family=Dancing+Script:wght@400;700&amp;family=Pacifico&amp;family=Quicksand:wght@400;700&amp;family=Nunito:wght@400;700&amp;family=Lato:wght@400;700&amp;family=Merriweather:wght@400;700&amp;family=Ubuntu:wght@400;700&amp;family=Bebas+Neue&amp;family=Inter:wght@400;700&amp;display=swap" rel="stylesheet">
 <script async src="https://cdn.ampproject.org/v0.js"></script>
 <script async custom-element="amp-story" src="https://cdn.ampproject.org/v0/amp-story-1.0.js"></script>
 <script async custom-element="amp-video" src="https://cdn.ampproject.org/v0/amp-video-0.1.js"></script>
 <style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style>
 <noscript><style amp-boilerplate>body{visibility:visible}</style></noscript>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&amp;family=Poppins:wght@400;600;700;900&amp;family=Montserrat:wght@400;700&amp;family=Open+Sans:wght@400;700&amp;family=Raleway:wght@400;700&amp;family=Playfair+Display:wght@400;700&amp;family=Oswald:wght@400;700&amp;family=Lobster&amp;family=Dancing+Script:wght@400;700&amp;family=Pacifico&amp;family=Quicksand:wght@400;700&amp;family=Nunito:wght@400;700&amp;family=Lato:wght@400;700&amp;family=Merriweather:wght@400;700&amp;family=Ubuntu:wght@400;700&amp;family=Bebas+Neue&amp;family=Inter:wght@400;700&amp;display=swap" rel="stylesheet">
 <meta name="description" content="${esc(description)}">
 <meta property="og:type" content="article">
 <meta property="og:title" content="${esc(story.title)}">
