@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { formatBookingDuration } from '@/lib/utils/duration';
 import Link from 'next/link';
@@ -118,6 +118,9 @@ const DEFAULT_TERMS = [
 export default function SendSelfDriveQuotePage() {
   const router = useRouter();
   const params = useParams();
+  const vehicleNameRef = useRef<HTMLInputElement>(null);
+  const totalPriceRef = useRef<HTMLInputElement>(null);
+  const customValidDateRef = useRef<HTMLInputElement>(null);
   const [request, setRequest] = useState<QuoteRequest | null>(null);
   const [fleetVehicles, setFleetVehicles] = useState<FleetVehicle[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -535,8 +538,6 @@ export default function SendSelfDriveQuotePage() {
                 <div><label className={labelCls}>Fuel Type</label><select value={fuelType} onChange={(e) => setFuelType(e.target.value)} className={selectCls}><option value="">Select</option><option value="Petrol">Petrol</option><option value="Diesel">Diesel</option><option value="CNG">CNG</option><option value="Electric">Electric</option><option value="Hybrid">Hybrid</option></select></div>
                 <div><label className={labelCls}>Seats</label><select value={seats} onChange={(e) => setSeats(e.target.value)} className={selectCls}><option value="">Select</option><option value="4">4 Seater</option><option value="5">5 Seater</option><option value="6">6 Seater</option><option value="7">7 Seater</option><option value="8">8 Seater</option></select></div>
               </div>
-              </div>
-              {errors.kmLimitPerDay && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.kmLimitPerDay}</p>}
             </div>
 
             {/* Pricing */}
@@ -571,6 +572,7 @@ export default function SendSelfDriveQuotePage() {
                     <input type="number" value={kmLimitPerDay === 'unlimited' ? '' : kmLimitPerDay} onChange={(e) => setKmLimitPerDay(e.target.value)} placeholder="200" disabled={kmLimitPerDay === 'unlimited'} className={`${inputCls} ${kmLimitPerDay === 'unlimited' ? 'bg-gray-50 text-gray-400' : ''}`} />
                     <button type="button" onClick={() => setKmLimitPerDay(kmLimitPerDay === 'unlimited' ? '200' : 'unlimited')} className={`px-3 py-2.5 text-[10px] font-bold rounded-xl border transition whitespace-nowrap ${kmLimitPerDay === 'unlimited' ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>Unlimited</button>
                   </div>
+                  {errors.kmLimitPerDay && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.kmLimitPerDay}</p>}
                 </div>
                 <div>
                   <label className={labelCls}>Extra KM Rate</label>
