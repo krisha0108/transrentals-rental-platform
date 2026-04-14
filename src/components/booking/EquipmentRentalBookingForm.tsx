@@ -127,6 +127,13 @@ export function EquipmentRentalBookingForm() {
     e.preventDefault();
     setError(null);
 
+    // Validate phone
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10 || !/^[6-9]/.test(phoneDigits)) {
+      setError('Please enter a valid 10-digit Indian mobile number (starting with 6-9)');
+      return;
+    }
+
     // Prepare customer info
     const customerInfo = {
       name: formData.name,
@@ -324,8 +331,11 @@ export function EquipmentRentalBookingForm() {
                 </div>
                 <div className="text-center">
                   <label className="block text-sm font-medium text-gray-700 mb-2"><Phone className="w-4 h-4 inline mr-2" />Phone Number *</label>
-                  <input type="tel" value={formData.phone} onChange={(e) => updateFormData('phone', e.target.value)}
-                    placeholder="+91 9737965551" className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none" required />
+                  <input type="tel" value={formData.phone} onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      if (val.length <= 10) updateFormData('phone', val);
+                    }}
+                    placeholder="10-digit mobile number" maxLength={10} className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary focus:outline-none" required />
                 </div>
               </div>
             )}

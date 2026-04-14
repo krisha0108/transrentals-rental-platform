@@ -291,6 +291,13 @@ export function CustomBookingForm() {
   };
 
   const handleSubmit = async () => {
+    // Validate phone
+    const phoneDigits = formData.customerPhone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10 || !/^[6-9]/.test(phoneDigits)) {
+      alert('Please enter a valid 10-digit Indian mobile number (starting with 6-9)');
+      return;
+    }
+
     const totals = calculateTotals();
 
     const bookingPayload = {
@@ -812,8 +819,12 @@ export function CustomBookingForm() {
                   <input
                     type="tel"
                     value={formData.customerPhone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, customerPhone: e.target.value }))}
-                    placeholder="Enter your phone number"
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      if (val.length <= 10) setFormData(prev => ({ ...prev, customerPhone: val }));
+                    }}
+                    placeholder="10-digit mobile number"
+                    maxLength={10}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
