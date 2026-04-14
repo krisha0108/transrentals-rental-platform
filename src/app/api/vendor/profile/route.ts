@@ -7,6 +7,110 @@ import { smartRateLimit, getClientIdentifier } from '@/lib/utils/smart-rate-limi
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
+// In-flight request coalescing: multiple parallel calls for same vendorId share one DB query
+const inFlightProfiles = new Map<string, Promise<any>>();
+
+async function fetchVendorFromDB(vendorId: string) {
+  const vendor = await prisma.vendors.findUnique({
+    where: { id: vendorId },
+    select: {
+      id: true,
+      email: true,
+      phone: true,
+      businessName: true,
+      businessType: true,
+      ownerName: true,
+      gstNumber: true,
+      panNumber: true,
+      address: true,
+      city: true,
+      state: true,
+      pincode: true,
+      logo: true,
+      description: true,
+      website: true,
+      bankName: true,
+      accountNumber: true,
+      ifscCode: true,
+      accountHolderName: true,
+      status: true,
+      rating: true,
+      totalRatings: true,
+      createdAt: true,
+      rejectionReason: true,
+      vendor_approved_services: {
+        where: { isActive: true },
+        select: {
+          services: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              services: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      vendor_approved_locations: {
+        where: { isActive: true },
+        select: {
+          locations: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      },
+      _count: {
+        select: {
+          vendor_approved_services: true,
+          vendor_approved_locations: true,
+          vendor_fleets: true,
+          vendor_documents: true,
+          vendor_service_requests: true,
+          vendor_location_requests: true,
+        },
+      },
+    },
+  });
+
+  if (!vendor) return null;
+
+  const approvedServiceIds = vendor.vendor_approved_services.map((as) => {
+    return as.services.services?.id || as.services.id;
+  });
+  const uniqueServiceIds = [...new Set(approvedServiceIds)];
+
+  const approvedServiceSlugs = vendor.vendor_approved_services.map((as) => {
+    return as.services.services?.slug || as.services.slug;
+  });
+  const uniqueServiceSlugs = [...new Set(approvedServiceSlugs)];
+
+  const approvedLocationIds = vendor.vendor_approved_locations.map((al) => al.locations.id);
+
+  return {
+    ...vendor,
+    approvedServicesCount: vendor._count.vendor_approved_services,
+    approvedLocationsCount: vendor._count.vendor_approved_locations,
+    fleetsCount: vendor._count.vendor_fleets,
+    documentsCount: vendor._count.vendor_documents,
+    serviceRequestsCount: vendor._count.vendor_service_requests,
+    locationRequestsCount: vendor._count.vendor_location_requests,
+    approvedServiceIds: uniqueServiceIds,
+    approvedServiceSlugs: uniqueServiceSlugs,
+    approvedLocationIds,
+    approvedLocationSlugs: vendor.vendor_approved_locations.map((al) => al.locations.slug),
+  };
+}
+
 // GET - Get vendor profile
 export async function GET(request: NextRequest) {
   try {
@@ -16,112 +120,20 @@ export async function GET(request: NextRequest) {
     }
     const vendorId = auth.vendorId;
 
-    const vendor = await prisma.vendors.findUnique({
-      where: { id: vendorId },
-      select: {
-        id: true,
-        email: true,
-        phone: true,
-        businessName: true,
-        businessType: true,
-        ownerName: true,
-        gstNumber: true,
-        panNumber: true,
-        address: true,
-        city: true,
-        state: true,
-        pincode: true,
-        logo: true,
-        description: true,
-        website: true,
-        bankName: true,
-        accountNumber: true,
-        ifscCode: true,
-        accountHolderName: true,
-        status: true,
-        rating: true,
-        totalRatings: true,
-        createdAt: true,
-        rejectionReason: true,
-        vendor_approved_services: {
-          where: { isActive: true },
-          select: {
-            services: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                services: {
-                  select: {
-                    id: true,
-                    name: true,
-                    slug: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-        vendor_approved_locations: {
-          where: { isActive: true },
-          select: {
-            locations: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              },
-            },
-          },
-        },
-        _count: {
-          select: {
-            vendor_approved_services: true,
-            vendor_approved_locations: true,
-            vendor_fleets: true,
-            vendor_documents: true,
-            vendor_service_requests: true,
-            vendor_location_requests: true,
-          },
-        },
-      },
-    });
+    // Coalesce parallel requests for the same vendor into a single DB query
+    let pending = inFlightProfiles.get(vendorId);
+    if (!pending) {
+      pending = fetchVendorFromDB(vendorId);
+      inFlightProfiles.set(vendorId, pending);
+      pending.finally(() => inFlightProfiles.delete(vendorId));
+    }
 
-    if (!vendor) {
+    const vendorData = await pending;
+    if (!vendorData) {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
     }
 
-    // Get service IDs (both direct and parent IDs) - use IDs instead of slugs for stability
-    const approvedServiceIds = vendor.vendor_approved_services.map((as) => {
-      // Return parent ID if exists, otherwise service ID
-      return as.services.services?.id || as.services.id;
-    });
-    // Remove duplicates
-    const uniqueServiceIds = [...new Set(approvedServiceIds)];
-
-    // Also get slugs for backward compatibility
-    const approvedServiceSlugs = vendor.vendor_approved_services.map((as) => {
-      return as.services.services?.slug || as.services.slug;
-    });
-    const uniqueServiceSlugs = [...new Set(approvedServiceSlugs)];
-
-    // Get location IDs instead of slugs
-    const approvedLocationIds = vendor.vendor_approved_locations.map((al) => al.locations.id);
-
-    // Return with counts, IDs (primary) and slugs (backward compatibility)
-    return NextResponse.json({
-      ...vendor,
-      approvedServicesCount: vendor._count.vendor_approved_services,
-      approvedLocationsCount: vendor._count.vendor_approved_locations,
-      fleetsCount: vendor._count.vendor_fleets,
-      documentsCount: vendor._count.vendor_documents,
-      serviceRequestsCount: vendor._count.vendor_service_requests,
-      locationRequestsCount: vendor._count.vendor_location_requests,
-      approvedServiceIds: uniqueServiceIds,
-      approvedServiceSlugs: uniqueServiceSlugs, // kept for backward compatibility
-      approvedLocationIds: approvedLocationIds,
-      approvedLocationSlugs: vendor.vendor_approved_locations.map((al) => al.locations.slug),
-    });
+    return NextResponse.json(vendorData);
   } catch (error: any) {
     logger.error('Get vendor profile error', error);
     return NextResponse.json(

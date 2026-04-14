@@ -67,439 +67,195 @@ export async function GET(request: NextRequest) {
     // Quote request statuses to exclude (they have corresponding bookings already)
     const excludedQuoteStatuses = ['QUOTE_ACCEPTED', 'BOOKING_CONFIRMED'];
 
-    // Get bike quote request stats (exclude converted ones to avoid double-counting)
-    let bikeQuoteRequestStats: any[] = [];
-    try {
-      bikeQuoteRequestStats = await (prisma.bike_quote_requests.groupBy as any)({
-        by: ['status'],
-        where: {
-          OR: [
-            ...(customerId ? [{ customerId: customerId }] : []),
-            ...(identifier ? [{ customerPhone: identifier }] : []),
-            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
-            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
-          ],
-          status: { notIn: excludedQuoteStatuses as any },
-        },
-        _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching bike quote request stats', e);
-    }
+    // Quote filter (phone/email/customerId based)
+    const quoteFilter = {
+      OR: [
+        ...(customerId ? [{ customerId }] : []),
+        ...(identifier ? [{ customerPhone: identifier }] : []),
+        ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
+        ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
+      ],
+    };
 
-    // Get self-drive quote request stats (exclude converted ones to avoid double-counting)
-    let selfDriveQuoteRequestStats: any[] = [];
-    try {
-      selfDriveQuoteRequestStats = await (prisma.self_drive_quote_requests.groupBy as any)({
+    // --- Batch 1: bike, self-drive, bike-bookings, car-bookings, chauffeur-bookings ---
+    const [
+      bikeQuoteRequestStats,
+      selfDriveQuoteRequestStats,
+      bikeBookingStats,
+      carBookingStats,
+      chauffeurBookingStats,
+    ] = await Promise.all([
+      (prisma.bike_quote_requests.groupBy as any)({
         by: ['status'],
-        where: {
-          OR: [
-            ...(customerId ? [{ customerId: customerId }] : []),
-            ...(identifier ? [{ customerPhone: identifier }] : []),
-            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
-            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
-          ],
-          status: { notIn: excludedQuoteStatuses as any },
-        },
+        where: { ...quoteFilter, status: { notIn: excludedQuoteStatuses as any } },
         _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching self-drive quote request stats', e);
-    }
+      }).catch((e: any) => { logger.error('bike_quote_requests groupBy failed', e); return []; }),
 
-    // Get bike booking stats
-    let bikeBookingStats: any[] = [];
-    try {
-      bikeBookingStats = await (prisma.bike_bookings.groupBy as any)({
+      (prisma.self_drive_quote_requests.groupBy as any)({
+        by: ['status'],
+        where: { ...quoteFilter, status: { notIn: excludedQuoteStatuses as any } },
+        _count: { status: true },
+      }).catch((e: any) => { logger.error('self_drive_quote_requests groupBy failed', e); return []; }),
+
+      (prisma.bike_bookings.groupBy as any)({
         by: ['status'],
         where: customerFilter,
         _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching bike stats', e);
-    }
+      }).catch((e: any) => { logger.error('bike_bookings groupBy failed', e); return []; }),
 
-    // Get car booking stats
-    let carBookingStats: any[] = [];
-    try {
-      carBookingStats = await (prisma.car_bookings.groupBy as any)({
+      (prisma.car_bookings.groupBy as any)({
         by: ['status'],
         where: customerFilter,
         _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching car stats', e);
-    }
+      }).catch((e: any) => { logger.error('car_bookings groupBy failed', e); return []; }),
 
-    // Get chauffeur booking stats
-    let chauffeurBookingStats: any[] = [];
-    try {
-      chauffeurBookingStats = await (prisma.chauffeur_bookings.groupBy as any)({
+      (prisma.chauffeur_bookings.groupBy as any)({
         by: ['status'],
         where: customerFilter,
         _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching chauffeur stats', e);
-    }
+      }).catch((e: any) => { logger.error('chauffeur_bookings groupBy failed', e); return []; }),
+    ]);
 
-    // Get bus quote request stats (exclude converted ones to avoid double-counting)
-    let busQuoteRequestStats: any[] = [];
-    try {
-      busQuoteRequestStats = await (prisma.bus_quote_requests.groupBy as any)({
+    // --- Batch 2: bus quotes, bus bookings, truck quotes, truck bookings, packers quotes ---
+    const [
+      busQuoteRequestStats,
+      busBookingStats,
+      truckQuoteRequestStats,
+      truckBookingStats,
+      packersQuoteRequestStats,
+    ] = await Promise.all([
+      (prisma.bus_quote_requests.groupBy as any)({
         by: ['status'],
-        where: {
-          OR: [
-            ...(customerId ? [{ customerId: customerId }] : []),
-            ...(identifier ? [{ customerPhone: identifier }] : []),
-            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
-            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
-          ],
-          status: { notIn: excludedQuoteStatuses as any },
-        },
+        where: { ...quoteFilter, status: { notIn: excludedQuoteStatuses as any } },
         _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching bus quote request stats', e);
-    }
+      }).catch((e: any) => { logger.error('bus_quote_requests groupBy failed', e); return []; }),
 
-    // Get bus booking stats
-    let busBookingStats: any[] = [];
-    try {
-      busBookingStats = await (prisma.bus_bookings.groupBy as any)({
+      (prisma.bus_bookings.groupBy as any)({
         by: ['status'],
-        where: {
-          OR: [
-            ...(customerId ? [{ customerId: customerId }] : []),
-            ...(identifier ? [{ customerPhone: identifier }] : []),
-            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
-            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
-          ],
-        },
+        where: quoteFilter,
         _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching bus booking stats', e);
-    }
+      }).catch((e: any) => { logger.error('bus_bookings groupBy failed', e); return []; }),
 
-    // Aggregate stats
+      (prisma.truck_quote_requests.groupBy as any)({
+        by: ['status'],
+        where: { ...quoteFilter, status: { notIn: excludedQuoteStatuses as any } },
+        _count: { status: true },
+      }).catch((e: any) => { logger.error('truck_quote_requests groupBy failed', e); return []; }),
+
+      (prisma.truck_bookings.groupBy as any)({
+        by: ['status'],
+        where: quoteFilter,
+        _count: { status: true },
+      }).catch((e: any) => { logger.error('truck_bookings groupBy failed', e); return []; }),
+
+      (prisma.packers_quote_requests.groupBy as any)({
+        by: ['status'],
+        where: { ...quoteFilter, status: { notIn: excludedQuoteStatuses as any } },
+        _count: { status: true },
+      }).catch((e: any) => { logger.error('packers_quote_requests groupBy failed', e); return []; }),
+    ]);
+
+    // --- Batch 3: packers bookings, equipment quotes, equipment bookings, luxury quotes, luxury bookings ---
+    const [
+      packersBookingStats,
+      equipmentQuoteRequestStats,
+      equipmentBookingStats,
+      luxuryQuoteRequestStats,
+      luxuryBookingStats,
+    ] = await Promise.all([
+      (prisma.packers_bookings.groupBy as any)({
+        by: ['status'],
+        where: quoteFilter,
+        _count: { status: true },
+      }).catch((e: any) => { logger.error('packers_bookings groupBy failed', e); return []; }),
+
+      (prisma.equipment_quote_requests.groupBy as any)({
+        by: ['status'],
+        where: { ...quoteFilter, status: { notIn: excludedQuoteStatuses as any } },
+        _count: { status: true },
+      }).catch((e: any) => { logger.error('equipment_quote_requests groupBy failed', e); return []; }),
+
+      (prisma.equipment_bookings.groupBy as any)({
+        by: ['status'],
+        where: quoteFilter,
+        _count: { status: true },
+      }).catch((e: any) => { logger.error('equipment_bookings groupBy failed', e); return []; }),
+
+      (prisma.luxury_quote_requests.groupBy as any)({
+        by: ['status'],
+        where: { ...quoteFilter, status: { notIn: excludedQuoteStatuses as any } },
+        _count: { status: true },
+      }).catch((e: any) => { logger.error('luxury_quote_requests groupBy failed', e); return []; }),
+
+      (prisma.luxury_bookings.groupBy as any)({
+        by: ['status'],
+        where: quoteFilter,
+        _count: { status: true },
+      }).catch((e: any) => { logger.error('luxury_bookings groupBy failed', e); return []; }),
+    ]);
+
+    // --- Aggregate stats ---
     const statusMap: Record<string, number> = {
-      open: 0,
-      confirmed: 0,
-      ongoing: 0,
-      completed: 0,
-      dropped: 0,
+      open: 0, confirmed: 0, ongoing: 0, completed: 0, dropped: 0,
     };
 
-    // Map booking statuses to dashboard categories
-    // Waiting (open) = only quote requests; bookings are Confirmed/Ongoing/Completed
+    // Status mapping tables
     const statusMappings: Record<string, string> = {
-      PENDING_PAYMENT: 'confirmed',
-      PAYMENT_VERIFIED: 'confirmed',
-      PENDING_VENDOR: 'confirmed',
-      BROADCASTED: 'confirmed',
-      ACCEPTED: 'confirmed',
-      DRIVER_ASSIGNED: 'confirmed',
-      READY_FOR_PICKUP: 'ongoing',
-      IN_PROGRESS: 'ongoing',
-      COMPLETED: 'completed',
-      CANCELLED: 'dropped',
-      EXPIRED: 'dropped',
-      REFUNDED: 'dropped',
+      PENDING_PAYMENT: 'confirmed', PAYMENT_VERIFIED: 'confirmed',
+      PENDING_VENDOR: 'confirmed', BROADCASTED: 'confirmed',
+      ACCEPTED: 'confirmed', DRIVER_ASSIGNED: 'confirmed',
+      READY_FOR_PICKUP: 'ongoing', IN_PROGRESS: 'ongoing',
+      COMPLETED: 'completed', CANCELLED: 'dropped',
+      EXPIRED: 'dropped', REFUNDED: 'dropped',
     };
 
-    // Quote request status mappings (only PENDING/QUOTES_RECEIVED count as 'open'/waiting)
-    const busQuoteRequestMappings: Record<string, string> = {
-      PENDING: 'open',
-      QUOTES_RECEIVED: 'open',
-      QUOTE_ACCEPTED: 'confirmed',
-      BOOKING_CONFIRMED: 'confirmed',
-      CANCELLED: 'dropped',
-      EXPIRED: 'dropped',
+    const quoteRequestMappings: Record<string, string> = {
+      PENDING: 'open', QUOTES_RECEIVED: 'open',
+      QUOTE_ACCEPTED: 'confirmed', BOOKING_CONFIRMED: 'confirmed',
+      CANCELLED: 'dropped', EXPIRED: 'dropped',
     };
 
-    // Booking status mappings for bus/truck/packers/equipment/luxury
     const busBookingMappings: Record<string, string> = {
-      PENDING_PAYMENT: 'confirmed',
-      PAYMENT_SUBMITTED: 'confirmed',
-      PAYMENT_VERIFIED: 'confirmed',
-      ADVANCE_PAID: 'confirmed',
-      CONFIRMED: 'confirmed',
-      VEHICLE_ASSIGNED: 'confirmed',
-      TEAM_ASSIGNED: 'confirmed',
-      LOADING: 'ongoing',
-      IN_TRANSIT: 'ongoing',
-      UNLOADING: 'ongoing',
-      PACKING: 'ongoing',
-      UNPACKING: 'ongoing',
-      DELIVERED: 'ongoing',
-      IN_USE: 'ongoing',
-      IN_PROGRESS: 'ongoing',
-      RETURNED: 'completed',
-      COMPLETED: 'completed',
-      CANCELLED: 'dropped',
+      PENDING_PAYMENT: 'confirmed', PAYMENT_SUBMITTED: 'confirmed',
+      PAYMENT_VERIFIED: 'confirmed', ADVANCE_PAID: 'confirmed',
+      CONFIRMED: 'confirmed', VEHICLE_ASSIGNED: 'confirmed',
+      TEAM_ASSIGNED: 'confirmed', LOADING: 'ongoing',
+      IN_TRANSIT: 'ongoing', UNLOADING: 'ongoing',
+      PACKING: 'ongoing', UNPACKING: 'ongoing',
+      DELIVERED: 'ongoing', IN_USE: 'ongoing',
+      IN_PROGRESS: 'ongoing', RETURNED: 'completed',
+      COMPLETED: 'completed', CANCELLED: 'dropped',
     };
 
-    // Process bike quote request stats
-    for (const stat of bikeQuoteRequestStats) {
-      const mappedStatus = busQuoteRequestMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-
-    // Process self-drive quote request stats
-    for (const stat of selfDriveQuoteRequestStats) {
-      const mappedStatus = busQuoteRequestMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-
-    // Process bike booking stats
-    for (const stat of bikeBookingStats) {
-      const mappedStatus = statusMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-
-    // Process car booking stats
-    for (const stat of carBookingStats) {
-      const mappedStatus = statusMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-
-    // Process chauffeur booking stats
-    for (const stat of chauffeurBookingStats) {
-      const mappedStatus = statusMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-
-    // Process bus quote request stats
-    for (const stat of busQuoteRequestStats) {
-      const mappedStatus = busQuoteRequestMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-
-    // Process bus booking stats
-    for (const stat of busBookingStats) {
-      const mappedStatus = busBookingMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-
-    // Get truck quote request stats (exclude converted ones to avoid double-counting)
-    let truckQuoteRequestStats: any[] = [];
-    try {
-      truckQuoteRequestStats = await (prisma.truck_quote_requests.groupBy as any)({
-        by: ['status'],
-        where: {
-          OR: [
-            ...(customerId ? [{ customerId: customerId }] : []),
-            ...(identifier ? [{ customerPhone: identifier }] : []),
-            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
-            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
-          ],
-          status: { notIn: excludedQuoteStatuses as any },
-        },
-        _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching truck quote request stats', e);
-    }
-
-    // Get truck booking stats
-    let truckBookingStats: any[] = [];
-    try {
-      truckBookingStats = await (prisma.truck_bookings.groupBy as any)({
-        by: ['status'],
-        where: {
-          OR: [
-            ...(customerId ? [{ customerId: customerId }] : []),
-            ...(identifier ? [{ customerPhone: identifier }] : []),
-            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
-            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
-          ],
-        },
-        _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching truck booking stats', e);
-    }
-
-    // Process truck stats
-    for (const stat of truckQuoteRequestStats) {
-      const mappedStatus = busQuoteRequestMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-    for (const stat of truckBookingStats) {
-      const mappedStatus = busBookingMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-
-    // Get packers quote request stats (exclude converted ones to avoid double-counting)
-    let packersQuoteRequestStats: any[] = [];
-    try {
-      packersQuoteRequestStats = await (prisma.packers_quote_requests.groupBy as any)({
-        by: ['status'],
-        where: {
-          OR: [
-            ...(customerId ? [{ customerId: customerId }] : []),
-            ...(identifier ? [{ customerPhone: identifier }] : []),
-            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
-            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
-          ],
-          status: { notIn: excludedQuoteStatuses as any },
-        },
-        _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching packers quote request stats', e);
-    }
-
-    // Get packers booking stats
-    let packersBookingStats: any[] = [];
-    try {
-      packersBookingStats = await (prisma.packers_bookings.groupBy as any)({
-        by: ['status'],
-        where: {
-          OR: [
-            ...(customerId ? [{ customerId: customerId }] : []),
-            ...(identifier ? [{ customerPhone: identifier }] : []),
-            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
-            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
-          ],
-        },
-        _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching packers booking stats', e);
-    }
-
-    // Process packers stats
-    for (const stat of packersQuoteRequestStats) {
-      const mappedStatus = busQuoteRequestMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-    for (const stat of packersBookingStats) {
-      const mappedStatus = busBookingMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-
-    // Get equipment quote request stats (exclude converted ones to avoid double-counting)
-    let equipmentQuoteRequestStats: any[] = [];
-    try {
-      equipmentQuoteRequestStats = await (prisma.equipment_quote_requests.groupBy as any)({
-        by: ['status'],
-        where: {
-          OR: [
-            ...(customerId ? [{ customerId: customerId }] : []),
-            ...(identifier ? [{ customerPhone: identifier }] : []),
-            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
-            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
-          ],
-          status: { notIn: excludedQuoteStatuses as any },
-        },
-        _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching equipment quote request stats', e);
-    }
-
-    // Get equipment booking stats
-    let equipmentBookingStats: any[] = [];
-    try {
-      equipmentBookingStats = await (prisma.equipment_bookings.groupBy as any)({
-        by: ['status'],
-        where: {
-          OR: [
-            ...(customerId ? [{ customerId: customerId }] : []),
-            ...(identifier ? [{ customerPhone: identifier }] : []),
-            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
-            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
-          ],
-        },
-        _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching equipment booking stats', e);
-    }
-
-    // Process equipment stats
-    for (const stat of equipmentQuoteRequestStats) {
-      const mappedStatus = busQuoteRequestMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-    for (const stat of equipmentBookingStats) {
-      const mappedStatus = busBookingMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-
-    // Get luxury quote request stats (exclude converted ones to avoid double-counting)
-    let luxuryQuoteRequestStats: any[] = [];
-    try {
-      luxuryQuoteRequestStats = await (prisma.luxury_quote_requests.groupBy as any)({
-        by: ['status'],
-        where: {
-          OR: [
-            ...(customerId ? [{ customerId: customerId }] : []),
-            ...(identifier ? [{ customerPhone: identifier }] : []),
-            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
-            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
-          ],
-          status: { notIn: excludedQuoteStatuses as any },
-        },
-        _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching luxury quote request stats', e);
-    }
-
-    // Get luxury booking stats
-    let luxuryBookingStats: any[] = [];
-    try {
-      luxuryBookingStats = await (prisma.luxury_bookings.groupBy as any)({
-        by: ['status'],
-        where: {
-          OR: [
-            ...(customerId ? [{ customerId: customerId }] : []),
-            ...(identifier ? [{ customerPhone: identifier }] : []),
-            ...(normalizedPhone && normalizedPhone !== identifier ? [{ customerPhone: normalizedPhone }] : []),
-            ...(normalizedEmail ? [{ customerEmail: normalizedEmail }] : []),
-          ],
-        },
-        _count: { status: true },
-      });
-    } catch (e) {
-      logger.error('Error fetching luxury booking stats', e);
-    }
-
-    // Luxury quote request status mappings (same as bus/truck)
-    const luxuryQuoteRequestMappings: Record<string, string> = {
-      PENDING: 'open',
-      QUOTES_RECEIVED: 'open',
-      QUOTE_ACCEPTED: 'confirmed',
-      BOOKING_CONFIRMED: 'confirmed',
-      CANCELLED: 'dropped',
-      EXPIRED: 'dropped',
-    };
-
-    // Luxury booking status mappings
     const luxuryBookingMappings: Record<string, string> = {
-      PENDING_PAYMENT: 'confirmed',
-      PAYMENT_SUBMITTED: 'confirmed',
-      PAYMENT_VERIFIED: 'confirmed',
-      ADVANCE_PAID: 'confirmed',
-      CONFIRMED: 'confirmed',
-      DRIVER_ASSIGNED: 'confirmed',
-      IN_PROGRESS: 'ongoing',
-      COMPLETED: 'completed',
-      CANCELLED: 'dropped',
+      PENDING_PAYMENT: 'confirmed', PAYMENT_SUBMITTED: 'confirmed',
+      PAYMENT_VERIFIED: 'confirmed', ADVANCE_PAID: 'confirmed',
+      CONFIRMED: 'confirmed', DRIVER_ASSIGNED: 'confirmed',
+      IN_PROGRESS: 'ongoing', COMPLETED: 'completed', CANCELLED: 'dropped',
     };
 
-    // Process luxury stats
-    for (const stat of luxuryQuoteRequestStats) {
-      const mappedStatus = luxuryQuoteRequestMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
-    for (const stat of luxuryBookingStats) {
-      const mappedStatus = luxuryBookingMappings[stat.status] || 'open';
-      statusMap[mappedStatus] += stat._count.status;
-    }
+    const applyMapping = (stats: any[], mapping: Record<string, string>) => {
+      for (const stat of stats) {
+        const mappedStatus = mapping[stat.status] || 'open';
+        statusMap[mappedStatus] += stat._count.status;
+      }
+    };
+
+    applyMapping(bikeQuoteRequestStats, quoteRequestMappings);
+    applyMapping(selfDriveQuoteRequestStats, quoteRequestMappings);
+    applyMapping(bikeBookingStats, statusMappings);
+    applyMapping(carBookingStats, statusMappings);
+    applyMapping(chauffeurBookingStats, statusMappings);
+    applyMapping(busQuoteRequestStats, quoteRequestMappings);
+    applyMapping(busBookingStats, busBookingMappings);
+    applyMapping(truckQuoteRequestStats, quoteRequestMappings);
+    applyMapping(truckBookingStats, busBookingMappings);
+    applyMapping(packersQuoteRequestStats, quoteRequestMappings);
+    applyMapping(packersBookingStats, busBookingMappings);
+    applyMapping(equipmentQuoteRequestStats, quoteRequestMappings);
+    applyMapping(equipmentBookingStats, busBookingMappings);
+    applyMapping(luxuryQuoteRequestStats, quoteRequestMappings);
+    applyMapping(luxuryBookingStats, luxuryBookingMappings);
 
     const total = Object.values(statusMap).reduce((sum, count) => sum + count, 0);
 

@@ -92,17 +92,17 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Find customer first - try by ID, then by phone, then by email
-    let existingCustomer = await prisma.customers.findFirst({
-      where: id
-        ? { id }
-        : {
-            OR: [
-              ...(phone ? [{ phone }] : []),
-              ...(email ? [{ email }] : []),
-            ],
-          },
-    });
+    // Validate phone if provided
+    if (updateData.phone !== undefined && updateData.phone !== '') {
+      const digits = String(updateData.phone).replace(/\D/g, '');
+      if (digits.length !== 10 || !/^[6-9]/.test(digits)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid phone number. Must be 10 digits starting with 6-9' },
+          { status: 400 }
+        );
+      }
+      updateData.phone = digits; // store clean digits only
+    }
 
     // Build update/create object
     const customerData: any = {};
@@ -126,49 +126,78 @@ export async function PUT(request: NextRequest) {
         : null;
     if (updateData.aadharNumber !== undefined) customerData.aadharNumber = updateData.aadharNumber;
 
+    const profileSelect = {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      avatar: true,
+      dateOfBirth: true,
+      gender: true,
+      address: true,
+      city: true,
+      state: true,
+      pincode: true,
+      drivingLicenseNumber: true,
+      isEmailVerified: true,
+      isPhoneVerified: true,
+      totalBookings: true,
+      totalSpent: true,
+    };
+
     let resultCustomer;
     let isNew = false;
 
-    if (existingCustomer) {
-      // Update existing customer
-      resultCustomer = await prisma.customers.update({
-        where: { id: existingCustomer.id },
-        data: customerData,
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          avatar: true,
-          dateOfBirth: true,
-          gender: true,
-          address: true,
-          city: true,
-          state: true,
-          pincode: true,
-          drivingLicenseNumber: true,
-          isEmailVerified: true,
-          isPhoneVerified: true,
-          totalBookings: true,
-          totalSpent: true,
-        },
-      });
-    } else {
-      // Create new customer - phone is required for new customers
-      if (!phone) {
-        return NextResponse.json(
-          { error: 'Phone number is required to create a new profile' },
-          { status: 400 }
-        );
+    if (id) {
+      // Direct update by ID — no findFirst needed, saves 1 DB connection
+      try {
+        resultCustomer = await prisma.customers.update({
+          where: { id },
+          data: customerData,
+          select: profileSelect,
+        });
+      } catch (updateError: any) {
+        if (updateError.code !== 'P2025') throw updateError;
+        // Record not found — create new
+        if (!phone) {
+          return NextResponse.json(
+            { error: 'Phone number is required to create a new profile' },
+            { status: 400 }
+          );
+        }
+        isNew = true;
+        const newCustomerId = await generateCustomerId();
+        resultCustomer = await prisma.customers.create({
+          data: {
+            id: newCustomerId,
+            name: customerData.name || 'Customer',
+            phone,
+            email: customerData.email || null,
+            avatar: customerData.avatar || null,
+            dateOfBirth: customerData.dateOfBirth || null,
+            gender: customerData.gender || null,
+            address: customerData.address || null,
+            city: customerData.city || null,
+            state: customerData.state || null,
+            pincode: customerData.pincode || null,
+            drivingLicenseNumber: customerData.drivingLicenseNumber || null,
+            drivingLicenseExpiry: customerData.drivingLicenseExpiry || null,
+            aadharNumber: customerData.aadharNumber || null,
+            isPhoneVerified: true,
+          },
+          select: profileSelect,
+        });
       }
-
-      isNew = true;
-      const customerId = await generateCustomerId();
-      resultCustomer = await prisma.customers.create({
-        data: {
-          id: customerId,
+    } else if (phone) {
+      // Upsert by phone — single query instead of findFirst + update/create
+      const newCustomerId = await generateCustomerId();
+      resultCustomer = await (prisma.customers.upsert as any)({
+        where: { phone },
+        update: customerData,
+        create: {
+          id: newCustomerId,
           name: customerData.name || 'Customer',
-          phone: phone,
+          phone,
           email: customerData.email || null,
           avatar: customerData.avatar || null,
           dateOfBirth: customerData.dateOfBirth || null,
@@ -182,24 +211,23 @@ export async function PUT(request: NextRequest) {
           aadharNumber: customerData.aadharNumber || null,
           isPhoneVerified: true,
         },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          avatar: true,
-          dateOfBirth: true,
-          gender: true,
-          address: true,
-          city: true,
-          state: true,
-          pincode: true,
-          drivingLicenseNumber: true,
-          isEmailVerified: true,
-          isPhoneVerified: true,
-          totalBookings: true,
-          totalSpent: true,
+        select: profileSelect,
+      });
+    } else {
+      // Only email provided — upsert by email
+      const newCustomerId = await generateCustomerId();
+      resultCustomer = await (prisma.customers.upsert as any)({
+        where: { email },
+        update: customerData,
+        create: {
+          id: newCustomerId,
+          name: customerData.name || 'Customer',
+          phone: email!, // fallback, phone field required
+          email,
+          avatar: customerData.avatar || null,
+          isPhoneVerified: false,
         },
+        select: profileSelect,
       });
     }
 
@@ -218,8 +246,9 @@ export async function PUT(request: NextRequest) {
     // Handle unique constraint error
     if (error.code === 'P2002') {
       const field = error.meta?.target?.[0];
+      const fieldLabel = field === 'phone' ? 'mobile number' : field === 'email' ? 'email address' : field || 'value';
       return NextResponse.json(
-        { success: false, error: `This ${field || 'value'} is already in use` },
+        { success: false, error: `This ${fieldLabel} is already registered with another account` },
         { status: 400 }
       );
     }
