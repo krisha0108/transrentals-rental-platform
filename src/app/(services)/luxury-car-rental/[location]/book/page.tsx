@@ -286,6 +286,12 @@ function LuxuryBookingContent({ location }: { location: string }) {
       return;
     }
 
+    const phoneDigits = customerPhone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10 || !/^[6-9]/.test(phoneDigits)) {
+      alert('Please enter a valid 10-digit Indian mobile number (starting with 6-9)');
+      return;
+    }
+
     if (!agreeTerms) {
       alert('Please agree to the terms and conditions');
       return;

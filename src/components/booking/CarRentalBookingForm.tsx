@@ -176,6 +176,13 @@ export function CarRentalBookingForm() {
 
     const { serviceId, serviceName } = getBookingTypeAndServiceId();
 
+    // Validate phone
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10 || !/^[6-9]/.test(phoneDigits)) {
+      setError('Please enter a valid 10-digit Indian mobile number (starting with 6-9)');
+      return;
+    }
+
     // Map car type to numeric values expected by database
     // 1 = Hatchback, 2 = Sedan, 3 = MUV, 4 = SUV, 5 = Luxury
     const getCarTypeNumber = (carType: string) => {
@@ -505,8 +512,12 @@ export function CarRentalBookingForm() {
                 <input
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => updateFormData('phone', e.target.value)}
-                  placeholder="+91 9737965551"
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    if (val.length <= 10) updateFormData('phone', val);
+                  }}
+                  placeholder="10-digit mobile number"
+                  maxLength={10}
                   className={`w-full px-4 py-3 border-2 rounded-lg focus:border-primary focus:outline-none ${isAuthenticated ? 'bg-green-50 border-green-200' : 'border-gray-200'
                     }`}
                   required

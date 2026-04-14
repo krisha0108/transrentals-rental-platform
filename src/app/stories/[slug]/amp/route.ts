@@ -185,7 +185,17 @@ function renderSlide(slide: any, idx: number, siteUrl: string): string {
 
   if (slide.bgType === 'IMAGE' && slide.bgImage) {
     const src = abs(slide.bgImage, siteUrl);
-    bgLayer = `<amp-story-grid-layer template="fill"><amp-img src="${esc(src)}" layout="fill" object-fit="cover" object-position="center"></amp-img></amp-story-grid-layer>`;
+    const cfg = slide.canvasConfig || {};
+    const fit = cfg.bgImageFit || 'cover';
+    const pos2 = cfg.bgImagePosition || 'center center';
+    const imgOpacity = cfg.bgImageOpacity !== undefined ? cfg.bgImageOpacity : 1;
+    const blur = cfg.bgBlur ? `filter:blur(${cfg.bgBlur}px);` : '';
+    const overlayColor = cfg.bgOverlayColor || '#000000';
+    const overlayOpacity = cfg.bgOverlayOpacity !== undefined ? cfg.bgOverlayOpacity : 0;
+    const overlay = overlayOpacity > 0
+      ? `<div style="position:absolute;inset:0;background-color:${overlayColor};opacity:${overlayOpacity};"></div>`
+      : '';
+    bgLayer = `<amp-story-grid-layer template="fill"><div style="position:relative;width:100%;height:100%;${blur}opacity:${imgOpacity}"><amp-img src="${esc(src)}" layout="fill" object-fit="${fit}" object-position="${pos2}"></amp-img>${overlay}</div></amp-story-grid-layer>`;
   } else if (slide.bgType === 'VIDEO' && slide.bgVideo) {
     const src = abs(slide.bgVideo, siteUrl);
     bgLayer = `<amp-story-grid-layer template="fill"><amp-video src="${esc(src)}" layout="fill" autoplay loop muted playsinline></amp-video></amp-story-grid-layer>`;
@@ -247,24 +257,46 @@ export async function GET(
       return new NextResponse('Not Found', { status: 404 });
     }
 
-    const slides = story.slides.map((s: any) => ({
-      id: s.id,
-      duration: s.duration,
-      bgType: s.bgType,
-      bgImage: s.bgImage,
-      bgVideo: s.bgVideo,
-      bgColor: s.bgColor,
-      bgGradient: s.bgGradient,
-      heading: s.heading,
-      headingSize: s.headingSize,
-      headingColor: s.headingColor,
-      subtext: s.subtext,
-      subtextColor: s.subtextColor,
-      textPosition: s.textPosition,
-      ctaText: s.ctaText,
-      ctaUrl: s.ctaUrl,
-      canvasData: s.canvasData ? JSON.parse(s.canvasData) : [],
-    }));
+    const slides = story.slides.map((s: any) => {
+      // canvasData is stored as { config: {...}, elements: [...] } by StoryDesignEditor
+      // Legacy format was a plain array — handle both
+      let canvasElements: any[] = [];
+      let canvasConfig: any = {};
+      if (s.canvasData) {
+        try {
+          const parsed = typeof s.canvasData === 'string' ? JSON.parse(s.canvasData) : s.canvasData;
+          if (Array.isArray(parsed)) {
+            // Legacy format: direct array of elements
+            canvasElements = parsed;
+          } else if (parsed && parsed.elements !== undefined) {
+            // New format: { config: {...}, elements: [...] }
+            canvasElements = Array.isArray(parsed.elements) ? parsed.elements : [];
+            canvasConfig = parsed.config || {};
+          }
+        } catch (e) {
+          canvasElements = [];
+        }
+      }
+      return {
+        id: s.id,
+        duration: s.duration,
+        bgType: s.bgType,
+        bgImage: s.bgImage,
+        bgVideo: s.bgVideo,
+        bgColor: s.bgColor,
+        bgGradient: s.bgGradient,
+        heading: s.heading,
+        headingSize: s.headingSize,
+        headingColor: s.headingColor,
+        subtext: s.subtext,
+        subtextColor: s.subtextColor,
+        textPosition: s.textPosition,
+        ctaText: s.ctaText,
+        ctaUrl: s.ctaUrl,
+        canvasData: canvasElements,
+        canvasConfig,
+      };
+    });
 
     const coverImage   = abs(story.coverImage, siteUrl);
     const coverSquare  = abs((story as any).coverImageSquare, siteUrl) || coverImage;
@@ -319,12 +351,12 @@ export async function GET(
 <title>${esc(story.title)}</title>
 <link rel="canonical" href="${canonicalUrl}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&amp;family=Poppins:wght@400;600;700;900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&amp;family=Poppins:wght@400;600;700;900&amp;family=Montserrat:wght@400;700&amp;family=Open+Sans:wght@400;700&amp;family=Raleway:wght@400;700&amp;family=Playfair+Display:wght@400;700&amp;family=Oswald:wght@400;700&amp;family=Lobster&amp;family=Dancing+Script:wght@400;700&amp;family=Pacifico&amp;family=Quicksand:wght@400;700&amp;family=Nunito:wght@400;700&amp;family=Lato:wght@400;700&amp;family=Merriweather:wght@400;700&amp;family=Ubuntu:wght@400;700&amp;family=Bebas+Neue&amp;family=Inter:wght@400;700&amp;display=swap" rel="stylesheet">
 <script async src="https://cdn.ampproject.org/v0.js"></script>
 <script async custom-element="amp-story" src="https://cdn.ampproject.org/v0/amp-story-1.0.js"></script>
 <script async custom-element="amp-video" src="https://cdn.ampproject.org/v0/amp-video-0.1.js"></script>
 <style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style>
-<noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>
+<noscript><style amp-boilerplate>body{visibility:visible}</style></noscript>
 <meta name="description" content="${esc(description)}">
 <meta property="og:type" content="article">
 <meta property="og:title" content="${esc(story.title)}">

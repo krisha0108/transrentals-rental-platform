@@ -61,6 +61,13 @@ export async function middleware(request: NextRequest) {
   // Add security headers to all responses
   const response = NextResponse.next();
 
+  // AMP story routes must be frameable by Google's AMP viewer
+  // X-Frame-Options: SAMEORIGIN and frame-ancestors CSP would block Google Search
+  const isAmpStoryRoute = /^\/stories\/[^/]+\/amp/.test(pathname);
+  if (isAmpStoryRoute) {
+    return response; // No security headers for AMP story pages
+  }
+
   // Add CORS headers to all API responses (for mobile app support)
   if (pathname.startsWith('/api/')) {
     response.headers.set('Access-Control-Allow-Origin', '*');

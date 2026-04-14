@@ -49,8 +49,8 @@ export default function B2BRegisterPage() {
       setError('Password must be at least 6 characters');
       return;
     }
-    if (!/^\d{10}$/.test(form.phone)) {
-      setError('Enter a valid 10-digit phone number');
+    if (!/^\d{10}$/.test(form.phone) || !/^[6-9]/.test(form.phone)) {
+      setError('Please enter a valid 10-digit Indian mobile number (starting with 6-9)');
       return;
     }
     setSubmitting(true);
