@@ -192,7 +192,7 @@ function renderSlide(slide: any, idx: number, siteUrl: string): string {
     const overlayColor = cfg.bgOverlayColor || '#000000';
     const overlayOpacity = cfg.bgOverlayOpacity !== undefined ? cfg.bgOverlayOpacity : 0;
     const overlay = overlayOpacity > 0
-      ? `<div style="position:absolute;inset:0;background-color:${overlayColor};opacity:${overlayOpacity};"></div>`
+      ? `<div style="position:absolute;top:0;right:0;bottom:0;left:0;background-color:${overlayColor};opacity:${overlayOpacity};"></div>`
       : '';
     bgLayer = `<amp-story-grid-layer template="fill"><div style="position:relative;width:100%;height:100%;${blur}opacity:${imgOpacity}"><amp-img src="${esc(src)}" layout="fill" object-fit="${fit}" object-position="${pos2}"></amp-img>${overlay}</div></amp-story-grid-layer>`;
   } else if (slide.bgType === 'VIDEO' && slide.bgVideo) {
@@ -222,7 +222,7 @@ function renderSlide(slide: any, idx: number, siteUrl: string): string {
       <div style="grid-column:1/span 3;grid-row:3;padding:20px 16px;background:linear-gradient(transparent,rgba(0,0,0,0.75));">
         ${slide.heading ? `<h2 style="color:${esc(slide.headingColor || '#fff')};font-size:${headSize};margin:0 0 10px;font-weight:700;line-height:1.2;font-family:Poppins,sans-serif;">${esc(slide.heading)}</h2>` : ''}
         ${slide.subtext ? `<p style="color:${esc(slide.subtextColor || '#fff')};font-size:4.5vw;margin:0 0 14px;line-height:1.5;font-family:Poppins,sans-serif;opacity:0.9;">${esc(slide.subtext)}</p>` : ''}
-        ${slide.ctaText && slide.ctaUrl ? `<a href="${esc(slide.ctaUrl)}" target="_top" style="display:inline-block;padding:10px 22px;background:#ffffff;color:#111111;border-radius:50px;font-weight:700;text-decoration:none;font-size:4vw;font-family:Poppins,sans-serif;">${esc(slide.ctaText)}</a>` : ''}
+        ${slide.ctaText ? `<div style="display:inline-block;padding:10px 22px;background:#ffffff;color:#111111;border-radius:50px;font-weight:700;font-size:4vw;font-family:Poppins,sans-serif;">${esc(slide.ctaText)}</div>` : ''}
       </div>
     </amp-story-grid-layer>`;
   }
