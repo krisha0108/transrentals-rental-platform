@@ -15,10 +15,13 @@ import { BookingPayment } from '@/components/payment/BookingPayment';
 interface BookingDetails {
   id: string;
   bookingNumber: string;
-  carCategory: string;
+  // car_bookings fields
+  requestedVehicleName?: string;
+  locationName?: string;
+  // legacy compat fields returned by API
+  carCategory?: string;
   carCategoryName?: string;
-  pickupCity: string;
-  dropCity?: string;
+  pickupCity?: string;
   pickupDate: string;
   pickupTime: string;
   grandTotal: number;
@@ -127,9 +130,9 @@ export default function PaymentPage() {
             </div>
             <div className="text-right">
               <p className="text-emerald-100 text-xs">Booking</p>
-              <p className="font-medium text-sm">{booking?.carCategoryName || booking?.carCategory}</p>
+              <p className="font-medium text-sm">{booking?.requestedVehicleName || booking?.carCategoryName || booking?.carCategory}</p>
               <p className="text-emerald-200 text-xs">
-                {booking?.pickupCity}{booking?.dropCity ? ` → ${booking.dropCity}` : ''}
+                {booking?.locationName || booking?.pickupCity}
               </p>
             </div>
           </div>
@@ -143,7 +146,7 @@ export default function PaymentPage() {
               bookingType="chauffeur"
               amount={advanceAmount}
               bookingNumber={booking.bookingNumber}
-              onSuccess={() => router.push(`/customer/car-rental-bookings/${booking.bookingNumber}`)}
+              onSuccess={() => router.push(`/customer/dashboard`)}
             />
           </div>
         )}
@@ -155,7 +158,7 @@ export default function PaymentPage() {
             <div className="grid grid-cols-3 gap-3 text-xs">
               <div>
                 <p className="text-gray-500">Vehicle</p>
-                <p className="font-medium text-gray-900">{booking.carCategoryName || booking.carCategory}</p>
+                <p className="font-medium text-gray-900">{booking.requestedVehicleName || booking.carCategoryName || booking.carCategory}</p>
               </div>
               <div>
                 <p className="text-gray-500">Date</p>

@@ -221,6 +221,11 @@ export default function CustomerDashboardPage() {
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSuccess, setProfileSuccess] = useState(false);
 
+  // Password change
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
+
   // Mobile menu
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
@@ -695,6 +700,19 @@ export default function CustomerDashboardPage() {
       }
     }
 
+    // Password validation (only if user filled the new password field)
+    const isChangingPassword = !!passwordForm.newPassword;
+    if (isChangingPassword) {
+      if (passwordForm.newPassword.length < 8) {
+        setIsSavingProfile(false);
+        return setProfileError('New password must be at least 8 characters.');
+      }
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        setIsSavingProfile(false);
+        return setProfileError('New password and confirm password do not match.');
+      }
+    }
+
     try {
       let savedAvatarFilename: string | undefined = customer?.avatar || customer?.image;
 
@@ -733,7 +751,25 @@ export default function CustomerDashboardPage() {
         account_number: profileForm.account_number,
         ifsc_code: profileForm.ifsc_code,
         upi_id: profileForm.upi_id,
+        ...(isChangingPassword ? { newPassword: passwordForm.newPassword } : {}),
       };
+
+      // Handle password change separately
+      if (isChangingPassword) {
+        const pwRes = await fetch('/api/customer/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer_id: customer?.id,
+            newPassword: passwordForm.newPassword,
+          }),
+        });
+        const pwData = await pwRes.json();
+        if (!pwData.success) {
+          setIsSavingProfile(false);
+          return setProfileError(pwData.message || 'Failed to update password');
+        }
+      }
 
       const data = await submitProfileUpdate(payload);
 
@@ -761,6 +797,8 @@ export default function CustomerDashboardPage() {
         setProfileForm((prev) => ({ ...prev, avatar: avatarUrl || '' }));
         localStorage.setItem('customer', JSON.stringify(updatedCustomer));
         setProfileSuccess(true);
+        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setShowPasswordSection(false);
         setTimeout(() => {
           setShowProfileModal(false);
           setProfileSuccess(false);
@@ -1746,6 +1784,76 @@ export default function CustomerDashboardPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Password Section */}
+              <div className="pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordSection(v => !v)}
+                  className="flex items-center justify-between w-full text-sm font-semibold text-gray-700 hover:text-[#09B368] transition"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    {customer?.hasPassword ? 'Change Password' : 'Set Password'}
+                  </span>
+                  <svg className={`w-4 h-4 transition-transform ${showPasswordSection ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </button>
+
+                {showPasswordSection && (
+                  <div className="mt-4 space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">New Password</label>
+                      <div className="relative">
+                        <input
+                          type={showPasswords.new ? 'text' : 'password'}
+                          value={passwordForm.newPassword}
+                          onChange={e => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
+                          className="w-full px-4 py-3 pr-10 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                          placeholder="Min. 8 characters"
+                        />
+                        <button type="button" onClick={() => setShowPasswords(p => ({ ...p, new: !p.new }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                          {showPasswords.new ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
+                        </button>
+                      </div>
+                      {passwordForm.newPassword && (
+                        <div className="mt-1.5 flex gap-1">
+                          {[...Array(4)].map((_, i) => (
+                            <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${
+                              passwordForm.newPassword.length >= [8,10,12,14][i]
+                                ? ['bg-red-400','bg-yellow-400','bg-blue-400','bg-[#09B368]'][i]
+                                : 'bg-gray-200'
+                            }`} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Confirm New Password</label>
+                      <div className="relative">
+                        <input
+                          type={showPasswords.confirm ? 'text' : 'password'}
+                          value={passwordForm.confirmPassword}
+                          onChange={e => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                          className={`w-full px-4 py-3 pr-10 border rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition ${
+                            passwordForm.confirmPassword && passwordForm.confirmPassword !== passwordForm.newPassword
+                              ? 'border-red-300 bg-red-50'
+                              : passwordForm.confirmPassword && passwordForm.confirmPassword === passwordForm.newPassword
+                              ? 'border-green-300 bg-green-50'
+                              : 'border-gray-200'
+                          }`}
+                          placeholder="Re-enter new password"
+                        />
+                        <button type="button" onClick={() => setShowPasswords(p => ({ ...p, confirm: !p.confirm }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                          {showPasswords.confirm ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg> : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
+                        </button>
+                      </div>
+                      {passwordForm.confirmPassword && passwordForm.confirmPassword !== passwordForm.newPassword && (
+                        <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

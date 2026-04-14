@@ -24,8 +24,8 @@ export async function POST(
     }
 
     // Find the booking
-    const booking = await prisma.chauffeur_bookings.findUnique({
-      where: { bookingNumber },
+    const booking = await prisma.chauffeur_bookings.findFirst({
+      where: { OR: [{ id: bookingNumber }, { bookingNumber }] },
     });
 
     if (!booking) {
@@ -35,20 +35,19 @@ export async function POST(
       );
     }
 
-    // Calculate advance amount if not provided (30% of grand total)
-    const advanceAmount = amount || Math.round(booking.grandTotal * 0.3);
+    // Calculate advance amount if not provided (20% of grand total)
+    const advanceAmount = amount || Math.round(booking.grandTotal * 0.2);
 
     // Update booking with payment details
-    // Keep status as PENDING_PAYMENT - admin will approve and change to PENDING_VENDOR
     const updatedBooking = await prisma.chauffeur_bookings.update({
-      where: { bookingNumber },
+      where: { id: booking.id },
       data: {
-        status: 'PAYMENT_SUBMITTED',
         transactionId,
         paymentMethod: paymentMethod || 'UPI',
         paidAmount: advanceAmount,
         partialPayment: advanceAmount,
         paymentStatus: 'SUBMITTED',
+        status: 'PAYMENT_SUBMITTED',
       },
     });
 

@@ -39,62 +39,59 @@ interface BookingDetails {
   id: string;
   bookingNumber: string;
   customerId: string | null;
-  tripType: string;
-  carCategory: string;
-  carCategoryName: string;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
-  pickupCity: string;
-  dropCity?: string;
-  intermediateStops?: Array<{ id: string; locationId: string; cityText: string }>;
+  locationName: string;
+  requestedVehicleName: string;
+  requestedBrand?: string;
+  requestedCategory?: string;
+  requestedVehicleType?: string;
+  requestedTransmission?: string;
+  requestedFuelType?: string;
+  requestedSeats?: number;
   pickupAddress?: string;
   dropAddress?: string;
   pickupDate: string;
   pickupTime: string;
-  returnDate?: string;
-  totalDays?: number;
-  localPackageId?: string;
-  localPackageHours?: number;
-  localPackageKm?: number;
-  baseFare: number;
-  chargeableKm?: number;
-  perKmRate?: number;
-  kmCharges?: number;
-  driverBatta?: number;
-  nightCharges?: number;
-  tollCharges?: number;
+  dropDate?: string;
+  dropTime?: string;
+  totalDays: number;
+  isDeliveryRequested?: boolean;
+  assignedVehicleId?: string;
+  assignedVehicleName?: string;
+  dailyRate: number;
+  baseAmount: number;
   gstAmount: number;
   platformFee: number;
+  securityDeposit: number;
   grandTotal: number;
+  kmLimitPerDay?: number;
+  extraKmRate?: number;
+  odometerStart?: number;
+  odometerEnd?: number;
+  extraKmCharges?: number;
+  withFuelIncluded?: boolean;
+  fuelLevel?: string;
+  returnFuelLevel?: string;
   status: string;
   paymentStatus: string;
   paidAmount?: number;
   transactionId?: string;
   paymentMethod?: string;
-  driverName?: string;
-  driverPhone?: string;
-  vehicleNumber?: string;
-  vehicleModel?: string;
   tripStartOtp?: string;
-  tripStartedAt?: string;
-  tripEndedAt?: string;
-  startKmReading?: number;
-  endKmReading?: number;
-  extraKm?: number;
-  extraHours?: number;
-  extraCharges?: number;
-  parkingCharges?: number;
-  finalAmount?: number;
+  tripOtpVerified?: boolean;
+  pickedUpAt?: string;
+  returnedAt?: string;
   customerNotes?: string;
   vendorNotes?: string;
   rating?: number;
   review?: string;
   acceptedVendorId?: string;
-  location?: {
-    id: string;
-    name: string;
-  };
+  acceptedAt?: string;
+  droppedAt?: string;
+  dropReason?: string;
+  location?: { id: string; name: string };
   createdAt: string;
 }
 
@@ -221,12 +218,12 @@ export default function VendorBookingDetailPage() {
       if (data.success) {
         setBooking(data.booking);
         setVendorNotesInput('');
-        if (data.booking.driverName) {
+        if (data.booking.assignedVehicleName) {
           setDriverForm({
-            driverName: data.booking.driverName,
-            driverPhone: data.booking.driverPhone || '',
-            vehicleNumber: data.booking.vehicleNumber || '',
-            vehicle_models: data.booking.vehicleModel || '',
+            driverName: '',
+            driverPhone: '',
+            vehicleNumber: data.booking.assignedVehicleName || '',
+            vehicle_models: '',
           });
         }
       }
@@ -354,8 +351,8 @@ export default function VendorBookingDetailPage() {
 
   useEffect(() => {
     if (booking?.pickupDate) {
-      fetchDrivers(booking.pickupDate, booking.returnDate);
-      fetchFleetVehicles(booking.pickupDate, booking.returnDate);
+      fetchDrivers(booking.pickupDate, booking.dropDate);
+      fetchFleetVehicles(booking.pickupDate, booking.dropDate);
     } else if (booking) {
       fetchFleetVehicles();
     }
@@ -446,7 +443,7 @@ export default function VendorBookingDetailPage() {
   const StatusIcon = statusConfig.icon;
 
   const paymentProgress = booking.paidAmount
-    ? Math.min(100, (booking.paidAmount / (booking.finalAmount || booking.grandTotal)) * 100)
+    ? Math.min(100, (booking.paidAmount / (booking.grandTotal)) * 100)
     : 0;
 
   return (
@@ -588,23 +585,28 @@ export default function VendorBookingDetailPage() {
               {/* Tags */}
               <div className="flex flex-wrap gap-2 pt-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200/60 shadow-sm">
-                  <Navigation className="w-3 h-3" />
-                  {TRIP_TYPE_LABELS[booking.tripType] || booking.tripType}
+                  <Car className="w-3 h-3" />
+                  Self Drive
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200/60 shadow-sm">
-                  <Car className="w-3 h-3" />
-                  {booking.carCategoryName}
+                  <Navigation className="w-3 h-3" />
+                  {booking.requestedVehicleName}{booking.requestedBrand ? ` · ${booking.requestedBrand}` : ''}
                 </span>
-                {booking.totalDays && booking.totalDays > 1 && (
+                {booking.totalDays > 0 && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200/60 shadow-sm">
                     <Calendar className="w-3 h-3" />
-                    {booking.totalDays} Days
+                    {booking.totalDays} Day{booking.totalDays > 1 ? 's' : ''}
                   </span>
                 )}
-                {booking.localPackageHours && (
+                {booking.kmLimitPerDay && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-amber-100/50 text-amber-700 rounded-full text-xs font-semibold border border-amber-200/60 shadow-sm">
-                    <Clock className="w-3 h-3" />
-                    {booking.localPackageHours}hrs / {booking.localPackageKm}km
+                    <Route className="w-3 h-3" />
+                    {booking.kmLimitPerDay} km/day
+                  </span>
+                )}
+                {booking.isDeliveryRequested && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-blue-100/50 text-blue-700 rounded-full text-xs font-semibold border border-blue-200/60 shadow-sm">
+                    Delivery Requested
                   </span>
                 )}
               </div>
@@ -613,14 +615,11 @@ export default function VendorBookingDetailPage() {
             <CardContent className="space-y-5">
               {/* Route visualization */}
               {(() => {
-                const stops = (booking.intermediateStops || []).filter((s) => s.cityText);
                 const allPoints = [
-                  { city: booking.pickupCity, address: booking.pickupAddress, type: 'pickup' },
-                  ...stops.map((s) => ({ city: s.cityText, address: undefined, type: 'stop' })),
-                  { city: booking.dropCity || booking.pickupCity, address: booking.dropAddress, type: 'drop' },
+                  { city: booking.locationName, address: booking.pickupAddress, type: 'pickup' },
+                  { city: booking.locationName, address: booking.dropAddress, type: 'drop' },
                 ];
-                const showDrop = booking.dropCity && booking.dropCity !== booking.pickupCity || stops.length > 0;
-                const points = showDrop ? allPoints : [allPoints[0]];
+                const points = allPoints;
 
                 return (
                   <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-5 border border-gray-100">
@@ -650,11 +649,11 @@ export default function VendorBookingDetailPage() {
                                   </p>
                                 </div>
                               )}
-                              {i === points.length - 1 && booking.returnDate && (
+                              {i === points.length - 1 && booking.dropDate && (
                                 <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 bg-red-50 rounded-lg border border-red-100">
                                   <Calendar className="w-3.5 h-3.5 text-red-500" />
                                   <p className="text-xs text-red-600 font-semibold">
-                                    Return: {new Date(booking.returnDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                                    Return: {new Date(booking.dropDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} · {booking.dropTime}
                                   </p>
                                 </div>
                               )}
@@ -664,17 +663,14 @@ export default function VendorBookingDetailPage() {
                       </div>
                     </div>
 
-                    {booking.chargeableKm && booking.chargeableKm > 0 && (
+                    {booking.kmLimitPerDay && (
                       <div className="mt-5 pt-4 border-t border-gray-200/60 flex items-center gap-4 text-sm">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white rounded-lg border border-gray-200 font-bold text-gray-900 shadow-sm">
                           <MapPin className="w-3.5 h-3.5 text-emerald-500" />
-                          {booking.chargeableKm} km
+                          {booking.kmLimitPerDay} km/day
                         </span>
-                        {booking.perKmRate && (
-                          <span className="text-gray-500 font-medium">@ ₹{booking.perKmRate}/km</span>
-                        )}
-                        {stops.length > 0 && (
-                          <span className="text-gray-400 text-xs font-medium">{stops.length + 1} legs &middot; Multi-Stop</span>
+                        {booking.extraKmRate && (
+                          <span className="text-gray-500 font-medium">Extra: ₹{booking.extraKmRate}/km</span>
                         )}
                       </div>
                     )}
@@ -682,8 +678,8 @@ export default function VendorBookingDetailPage() {
                 );
               })()}
 
-              {/* Date info for local trips */}
-              {!booking.dropCity && !booking.intermediateStops?.length && (
+              {/* Date info */}
+              {(
                 <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-4">
                   <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
                     <Calendar className="w-5 h-5 text-emerald-600" />
@@ -756,9 +752,9 @@ export default function VendorBookingDetailPage() {
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
                     <Car className="w-4 h-4 text-white" />
                   </div>
-                  Driver & Vehicle
+                  Assigned Vehicle
                 </CardTitle>
-                {booking.driverName && ['ACCEPTED', 'DRIVER_ASSIGNED'].includes(booking.status) && (
+                {booking.assignedVehicleName && ['CONFIRMED', 'ACCEPTED', 'IN_PROGRESS'].includes(booking.status) && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -772,7 +768,7 @@ export default function VendorBookingDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {booking.driverName && !showDriverForm ? (
+              {booking.assignedVehicleName && !showDriverForm ? (
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/30 rounded-xl p-4 border border-emerald-100">
                     <div className="flex items-center gap-3">
@@ -781,7 +777,7 @@ export default function VendorBookingDetailPage() {
                       </div>
                       <div>
                         <p className="text-[11px] text-emerald-500 font-medium uppercase tracking-wider">Driver</p>
-                        <p className="font-semibold text-gray-900">{booking.driverName}</p>
+                        <p className="font-semibold text-gray-900">{booking.assignedVehicleName}</p>
                       </div>
                     </div>
                   </div>
@@ -792,8 +788,8 @@ export default function VendorBookingDetailPage() {
                       </div>
                       <div>
                         <p className="text-[11px] text-emerald-500 font-medium uppercase tracking-wider">Phone</p>
-                        <a href={`tel:${booking.driverPhone}`} className="font-semibold text-emerald-600 hover:underline">
-                          {booking.driverPhone}
+                        <a href={`tel:${booking.customerPhone}`} className="font-semibold text-emerald-600 hover:underline">
+                          {booking.customerPhone}
                         </a>
                       </div>
                     </div>
@@ -805,11 +801,11 @@ export default function VendorBookingDetailPage() {
                       </div>
                       <div>
                         <p className="text-[11px] text-emerald-500 font-medium uppercase tracking-wider">Vehicle No.</p>
-                        <p className="font-semibold text-gray-900">{booking.vehicleNumber}</p>
+                        <p className="font-semibold text-gray-900">{booking.assignedVehicleName}</p>
                       </div>
                     </div>
                   </div>
-                  {booking.vehicleModel && (
+                  {booking.requestedCategory && (
                     <div className="bg-gradient-to-br from-amber-50 to-amber-100/30 rounded-xl p-4 border border-amber-100">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0 shadow-sm">
@@ -817,7 +813,7 @@ export default function VendorBookingDetailPage() {
                         </div>
                         <div>
                           <p className="text-[11px] text-amber-500 font-medium uppercase tracking-wider">Model</p>
-                          <p className="font-semibold text-gray-900">{booking.vehicleModel}</p>
+                          <p className="font-semibold text-gray-900">{booking.requestedCategory}</p>
                         </div>
                       </div>
                     </div>
@@ -964,12 +960,12 @@ export default function VendorBookingDetailPage() {
                       </Button>
                     )}
                     <button
-                      onClick={booking.driverName ? handleUpdateDriver : handleAssignDriver}
+                      onClick={handleAssignDriver}
                       disabled={actionLoading}
                       className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all font-semibold text-sm shadow-md shadow-emerald-200/50 disabled:opacity-50"
                     >
                       {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                      {booking.driverName ? 'Update Driver' : 'Assign Driver'}
+                      {booking.assignedVehicleName ? 'Update Vehicle' : 'Assign Vehicle'}
                     </button>
                   </div>
                 </div>
@@ -1162,81 +1158,49 @@ export default function VendorBookingDetailPage() {
             </CardHeader>
             <CardContent className="space-y-0 pt-5">
               <div className="space-y-2.5 text-sm">
-                {booking.kmCharges && booking.kmCharges > 0 ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Daily Rate × {booking.totalDays} day{booking.totalDays > 1 ? 's' : ''}</span>
+                  <span className="font-medium">₹{(booking.dailyRate || 0).toLocaleString()}/day</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Base Amount</span>
+                  <span className="font-medium">₹{(booking.baseAmount || 0).toLocaleString()}</span>
+                </div>
+
+                {(booking.securityDeposit || 0) > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">
-                      Distance Charges
-                      {booking.chargeableKm ? <span className="text-xs ml-1">({booking.chargeableKm} km)</span> : null}
-                    </span>
-                    <span className="font-medium">₹{booking.kmCharges.toLocaleString()}</span>
-                  </div>
-                ) : (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Base Fare</span>
-                    <span className="font-medium">₹{booking.baseFare.toLocaleString()}</span>
+                    <span className="text-gray-500">Security Deposit</span>
+                    <span className="font-medium">₹{booking.securityDeposit!.toLocaleString()}</span>
                   </div>
                 )}
 
-                {booking.driverBatta && booking.driverBatta > 0 ? (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Driver Allowance</span>
-                    <span className="font-medium">₹{booking.driverBatta.toLocaleString()}</span>
+                {(booking.extraKmCharges || 0) > 0 && (
+                  <div className="flex justify-between text-amber-600">
+                    <span>Extra Km Charges</span>
+                    <span className="font-medium">₹{booking.extraKmCharges!.toLocaleString()}</span>
                   </div>
-                ) : null}
+                )}
 
-                {booking.nightCharges && booking.nightCharges > 0 ? (
+                {(booking.gstAmount || 0) > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Night Charges</span>
-                    <span className="font-medium">₹{booking.nightCharges.toLocaleString()}</span>
-                  </div>
-                ) : null}
-
-                {booking.tollCharges && booking.tollCharges > 0 ? (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Toll Charges</span>
-                    <span className="font-medium">₹{booking.tollCharges.toLocaleString()}</span>
-                  </div>
-                ) : null}
-
-                {booking.gstAmount > 0 ? (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">GST</span>
+                    <span className="text-gray-500">GST (18%)</span>
                     <span className="font-medium">₹{booking.gstAmount.toLocaleString()}</span>
                   </div>
-                ) : null}
+                )}
 
-                {booking.platformFee > 0 ? (
+                {(booking.platformFee || 0) > 0 && (
                   <div className="flex justify-between">
                     <span className="text-gray-500">Platform Fee</span>
                     <span className="font-medium">₹{booking.platformFee.toLocaleString()}</span>
                   </div>
-                ) : null}
+                )}
 
                 <div className="border-t pt-3 mt-3">
                   <div className="flex justify-between items-center bg-gradient-to-r from-emerald-50 to-teal-50 -mx-6 px-6 py-3 border-y border-emerald-100">
                     <span className="font-bold text-gray-900">Grand Total</span>
-                    <span className="font-bold text-lg text-emerald-600">₹{booking.grandTotal.toLocaleString()}</span>
+                    <span className="font-bold text-lg text-emerald-600">₹{(booking.grandTotal || 0).toLocaleString()}</span>
                   </div>
                 </div>
-
-                {booking.extraCharges && booking.extraCharges > 0 ? (
-                  <>
-                    <div className="flex justify-between text-amber-600">
-                      <span>Extra Charges</span>
-                      <span className="font-medium">₹{booking.extraCharges.toLocaleString()}</span>
-                    </div>
-                    {booking.parkingCharges && booking.parkingCharges > 0 ? (
-                      <div className="flex justify-between text-gray-500">
-                        <span>Parking Charges</span>
-                        <span className="font-medium">₹{booking.parkingCharges.toLocaleString()}</span>
-                      </div>
-                    ) : null}
-                    <div className="border-t pt-3 flex justify-between font-bold text-lg">
-                      <span>Final Amount</span>
-                      <span className="text-emerald-600">₹{booking.finalAmount?.toLocaleString()}</span>
-                    </div>
-                  </>
-                ) : null}
               </div>
 
               {/* Payment Progress */}
@@ -1255,11 +1219,11 @@ export default function VendorBookingDetailPage() {
                     </div>
                   </>
                 )}
-                {booking.paidAmount && booking.paidAmount < (booking.finalAmount || booking.grandTotal) && (
+                {booking.paidAmount && booking.paidAmount < (booking.grandTotal) && (
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Balance</span>
                     <span className="font-semibold text-amber-600">
-                      ₹{((booking.finalAmount || booking.grandTotal) - booking.paidAmount).toLocaleString()}
+                      ₹{((booking.grandTotal) - booking.paidAmount).toLocaleString()}
                     </span>
                   </div>
                 )}
@@ -1267,13 +1231,13 @@ export default function VendorBookingDetailPage() {
                   <span className="text-gray-500">Status</span>
                   <span className={cn(
                     'font-semibold text-xs px-2 py-0.5 rounded-full',
-                    (booking.paidAmount || 0) >= (booking.finalAmount || booking.grandTotal)
+                    (booking.paidAmount || 0) >= (booking.grandTotal)
                       ? 'bg-green-100 text-green-700'
                       : (booking.paidAmount || 0) > 0
                       ? 'bg-amber-100 text-amber-700'
                       : 'bg-red-100 text-red-700'
                   )}>
-                    {(booking.paidAmount || 0) >= (booking.finalAmount || booking.grandTotal)
+                    {(booking.paidAmount || 0) >= (booking.grandTotal)
                       ? 'FULLY PAID'
                       : (booking.paidAmount || 0) > 0
                       ? 'ADVANCE PAID'

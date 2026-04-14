@@ -7,41 +7,20 @@ import { sanitizeInput, isValidEmail, isValidPhone, sanitizePhone } from '@/lib/
 import { smartRateLimit, detectDuplicate, getClientIdentifier, hashBookingData } from '@/lib/utils/smart-rate-limit';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
-import { calculateRentalDuration, calculateTotalDays } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-// JWT secret for customer auth
 const JWT_SECRET = new TextEncoder().encode(
   process.env.CUSTOMER_JWT_SECRET || process.env.JWT_SECRET || 'customer-secret-key-change-in-production'
 );
 
-// Generate a human-readable booking number
 function generateBookingNumber(): string {
-  const prefix = 'CB'; // CB for Car Booking (Chauffeur)
   const year = new Date().getFullYear();
   const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `${prefix}-${year}-${random}`;
+  return `CB-${year}-${random}`;
 }
 
-// Generate OTP
-function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-// Map trip type from form to enum
-function mapTripType(tripType: string, mode?: string, airportMode?: string): string {
-  if (tripType === 'local') return 'LOCAL';
-  if (tripType === 'outstation') {
-    return mode === 'one-way' ? 'OUTSTATION_ONEWAY' : 'OUTSTATION_ROUNDTRIP';
-  }
-  if (tripType === 'airport') {
-    return airportMode === 'pickup' ? 'AIRPORT_PICKUP' : 'AIRPORT_DROP';
-  }
-  return 'LOCAL';
-}
-
-// POST - Create new car rental booking
+// POST - Create new car rental booking (with driver) → saves to chauffeur_bookings
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -54,382 +33,143 @@ export async function POST(request: NextRequest) {
     const rateLimitCheck = await smartRateLimit(clientId, isAuthenticated, body);
     if (!rateLimitCheck.allowed) {
       return NextResponse.json(
-        {
-          success: false,
-          error: rateLimitCheck.error,
-          requiresCaptcha: rateLimitCheck.requiresCaptcha,
-          type: 'rate_limit',
-        },
+        { success: false, error: rateLimitCheck.error, requiresCaptcha: rateLimitCheck.requiresCaptcha, type: 'rate_limit' },
         { status: 429 }
       );
     }
 
-    // Check for duplicate bookings (bot detection)
     const bookingHash = hashBookingData(body);
     const duplicateCheck = await detectDuplicate(bookingHash);
     if (duplicateCheck.isDuplicate) {
       return NextResponse.json(
-        {
-          success: false,
-          error: duplicateCheck.error,
-          type: 'duplicate_booking',
-        },
+        { success: false, error: duplicateCheck.error, type: 'duplicate_booking' },
         { status: 400 }
       );
     }
 
     let {
-      tripType,
-      carCategory,
-      carCategoryName,
-      pickupCity,
-      pickupLocationId,
-      dropCity,
-      dropLocationId,
-      pickupAddress,
-      dropAddress,
-      pickupDate,
-      pickupTime,
-      returnDate,
-      localPackageId,
-      localPackageHours,
-      localPackageKm,
-      mode,
-      airportMode,
       customerName,
       customerPhone,
       customerEmail,
       customerNotes,
+      pickupCity,
+      pickupLocationId,
+      pickupAddress,
+      dropAddress,
+      dropCity,
+      tripType,
+      carCategory,
+      carCategoryName,
+      pickupDate,
+      pickupTime,
+      dropDate,
+      dropTime,
+      returnDate,
+      returnTime,
+      localPackageId,
+      localPackageHours,
+      localPackageKm,
       baseFare,
+      perKmRate,
+      chargeableKm,
+      kmCharges,
+      driverBatta,
       gstAmount,
       platformFee,
       grandTotal,
       advancePaid,
       transactionId,
       paymentMethod,
+      intermediateStops,
+      airportName,
+      airport,           // modal sends airportName as 'airport'
+      airportMode,
+      outstationMode,
+      mode,              // modal sends outstationMode as 'mode'
       numberOfVehicles,
       numberOfEmployees,
     } = body;
 
-    // ===== INPUT SANITIZATION (XSS Protection) =====
-    customerName = sanitizeInput(customerName);
-    pickupCity = sanitizeInput(pickupCity);
-    dropCity = sanitizeInput(dropCity);
-    pickupAddress = sanitizeInput(pickupAddress);
-    dropAddress = sanitizeInput(dropAddress);
-    customerNotes = sanitizeInput(customerNotes);
+    // modal sends outstationMode as 'mode' and airportName as 'airport'
+    if (!outstationMode && mode) outstationMode = mode;
+    if (!airportName && airport) airportName = airport;
+
+    // Normalise
+    carCategoryName = carCategoryName || carCategory || 'Car';
+    carCategory     = carCategory || carCategoryName || 'car';
+    baseFare        = baseFare || 0;
+    perKmRate       = perKmRate || 0;
+    gstAmount       = gstAmount || 0;
+    grandTotal      = grandTotal || 0;
+
+    // returnDate fallback
+    if (!returnDate && dropDate) returnDate = dropDate;
+
+    // tripType normalisation
+    if (!tripType || tripType === 'local') tripType = 'LOCAL';
+    else if (tripType === 'outstation') tripType = outstationMode === 'round-trip' ? 'OUTSTATION_ROUNDTRIP' : 'OUTSTATION_ONEWAY';
+    else if (tripType === 'airport') tripType = airportMode === 'pickup' ? 'AIRPORT_PICKUP' : 'AIRPORT_DROP';
+    else if (tripType === 'OUTSTATION_ONE_WAY') tripType = 'OUTSTATION_ONEWAY';
+    else if (tripType === 'OUTSTATION_ROUND') tripType = 'OUTSTATION_ROUNDTRIP';
+    else tripType = tripType.toUpperCase();
+
+    // ===== INPUT SANITIZATION =====
+    customerName    = sanitizeInput(customerName);
+    pickupCity      = sanitizeInput(pickupCity);
+    pickupAddress   = sanitizeInput(pickupAddress);
+    dropAddress     = sanitizeInput(dropAddress);
+    customerNotes   = sanitizeInput(customerNotes);
+    customerPhone   = sanitizePhone(customerPhone);
     carCategoryName = sanitizeInput(carCategoryName);
-    customerPhone = sanitizePhone(customerPhone);
 
-    // Validate required fields
+    // ===== VALIDATION =====
     if (!customerName || !customerPhone || !customerEmail) {
-      return NextResponse.json(
-        { success: false, error: 'Customer details are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Customer details are required' }, { status: 400 });
     }
-
-    // ===== EMAIL & PHONE VALIDATION =====
-    if (customerEmail && !isValidEmail(customerEmail)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid email format' },
-        { status: 400 }
-      );
+    if (!isValidEmail(customerEmail)) {
+      return NextResponse.json({ success: false, error: 'Invalid email format' }, { status: 400 });
     }
-
-    if (customerPhone && !isValidPhone(customerPhone)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid phone number. Must be 10 digits starting with 6-9' },
-        { status: 400 }
-      );
+    if (!isValidPhone(customerPhone)) {
+      return NextResponse.json({ success: false, error: 'Invalid phone number. Must be 10 digits starting with 6-9' }, { status: 400 });
     }
-
     if (!pickupCity || !pickupDate || !pickupTime) {
-      return NextResponse.json(
-        { success: false, error: 'Pickup details are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Pickup city, date and time are required' }, { status: 400 });
     }
 
-    // ===== DATE VALIDATION =====
-    if (pickupDate) {
-      const pickup = new Date(pickupDate);
-      if (isNaN(pickup.getTime())) {
-        return NextResponse.json(
-          { success: false, error: 'Invalid pickup date format. Please provide a valid date.' },
-          { status: 400 }
-        );
-      }
-
-      // For outstation roundtrip, validate return date (skip for one-way)
-      if (returnDate && mode !== 'one-way' && mode !== 'one_way') {
-        const returnD = new Date(returnDate);
-        if (isNaN(returnD.getTime())) {
-          return NextResponse.json(
-            { success: false, error: 'Invalid return date format. Please provide a valid date.' },
-            { status: 400 }
-          );
-        }
-
-        if (returnD < pickup) {
-          return NextResponse.json(
-            { success: false, error: 'Return date cannot be before pickup date' },
-            { status: 400 }
-          );
-        }
-      }
+    const pickup = new Date(pickupDate);
+    if (isNaN(pickup.getTime())) {
+      return NextResponse.json({ success: false, error: 'Invalid pickup date' }, { status: 400 });
     }
 
-    if (!carCategory && !carCategoryName) {
-      return NextResponse.json(
-        { success: false, error: 'Car category is required' },
-        { status: 400 }
-      );
-    }
-
-    // Find the location by name, slug, or ID
-    let location = null;
-
-    // First try by ID if provided
+    // ===== LOCATION LOOKUP =====
+    let location: any = null;
     if (pickupLocationId) {
-      location = await prisma.locations.findUnique({
-        where: { id: pickupLocationId },
-      });
+      location = await prisma.locations.findUnique({ where: { id: pickupLocationId } });
     }
-
-    // Try by slug (city name converted to slug)
     if (!location) {
-      const citySlug = pickupCity.toLowerCase().replace(/\s+/g, '-');
-      // Try exact slug match first
-      location = await prisma.locations.findFirst({
-        where: { slug: citySlug },
-      });
-
-      // Try name match if slug didn't work
-      if (!location) {
-        location = await prisma.locations.findFirst({
-          where: { name: pickupCity },
-        });
-      }
+      const slug = pickupCity.toLowerCase().replace(/\s+/g, '-');
+      location = await prisma.locations.findFirst({ where: { slug } });
     }
-
-    // If still no location found, return error
+    if (!location) {
+      location = await prisma.locations.findFirst({ where: { name: { contains: pickupCity } } });
+    }
     if (!location) {
       return NextResponse.json(
-        {
-          success: false,
-          error: `Location "${pickupCity}" not found. Please select a valid city.`,
-        },
+        { success: false, error: `Location "${pickupCity}" not found. Please select a valid city.` },
         { status: 400 }
       );
     }
 
-    const locationId = location.id;
-    const locationName = location.name;
+    // ===== DAYS CALCULATION =====
+    const ret = returnDate ? new Date(returnDate) : pickup;
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const totalDays = Math.max(1, Math.ceil((ret.getTime() - pickup.getTime()) / msPerDay));
 
-    // Calculate days with proper time precision
-    let totalDays = 1;
-    let totalHours = 0;
-    let durationFormatted = '1 day';
-
-    if (tripType === 'outstation' && returnDate && pickupTime) {
-      const duration = calculateRentalDuration(
-        pickupDate,
-        pickupTime,
-        returnDate,
-        pickupTime // Use same pickup time as return time if not specified
-      );
-      totalDays = duration.totalDays;
-      totalHours = duration.totalHours;
-      durationFormatted = duration.formatted;
-    }
-
-    // Map trip type to enum value
-    const mappedTripType = mapTripType(tripType, mode, airportMode);
-
-    // Generate booking number
-    const bookingNumber = generateBookingNumber();
-
-    // Note: OTP will be generated when driver starts the trip, not at booking time
-
-    // Check if customer is B2B approved
-    let isB2B = false;
-    let b2bCustomer: any = null;
-    if (customerEmail || customerPhone) {
-      b2bCustomer = await prisma.customers.findFirst({
-        where: {
-          OR: [
-            ...(customerEmail ? [{ email: customerEmail.toLowerCase() }] : []),
-            ...(customerPhone ? [{ phone: customerPhone }] : []),
-          ],
-        },
-        select: { id: true, name: true, email: true, phone: true, companyName: true, isB2B: true, b2bStatus: true },
-      });
-      if (b2bCustomer?.isB2B && b2bCustomer?.b2bStatus === 'APPROVED') {
-        isB2B = true;
-      }
-    }
-
-    // ===== B2B FLOW: Create in b2b_bookings table =====
-    if (isB2B && numberOfVehicles && parseInt(numberOfVehicles) > 0) {
-      const b2bBookingNumber = `B2B-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
-
-      const b2bBooking = await prisma.b2b_bookings.create({
-        data: {
-          bookingNumber: b2bBookingNumber,
-          customerId: b2bCustomer.id,
-          customerName: b2bCustomer.name,
-          customerEmail: b2bCustomer.email,
-          customerPhone: b2bCustomer.phone,
-          companyName: b2bCustomer.companyName || b2bCustomer.name,
-          serviceType: 'car',
-          vehiclesRequired: parseInt(numberOfVehicles),
-          passengerCount: numberOfEmployees ? parseInt(numberOfEmployees) : null,
-          vehicleCategory: carCategoryName || carCategory || null,
-          pickupLocation: pickupCity,
-          dropLocation: dropCity || null,
-          tripType: mappedTripType === 'LOCAL' ? 'HOURLY' : (mappedTripType.includes('ROUNDTRIP') ? 'ROUND_TRIP' : 'ONE_WAY'),
-          scheduledDate: new Date(pickupDate),
-          scheduledTime: pickupTime,
-          returnDate: returnDate ? new Date(returnDate) : null,
-          specialNotes: customerNotes || null,
-          status: 'OPEN_FOR_QUOTES',
-        },
-      });
-
-      // Generate JWT token for auto-login
-      const token = await new SignJWT({
-        customerId: b2bCustomer.id,
-        email: b2bCustomer.email,
-        phone: b2bCustomer.phone,
-      })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
-        .setExpirationTime('30d')
-        .sign(JWT_SECRET);
-
-      return NextResponse.json({
-        success: true,
-        message: 'B2B Booking created successfully. Vendors will send quotes.',
-        booking: {
-          id: b2bBooking.id,
-          bookingNumber: b2bBooking.bookingNumber,
-          status: b2bBooking.status,
-          vehiclesRequired: b2bBooking.vehiclesRequired,
-        },
-        customer: {
-          id: b2bCustomer.id,
-          name: b2bCustomer.name,
-          email: b2bCustomer.email,
-          phone: b2bCustomer.phone,
-        },
-        token,
-        isB2B: true,
-        redirect_to: `/customer/b2b-bookings/${b2bBooking.id}?customer_id=${b2bCustomer.id}`,
-      });
-    }
-
-    // ===== NORMAL FLOW: Create in chauffeur_bookings table =====
-    // Build the booking data
-    const bookingData: any = {
-      bookingNumber,
-
-      // Customer
-      customerName,
-      customerEmail,
-      customerPhone,
-
-      // Location (required)
-      locationId,
-      locationName,
-
-      // Trip Type
-      tripType: mappedTripType,
-
-      // Locations
-      pickupCity,
-      dropCity: dropCity || pickupCity,
-      pickupAddress: pickupAddress || null,
-      dropAddress: dropAddress || null,
-
-      // Car
-      carCategory: carCategory || 'car',
-      carCategoryName: carCategoryName || 'Car',
-
-      // Dates
-      pickupDate: new Date(pickupDate),
-      pickupTime,
-      returnDate: returnDate ? new Date(returnDate) : null,
-      totalDays,
-      totalHours: tripType === 'outstation' ? totalHours : null,
-
-      // Pricing
-      baseFare: baseFare || 0,
-      perKmRate: body.perKmRate || 0,
-      chargeableKm: body.chargeableKm || null,
-      kmCharges: body.kmCharges || 0,
-      driverBatta: body.driverBatta || 0,
-      nightCharges: body.nightCharges || 0,
-      gstAmount: gstAmount || 0,
-      platformFee: platformFee || 99,
-      grandTotal: grandTotal || 0,
-
-      // Payment
-      paymentStatus: advancePaid > 0 ? 'PARTIAL' : 'PENDING',
-      paidAmount: advancePaid || 0,
-      paymentMethod: paymentMethod || null,
-      transactionId: transactionId || null,
-
-      // Status
-      status: 'PENDING_PAYMENT',
-
-      // OTP - will be generated when driver starts the trip
-      tripStartOtp: null,
-
-      // Notes
-      customerNotes: customerNotes || null,
-
-      // Source tracking (web or app)
-      source: body.source || 'web',
-    };
-
-    // Add local package details if applicable
-    if (tripType === 'local') {
-      bookingData.localPackageId = localPackageId || null;
-      bookingData.localPackageHours = localPackageHours || null;
-      bookingData.localPackageKm = localPackageKm || null;
-      bookingData.totalHours = localPackageHours || null;
-    }
-
-    // Create booking
-    const booking = await prisma.chauffeur_bookings.create({
-      data: {
-        ...bookingData,
-      },
-    });
-
-    // Save intermediateStops via raw SQL (field added via migration, Prisma client may need regeneration)
-    if (body.intermediateStops?.length) {
-      const stopsJson = JSON.stringify(body.intermediateStops);
-      await prisma.$executeRawUnsafe(
-        'UPDATE chauffeur_bookings SET intermediateStops = ? WHERE id = ?',
-        stopsJson,
-        booking.id
-      );
-    }
-
-    // Auto-register customer if not exists
+    // ===== CUSTOMER LOOKUP / CREATE =====
     let customer = await prisma.customers.findFirst({
-      where: {
-        OR: [
-          { email: customerEmail.toLowerCase() },
-          { phone: customerPhone },
-        ],
-      },
+      where: { OR: [{ email: customerEmail.toLowerCase() }, { phone: customerPhone }] },
     });
-
     if (!customer) {
-      // Create new customer (without password - they can set it later)
       const customerId = await generateCustomerId();
       customer = await prisma.customers.create({
         data: {
@@ -437,88 +177,132 @@ export async function POST(request: NextRequest) {
           name: customerName,
           email: customerEmail.toLowerCase(),
           phone: customerPhone,
-          isEmailVerified: true, // Auto-verify since they made a booking
+          isEmailVerified: true,
           isPhoneVerified: true,
         },
       });
     }
 
-    // Link booking to customer
-    await prisma.chauffeur_bookings.update({
-      where: { id: booking.id },
-      data: { customerId: customer.id },
+    // ===== B2B FLOW =====
+    const isB2B = customer.isB2B && customer.b2bStatus === 'APPROVED';
+    if (isB2B && numberOfVehicles && parseInt(numberOfVehicles) > 0) {
+      const b2bBookingNumber = `B2B-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
+      const b2bBooking = await prisma.b2b_bookings.create({
+        data: {
+          bookingNumber: b2bBookingNumber,
+          customerId: customer.id,
+          customerName: customer.name,
+          customerEmail: customer.email,
+          customerPhone: customer.phone,
+          companyName: customer.companyName || customer.name,
+          serviceType: 'car',
+          vehiclesRequired: parseInt(numberOfVehicles),
+          passengerCount: numberOfEmployees ? parseInt(numberOfEmployees) : null,
+          vehicleCategory: carCategoryName || null,
+          pickupLocation: pickupCity,
+          scheduledDate: pickup,
+          scheduledTime: pickupTime,
+          returnDate: ret,
+          specialNotes: customerNotes || null,
+          status: 'OPEN_FOR_QUOTES',
+        },
+      });
+
+      const token = await new SignJWT({ customerId: customer.id, email: customer.email, phone: customer.phone })
+        .setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('30d').sign(JWT_SECRET);
+
+      return NextResponse.json({
+        success: true,
+        message: 'B2B Booking created. Vendors will send quotes.',
+        booking: { id: b2bBooking.id, bookingNumber: b2bBooking.bookingNumber, status: b2bBooking.status },
+        customer: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone },
+        token, isB2B: true,
+        redirect_to: `/customer/b2b-bookings/${b2bBooking.id}?customer_id=${customer.id}`,
+      });
+    }
+
+    // ===== NORMAL FLOW: chauffeur_bookings =====
+    const bookingNumber = generateBookingNumber();
+
+    const booking = await prisma.chauffeur_bookings.create({
+      data: {
+        bookingNumber,
+        customerId:          customer.id,
+        customerName,
+        customerEmail:       customerEmail.toLowerCase(),
+        customerPhone,
+        locationId:          location.id,
+        locationName:        location.name,
+        tripType:            tripType as any,
+        carCategory:         String(carCategory),
+        carCategoryName:     carCategoryName || 'Car',
+        pickupCity,
+        dropCity:            dropCity || null,
+        pickupAddress:       pickupAddress || pickupCity,
+        dropAddress:         dropAddress || null,
+        pickupDate:          pickup,
+        pickupTime,
+        returnDate:          returnDate ? new Date(returnDate) : null,
+        returnTime:          returnTime || null,
+        totalDays,
+        localPackageId:      localPackageId || null,
+        localPackageHours:   localPackageHours ? parseInt(localPackageHours) : null,
+        localPackageKm:      localPackageKm   ? parseInt(localPackageKm)   : null,
+        intermediateStops:   intermediateStops ? JSON.stringify(intermediateStops) : null,
+        airportName:         airportName || null,
+        baseFare:            baseFare,
+        perKmRate:           perKmRate || 0,
+        chargeableKm:        chargeableKm ? parseInt(chargeableKm) : null,
+        kmCharges:           kmCharges || 0,
+        driverBatta:         driverBatta || 0,
+        gstAmount,
+        platformFee:         platformFee || 99,
+        grandTotal,
+        paidAmount:          advancePaid || 0,
+        paymentMethod:       paymentMethod || null,
+        transactionId:       transactionId || null,
+        paymentStatus:       advancePaid > 0 ? 'SUBMITTED' : 'PENDING',
+        status:              'PENDING_PAYMENT',
+        customerNotes:       customerNotes || null,
+        source:              body.source || 'web',
+      },
     });
 
-    // Generate JWT token for auto-login
-    const token = await new SignJWT({
-      customerId: customer.id,
-      email: customer.email,
-      phone: customer.phone,
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('30d')
-      .sign(JWT_SECRET);
+    const token = await new SignJWT({ customerId: customer.id, email: customer.email, phone: customer.phone })
+      .setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('30d').sign(JWT_SECRET);
 
     return NextResponse.json({
       success: true,
       message: 'Booking created successfully. Please complete payment to confirm.',
-      booking: {
-        id: booking.id,
-        bookingNumber: booking.bookingNumber,
-        grandTotal: booking.grandTotal,
-        status: booking.status,
-      },
-      // Auto-login data
-      customer: {
-        id: customer.id,
-        name: customer.name,
-        email: customer.email,
-        phone: customer.phone,
-      },
-      token,
-      isB2B: false,
-      // Redirect to payment page
+      booking: { id: booking.id, bookingNumber: booking.bookingNumber, grandTotal: booking.grandTotal, status: booking.status },
+      customer: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone },
+      token, isB2B: false,
       redirect_to: `/pay/${booking.bookingNumber}`,
     });
   } catch (error: any) {
     logger.error('Failed to create car rental booking', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to create booking',
-        details: error?.message,
-        code: error?.code
-      },
+      { success: false, error: 'Failed to create booking', details: error?.message, code: error?.code },
       { status: 500 }
     );
   }
 }
 
-// GET - List car rental bookings (for customer)
+// GET - List car rental bookings for customer
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const customerPhone = searchParams.get('phone');
     const customerEmail = searchParams.get('email');
     const bookingNumber = searchParams.get('bookingNumber');
-    const status = searchParams.get('status');
+    const status        = searchParams.get('status');
 
-    // Build where clause
     const where: any = {};
+    if (bookingNumber)    where.bookingNumber  = bookingNumber;
+    else if (customerPhone) where.customerPhone = customerPhone;
+    else if (customerEmail) where.customerEmail = customerEmail;
 
-    if (bookingNumber) {
-      where.bookingNumber = bookingNumber;
-    } else if (customerPhone) {
-      where.customerPhone = customerPhone;
-    } else if (customerEmail) {
-      where.customerEmail = customerEmail;
-    }
-
-    // Only add status filter if it's not "all" (case insensitive)
-    if (status && status.toLowerCase() !== 'all') {
-      where.status = status;
-    }
+    if (status && status.toLowerCase() !== 'all') where.status = status;
 
     const bookings = await prisma.chauffeur_bookings.findMany({
       where,
@@ -528,33 +312,25 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      bookings: bookings.map((b) => ({
-        id: b.id,
-        bookingNumber: b.bookingNumber,
-        tripType: b.tripType,
-        carCategory: b.carCategory,
+      bookings: bookings.map(b => ({
+        id:              b.id,
+        bookingNumber:   b.bookingNumber,
         carCategoryName: b.carCategoryName,
-        pickupCity: b.pickupCity,
-        dropCity: b.dropCity,
-        pickupDate: b.pickupDate,
-        pickupTime: b.pickupTime,
-        returnDate: b.returnDate,
-        localPackageId: b.localPackageId,
-        grandTotal: b.grandTotal,
-        status: b.status,
-        paymentStatus: b.paymentStatus,
-        driverName: b.driverName,
-        driverPhone: b.driverPhone,
-        vehicleNumber: b.vehicleNumber,
-        vehicle_models: b.vehicle_models,
-        createdAt: b.createdAt,
+        carCategory:     b.carCategory,
+        pickupCity:      b.pickupCity,
+        dropCity:        b.dropCity,
+        pickupDate:      b.pickupDate,
+        pickupTime:      b.pickupTime,
+        returnDate:      b.returnDate,
+        totalDays:       b.totalDays,
+        grandTotal:      b.grandTotal,
+        status:          b.status,
+        paymentStatus:   b.paymentStatus,
+        createdAt:       b.createdAt,
       })),
     });
   } catch (error: any) {
     logger.error('Failed to fetch car rental bookings', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch bookings' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Failed to fetch bookings' }, { status: 500 });
   }
 }

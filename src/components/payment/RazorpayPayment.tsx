@@ -224,6 +224,23 @@ export function RazorpayPayment({
         prefill: data.razorpayConfig.prefill,
         theme: data.razorpayConfig.theme,
 
+        config: {
+          display: {
+            blocks: {
+              upi: {
+                name: 'Pay via UPI',
+                instruments: [
+                  { method: 'upi', flows: ['collect'] },
+                ],
+              },
+            },
+            sequence: ['block.upi'],
+            preferences: {
+              show_default_blocks: true,
+            },
+          },
+        },
+
         modal: {
           ondismiss: function () {
             // DON'T switch to manual mode here — handler may still be in-flight
@@ -482,6 +499,20 @@ export function PaymentButton({
         },
         prefill: data.razorpayConfig.prefill,
         theme: data.razorpayConfig.theme,
+        config: {
+          display: {
+            blocks: {
+              upi_block: {
+                name: 'Pay via UPI',
+                instruments: [
+                  { method: 'upi', flows: ['collect', 'intent', 'qr'] },
+                ],
+              },
+            },
+            sequence: ['block.upi_block'],
+            preferences: { show_default_blocks: true },
+          },
+        },
         modal: {
           ondismiss: function () {
             setIsProcessing(false);
