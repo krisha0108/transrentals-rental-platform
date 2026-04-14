@@ -7,7 +7,7 @@ import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -104,20 +104,11 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
-        badge={`Self Drive SUV in ${locationName}`}
-        title="Self Drive SUV Rental"
-        titleHighlight="Road Trip Ready @₹1499/day"
-        description={`Plan the perfect ${locationName} road trip in an SUV — spacious cabin, high ground clearance, powerful engine. Creta, Seltos, XUV700 — no driver, complete freedom.`}
-        features={[
-          { icon: 'zap', text: 'High Ground Clearance', color: 'text-blue-600' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="blue-50"
-        gradientTo="sky-50"
+      <SwiftRentalTypeHero
+        city={locationName}
+        citySlug={params.location}
+        vehicleName="Self Drive SUV"
+        selfDrivePrice="₹1,999/day"
       />
 
       {/* Hero */}

@@ -8,6 +8,9 @@ import {
   Heart, MessageCircle, Bookmark, Share2, Plus, MoreVertical,
   Trash2, Building2, MapPin, Clock, X, Send, Zap, BookmarkCheck,
   ChevronLeft, ChevronRight, PenSquare, TrendingUp, MessageSquare, Users,
+  Sparkles, Users2, Bookmark as BookmarkIcon, Home, Rss, Search,
+  CheckCircle2, Flame, Bell, ChevronDown, AlertOctagon, Truck, Megaphone,
+  AlertTriangle, User,
 } from 'lucide-react';
 
 /* ─── Types ─── */
@@ -236,7 +239,7 @@ function SOSStories({ groups, onOpen }: { groups: VendorStoryGroup[]; onOpen: (v
   if (!groups.length) return null;
   const totalPosts = groups.reduce((s, g) => s + g.posts.length, 0);
   return (
-    <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 rounded-2xl p-4 mb-4">
+    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 mb-4 relative overflow-hidden">
       <div className="flex items-center gap-2 mb-3">
         <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500 text-white text-xs font-bold">
           <Zap className="h-3 w-3" /> SOS
@@ -298,7 +301,7 @@ function CommentModal({ post, currentVendorId, onClose }: { post: Post; currentV
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" style={{ background: 'rgba(0,0,0,0.55)' }}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/30 backdrop-blur-md">
       <div className="bg-white w-full sm:rounded-2xl sm:max-w-lg max-h-[85vh] flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
@@ -501,7 +504,7 @@ function ShareInChatModal({ post, onClose }: { post: Post; onClose: () => void }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-md flex items-end sm:items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
@@ -562,10 +565,14 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
   const [menuOpen, setMenuOpen] = useState(false);
   const [followedByMe, setFollowedByMe] = useState(post.followedByMe);
   const [followLoading, setFollowLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const isOwner = post.vendor.id === currentVendorId;
+  const isLongContent = post.content.length > 150;
 
   useEffect(() => { setFollowedByMe(post.followedByMe); }, [post.followedByMe]);
+
+  const isOld = (Date.now() - new Date(post.createdAt).getTime()) > 7 * 24 * 60 * 60 * 1000;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -606,119 +613,146 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
     window.open(`https://wa.me/?text=${encodeURIComponent(t)}`, '_blank');
   };
 
+  const isSOS = post.category.isSOS;
+  const isRecent = (Date.now() - new Date(post.createdAt).getTime()) < 60 * 60 * 1000;
+
+  // Vibrant color palette — full card bg tints + gradient headers (social wall style)
+  const themes = [
+    { bg: 'bg-gradient-to-b from-blue-500 to-blue-600', tint: 'bg-blue-50', text: 'text-blue-700', ring: 'ring-blue-400', badge: 'bg-blue-600 text-white' },
+    { bg: 'bg-gradient-to-b from-purple-500 to-purple-600', tint: 'bg-purple-50', text: 'text-purple-700', ring: 'ring-purple-400', badge: 'bg-purple-600 text-white' },
+    { bg: 'bg-gradient-to-b from-emerald-500 to-emerald-600', tint: 'bg-emerald-50', text: 'text-emerald-700', ring: 'ring-emerald-400', badge: 'bg-emerald-600 text-white' },
+    { bg: 'bg-gradient-to-b from-amber-500 to-amber-600', tint: 'bg-amber-50', text: 'text-amber-700', ring: 'ring-amber-400', badge: 'bg-amber-600 text-white' },
+    { bg: 'bg-gradient-to-b from-indigo-500 to-indigo-600', tint: 'bg-indigo-50', text: 'text-indigo-700', ring: 'ring-indigo-400', badge: 'bg-indigo-600 text-white' },
+    { bg: 'bg-gradient-to-b from-cyan-500 to-cyan-600', tint: 'bg-cyan-50', text: 'text-cyan-700', ring: 'ring-cyan-400', badge: 'bg-cyan-600 text-white' },
+  ];
+  const sosTheme = { bg: 'bg-gradient-to-b from-red-600 to-red-700', tint: 'bg-red-50', text: 'text-red-700', ring: 'ring-red-500', badge: 'bg-red-700 text-white' };
+  const colorIdx = post.category.name.split('').reduce((a: number, c: string) => a + c.charCodeAt(0), 0) % themes.length;
+  const theme = isSOS ? sosTheme : themes[colorIdx];
+
   return (
-    <div className={`bg-white rounded-2xl shadow-sm overflow-hidden transition-all hover:shadow-md ${post.category.isSOS ? 'border-l-4 border-l-red-400 border border-red-100' : 'border border-gray-100'}`}>
+    <div className={`group relative rounded-3xl overflow-hidden transition-all duration-300 shadow-[0_2px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] hover:-translate-y-1.5 ${isOld ? 'opacity-70' : ''}`}>
 
-      {/* ── Header ── */}
-      <div className="p-4 flex items-start gap-3">
-        <Link href={`/vendor/social/profile/${post.vendor.id}`} className="flex-shrink-0 mt-0.5">
-          <VendorAvatar vendor={post.vendor} size={46} />
-        </Link>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <Link href={`/vendor/social/profile/${post.vendor.id}`}
-                className="font-bold text-gray-900 hover:text-green-700 text-sm transition-colors leading-tight block truncate">
-                {post.vendor.businessName}
-              </Link>
-              <p className="text-xs text-gray-400 mt-0.5 truncate">{post.vendor.ownerName}</p>
-            </div>
-            {/* Category badge — top right of name */}
-            <span className={`flex-shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold mt-0.5 ${
-              post.category.isSOS
-                ? 'bg-red-100 text-red-600'
-                : 'bg-green-50 text-green-600'
-            }`}>
-              {post.category.isSOS && <Zap className="h-2.5 w-2.5" />}
-              {post.category.name}
+      {/* ── COLORED HEADER BLOCK (social wall style — bold, vibrant) ── */}
+      <div className={`${theme.bg} px-5 py-4 relative overflow-hidden`}>
+        <div className="absolute -right-8 -top-8 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+        <div className="absolute -left-4 -bottom-4 w-16 h-16 bg-white/10 rounded-full blur-lg"></div>
+        <div className="relative flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white text-[11px] font-bold px-3 py-1.5 rounded-full">
+              {isSOS ? <><Zap className="w-3.5 h-3.5" /> SOS</> : post.category.name}
             </span>
-          </div>
-
-          {/* Meta row */}
-          <div className="flex items-center gap-2.5 mt-1.5 flex-wrap">
-            {post.vendor.city && (
-              <span className="flex items-center gap-0.5 text-[11px] text-gray-400">
-                <MapPin className="h-3 w-3" />{post.vendor.city}
+            {isSOS && isRecent && (
+              <span className="inline-flex items-center gap-1 bg-white/20 text-white text-[9px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
+                LIVE
               </span>
             )}
-            <span className="flex items-center gap-0.5 text-[11px] text-gray-400">
-              <Clock className="h-3 w-3" />{timeAgo(post.createdAt)}
-            </span>
+          </div>
+          <span className="text-white/70 text-[11px] font-medium">{timeAgo(post.createdAt)}</span>
+        </div>
+      </div>
+
+      {/* ── WHITE CONTENT AREA ── */}
+      <div className="bg-white">
+        {/* Vendor Info */}
+        <div className="px-5 pt-4 pb-2 flex items-center gap-3">
+          <Link href={`/vendor/social/profile/${post.vendor.id}`} className="flex-shrink-0">
+            <div className={`rounded-full ring-2 ${theme.ring} ring-offset-2`}>
+              <VendorAvatar vendor={post.vendor} size={40} />
+            </div>
+          </Link>
+          <div className="flex-1 min-w-0">
+            <Link href={`/vendor/social/profile/${post.vendor.id}`}
+              className="text-[15px] font-bold text-gray-900 hover:text-purple-700 transition-colors leading-tight truncate block">
+              {post.vendor.businessName}
+            </Link>
+            <p className="text-[11px] text-gray-400">
+              {post.vendor.city && <>{post.vendor.city} · </>}{new Date(post.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+            </p>
+          </div>
+
+          {/* Menu */}
+          <div className="relative flex-shrink-0" ref={menuRef}>
+            <button onClick={() => setMenuOpen(!menuOpen)}
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
+              <MoreVertical className="h-4 w-4" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-xl z-20 min-w-[170px] py-1 overflow-hidden">
+                {!isOwner && (
+                  <button onClick={handleFollow} disabled={followLoading}
+                    className="w-full text-left px-4 py-2.5 text-[14px] text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 disabled:opacity-50">
+                    {followLoading
+                      ? <span className="h-4 w-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                      : <Users className="h-4 w-4 text-purple-600" />}
+                    {followedByMe ? 'Unfollow' : 'Follow'}
+                  </button>
+                )}
+                {isOwner && (
+                  <button onClick={() => { onDelete(post.id); setMenuOpen(false); }}
+                    className="w-full text-left px-4 py-2.5 text-[14px] text-red-600 hover:bg-red-50 flex items-center gap-2.5">
+                    <Trash2 className="h-4 w-4" /> Delete Post
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Menu */}
-        <div className="relative flex-shrink-0" ref={menuRef}>
-          <button onClick={() => setMenuOpen(!menuOpen)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
-            <MoreVertical className="h-4 w-4" />
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-8 bg-white border border-gray-100 rounded-xl shadow-xl z-20 min-w-[170px] py-1 overflow-hidden">
-              {!isOwner && (
-                <button onClick={handleFollow} disabled={followLoading}
-                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 disabled:opacity-50">
-                  {followLoading
-                    ? <span className="h-4 w-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
-                    : <Users className="h-4 w-4 text-green-600" />}
-                  {followedByMe ? 'Unfollow' : 'Follow'}
-                </button>
-              )}
-              {isOwner && (
-                <button onClick={() => { onDelete(post.id); setMenuOpen(false); }}
-                  className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5">
-                  <Trash2 className="h-4 w-4" /> Delete Post
-                </button>
-              )}
-            </div>
+        {/* Content */}
+        <div className="px-5 pb-4">
+          <p className={`text-[15px] font-normal leading-[1.75] text-gray-700 whitespace-pre-wrap ${expanded ? '' : 'line-clamp-3'}`}>{post.content}</p>
+          {isLongContent && (
+            <button
+              onClick={() => setExpanded(e => !e)}
+              className="mt-1 text-[12px] font-semibold text-purple-600 hover:text-purple-800 transition-colors"
+            >
+              {expanded ? 'Show less' : 'Read more'}
+            </button>
           )}
         </div>
-      </div>
 
-      {/* ── Content ── */}
-      <div className="px-4 pb-4">
-        <p className="text-gray-800 text-[14.5px] leading-relaxed whitespace-pre-wrap">{post.content}</p>
-      </div>
+        {/* Action Bar */}
+        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <button onClick={() => onLike(post.id)} title="Like"
+              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all ${
+                post.likedByMe ? 'bg-red-50 text-red-600' : 'hover:bg-gray-100 text-gray-600'
+              }`}>
+              <Heart className={`w-4 h-4 transition-transform ${post.likedByMe ? 'fill-red-500 text-red-500 animate-heart-pop' : ''}`} />
+              {post.likesCount > 0 && post.likesCount}
+            </button>
+            <button onClick={() => onComment(post)} title="Comment"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-semibold text-gray-600 hover:bg-gray-100 transition-all">
+              <MessageCircle className="w-4 h-4" />
+              {post.commentsCount > 0 && post.commentsCount}
+            </button>
+            <button onClick={shareWA} title="Share"
+              className="inline-flex items-center px-2.5 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all">
+              <Share2 className="w-4 h-4" />
+            </button>
+          </div>
+          <button onClick={() => onSave(post.id)} title="Save"
+            className={`p-2 rounded-full transition-all ${
+              post.savedByMe ? 'text-purple-500' : 'text-gray-500 hover:bg-gray-100'
+            }`}>
+            {post.savedByMe
+              ? <BookmarkCheck className="w-4 h-4 fill-purple-600 animate-bounce-soft" />
+              : <Bookmark className="w-4 h-4" />}
+          </button>
+        </div>
 
-      {/* ── Action Bar ── */}
-      <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50/40 flex items-center gap-1">
-        {/* Like */}
-        <button onClick={() => onLike(post.id)}
-          className={`group flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-            post.likedByMe ? 'text-rose-600 bg-rose-50' : 'text-gray-500 hover:bg-gray-100 hover:text-rose-500'
-          }`}>
-          <Heart className={`h-[17px] w-[17px] transition-all ${post.likedByMe ? 'fill-current scale-110' : 'group-hover:scale-110'}`} />
-          <span className="text-xs min-w-[12px]">{post.likesCount || ''}</span>
-        </button>
-
-        {/* Comment */}
-        <button onClick={() => onComment(post)}
-          className="group flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-green-600 transition-all">
-          <MessageCircle className="h-[17px] w-[17px] group-hover:scale-110 transition-transform" />
-          <span className="text-xs min-w-[12px]">{post.commentsCount || ''}</span>
-        </button>
-
-        {/* Save */}
-        <button onClick={() => onSave(post.id)}
-          className={`group flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
-            post.savedByMe ? 'text-amber-600 bg-amber-50' : 'text-gray-500 hover:bg-gray-100 hover:text-amber-500'
-          }`}>
-          {post.savedByMe
-            ? <BookmarkCheck className="h-[17px] w-[17px] fill-current" />
-            : <Bookmark className="h-[17px] w-[17px] group-hover:scale-110 transition-transform" />}
-        </button>
-
-        {/* Share — far right: WhatsApp */}
-        <button onClick={shareWA} title="Share on WhatsApp"
-          className="ml-auto group flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-400 hover:bg-green-50 hover:text-green-600 transition-all">
-          <Share2 className="h-[17px] w-[17px] group-hover:scale-110 transition-transform" />
-        </button>
-        {/* Share in Chat */}
-        <button onClick={() => onShareInChat(post)} title="Share in Chat"
-          className="group flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-400 hover:bg-green-50 hover:text-green-600 transition-all">
-          <MessageSquare className="h-[17px] w-[17px] group-hover:scale-110 transition-transform" />
-        </button>
+        {/* SOS Respond CTA */}
+        {isSOS && onComment && (
+          <div className="px-5 pb-4 flex justify-end">
+            <button
+              onClick={() => onComment(post)}
+              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold rounded-lg transition-all inline-flex items-center justify-center gap-1.5 active:scale-[0.98] shadow-sm hover:shadow-lg hover:shadow-red-300/50"
+            >
+              <Zap className="w-3.5 h-3.5" /> Respond
+          </button>
+        </div>
+      )}
       </div>
     </div>
   );
@@ -727,7 +761,7 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
 /* ─── Skeleton ─── */
 function PostSkeleton() {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl p-4 animate-pulse shadow-sm">
+    <div className="bg-white border border-gray-200 rounded-none sm:rounded-2xl p-4 animate-pulse shadow-none sm:shadow-sm">
       <div className="flex gap-3 mb-4">
         <div className="h-12 w-12 rounded-full bg-gray-100 flex-shrink-0" />
         <div className="flex-1 space-y-2 pt-1">
@@ -774,6 +808,31 @@ function SocialFeedContent() {
   const [activeTab, setActiveTab] = useState<'feed' | 'saved'>(
     searchParams.get('tab') === 'saved' ? 'saved' : 'feed'
   );
+  const [feedFilter, setFeedFilter] = useState<'all' | 'sos' | 'general'>('all');
+  const [showGibberish, setShowGibberish] = useState(false);
+  const [oldSOSCollapsed, setOldSOSCollapsed] = useState(true);
+
+  const filteredPosts = posts
+    .filter(p =>
+      feedFilter === 'all' ||
+      (feedFilter === 'sos' && p.category.isSOS) ||
+      (feedFilter === 'general' && !p.category.isSOS)
+    )
+    .filter(p => showGibberish || !p.category.isSOS || p.content.trim().length >= 10);
+
+  const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+  const oldSOSCount = filteredPosts.filter(
+    p => p.category.isSOS && (Date.now() - new Date(p.createdAt).getTime()) > SEVEN_DAYS
+  ).length;
+  const visiblePosts = oldSOSCollapsed
+    ? filteredPosts.filter(
+        p => !(p.category.isSOS && (Date.now() - new Date(p.createdAt).getTime()) > SEVEN_DAYS)
+      )
+    : filteredPosts;
+  const sortedPosts = [...visiblePosts].sort((a, b) => {
+    if (a.category.isSOS !== b.category.isSOS) return a.category.isSOS ? -1 : 1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
 
   const sosGroups = groupSOSByVendor(sosPosts);
 
@@ -850,102 +909,302 @@ function SocialFeedContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/80">
-      <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="min-h-screen bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-20 sm:pb-0">
+      <style jsx global>{`
+        @keyframes fade-up { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes pop-in { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        .animate-fade-up { animation: fade-up 0.5s ease-out both; }
+        .animate-pop-in { animation: pop-in 0.4s ease-out both; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes bounce-soft { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+        @keyframes wiggle { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+        @keyframes glow-red { 0%,100% { box-shadow: 0 0 8px rgba(239,68,68,0.3); } 50% { box-shadow: 0 0 20px rgba(239,68,68,0.6); } }
+        @keyframes slide-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes heart-pop { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+        .animate-bounce-soft { animation: bounce-soft 2s ease-in-out infinite; }
+        .animate-wiggle { animation: wiggle 1s ease-in-out infinite; }
+        .animate-glow-red { animation: glow-red 2s ease-in-out infinite; }
+        .animate-slide-up { animation: slide-up 0.4s ease-out both; }
+        .animate-heart-pop { animation: heart-pop 0.3s ease-out; }
+      `}</style>
 
-        {/* ── Page Header ── */}
-        <div className="relative bg-[#071a0d] rounded-2xl overflow-hidden px-6 pt-6 pb-5 mb-5">
-          <div className="absolute -top-8 -right-8 w-40 h-40 bg-green-500/15 rounded-full blur-2xl pointer-events-none" />
-          <div className="absolute bottom-0 left-1/3 w-32 h-32 bg-emerald-600/10 rounded-full blur-2xl pointer-events-none" />
-          <div className="relative flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-1.5 block">TransRentals</span>
-              <h1 className="text-2xl font-black text-white tracking-tight leading-none">Vendor Network</h1>
-              <p className="text-green-200/50 text-xs mt-1.5">Connect · Collaborate · Grow</p>
+      {/* ── Sticky Header (Top Bar) ── */}
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between py-3 px-4 sm:px-6">
+          {/* Left: logo + brand */}
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center">
+              <Truck className="w-5 h-5 text-white" />
             </div>
-            <Link href="/vendor/social/create"
-              className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-500 shadow-lg shadow-green-900/30 transition-all active:scale-95 flex-shrink-0">
-              <PenSquare className="h-4 w-4" /> New Post
+            <div>
+              <h1 className="text-[15px] font-semibold text-gray-900 leading-none">Vendor Network</h1>
+              <p className="text-[11px] text-gray-500 font-medium">by TransRentals</p>
+            </div>
+          </div>
+          {/* Center: search (desktop only) */}
+          <div className="hidden md:flex flex-1 max-w-md mx-4">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input type="text" placeholder="Search vendors, posts..." className="w-full pl-10 pr-4 py-2 bg-gray-100 hover:bg-gray-50 focus:bg-white border border-transparent focus:border-purple-300 focus:ring-2 focus:ring-purple-100 rounded-full text-sm outline-none transition-all" />
+            </div>
+          </div>
+          {/* Right: bell, messages, avatar */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button className="group relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors" title="Notifications">
+              <Bell className="w-[18px] h-[18px] group-hover:animate-wiggle" />
+            </button>
+            <Link href="/vendor/social/messages" className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors" title="Messages">
+              <MessageCircle className="w-[18px] h-[18px]" />
+            </Link>
+            <Link href={currentVendorId ? `/vendor/social/profile/${currentVendorId}` : '#'} className="ml-1 flex-shrink-0" title="Profile">
+              <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center">
+                <span className="text-[11px] font-semibold text-white">ME</span>
+              </div>
             </Link>
           </div>
         </div>
+      </div>
 
-        {/* ── SOS Strip ── */}
-        {sosGroups.length > 0 && (
-          <SOSStories groups={sosGroups} onOpen={vi => setStoryVendorIdx(vi)} />
-        )}
-
-        {/* ── Tabs ── */}
-        <div className="flex gap-1 p-1 bg-white rounded-xl border border-gray-100 shadow-sm mb-4">
-          {(['feed', 'saved'] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
-                activeTab === tab
-                  ? 'bg-green-700 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              }`}>
-              {tab === 'feed' ? '🏠 Feed' : '🔖 Saved'}
-            </button>
-          ))}
+      {/* ── Story / Quick Action Row (Instagram-style circles) ── */}
+      <div className="bg-white border-b border-gray-100 py-4 px-4 sm:px-6 overflow-visible">
+        <div className="flex gap-4 sm:gap-6 overflow-x-auto scrollbar-hide snap-x">
+          <Link href="/vendor/social/create" className="group flex flex-col items-center gap-2 flex-shrink-0 snap-start">
+            <div className="p-[3px] rounded-full bg-gradient-to-br from-red-500 via-rose-500 to-orange-500 shadow-lg shadow-red-200/50 group-hover:shadow-xl group-hover:shadow-red-300/60 transition-all duration-300">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white flex items-center justify-center group-hover:bg-red-50 transition-colors">
+                <AlertOctagon className="w-6 h-6 sm:w-7 sm:h-7 text-red-500 animate-wiggle" />
+              </div>
+            </div>
+            <span className="text-[11px] sm:text-[12px] font-semibold text-gray-700 group-hover:text-red-600 transition-colors">SOS Post</span>
+          </Link>
+          <Link href="/vendor/social/create" className="group flex flex-col items-center gap-2 flex-shrink-0 snap-start">
+            <div className="p-[3px] rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 shadow-lg shadow-blue-200/50 group-hover:shadow-xl group-hover:shadow-blue-300/60 transition-all duration-300">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white flex items-center justify-center group-hover:bg-blue-50 transition-colors">
+                <PenSquare className="w-6 h-6 sm:w-7 sm:h-7 text-blue-500 group-hover:rotate-12 transition-transform duration-300" />
+              </div>
+            </div>
+            <span className="text-[11px] sm:text-[12px] font-semibold text-gray-700 group-hover:text-blue-600 transition-colors">Post General</span>
+          </Link>
+          <Link href="/vendor/p2p/vehicles/post" className="group flex flex-col items-center gap-2 flex-shrink-0 snap-start">
+            <div className="p-[3px] rounded-full bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500 shadow-lg shadow-purple-200/50 group-hover:shadow-xl group-hover:shadow-purple-300/60 transition-all duration-300">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white flex items-center justify-center group-hover:bg-purple-50 transition-colors">
+                <Truck className="w-6 h-6 sm:w-7 sm:h-7 text-purple-500 group-hover:translate-x-1 transition-transform duration-300" />
+              </div>
+            </div>
+            <span className="text-[11px] sm:text-[12px] font-semibold text-gray-700 group-hover:text-purple-600 transition-colors">Offer Vehicle</span>
+          </Link>
+          <Link href="/vendor/social/messages" className="group flex flex-col items-center gap-2 flex-shrink-0 snap-start">
+            <div className="p-[3px] rounded-full bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500 shadow-lg shadow-emerald-200/50 group-hover:shadow-xl group-hover:shadow-emerald-300/60 transition-all duration-300">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
+                <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-500 animate-bounce-soft" />
+              </div>
+            </div>
+            <span className="text-[11px] sm:text-[12px] font-semibold text-gray-700 group-hover:text-emerald-600 transition-colors">Messages</span>
+          </Link>
         </div>
+      </div>
 
-        {/* ── Category Chips ── */}
-        {activeTab === 'feed' && categories.length > 0 && (
-          <div className="flex gap-2 pb-1 mb-4" style={{ overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {[{ id: '', name: 'All Posts' }, ...categories].map(cat => (
+      {/* ── Feed Filter Tabs (Unified sticky tab bar) ── */}
+      <div className="bg-white border-b border-gray-200 sticky top-[57px] z-20">
+        <div className="flex sm:inline-flex sm:gap-0">
+          <button
+            onClick={() => { setActiveTab('feed'); setFeedFilter('all'); }}
+            className={`flex-1 sm:flex-initial sm:px-4 py-3 text-[14px] font-medium transition-all duration-300 ${
+              activeTab === 'feed' && feedFilter === 'all'
+                ? 'border-b-[3px] border-purple-600 text-purple-800 font-bold'
+                : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
+            }`}>
+            For You
+          </button>
+          <button
+            onClick={() => { setActiveTab('feed'); setFeedFilter('sos'); }}
+            className={`flex-1 sm:flex-initial sm:px-4 py-3 text-[14px] font-medium transition-all duration-300 inline-flex items-center justify-center gap-1.5 ${
+              activeTab === 'feed' && feedFilter === 'sos'
+                ? 'border-b-[3px] border-red-500 text-red-700 font-bold'
+                : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
+            }`}>
+            SOS <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+          </button>
+          <button
+            onClick={() => { setActiveTab('feed'); setFeedFilter('general'); }}
+            className={`flex-1 sm:flex-initial sm:px-4 py-3 text-[14px] font-medium transition-all duration-300 ${
+              activeTab === 'feed' && feedFilter === 'general'
+                ? 'border-b-[3px] border-purple-600 text-purple-800 font-bold'
+                : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
+            }`}>
+            General
+          </button>
+          <button
+            onClick={() => setActiveTab('saved')}
+            className={`flex-1 sm:flex-initial sm:px-4 py-3 text-[14px] font-medium transition-all duration-300 ${
+              activeTab === 'saved'
+                ? 'border-b-[3px] border-purple-600 text-purple-800 font-bold'
+                : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
+            }`}>
+            Saved
+          </button>
+        </div>
+      </div>
+
+      {/* ── Category Chips + Gibberish Toggle ── */}
+      {activeTab === 'feed' && categories.length > 0 && (
+        <div className="px-4 py-2 bg-white border-b border-gray-50">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide snap-x">
+            {[{ id: '', name: 'All' }, ...categories].map(cat => (
               <button key={cat.id}
                 onClick={() => setSelectedCategory(cat.id === selectedCategory ? '' : cat.id)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold flex-shrink-0 transition-all border ${
+                className={`snap-start px-3 py-1 rounded-full text-[11px] font-semibold flex-shrink-0 transition-colors ${
                   selectedCategory === cat.id
-                    ? 'bg-green-700 text-white border-green-700 shadow-sm'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-green-300 hover:text-green-700'
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'bg-gray-100 text-gray-600'
                 }`}>
                 {cat.name}
               </button>
             ))}
+            <button onClick={() => setShowGibberish(s => !s)} className="ml-auto flex-shrink-0 text-[11px] text-gray-500 hover:text-purple-600 underline-offset-2 hover:underline whitespace-nowrap">
+              {showGibberish ? 'Hide flagged' : 'Show flagged'}
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── Posts ── */}
-        {loading ? (
-          <div className="space-y-4">{[1, 2, 3].map(i => <PostSkeleton key={i} />)}</div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
-            <div className="text-5xl mb-4">{activeTab === 'saved' ? '🔖' : '📭'}</div>
-            <p className="font-bold text-gray-700 text-base">
-              {activeTab === 'saved' ? 'No saved posts yet' : selectedCategory ? 'No posts in this category' : 'No posts yet'}
-            </p>
-            <p className="text-sm text-gray-400 mt-1.5">
-              {activeTab === 'saved' ? 'Bookmark posts to find them here' : 'Be the first to share something!'}
-            </p>
-            {activeTab === 'feed' && (
-              <Link href="/vendor/social/create"
-                className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition-colors">
-                <PenSquare className="h-4 w-4" /> Create Post
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_240px] gap-4 px-1 py-0 sm:py-4">
+        <div className="min-w-0 space-y-3 sm:space-y-4">
+
+          {/* ── SOS Strip ── */}
+          {sosGroups.length > 0 && (
+            <div className="px-0 sm:px-0">
+              <SOSStories groups={sosGroups} onOpen={vi => setStoryVendorIdx(vi)} />
+            </div>
+          )}
+
+          {/* ── Posts ── */}
+          {loading ? (
+            <div className="columns-1 sm:columns-2 lg:columns-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="mb-4 break-inside-avoid">
+                  <PostSkeleton />
+                </div>
+              ))}
+            </div>
+          ) : filteredPosts.length === 0 ? (
+            <div className="text-center py-16 bg-white border border-gray-200 rounded-none sm:rounded-2xl shadow-none sm:shadow-sm animate-pop-in">
+              <div className="mx-auto w-16 h-16 rounded-full bg-purple-50 flex items-center justify-center mb-4">
+                {activeTab === 'saved'
+                  ? <BookmarkIcon className="h-7 w-7 text-purple-600" />
+                  : <MessageCircle className="h-7 w-7 text-purple-600" />}
+              </div>
+              <p className="font-semibold text-gray-900 text-[16px]">
+                {activeTab === 'saved' ? 'No saved posts yet' : selectedCategory ? 'No posts in this category' : 'No posts yet'}
+              </p>
+              <p className="text-[14px] text-gray-500 mt-1.5 font-normal">
+                {activeTab === 'saved' ? 'Bookmark posts to find them here' : 'Be the first to share something!'}
+              </p>
+              {activeTab === 'feed' && (
+                <Link href="/vendor/social/create"
+                  className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-[13px] font-semibold transition-all active:scale-95">
+                  <PenSquare className="h-4 w-4" /> Create Post
+                </Link>
+              )}
+            </div>
+          ) : (
+            <>
+              {oldSOSCount > 0 && (
+                <button onClick={() => setOldSOSCollapsed(c => !c)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-gray-200 rounded-full text-[11px] text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors">
+                  {oldSOSCollapsed ? `Show ${oldSOSCount} older SOS post${oldSOSCount > 1 ? 's' : ''} (>7 days)` : `Hide older SOS posts`}
+                </button>
+              )}
+              <div className="columns-1 sm:columns-2 lg:columns-3 gap-6">
+                {sortedPosts.map(post => (
+                  <div key={post.id} className="break-inside-avoid mb-6 animate-slide-up">
+                    <PostCard post={post} currentVendorId={currentVendorId}
+                      onLike={handleLike} onSave={handleSave} onDelete={handleDelete}
+                      onComment={setCommentPost} onShareInChat={setShareInChatPost}
+                      onFollow={handleFollow} />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {!loading && posts.length > 0 && nextCursor && (
+            <button onClick={loadMore} disabled={loadingMore}
+              className="w-full py-3 text-[13px] font-semibold text-purple-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-2xl disabled:opacity-50 transition-colors">
+              {loadingMore ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin h-4 w-4 border-2 border-purple-600 border-t-transparent rounded-full inline-block" />
+                  Loading...
+                </span>
+              ) : 'Load more posts'}
+            </button>
+          )}
+        </div>
+
+        {/* ── Right Sidebar ── */}
+        <aside className="hidden lg:block space-y-4 sticky top-[130px] self-start pt-0">
+          {/* Card 1 — Quick Post */}
+          <div className="bg-white rounded-2xl shadow-[0_1px_4px_rgba(0,0,0,0.04)] p-4 animate-slide-up" style={{ animationDelay: '100ms' }}>
+            <h3 className="text-[13px] font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-purple-600" /> Quick Post
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              <Link href="/vendor/social/create" className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-100 text-red-700 hover:bg-red-200 text-[12px] font-semibold transition-colors active:scale-95">
+                <Zap className="w-3.5 h-3.5" /> SOS
               </Link>
-            )}
+              <Link href="/vendor/social/create" className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 text-[12px] font-semibold transition-colors active:scale-95">
+                <PenSquare className="w-3.5 h-3.5" /> General
+              </Link>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {posts.map(post => (
-              <PostCard key={post.id} post={post} currentVendorId={currentVendorId}
-                onLike={handleLike} onSave={handleSave} onDelete={handleDelete}
-                onComment={setCommentPost} onShareInChat={setShareInChatPost}
-                onFollow={handleFollow} />
-            ))}
-            {nextCursor && (
-              <button onClick={loadMore} disabled={loadingMore}
-                className="w-full py-3 text-sm font-bold text-green-600 hover:bg-green-50 rounded-xl border border-green-100 disabled:opacity-50 transition-colors">
-                {loadingMore ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="animate-spin h-4 w-4 border-2 border-green-600 border-t-transparent rounded-full inline-block" />
-                    Loading...
-                  </span>
-                ) : 'Load more posts'}
-              </button>
-            )}
+
+          {/* Card 2 — My Account */}
+          <div className="bg-white rounded-2xl shadow-[0_1px_4px_rgba(0,0,0,0.04)] p-4 animate-slide-up" style={{ animationDelay: '200ms' }}>
+            <h3 className="text-[13px] font-semibold text-gray-700 mb-3">Account</h3>
+            <p className="text-[12px] text-gray-500 mb-3 truncate">Hi, <span className="font-semibold text-gray-800">{session?.user?.name || 'Vendor'}</span></p>
+            <ul className="space-y-1">
+              {currentVendorId && (
+                <li>
+                  <Link href={`/vendor/social/profile/${currentVendorId}`} className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-3 py-2 -mx-3 text-[13px] text-gray-700 hover:text-purple-700 transition-colors">
+                    Profile
+                  </Link>
+                </li>
+              )}
+              <li>
+                <Link href="/vendor/social/saved" className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-3 py-2 -mx-3 text-[13px] text-gray-700 hover:text-purple-700 transition-colors">
+                  Saved
+                </Link>
+              </li>
+              <li>
+                <Link href="/vendor/social/messages" className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-3 py-2 -mx-3 text-[13px] text-gray-700 hover:text-purple-700 transition-colors">
+                  Messages
+                </Link>
+              </li>
+              <li>
+                <Link href="/vendor/profile" className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-3 py-2 -mx-3 text-[13px] text-gray-700 hover:text-purple-700 transition-colors">
+                  Settings
+                </Link>
+              </li>
+            </ul>
           </div>
-        )}
+
+          {/* Card 3 — Feed Stats */}
+          <div className="bg-white rounded-2xl shadow-[0_1px_4px_rgba(0,0,0,0.04)] p-4 animate-slide-up" style={{ animationDelay: '300ms' }}>
+            <h3 className="text-[13px] font-semibold text-gray-700 mb-3">Feed Stats</h3>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-gray-50 rounded-lg px-3 py-2 text-center">
+                <div className="text-[16px] font-bold text-gray-900">{posts.length}</div>
+                <div className="text-[10px] text-gray-500">Posts</div>
+              </div>
+              <div className="bg-gray-50 rounded-lg px-3 py-2 text-center">
+                <div className="text-[16px] font-bold text-gray-900">{posts.filter(p => p.category.isSOS).length}</div>
+                <div className="text-[10px] text-gray-500">SOS</div>
+              </div>
+              <div className="bg-gray-50 rounded-lg px-3 py-2 text-center">
+                <div className="text-[16px] font-bold text-gray-900">{posts.filter(p => p.savedByMe).length}</div>
+                <div className="text-[10px] text-gray-500">Saved</div>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
 
       {storyVendorIdx !== null && sosGroups.length > 0 && (
@@ -957,6 +1216,33 @@ function SocialFeedContent() {
       {shareInChatPost && (
         <ShareInChatModal post={shareInChatPost} onClose={() => setShareInChatPost(null)} />
       )}
+
+      {/* ── Bottom Navigation Bar (mobile only) ── */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 sm:hidden">
+        <div className="grid grid-cols-5 py-2">
+          <button onClick={() => { setActiveTab('feed'); setFeedFilter('all'); }}
+            className={`flex flex-col items-center gap-0.5 text-[10px] font-medium ${activeTab === 'feed' && feedFilter === 'all' ? 'text-purple-600' : 'text-gray-400'}`}>
+            <Home className="w-5 h-5" /> Feed
+          </button>
+          <button onClick={() => { setActiveTab('feed'); setFeedFilter('sos'); }}
+            className={`relative flex flex-col items-center gap-0.5 text-[10px] font-medium ${activeTab === 'feed' && feedFilter === 'sos' ? 'text-purple-600' : 'text-gray-400'}`}>
+            <AlertOctagon className="w-5 h-5" /> SOS
+            {posts.filter(p => p.category.isSOS).length > 0 && <span className="absolute top-0 right-1/4 w-2 h-2 bg-red-500 rounded-full"></span>}
+          </button>
+          <Link href="/vendor/social/messages"
+            className="flex flex-col items-center gap-0.5 text-[10px] font-medium text-gray-400">
+            <MessageCircle className="w-5 h-5" /> Messages
+          </Link>
+          <button onClick={() => setActiveTab('saved')}
+            className={`flex flex-col items-center gap-0.5 text-[10px] font-medium ${activeTab === 'saved' ? 'text-purple-600' : 'text-gray-400'}`}>
+            <Bookmark className="w-5 h-5" /> Saved
+          </button>
+          <Link href={currentVendorId ? `/vendor/social/profile/${currentVendorId}` : '#'}
+            className="flex flex-col items-center gap-0.5 text-[10px] font-medium text-gray-400">
+            <User className="w-5 h-5" /> Account
+          </Link>
+        </div>
+      </nav>
     </div>
   );
 }

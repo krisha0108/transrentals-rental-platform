@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   Package,
   Plus,
@@ -13,10 +12,53 @@ import {
   CheckCircle,
   XCircle,
   Star,
-  Eye,
-  Loader2,
-  AlertCircle,
+  ChevronDown,
+  Layers,
+  IndianRupee,
+  ScrollText,
+  Zap,
+  ToggleLeft,
+  ToggleRight,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+// ── Fade-in on scroll ──
+function FadeIn({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setShow(true); obs.disconnect(); } },
+      { threshold: 0.08 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        opacity: show ? 1 : 0,
+        transform: show ? 'translateY(0)' : 'translateY(14px)',
+        transition: `opacity .5s cubic-bezier(.22,1,.36,1) ${delay}ms, transform .5s cubic-bezier(.22,1,.36,1) ${delay}ms`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+const PACKERS_CATEGORIES = [
+  { id: 'home',      name: 'Home Shifting' },
+  { id: 'office',    name: 'Office Shifting' },
+  { id: 'local',     name: 'Local Moving' },
+  { id: 'intercity', name: 'Intercity Moving' },
+];
 
 interface PackersTemplate {
   id: string;
@@ -35,39 +77,35 @@ interface PackersTemplate {
 }
 
 export default function VendorPackersTemplatesPage() {
-  const router = useRouter();
   const [templates, setTemplates] = useState<PackersTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
+    setIsLoading(true);
     try {
       const response = await fetch('/api/vendor/packers-templates');
       const data = await response.json();
-
-      if (data.success) {
-        setTemplates(data.templates || []);
-      } else {
-        setError(data.error || 'Failed to load templates');
-      }
-    } catch (err) {
-      setError('Failed to load templates');
+      if (data.success) setTemplates(data.templates || []);
+    } catch (error) {
+      console.error('Failed to fetch templates:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchTemplates();
-  }, []);
+  }, [fetchTemplates]);
 
-  const filteredTemplates = templates.filter((t) => {
-    if (categoryFilter !== 'all' && t.category !== categoryFilter) return false;
-    return true;
-  });
+  const filteredTemplates = templates.filter(
+    (t) => categoryFilter === 'all' || t.category === categoryFilter
+  );
+
+  const getCategoryLabel = (category: string) =>
+    PACKERS_CATEGORIES.find((c) => c.id === category)?.name || category;
 
   const toggleActive = async (id: string, currentActive: boolean) => {
     setActionLoading(id);
@@ -77,16 +115,13 @@ export default function VendorPackersTemplatesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !currentActive }),
       });
-
       const data = await response.json();
       if (data.success) {
-        setTemplates((prev) =>
-          prev.map((t) => (t.id === id ? { ...t, isActive: !currentActive } : t))
-        );
+        setTemplates((prev) => prev.map((t) => (t.id === id ? { ...t, isActive: !currentActive } : t)));
       } else {
         alert(data.error || 'Failed to update template');
       }
-    } catch (err) {
+    } catch {
       alert('Failed to update template');
     } finally {
       setActionLoading(null);
@@ -101,18 +136,13 @@ export default function VendorPackersTemplatesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isDefault: true }),
       });
-
       const data = await response.json();
       if (data.success) {
-        setTemplates((prev) =>
-          prev.map((t) =>
-            t.category === category ? { ...t, isDefault: t.id === id } : t
-          )
-        );
+        setTemplates((prev) => prev.map((t) => (t.category === category ? { ...t, isDefault: t.id === id } : t)));
       } else {
         alert(data.error || 'Failed to set default');
       }
-    } catch (err) {
+    } catch {
       alert('Failed to set default');
     } finally {
       setActionLoading(null);
@@ -137,14 +167,10 @@ export default function VendorPackersTemplatesPage() {
           isDefault: false,
         }),
       });
-
       const data = await response.json();
-      if (data.success) {
-        fetchTemplates(); // Refresh list
-      } else {
-        alert(data.error || 'Failed to duplicate template');
-      }
-    } catch (err) {
+      if (data.success) fetchTemplates();
+      else alert(data.error || 'Failed to duplicate template');
+    } catch {
       alert('Failed to duplicate template');
     } finally {
       setActionLoading(null);
@@ -153,284 +179,352 @@ export default function VendorPackersTemplatesPage() {
 
   const deleteTemplate = async (id: string) => {
     if (!confirm('Are you sure you want to delete this template?')) return;
-
     setActionLoading(id);
     try {
-      const response = await fetch(`/api/vendor/packers-templates/${id}`, {
-        method: 'DELETE',
-      });
-
+      const response = await fetch(`/api/vendor/packers-templates/${id}`, { method: 'DELETE' });
       const data = await response.json();
-      if (data.success) {
-        setTemplates((prev) => prev.filter((t) => t.id !== id));
-      } else {
-        alert(data.error || 'Failed to delete template');
-      }
-    } catch (err) {
+      if (data.success) setTemplates((prev) => prev.filter((t) => t.id !== id));
+      else alert(data.error || 'Failed to delete template');
+    } catch {
       alert('Failed to delete template');
     } finally {
       setActionLoading(null);
     }
   };
 
-  const getCategoryLabel = (category: string) => {
-    const labels: Record<string, string> = {
-      home: 'Home Shifting',
-      office: 'Office Shifting',
-      local: 'Local Moving',
-      intercity: 'Intercity Moving',
-    };
-    return labels[category] || category;
-  };
-
+  // ── Skeleton ──
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600">Loading templates...</p>
+      <div className="space-y-5">
+        <div className="flex items-center justify-between animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-100" />
+            <div className="space-y-1.5">
+              <div className="h-5 w-44 bg-gray-200 rounded-md" />
+              <div className="h-3 w-56 bg-gray-100 rounded" />
+            </div>
+          </div>
+          <div className="h-9 w-36 bg-emerald-100 rounded-xl" />
         </div>
+        <div className="flex gap-2 animate-pulse">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className={`h-8 rounded-lg ${i === 1 ? 'w-24 bg-emerald-100' : 'w-24 bg-gray-100'}`} />
+          ))}
+        </div>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+            <div className="flex items-start gap-3">
+              <div className="w-11 h-11 rounded-xl bg-emerald-50" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-40 bg-gray-200 rounded" />
+                <div className="h-3 w-20 bg-gray-100 rounded" />
+                <div className="h-3 w-64 bg-gray-50 rounded" />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-            <FileSpreadsheet className="w-5 h-5 text-blue-600" />
+    <div className="space-y-5 pb-8">
+      {/* ── Header ── */}
+      <FadeIn>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-md shadow-emerald-500/25 overflow-hidden group/icon cursor-default">
+              <div className="absolute inset-0 -translate-x-full group-hover/icon:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+              <div className="absolute inset-0 rounded-xl animate-[iconPulse_3s_ease-in-out_infinite] bg-emerald-400/20" />
+              <FileSpreadsheet className="w-5 h-5 text-white relative z-10 animate-[iconFloat_3s_ease-in-out_infinite]" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 leading-tight">Quote Templates</h1>
+              <p className="text-xs text-gray-400 mt-0.5">Create reusable templates for quick quotes</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Quote Templates</h1>
-            <p className="text-gray-600">Reusable templates for quick quotes</p>
+          <Link
+            href="/vendor/packers/templates/create"
+            className="inline-flex items-center gap-2 h-9 px-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 shadow-sm active:scale-[0.97] transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            Create Template
+          </Link>
+        </div>
+      </FadeIn>
+
+      {/* ── Category Filter ── */}
+      <FadeIn delay={60}>
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+          <button
+            onClick={() => setCategoryFilter('all')}
+            className={cn(
+              'px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200',
+              categoryFilter === 'all'
+                ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+            )}
+          >
+            All Templates
+          </button>
+          {PACKERS_CATEGORIES.map((type) => (
+            <button
+              key={type.id}
+              onClick={() => setCategoryFilter(type.id)}
+              className={cn(
+                'px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200',
+                categoryFilter === type.id
+                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+              )}
+            >
+              {type.name}
+            </button>
+          ))}
+        </div>
+      </FadeIn>
+
+      {/* ── Stats Bar ── */}
+      {templates.length > 0 && (
+        <FadeIn delay={100}>
+          <div className="flex items-center gap-4 px-4 py-2.5 bg-gray-50 rounded-xl">
+            <div className="flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs font-semibold text-gray-900">{templates.length}</span>
+              <span className="text-xs text-gray-400">templates</span>
+            </div>
+            <div className="w-px h-3.5 bg-gray-200" />
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span className="text-xs font-semibold text-gray-900">{templates.filter((t) => t.isActive).length}</span>
+              <span className="text-xs text-gray-400">active</span>
+            </div>
+            <div className="w-px h-3.5 bg-gray-200" />
+            <div className="flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-xs font-semibold text-gray-900">{templates.reduce((s, t) => s + t.usageCount, 0)}</span>
+              <span className="text-xs text-gray-400">total uses</span>
+            </div>
           </div>
-        </div>
-
-        <Link
-          href="/vendor/packers/templates/create"
-          className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Create Template
-        </Link>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
-          <AlertCircle className="w-5 h-5" />
-          {error}
-        </div>
+        </FadeIn>
       )}
 
-      {/* Category Filter */}
-      <div className="flex flex-wrap gap-2">
-        {[
-          { value: 'all', label: 'All Templates' },
-          { value: 'home', label: 'Home Shifting' },
-          { value: 'office', label: 'Office Shifting' },
-          { value: 'local', label: 'Local Moving' },
-          { value: 'intercity', label: 'Intercity Moving' },
-        ].map((cat) => (
-          <button
-            key={cat.value}
-            onClick={() => setCategoryFilter(cat.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-              categoryFilter === cat.value
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Templates List */}
-      <div className="space-y-4">
+      {/* ── Templates List ── */}
+      <div className="space-y-3">
         {filteredTemplates.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center border">
-            <FileSpreadsheet className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="font-medium text-gray-900 mb-1">No templates found</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Create templates to speed up your quote process
-            </p>
-            <Link
-              href="/vendor/packers/templates/create"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4" />
-              Create Your First Template
-            </Link>
-          </div>
+          <FadeIn delay={120}>
+            <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center">
+              <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <FileSpreadsheet className="w-7 h-7 text-emerald-300" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-900 mb-1">No templates found</h3>
+              <p className="text-xs text-gray-400 mb-5 max-w-xs mx-auto">Create templates to speed up your quote process</p>
+              <Link
+                href="/vendor/packers/templates/create"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 active:scale-[0.97] transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                Create Your First Template
+              </Link>
+            </div>
+          </FadeIn>
         ) : (
-          filteredTemplates.map((template) => (
-            <div
-              key={template.id}
-              className={`bg-white rounded-xl shadow-sm border overflow-hidden ${
-                actionLoading === template.id ? 'opacity-50' : ''
-              }`}
-            >
-              <div className="p-4 md:p-6">
-                {/* Header */}
-                <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                      <Package className="w-6 h-6 text-blue-600" />
+          filteredTemplates.map((template, i) => (
+            <FadeIn key={template.id} delay={120 + i * 50}>
+              <div
+                className={cn(
+                  'bg-white rounded-2xl border overflow-hidden transition-all duration-300 hover:shadow-md group',
+                  template.isActive ? 'border-gray-100 hover:border-gray-200' : 'border-gray-100 opacity-70 hover:opacity-100',
+                  actionLoading === template.id && 'opacity-50 pointer-events-none'
+                )}
+              >
+                {/* Main Row */}
+                <div className="px-5 py-4">
+                  <div className="flex items-start gap-3.5">
+                    <div className={cn(
+                      'w-11 h-11 shrink-0 rounded-xl flex items-center justify-center transition-transform duration-200 group-hover:scale-105',
+                      template.isActive ? 'bg-gradient-to-br from-emerald-50 to-emerald-50/50' : 'bg-gray-100'
+                    )}>
+                      <Package className={cn('w-5 h-5', template.isActive ? 'text-emerald-500' : 'text-gray-400')} />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-gray-900">{template.name}</h3>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <h3 className="text-base font-bold text-gray-900 truncate">{template.name}</h3>
                         {template.isDefault && (
-                          <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full flex items-center gap-1">
-                            <Star className="w-3 h-3" />
-                            Default
+                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-full">
+                            <Star className="w-2.5 h-2.5" /> Default
                           </span>
                         )}
                         {!template.isActive && (
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
-                            Inactive
-                          </span>
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold rounded-full">Inactive</span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500">{getCategoryLabel(template.category)}</p>
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        <span className="font-medium text-gray-500">{getCategoryLabel(template.category)}</span>
+                        <span className="text-gray-200">·</span>
+                        <span>Used {template.usageCount} times</span>
+                      </div>
                       {template.description && (
-                        <p className="text-sm text-gray-600 mt-1">{template.description}</p>
+                        <p className="text-sm text-gray-400 mt-1.5 line-clamp-1">{template.description}</p>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => setExpandedId(expandedId === template.id ? null : template.id)}
+                      className={cn(
+                        'w-8 h-8 shrink-0 rounded-lg flex items-center justify-center transition-all duration-200',
+                        expandedId === template.id
+                          ? 'bg-emerald-50 text-emerald-500'
+                          : 'bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                      )}
+                    >
+                      <ChevronDown className={cn('w-4 h-4 transition-transform duration-300', expandedId === template.id && 'rotate-180')} />
+                    </button>
+                  </div>
+
+                  {/* Rate pill (always visible) */}
+                  {template.baseRateHint && (
+                    <div className="flex flex-wrap gap-2 mt-3 ml-[54px]">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded-lg text-[10px] font-bold text-emerald-600">
+                        <IndianRupee className="w-2.5 h-2.5" />{template.baseRateHint.toLocaleString()} base rate
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Expanded Details ── */}
+                <div className={cn(
+                  'overflow-hidden transition-all duration-300 ease-in-out',
+                  expandedId === template.id ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+                )}>
+                  <div className="px-5 pb-4">
+                    <div className="bg-gray-50 rounded-xl p-4 space-y-4">
+                      {template.inclusions.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1.5">
+                            <CheckCircle className="w-3 h-3 text-emerald-400" />
+                            Inclusions ({template.inclusions.length})
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {template.inclusions.map((item, idx) => (
+                              <div key={idx} className="flex items-start gap-2 text-sm text-gray-600">
+                                <div className="w-1 h-1 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
+                                {item}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {template.exclusions.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1.5">
+                            <XCircle className="w-3 h-3 text-red-400" />
+                            Exclusions ({template.exclusions.length})
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {template.exclusions.map((item, idx) => (
+                              <div key={idx} className="flex items-start gap-2 text-sm text-gray-600">
+                                <div className="w-1 h-1 rounded-full bg-red-400 mt-1.5 shrink-0" />
+                                {item}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {template.termsConditions.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1.5">
+                            <ScrollText className="w-3 h-3 text-gray-400" />
+                            Terms ({template.termsConditions.length})
+                          </h4>
+                          <div className="space-y-1.5">
+                            {template.termsConditions.map((item, idx) => (
+                              <div key={idx} className="flex items-start gap-2 text-sm text-gray-500">
+                                <span className="text-[11px] text-gray-300 font-mono mt-0.5 shrink-0">{idx + 1}.</span>
+                                {item}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">
-                      Used {template.usageCount} times
-                    </span>
-                    <button
-                      onClick={() => setExpandedId(expandedId === template.id ? null : template.id)}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition"
-                    >
-                      <Eye className="w-5 h-5 text-gray-500" />
-                    </button>
-                  </div>
                 </div>
 
-                {/* Expanded View */}
-                {expandedId === template.id && (
-                  <div className="border-t pt-4 mt-4 space-y-4">
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                        Inclusions ({template.inclusions.length})
-                      </h4>
-                      <ul className="grid md:grid-cols-2 gap-1">
-                        {template.inclusions.map((item, idx) => (
-                          <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
-                            <span className="text-green-500 mt-1">✓</span>
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                        <XCircle className="w-4 h-4 text-red-500" />
-                        Exclusions ({template.exclusions.length})
-                      </h4>
-                      <ul className="grid md:grid-cols-2 gap-1">
-                        {template.exclusions.map((item, idx) => (
-                          <li key={idx} className="text-sm text-gray-600 flex items-start gap-2">
-                            <span className="text-red-500 mt-1">✗</span>
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium text-gray-900 mb-2">
-                        Terms & Conditions ({template.termsConditions.length})
-                      </h4>
-                      <ul className="space-y-1">
-                        {template.termsConditions.map((item, idx) => (
-                          <li key={idx} className="text-sm text-gray-600">
-                            • {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {template.baseRateHint && (
-                      <div className="bg-blue-50 rounded-lg p-3">
-                        <span className="text-sm text-blue-700">
-                          Suggested base rate: <strong>₹{template.baseRateHint.toLocaleString()}</strong>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex flex-wrap gap-2 pt-4 border-t mt-4">
+                {/* ── Actions Bar ── */}
+                <div className="px-5 py-3 border-t border-gray-50 flex items-center gap-2 flex-wrap">
                   <Link
                     href={`/vendor/packers/templates/${template.id}/edit`}
-                    className="px-3 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition flex items-center gap-1"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 active:scale-[0.97] transition-all"
                   >
-                    <Edit className="w-4 h-4" />
+                    <Edit className="w-3.5 h-3.5" />
                     Edit
                   </Link>
                   <button
                     onClick={() => duplicateTemplate(template)}
                     disabled={actionLoading === template.id}
-                    className="px-3 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition flex items-center gap-1 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 active:scale-[0.97] transition-all disabled:opacity-50"
                   >
-                    <Copy className="w-4 h-4" />
+                    <Copy className="w-3.5 h-3.5" />
                     Duplicate
                   </button>
                   <button
                     onClick={() => toggleActive(template.id, template.isActive)}
                     disabled={actionLoading === template.id}
-                    className={`px-3 py-2 text-sm font-medium rounded-lg transition flex items-center gap-1 disabled:opacity-50 ${
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg active:scale-[0.97] transition-all disabled:opacity-50',
                       template.isActive
-                        ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                        : 'bg-green-50 text-green-600 hover:bg-green-100'
-                    }`}
+                        ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                        : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                    )}
                   >
                     {template.isActive ? (
-                      <>
-                        <XCircle className="w-4 h-4" />
-                        Deactivate
-                      </>
+                      <><ToggleRight className="w-3.5 h-3.5" /> Deactivate</>
                     ) : (
-                      <>
-                        <CheckCircle className="w-4 h-4" />
-                        Activate
-                      </>
+                      <><ToggleLeft className="w-3.5 h-3.5" /> Activate</>
                     )}
                   </button>
                   {!template.isDefault && template.isActive && (
                     <button
                       onClick={() => setAsDefault(template.id, template.category)}
                       disabled={actionLoading === template.id}
-                      className="px-3 py-2 bg-yellow-50 text-yellow-700 text-sm font-medium rounded-lg hover:bg-yellow-100 transition flex items-center gap-1 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-600 bg-amber-50 rounded-lg hover:bg-amber-100 active:scale-[0.97] transition-all disabled:opacity-50"
                     >
-                      <Star className="w-4 h-4" />
+                      <Star className="w-3.5 h-3.5" />
                       Set Default
                     </button>
                   )}
+                  <div className="flex-1" />
                   <button
                     onClick={() => deleteTemplate(template.id)}
                     disabled={actionLoading === template.id}
-                    className="px-3 py-2 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 transition flex items-center gap-1 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 rounded-lg active:scale-[0.97] transition-all disabled:opacity-50"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                     Delete
                   </button>
                 </div>
               </div>
-            </div>
+            </FadeIn>
           ))
         )}
       </div>
+
+      {/* Keyframes */}
+      <style jsx>{`
+        @keyframes iconFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-2px); }
+        }
+        @keyframes iconPulse {
+          0%, 70%, 100% { transform: scale(1); opacity: 0; }
+          20% { transform: scale(1.3); opacity: 0.25; }
+          40% { transform: scale(1.6); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }

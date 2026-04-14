@@ -33,6 +33,8 @@ import {
   MessageCircle,
   Share2,
   Copy,
+  Layers,
+  Sparkles,
 } from 'lucide-react';
 import { formatPrice, formatDate, getRelativeTime } from '@/lib/utils';
 
@@ -203,13 +205,13 @@ const STATUS_FILTERS = [
 
 const STATUS_BADGE_STYLES: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
-  REQUESTED: 'bg-blue-100 text-blue-700',
-  ACCEPTED: 'bg-purple-100 text-purple-700',
-  IN_PROGRESS: 'bg-yellow-100 text-yellow-700',
+  REQUESTED: 'bg-emerald-100 text-emerald-700',
+  ACCEPTED: 'bg-emerald-100 text-emerald-700',
+  IN_PROGRESS: 'bg-emerald-100 text-emerald-700',
   COMPLETED: 'bg-emerald-100 text-emerald-700',
   CANCELLED: 'bg-red-100 text-red-700',
   EXPIRED: 'bg-gray-100 text-gray-500',
-  PENDING: 'bg-orange-100 text-orange-700',
+  PENDING: 'bg-emerald-100 text-emerald-700',
   REJECTED: 'bg-red-100 text-red-700',
 };
 
@@ -223,13 +225,13 @@ const REQUEST_STATUS_FILTERS = [
 
 const URGENCY_BADGE_STYLES: Record<string, string> = {
   HIGH: 'bg-red-100 text-red-700',
-  MEDIUM: 'bg-yellow-100 text-yellow-700',
+  MEDIUM: 'bg-emerald-100 text-emerald-700',
   LOW: 'bg-green-100 text-green-700',
 };
 
 const TRIP_STATUS_STYLES: Record<string, string> = {
-  CONFIRMED: 'bg-blue-100 text-blue-700',
-  IN_PROGRESS: 'bg-yellow-100 text-yellow-700',
+  CONFIRMED: 'bg-emerald-100 text-emerald-700',
+  IN_PROGRESS: 'bg-emerald-100 text-emerald-700',
   COMPLETED: 'bg-green-100 text-green-700',
   CANCELLED: 'bg-red-100 text-red-700',
   PENDING: 'bg-gray-100 text-gray-600',
@@ -647,7 +649,7 @@ export default function MyPostingsPage() {
         <div className="border-t border-gray-100 px-5 py-2.5 flex items-center justify-between">
           <button
             onClick={() => toggleComments(postingId, postingType)}
-            className={`inline-flex items-center gap-1.5 text-sm text-gray-500 transition ${isVehicle ? 'hover:text-blue-600' : 'hover:text-purple-600'}`}
+            className={`inline-flex items-center gap-1.5 text-sm text-gray-500 transition ${isVehicle ? 'hover:text-emerald-600' : 'hover:text-emerald-600'}`}
           >
             <MessageCircle className="w-4 h-4" />
             <span>{commentCountMap[postingId] || 0}</span>
@@ -661,7 +663,7 @@ export default function MyPostingsPage() {
           <div className="relative">
             <button
               onClick={() => toggleShareDropdown(postingId)}
-              className={`inline-flex items-center gap-1.5 text-sm text-gray-500 transition ${isVehicle ? 'hover:text-blue-600' : 'hover:text-purple-600'}`}
+              className={`inline-flex items-center gap-1.5 text-sm text-gray-500 transition ${isVehicle ? 'hover:text-emerald-600' : 'hover:text-emerald-600'}`}
             >
               <Share2 className="w-4 h-4" />
               Share
@@ -697,7 +699,7 @@ export default function MyPostingsPage() {
           <div className="border-t border-gray-100 px-5 py-3 bg-gray-50/50">
             {commentLoading[postingId] ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className={`w-5 h-5 animate-spin ${isVehicle ? 'text-blue-500' : 'text-purple-500'}`} />
+                <Loader2 className={`w-5 h-5 animate-spin ${isVehicle ? 'text-emerald-500' : 'text-emerald-500'}`} />
               </div>
             ) : (
               <div className="space-y-3 max-h-60 overflow-y-auto mb-3">
@@ -715,7 +717,7 @@ export default function MyPostingsPage() {
                         className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5"
                       />
                     ) : (
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5 ${isVehicle ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gradient-to-br from-purple-500 to-indigo-600'}`}>
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5 ${isVehicle ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' : 'bg-gradient-to-br from-emerald-500 to-emerald-600'}`}>
                         {comment.vendor.businessName?.charAt(0) || 'V'}
                       </div>
                     )}
@@ -752,12 +754,12 @@ export default function MyPostingsPage() {
                     handleSendComment(postingId, postingType);
                   }
                 }}
-                className={`flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 ${isVehicle ? 'focus:ring-blue-500 focus:border-blue-500' : 'focus:ring-purple-500 focus:border-purple-500'}`}
+                className={`flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 ${isVehicle ? 'focus:ring-emerald-500 focus:border-emerald-500' : 'focus:ring-emerald-500 focus:border-emerald-500'}`}
               />
               <button
                 onClick={() => handleSendComment(postingId, postingType)}
                 disabled={commentSending[postingId] || !commentInputs[postingId]?.trim()}
-                className={`p-2 text-white rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed ${isVehicle ? 'bg-blue-600 hover:bg-blue-700' : 'bg-purple-600 hover:bg-purple-700'}`}
+                className={`p-2 text-white rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed ${isVehicle ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
               >
                 {commentSending[postingId] ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -799,7 +801,7 @@ export default function MyPostingsPage() {
               <div key={req.id}>
                 <div className="px-3 py-2.5 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                    <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
                       {req.requestingVendor.businessName?.charAt(0) || '?'}
                     </div>
                     <div className="min-w-0">
@@ -907,14 +909,13 @@ export default function MyPostingsPage() {
   // -------------------------------------------------------------------
   if (loading && !data) {
     return (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl p-6 text-white">
-          <h1 className="text-2xl font-bold">My Postings</h1>
-          <p className="text-blue-100 mt-1">Loading your postings...</p>
-        </div>
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-          <p className="mt-4 text-gray-500 text-sm">Loading your postings...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 rounded-full border-4 border-emerald-100"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-emerald-600 border-r-emerald-600 animate-spin"></div>
+          </div>
+          <p className="text-sm font-medium text-gray-600">Loading your postings...</p>
         </div>
       </div>
     );
@@ -924,23 +925,45 @@ export default function MyPostingsPage() {
   // Render
   // -------------------------------------------------------------------
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+      <style jsx global>{`
+        @keyframes float-slow { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-12px) translateX(8px); } }
+        @keyframes float-rev { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(10px) translateX(-6px); } }
+        @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+        @keyframes fade-up { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes pop-in { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes gradient-x { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+        .animate-float-rev { animation: float-rev 7s ease-in-out infinite; }
+        .animate-fade-up { animation: fade-up 0.5s ease-out both; }
+        .animate-pop-in { animation: pop-in 0.4s ease-out both; }
+        .animate-gradient-x { background-size: 200% 200%; animation: gradient-x 6s ease infinite; }
+        .shimmer-bg { background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.4) 50%, transparent 65%); background-size: 200% 100%; animation: shimmer 2.5s linear infinite; }
+      `}</style>
+      <div className="max-w-[1600px] mx-auto space-y-6">
       {/* ---- Gradient Header ---- */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl p-6 text-white mb-2">
+      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 animate-gradient-x rounded-2xl p-6 sm:p-8 shadow-lg animate-fade-up text-white">
+        <div className="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-3xl animate-float-slow" />
+        <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-emerald-300/20 rounded-full blur-3xl animate-float-rev" />
+        <div className="absolute top-1/2 right-1/3 w-24 h-24 bg-white/5 rounded-full blur-2xl" />
+        <div className="relative">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Link href="/vendor/p2p" className="p-2 hover:bg-white/10 rounded-lg transition">
+            <Link href="/vendor/p2p" className="p-2 hover:bg-white/20 backdrop-blur-sm rounded-xl border border-white/20 transition">
               <ArrowLeft className="w-5 h-5 text-white" />
             </Link>
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg ring-1 ring-white/30">
+              <Layers className="w-7 h-7 text-white" />
+            </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold">My Postings</h1>
-              <p className="text-blue-100 mt-1 text-sm">Manage your vehicles, bookings &amp; requests</p>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">My Postings <Sparkles className="w-5 h-5 text-emerald-200 animate-pulse" /></h1>
+              <p className="text-emerald-100 mt-1 text-sm">Manage your vehicles, bookings &amp; requests</p>
             </div>
           </div>
           <button
             onClick={() => { fetchPostings(); if (activeTab === 'requests') fetchMyRequests(); }}
             disabled={loading}
-            className="p-2 hover:bg-white/10 rounded-lg transition disabled:opacity-50"
+            className="p-2.5 hover:bg-white/20 backdrop-blur-sm rounded-xl border border-white/20 transition disabled:opacity-50"
             title="Refresh"
           >
             <RefreshCw className={`w-5 h-5 text-white ${loading ? 'animate-spin' : ''}`} />
@@ -949,32 +972,36 @@ export default function MyPostingsPage() {
 
         {/* Stat boxes */}
         <div className="grid grid-cols-3 gap-3 mt-3">
-          <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:bg-white/20 transition" onClick={() => setActiveTab('vehicles')}>
-            <div className="p-2 bg-white/20 rounded-lg"><Truck className="w-5 h-5 text-white" /></div>
-            <div>
-              <p className="text-2xl font-bold">{totals.vehicles}</p>
-              <p className="text-xs text-blue-100">Vehicles</p>
+          <div className="group relative overflow-hidden bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:bg-white/15 hover:border-white/30 transition-all animate-fade-up" onClick={() => setActiveTab('vehicles')}>
+            <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400/30 to-emerald-400/20 blur-xl opacity-70 group-hover:scale-150 transition-transform duration-500" />
+            <div className="relative p-2 rounded-lg bg-white/15 ring-1 ring-white/20 group-hover:rotate-12 group-hover:scale-110 transition-all duration-300"><Truck className="w-5 h-5 text-white" /></div>
+            <div className="relative">
+              <p className="text-2xl font-bold leading-tight">{totals.vehicles}</p>
+              <p className="text-xs text-emerald-100">Vehicles</p>
             </div>
           </div>
-          <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:bg-white/20 transition" onClick={() => setActiveTab('bookings')}>
-            <div className="p-2 bg-white/20 rounded-lg"><CalendarCheck className="w-5 h-5 text-white" /></div>
-            <div>
-              <p className="text-2xl font-bold">{totals.bookings}</p>
-              <p className="text-xs text-blue-100">Bookings</p>
+          <div className="group relative overflow-hidden bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:bg-white/15 hover:border-white/30 transition-all animate-fade-up" style={{ animationDelay: '80ms' }} onClick={() => setActiveTab('bookings')}>
+            <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400/30 to-emerald-400/20 blur-xl opacity-70 group-hover:scale-150 transition-transform duration-500" />
+            <div className="relative p-2 rounded-lg bg-white/15 ring-1 ring-white/20 group-hover:rotate-12 group-hover:scale-110 transition-all duration-300"><CalendarCheck className="w-5 h-5 text-white" /></div>
+            <div className="relative">
+              <p className="text-2xl font-bold leading-tight">{totals.bookings}</p>
+              <p className="text-xs text-emerald-100">Bookings</p>
             </div>
           </div>
-          <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:bg-white/20 transition" onClick={() => setActiveTab('requests')}>
-            <div className="p-2 bg-white/20 rounded-lg"><Send className="w-5 h-5 text-white" /></div>
-            <div>
-              <p className="text-2xl font-bold">{requestsTotal}</p>
-              <p className="text-xs text-blue-100">Requests</p>
+          <div className="group relative overflow-hidden bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:bg-white/15 hover:border-white/30 transition-all animate-fade-up" style={{ animationDelay: '160ms' }} onClick={() => setActiveTab('requests')}>
+            <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400/30 to-emerald-400/20 blur-xl opacity-70 group-hover:scale-150 transition-transform duration-500" />
+            <div className="relative p-2 rounded-lg bg-white/15 ring-1 ring-white/20 group-hover:rotate-12 group-hover:scale-110 transition-all duration-300"><Send className="w-5 h-5 text-white" /></div>
+            <div className="relative">
+              <p className="text-2xl font-bold leading-tight">{requestsTotal}</p>
+              <p className="text-xs text-emerald-100">Requests</p>
             </div>
           </div>
+        </div>
         </div>
       </div>
 
       {/* ---- 3 Tab Switcher ---- */}
-      <div className="flex gap-2">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-2 flex gap-2 animate-fade-up">
         {[
           { key: 'vehicles' as ActiveTab, label: 'My Vehicles', icon: Truck, count: totals.vehicles },
           { key: 'bookings' as ActiveTab, label: 'My Bookings', icon: CalendarCheck, count: totals.bookings },
@@ -983,10 +1010,10 @@ export default function MyPostingsPage() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${
               activeTab === tab.key
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-200'
+                : 'text-gray-600 hover:bg-gray-50'
             }`}
           >
             <tab.icon className="w-4 h-4" />
@@ -1006,15 +1033,15 @@ export default function MyPostingsPage() {
       {activeTab === 'vehicles' && (
         <>
           {/* Status filter */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 animate-fade-up">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-gray-500 mr-1">Status:</span>
+              <span className="text-xs font-semibold text-gray-500 mr-1 uppercase tracking-wide">Status:</span>
               {STATUS_FILTERS.map((f) => (
                 <button
                   key={f.key}
                   onClick={() => handleStatusChange(f.key)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    activeStatus === f.key ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                    activeStatus === f.key ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-200' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                   }`}
                 >
                   {f.label}
@@ -1025,136 +1052,144 @@ export default function MyPostingsPage() {
 
           {loading && data && (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <div className="relative w-10 h-10">
+                <div className="absolute inset-0 rounded-full border-4 border-emerald-100"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-emerald-600 border-r-emerald-600 animate-spin"></div>
+              </div>
               <span className="ml-3 text-sm text-gray-500">Refreshing...</span>
             </div>
           )}
 
           {!loading && error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-              <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-2" />
-              <p className="text-red-700 font-medium">{error}</p>
-              <button onClick={fetchPostings} className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm">Try Again</button>
+            <div className="bg-white border border-red-100 rounded-2xl p-8 text-center shadow-sm animate-fade-up">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-100 to-rose-100 flex items-center justify-center mx-auto mb-3 shadow-inner">
+                <AlertCircle className="w-8 h-8 text-red-500" />
+              </div>
+              <p className="text-red-700 font-semibold">{error}</p>
+              <button onClick={fetchPostings} className="mt-3 px-4 py-2 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl hover:shadow-lg hover:shadow-red-200 transition text-sm font-semibold">Try Again</button>
             </div>
           )}
 
           {/* Empty state */}
           {!loading && !error && vehiclePostings.length === 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-16 text-center">
-              <Truck className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center animate-fade-up">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-100 flex items-center justify-center mx-auto mb-4 shadow-inner">
+                <Truck className="w-10 h-10 text-emerald-500" />
+              </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No vehicle postings yet</h3>
               <p className="text-gray-500 text-sm max-w-md mx-auto mb-6">Post your empty/idle vehicles so other vendors can use them.</p>
               <Link
                 href="/vendor/p2p/vehicles/post"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-200 hover:scale-105 transition font-semibold text-sm"
               >
                 <Plus className="w-4 h-4" /> Post Vehicle
               </Link>
             </div>
           )}
 
-          {/* Vehicle cards */}
+          {/* Vehicle cards — horizontal feed layout */}
           {!loading && !error && vehiclePostings.length > 0 && (
-            <div className="space-y-4">
-              {vehiclePostings.map((vp) => (
-                <div key={vp.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
-                  <div className="p-5">
-                    {/* Header row */}
+            <div className="space-y-3">
+              {vehiclePostings.map((vp, idx) => (
+                <div key={vp.id} style={{ animationDelay: `${idx * 60}ms` }} className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-0.5 hover:border-emerald-200 transition-all animate-fade-up">
+                  {/* Accent bar */}
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 to-emerald-600"></div>
+
+                  <div className="pl-5 pr-5 py-4">
+                    {/* TOP META ROW */}
                     <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs text-gray-400 font-mono">{vp.postingNumber}</span>
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusBadge(vp.status)}`}>{vp.status.replace(/_/g, ' ')}</span>
-                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded">{vp.serviceType}</span>
+                        <span className="text-[11px] text-gray-400 font-mono font-semibold">{vp.postingNumber}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ring-1 ring-black/5 ${getStatusBadge(vp.status)}`}>{vp.status.replace(/_/g, ' ')}</span>
+                        <span className="px-2 py-0.5 bg-gradient-to-r from-emerald-50 to-emerald-50 text-emerald-700 text-[10px] font-bold uppercase rounded ring-1 ring-emerald-100">{vp.serviceType}</span>
+                        {vp.pendingRequests > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase rounded-full border border-emerald-200">
+                            <AlertCircle className="w-3 h-3" />
+                            {vp.pendingRequests} request{vp.pendingRequests !== 1 ? 's' : ''}
+                          </span>
+                        )}
                       </div>
-                      <span className="text-xs text-gray-400" title={formatDate(vp.createdAt)}>{getRelativeTime(vp.createdAt)}</span>
+                      <span className="text-[11px] text-gray-400 font-medium" title={formatDate(vp.createdAt)}>{getRelativeTime(vp.createdAt)}</span>
                     </div>
 
-                    {/* Vehicle info */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2 bg-blue-50 rounded-lg flex-shrink-0">
-                        {vp.serviceType?.toLowerCase() === 'car' ? <Car className="w-5 h-5 text-blue-600" /> : <Truck className="w-5 h-5 text-blue-600" />}
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-gray-900 truncate">{vp.vehicleName}</h3>
-                        {vp.vehicleNumber && <p className="text-xs text-gray-400">{vp.vehicleNumber}</p>}
-                      </div>
-                    </div>
-
-                    {/* Route */}
-                    <div className="flex items-center gap-2 text-sm mb-2">
-                      <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <span className="text-gray-700 font-medium">{vp.fromCity}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-gray-300" />
-                      <span className="text-gray-700 font-medium">{vp.toCity}</span>
-                    </div>
-
-                    {/* Date & Time */}
-                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                      <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-gray-400" />{formatDate(vp.departureDate)}</span>
-                      {vp.departureTime && <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-gray-400" />{formatTime(vp.departureTime)}</span>}
-                    </div>
-
-                    {/* Price */}
-                    <div className="flex items-baseline gap-3 mb-3">
-                      <div>
-                        <span className="text-lg font-bold text-green-600">{formatPrice(vp.priceFullLoad)}</span>
-                        <span className="text-xs text-gray-400 ml-1">full load</span>
-                      </div>
-                      {vp.acceptsPartLoad && vp.pricePartLoad != null && (
-                        <div>
-                          <span className="text-sm font-semibold text-gray-600">{formatPrice(vp.pricePartLoad)}</span>
-                          <span className="text-xs text-gray-400 ml-1">part load</span>
+                    {/* MAIN HORIZONTAL ROW: icon + vehicle | route | date | price | actions */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                      {/* Vehicle (icon + name) */}
+                      <div className="md:col-span-3 flex items-center gap-3 min-w-0">
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md flex-shrink-0 group-hover:rotate-6 group-hover:scale-110 transition-transform duration-300">
+                          {vp.serviceType?.toLowerCase() === 'car' ? <Car className="w-5 h-5" /> : <Truck className="w-5 h-5" />}
                         </div>
-                      )}
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-gray-900 truncate text-sm leading-tight">{vp.vehicleName}</h3>
+                          {vp.vehicleNumber && <p className="text-[11px] text-gray-400 font-mono mt-0.5">{vp.vehicleNumber}</p>}
+                        </div>
+                      </div>
+
+                      {/* Route */}
+                      <div className="md:col-span-3 min-w-0">
+                        <div className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full bg-gradient-to-r from-emerald-50 to-emerald-50 ring-1 ring-emerald-100 max-w-full">
+                          <MapPin className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                          <span className="text-gray-800 font-semibold truncate">{vp.fromCity}</span>
+                          <ArrowRight className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                          <span className="text-gray-800 font-semibold truncate">{vp.toCity}</span>
+                        </div>
+                      </div>
+
+                      {/* Date / Time */}
+                      <div className="md:col-span-2 flex flex-col gap-0.5">
+                        <span className="flex items-center gap-1 text-xs text-gray-700 font-medium"><Calendar className="w-3 h-3 text-gray-400" />{formatDate(vp.departureDate)}</span>
+                        {vp.departureTime && <span className="flex items-center gap-1 text-[11px] text-gray-500"><Clock className="w-3 h-3 text-gray-400" />{formatTime(vp.departureTime)}</span>}
+                      </div>
+
+                      {/* Price */}
+                      <div className="md:col-span-2 text-right">
+                        <div className="text-base font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent leading-tight">{formatPrice(vp.priceFullLoad)}</div>
+                        <div className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold">Full Load</div>
+                        {vp.acceptsPartLoad && vp.pricePartLoad != null && (
+                          <div className="text-[11px] text-gray-500 mt-0.5">+{formatPrice(vp.pricePartLoad)} <span className="text-gray-400">part</span></div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="md:col-span-2 flex items-center justify-end gap-1.5">
+                        {canEditDelete(vp.status) ? (
+                          <>
+                            <Link
+                              href={`/vendor/p2p/vehicles/post?edit=${vp.id}`}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-white bg-gradient-to-r from-emerald-500 to-emerald-600 hover:shadow-md hover:shadow-emerald-200 hover:scale-105 rounded-lg transition-all"
+                              title="Edit"
+                            >
+                              <Pencil className="w-3 h-3" /> Edit
+                            </Link>
+                            <button
+                              onClick={() => handleDelete('vehicle', vp.id)}
+                              disabled={deleting === vp.id}
+                              className="inline-flex items-center justify-center w-8 h-8 text-white bg-gradient-to-r from-red-500 to-rose-600 hover:shadow-md hover:shadow-red-200 hover:scale-105 rounded-lg transition-all disabled:opacity-50"
+                              title="Delete"
+                            >
+                              {deleting === vp.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-[10px] text-gray-400 italic">Locked</span>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Feature badges */}
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                      {vp.driverIncluded && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 text-xs rounded-md border border-emerald-100"><User className="w-3 h-3" />Driver</span>
-                      )}
-                      {vp.fuelIncluded && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 text-xs rounded-md border border-amber-100"><Fuel className="w-3 h-3" />Fuel</span>
-                      )}
-                      {vp.capacity > 0 && <span className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-md border border-gray-100">{vp.capacity} ton</span>}
-                      {vp.bodyType && <span className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-md border border-gray-100">{vp.bodyType}</span>}
-                      {vp.acceptsPartLoad && <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-md border border-purple-100">Part Load OK</span>}
-                    </div>
-
-                    {vp.notes && <p className="text-xs text-gray-500 italic mb-3 bg-gray-50 rounded-lg p-2">{vp.notes}</p>}
-
-                    {/* Pending requests badge */}
-                    {vp.pendingRequests > 0 && (
-                      <div className="mb-3">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 text-xs font-semibold rounded-full border border-orange-200">
-                          <AlertCircle className="w-3.5 h-3.5" />
-                          {vp.pendingRequests} pending request{vp.pendingRequests !== 1 ? 's' : ''}
-                        </span>
+                    {/* Feature badges + notes */}
+                    {(vp.driverIncluded || vp.fuelIncluded || vp.capacity > 0 || vp.bodyType || vp.acceptsPartLoad || vp.notes) && (
+                      <div className="mt-3 pt-3 border-t border-dashed border-gray-100 flex flex-wrap items-center gap-1.5">
+                        {vp.driverIncluded && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-md border border-emerald-100"><User className="w-2.5 h-2.5" />Driver</span>}
+                        {vp.fuelIncluded && <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-md border border-emerald-100"><Fuel className="w-2.5 h-2.5" />Fuel</span>}
+                        {vp.capacity > 0 && <span className="px-2 py-0.5 bg-gray-50 text-gray-600 text-[10px] font-semibold rounded-md border border-gray-100">{vp.capacity} ton</span>}
+                        {vp.bodyType && <span className="px-2 py-0.5 bg-gray-50 text-gray-600 text-[10px] font-semibold rounded-md border border-gray-100">{vp.bodyType}</span>}
+                        {vp.acceptsPartLoad && <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-md border border-emerald-100">Part Load OK</span>}
+                        {vp.notes && <span className="text-[11px] text-gray-500 italic ml-auto truncate max-w-[40%]">"{vp.notes}"</span>}
                       </div>
                     )}
 
                     {renderRequestsSection(vp.id, vp.p2p_requests, vp.priceFullLoad)}
                     {renderTransactionsSection(vp.id, vp.p2p_transactions)}
-
-                    {/* Edit / Delete — only if not yet accepted */}
-                    {canEditDelete(vp.status) && (
-                      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                        <Link
-                          href={`/vendor/p2p/vehicles/post?edit=${vp.id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
-                        >
-                          <Pencil className="w-3.5 h-3.5" /> Edit
-                        </Link>
-                        <button
-                          onClick={() => handleDelete('vehicle', vp.id)}
-                          disabled={deleting === vp.id}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition disabled:opacity-50"
-                        >
-                          {deleting === vp.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                          Delete
-                        </button>
-                      </div>
-                    )}
                   </div>
                   {renderCommentShareBar(vp.id, 'VEHICLE', 'vehicle', vp)}
                 </div>
@@ -1164,7 +1199,7 @@ export default function MyPostingsPage() {
               <div className="flex justify-center pt-2 pb-4">
                 <Link
                   href="/vendor/p2p/vehicles/post"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-200 hover:scale-105 transition font-semibold text-sm"
                 >
                   <Plus className="w-4 h-4" /> Post Another Vehicle
                 </Link>
@@ -1180,15 +1215,15 @@ export default function MyPostingsPage() {
       {activeTab === 'bookings' && (
         <>
           {/* Status filter */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 animate-fade-up">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-gray-500 mr-1">Status:</span>
+              <span className="text-xs font-semibold text-gray-500 mr-1 uppercase tracking-wide">Status:</span>
               {STATUS_FILTERS.map((f) => (
                 <button
                   key={f.key}
                   onClick={() => handleStatusChange(f.key)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    activeStatus === f.key ? 'bg-purple-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                    activeStatus === f.key ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-200' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                   }`}
                 >
                   {f.label}
@@ -1199,132 +1234,154 @@ export default function MyPostingsPage() {
 
           {loading && data && (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+              <div className="relative w-10 h-10">
+                <div className="absolute inset-0 rounded-full border-4 border-emerald-100"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-emerald-600 border-r-emerald-600 animate-spin"></div>
+              </div>
               <span className="ml-3 text-sm text-gray-500">Refreshing...</span>
             </div>
           )}
 
           {!loading && error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-              <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-2" />
-              <p className="text-red-700 font-medium">{error}</p>
-              <button onClick={fetchPostings} className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm">Try Again</button>
+            <div className="bg-white border border-red-100 rounded-2xl p-8 text-center shadow-sm animate-fade-up">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-100 to-rose-100 flex items-center justify-center mx-auto mb-3 shadow-inner">
+                <AlertCircle className="w-8 h-8 text-red-500" />
+              </div>
+              <p className="text-red-700 font-semibold">{error}</p>
+              <button onClick={fetchPostings} className="mt-3 px-4 py-2 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl hover:shadow-lg hover:shadow-red-200 transition text-sm font-semibold">Try Again</button>
             </div>
           )}
 
           {/* Empty state */}
           {!loading && !error && bookingPostings.length === 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-16 text-center">
-              <CalendarCheck className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center animate-fade-up">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-100 flex items-center justify-center mx-auto mb-4 shadow-inner">
+                <CalendarCheck className="w-10 h-10 text-emerald-500" />
+              </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No bookings shared yet</h3>
               <p className="text-gray-500 text-sm max-w-md mx-auto mb-6">Share bookings you can&apos;t fulfill so other vendors can help.</p>
               <Link
                 href="/vendor/p2p/bookings/post"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium text-sm"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-200 hover:scale-105 transition font-semibold text-sm"
               >
                 <Plus className="w-4 h-4" /> Share Booking
               </Link>
             </div>
           )}
 
-          {/* Booking cards */}
+          {/* Booking cards — horizontal feed layout */}
           {!loading && !error && bookingPostings.length > 0 && (
-            <div className="space-y-4">
-              {bookingPostings.map((bp) => (
-                <div key={bp.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
-                  <div className="p-5">
-                    {/* Header row */}
+            <div className="space-y-3">
+              {bookingPostings.map((bp, idx) => (
+                <div key={bp.id} style={{ animationDelay: `${idx * 60}ms` }} className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-0.5 hover:border-emerald-200 transition-all animate-fade-up">
+                  {/* Accent bar */}
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 to-emerald-600"></div>
+
+                  <div className="pl-5 pr-5 py-4">
+                    {/* TOP META ROW */}
                     <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs text-gray-400 font-mono">{bp.postingNumber}</span>
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusBadge(bp.status)}`}>{bp.status.replace(/_/g, ' ')}</span>
-                        <span className="px-2 py-0.5 bg-purple-50 text-purple-700 text-xs font-medium rounded">{bp.serviceType}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${getUrgencyBadge(bp.urgency)}`}>{bp.urgency}</span>
+                        <span className="text-[11px] text-gray-400 font-mono font-semibold">{bp.postingNumber}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ring-1 ring-black/5 ${getStatusBadge(bp.status)}`}>{bp.status.replace(/_/g, ' ')}</span>
+                        <span className="px-2 py-0.5 bg-gradient-to-r from-emerald-50 to-emerald-50 text-emerald-700 text-[10px] font-bold uppercase rounded ring-1 ring-emerald-100">{bp.serviceType}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getUrgencyBadge(bp.urgency)}`}>{bp.urgency}</span>
+                        {bp.pendingRequests > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase rounded-full border border-emerald-200">
+                            <AlertCircle className="w-3 h-3" />
+                            {bp.pendingRequests} request{bp.pendingRequests !== 1 ? 's' : ''}
+                          </span>
+                        )}
                       </div>
-                      <span className="text-xs text-gray-400" title={formatDate(bp.createdAt)}>{getRelativeTime(bp.createdAt)}</span>
+                      <span className="text-[11px] text-gray-400 font-medium" title={formatDate(bp.createdAt)}>{getRelativeTime(bp.createdAt)}</span>
                     </div>
 
-                    {/* Vehicle required */}
-                    <div className="flex items-center gap-2 flex-wrap mb-3">
-                      {bp.vehicleRequired && <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded">{bp.vehicleRequired}</span>}
-                      {bp.vehicleCategory && <span className="px-2 py-1 bg-gray-50 text-gray-500 text-xs rounded">{bp.vehicleCategory}</span>}
-                    </div>
-
-                    {/* Route */}
-                    <div className="flex items-center gap-2 text-sm mb-2">
-                      <MapPin className="w-4 h-4 text-purple-500 flex-shrink-0" />
-                      <span className="text-gray-700 font-medium">{bp.fromCity}</span>
-                      {bp.toCity && (
-                        <>
-                          <ArrowRight className="w-3.5 h-3.5 text-gray-300" />
-                          <span className="text-gray-700 font-medium">{bp.toCity}</span>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Date */}
-                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                      <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-gray-400" />{formatDate(bp.tripDate)}</span>
-                      {bp.tripTime && <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-gray-400" />{formatTime(bp.tripTime)}</span>}
-                    </div>
-
-                    {/* Commission breakdown */}
-                    <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                      <div className="grid grid-cols-3 gap-2 text-center">
-                        <div>
-                          <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Customer Budget</p>
-                          <p className="text-sm font-bold text-gray-900">{formatPrice(bp.customerBudget)}</p>
+                    {/* MAIN HORIZONTAL ROW */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                      {/* Vehicle requirement */}
+                      <div className="md:col-span-3 flex items-center gap-3 min-w-0">
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md flex-shrink-0 group-hover:rotate-6 group-hover:scale-110 transition-transform duration-300">
+                          <CalendarCheck className="w-5 h-5" />
                         </div>
-                        <div className="border-x border-gray-200">
-                          <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Partner Earning</p>
-                          <p className="text-sm font-bold text-green-600">{formatPrice(bp.partnerEarning ?? bp.customerBudget)}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Your Commission</p>
-                          <p className="text-sm font-bold text-purple-600">{formatPrice(bp.commission ?? 0)}</p>
+                        <div className="min-w-0">
+                          {bp.vehicleRequired ? (
+                            <h3 className="font-semibold text-gray-900 truncate text-sm leading-tight">{bp.vehicleRequired}</h3>
+                          ) : (
+                            <h3 className="font-semibold text-gray-500 truncate text-sm leading-tight italic">Any vehicle</h3>
+                          )}
+                          {bp.vehicleCategory && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{bp.vehicleCategory}</p>}
                         </div>
                       </div>
+
+                      {/* Route */}
+                      <div className="md:col-span-3 min-w-0">
+                        <div className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full bg-gradient-to-r from-emerald-50 to-emerald-50 ring-1 ring-emerald-100 max-w-full">
+                          <MapPin className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                          <span className="text-gray-800 font-semibold truncate">{bp.fromCity}</span>
+                          {bp.toCity && (
+                            <>
+                              <ArrowRight className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                              <span className="text-gray-800 font-semibold truncate">{bp.toCity}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Date / Time */}
+                      <div className="md:col-span-2 flex flex-col gap-0.5">
+                        <span className="flex items-center gap-1 text-xs text-gray-700 font-medium"><Calendar className="w-3 h-3 text-gray-400" />{formatDate(bp.tripDate)}</span>
+                        {bp.tripTime && <span className="flex items-center gap-1 text-[11px] text-gray-500"><Clock className="w-3 h-3 text-gray-400" />{formatTime(bp.tripTime)}</span>}
+                      </div>
+
+                      {/* Earnings split */}
+                      <div className="md:col-span-2 text-right">
+                        <div className="text-base font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent leading-tight">{formatPrice(bp.partnerEarning ?? bp.customerBudget)}</div>
+                        <div className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold">Partner</div>
+                        <div className="text-[11px] text-emerald-600 font-semibold mt-0.5">+{formatPrice(bp.commission ?? 0)} <span className="text-gray-400 font-normal">comm</span></div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="md:col-span-2 flex items-center justify-end gap-1.5">
+                        {canEditDelete(bp.status) ? (
+                          <>
+                            <Link
+                              href={`/vendor/p2p/bookings/post?edit=${bp.id}`}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-bold text-white bg-gradient-to-r from-emerald-500 to-emerald-600 hover:shadow-md hover:shadow-emerald-200 hover:scale-105 rounded-lg transition-all"
+                              title="Edit"
+                            >
+                              <Pencil className="w-3 h-3" /> Edit
+                            </Link>
+                            <button
+                              onClick={() => handleDelete('booking', bp.id)}
+                              disabled={deleting === bp.id}
+                              className="inline-flex items-center justify-center w-8 h-8 text-white bg-gradient-to-r from-red-500 to-rose-600 hover:shadow-md hover:shadow-red-200 hover:scale-105 rounded-lg transition-all disabled:opacity-50"
+                              title="Delete"
+                            >
+                              {deleting === bp.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-[10px] text-gray-400 italic">Locked</span>
+                        )}
+                      </div>
                     </div>
 
-                    {bp.reason && (
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 text-orange-700 text-xs rounded mb-3">
-                        <AlertCircle className="w-3 h-3 flex-shrink-0" />{bp.reason}
-                      </div>
-                    )}
-
-                    {bp.notes && <p className="text-xs text-gray-500 italic mb-3 bg-gray-50 rounded-lg p-2">{bp.notes}</p>}
-
-                    {bp.pendingRequests > 0 && (
-                      <div className="mb-3">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 text-xs font-semibold rounded-full border border-orange-200">
-                          <AlertCircle className="w-3.5 h-3.5" />
-                          {bp.pendingRequests} pending request{bp.pendingRequests !== 1 ? 's' : ''}
+                    {/* Reason / notes / customer budget reference */}
+                    {(bp.reason || bp.notes || bp.customerBudget) && (
+                      <div className="mt-3 pt-3 border-t border-dashed border-gray-100 flex flex-wrap items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 text-gray-600 text-[10px] font-semibold rounded-md border border-gray-100">
+                          Customer: <span className="text-gray-900 font-bold">{formatPrice(bp.customerBudget)}</span>
                         </span>
+                        {bp.reason && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-[10px] font-semibold rounded-md border border-emerald-100">
+                            <AlertCircle className="w-2.5 h-2.5" />{bp.reason}
+                          </span>
+                        )}
+                        {bp.notes && <span className="text-[11px] text-gray-500 italic ml-auto truncate max-w-[40%]">"{bp.notes}"</span>}
                       </div>
                     )}
 
                     {renderRequestsSection(bp.id, bp.p2p_requests, bp.customerBudget)}
                     {renderTransactionsSection(bp.id, bp.p2p_transactions)}
-
-                    {/* Edit / Delete — only if not yet accepted */}
-                    {canEditDelete(bp.status) && (
-                      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                        <Link
-                          href={`/vendor/p2p/bookings/post?edit=${bp.id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg transition"
-                        >
-                          <Pencil className="w-3.5 h-3.5" /> Edit
-                        </Link>
-                        <button
-                          onClick={() => handleDelete('booking', bp.id)}
-                          disabled={deleting === bp.id}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition disabled:opacity-50"
-                        >
-                          {deleting === bp.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                          Delete
-                        </button>
-                      </div>
-                    )}
                   </div>
                   {renderCommentShareBar(bp.id, 'BOOKING', 'booking', bp)}
                 </div>
@@ -1334,7 +1391,7 @@ export default function MyPostingsPage() {
               <div className="flex justify-center pt-2 pb-4">
                 <Link
                   href="/vendor/p2p/bookings/post"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium text-sm"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-200 hover:scale-105 transition font-semibold text-sm"
                 >
                   <Plus className="w-4 h-4" /> Share Another Booking
                 </Link>
@@ -1350,15 +1407,15 @@ export default function MyPostingsPage() {
       {activeTab === 'requests' && (
         <>
           {/* Request Status Filter */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 animate-fade-up">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-gray-500 mr-1">Status:</span>
+              <span className="text-xs font-semibold text-gray-500 mr-1 uppercase tracking-wide">Status:</span>
               {REQUEST_STATUS_FILTERS.map((f) => (
                 <button
                   key={f.key}
                   onClick={() => handleRequestStatusChange(f.key)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                    requestStatus === f.key ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                    requestStatus === f.key ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-200' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                   }`}
                 >
                   {f.label}
@@ -1369,21 +1426,26 @@ export default function MyPostingsPage() {
 
           {requestsLoading && (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <div className="relative w-10 h-10">
+                <div className="absolute inset-0 rounded-full border-4 border-emerald-100"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-emerald-600 border-r-emerald-600 animate-spin"></div>
+              </div>
               <span className="ml-3 text-sm text-gray-500">Loading requests...</span>
             </div>
           )}
 
           {!requestsLoading && requests.length === 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-16 text-center">
-              <Send className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center animate-fade-up">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-100 flex items-center justify-center mx-auto mb-4 shadow-inner">
+                <Send className="w-10 h-10 text-emerald-500" />
+              </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No requests sent yet</h3>
               <p className="text-gray-500 text-sm max-w-md mx-auto mb-6">Browse available postings and send requests to other vendors!</p>
               <div className="flex items-center justify-center gap-3 flex-wrap">
-                <Link href="/vendor/p2p/vehicles" className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm">
+                <Link href="/vendor/p2p/vehicles" className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-200 hover:scale-105 transition font-semibold text-sm">
                   <Truck className="w-4 h-4" /> Available Vehicles
                 </Link>
-                <Link href="/vendor/p2p/bookings" className="inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium text-sm">
+                <Link href="/vendor/p2p/bookings" className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-200 hover:scale-105 transition font-semibold text-sm">
                   <CalendarCheck className="w-4 h-4" /> Available Bookings
                 </Link>
               </div>
@@ -1392,24 +1454,24 @@ export default function MyPostingsPage() {
 
           {!requestsLoading && requests.length > 0 && (
             <div className="space-y-4">
-              {requests.map((req) => {
+              {requests.map((req, idx) => {
                 const isVehicle = req.postingType === 'VEHICLE' || !!req.vehiclePosting;
                 const vendor = req.postingVendor;
 
                 return (
-                  <div key={req.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
+                  <div key={req.id} style={{ animationDelay: `${idx * 60}ms` }} className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-0.5 hover:border-emerald-200 transition-all animate-fade-up">
                     <div className="p-5">
                       {/* Header */}
                       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs text-gray-400 font-mono">{req.requestNumber}</span>
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                            req.status === 'PENDING' ? 'bg-orange-100 text-orange-700' :
+                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold backdrop-blur-sm ring-1 ring-black/5 ${
+                            req.status === 'PENDING' ? 'bg-emerald-100 text-emerald-700' :
                             req.status === 'ACCEPTED' ? 'bg-green-100 text-green-700' :
                             req.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
                             'bg-gray-100 text-gray-600'
                           }`}>{req.status}</span>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded ${isVehicle ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'}`}>
+                          <span className={`px-2 py-0.5 text-xs font-semibold rounded ring-1 ${isVehicle ? 'bg-gradient-to-r from-emerald-50 to-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-gradient-to-r from-emerald-50 to-emerald-50 text-emerald-700 ring-emerald-100'}`}>
                             {isVehicle ? 'Vehicle Request' : 'Booking Request'}
                           </span>
                         </div>
@@ -1421,7 +1483,7 @@ export default function MyPostingsPage() {
                         {vendor?.logo ? (
                           <img src={vendor.logo} alt={vendor.businessName} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                         ) : (
-                          <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                          <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                             {vendor?.businessName?.charAt(0) || '?'}
                           </div>
                         )}
@@ -1433,9 +1495,9 @@ export default function MyPostingsPage() {
 
                       {/* Vehicle posting details */}
                       {isVehicle && req.vehiclePosting && (
-                        <div className="bg-blue-50/50 rounded-lg p-3 mb-3 space-y-2">
+                        <div className="bg-emerald-50/50 rounded-lg p-3 mb-3 space-y-2">
                           <div className="flex items-center gap-2">
-                            <Truck className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                            <Truck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                             <span className="text-sm font-semibold text-gray-900">{req.vehiclePosting.vehicleName || 'Vehicle'}</span>
                             {req.vehiclePosting.vehicleNumber && <span className="text-xs text-gray-400">({req.vehiclePosting.vehicleNumber})</span>}
                           </div>
@@ -1458,10 +1520,10 @@ export default function MyPostingsPage() {
 
                       {/* Booking posting details */}
                       {!isVehicle && req.bookingPosting && (
-                        <div className="bg-purple-50/50 rounded-lg p-3 mb-3 space-y-2">
+                        <div className="bg-emerald-50/50 rounded-lg p-3 mb-3 space-y-2">
                           {req.bookingPosting.vehicleRequired && (
                             <div className="flex items-center gap-2">
-                              <CalendarCheck className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                              <CalendarCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                               <span className="text-sm font-semibold text-gray-900">{req.bookingPosting.vehicleRequired}</span>
                             </div>
                           )}
@@ -1490,12 +1552,12 @@ export default function MyPostingsPage() {
 
                       {/* Status messages */}
                       {req.status === 'PENDING' && (
-                        <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 rounded-lg border border-orange-100">
+                        <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 rounded-lg border border-emerald-100">
                           <span className="relative flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                           </span>
-                          <span className="text-xs font-medium text-orange-700">Waiting for response...</span>
+                          <span className="text-xs font-medium text-emerald-700">Waiting for response...</span>
                         </div>
                       )}
 
@@ -1534,15 +1596,15 @@ export default function MyPostingsPage() {
                 <button
                   onClick={() => setRequestsPage((p) => Math.max(1, p - 1))}
                   disabled={requestsPage <= 1}
-                  className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1 px-4 py-2 text-sm font-semibold rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-emerald-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="w-4 h-4" /> Previous
                 </button>
-                <span className="text-sm text-gray-600">Page {requestsPage}</span>
+                <span className="text-sm text-gray-600 font-semibold">Page {requestsPage}</span>
                 <button
                   onClick={() => setRequestsPage((p) => p + 1)}
                   disabled={requests.length < 20}
-                  className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1 px-4 py-2 text-sm font-semibold rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-emerald-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next <ChevronRight className="w-4 h-4" />
                 </button>
@@ -1551,6 +1613,7 @@ export default function MyPostingsPage() {
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

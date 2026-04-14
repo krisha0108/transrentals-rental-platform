@@ -28,6 +28,11 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Sparkles,
+  Network,
+  Users,
+  Package,
+  CheckCircle,
 } from 'lucide-react';
 import { formatPrice, formatDate } from '@/lib/utils';
 
@@ -445,27 +450,51 @@ export default function BrowseVehiclesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+      <style jsx global>{`
+        @keyframes float-slow { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-12px) translateX(8px); } }
+        @keyframes float-rev { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(10px) translateX(-6px); } }
+        @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+        @keyframes fade-up { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes pop-in { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes gradient-x { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+        .animate-float-rev { animation: float-rev 7s ease-in-out infinite; }
+        .animate-fade-up { animation: fade-up 0.5s ease-out both; }
+        .animate-pop-in { animation: pop-in 0.4s ease-out both; }
+        .animate-gradient-x { background-size: 200% 200%; animation: gradient-x 6s ease infinite; }
+        .shimmer-bg { background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.4) 50%, transparent 65%); background-size: 200% 100%; animation: shimmer 2.5s linear infinite; }
+      `}</style>
+      <div className="max-w-[1600px] mx-auto space-y-6">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 rounded-2xl p-6 md:p-8 text-white">
-        <div className="flex items-center justify-between">
+      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 animate-gradient-x rounded-2xl p-6 sm:p-8 shadow-lg animate-fade-up text-white">
+        <div className="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-3xl animate-float-slow" />
+        <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-emerald-300/20 rounded-full blur-3xl animate-float-rev" />
+        <div className="absolute top-1/2 right-1/3 w-24 h-24 bg-white/5 rounded-full blur-2xl" />
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-4">
             <Link
               href="/vendor/p2p"
-              className="p-2 hover:bg-white/10 rounded-lg transition"
+              className="p-2 hover:bg-white/20 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl transition"
             >
               <ArrowLeft className="w-5 h-5 text-white" />
             </Link>
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg ring-1 ring-white/30">
+              <Network className="w-7 h-7 text-white" />
+            </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold">Available Vehicles</h1>
-              <p className="text-blue-100 mt-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2">
+                Available Vehicles
+                <Sparkles className="w-5 h-5 text-emerald-200 animate-pulse" />
+              </h1>
+              <p className="text-emerald-100 mt-1 text-sm sm:text-base">
                 Find empty vehicles posted by other vendors for your transport needs
               </p>
             </div>
           </div>
           <Link
             href="/vendor/p2p/vehicles/post"
-            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-white text-blue-700 font-semibold rounded-lg hover:bg-blue-50 transition"
+            className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/30 text-white rounded-xl font-semibold transition-all"
           >
             <Plus className="w-5 h-5" />
             Post Your Vehicle
@@ -477,7 +506,7 @@ export default function BrowseVehiclesPage() {
       <div className="sm:hidden">
         <Link
           href="/vendor/p2p/vehicles/post"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition w-full justify-center"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg transition w-full justify-center font-semibold"
         >
           <Plus className="w-5 h-5" />
           Post Your Vehicle
@@ -485,7 +514,13 @@ export default function BrowseVehiclesPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4 animate-fade-up">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="p-1.5 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md">
+            <Filter className="h-3.5 w-3.5" />
+          </div>
+          <h3 className="text-base font-bold text-gray-900">Filters</h3>
+        </div>
         {/* Search + City Inputs + Date */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="relative">
@@ -495,7 +530,7 @@ export default function BrowseVehiclesPage() {
               placeholder="Search vehicle name, city..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
             />
           </div>
           <div className="relative">
@@ -505,7 +540,7 @@ export default function BrowseVehiclesPage() {
               placeholder="From city"
               value={fromCity}
               onChange={(e) => handleFromCityChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
             />
           </div>
           <div className="relative">
@@ -515,7 +550,7 @@ export default function BrowseVehiclesPage() {
               placeholder="To city"
               value={toCity}
               onChange={(e) => handleToCityChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
             />
           </div>
           <div className="relative">
@@ -524,21 +559,21 @@ export default function BrowseVehiclesPage() {
               type="date"
               value={dateFilter}
               onChange={(e) => handleDateChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
             />
           </div>
         </div>
 
         {/* Service Type Pills */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 pt-1">
           {SERVICE_TYPE_FILTERS.map((filter) => (
             <button
               key={filter.label}
               onClick={() => handleServiceTypeChange(filter.value)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
                 serviceType === filter.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md scale-105'
+                  : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-white hover:border-emerald-200'
               }`}
             >
               {filter.label}
@@ -550,18 +585,24 @@ export default function BrowseVehiclesPage() {
       {/* Loading State */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 text-blue-600" />
-          <p className="mt-4 text-gray-500 text-sm">Loading available vehicles...</p>
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 rounded-full border-4 border-emerald-100"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-emerald-600 border-r-emerald-600 animate-spin"></div>
+          </div>
+          <p className="mt-4 text-sm font-medium text-gray-600">Loading available vehicles...</p>
         </div>
       )}
 
       {/* Error State */}
       {!loading && error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-          <p className="text-red-600 font-medium">{error}</p>
+        <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-8 text-center animate-fade-up">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-100 to-rose-100 flex items-center justify-center mx-auto mb-3 shadow-inner">
+            <X className="h-6 w-6 text-red-500" />
+          </div>
+          <p className="text-red-600 font-semibold">{error}</p>
           <button
             onClick={fetchVehicles}
-            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+            className="mt-4 px-5 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl hover:shadow-lg hover:scale-105 transition text-sm font-semibold"
           >
             Try Again
           </button>
@@ -570,17 +611,19 @@ export default function BrowseVehiclesPage() {
 
       {/* Empty State */}
       {!loading && !error && postings.length === 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <Truck className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No vehicles available</h3>
-          <p className="text-gray-500 mb-6">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center animate-fade-up">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-100 flex items-center justify-center mx-auto mb-4 shadow-inner">
+            <Truck className="w-7 h-7 text-emerald-500" />
+          </div>
+          <h3 className="text-base font-semibold text-gray-800 mb-1">No vehicles available</h3>
+          <p className="text-xs text-gray-500 max-w-sm mx-auto mb-5">
             No vehicles match your current filters. Try adjusting your search or check back later.
           </p>
           <Link
             href="/vendor/p2p/vehicles/post"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-200 hover:scale-105 transition text-sm font-semibold"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4" />
             Post Your Empty Vehicle
           </Link>
         </div>
@@ -588,40 +631,49 @@ export default function BrowseVehiclesPage() {
 
       {/* Results Count */}
       {!loading && !error && postings.length > 0 && pagination && (
-        <p className="text-sm text-gray-500">
-          Showing {postings.length} of {pagination.total} vehicle{pagination.total !== 1 ? 's' : ''}
-        </p>
+        <div className="flex items-center justify-between animate-fade-up">
+          <p className="text-sm text-gray-600">
+            Showing <span className="font-bold text-gray-900">{postings.length}</span> of <span className="font-bold text-gray-900">{pagination.total}</span> vehicle{pagination.total !== 1 ? 's' : ''}
+          </p>
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-500">
+            <Package className="h-3.5 w-3.5 text-emerald-500" />
+            <span>Live marketplace</span>
+          </div>
+        </div>
       )}
 
       {/* Vehicle Cards Grid */}
       {!loading && !error && postings.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {postings.map((posting) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+          {postings.map((posting, idx) => {
             const VehicleIcon = getVehicleIcon(posting.serviceType);
+            const isCar = posting.serviceType?.toLowerCase() === 'car';
             return (
               <div
                 key={posting.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all overflow-hidden"
+                style={{ animationDelay: `${idx * 60}ms` }}
+                className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 hover:border-emerald-200 transition-all duration-300 overflow-hidden animate-fade-up"
               >
-                <div className="p-5">
+                <div className="absolute inset-0 shimmer-bg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                <div className="relative p-5">
                   {/* Vendor Info Row */}
                   <div className="flex items-center gap-3 mb-4">
                     {posting.vendor.logo ? (
                       <img
                         src={posting.vendor.logo}
                         alt={posting.vendor.businessName}
-                        className="w-10 h-10 rounded-full object-cover"
+                        className="w-11 h-11 rounded-full object-cover ring-2 ring-emerald-100"
                       />
                     ) : (
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 via-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-white">
                         {posting.vendor.businessName?.charAt(0) || 'V'}
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
                         {posting.vendor.businessName}
                       </p>
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
                         {posting.vendor.city && (
                           <span className="truncate">{posting.vendor.city}</span>
                         )}
@@ -629,8 +681,8 @@ export default function BrowseVehiclesPage() {
                           <>
                             <span className="text-gray-300">|</span>
                             <span className="flex items-center gap-1">
-                              <Star className="w-3.5 h-3.5 text-yellow-500 fill-current" />
-                              {posting.vendor.rating.toFixed(1)}
+                              <Star className="w-3.5 h-3.5 text-emerald-500 fill-current" />
+                              <span className="font-semibold text-gray-700">{posting.vendor.rating.toFixed(1)}</span>
                               {posting.vendor.totalRatings > 0 && (
                                 <span className="text-gray-400">
                                   ({posting.vendor.totalRatings})
@@ -641,56 +693,60 @@ export default function BrowseVehiclesPage() {
                         )}
                       </div>
                     </div>
+                    <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full whitespace-nowrap ring-1 ${
+                      isCar ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                    }`}>
+                      {posting.serviceType?.toUpperCase()}
+                    </span>
                   </div>
 
-                  {/* Vehicle Name + Type Badge */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                      <VehicleIcon className="w-5 h-5 text-blue-600" />
+                  {/* Vehicle Name with gradient icon */}
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className={`p-2.5 rounded-xl shadow-md text-white group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 ${
+                      isCar ? 'bg-gradient-to-br from-emerald-500 to-emerald-600' : 'bg-gradient-to-br from-emerald-500 to-emerald-600'
+                    }`}>
+                      <VehicleIcon className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate">
+                      <h3 className="text-base font-bold text-gray-900 truncate">
                         {posting.vehicleName}
                       </h3>
                       {posting.vehicleNumber && (
-                        <p className="text-xs text-gray-400">{posting.vehicleNumber}</p>
+                        <p className="text-[11px] text-gray-400 font-mono">{posting.vehicleNumber}</p>
                       )}
                     </div>
-                    <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full whitespace-nowrap">
-                      {posting.serviceType}
-                    </span>
                   </div>
 
                   {/* Route */}
-                  <div className="flex items-center gap-2 text-sm mb-2">
-                    <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-700 font-medium">{posting.fromCity}</span>
-                    <span className="text-gray-400">&rarr;</span>
-                    <span className="text-gray-700 font-medium">{posting.toCity}</span>
+                  <div className="flex items-center gap-2 text-sm mb-2 p-2.5 rounded-xl bg-gradient-to-r from-emerald-50/60 to-emerald-50/60 border border-emerald-100/60">
+                    <MapPin className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span className="text-gray-800 font-semibold truncate">{posting.fromCity}</span>
+                    <span className="text-emerald-400">&rarr;</span>
+                    <span className="text-gray-800 font-semibold truncate">{posting.toCity}</span>
                   </div>
 
                   {/* Date & Time */}
-                  <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      {formatDate(posting.departureDate)}
+                  <div className="flex items-center gap-3 text-xs text-gray-600 mb-3">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 border border-gray-100">
+                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                      <span className="font-medium">{formatDate(posting.departureDate)}</span>
                     </span>
                     {posting.departureTime && (
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="w-4 h-4 text-gray-400" />
-                        {formatTime(posting.departureTime)}
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 border border-gray-100">
+                        <Clock className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="font-medium">{formatTime(posting.departureTime)}</span>
                       </span>
                     )}
                   </div>
 
                   {/* Price Section */}
-                  <div className="flex items-baseline gap-3 mb-3">
+                  <div className="flex items-baseline gap-3 mb-3 pb-3 border-b border-dashed border-gray-100">
                     <div>
-                      <span className="text-lg font-bold text-green-600">
+                      <span className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                         {formatPrice(posting.priceFullLoad)}
                       </span>
-                      <span className="text-xs text-gray-400 ml-1">
-                        {posting.serviceType?.toLowerCase() === 'car' ? 'trip price' : 'full load'}
+                      <span className="text-[11px] text-gray-400 ml-1">
+                        {isCar ? 'trip' : 'full load'}
                       </span>
                     </div>
                     {posting.serviceType?.toLowerCase() === 'truck' && posting.acceptsPartLoad && posting.pricePartLoad != null && (
@@ -698,36 +754,36 @@ export default function BrowseVehiclesPage() {
                         <span className="text-sm font-semibold text-gray-600">
                           {formatPrice(posting.pricePartLoad)}
                         </span>
-                        <span className="text-xs text-gray-400 ml-1">part load</span>
+                        <span className="text-[11px] text-gray-400 ml-1">part</span>
                       </div>
                     )}
                   </div>
 
                   {/* Meta Badges */}
-                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <div className="flex flex-wrap items-center gap-1.5 mb-4">
                     {posting.serviceType?.toLowerCase() === 'truck' && posting.capacity > 0 && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-md border border-gray-100">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-700 text-[11px] font-semibold rounded-md border border-gray-200">
                         {posting.capacity} ton
                       </span>
                     )}
                     {posting.serviceType?.toLowerCase() === 'car' && posting.capacity > 0 && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-md border border-gray-100">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-700 text-[11px] font-semibold rounded-md border border-gray-200">
                         {posting.capacity} seater
                       </span>
                     )}
                     {posting.serviceType?.toLowerCase() === 'truck' && posting.bodyType && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-md border border-gray-100">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-700 text-[11px] font-semibold rounded-md border border-gray-200">
                         {posting.bodyType}
                       </span>
                     )}
                     {posting.driverIncluded && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 text-xs rounded-md border border-emerald-100">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 text-[11px] font-semibold rounded-md border border-emerald-200">
                         <User className="w-3 h-3" />
-                        Driver Included
+                        Driver
                       </span>
                     )}
                     {posting.serviceType?.toLowerCase() === 'truck' && posting.acceptsPartLoad && (
-                      <span className="inline-flex items-center px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-md border border-purple-100">
+                      <span className="inline-flex items-center px-2 py-1 bg-emerald-50 text-emerald-700 text-[11px] font-semibold rounded-md border border-emerald-200">
                         Part Load OK
                       </span>
                     )}
@@ -737,7 +793,7 @@ export default function BrowseVehiclesPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => openRequestModal(posting)}
-                      className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition font-medium text-sm"
+                      className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl px-4 py-2.5 hover:shadow-lg hover:shadow-emerald-200 hover:scale-[1.02] transition-all font-semibold text-sm"
                     >
                       Request Vehicle
                     </button>
@@ -745,7 +801,7 @@ export default function BrowseVehiclesPage() {
                       <>
                         <a
                           href={`tel:${posting.vendor.phone}`}
-                          className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-green-100 text-gray-600 hover:text-green-700 rounded-lg transition"
+                          className="flex items-center justify-center w-10 h-10 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl border border-emerald-100 hover:scale-110 transition-all"
                           title="Call Vendor"
                         >
                           <Phone className="w-4 h-4" />
@@ -754,7 +810,7 @@ export default function BrowseVehiclesPage() {
                           href={`https://wa.me/91${posting.vendor.phone.replace(/\D/g, '').slice(-10)}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-green-100 text-gray-600 hover:text-green-700 rounded-lg transition"
+                          className="flex items-center justify-center w-10 h-10 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl border border-emerald-100 hover:scale-110 transition-all"
                           title="WhatsApp Vendor"
                         >
                           <MessageCircle className="w-4 h-4" />
@@ -765,10 +821,10 @@ export default function BrowseVehiclesPage() {
                 </div>
 
                 {/* Comment & Share Bar */}
-                <div className="border-t border-gray-100 px-5 py-2.5 flex items-center justify-between">
+                <div className="relative border-t border-gray-100 px-5 py-2.5 flex items-center justify-between bg-gray-50/40">
                   <button
                     onClick={() => toggleComments(posting.id)}
-                    className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-emerald-600 px-2.5 py-1.5 rounded-lg hover:bg-white transition"
                   >
                     <MessageCircle className="w-4 h-4" />
                     <span>{commentCountMap[posting.id] || 0}</span>
@@ -782,14 +838,14 @@ export default function BrowseVehiclesPage() {
                   <div className="relative">
                     <button
                       onClick={() => toggleShareDropdown(posting.id)}
-                      className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-emerald-600 px-2.5 py-1.5 rounded-lg hover:bg-white transition"
                     >
                       <Share2 className="w-4 h-4" />
                       Share
                     </button>
 
                     {shareDropdown === posting.id && (
-                      <div className="absolute right-0 bottom-full mb-2 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                      <div className="absolute right-0 bottom-full mb-2 w-44 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-20 animate-pop-in">
                         <button
                           onClick={() => handleCopyLink(posting)}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
@@ -815,11 +871,11 @@ export default function BrowseVehiclesPage() {
 
                 {/* Expandable Comment Section */}
                 {expandedComments[posting.id] && (
-                  <div className="border-t border-gray-100 px-5 py-3 bg-gray-50/50">
+                  <div className="border-t border-gray-100 px-5 py-3 bg-gradient-to-b from-emerald-50/30 to-white animate-fade-up">
                     {/* Comments List */}
                     {commentLoading[posting.id] ? (
                       <div className="flex items-center justify-center py-4">
-                        <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                        <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
                       </div>
                     ) : (
                       <div className="space-y-3 max-h-60 overflow-y-auto mb-3">
@@ -837,7 +893,7 @@ export default function BrowseVehiclesPage() {
                                 className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5"
                               />
                             ) : (
-                              <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5">
+                              <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5">
                                 {comment.vendor.businessName?.charAt(0) || 'V'}
                               </div>
                             )}
@@ -874,12 +930,12 @@ export default function BrowseVehiclesPage() {
                             handleSendComment(posting.id);
                           }
                         }}
-                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"
                       />
                       <button
                         onClick={() => handleSendComment(posting.id)}
                         disabled={commentSending[posting.id] || !commentInputs[posting.id]?.trim()}
-                        className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="p-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg hover:scale-105 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                       >
                         {commentSending[posting.id] ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -898,22 +954,22 @@ export default function BrowseVehiclesPage() {
 
       {/* Pagination */}
       {!loading && pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 pt-4">
+        <div className="flex items-center justify-center gap-3 pt-2 animate-fade-up">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 px-4 py-2.5 text-sm font-semibold rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4" />
             Previous
           </button>
-          <span className="text-sm text-gray-600">
-            Page {pagination.page} of {pagination.totalPages}
+          <span className="text-sm text-gray-600 px-3 py-2 rounded-xl bg-white border border-gray-100 shadow-sm">
+            Page <span className="font-bold text-emerald-600">{pagination.page}</span> of <span className="font-bold">{pagination.totalPages}</span>
           </span>
           <button
             onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
             disabled={page >= pagination.totalPages}
-            className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 px-4 py-2.5 text-sm font-semibold rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
             <ChevronRight className="w-4 h-4" />
@@ -924,42 +980,43 @@ export default function BrowseVehiclesPage() {
       {/* Request Modal */}
       {selectedVehicle && (
         <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) closeRequestModal();
           }}
         >
-          <div className="bg-white rounded-2xl max-w-md w-full mx-4 p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[92vh] overflow-hidden shadow-2xl animate-pop-in flex flex-col">
             {/* Modal Header */}
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold text-gray-900">Request Vehicle</h2>
-              <button
-                onClick={closeRequestModal}
-                className="p-1 hover:bg-gray-100 rounded-lg transition"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
+            <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 animate-gradient-x px-6 py-5 text-white flex-shrink-0">
+              <div className="absolute -right-6 -top-6 w-28 h-28 bg-white/10 rounded-full blur-2xl animate-float-slow" />
+              <div className="absolute -left-6 -bottom-6 w-28 h-28 bg-emerald-300/20 rounded-full blur-2xl animate-float-rev" />
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/30">
+                    <Send className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Request Vehicle</h2>
+                    <p className="text-xs text-emerald-100">Send booking request to vendor</p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeRequestModal}
+                  className="p-1.5 hover:bg-white/20 bg-white/10 rounded-lg transition"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
             </div>
 
+            <div className="p-6 overflow-y-auto">
             {/* Success Message */}
             {requestSuccess && (
-              <div className="mb-5 p-4 bg-green-50 border border-green-200 rounded-xl text-center">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <svg
-                    className="w-6 h-6 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
+              <div className="mb-5 p-5 bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl text-center animate-pop-in">
+                <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+                  <CheckCircle className="w-7 h-7 text-white" />
                 </div>
-                <p className="font-semibold text-green-800">Request Sent Successfully!</p>
+                <p className="font-bold text-green-800">Request Sent Successfully!</p>
                 <p className="text-sm text-green-600 mt-1">
                   The vendor will review your request shortly.
                 </p>
@@ -969,47 +1026,48 @@ export default function BrowseVehiclesPage() {
             {!requestSuccess && (
               <>
                 {/* Vehicle Summary */}
-                <div className="p-4 bg-gray-50 rounded-xl mb-5">
+                <div className="p-4 bg-gradient-to-br from-emerald-50/60 via-emerald-50/40 to-emerald-50/40 border border-emerald-100 rounded-2xl mb-5">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
+                    <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-md">
                       {React.createElement(getVehicleIcon(selectedVehicle.serviceType), {
-                        className: 'w-5 h-5 text-blue-600',
+                        className: 'w-5 h-5 text-white',
                       })}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 truncate">
+                      <p className="text-base font-bold text-gray-900 truncate">
                         {selectedVehicle.vehicleName}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs text-gray-600 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-emerald-400" />
                         {selectedVehicle.fromCity} &rarr; {selectedVehicle.toCity}
                       </p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 mt-3 text-sm">
-                    <div>
-                      <p className="text-gray-400">Date</p>
-                      <p className="font-medium text-gray-700">
+                  <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
+                    <div className="p-2.5 rounded-xl bg-white/70 border border-white">
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">Date</p>
+                      <p className="font-semibold text-gray-800 text-xs mt-0.5">
                         {formatDate(selectedVehicle.departureDate)}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-gray-400">Time</p>
-                      <p className="font-medium text-gray-700">
+                    <div className="p-2.5 rounded-xl bg-white/70 border border-white">
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">Time</p>
+                      <p className="font-semibold text-gray-800 text-xs mt-0.5">
                         {formatTime(selectedVehicle.departureTime)}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-gray-400">
+                    <div className="p-2.5 rounded-xl bg-white/70 border border-white">
+                      <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">
                         {selectedVehicle.serviceType?.toLowerCase() === 'car' ? 'Trip Price' : 'Full Load'}
                       </p>
-                      <p className="font-bold text-green-600">
+                      <p className="font-bold text-sm mt-0.5 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                         {formatPrice(selectedVehicle.priceFullLoad)}
                       </p>
                     </div>
                     {selectedVehicle.serviceType?.toLowerCase() === 'truck' && selectedVehicle.acceptsPartLoad && selectedVehicle.pricePartLoad != null && (
-                      <div>
-                        <p className="text-gray-400">Part Load</p>
-                        <p className="font-semibold text-gray-700">
+                      <div className="p-2.5 rounded-xl bg-white/70 border border-white">
+                        <p className="text-[10px] uppercase tracking-wide text-gray-400 font-semibold">Part Load</p>
+                        <p className="font-semibold text-gray-800 text-xs mt-0.5">
                           {formatPrice(selectedVehicle.pricePartLoad)}
                         </p>
                       </div>
@@ -1019,7 +1077,7 @@ export default function BrowseVehiclesPage() {
 
                 {/* Error Banner */}
                 {requestError && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-medium animate-pop-in">
                     {requestError}
                   </div>
                 )}
@@ -1039,7 +1097,7 @@ export default function BrowseVehiclesPage() {
                           onChange={(e) =>
                             updateRequestForm('loadType', e.target.value as 'Full' | 'Part')
                           }
-                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
                         >
                           <option value="Full">Full Load</option>
                           {selectedVehicle.acceptsPartLoad && (
@@ -1058,7 +1116,7 @@ export default function BrowseVehiclesPage() {
                           placeholder="e.g., Electronics, Furniture, Raw Materials"
                           value={requestForm.goodsType}
                           onChange={(e) => updateRequestForm('goodsType', e.target.value)}
-                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
                         />
                       </div>
 
@@ -1072,7 +1130,7 @@ export default function BrowseVehiclesPage() {
                           placeholder="e.g., 500"
                           value={requestForm.estimatedWeight}
                           onChange={(e) => updateRequestForm('estimatedWeight', e.target.value)}
-                          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
                         />
                       </div>
                     </>
@@ -1090,7 +1148,7 @@ export default function BrowseVehiclesPage() {
                         placeholder="e.g., 4"
                         value={requestForm.passengers}
                         onChange={(e) => updateRequestForm('passengers', e.target.value)}
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
                       />
                     </div>
                   )}
@@ -1105,7 +1163,7 @@ export default function BrowseVehiclesPage() {
                       placeholder="Full pickup address"
                       value={requestForm.pickupAddress}
                       onChange={(e) => updateRequestForm('pickupAddress', e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
                     />
                   </div>
 
@@ -1119,7 +1177,7 @@ export default function BrowseVehiclesPage() {
                       placeholder="Full drop address"
                       value={requestForm.dropAddress}
                       onChange={(e) => updateRequestForm('dropAddress', e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
                     />
                   </div>
 
@@ -1133,7 +1191,7 @@ export default function BrowseVehiclesPage() {
                       placeholder="Any special requirements or details..."
                       value={requestForm.notes}
                       onChange={(e) => updateRequestForm('notes', e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm resize-none transition"
                     />
                   </div>
                 </div>
@@ -1143,14 +1201,14 @@ export default function BrowseVehiclesPage() {
                   <button
                     onClick={closeRequestModal}
                     disabled={submitting}
-                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm font-medium disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 border border-gray-200 bg-white rounded-xl hover:bg-gray-50 transition text-sm font-semibold text-gray-700 disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSubmitRequest}
                     disabled={submitting}
-                    className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-60 flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-200 hover:scale-[1.02] transition-all text-sm font-semibold disabled:opacity-60 disabled:hover:scale-100 flex items-center justify-center gap-2"
                   >
                     {submitting ? (
                       <>
@@ -1158,15 +1216,20 @@ export default function BrowseVehiclesPage() {
                         Sending...
                       </>
                     ) : (
-                      'Send Request'
+                      <>
+                        <Send className="w-4 h-4" />
+                        Send Request
+                      </>
                     )}
                   </button>
                 </div>
               </>
             )}
+            </div>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

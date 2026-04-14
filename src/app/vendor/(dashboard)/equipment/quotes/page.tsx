@@ -1,35 +1,30 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
   Wrench,
-  FileText,
+  Send,
   MapPin,
   Calendar,
-  IndianRupee,
-  Eye,
   CheckCircle,
   XCircle,
-  Clock,
   AlertCircle,
-  Send,
-  Trash2,
-  TrendingUp,
-  Phone,
-  Mail,
-  Building2,
-  User,
-  Package,
-  Truck,
-  HardHat,
-  Settings,
-  ChevronDown,
-  ChevronUp,
+  Eye,
+  Edit,
+  IndianRupee,
   RefreshCw,
+  TrendingUp,
+  Clock,
   Search,
   X,
+  ChevronRight,
+  Sparkles,
+  Award,
+  Zap,
+  ArrowUpRight,
+  Package,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
@@ -73,14 +68,14 @@ interface Quote {
   createdAt: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string; icon: any }> = {
-  DRAFT: { label: 'Draft', color: 'text-gray-600', bgColor: 'bg-gray-100', icon: FileText },
-  SENT: { label: 'Sent', color: 'text-blue-600', bgColor: 'bg-blue-100', icon: Send },
-  VIEWED: { label: 'Viewed', color: 'text-purple-600', bgColor: 'bg-purple-100', icon: Eye },
-  ACCEPTED: { label: 'Accepted', color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle },
-  REJECTED: { label: 'Rejected', color: 'text-red-600', bgColor: 'bg-red-100', icon: XCircle },
-  EXPIRED: { label: 'Expired', color: 'text-orange-600', bgColor: 'bg-orange-100', icon: Clock },
-  WITHDRAWN: { label: 'Withdrawn', color: 'text-gray-600', bgColor: 'bg-gray-100', icon: Trash2 },
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; accent: string; glow: string; icon: any }> = {
+  DRAFT:     { label: 'Draft',     color: 'text-gray-600',    bg: 'bg-gray-50',     border: 'border-gray-200',   accent: 'bg-gray-300',    glow: '',                                    icon: Edit },
+  SENT:      { label: 'Sent',      color: 'text-blue-600',    bg: 'bg-blue-50',     border: 'border-blue-200',   accent: 'bg-blue-500',    glow: '',                                    icon: Send },
+  VIEWED:    { label: 'Viewed',    color: 'text-emerald-600',  bg: 'bg-emerald-50',   border: 'border-emerald-200', accent: 'bg-emerald-500',  glow: '',                                    icon: Eye },
+  ACCEPTED:  { label: 'Won',       color: 'text-emerald-700', bg: 'bg-emerald-50',  border: 'border-emerald-300', accent: 'bg-emerald-500', glow: 'shadow-emerald-100 ring-1 ring-emerald-200', icon: CheckCircle },
+  REJECTED:  { label: 'Rejected',  color: 'text-red-600',     bg: 'bg-red-50',      border: 'border-red-200',    accent: 'bg-red-400',     glow: '',                                    icon: XCircle },
+  EXPIRED:   { label: 'Expired',   color: 'text-emerald-600',   bg: 'bg-emerald-50',    border: 'border-emerald-200',  accent: 'bg-emerald-400',   glow: '',                                    icon: AlertCircle },
+  WITHDRAWN: { label: 'Withdrawn', color: 'text-gray-500',    bg: 'bg-gray-50',     border: 'border-gray-200',   accent: 'bg-gray-300',    glow: '',                                    icon: XCircle },
 };
 
 export default function VendorEquipmentQuotesPage() {
@@ -88,7 +83,6 @@ export default function VendorEquipmentQuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -174,397 +168,475 @@ export default function VendorEquipmentQuotesPage() {
   const pendingQuotes = quotes.filter((q) => ['SENT', 'VIEWED'].includes(q.status)).length;
   const acceptedQuotes = quotes.filter((q) => q.status === 'ACCEPTED').length;
   const totalValue = quotes.filter((q) => q.status === 'ACCEPTED').reduce((sum, q) => sum + q.totalAmount, 0);
+  const conversionRate = totalQuotes > 0 ? Math.round((acceptedQuotes / totalQuotes) * 100) : 0;
+
+  const filterTabs = [
+    { value: 'all',      label: 'All',     icon: Send,        count: totalQuotes,    activeColor: 'bg-white text-gray-900 shadow-lg shadow-gray-200/50' },
+    { value: 'active',   label: 'Active',  icon: Zap,         count: pendingQuotes,  activeColor: 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' },
+    { value: 'accepted', label: 'Won',     icon: Award,       count: acceptedQuotes, activeColor: 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' },
+    { value: 'expired',  label: 'Closed',  icon: AlertCircle, count: 0,              activeColor: 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30' },
+  ];
 
   if (isLoading) {
+    const shimmer = 'relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-shimmer before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent';
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full" />
+      <div className="space-y-5">
+        {/* Hero header skeleton */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-5 md:p-6">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white" />
+            <div className="absolute right-20 -bottom-10 w-32 h-32 rounded-full bg-white" />
+          </div>
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-3.5">
+              <div className={`w-12 h-12 bg-white/20 rounded-2xl ${shimmer}`} />
+              <div className="space-y-2">
+                <div className={`h-6 w-36 bg-white/25 rounded-lg ${shimmer}`} />
+                <div className={`h-3.5 w-52 bg-white/15 rounded-lg ${shimmer}`} />
+              </div>
+            </div>
+            <div className={`h-10 w-40 bg-white/20 rounded-xl hidden sm:block ${shimmer}`} />
+          </div>
+        </div>
+
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { border: 'border-gray-100', iconBg: 'bg-gray-100' },
+            { border: 'border-blue-100', iconBg: 'bg-blue-50' },
+            { border: 'border-emerald-100', iconBg: 'bg-emerald-50' },
+            { border: 'border-emerald-100', iconBg: 'bg-emerald-50' },
+          ].map((s, i) => (
+            <div key={i} className={`bg-white rounded-2xl p-4 border ${s.border}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-9 h-9 ${s.iconBg} rounded-xl ${shimmer}`} />
+                <div className={`h-3 w-12 bg-gray-100 rounded ${shimmer}`} />
+              </div>
+              <div className={`h-8 w-16 bg-gray-100 rounded-lg mb-1 ${shimmer}`} />
+              <div className={`h-3 w-20 bg-gray-50 rounded ${shimmer}`} />
+            </div>
+          ))}
+        </div>
+
+        {/* Conversion bar skeleton */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className={`h-4 w-28 bg-gray-100 rounded ${shimmer}`} />
+            <div className={`h-4 w-10 bg-gray-100 rounded ${shimmer}`} />
+          </div>
+          <div className={`w-full h-2.5 bg-gray-100 rounded-full ${shimmer}`} />
+        </div>
+
+        {/* Filter bar skeleton */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-3">
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className={`h-9 w-20 bg-gray-200/50 rounded-lg ${shimmer}`} />
+              ))}
+            </div>
+            <div className={`h-9 flex-1 max-w-xs bg-gray-50 rounded-xl border border-gray-200 ${shimmer}`} />
+          </div>
+        </div>
+
+        {/* Cards grid skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className={`h-1 w-full ${i % 3 === 0 ? 'bg-emerald-300' : i % 2 === 0 ? 'bg-blue-300' : 'bg-emerald-300'}`} />
+              <div className="px-4 py-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`h-5 w-16 bg-gray-100 rounded-md ${shimmer}`} />
+                  <div className={`h-3 w-10 bg-gray-50 rounded ${shimmer}`} />
+                </div>
+                <div className={`h-6 w-16 bg-gray-100 rounded-lg ${shimmer}`} />
+              </div>
+              <div className="px-4 pb-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className={`w-11 h-11 bg-emerald-50 rounded-xl ${shimmer}`} />
+                    <div className="space-y-1.5">
+                      <div className={`h-4 w-28 bg-gray-100 rounded ${shimmer}`} />
+                      <div className={`h-3 w-20 bg-gray-50 rounded ${shimmer}`} />
+                    </div>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <div className={`h-6 w-20 bg-emerald-50 rounded-lg ml-auto ${shimmer}`} />
+                    <div className={`h-2.5 w-14 bg-gray-50 rounded ml-auto ${shimmer}`} />
+                  </div>
+                </div>
+                <div className={`flex items-center gap-2.5 bg-gray-50/80 rounded-xl px-3 py-2.5 ${shimmer}`}>
+                  <div className="w-7 h-7 bg-blue-100 rounded-full shrink-0" />
+                  <div className="space-y-1 flex-1">
+                    <div className="h-3.5 w-24 bg-gray-200/60 rounded" />
+                    <div className="h-2.5 w-16 bg-gray-100 rounded" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className={`h-12 bg-gray-50 border border-gray-100 rounded-xl ${shimmer}`} />
+                  <div className={`h-12 bg-cyan-50/30 border border-cyan-100/30 rounded-xl ${shimmer}`} />
+                </div>
+                <div className="pt-3 border-t border-gray-100">
+                  <div className={`h-10 w-full bg-gray-100 rounded-xl ${shimmer}`} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-            <FileText className="w-5 h-5 text-amber-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Quotes</h1>
-            <p className="text-gray-600">Quotes you&apos;ve sent to customers</p>
-          </div>
+    <div className="space-y-5">
+      {/* ══════════ Hero Header ══════════ */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-5 md:p-6 animate-slide-down">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white" />
+          <div className="absolute right-20 -bottom-10 w-32 h-32 rounded-full bg-white" />
+          <div className="absolute left-1/3 -top-6 w-24 h-24 rounded-full bg-white" />
         </div>
 
-        <Link
-          href="/vendor/equipment/requests"
-          className="px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition flex items-center gap-2"
-        >
-          <Send className="w-4 h-4" />
-          New Quote
-        </Link>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 border">
-          <p className="text-sm text-gray-500">Total Quotes</p>
-          <p className="text-2xl font-bold text-gray-900">{totalQuotes}</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 border">
-          <p className="text-sm text-gray-500">Pending Response</p>
-          <p className="text-2xl font-bold text-amber-600">{pendingQuotes}</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 border">
-          <p className="text-sm text-gray-500">Accepted</p>
-          <p className="text-2xl font-bold text-green-600">{acceptedQuotes}</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 border">
-          <div className="flex items-center gap-1 text-sm text-gray-500">
-            <TrendingUp className="w-4 h-4" />
-            Won Value
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20">
+              <Send className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl md:text-2xl font-extrabold text-white leading-tight">My Quotes</h1>
+              <p className="text-emerald-100 text-sm mt-0.5">Track all your equipment rental quotes</p>
+            </div>
           </div>
-          <p className="text-2xl font-bold text-gray-900">₹{totalValue.toLocaleString()}</p>
-        </div>
-      </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by quote #, equipment, customer, city..."
-          className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          <Link
+            href="/vendor/equipment/requests"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-emerald-50 text-emerald-600 font-bold rounded-xl text-sm shadow-lg shadow-emerald-600/20 transition-all duration-200 active:scale-95 group"
           >
-            <X className="w-4 h-4" />
-          </button>
-        )}
+            <Sparkles className="w-4 h-4" />
+            View New Requests
+            <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </Link>
+        </div>
       </div>
 
-      {/* Filter */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-          {[
-            { value: 'all', label: 'All' },
-            { value: 'active', label: 'Active' },
-            { value: 'accepted', label: 'Accepted' },
-            { value: 'expired', label: 'Expired' },
-          ].map((f) => (
-            <button
-              key={f.value}
-              onClick={() => {
-                setFilter(f.value);
-                setCurrentPage(1); // Reset to page 1 when filter changes
-              }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filter === f.value
-                  ? 'bg-white text-amber-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+      {/* ══════════ Stats Cards ══════════ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group cursor-default">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-9 h-9 bg-gradient-to-br from-gray-100 to-gray-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Send className="w-4 h-4 text-gray-500" />
+            </div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total</span>
+          </div>
+          <p className="text-3xl font-extrabold text-gray-900">{totalQuotes}</p>
+          <p className="text-[11px] text-gray-400 mt-0.5">quotes sent</p>
         </div>
 
-        <DateFilterDropdown
-          onFilterChange={(start, end) => {
-            setDateFilter({ start, end });
-            setCurrentPage(1); // Reset to page 1 when filter changes
-          }}
-          initialStartDate={dateFilter.start || undefined}
-          initialEndDate={dateFilter.end || undefined}
-        />
+        <div className="bg-white rounded-2xl p-4 border border-blue-100 hover:shadow-md hover:shadow-blue-100/50 hover:-translate-y-0.5 transition-all duration-300 group cursor-default">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Clock className="w-4 h-4 text-blue-500" />
+            </div>
+            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Pending</span>
+          </div>
+          <p className="text-3xl font-extrabold text-blue-600">{pendingQuotes}</p>
+          <p className="text-[11px] text-blue-400 mt-0.5">awaiting response</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-emerald-50 to-white rounded-2xl p-4 border border-emerald-200 hover:shadow-md hover:shadow-emerald-100/50 hover:-translate-y-0.5 transition-all duration-300 group cursor-default">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-sm shadow-emerald-500/20 group-hover:scale-110 transition-transform">
+              <Award className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Won</span>
+          </div>
+          <p className="text-3xl font-extrabold text-emerald-600">{acceptedQuotes}</p>
+          <p className="text-[11px] text-emerald-500 mt-0.5">bookings converted</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-50/50/50 rounded-2xl p-4 border border-emerald-200 hover:shadow-md hover:shadow-emerald-100/50 hover:-translate-y-0.5 transition-all duration-300 group cursor-default">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-sm shadow-emerald-500/20 group-hover:scale-110 transition-transform">
+              <TrendingUp className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Revenue</span>
+          </div>
+          <p className="text-2xl font-extrabold text-emerald-600">₹{totalValue.toLocaleString()}</p>
+          <p className="text-[11px] text-emerald-400 mt-0.5">total won value</p>
+        </div>
       </div>
 
-      {/* Quotes List */}
-      <div className="space-y-4">
-        {quotes.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center border">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="font-medium text-gray-900 mb-1">No quotes found</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              You haven&apos;t sent any quotes yet
-            </p>
-            <Link
-              href="/vendor/equipment/requests"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg font-medium hover:bg-amber-700 transition"
-            >
-              <Send className="w-4 h-4" />
-              Browse Requests
-            </Link>
+      {/* ══════════ Conversion Rate Bar ══════════ */}
+      {totalQuotes > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-gray-400" />
+              <span className="text-xs font-bold text-gray-600">Conversion Rate</span>
+            </div>
+            <span className="text-sm font-extrabold text-emerald-600">{conversionRate}%</span>
           </div>
-        ) : (
-          quotes.map((quote) => {
+          <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-1000 ease-out"
+              style={{ width: `${conversionRate}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-[10px] text-gray-400">{acceptedQuotes} won out of {totalQuotes} quotes</span>
+            {conversionRate >= 30 && (
+              <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
+                <Sparkles className="w-3 h-3" /> Great performance!
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════ Filters + Search ══════════ */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-3 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
+            {filterTabs.map((f) => {
+              const Icon = f.icon;
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => { setFilter(f.value); setCurrentPage(1); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap ${
+                    filter === f.value
+                      ? f.activeColor
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {f.label}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold min-w-[20px] text-center ${
+                    filter === f.value
+                      ? f.value === 'all' ? 'bg-gray-100 text-gray-600' : 'bg-white/25 text-white'
+                      : 'bg-gray-200/60 text-gray-400'
+                  }`}>{f.count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="relative flex-1 min-w-[200px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by quote #, equipment, customer, city..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all placeholder:text-gray-400"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition">
+                <X className="w-3 h-3 text-gray-500" />
+              </button>
+            )}
+          </div>
+
+          <DateFilterDropdown
+            onFilterChange={(start, end) => {
+              setDateFilter({ start, end });
+              setCurrentPage(1);
+            }}
+            initialStartDate={dateFilter.start || undefined}
+            initialEndDate={dateFilter.end || undefined}
+          />
+        </div>
+      </div>
+
+      {/* ══════════ Quotes Grid ══════════ */}
+      {quotes.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
+          <div className="relative w-20 h-20 mx-auto mb-5">
+            <div className="absolute inset-0 bg-emerald-100 rounded-3xl rotate-6" />
+            <div className="absolute inset-0 bg-emerald-50 rounded-3xl -rotate-3" />
+            <div className="relative w-full h-full bg-white rounded-3xl border border-emerald-100 flex items-center justify-center shadow-sm">
+              <Send className="w-9 h-9 text-emerald-400" />
+            </div>
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-1.5">No quotes found</h3>
+          <p className="text-sm text-gray-400 mb-6 max-w-xs mx-auto">
+            {searchQuery ? 'No quotes match your search. Try different keywords.' : filter !== 'all' ? 'No quotes match this filter.' : 'Start sending quotes to equipment rental requests and track them here.'}
+          </p>
+          <Link
+            href="/vendor/equipment/requests"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:from-emerald-600 hover:to-emerald-700 transition-all active:scale-95"
+          >
+            <Sparkles className="w-4 h-4" /> Browse Requests
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {quotes.map((quote, index) => {
             const statusConfig = STATUS_CONFIG[quote.status] || STATUS_CONFIG.SENT;
             const StatusIcon = statusConfig.icon;
-            const isExpanded = expandedId === quote.id;
+            const expiringSoon = isExpiringSoon(quote.validTill) && quote.status === 'SENT';
+            const isWon = quote.status === 'ACCEPTED';
             const req = quote.request;
+            const equipmentTitle = quote.equipmentModel || req.equipmentName || req.equipmentType;
 
             return (
-              <div
+              <Link
                 key={quote.id}
-                className="bg-white rounded-xl shadow-sm border overflow-hidden"
+                href={`/vendor/equipment/quotes/${quote.id}`}
+                style={{ animationDelay: `${0.25 + index * 0.06}s` }}
+                className={`block bg-white rounded-2xl border overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group relative opacity-0 animate-fade-in-up ${
+                  isWon
+                    ? 'border-emerald-200 shadow-sm ' + statusConfig.glow
+                    : expiringSoon
+                    ? 'border-emerald-200 shadow-sm'
+                    : 'border-gray-100 hover:border-gray-200'
+                }`}
               >
-                {/* Header */}
-                <div className="px-4 py-2 bg-gray-50 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm text-gray-700">
-                      #{quote.quoteNumber}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {getTimeAgo(quote.createdAt)}
-                    </span>
+                {/* Status accent bar */}
+                <div className={`h-1 w-full ${statusConfig.accent}`} />
+
+                {/* Won ribbon */}
+                {isWon && (
+                  <div className="absolute top-3 -right-8 bg-emerald-500 text-white text-[9px] font-extrabold uppercase tracking-widest py-0.5 px-10 rotate-45 shadow-sm">
+                    Won
                   </div>
+                )}
+
+                {/* Card Header */}
+                <div className="px-4 py-2.5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    {isExpiringSoon(quote.validTill) && quote.status === 'SENT' && (
-                      <span className="text-xs text-red-600 font-medium">Expires soon!</span>
-                    )}
-                    <span className={`px-2 py-0.5 ${statusConfig.bgColor} ${statusConfig.color} text-xs font-medium rounded-full flex items-center gap-1`}>
-                      <StatusIcon className="w-3 h-3" />
-                      {statusConfig.label}
-                    </span>
+                    <span className="font-mono text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">#{quote.quoteNumber}</span>
+                    <span className="text-[10px] text-gray-400">{getTimeAgo(quote.createdAt)}</span>
                   </div>
+                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
+                    <StatusIcon className="w-3 h-3" />
+                    {statusConfig.label}
+                  </span>
                 </div>
 
-                <div className="p-4 md:p-6">
-                  {/* Quote Details */}
-                  <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                        <Wrench className="w-6 h-6 text-amber-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-gray-900">
-                          {quote.equipmentModel || req.equipmentType}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {req.equipmentCategory}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Request: #{req.requestNumber}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-amber-600">
-                        ₹{quote.totalAmount.toLocaleString()}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        ₹{quote.dailyRate.toLocaleString()}/day
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Customer Info Row */}
-                  <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-100">
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                      <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
-                        <User className="w-4 h-4 text-blue-500" />
-                        {req.customerName}
-                      </div>
-                      <a href={`tel:${req.customerPhone}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
-                        <Phone className="w-3.5 h-3.5" />
-                        {req.customerPhone}
-                      </a>
-                      <a href={`mailto:${req.customerEmail}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
-                        <Mail className="w-3.5 h-3.5" />
-                        {req.customerEmail}
-                      </a>
-                      {req.companyName && (
-                        <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                          <Building2 className="w-3.5 h-3.5 text-gray-400" />
-                          {req.companyName}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Location & Date Row */}
-                  <div className="flex flex-wrap gap-4 mb-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-amber-500" />
-                      {req.deliveryCity}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-amber-500" />
-                      {new Date(req.startDate).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                      {req.endDate && (
-                        <> — {new Date(req.endDate).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}</>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      {req.rentalDays} days ({req.rentalDuration})
-                    </div>
-                    {req.quantity > 1 && (
-                      <div className="flex items-center gap-1.5">
-                        <Package className="w-4 h-4 text-gray-400" />
-                        Qty: {req.quantity}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Valid Till */}
-                  <p className="text-xs text-gray-500 mb-4">
-                    Valid until: {new Date(quote.validTill).toLocaleString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: true,
-                    })}
-                  </p>
-
-                  {/* Expand/Collapse for full details */}
-                  <button
-                    onClick={() => setExpandedId(isExpanded ? null : quote.id)}
-                    className="flex items-center gap-1 text-sm text-amber-600 font-medium hover:text-amber-700 mb-3"
-                  >
-                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    {isExpanded ? 'Hide Details' : 'View Full Request Details'}
-                  </button>
-
-                  {/* Expanded Details */}
-                  {isExpanded && (
-                    <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200 space-y-4">
-                      {/* Delivery Details */}
-                      <div>
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Delivery Details</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <span className="text-gray-500">City:</span>{' '}
-                            <span className="font-medium text-gray-900">{req.deliveryCity}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Address:</span>{' '}
-                            <span className="font-medium text-gray-900">{req.deliveryAddress}</span>
-                          </div>
-                          {req.siteType && (
-                            <div>
-                              <span className="text-gray-500">Site Type:</span>{' '}
-                              <span className="font-medium text-gray-900">{req.siteType}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Services Required */}
-                      <div>
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Services Required</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {req.needOperator && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                              <HardHat className="w-3 h-3" /> Operator Needed
-                            </span>
-                          )}
-                          {req.needDelivery && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                              <Truck className="w-3 h-3" /> Delivery Required
-                            </span>
-                          )}
-                          {req.needInstallation && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
-                              <Settings className="w-3 h-3" /> Installation Needed
-                            </span>
-                          )}
-                          {!req.needOperator && !req.needDelivery && !req.needInstallation && (
-                            <span className="text-sm text-gray-500">No additional services requested</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Budget */}
-                      {(req.budgetMin || req.budgetMax) && (
-                        <div>
-                          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Customer Budget</h4>
-                          <p className="text-sm font-medium text-gray-900">
-                            {req.budgetMin && req.budgetMax
-                              ? `₹${req.budgetMin.toLocaleString()} — ₹${req.budgetMax.toLocaleString()}`
-                              : req.budgetMin
-                              ? `Min ₹${req.budgetMin.toLocaleString()}`
-                              : `Max ₹${req.budgetMax!.toLocaleString()}`}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Special Requirements */}
-                      {req.requirements && (
-                        <div>
-                          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Special Requirements</h4>
-                          <p className="text-sm text-gray-700 bg-white rounded p-3 border border-gray-200">
-                            {req.requirements}
-                          </p>
-                        </div>
-                      )}
+                {/* Card Body */}
+                <div className="px-4 pb-4">
+                  {expiringSoon && (
+                    <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-50 to-emerald-50/50 border border-emerald-200 rounded-xl px-3 py-2 mb-3 animate-pulse">
+                      <Zap className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span className="text-[11px] font-bold text-emerald-700">Expiring soon — respond quickly!</span>
                     </div>
                   )}
 
+                  {/* Equipment + Price */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                        isWon ? 'bg-gradient-to-br from-emerald-100 to-emerald-50' : 'bg-gradient-to-br from-emerald-100 to-emerald-50'
+                      }`}>
+                        <Wrench className={`w-5 h-5 ${isWon ? 'text-emerald-600' : 'text-emerald-500'}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold text-gray-900 truncate group-hover:text-emerald-600 transition-colors">{equipmentTitle}</h3>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          {req.equipmentCategory && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-md font-medium">{req.equipmentCategory}</span>
+                          )}
+                          <span className="text-[11px] text-gray-400 flex items-center gap-0.5">
+                            <IndianRupee className="w-3 h-3" />{quote.dailyRate.toLocaleString()}/day
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={`text-xl font-extrabold ${isWon ? 'text-emerald-600' : 'text-emerald-600'}`}>
+                        ₹{quote.totalAmount.toLocaleString()}
+                      </p>
+                      <p className="text-[10px] text-gray-400 font-medium">total amount</p>
+                    </div>
+                  </div>
+
+                  {/* Customer row */}
+                  <div className="flex items-center gap-2.5 mb-3 bg-gray-50/80 rounded-xl px-3 py-2">
+                    <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm shadow-blue-500/20">
+                      <span className="text-[10px] font-bold text-white">
+                        {req?.customerName?.charAt(0)?.toUpperCase() || 'C'}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-gray-700 truncate">{req?.customerName}</p>
+                      <p className="text-[10px] text-gray-400">Req #{req?.requestNumber}</p>
+                    </div>
+                    {req.quantity > 1 && (
+                      <span className="flex items-center gap-0.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100 shrink-0">
+                        <Package className="w-2.5 h-2.5" /> {req.quantity}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Trip Details */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-xl px-3 py-2">
+                      <div className="flex items-center gap-1 text-gray-400 mb-0.5">
+                        <MapPin className="w-3 h-3" />
+                        <span className="text-[9px] font-bold uppercase tracking-wider">Location</span>
+                      </div>
+                      <p className="text-[11px] font-bold text-gray-700 truncate">{req?.deliveryCity}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-cyan-50/60 to-white border border-cyan-100 rounded-xl px-3 py-2">
+                      <div className="flex items-center gap-1 text-cyan-500 mb-0.5">
+                        <Calendar className="w-3 h-3" />
+                        <span className="text-[9px] font-bold uppercase tracking-wider">Rental</span>
+                      </div>
+                      <p className="text-[11px] font-bold text-gray-700">
+                        {req?.startDate && new Date(req.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        <span className="text-cyan-600 ml-1 font-extrabold">({req?.rentalDays}d)</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Footer info */}
+                  <div className="flex items-center justify-between text-[10px] text-gray-400 mb-3">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" />
+                      <span>Valid till {new Date(quote.validTill).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                    </div>
+                  </div>
+
                   {/* Actions */}
-                  <div className="flex flex-wrap gap-2 pt-4 border-t">
+                  <div className="flex gap-2 pt-3 border-t border-gray-100" onClick={(e) => e.preventDefault()}>
                     <Link
                       href={`/vendor/equipment/quotes/${quote.id}`}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition flex items-center gap-1"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-all active:scale-95"
                     >
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-3.5 h-3.5" />
                       View Details
+                      <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
                     </Link>
-
-                    {['SENT', 'VIEWED'].includes(quote.status) && (
-                      <>
-                        <button className="px-4 py-2 bg-amber-100 text-amber-700 text-sm font-medium rounded-lg hover:bg-amber-200 transition">
-                          Revise Quote
-                        </button>
-                        <button className="px-4 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-lg hover:bg-red-200 transition">
-                          Withdraw
-                        </button>
-                      </>
-                    )}
-
                     {quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status) && (
                       <Link
                         href={`/vendor/equipment/requests/${quote.request.id}/quote`}
-                        className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-emerald-500/20 active:scale-95"
                       >
-                        <RefreshCw className="w-4 h-4" />
-                        Send Fresh Quote
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Re-Quote
                       </Link>
                     )}
-                    {quote.status === 'ACCEPTED' && (
+                    {isWon && (
                       <Link
                         href={`/vendor/equipment/bookings`}
-                        className="px-4 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-lg hover:bg-green-200 transition flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-emerald-500/20 active:scale-95"
                       >
-                        <CheckCircle className="w-4 h-4" />
-                        View Booking
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Booking
                       </Link>
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
 
-      {/* Pagination */}
+      {/* ══════════ Pagination ══════════ */}
       {quotes.length > 0 && (
         <Pagination
           currentPage={currentPage}
@@ -574,16 +646,6 @@ export default function VendorEquipmentQuotesPage() {
           onPageChange={(page) => setCurrentPage(page)}
         />
       )}
-
-      {/* Help */}
-      <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-        <h4 className="font-medium text-amber-800 mb-2">Quote Status Guide</h4>
-        <div className="grid md:grid-cols-3 gap-2 text-sm text-amber-700">
-          <div><span className="font-medium">Sent:</span> Customer hasn&apos;t viewed yet</div>
-          <div><span className="font-medium">Viewed:</span> Customer is reviewing</div>
-          <div><span className="font-medium">Accepted:</span> You won the booking!</div>
-        </div>
-      </div>
     </div>
   );
 }

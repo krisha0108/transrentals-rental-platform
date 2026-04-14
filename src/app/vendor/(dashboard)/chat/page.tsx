@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import {
   MessageCircle,
   Send,
@@ -29,14 +31,21 @@ import {
   RefreshCw,
   Settings,
   Plus,
-  ExternalLink,
+  ArrowLeft,
+  Info,
+  Mic,
+  FileIcon,
+  Download,
+  Loader2,
+  Eye,
 } from 'lucide-react';
+
+const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
 interface Conversation {
   id: string;
   bookingType: string;
   bookingId: string | null;
-  bookingNumber: string | null;
   subject: string | null;
   status: string;
   unreadCount: number;
@@ -89,6 +98,32 @@ const SERVICE_ICONS: Record<string, React.ComponentType<{ className?: string }>>
   packers: Package,
 };
 
+// Booking detail page URL prefix per service type
+const BOOKING_DETAIL_URLS: Record<string, string> = {
+  bike: '/vendor/bike-rentals/bookings/',
+  car: '/vendor/car-rental/bookings/',
+  chauffeur: '/vendor/car-rental/bookings/',
+  luxury: '/vendor/luxury/bookings/',
+  bus: '/vendor/bus/bookings/',
+  truck: '/vendor/truck/bookings/',
+  equipment: '/vendor/equipment/bookings/',
+  packers: '/vendor/packers/bookings/',
+  'self-drive': '/vendor/self-drive/bookings/',
+  wander_booking: '/vendor/wander/bookings/',
+  wander_quote: '/vendor/wander/quotes/',
+};
+
+const SERVICE_COLORS: Record<string, string> = {
+  bike: '#3B82F6',
+  car: '#8B5CF6',
+  chauffeur: '#8B5CF6',
+  luxury: '#EC4899',
+  bus: '#F97316',
+  truck: '#6366F1',
+  equipment: '#14B8A6',
+  packers: '#F59E0B',
+};
+
 export default function VendorChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -99,19 +134,19 @@ export default function VendorChatPage() {
   const [isSending, setIsSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [totalUnread, setTotalUnread] = useState(0);
-  const [autoSelectBookingId, setAutoSelectBookingId] = useState<string | null>(null);
-
-  // Read bookingId from URL on mount
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const bid = params.get('bookingId');
-    if (bid) setAutoSelectBookingId(bid);
-  }, []);
+  const [activeTab, setActiveTab] = useState('all');
+  const [showMobileSidebar, setShowMobileSidebar] = useState(true);
 
   // Quick replies
   const [quickReplies, setQuickReplies] = useState<QuickReply[]>([]);
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [quickReplyCategory, setQuickReplyCategory] = useState('all');
+
+  // Emoji & file upload
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiRef = useRef<HTMLDivElement>(null);
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -130,25 +165,15 @@ export default function VendorChatPage() {
       const data = await res.json();
 
       if (data.success) {
-        const convs: Conversation[] = data.conversations || [];
-        setConversations(convs);
+        setConversations(data.conversations || []);
         setTotalUnread(data.totalUnread || 0);
-
-        // Auto-select conversation if bookingId param was provided
-        setAutoSelectBookingId(prev => {
-          if (prev && !selectedConversation) {
-            const match = convs.find(c => c.bookingId === prev);
-            if (match) setSelectedConversation(match);
-          }
-          return prev;
-        });
       }
     } catch (err) {
       console.error('Failed to fetch conversations:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedConversation]);
+  }, []);
 
   // Fetch messages for selected conversation
   const fetchMessages = useCallback(async () => {
@@ -272,6 +297,105 @@ export default function VendorChatPage() {
     sendMessage(reply.message);
   };
 
+  // Emoji select
+  const handleEmojiClick = (emojiData: any) => {
+    setNewMessage((prev) => prev + emojiData.emoji);
+    inputRef.current?.focus();
+  };
+
+  // Close emoji picker on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showEmojiPicker]);
+
+  // File upload
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedConversation) return;
+
+    // Validate size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+    setShowEmojiPicker(false);
+
+    try {
+      // Upload file
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const uploadRes = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+
+      if (!uploadData.success) {
+        alert('Failed to upload file');
+        return;
+      }
+
+      const fileUrl = uploadData.url;
+      const isImage = file.type.startsWith('image/');
+      const contentText = isImage ? `📷 ${file.name}` : file.name;
+
+      // Send as message with attachment
+      const tempId = `temp-${Date.now()}`;
+      const tempMessage: Message = {
+        id: tempId,
+        senderType: 'vendor',
+        senderId: null,
+        senderName: 'You',
+        messageType: isImage ? 'IMAGE' : 'FILE',
+        content: contentText,
+        attachmentUrl: fileUrl,
+        attachmentName: file.name,
+        status: 'SENT',
+        readAt: null,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, tempMessage]);
+      scrollToBottom();
+
+      const res = await fetch(`/api/chat/conversations/${selectedConversation.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          senderType: 'vendor',
+          content: contentText,
+          messageType: isImage ? 'IMAGE' : 'FILE',
+          attachmentUrl: fileUrl,
+          attachmentName: file.name,
+          attachmentSize: Number(file.size),
+          attachmentType: file.type,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setMessages((prev) => prev.map((m) => (m.id === tempId ? data.message : m)));
+      } else {
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      }
+    } catch (err) {
+      console.error('File upload failed:', err);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   // Format time
   const formatTime = (dateString: string) => {
     if (!dateString) return '';
@@ -290,6 +414,18 @@ export default function VendorChatPage() {
     }
   };
 
+  // Get date group label
+  const getDateGroup = (dateString: string | null) => {
+    if (!dateString) return 'Earlier';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return 'This Week';
+    return 'Earlier';
+  };
+
   // Get service icon
   const getServiceIcon = (bookingType: string) => {
     const Icon = SERVICE_ICONS[bookingType] || MessageCircle;
@@ -298,13 +434,30 @@ export default function VendorChatPage() {
 
   // Filter conversations
   const filteredConversations = conversations.filter((conv) => {
-    if (!searchQuery) return true;
+    if (!searchQuery) {
+      if (activeTab === 'all') return true;
+      if (activeTab === 'unread') return conv.unreadCount > 0;
+      return conv.bookingType.toLowerCase().includes(activeTab);
+    }
     const query = searchQuery.toLowerCase();
     return (
       conv.participant.name.toLowerCase().includes(query) ||
       conv.bookingType.toLowerCase().includes(query) ||
       conv.subject?.toLowerCase().includes(query)
     );
+  });
+
+  // Group conversations by date
+  const groupedConversations: { label: string; items: Conversation[] }[] = [];
+  let currentGroup = '';
+  filteredConversations.forEach((conv) => {
+    const group = getDateGroup(conv.lastMessageAt);
+    if (group !== currentGroup) {
+      currentGroup = group;
+      groupedConversations.push({ label: group, items: [conv] });
+    } else {
+      groupedConversations[groupedConversations.length - 1].items.push(conv);
+    }
   });
 
   // Initial load
@@ -318,6 +471,7 @@ export default function VendorChatPage() {
     if (selectedConversation) {
       setIsLoadingMessages(true);
       fetchMessages();
+      setShowMobileSidebar(false);
 
       // Poll for new messages every 3 seconds
       pollingRef.current = setInterval(fetchMessages, 3000);
@@ -330,9 +484,20 @@ export default function VendorChatPage() {
     }
   }, [selectedConversation, fetchMessages]);
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom only when new messages are added (not on every poll)
+  const prevMessageCount = useRef(0);
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > prevMessageCount.current) {
+      // Only auto-scroll if user is near the bottom already
+      const container = messagesEndRef.current?.parentElement;
+      if (container) {
+        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+        if (isNearBottom || prevMessageCount.current === 0) {
+          scrollToBottom();
+        }
+      }
+    }
+    prevMessageCount.current = messages.length;
   }, [messages, scrollToBottom]);
 
   // Poll conversations for updates
@@ -349,341 +514,333 @@ export default function VendorChatPage() {
     }
   };
 
+  // Clean label mapping for booking types
+  const TYPE_LABELS: Record<string, string> = {
+    bike: 'Bike',
+    car: 'Car',
+    chauffeur: 'Chauffeur',
+    luxury: 'Luxury',
+    bus: 'Bus',
+    truck: 'Truck',
+    equipment: 'Equipment',
+    packers: 'Packers',
+    'self-drive': 'Self-Drive',
+    Wander_quote: 'Quotes',
+    Wander_booking: 'Bookings',
+  };
+
+  // Build tabs dynamically — merge similar types, show clean labels
+  const uniqueTypes = Array.from(new Set(conversations.map(c => c.bookingType)));
+  const tabs = [
+    { id: 'all', label: 'All' },
+    { id: 'unread', label: 'Unread' },
+    ...uniqueTypes.map(type => ({
+      id: type,
+      label: TYPE_LABELS[type] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    })),
+  ];
+
   return (
-    <div className="h-[calc(100vh-80px)] flex bg-gray-50">
-      {/* Conversation List */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+    <div className="h-[calc(100vh-80px)] flex flex-col rounded-2xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-200/60 bg-[#F9FAFB]">
+
+      <style jsx>{`
+        @keyframes msgIn { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes shimmer { 0% { background-position: -200% 0 } 100% { background-position: 200% 0 } }
+        @keyframes fadeInUp { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes pulse-emerald { 0%, 100% { box-shadow: 0 0 0 0 rgba(5,150,105,0.3) } 50% { box-shadow: 0 0 0 6px rgba(5,150,105,0) } }
+        .msg-in { animation: msgIn 0.25s ease-out; }
+        .fade-in-up { animation: fadeInUp 0.35s ease-out; }
+        .chat-bg { background: linear-gradient(135deg, #f0fdf4 0%, #f9fafb 40%, #ecfdf5 100%); }
+        .shimmer-emerald { background: linear-gradient(90deg, #d1fae5 25%, #a7f3d0 50%, #d1fae5 75%); background-size: 200% 100%; animation: shimmer 1.5s ease-in-out infinite; }
+        .pulse-ring { animation: pulse-emerald 2s ease-in-out infinite; }
+      `}</style>
+
+      {/* Emerald accent strip */}
+      <div className="h-1 bg-gradient-to-r from-emerald-500 to-emerald-600 flex-shrink-0" />
+
+      <div className="flex flex-1 min-h-0">
+
+      {/* ══════ SIDEBAR (300px) ══════ */}
+      <div className={`w-[300px] bg-white flex flex-col flex-shrink-0 border-r border-gray-200 ${!showMobileSidebar && selectedConversation ? 'hidden lg:flex' : 'flex'}`}>
+
         {/* Header */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="px-4 pt-4 pb-2.5 bg-white border-b border-gray-100">
           <div className="flex items-center justify-between mb-3">
-            <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <MessageCircle className="w-6 h-6 text-blue-600" />
-              Chats
-              {totalUnread > 0 && (
-                <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
-                  {totalUnread}
-                </span>
-              )}
-            </h1>
-            <button
-              onClick={fetchConversations}
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
-            >
-              <RefreshCw className="w-4 h-4 text-gray-500" />
-            </button>
+            <h1 className="text-lg font-extrabold text-gray-900">Messages</h1>
+            <div className="flex items-center gap-1.5">
+              {totalUnread > 0 && <span className="bg-emerald-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">{totalUnread}</span>}
+              <button onClick={fetchConversations} className="p-1.5 hover:bg-emerald-50 rounded-lg transition-colors group"><RefreshCw className="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-600 transition-colors" /></button>
+            </div>
           </div>
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search chats..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+
+          <div className="relative mb-2.5">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input type="text" placeholder="Search conversations..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-gray-50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:bg-white border border-gray-200 focus:border-emerald-400 transition-all placeholder:text-gray-400" />
+          </div>
+
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide pb-0.5">
+            {tabs.map((tab) => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0 ${activeTab === tab.id ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-200/50' : 'bg-gray-100 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50'}`}>
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Conversation List */}
-        <div className="flex-1 overflow-y-auto">
+        {/* List */}
+        <div className="flex-1 overflow-y-auto px-2 pt-1">
           {isLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
-            </div>
+            <div className="p-1">{[...Array(7)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-2.5">
+                <div className="w-10 h-10 shimmer-emerald rounded-full flex-shrink-0" />
+                <div className="flex-1 space-y-1.5"><div className="h-3 shimmer-emerald rounded w-24" /><div className="h-2 shimmer-emerald rounded w-32" /></div>
+              </div>
+            ))}</div>
           ) : filteredConversations.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p>No conversations yet</p>
-            </div>
+            <div className="text-center py-14 fade-in-up"><MessageCircle className="w-8 h-8 text-emerald-200 mx-auto mb-2" /><p className="text-xs text-gray-400 font-medium">No conversations</p></div>
           ) : (
-            <div className="divide-y divide-gray-100">
-              {filteredConversations.map((conv) => {
-                const ServiceIcon = getServiceIcon(conv.bookingType);
-                const isSelected = selectedConversation?.id === conv.id;
+            <div className="pb-1">
+              {groupedConversations.map((group) => (
+                <div key={group.label}>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 py-2 mt-1">{group.label}</p>
+                  {group.items.map((conv) => {
+                    const isSelected = selectedConversation?.id === conv.id;
+                    const sc = SERVICE_COLORS[conv.bookingType] || '#6B7280';
 
-                return (
-                  <button
-                    key={conv.id}
-                    onClick={() => setSelectedConversation(conv)}
-                    className={`w-full p-4 text-left hover:bg-gray-50 transition flex items-start gap-3 ${
-                      isSelected ? 'bg-blue-50 hover:bg-blue-50' : ''
-                    }`}
-                  >
-                    <div className="relative flex-shrink-0">
-                      <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center">
-                        {conv.participant.avatar ? (
-                          <img
-                            src={conv.participant.avatar}
-                            alt={conv.participant.name}
-                            className="w-12 h-12 rounded-full object-cover"
-                          />
-                        ) : (
-                          <User className="w-6 h-6 text-blue-600" />
-                        )}
-                      </div>
-                      <div className="absolute -bottom-1 -right-1 p-1 bg-white rounded-full shadow-sm">
-                        <ServiceIcon className="w-3 h-3 text-gray-500" />
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className={`font-semibold text-sm truncate ${
-                          conv.unreadCount > 0 ? 'text-gray-900' : 'text-gray-700'
+                    return (
+                      <button key={conv.id} onClick={() => setSelectedConversation(conv)}
+                        className={`w-full p-2.5 text-left rounded-xl flex items-center gap-3 mb-0.5 transition-all duration-200 ${
+                          isSelected ? 'bg-emerald-50 shadow-sm border border-emerald-200/60 ring-1 ring-emerald-200/40' : 'hover:bg-emerald-50/40 border border-transparent'
                         }`}>
-                          {conv.participant.name}
-                        </h3>
-                        {conv.lastMessageAt && (
-                          <span className="text-xs text-gray-400 flex-shrink-0">
-                            {formatTime(conv.lastMessageAt)}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500 mb-1">
-                        {conv.bookingType.charAt(0).toUpperCase() + conv.bookingType.slice(1)}
-                        {(conv.bookingNumber || conv.bookingId) && ` • #${conv.bookingNumber || conv.bookingId?.slice(-6)}`}
-                      </p>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className={`text-sm truncate ${
-                          conv.unreadCount > 0 ? 'text-gray-900 font-medium' : 'text-gray-500'
-                        }`}>
-                          {conv.lastMessage?.senderType === 'vendor' && (
-                            <span className="text-gray-400 mr-1">You:</span>
-                          )}
-                          {conv.lastMessage?.content || 'Start a conversation'}
-                        </p>
-                        {conv.unreadCount > 0 && (
-                          <span className="bg-blue-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center flex-shrink-0">
-                            {conv.unreadCount}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
+                        {/* Left indicator */}
+                        {isSelected && <div className="w-[3px] h-8 bg-emerald-600 rounded-full flex-shrink-0 -ml-0.5" />}
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all ${isSelected ? 'bg-emerald-100 ring-2 ring-emerald-300/50' : 'bg-gray-200/70'}`} style={{ color: sc }}>
+                          {conv.participant.avatar ? <img src={conv.participant.avatar} alt="" className="w-10 h-10 rounded-full object-cover" /> : conv.participant.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : isSelected ? 'font-semibold text-gray-900' : 'font-medium text-gray-600'}`}>{conv.participant.name}</span>
+                            <span className={`text-xs flex-shrink-0 ${conv.unreadCount > 0 ? 'text-emerald-600 font-bold' : 'text-gray-400'}`}>{conv.lastMessageAt ? formatTime(conv.lastMessageAt) : ''}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-1 mt-0.5">
+                            <p className={`text-[13px] truncate ${conv.unreadCount > 0 ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+                              {conv.lastMessage?.senderType === 'vendor' && <CheckCheck className="w-3 h-3 inline mr-0.5 text-emerald-400" />}
+                              {conv.lastMessage?.content || 'No messages'}
+                            </p>
+                            {conv.unreadCount > 0 && <span className="bg-emerald-600 text-white text-xs font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center flex-shrink-0">{conv.unreadCount}</span>}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      {/* ══════ CHAT AREA (flex) ══════ */}
+      <div className={`flex-1 flex flex-col min-w-0 ${showMobileSidebar && !selectedConversation ? 'hidden lg:flex' : 'flex'}`}>
         {!selectedConversation ? (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-600 mb-2">
-                Select a conversation
-              </h2>
-              <p className="text-gray-400">
-                Choose a chat from the list to start messaging
-              </p>
+          <div className="flex-1 flex items-center justify-center chat-bg">
+            <div className="text-center bg-white/80 backdrop-blur-md rounded-3xl px-10 py-8 shadow-sm fade-in-up">
+              <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3 pulse-ring">
+                <MessageCircle className="w-7 h-7 text-emerald-500" />
+              </div>
+              <h2 className="text-base font-bold text-gray-600 mb-0.5">Select a conversation</h2>
+              <p className="text-sm text-gray-400">Choose a chat to start messaging</p>
             </div>
           </div>
         ) : (
           <>
-            {/* Chat Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center">
-                  {selectedConversation.participant.avatar ? (
-                    <img
-                      src={selectedConversation.participant.avatar}
-                      alt={selectedConversation.participant.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-5 h-5 text-blue-600" />
-                  )}
+            {/* ── HEADER (fixed) ── */}
+            <div className="bg-white px-5 py-3 flex items-center justify-between border-b border-gray-200 flex-shrink-0 z-10 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center gap-3">
+                <button onClick={() => { setSelectedConversation(null); setShowMobileSidebar(true); }} className="p-1.5 hover:bg-emerald-50 rounded-lg lg:hidden transition-colors"><ArrowLeft className="w-4 h-4 text-gray-500" /></button>
+
+                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-50 flex-shrink-0 ring-2 ring-emerald-400/40 pulse-ring">
+                  {selectedConversation.participant.avatar
+                    ? <img src={selectedConversation.participant.avatar} alt="" className="w-10 h-10 rounded-full object-cover" />
+                    : <span className="text-sm font-bold text-emerald-700">{selectedConversation.participant.name.charAt(0).toUpperCase()}</span>}
                 </div>
-                <div>
-                  <h2 className="font-semibold text-gray-900">
-                    {selectedConversation.participant.name}
-                  </h2>
-                  <p className="text-sm text-gray-500">
-                    {selectedConversation.bookingType.charAt(0).toUpperCase() +
-                      selectedConversation.bookingType.slice(1)} Booking
-                    {(selectedConversation.bookingNumber || selectedConversation.bookingId) &&
-                      ` • #${selectedConversation.bookingNumber || selectedConversation.bookingId?.slice(-6)}`}
+
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-bold text-gray-900 truncate">{selectedConversation.participant.name}</h2>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${SERVICE_COLORS[selectedConversation.bookingType] || '#6B7280'}10`, color: SERVICE_COLORS[selectedConversation.bookingType] || '#6B7280' }}>
+                      {selectedConversation.bookingType.charAt(0).toUpperCase() + selectedConversation.bookingType.slice(1)}
+                    </span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${selectedConversation.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
+                      {selectedConversation.status === 'ACTIVE' ? 'Active' : selectedConversation.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {selectedConversation.bookingType === 'chauffeur' ? 'Car' : (selectedConversation.bookingType.charAt(0).toUpperCase() + selectedConversation.bookingType.slice(1))} Booking
+                    {selectedConversation.bookingId && <span className="text-gray-500 font-medium"> · #{selectedConversation.bookingId.slice(-6)}</span>}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {selectedConversation.participant.phone && (
-                  <a
-                    href={`tel:${selectedConversation.participant.phone}`}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition"
-                  >
-                    <Phone className="w-5 h-5 text-gray-500" />
-                  </a>
-                )}
-                {selectedConversation.bookingId && (
-                  <a
-                    href={
-                      selectedConversation.bookingType === 'b2b'
-                        ? `/vendor/b2b-bookings/${selectedConversation.bookingId}`
-                        : `/vendor/bookings`
-                    }
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg text-xs font-semibold border border-teal-200 transition"
-                    title="View Booking"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    View Booking
-                  </a>
-                )}
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition">
-                  <MoreVertical className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-            </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
-              {isLoadingMessages ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
-                </div>
-              ) : messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                  <MessageCircle className="w-12 h-12 mb-3" />
-                  <p>No messages yet</p>
-                  <p className="text-sm">Send a message to start the conversation</p>
-                </div>
-              ) : (
-                <>
-                  {messages.map((msg, index) => {
-                    const isVendor = msg.senderType === 'vendor';
-                    const showDate =
-                      index === 0 ||
-                      new Date(msg.createdAt).toDateString() !==
-                        new Date(messages[index - 1].createdAt).toDateString();
-
-                    return (
-                      <div key={msg.id}>
-                        {showDate && (
-                          <div className="flex justify-center my-4">
-                            <span className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
-                              {new Date(msg.createdAt).toLocaleDateString('en-IN', {
-                                weekday: 'long',
-                                day: 'numeric',
-                                month: 'short',
-                              })}
-                            </span>
-                          </div>
-                        )}
-                        <div className={`flex ${isVendor ? 'justify-end' : 'justify-start'}`}>
-                          <div
-                            className={`max-w-[70%] ${
-                              isVendor
-                                ? 'bg-blue-600 text-white rounded-2xl rounded-br-md'
-                                : 'bg-white text-gray-900 rounded-2xl rounded-bl-md shadow-sm border border-gray-100'
-                            } px-4 py-3`}
-                          >
-                            <p className="text-sm whitespace-pre-wrap break-words">
-                              {msg.content}
-                            </p>
-                            <div
-                              className={`flex items-center justify-end gap-1 mt-1 ${
-                                isVendor ? 'text-blue-200' : 'text-gray-400'
-                              }`}
-                            >
-                              <span className="text-[10px]">
-                                {new Date(msg.createdAt).toLocaleTimeString('en-IN', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                              {isVendor && (
-                                msg.status === 'READ' ? (
-                                  <CheckCheck className="w-3 h-3 text-blue-200" />
-                                ) : msg.status === 'DELIVERED' ? (
-                                  <CheckCheck className="w-3 h-3" />
-                                ) : (
-                                  <Check className="w-3 h-3" />
-                                )
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
-                </>
+              {selectedConversation.bookingId && BOOKING_DETAIL_URLS[selectedConversation.bookingType] && (
+                <Link
+                  href={`${BOOKING_DETAIL_URLS[selectedConversation.bookingType]}${selectedConversation.bookingId}`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors text-emerald-700 text-xs font-semibold"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  View Details
+                </Link>
               )}
             </div>
 
-            {/* Quick Replies Panel */}
+            {/* ── BACKGROUND + MESSAGES ── */}
+            <div className="flex-1 overflow-y-auto chat-bg relative">
+
+              <div className="relative px-3 py-3">
+                {isLoadingMessages ? (
+                  <div className="flex items-center justify-center h-32"><div className="animate-spin w-5 h-5 border-[3px] border-emerald-100 border-t-emerald-600 rounded-full" /></div>
+                ) : messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-[50vh]">
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-5 text-center shadow-sm fade-in-up">
+                      <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+                        <Send className="w-6 h-6 text-emerald-400" />
+                      </div>
+                      <p className="text-sm text-gray-400">Say hello to start the conversation!</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {messages.map((msg, index) => {
+                      const isVendor = msg.senderType === 'vendor';
+                      const showDate = index === 0 || new Date(msg.createdAt).toDateString() !== new Date(messages[index - 1].createdAt).toDateString();
+                      const isSameSender = index > 0 && messages[index - 1].senderType === msg.senderType && !showDate;
+                      const isLastInGroup = index === messages.length - 1 || messages[index + 1]?.senderType !== msg.senderType;
+
+                      return (
+                        <div key={msg.id} className="msg-in">
+                          {showDate && (
+                            <div className="flex justify-center my-3">
+                              <span className="bg-white/90 backdrop-blur-sm text-gray-500 text-xs font-medium px-3 py-1 rounded-md shadow-sm">{new Date(msg.createdAt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                            </div>
+                          )}
+                          <div className={`flex ${isVendor ? 'justify-end' : 'justify-start'} ${isSameSender ? 'mt-[2px]' : 'mt-2'}`}>
+                            {!isVendor && !isSameSender && (
+                              <div className="w-6 h-6 rounded-full bg-gray-400 flex items-center justify-center mr-1.5 mt-auto flex-shrink-0">
+                                <span className="text-[10px] font-bold text-white">{selectedConversation.participant.name.charAt(0)}</span>
+                              </div>
+                            )}
+                            {!isVendor && isSameSender && <div className="w-6 mr-1.5 flex-shrink-0" />}
+
+                            <div className={`max-w-[68%] ${
+                              isVendor
+                                ? `bg-emerald-600 text-white shadow-sm shadow-emerald-200/30 ${isLastInGroup ? 'rounded-2xl rounded-br-md' : 'rounded-2xl'}`
+                                : `bg-white text-gray-800 border border-gray-100 shadow-sm ${isLastInGroup ? 'rounded-2xl rounded-bl-md' : 'rounded-2xl'}`
+                            } ${msg.messageType === 'IMAGE' ? 'p-1' : 'px-3 py-[7px]'}`}>
+
+                              {msg.messageType === 'IMAGE' && msg.attachmentUrl && (
+                                <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="block relative group">
+                                  <img src={msg.attachmentUrl} alt="" className="rounded-[12px] max-w-[250px] max-h-[250px] object-cover" />
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 rounded-[12px] transition-colors flex items-center justify-center">
+                                    <Download className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" />
+                                  </div>
+                                </a>
+                              )}
+
+                              {msg.messageType === 'FILE' && msg.attachmentUrl && (
+                                <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 p-2 rounded-lg ${isVendor ? 'bg-white/10' : 'bg-gray-50'}`}>
+                                  <FileIcon className={`w-3.5 h-3.5 ${isVendor ? 'text-white/80' : 'text-emerald-600'}`} />
+                                  <span className={`text-sm font-medium truncate ${isVendor ? 'text-white/90' : 'text-gray-600'}`}>{msg.attachmentName || 'File'}</span>
+                                </a>
+                              )}
+
+                              {msg.content && msg.messageType !== 'IMAGE' && (
+                                <p className="text-sm leading-[1.5] whitespace-pre-wrap break-words">{msg.content}</p>
+                              )}
+
+                              <div className={`flex items-center justify-end gap-0.5 ${msg.messageType === 'IMAGE' ? 'px-1 pb-0.5' : 'mt-[2px]'} ${isVendor ? 'text-white/50' : 'text-gray-300'}`}>
+                                <span className="text-xs">{new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                {isVendor && (msg.status === 'READ' ? <CheckCheck className="w-3 h-3 text-emerald-200" /> : msg.status === 'DELIVERED' ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* ── QUICK REPLIES ── */}
             {showQuickReplies && (
-              <div className="bg-white border-t border-gray-200 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-medium text-gray-900 flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-yellow-500" />
-                    Quick Replies
-                  </h3>
-                  <button
-                    onClick={() => setShowQuickReplies(false)}
-                    className="p-1 hover:bg-gray-100 rounded"
-                  >
-                    <X className="w-4 h-4 text-gray-500" />
-                  </button>
+              <div className="bg-white border-t border-gray-100 px-3 py-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-bold text-gray-400 flex items-center gap-1"><Zap className="w-3 h-3 text-amber-500" />Quick Replies</span>
+                  <button onClick={() => setShowQuickReplies(false)} className="p-0.5 hover:bg-gray-100 rounded"><X className="w-3 h-3 text-gray-400" /></button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {quickReplies.slice(0, 8).map((reply) => (
-                    <button
-                      key={reply.id}
-                      onClick={() => handleQuickReply(reply)}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-blue-100 hover:text-blue-700 rounded-full text-sm transition"
-                    >
-                      {reply.title}
-                    </button>
+                <div className="flex flex-wrap gap-1">
+                  {quickReplies.slice(0, 8).map((r) => (
+                    <button key={r.id} onClick={() => handleQuickReply(r)} className="px-2.5 py-1 bg-gray-50 hover:bg-emerald-50 hover:text-emerald-700 rounded-md text-xs font-medium transition-colors border border-gray-100 hover:border-emerald-200">{r.title}</button>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Message Input */}
-            <div className="bg-white border-t border-gray-200 p-4">
-              <form onSubmit={handleSubmit} className="flex items-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowQuickReplies(!showQuickReplies)}
-                  className={`p-2.5 rounded-lg transition ${
-                    showQuickReplies
-                      ? 'bg-yellow-100 text-yellow-600'
-                      : 'hover:bg-gray-100 text-gray-500'
-                  }`}
-                  title="Quick Replies"
-                >
-                  <Zap className="w-5 h-5" />
-                </button>
-                <div className="flex-1 relative">
-                  <textarea
-                    ref={inputRef}
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type a message..."
-                    rows={1}
-                    className="w-full px-4 py-3 bg-gray-100 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
-                    style={{ maxHeight: '120px' }}
-                  />
+            {/* ── INPUT BAR (fixed bottom) ── */}
+            <div className="bg-white border-t border-gray-200 px-4 py-2.5 flex-shrink-0 relative">
+              {/* Gradient divider line */}
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-300/40 to-transparent" />
+
+              {showEmojiPicker && (
+                <div ref={emojiRef} className="absolute bottom-full right-4 mb-2 z-50 shadow-2xl rounded-2xl overflow-hidden border border-gray-200">
+                  <EmojiPicker onEmojiClick={handleEmojiClick} width={320} height={380} searchPlaceHolder="Search emoji..." previewConfig={{ showPreview: false }} />
                 </div>
-                <button
-                  type="submit"
-                  disabled={!newMessage.trim() || isSending}
-                  className="p-3 bg-blue-600 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition"
-                >
-                  {isSending ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5" />
-                  )}
-                </button>
-              </form>
+              )}
+
+              {isUploading && (
+                <div className="flex items-center gap-2 px-3 py-1.5 mb-2 bg-emerald-50 rounded-lg border border-emerald-100">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" /><span className="text-xs font-medium text-emerald-700">Uploading image...</span>
+                </div>
+              )}
+
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml" onChange={handleFileSelect} className="hidden" />
+
+              <div>
+                <form onSubmit={handleSubmit} className="flex items-end gap-2">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
+                    className="h-10 w-10 flex items-center justify-center hover:bg-emerald-50 rounded-xl text-gray-400 hover:text-emerald-600 transition-colors disabled:opacity-40 flex-shrink-0" title="Attach image">
+                    <Paperclip className="w-5 h-5" />
+                  </button>
+
+                  <div className="flex-1 flex items-end bg-gray-50 rounded-2xl px-4 py-1 border border-gray-200 focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-500/10 focus-within:bg-white focus-within:shadow-sm transition-all gap-1">
+                    <textarea ref={inputRef} value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={handleKeyDown}
+                      placeholder="Type a message..." rows={1}
+                      className="flex-1 py-2 bg-transparent resize-none text-sm focus:outline-none placeholder:text-gray-400 leading-[1.4]"
+                      style={{ maxHeight: '80px' }} />
+                    <button type="button" onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowQuickReplies(false); }}
+                      className={`h-8 w-8 flex items-center justify-center rounded-lg transition-colors mb-0.5 flex-shrink-0 ${showEmojiPicker ? 'text-amber-500 bg-amber-50' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}>
+                      <Smile className="w-5 h-5" />
+                    </button>
+                    <button type="button" onClick={() => { setShowQuickReplies(!showQuickReplies); setShowEmojiPicker(false); }}
+                      className={`h-8 w-8 flex items-center justify-center rounded-lg transition-colors mb-0.5 flex-shrink-0 ${showQuickReplies ? 'text-amber-500 bg-amber-50' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}>
+                      <Zap className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <button type="submit" disabled={(!newMessage.trim() && !isUploading) || isSending}
+                    className="h-10 w-10 bg-emerald-600 text-white rounded-xl disabled:opacity-40 hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200/50 flex items-center justify-center flex-shrink-0 hover:scale-105 active:scale-95">
+                    {isSending ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="w-[18px] h-[18px]" />}
+                  </button>
+                </form>
+              </div>
             </div>
           </>
         )}
+      </div>
+
       </div>
     </div>
   );

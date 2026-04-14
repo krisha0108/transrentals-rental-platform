@@ -241,6 +241,19 @@ export default function PagesAnalyticsPage() {
         </div>
       </div>
 
+      {/* Info Note */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex gap-3 items-start text-sm text-blue-800">
+        <span className="mt-0.5 text-blue-500 shrink-0">ℹ️</span>
+        <div>
+          <span className="font-semibold">How this page works: </span>
+          <span>
+            <strong>Total Pages</strong> (top stat) = actual pages on the site calculated from service × location combinations.{' '}
+            <strong>The table below</strong> only shows pages that were <strong>actually visited</strong> by users in the selected date range — unvisited pages won&apos;t appear here.{' '}
+            Entry/exit pages, bounce rate, and trends are all based on real visit data tracked by our analytics script.
+          </span>
+        </div>
+      </div>
+
       {/* Overview Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">

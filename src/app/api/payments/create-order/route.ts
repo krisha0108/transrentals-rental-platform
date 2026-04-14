@@ -31,7 +31,13 @@ async function fetchBooking(bookingType: BookingType, bookingId: string) {
           customerName: true, customerEmail: true, customerPhone: true,
           requestedVehicleName: true,
         },
-      }).then(b => b ? { ...b, vehicleName: b.requestedVehicleName, hasRazorpayOrder: false, razorpayOrderId: null } : null);
+      }).then(b => b ? {
+        ...b,
+        vehicleName: b.requestedVehicleName,
+        advanceAmount: b.advanceAmount || Math.round(b.grandTotal * 0.20),
+        hasRazorpayOrder: false,
+        razorpayOrderId: null,
+      } : null);
 
     case 'truck':
       return prisma.truck_bookings.findUnique({

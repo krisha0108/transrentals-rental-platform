@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
@@ -8,7 +8,6 @@ import {
   Inbox,
   MapPin,
   Calendar,
-  Package as PackageIcon,
   Send,
   AlertCircle,
   CheckCircle,
@@ -21,7 +20,11 @@ import {
   RefreshCw,
   XCircle,
   Search,
+  MessageCircle,
   X,
+  ArrowLeft,
+  Zap,
+  Package as PackageIcon,
 } from 'lucide-react';
 import { TRANSPORTER_CONFIG } from '@/lib/quote-services';
 
@@ -47,28 +50,47 @@ interface QuoteRequest {
   myQuote?: { id: string; quoteNumber: string; totalAmount: number; status: string };
 }
 
+/* ── Urgency helper ── */
+function getUrgency(pickupDate: string): { label: string; color: string; urgent: boolean } {
+  const diff = new Date(pickupDate).getTime() - Date.now();
+  const hours = diff / 3600000;
+  if (hours < 0) return { label: 'Started', color: 'text-gray-400', urgent: false };
+  if (hours < 3) return { label: `In ${Math.ceil(hours)}h`, color: 'text-red-600', urgent: true };
+  if (hours < 12) return { label: `In ${Math.ceil(hours)}h`, color: 'text-red-600', urgent: true };
+  if (hours < 24) return { label: 'Tomorrow', color: 'text-amber-600', urgent: false };
+  const days = Math.ceil(hours / 24);
+  return { label: `In ${days}d`, color: 'text-gray-500', urgent: false };
+}
+
+const getTruckTypeName = (type: string) => {
+  const typeMap: Record<string, string> = {
+    'mini-truck': 'Mini Truck',
+    'tata-ace': 'Tata Ace',
+    'tata-407': 'Tata 407',
+    'eicher': 'Eicher',
+    'trailer': 'Trailer',
+    'container': 'Container',
+  };
+  return typeMap[type] || type || 'Truck';
+};
+
 export default function VendorTransporterRequestsPage() {
   const { data: session, status: sessionStatus } = useSession();
   const [requests, setRequests] = useState<QuoteRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('new');
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const config = TRANSPORTER_CONFIG;
-
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-    }, 400);
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
   useEffect(() => {
     if (sessionStatus === 'loading') return;
     if (sessionStatus === 'unauthenticated') return;
-
     fetchRequests();
   }, [sessionStatus, filter, debouncedSearch]);
 
@@ -81,7 +103,6 @@ export default function VendorTransporterRequestsPage() {
       if (debouncedSearch) params.set('search', debouncedSearch);
       const response = await fetch(`/api/vendor/truck-quote-requests?${params}`);
       const data = await response.json();
-
       if (data.success) {
         setRequests(data.requests || []);
       }
@@ -92,20 +113,7 @@ export default function VendorTransporterRequestsPage() {
     }
   };
 
-  // When using API, the filtering is done server-side, so just use all requests
   const filteredRequests = requests;
-
-  const getTruckTypeName = (type: string) => {
-    const typeMap: Record<string, string> = {
-      'mini-truck': 'Mini Truck',
-      'tata-ace': 'Tata Ace',
-      'tata-407': 'Tata 407',
-      'eicher': 'Eicher',
-      'trailer': 'Trailer',
-      'container': 'Container',
-    };
-    return typeMap[type] || type || 'Truck';
-  };
 
   const getTimeAgo = (dateString: string) => {
     const diff = Date.now() - new Date(dateString).getTime();
@@ -116,265 +124,516 @@ export default function VendorTransporterRequestsPage() {
     return `${days}d ago`;
   };
 
+  const selected = useMemo(() => filteredRequests.find(r => r.id === selectedId) ?? null, [filteredRequests, selectedId]);
+
+  const newCount = filteredRequests.filter(r => !r.hasQuoted).length;
+  const quotedCount = filteredRequests.filter(r => r.hasQuoted).length;
+
+  /* ── Loading skeleton ── */
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
+      <div className="h-[calc(100vh-80px)] flex rounded-2xl overflow-hidden border border-gray-200/60 bg-white shadow-sm">
+        <div className="w-full lg:w-[360px] border-r border-gray-100 p-4 space-y-3 animate-pulse">
+          <div className="h-8 bg-gray-100 rounded-lg w-2/3" />
+          <div className="flex gap-1">
+            {[1, 2, 3].map(i => <div key={i} className="h-9 w-24 bg-gray-100 rounded-lg" />)}
+          </div>
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="p-3 rounded-xl bg-gray-50 space-y-2">
+              <div className="h-4 bg-gray-200 rounded w-2/3" />
+              <div className="h-3 bg-gray-100 rounded w-1/2" />
+              <div className="h-3 bg-gray-100 rounded w-1/3" />
+            </div>
+          ))}
+        </div>
+        <div className="hidden lg:flex flex-1 items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-            <Inbox className="w-5 h-5 text-indigo-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Quote Requests</h1>
-            <p className="text-gray-600">Transport inquiries from customers</p>
-          </div>
-        </div>
+    <div className="h-[calc(100vh-80px)] flex rounded-2xl overflow-hidden border border-gray-200/60 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search requests..."
-              className="pl-9 pr-9 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 w-48"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
+      {/* ══════════ LEFT PANEL — Request List ══════════ */}
+      <div className={`w-full lg:w-[360px] xl:w-[400px] shrink-0 border-r border-gray-100 flex flex-col bg-[#fafbfc] ${selected ? 'hidden lg:flex' : 'flex'}`}>
+
+        {/* Header */}
+        <div className="p-4 pb-3 border-b border-gray-100 bg-white">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-sm shadow-emerald-500/20">
+                <Truck className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h1 className="text-base font-bold text-gray-900 leading-tight">Quote Requests</h1>
+                <p className="text-[11px] text-gray-400">{filteredRequests.length} requests</p>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+          {/* Search bar */}
+          <div className="mb-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search requests..."
+                className="w-full pl-8 pr-8 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-300"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filter tabs */}
+          <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
             {[
-              { value: 'new', label: 'New Requests' },
-              { value: 'quoted', label: 'My Quotes' },
-              { value: 'all', label: 'All' },
+              { value: 'new',    label: 'New',    count: newCount,                  activeColor: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/25' },
+              { value: 'quoted', label: 'Quoted', count: quotedCount,               activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
+              { value: 'all',    label: 'All',    count: filteredRequests.length,    activeColor: 'bg-gray-800 text-white shadow-md' },
             ].map((f) => (
               <button
                 key={f.value}
-                onClick={() => setFilter(f.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                onClick={() => { setFilter(f.value); setSelectedId(null); }}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
                   filter === f.value
-                    ? 'bg-white text-indigo-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? f.activeColor
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                 }`}
               >
                 {f.label}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  filter === f.value ? 'bg-white/25 text-white' : 'bg-gray-200/60 text-gray-400'
+                }`}>{f.count}</span>
               </button>
             ))}
           </div>
         </div>
+
+        {/* List */}
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {filteredRequests.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center px-6">
+              <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mb-3">
+                <Inbox className="w-6 h-6 text-gray-300" />
+              </div>
+              <p className="text-sm font-semibold text-gray-500">No requests found</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {filter === 'new' ? 'No new requests at the moment' : 'No requests match this filter'}
+              </p>
+            </div>
+          ) : (
+            filteredRequests.map((req) => {
+              const isSelected = selectedId === req.id;
+              const urgency = getUrgency(req.pickupDate);
+              return (
+                <button
+                  key={req.id}
+                  onClick={() => setSelectedId(req.id)}
+                  className={`w-full text-left rounded-xl transition-all duration-150 overflow-hidden ${
+                    isSelected
+                      ? 'bg-white shadow-md ring-1 ring-emerald-200'
+                      : 'bg-transparent hover:bg-white hover:shadow-sm'
+                  }`}
+                >
+                  <div className="flex">
+                    <div className={`w-1 shrink-0 rounded-l-xl ${isSelected ? 'bg-emerald-600' : req.hasQuoted ? 'bg-emerald-400' : 'bg-emerald-300'}`} />
+
+                    <div className="flex-1 p-3 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          {/* Truck type */}
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className={`text-sm font-bold truncate ${isSelected ? 'text-emerald-700' : 'text-gray-900'}`}>
+                              {getTruckTypeName(req.truckType)}
+                            </span>
+                            {req.truckMode && (
+                              <span className="text-[10px] text-gray-400 shrink-0 capitalize">{req.truckMode}</span>
+                            )}
+                          </div>
+
+                          {/* Route */}
+                          <p className="text-[11px] text-gray-400 flex items-center gap-1 truncate">
+                            <MapPin className="w-3 h-3 shrink-0" /> {req.pickupCity} <ArrowRight className="w-2.5 h-2.5 inline" /> {req.dropCity}
+                          </p>
+
+                          {/* Date + Weight */}
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <span className="text-[11px] text-gray-400 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {req.pickupDate
+                                ? new Date(req.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+                                : 'No date'}
+                            </span>
+                            {req.weight ? (
+                              <>
+                                <span className="text-[10px] text-gray-300">·</span>
+                                <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-0.5">
+                                  <Weight className="w-3 h-3" />
+                                  {req.weightUnit === 'KG' ? `${req.weight} kg` : `${req.weight} t`}
+                                </span>
+                              </>
+                            ) : null}
+                          </div>
+
+                          {/* Customer + Price row */}
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <span className="text-[11px] text-gray-400 flex items-center gap-1">
+                              <User className="w-3 h-3" /> {req.customerName}
+                            </span>
+                            {req.myQuote && (
+                              <>
+                                <span className="text-[10px] text-gray-300">·</span>
+                                <span className="text-[11px] font-bold text-emerald-600">₹{req.myQuote.totalAmount.toLocaleString()}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Right meta */}
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                          <span className="text-[10px] text-gray-400">{getTimeAgo(req.createdAt)}</span>
+                          {req.hasQuoted && req.myQuote?.status === 'EXPIRED' ? (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 font-bold border border-red-200 flex items-center gap-0.5">
+                              <XCircle className="w-2.5 h-2.5" />EXPIRED
+                            </span>
+                          ) : req.hasQuoted ? (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-bold border border-emerald-200">QUOTED</span>
+                          ) : (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-bold border border-emerald-200">NEW</span>
+                          )}
+                          {urgency.urgent && (
+                            <span className={`text-[9px] font-bold ${urgency.color} flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200`}>
+                              <Zap className="w-2.5 h-2.5" />{urgency.label}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
       </div>
 
-      {/* Request List */}
-      <div className="space-y-4">
-        {filteredRequests.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center border">
-            <Inbox className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="font-medium text-gray-900 mb-1">No requests found</h3>
-            <p className="text-sm text-gray-500">
-              {filter === 'new'
-                ? 'No new quote requests at the moment'
-                : 'No requests match this filter'}
-            </p>
-          </div>
-        ) : (
-          filteredRequests.map((request) => (
-            <div
-              key={request.id}
-              className="bg-white rounded-xl shadow-sm border overflow-hidden"
-            >
-              {/* Header */}
-              <div className={`px-4 py-2 flex items-center justify-between ${
-                request.hasQuoted ? 'bg-green-50' : 'bg-indigo-50'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-gray-800">{request.customerName}</span>
-                  <span className="text-xs text-gray-500">
-                    {getTimeAgo(request.createdAt)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {request.totalQuotesReceived > 0 && (
-                    <span className="text-xs text-gray-500">
-                      {request.totalQuotesReceived} quotes received
-                    </span>
-                  )}
-                  {request.hasQuoted && request.myQuote?.status === 'EXPIRED' ? (
-                    <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full flex items-center gap-1">
-                      <XCircle className="w-3 h-3" />
-                      Quote Expired
-                    </span>
-                  ) : request.hasQuoted ? (
-                    <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3" />
-                      Quoted
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-medium rounded-full flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      New
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-4 md:p-6">
-                {/* Main Info */}
-                <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-                      <Truck className="w-6 h-6 text-indigo-600" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-bold text-gray-900">
-                          {getTruckTypeName(request.truckType)}
-                        </h3>
-                        <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full capitalize">
-                          {request.truckMode || 'Transport'}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600">{request.goodsType || 'General Goods'}</p>
-                      <div className="flex items-center gap-1 text-gray-600 mt-1">
-                        <MapPin className="w-4 h-4" />
-                        <span className="text-sm">
-                          {request.pickupCity}
-                          <ArrowRight className="w-3 h-3 inline mx-1" />
-                          {request.dropCity}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    {request.weight && (
-                      <div className="flex items-center gap-1 text-indigo-600 font-semibold">
-                        <Weight className="w-4 h-4" />
-                        {request.weightUnit === 'KG' ? `${request.weight} kg` : `${request.weight} tons`}
-                      </div>
-                    )}
-                   <div className="flex items-center gap-1 text-gray-600 text-sm mt-1">
-                      <Calendar className="w-4 h-4" />
-                      {request.pickupDate
-                        ? new Date(request.pickupDate).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                          })
-                        : 'Date not set'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Customer Info Card */}
-                <div className="bg-blue-50 rounded-lg p-3 mb-4 border border-blue-100">
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-gray-900">
-                      <User className="w-4 h-4 text-blue-500" />
-                      {request.customerName}
-                    </div>
-                    {request.customerPhone && (
-                      <a href={`tel:${request.customerPhone}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
-                        <Phone className="w-3.5 h-3.5" />
-                        {request.customerPhone}
-                      </a>
-                    )}
-                    {request.customerEmail && (
-                      <a href={`mailto:${request.customerEmail}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
-                        <Mail className="w-3.5 h-3.5" />
-                        {request.customerEmail}
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-                {/* Expanded Details */}
-                {expandedId === request.id && (
-                  <div className="border-t pt-4 mt-4 space-y-3">
-                    {request.requirements && (
-                      <div>
-                        <span className="text-xs text-gray-500 uppercase tracking-wide">Special Requirements</span>
-                        <p className="text-sm text-gray-700">{request.requirements}</p>
-                      </div>
-                    )}
-                    {request.myQuote && (
-                      <div className="bg-green-50 p-3 rounded-lg">
-                        <span className="text-xs text-green-600 uppercase tracking-wide">Your Quote</span>
-                        <p className="text-sm font-medium text-green-800">
-                          ₹{request.myQuote.totalAmount.toLocaleString()} - {request.myQuote.status}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex flex-wrap gap-2 pt-4 border-t mt-4">
-                  <button
-                    onClick={() => setExpandedId(expandedId === request.id ? null : request.id)}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition flex items-center gap-1"
-                  >
-                    <Eye className="w-4 h-4" />
-                    {expandedId === request.id ? 'Less Details' : 'View Details'}
+      {/* ══════════ RIGHT PANEL — Request Detail ══════════ */}
+      <div className={`flex-1 flex flex-col bg-white ${selected ? 'flex' : 'hidden lg:flex'}`}>
+        {selected ? (
+          <>
+            {/* ── Detail Header (sticky) ── */}
+            <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 px-6 py-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setSelectedId(null)} className="lg:hidden w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                    <ArrowLeft className="w-4 h-4 text-gray-600" />
                   </button>
-
-                  {!request.hasQuoted ? (
-                    <Link
-                      href={`/vendor/transporter/requests/${request.id}/quote`}
-                      className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition flex items-center gap-1"
-                    >
-                      <Send className="w-4 h-4" />
-                      Send Quote
-                    </Link>
-                  ) : (
-                    <>
-                      <Link
-                        href={`/vendor/transporter/quotes/${request.myQuote?.id}`}
-                        className="px-4 py-2 bg-green-100 text-green-700 text-sm font-semibold rounded-lg hover:bg-green-200 transition flex items-center gap-1"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        View Your Quote
-                      </Link>
-                      {request.myQuote?.status === 'EXPIRED' && request.status === 'PENDING' && (
-                        <Link
-                          href={`/vendor/transporter/requests/${request.id}/quote`}
-                          className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition flex items-center gap-1"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                          Resubmit Quote
-                        </Link>
+                  <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+                    <Truck className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-base font-bold text-gray-900">
+                        {getTruckTypeName(selected.truckType)}
+                      </h2>
+                      {selected.truckMode && (
+                        <span className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full font-medium capitalize">{selected.truckMode}</span>
                       )}
-                    </>
-                  )}
+                      {selected.hasQuoted && selected.myQuote?.status === 'EXPIRED' ? (
+                        <span className="text-[10px] px-2 py-0.5 bg-red-50 text-red-600 rounded-full font-bold flex items-center gap-1 border border-red-200">
+                          <XCircle className="w-3 h-3" /> Expired
+                        </span>
+                      ) : selected.hasQuoted ? (
+                        <span className="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-bold flex items-center gap-1 border border-emerald-200">
+                          <CheckCircle className="w-3 h-3" /> Quoted
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full font-bold flex items-center gap-1 border border-emerald-200">
+                          <AlertCircle className="w-3 h-3" /> New
+                        </span>
+                      )}
+                      {(() => {
+                        const u = getUrgency(selected.pickupDate);
+                        return u.urgent ? (
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex items-center gap-0.5 bg-red-50 border border-red-200 ${u.color}`}>
+                            <Zap className="w-3 h-3" /> {u.label}
+                          </span>
+                        ) : null;
+                      })()}
+                    </div>
+                    <p className="text-[11px] text-gray-400 flex items-center gap-2 mt-0.5">
+                      <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{selected.pickupCity} → {selected.dropCity}</span>
+                      <span className="text-gray-300">·</span>
+                      <span>{getTimeAgo(selected.createdAt)}</span>
+                      {selected.totalQuotesReceived > 0 && (
+                        <><span className="text-gray-300">·</span><span>{selected.totalQuotesReceived} quotes</span></>
+                      )}
+                    </p>
+                  </div>
                 </div>
+
+                {/* CTA */}
+                {!selected.hasQuoted ? (
+                  <Link
+                    href={`/vendor/transporter/requests/${selected.id}/quote`}
+                    className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm shadow-md shadow-emerald-500/20 transition-all duration-200 active:scale-95"
+                  >
+                    <Send className="w-4 h-4" />
+                    Send Quote
+                  </Link>
+                ) : selected.myQuote?.status === 'EXPIRED' && selected.status === 'PENDING' ? (
+                  <Link
+                    href={`/vendor/transporter/requests/${selected.id}/quote`}
+                    className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm shadow-md shadow-emerald-500/20 transition-all duration-200 active:scale-95"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Resubmit Quote
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/vendor/transporter/quotes/${selected.myQuote?.id}`}
+                    className="hidden sm:flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow-md shadow-emerald-500/20 transition-all duration-200 active:scale-95"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> View Quote
+                  </Link>
+                )}
               </div>
             </div>
-          ))
-        )}
-      </div>
 
-      {/* Info */}
-      <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
-        <h4 className="font-medium text-indigo-800 mb-2">Tips for Better Quotes</h4>
-        <ul className="text-sm text-indigo-700 space-y-1">
-          <li>• Consider distance and fuel costs carefully</li>
-          <li>• Account for loading/unloading time</li>
-          <li>• Factor in toll charges and permits</li>
-          <li>• Be competitive - customers compare multiple quotes</li>
-        </ul>
+            {/* ── Detail Content ── */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+
+              {/* Urgency banner */}
+              {(() => {
+                const urgency = getUrgency(selected.pickupDate);
+                if (urgency.urgent) {
+                  return (
+                    <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                      <Zap className="w-5 h-5 text-red-500 shrink-0" />
+                      <p className="text-sm font-semibold text-red-700">
+                        Pickup starts {urgency.label.toLowerCase()} — respond quickly to win this load!
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Section 1: Trip Details */}
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Trip Details</h3>
+
+                <div className="grid grid-cols-3 gap-2.5 mb-2.5">
+                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-50/50 border border-emerald-100 rounded-xl px-3.5 py-3">
+                    <div className="flex items-center gap-1.5 text-emerald-500 mb-1">
+                      <Weight className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Weight</span>
+                    </div>
+                    <p className="text-xl font-extrabold text-emerald-700">
+                      {selected.weight
+                        ? selected.weightUnit === 'KG' ? `${selected.weight} kg` : `${selected.weight} t`
+                        : '—'}
+                    </p>
+                  </div>
+                  <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-3">
+                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Pickup</span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 truncate">{selected.pickupCity}</p>
+                  </div>
+                  <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-3">
+                    <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Drop</span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 truncate">{selected.dropCity}</p>
+                  </div>
+                </div>
+
+                {/* Secondary info row */}
+                <div className="flex flex-wrap gap-2.5">
+                  <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Pickup Date</p>
+                      <p className="text-sm font-bold text-gray-900">
+                        {selected.pickupDate
+                          ? new Date(selected.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : 'Not set'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 flex items-center gap-2">
+                    <PackageIcon className="w-4 h-4 text-gray-400" />
+                    <div>
+                      <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Goods Type</p>
+                      <p className="text-sm font-bold text-gray-900">{selected.goodsType || 'General Goods'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Customer */}
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Customer</h3>
+                <div className="bg-white border border-gray-100 rounded-xl p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-sm font-bold text-blue-600">
+                      {selected.customerName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">{selected.customerName}</p>
+                      {selected.customerPhone && <p className="text-xs text-gray-400">{selected.customerPhone}</p>}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selected.customerPhone && (
+                      <>
+                        <a
+                          href={`tel:${selected.customerPhone}`}
+                          className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all"
+                        >
+                          <Phone className="w-3.5 h-3.5" /> Call
+                        </a>
+                        <a
+                          href={`https://wa.me/${selected.customerPhone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] transition-all"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+                        </a>
+                      </>
+                    )}
+                    {selected.customerEmail && (
+                      <a
+                        href={`mailto:${selected.customerEmail}`}
+                        className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-600 transition-all"
+                      >
+                        <Mail className="w-3.5 h-3.5" /> Email
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Special Requirements */}
+              {selected.requirements && (
+                <div>
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Special Requirements</h3>
+                  <div className="bg-amber-50/50 border border-amber-100 rounded-xl px-4 py-3">
+                    <p className="text-sm text-gray-700 leading-relaxed">{selected.requirements}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Section 4: Your Quote */}
+              {selected.myQuote && (
+                <div>
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Your Quote</h3>
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-emerald-600 font-medium">{selected.myQuote.quoteNumber}</p>
+                        <p className="text-2xl font-extrabold text-emerald-800 mt-0.5">₹{selected.myQuote.totalAmount.toLocaleString()}</p>
+                        <p className="text-xs mt-1.5 flex items-center gap-1.5">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            selected.myQuote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' :
+                            selected.myQuote.status === 'rejected' ? 'bg-red-100 text-red-600' :
+                            'bg-amber-100 text-amber-700'
+                          }`}>
+                            {selected.myQuote.status === 'accepted' ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                            {selected.myQuote.status}
+                          </span>
+                        </p>
+                      </div>
+                      <Link
+                        href={`/vendor/transporter/quotes/${selected.myQuote.id}`}
+                        className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> View Details
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tips for new requests */}
+              {!selected.hasQuoted && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+                    <AlertCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-800">You haven&apos;t quoted yet</p>
+                      <p className="text-xs text-emerald-600 mt-0.5">
+                        {selected.totalQuotesReceived > 0
+                          ? `${selected.totalQuotesReceived} other vendor${selected.totalQuotesReceived > 1 ? 's' : ''} already quoted — act fast!`
+                          : 'Be the first to quote and increase your chances!'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-[11px] font-bold text-gray-500 mb-1.5">💡 Quick Tips</p>
+                    <ul className="text-[11px] text-gray-400 space-y-0.5">
+                      <li>Consider distance and fuel costs carefully</li>
+                      <li>Account for loading/unloading time</li>
+                      <li>Factor in toll charges and permits</li>
+                      <li>Be competitive — customers compare multiple quotes</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Sticky CTA Bar (mobile) ── */}
+            <div className="sm:hidden sticky bottom-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 py-3">
+              {!selected.hasQuoted ? (
+                <Link
+                  href={`/vendor/transporter/requests/${selected.id}/quote`}
+                  className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold py-3 rounded-xl text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
+                >
+                  <Send className="w-4 h-4" /> Send Quote
+                </Link>
+              ) : selected.myQuote?.status === 'EXPIRED' && selected.status === 'PENDING' ? (
+                <Link
+                  href={`/vendor/transporter/requests/${selected.id}/quote`}
+                  className="flex items-center justify-center gap-2 w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold py-3 rounded-xl text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
+                >
+                  <RefreshCw className="w-4 h-4" /> Resubmit Quote
+                </Link>
+              ) : (
+                <Link
+                  href={`/vendor/transporter/quotes/${selected.myQuote?.id}`}
+                  className="flex items-center justify-center gap-2 w-full bg-emerald-500 text-white font-bold py-3 rounded-xl text-sm shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
+                >
+                  <Eye className="w-4 h-4" /> View Your Quote
+                </Link>
+              )}
+            </div>
+          </>
+        ) : (
+          /* Empty state — no selection */
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
+            <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4">
+              <Inbox className="w-8 h-8 text-emerald-300" />
+            </div>
+            <p className="text-gray-500 font-semibold">Select a request</p>
+            <p className="text-gray-400 text-sm mt-1">Choose a request from the list to view details</p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -330,195 +330,250 @@ export default function VendorBusBookingDetailPage() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <RefreshCw className="w-8 h-8 text-orange-500 animate-spin" />
+            <div className="space-y-5">
+                <div className="flex items-center gap-3 animate-pulse">
+                    <div className="w-9 h-9 rounded-xl bg-gray-200" />
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <div className="h-5 w-32 bg-gray-200 rounded-lg" />
+                            <div className="h-5 w-20 bg-gray-100 rounded-full" />
+                            <div className="h-5 w-24 bg-gray-100 rounded-full" />
+                        </div>
+                        <div className="h-3 w-36 bg-gray-100 rounded" />
+                    </div>
+                </div>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-pulse">
+                    <div className="px-5 py-4 bg-gradient-to-r from-indigo-50/50 to-white flex items-center justify-between">
+                        <div className="flex items-center gap-3.5">
+                            <div className="w-12 h-12 bg-indigo-100 rounded-xl" />
+                            <div className="space-y-2">
+                                <div className="h-5 w-40 bg-gray-200 rounded-lg" />
+                                <div className="h-3 w-28 bg-gray-100 rounded" />
+                            </div>
+                        </div>
+                        <div className="space-y-1.5 text-right">
+                            <div className="h-6 w-20 bg-gray-200 rounded-lg ml-auto" />
+                            <div className="h-3 w-24 bg-gray-100 rounded ml-auto" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-4 divide-x divide-gray-100 border-t border-gray-100">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="px-4 py-3 space-y-1.5">
+                                <div className="h-2.5 w-12 bg-gray-100 rounded" />
+                                <div className="h-4 w-24 bg-gray-200 rounded" />
+                                <div className="h-2.5 w-16 bg-gray-100 rounded" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="grid lg:grid-cols-3 gap-4 animate-pulse">
+                    <div className="lg:col-span-2 space-y-4">
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                            <div className="h-4 w-20 bg-gray-200 rounded-lg mb-3" />
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="w-10 h-10 bg-blue-50 rounded-full" />
+                                <div className="space-y-1.5">
+                                    <div className="h-4 w-28 bg-gray-200 rounded" />
+                                    <div className="h-3 w-40 bg-gray-100 rounded" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                            <div className="h-4 w-20 bg-gray-200 rounded-lg mb-3" />
+                            <div className="space-y-2.5">
+                                {[1, 2, 3, 4].map(i => (
+                                    <div key={i} className="flex justify-between">
+                                        <div className="h-3 w-20 bg-gray-100 rounded" />
+                                        <div className="h-3 w-16 bg-gray-200 rounded" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }
 
     if (error || !booking) {
         return (
-            <div className="max-w-4xl mx-auto py-12 px-4 text-center">
-                <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Booking Not Found</h1>
-                <p className="text-gray-600 mb-6">{error || 'The booking details could not be loaded.'}</p>
-                <Link href="/vendor/bus/bookings" className="text-orange-600 font-medium hover:underline inline-flex items-center gap-2">
-                    <ArrowLeft className="w-4 h-4" />
-                    Back to Bookings
-                </Link>
+            <div className="max-w-md mx-auto mt-20 bg-white rounded-2xl border border-gray-100 p-8 text-center shadow-sm">
+                <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <AlertCircle className="w-7 h-7 text-red-400" />
+                </div>
+                <h3 className="font-bold text-gray-900 mb-1">Booking Not Found</h3>
+                <p className="text-gray-400 text-sm mb-5">{error || 'The booking does not exist.'}</p>
+                <button onClick={() => router.push('/vendor/bus/bookings')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-bold transition-all active:scale-95">
+                    <ArrowLeft className="w-4 h-4" /> Back to Bookings
+                </button>
             </div>
         );
     }
 
     const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING_PAYMENT;
+    const balanceDue = booking.totalAmount - booking.advancePaid;
+    const formatDate = (d: string) => new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6 pb-12">
-            {/* Header */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <Link
-                        href="/vendor/bus/bookings"
-                        className="p-2 hover:bg-gray-100 rounded-lg transition"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
+        <div className="space-y-5">
+            {/* ── Header ── */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                    <Link href="/vendor/bus/bookings" className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+                        <ArrowLeft className="w-4 h-4 text-gray-600" />
                     </Link>
                     <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-bold text-gray-900">Booking #{booking.bookingNumber}</h1>
-                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusConfig.bgColor} ${statusConfig.color}`}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h1 className="text-lg font-bold text-gray-900">#{booking.bookingNumber}</h1>
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${statusConfig.bgColor} ${statusConfig.color}`}>
                                 {statusConfig.label}
                             </span>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${booking.paymentStatus === 'PAID' || booking.advancePaymentVerified ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                                {booking.advancePaymentVerified ? 'Advance Paid' : booking.paymentStatus || 'Pending'}
+                            </span>
                         </div>
-                        <p className="text-gray-500 text-sm">Created on {new Date(booking.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Created {formatDate(booking.createdAt)}</p>
                     </div>
                 </div>
             </div>
 
             {/* Dropped Banner */}
             {booking.status === 'DROPPED' && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-                    <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 flex items-start gap-3">
+                    <XCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
                     <div>
-                        <p className="font-semibold text-red-800">This booking has been dropped</p>
-                        {(booking as any).dropReason && (
-                            <p className="text-sm text-red-600 mt-1">Reason: {(booking as any).dropReason}</p>
-                        )}
-                        {(booking as any).droppedAt && (
-                            <p className="text-xs text-red-500 mt-1">
-                                Dropped on: {new Date((booking as any).droppedAt).toLocaleString('en-IN')}
-                            </p>
-                        )}
+                        <p className="text-sm font-semibold text-red-800">This booking has been dropped</p>
+                        {(booking as any).dropReason && <p className="text-xs text-red-600 mt-0.5">Reason: {(booking as any).dropReason}</p>}
+                        {(booking as any).droppedAt && <p className="text-xs text-red-500 mt-0.5">Dropped: {new Date((booking as any).droppedAt).toLocaleString('en-IN')}</p>}
                     </div>
                 </div>
             )}
 
-            <div className="grid lg:grid-cols-3 gap-6">
-                {/* Main Details */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Trip Summary Card */}
-                    <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                        <div className="p-6 border-b bg-gradient-to-r from-orange-50 to-orange-100">
-                            <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                                    <Bus className="w-6 h-6 text-orange-600" />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-900">{booking.vehicleName}</h2>
-                                    <p className="text-gray-600">{booking.vehicleName || booking.vehicleCategory} • {getTripTypeName(booking.tripType)}</p>
-                                </div>
+            {/* ── Vehicle + Price Hero ── */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-indigo-50 via-blue-50/30 to-white">
+                    <div className="flex items-center gap-3.5">
+                        <div className="w-12 h-12 bg-white rounded-xl border border-indigo-100 flex items-center justify-center text-2xl shadow-sm shrink-0">🚌</div>
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900">{booking.vehicleName}</h2>
+                            <p className="text-xs text-gray-400">{getTripTypeName(booking.tripType)}{booking.vehicleNumber && <> · <span className="font-mono">{booking.vehicleNumber}</span></>}</p>
+                            {booking.driverName && (
+                                <p className="text-xs text-emerald-600 font-medium mt-0.5">Driver: {booking.driverName}</p>
+                            )}
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-2xl font-extrabold text-gray-900">₹{booking.totalAmount.toLocaleString()}</p>
+                        <p className="text-xs text-gray-400">{booking.tripDays} day{booking.tripDays !== 1 ? 's' : ''}</p>
+                    </div>
+                </div>
+                {/* Quick stats strip */}
+                <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100 border-t border-gray-100">
+                    {[
+                        { label: 'Pickup', value: new Date(booking.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }), sub: booking.pickupTime },
+                        { label: 'Return', value: booking.returnDate ? new Date(booking.returnDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—', sub: booking.returnTime || '' },
+                        { label: 'Passengers', value: `${booking.passengers}`, sub: 'pax' },
+                        { label: 'Route', value: booking.pickupCity, sub: booking.dropCity ? `→ ${booking.dropCity}` : 'One way' },
+                    ].map((s, i) => (
+                        <div key={i} className="px-4 py-3">
+                            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">{s.label}</p>
+                            <p className="text-sm font-bold text-gray-900 mt-0.5 truncate">{s.value}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5 truncate">{s.sub}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-4 items-start">
+                {/* ══ Main Content ══ */}
+                <div className="lg:col-span-2 space-y-4">
+                    {/* Customer */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2"><User className="w-4 h-4 text-blue-500" /> Customer</h3>
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-sm font-bold text-blue-600 shrink-0">
+                                {booking.customerName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-gray-900">{booking.customerName}</p>
+                                <p className="text-xs text-gray-400">{booking.customerEmail}</p>
                             </div>
                         </div>
-
-                        <div className="p-6 grid md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <div className="flex items-start gap-3">
-                                    <MapPin className="w-5 h-5 text-orange-500 mt-0.5" />
-                                    <div>
-                                        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Pickup</p>
-                                        <p className="font-medium">{booking.pickupCity}</p>
-                                        {booking.pickupAddress && <p className="text-sm text-gray-600">{booking.pickupAddress}</p>}
-                                    </div>
-                                </div>
-                                {booking.dropCity && (
-                                    <div className="flex items-start gap-3">
-                                        <MapPin className="w-5 h-5 text-red-500 mt-0.5" />
-                                        <div>
-                                            <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Drop</p>
-                                            <p className="font-medium">{booking.dropCity}</p>
-                                            {booking.dropAddress && <p className="text-sm text-gray-600">{booking.dropAddress}</p>}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="space-y-4">
-                                <div className="flex items-start gap-3">
-                                    <Calendar className="w-5 h-5 text-orange-500 mt-0.5" />
-                                    <div>
-                                        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Travel Date</p>
-                                        <p className="font-medium">{new Date(booking.pickupDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                                        <p className="text-sm text-gray-600">at {booking.pickupTime}</p>
-                                    </div>
-                                </div>
-                                {booking.returnDate && (
-                                    <div className="flex items-start gap-3">
-                                        <Clock className="w-5 h-5 text-orange-500 mt-0.5" />
-                                        <div>
-                                            <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Return Date</p>
-                                            <p className="font-medium">{new Date(booking.returnDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })}</p>
-                                            {booking.returnTime && <p className="text-sm text-gray-600">at {booking.returnTime}</p>}
-                                        </div>
-                                    </div>
-                                )}
-                                <div className="flex items-start gap-3">
-                                    <Users className="w-5 h-5 text-orange-500 mt-0.5" />
-                                    <div>
-                                        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Passengers</p>
-                                        <p className="font-medium">{booking.passengers} Adults</p>
-                                    </div>
-                                </div>
-                            </div>
+                        <div className="flex flex-wrap gap-1.5">
+                            {booking.customerPhone && (
+                                <a href={`tel:${booking.customerPhone}`} className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all">
+                                    <User className="w-3 h-3" /> {booking.customerPhone}
+                                </a>
+                            )}
+                            {booking.customerEmail && (
+                                <a href={`mailto:${booking.customerEmail}`} className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-600 transition-all">
+                                    <Mail className="w-3 h-3" /> Email
+                                </a>
+                            )}
+                            {booking.customerPhone && (
+                                <a href={`https://wa.me/${booking.customerPhone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] transition-all">
+                                    WhatsApp
+                                </a>
+                            )}
                         </div>
-
-                        {booking.routeDetails && (
-                            <div className="px-6 pb-6 pt-2 border-t mt-2">
-                                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Route Details</p>
-                                <p className="text-sm text-gray-700 whitespace-pre-wrap">{booking.routeDetails}</p>
-                            </div>
-                        )}
                     </div>
 
-                    {/* Customer & Payment Section */}
-                    <div className="grid md:grid-cols-2 gap-6">
-                        <div className="bg-white rounded-xl shadow-sm border p-6">
-                            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                <User className="w-5 h-5 text-orange-600" />
-                                Customer Info
-                            </h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <p className="text-xs text-gray-500">Name</p>
-                                    <p className="font-medium">{booking.customerName}</p>
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-500">Email</p>
-                                    <p className="font-medium">{booking.customerEmail}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-xl shadow-sm border p-6">
-                            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                <CreditCard className="w-5 h-5 text-orange-600" />
-                                Payment Summary
-                            </h3>
+                    {/* Pickup / Drop addresses */}
+                    {(booking.pickupAddress || booking.dropAddress) && (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                            <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2"><MapPin className="w-4 h-4 text-indigo-500" /> Locations</h3>
                             <div className="space-y-3">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">Total Amount</span>
-                                    <span className="font-bold text-gray-900">₹{booking.totalAmount.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">Advance (Paid)</span>
-                                    <span className="font-bold text-green-600">₹{booking.advancePaid.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between text-sm pt-2 border-t">
-                                    <span className="text-gray-900 font-semibold">Remaining Balance</span>
-                                    <span className="font-bold text-orange-600 text-lg">₹{(booking.totalAmount - booking.advancePaid).toLocaleString()}</span>
-                                </div>
-                                <div className="mt-2 text-center">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${booking.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                                        {booking.paymentStatus}
-                                    </span>
-                                </div>
+                                {booking.pickupAddress && (
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0">
+                                            <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pickup</p>
+                                            <p className="text-sm font-bold text-gray-900">{booking.pickupCity}</p>
+                                            <p className="text-xs text-gray-500">{booking.pickupAddress}</p>
+                                        </div>
+                                    </div>
+                                )}
+                                {booking.dropAddress && (
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-7 h-7 bg-red-50 rounded-lg flex items-center justify-center shrink-0">
+                                            <MapPin className="w-3.5 h-3.5 text-red-500" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Drop</p>
+                                            <p className="text-sm font-bold text-gray-900">{booking.dropCity}</p>
+                                            <p className="text-xs text-gray-500">{booking.dropAddress}</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Route Details */}
+                    {booking.routeDetails && (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                            <h3 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2"><FileText className="w-4 h-4 text-indigo-500" /> Route Details</h3>
+                            <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">{booking.routeDetails}</p>
+                        </div>
+                    )}
+
+                    {/* Customer Notes */}
+                    {booking.customerNotes && (
+                        <div className="bg-amber-50/60 rounded-2xl border border-amber-100 p-5">
+                            <h3 className="text-sm font-bold text-gray-900 mb-1.5 flex items-center gap-2"><FileText className="w-4 h-4 text-amber-500" /> Customer Notes</h3>
+                            <p className="text-xs text-gray-600 leading-relaxed">{booking.customerNotes}</p>
+                        </div>
+                    )}
 
                     {/* Driver Assignment Section */}
-                    <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                        <div className="p-6 border-b flex items-center justify-between">
-                            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                                <Users className="w-5 h-5 text-indigo-600" />
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                <Users className="w-4 h-4 text-indigo-500" />
                                 Driver Assignment
                             </h3>
                             {!booking.driverName && !showAssignForm && (
@@ -691,10 +746,31 @@ export default function VendorBusBookingDetailPage() {
                     </div>
                 </div>
 
-                {/* Sidebar / Status Flow */}
-                <div className="space-y-6">
-                    <div className="bg-white rounded-xl shadow-sm border p-6">
-                        <h3 className="font-bold text-gray-900 mb-6 border-b pb-4">Trip Progress</h3>
+                {/* ══ Sidebar ══ */}
+                <div className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1">
+                    {/* Payment Summary */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2"><CreditCard className="w-4 h-4 text-indigo-500" /> Payment</h3>
+                        <div className="space-y-2.5">
+                            <div className="flex justify-between text-xs"><span className="text-gray-500">Total Amount</span><span className="font-semibold text-gray-700">₹{booking.totalAmount.toLocaleString()}</span></div>
+                            <div className="flex justify-between text-xs"><span className="text-gray-500">Advance Paid</span><span className="font-semibold text-emerald-600">₹{booking.advancePaid.toLocaleString()}</span></div>
+                            <div className="border-t border-gray-100 pt-2.5 mt-1">
+                                <div className="flex justify-between items-end">
+                                    <span className="text-sm font-bold text-gray-900">Balance Due</span>
+                                    <span className="text-xl font-extrabold text-orange-600">₹{balanceDue.toLocaleString()}</span>
+                                </div>
+                            </div>
+                            <div className="pt-1 text-center">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${booking.advancePaymentVerified ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                                    {booking.advancePaymentVerified ? '✓ Verified' : booking.paymentStatus}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Trip Progress */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                        <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2"><Navigation className="w-4 h-4 text-purple-500" /> Trip Progress</h3>
 
                         {(() => {
                             const isDropped = booking.status === 'DROPPED';
@@ -765,65 +841,47 @@ export default function VendorBusBookingDetailPage() {
                             );
                         })()}
 
-                        {/* Vendor Action Area - Removed OTP display as requested */}
-                        <div className="mt-8 pt-8 border-t">
+                        {/* Action banners */}
+                        <div className="mt-5 space-y-2.5">
                             {booking.status === 'VEHICLE_ASSIGNED' && (
-                                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-200">
-                                    <p className="text-sm font-bold text-indigo-800 mb-2 flex items-center gap-2">
-                                        <Navigation className="w-4 h-4" />
-                                        Awaiting Trip Start
-                                    </p>
-                                    <p className="text-sm text-indigo-700">
-                                        Driver <strong>{booking.driverName}</strong> has been assigned.
-                                        The driver will initiate the trip start from their dashboard.
-                                    </p>
+                                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+                                    <p className="text-xs font-bold text-indigo-800 flex items-center gap-1.5"><Navigation className="w-3.5 h-3.5" /> Awaiting Trip Start</p>
+                                    <p className="text-[11px] text-indigo-600 mt-0.5">Driver <strong>{booking.driverName}</strong> assigned. Driver will start trip from their dashboard.</p>
                                 </div>
                             )}
-
                             {booking.status === 'IN_PROGRESS' && (
-                                <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
-                                    <p className="text-sm font-bold text-purple-800 mb-2 flex items-center gap-2">
-                                        <Navigation className="w-4 h-4" />
-                                        Trip Live
-                                    </p>
-                                    <p className="text-xs text-purple-700 mb-4 font-medium"> The trip is currently in progress. The driver will complete the trip from their app.</p>
-                                    <div className="flex justify-center">
-                                        <div className="animate-bounce p-3 bg-purple-200 rounded-full text-purple-700">
-                                            <Bus className="w-6 h-6" />
-                                        </div>
-                                    </div>
+                                <div className="bg-purple-50 border border-purple-100 rounded-xl p-3">
+                                    <p className="text-xs font-bold text-purple-800 flex items-center gap-1.5"><Navigation className="w-3.5 h-3.5" /> Trip Live</p>
+                                    <p className="text-[11px] text-purple-600 mt-0.5">Trip in progress. Driver will mark complete from their app.</p>
                                 </div>
                             )}
-
                             {booking.status === 'ADVANCE_PAID' && !booking.driverName && (
-                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                                    <p className="text-sm font-bold text-blue-800 mb-2">Notice</p>
-                                    <p className="text-xs text-blue-700">Assignment is pending. Please assign a driver and vehicle to proceed with the trip.</p>
+                                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+                                    <p className="text-xs font-bold text-blue-800">Assignment Pending</p>
+                                    <p className="text-[11px] text-blue-600 mt-0.5">Please assign a driver and vehicle to proceed.</p>
+                                </div>
+                            )}
+                            {booking.status === 'COMPLETED' && (
+                                <div className="bg-emerald-50 rounded-xl border border-emerald-100 p-4 text-center">
+                                    <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-1.5" />
+                                    <p className="text-xs font-bold text-emerald-800">Trip Completed!</p>
                                 </div>
                             )}
                         </div>
-
-                        {/* Payment Proof Preview if available */}
-                        {booking.advancePaymentProof && (
-                            <div className="bg-white rounded-xl shadow-sm border p-6">
-                                <h3 className="font-bold text-gray-900 mb-4">Payment Proof</h3>
-                                <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden group">
-                                    <img
-                                        src={booking.advancePaymentProof}
-                                        alt="Payment Proof"
-                                        className="w-full h-full object-cover"
-                                    />
-                                    <a
-                                        href={booking.advancePaymentProof}
-                                        target="_blank"
-                                        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
-                                    >
-                                        <Eye className="text-white w-8 h-8" />
-                                    </a>
-                                </div>
-                            </div>
-                        )}
                     </div>
+
+                    {/* Payment Proof */}
+                    {booking.advancePaymentProof && (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                            <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2"><Eye className="w-4 h-4 text-emerald-500" /> Payment Proof</h3>
+                            <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden group">
+                                <img src={booking.advancePaymentProof} alt="Payment Proof" className="w-full h-full object-cover" />
+                                <a href={booking.advancePaymentProof} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                    <Eye className="text-white w-7 h-7" />
+                                </a>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

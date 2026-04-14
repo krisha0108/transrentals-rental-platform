@@ -327,7 +327,7 @@ export default function VehicleDetailPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto mb-4" />
+          <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mx-auto mb-4" />
           <p className="text-gray-600">Loading vehicle details...</p>
         </div>
       </div>
@@ -504,11 +504,11 @@ export default function VehicleDetailPage() {
                 <p className="text-sm text-gray-500">Availability</p>
                 <div className="flex items-center gap-2 mt-1">
                   {vehicle.isAvailable ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
                       Available
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
                       Unavailable
                     </span>
                   )}
@@ -610,7 +610,7 @@ export default function VehicleDetailPage() {
                 size="sm"
                 onClick={toggleAvailability}
                 disabled={updating}
-                className={vehicle.isAvailable ? 'text-orange-600' : 'text-blue-600'}
+                className={vehicle.isAvailable ? 'text-emerald-600' : 'text-emerald-600'}
               >
                 {updating ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -644,7 +644,7 @@ export default function VehicleDetailPage() {
       {/* Locations */}
       <div className="bg-white rounded-xl border shadow-sm p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <MapPin className="w-5 h-5 text-blue-600" />
+          <MapPin className="w-5 h-5 text-emerald-600" />
           Operating Locations
         </h2>
 
@@ -655,7 +655,7 @@ export default function VehicleDetailPage() {
             {fleetLocations.map((fl: any) => (
               <span
                 key={fl.id}
-                className="inline-flex items-center gap-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium"
+                className="inline-flex items-center gap-1 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium"
               >
                 <MapPin className="w-3 h-3" />
                 {fl.locations?.name || fl.location?.name}
@@ -685,7 +685,7 @@ export default function VehicleDetailPage() {
                   <span className="font-medium text-gray-900">
                     {pricing.tripType?.name || pricing.priceType}
                     {(pricing.locations || pricing.location) && (
-                      <span className="ml-2 text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded text-xs border border-blue-100">
+                      <span className="ml-2 text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded text-xs border border-emerald-100">
                         (City: {pricing.locations?.name || pricing.location?.name})
                       </span>
                     )}
@@ -760,7 +760,7 @@ export default function VehicleDetailPage() {
       {vehicle.sub_service && (
         <div className="bg-white rounded-xl border shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Category</h2>
-          <span className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 rounded-lg font-medium">
+          <span className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg font-medium">
             {vehicle.sub_service.name}
           </span>
         </div>

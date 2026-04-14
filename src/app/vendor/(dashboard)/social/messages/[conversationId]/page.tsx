@@ -228,70 +228,78 @@ export default function ChatWindowPage({
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-[#f0fdf4]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #d1fae5 1px, transparent 0)', backgroundSize: '24px 24px' }}>
+    <div className="flex flex-col h-full min-h-0 bg-gradient-to-b from-emerald-50/30 to-[#f9fafb]">
 
-      {/* ── Header ── */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 flex-shrink-0 shadow-sm z-10">
-        {/* Back button — only on mobile */}
-        <Link
-          href="/vendor/social/messages"
-          className="lg:hidden p-2 -ml-1 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
+      {/* ── Header — clean with emerald accent ── */}
+      <div className="flex-shrink-0 z-10">
+        <div className="h-1 bg-emerald-600"></div>
+        <div className="bg-white px-4 py-3 flex items-center gap-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+          <Link
+            href="/vendor/social/messages"
+            className="lg:hidden p-2 -ml-1 rounded-xl hover:bg-emerald-50 text-gray-500 hover:text-emerald-600 transition-all"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
 
-        {other ? (
-          <>
-            <VendorAvatar name={other.businessName} logo={other.logo} size={42} />
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-900 text-sm leading-tight truncate">
-                {other.businessName}
-              </p>
-              <p className="text-xs text-emerald-500 font-medium">
-                {other.city || other.ownerName}
-              </p>
+          {other ? (
+            <>
+              <div className="ring-2 ring-emerald-200 rounded-full">
+                <VendorAvatar name={other.businessName} logo={other.logo} size={40} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-gray-900 text-[14px] leading-tight truncate">
+                  {other.businessName}
+                </p>
+                <p className="text-[11px] text-emerald-600 font-medium">
+                  {other.city ? `${other.city}` : other.ownerName}
+                </p>
+              </div>
+              <Link
+                href={`/vendor/social/profile/${other.id}`}
+                className="p-2 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-all"
+                title="View Profile"
+              >
+                <Building2 className="h-4 w-4" />
+              </Link>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gray-100 animate-pulse" />
+              <div className="space-y-1.5">
+                <div className="h-3.5 bg-gray-100 rounded-full w-32 animate-pulse" />
+                <div className="h-2.5 bg-gray-100 rounded-full w-20 animate-pulse" />
+              </div>
             </div>
-            <Link
-              href={`/vendor/social/profile/${other.id}`}
-              className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-              title="View Profile"
-            >
-              <Building2 className="h-5 w-5" />
-            </Link>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-100 animate-pulse" />
-            <div className="h-4 bg-gray-100 rounded-full w-32 animate-pulse" />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* ── Messages ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 scroll-smooth">
         {loading ? (
-          <div className="flex justify-center items-center h-32">
+          <div className="flex flex-col items-center justify-center h-32 gap-2">
             <div className="animate-spin h-6 w-6 border-2 border-emerald-500 border-t-transparent rounded-full" />
+            <p className="text-[11px] text-gray-400">Loading messages...</p>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-48 text-center">
-            <div className="text-3xl mb-3">👋</div>
-            <p className="text-gray-500 text-sm font-medium">
-              Start the conversation with {other?.businessName}
+            <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+              <span className="text-2xl">👋</span>
+            </div>
+            <p className="text-gray-700 text-sm font-semibold">
+              Start chatting with {other?.businessName}
             </p>
-            <p className="text-gray-400 text-xs mt-1">Say hi!</p>
+            <p className="text-gray-400 text-xs mt-1">Send your first message below</p>
           </div>
         ) : (
           <div className="space-y-0.5">
             {grouped.map(group => (
               <div key={group.date}>
                 {/* Date separator */}
-                <div className="flex items-center gap-3 my-5">
-                  <div className="flex-1 h-px bg-emerald-100" />
-                  <span className="text-[11px] text-emerald-600 font-semibold bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 flex-shrink-0">
+                <div className="flex justify-center my-4">
+                  <span className="text-[10px] text-gray-500 font-medium bg-white px-3 py-1 rounded-full shadow-sm border border-gray-100">
                     {formatDateLabel(group.messages[0].createdAt)}
                   </span>
-                  <div className="flex-1 h-px bg-emerald-100" />
                 </div>
 
                 {group.messages.map((msg, i) => {
@@ -333,15 +341,15 @@ export default function ChatWindowPage({
                               className={`
                                 px-3.5 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap
                                 ${isMine
-                                  ? `bg-emerald-500 text-white shadow-sm ${
+                                  ? `bg-emerald-600 text-white shadow-sm shadow-emerald-200/30 ${
                                       isFirstInRun ? 'rounded-t-2xl' : 'rounded-tl-2xl'
                                     } rounded-bl-2xl ${
-                                      isLastInRun ? 'rounded-br-sm rounded-tl-2xl' : 'rounded-br-2xl rounded-tr-2xl'
+                                      isLastInRun ? 'rounded-br-md rounded-tl-2xl' : 'rounded-br-2xl rounded-tr-2xl'
                                     }`
-                                  : `bg-white text-gray-800 border border-gray-100 shadow-sm ${
+                                  : `bg-white text-gray-800 border border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] ${
                                       isFirstInRun ? 'rounded-t-2xl' : 'rounded-tr-2xl'
                                     } rounded-br-2xl ${
-                                      isLastInRun ? 'rounded-bl-sm' : 'rounded-bl-2xl rounded-tl-2xl'
+                                      isLastInRun ? 'rounded-bl-md' : 'rounded-bl-2xl rounded-tl-2xl'
                                     }`
                                 }
                               `}
@@ -372,39 +380,41 @@ export default function ChatWindowPage({
       </div>
 
       {/* ── Input Bar ── */}
-      <div className="bg-white border-t border-gray-100 px-4 py-3 flex-shrink-0 shadow-[0_-1px_4px_rgba(0,0,0,0.04)]">
-        <form onSubmit={sendMessage} className="flex items-end gap-2">
-          <div className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 focus-within:border-emerald-400 focus-within:ring-1 focus-within:ring-emerald-200 transition-all">
-            <textarea
-              ref={inputRef}
-              value={text}
-              onChange={e => {
-                setText(e.target.value);
-                // Auto-resize
-                e.target.style.height = 'auto';
-                e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
-              }}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
-              placeholder={`Message ${other?.businessName ?? ''}...`}
-              rows={1}
-              className="w-full bg-transparent text-sm focus:outline-none text-gray-800 placeholder-gray-400 resize-none overflow-hidden leading-relaxed"
-              style={{ minHeight: 24, maxHeight: 120 }}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={!text.trim() || sending}
-            className="w-10 h-10 bg-emerald-500 text-white rounded-full flex items-center justify-center hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm flex-shrink-0 active:scale-95"
-          >
-            <Send className="h-4 w-4" />
-          </button>
-        </form>
-        <p className="text-[10px] text-gray-300 text-center mt-1.5">Enter to send · Shift+Enter for new line</p>
+      <div className="flex-shrink-0">
+        <div className="h-px bg-gradient-to-r from-transparent via-emerald-200/50 to-transparent"></div>
+        <div className="bg-white px-4 py-3">
+          <form onSubmit={sendMessage} className="flex items-end gap-2.5">
+            <div className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-2.5 focus-within:bg-white focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100 focus-within:shadow-[0_0_16px_rgba(5,150,105,0.08)] transition-all duration-300">
+              <textarea
+                ref={inputRef}
+                value={text}
+                onChange={e => {
+                  setText(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }}
+                placeholder={`Message ${other?.businessName ?? ''}...`}
+                rows={1}
+                className="w-full bg-transparent text-sm focus:outline-none text-gray-800 placeholder-gray-400 resize-none overflow-hidden leading-relaxed"
+                style={{ minHeight: 24, maxHeight: 120 }}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={!text.trim() || sending}
+              className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-md shadow-emerald-200/50 flex-shrink-0 active:scale-90"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </form>
+          <p className="text-[10px] text-gray-300 text-center mt-1.5">Enter to send · Shift+Enter for new line</p>
+        </div>
       </div>
     </div>
   );

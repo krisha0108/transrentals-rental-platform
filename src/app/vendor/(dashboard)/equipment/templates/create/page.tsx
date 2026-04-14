@@ -1,25 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  FileSpreadsheet,
   Plus,
   X,
-  Loader2,
   CheckCircle,
   XCircle,
-  AlertCircle,
+  FileSpreadsheet,
+  Save,
+  IndianRupee,
+  ScrollText,
+  Sparkles,
+  Star,
   Zap,
+  AlertCircle,
   Wrench,
   HardHat,
   Truck,
   Cog,
-  Star,
   Crown,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+// ── Fade-in ──
+function FadeIn({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setShow(true); obs.disconnect(); } }, { threshold: 0.05 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className={className} style={{ opacity: show ? 1 : 0, transform: show ? 'translateY(0)' : 'translateY(14px)', transition: `opacity .5s cubic-bezier(.22,1,.36,1) ${delay}ms, transform .5s cubic-bezier(.22,1,.36,1) ${delay}ms` }}>
+      {children}
+    </div>
+  );
+}
 
 const CATEGORIES = [
   { value: 'daily', label: 'Daily Rental' },
@@ -47,7 +69,7 @@ const QUICK_START_TEMPLATES = [
     category: 'daily',
     description: 'Standard daily equipment rental with basic inclusions',
     icon: Wrench,
-    color: 'bg-amber-100 text-amber-600',
+    color: 'bg-emerald-50 text-emerald-600',
     dailyRateHint: 5000,
     weeklyRateHint: 30000,
     monthlyRateHint: 100000,
@@ -80,7 +102,7 @@ const QUICK_START_TEMPLATES = [
     category: 'weekly',
     description: 'Weekly rental with operator and maintenance included',
     icon: HardHat,
-    color: 'bg-green-100 text-green-600',
+    color: 'bg-emerald-50 text-emerald-600',
     dailyRateHint: 4500,
     weeklyRateHint: 28000,
     monthlyRateHint: 95000,
@@ -116,7 +138,7 @@ const QUICK_START_TEMPLATES = [
     category: 'project',
     description: 'Full-service project rental with dedicated support',
     icon: Crown,
-    color: 'bg-purple-100 text-purple-600',
+    color: 'bg-cyan-50 text-cyan-600',
     dailyRateHint: 8000,
     weeklyRateHint: 50000,
     monthlyRateHint: 180000,
@@ -153,7 +175,7 @@ const QUICK_START_TEMPLATES = [
     category: 'daily',
     description: 'Specialized crane rental with rigging support',
     icon: Truck,
-    color: 'bg-blue-100 text-blue-600',
+    color: 'bg-blue-50 text-blue-600',
     dailyRateHint: 15000,
     weeklyRateHint: 90000,
     monthlyRateHint: 300000,
@@ -189,7 +211,7 @@ const QUICK_START_TEMPLATES = [
     category: 'weekly',
     description: 'Complete excavation solution with support equipment',
     icon: Cog,
-    color: 'bg-orange-100 text-orange-600',
+    color: 'bg-emerald-50 text-emerald-600',
     dailyRateHint: 12000,
     weeklyRateHint: 70000,
     monthlyRateHint: 250000,
@@ -225,7 +247,7 @@ const QUICK_START_TEMPLATES = [
     category: 'monthly',
     description: 'Power generator rental with installation',
     icon: Star,
-    color: 'bg-yellow-100 text-yellow-600',
+    color: 'bg-emerald-50 text-emerald-700',
     dailyRateHint: 3000,
     weeklyRateHint: 18000,
     monthlyRateHint: 60000,
@@ -278,6 +300,35 @@ const DEFAULT_TERMS = [
   'Inspection at handover mandatory',
 ];
 
+// ── List input ──
+function ListInput({ value, onChange, onAdd, placeholder, color }: { value: string; onChange: (v: string) => void; onAdd: () => void; placeholder: string; color: 'emerald' | 'red' | 'gray' }) {
+  const ring = { emerald: 'focus:ring-emerald-500/20 focus:border-emerald-300', red: 'focus:ring-red-500/20 focus:border-red-300', gray: 'focus:ring-gray-500/20 focus:border-gray-300' };
+  const btn = { emerald: 'bg-emerald-500 hover:bg-emerald-600', red: 'bg-red-500 hover:bg-red-600', gray: 'bg-gray-700 hover:bg-gray-800' };
+  return (
+    <div className="flex gap-2">
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), onAdd())} placeholder={placeholder} className={`flex-1 px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl outline-none transition-all hover:border-gray-300 focus:ring-2 ${ring[color]}`} />
+      <button type="button" onClick={onAdd} className={`w-9 h-9 shrink-0 rounded-xl ${btn[color]} text-white flex items-center justify-center active:scale-95 transition-all`}>
+        <Plus className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+// ── List chip ──
+function ListChip({ item, onRemove, color }: { item: string; onRemove: () => void; color: 'emerald' | 'red' | 'gray' }) {
+  const bg = { emerald: 'bg-emerald-50 border-emerald-100', red: 'bg-red-50 border-red-100', gray: 'bg-gray-50 border-gray-100' };
+  const dot = { emerald: 'bg-emerald-400', red: 'bg-red-400', gray: 'bg-gray-400' };
+  return (
+    <div className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border ${bg[color]} group/chip transition-all hover:shadow-sm`}>
+      <div className={`w-1.5 h-1.5 rounded-full ${dot[color]} shrink-0`} />
+      <span className="flex-1 text-sm text-gray-700">{item}</span>
+      <button type="button" onClick={onRemove} className="w-5 h-5 shrink-0 rounded-md flex items-center justify-center opacity-0 group-hover/chip:opacity-100 hover:bg-white transition-all">
+        <X className="w-3 h-3 text-gray-400" />
+      </button>
+    </div>
+  );
+}
+
 export default function CreateEquipmentTemplatePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -297,6 +348,11 @@ export default function CreateEquipmentTemplatePage() {
   const [monthlyRateHint, setMonthlyRateHint] = useState('');
   const [isDefault, setIsDefault] = useState(false);
 
+  // Input states for adding new items
+  const [newInclusion, setNewInclusion] = useState('');
+  const [newExclusion, setNewExclusion] = useState('');
+  const [newTerm, setNewTerm] = useState('');
+
   // Load Quick Start Template
   const loadQuickStartTemplate = (template: typeof QUICK_START_TEMPLATES[0]) => {
     setName(template.name);
@@ -312,10 +368,11 @@ export default function CreateEquipmentTemplatePage() {
     setShowQuickStart(false);
   };
 
-  // Input states for adding new items
-  const [newInclusion, setNewInclusion] = useState('');
-  const [newExclusion, setNewExclusion] = useState('');
-  const [newTerm, setNewTerm] = useState('');
+  const loadDefaults = () => {
+    setInclusions(DEFAULT_INCLUSIONS);
+    setExclusions(DEFAULT_EXCLUSIONS);
+    setTermsConditions(DEFAULT_TERMS);
+  };
 
   const addItem = (type: 'inclusion' | 'exclusion' | 'term') => {
     if (type === 'inclusion' && newInclusion.trim()) {
@@ -396,412 +453,271 @@ export default function CreateEquipmentTemplatePage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          href="/vendor/equipment/templates"
-          className="p-2 hover:bg-gray-100 rounded-lg transition"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-            <FileSpreadsheet className="w-5 h-5 text-amber-600" />
+    <div className="pb-24">
+      {/* ── Header ── */}
+      <FadeIn>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-5 mb-5">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white" />
+            <div className="absolute right-20 -bottom-8 w-20 h-20 rounded-full bg-white" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Create Template</h1>
-            <p className="text-gray-600">Create a new quote template</p>
+          <div className="relative flex items-center gap-3">
+            <Link href="/vendor/equipment/templates" className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm hover:bg-white/30 flex items-center justify-center transition-all border border-white/20 active:scale-95 group">
+              <ArrowLeft className="w-4 h-4 text-white group-hover:-translate-x-0.5 transition-transform" />
+            </Link>
+            <div>
+              <h1 className="text-lg font-extrabold text-white">Create Template</h1>
+              <p className="text-emerald-100 text-xs">Build a reusable template for quick equipment quotes</p>
+            </div>
           </div>
         </div>
-      </div>
+      </FadeIn>
 
+      {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
-          <AlertCircle className="w-5 h-5" />
+        <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-medium mb-5">
+          <AlertCircle className="w-4 h-4 shrink-0" />
           {error}
         </div>
       )}
 
-      {/* Quick Start Templates */}
+      {/* ── Quick Start Suggestions ── */}
       {showQuickStart && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-amber-600" />
+        <FadeIn delay={50}>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                </div>
+                <h3 className="text-base font-bold text-gray-900">Quick Start</h3>
+                <span className="text-sm text-gray-400 ml-1">Pick a template to pre-fill</span>
               </div>
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Quick Start Templates</h2>
-                <p className="text-sm text-gray-600">Start with a pre-built template and customize it</p>
-              </div>
+              <button type="button" onClick={() => setShowQuickStart(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowQuickStart(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {QUICK_START_TEMPLATES.map((s) => {
+                const Icon = s.icon;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => loadQuickStartTemplate(s)}
+                    className="p-3 bg-gray-50 rounded-xl border border-gray-100 hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-left group active:scale-[0.98]"
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-1.5 ${s.color}`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <p className="text-sm font-bold text-gray-900 mb-0.5 truncate">{s.name}</p>
+                    <p className="text-xs text-gray-400 line-clamp-1">{s.description}</p>
+                    <div className="flex items-center gap-1 mt-2">
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">₹{s.dailyRateHint.toLocaleString()}/day</span>
+                      <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded capitalize">{s.category}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <button type="button" onClick={loadDefaults} className="mt-3 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-1">
+              <Zap className="w-3 h-3" /> Or load default items only
             </button>
           </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {QUICK_START_TEMPLATES.map((template) => {
-              const IconComponent = template.icon;
-              return (
-                <button
-                  key={template.id}
-                  type="button"
-                  onClick={() => loadQuickStartTemplate(template)}
-                  className="bg-white rounded-xl p-4 border-2 border-transparent hover:border-amber-500 hover:shadow-md transition-all text-left group"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${template.color}`}>
-                      <IconComponent className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 group-hover:text-amber-600 transition">
-                        {template.name}
-                      </h3>
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                        {template.description}
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full capitalize">
-                          {template.category}
-                        </span>
-                        <span className="text-xs text-green-600 font-medium">
-                          From ₹{template.dailyRateHint.toLocaleString()}/day
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <p className="text-xs text-gray-500 mt-4 text-center">
-            Click on any template to load it, then customize as needed
-          </p>
-        </div>
+        </FadeIn>
       )}
 
       {!showQuickStart && (
         <button
           type="button"
           onClick={() => setShowQuickStart(true)}
-          className="flex items-center gap-2 text-sm text-amber-600 hover:text-amber-700"
+          className="flex items-center gap-2 text-sm font-semibold text-emerald-600 hover:text-emerald-700 mb-5"
         >
-          <Zap className="w-4 h-4" />
+          <Sparkles className="w-4 h-4" />
           Show Quick Start Templates
         </button>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Info */}
-        <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
+      <form id="equipment-create-form" onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Template Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Standard Daily Rental"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-              >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of this template..."
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Applicable Equipment Types
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {EQUIPMENT_TYPES.map((type) => (
-                <button
-                  key={type.value}
-                  type="button"
-                  onClick={() => toggleEquipmentType(type.value)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                    equipmentTypes.includes(type.value)
-                      ? 'bg-amber-100 text-amber-700 border-2 border-amber-500'
-                      : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
-                  }`}
-                >
-                  {type.label}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Leave empty to apply to all equipment types
-            </p>
-          </div>
-
-          {/* Rate Hints */}
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Suggested Daily Rate (₹)
-              </label>
-              <input
-                type="number"
-                value={dailyRateHint}
-                onChange={(e) => setDailyRateHint(e.target.value)}
-                placeholder="e.g., 5000"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Suggested Weekly Rate (₹)
-              </label>
-              <input
-                type="number"
-                value={weeklyRateHint}
-                onChange={(e) => setWeeklyRateHint(e.target.value)}
-                placeholder="e.g., 30000"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Suggested Monthly Rate (₹)
-              </label>
-              <input
-                type="number"
-                value={monthlyRateHint}
-                onChange={(e) => setMonthlyRateHint(e.target.value)}
-                placeholder="e.g., 100000"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              id="isDefault"
-              checked={isDefault}
-              onChange={(e) => setIsDefault(e.target.checked)}
-              className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
-            />
-            <label htmlFor="isDefault" className="text-sm font-medium text-gray-700">
-              Set as default template for this category
-            </label>
-          </div>
-        </div>
-
-        {/* Inclusions */}
-        <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-500" />
-              Inclusions <span className="text-red-500">*</span>
-            </h2>
-            <span className="text-sm text-gray-500">{inclusions.length} items</span>
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newInclusion}
-              onChange={(e) => setNewInclusion(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addItem('inclusion'))}
-              placeholder="Add what's included..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-            />
-            <button
-              type="button"
-              onClick={() => addItem('inclusion')}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-1"
-            >
-              <Plus className="w-4 h-4" />
-              Add
-            </button>
-          </div>
-
-          <div className="space-y-2">
-            {inclusions.map((item, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between bg-green-50 px-3 py-2 rounded-lg"
-              >
-                <span className="text-sm text-gray-700 flex items-center gap-2">
-                  <span className="text-green-500">✓</span>
-                  {item}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => removeItem('inclusion', index)}
-                  className="text-gray-400 hover:text-red-500"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+          {/* ══════════ LEFT COLUMN ══════════ */}
+          <div className="space-y-4">
+            {/* ── Basic Info ── */}
+            <FadeIn delay={100}>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 p-5">
+                <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2.5">
+                  <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                  </div>
+                  Basic Information
+                </h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-500 mb-1.5">Template Name *</label>
+                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Standard Daily Rental" className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 hover:border-gray-300 transition-all" required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-500 mb-1.5">Category *</label>
+                    <div className="flex flex-wrap gap-2">
+                      {CATEGORIES.map((cat) => (
+                        <button key={cat.value} type="button" onClick={() => setCategory(cat.value)}
+                          className={cn('px-3.5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 border',
+                            category === cat.value ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm shadow-emerald-500/20' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700'
+                          )}>
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-500 mb-1.5">Description <span className="font-normal text-gray-400 normal-case">(optional)</span></label>
+                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of this template..." className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 hover:border-gray-300 transition-all resize-none" rows={2} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-500 mb-1.5">Applicable Equipment Types <span className="font-normal text-gray-400 normal-case">(leave empty for all)</span></label>
+                    <div className="flex flex-wrap gap-2">
+                      {EQUIPMENT_TYPES.map((type) => (
+                        <button key={type.value} type="button" onClick={() => toggleEquipmentType(type.value)}
+                          className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 border',
+                            equipmentTypes.includes(type.value) ? 'bg-cyan-500 text-white border-cyan-500 shadow-sm shadow-cyan-500/20' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                          )}>
+                          {type.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </FadeIn>
 
-        {/* Exclusions */}
-        <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <XCircle className="w-5 h-5 text-red-500" />
-              Exclusions
-            </h2>
-            <span className="text-sm text-gray-500">{exclusions.length} items</span>
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newExclusion}
-              onChange={(e) => setNewExclusion(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addItem('exclusion'))}
-              placeholder="Add what's not included..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-            />
-            <button
-              type="button"
-              onClick={() => addItem('exclusion')}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-1"
-            >
-              <Plus className="w-4 h-4" />
-              Add
-            </button>
-          </div>
-
-          <div className="space-y-2">
-            {exclusions.map((item, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between bg-red-50 px-3 py-2 rounded-lg"
-              >
-                <span className="text-sm text-gray-700 flex items-center gap-2">
-                  <span className="text-red-500">✗</span>
-                  {item}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => removeItem('exclusion', index)}
-                  className="text-gray-400 hover:text-red-500"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            {/* ── Rate Hints ── */}
+            <FadeIn delay={150}>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 p-5">
+                <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2.5">
+                  <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
+                    <IndianRupee className="w-3.5 h-3.5 text-emerald-500" />
+                  </div>
+                  Rate Hints
+                  <span className="text-[10px] font-normal text-gray-400 ml-1">(optional)</span>
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {[
+                    { label: 'Daily Rate', value: dailyRateHint, set: setDailyRateHint, placeholder: '5,000' },
+                    { label: 'Weekly Rate', value: weeklyRateHint, set: setWeeklyRateHint, placeholder: '30,000' },
+                    { label: 'Monthly Rate', value: monthlyRateHint, set: setMonthlyRateHint, placeholder: '100,000' },
+                  ].map((r) => (
+                    <div key={r.label}>
+                      <label className="block text-sm font-bold text-gray-500 mb-1.5">{r.label}</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 text-sm">₹</span>
+                        <input type="number" value={r.value} onChange={(e) => r.set(e.target.value)} placeholder={r.placeholder} className="w-full pl-7 pr-3.5 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 hover:border-gray-300 transition-all tabular-nums" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </FadeIn>
 
-        {/* Terms & Conditions */}
-        <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Terms & Conditions</h2>
-            <span className="text-sm text-gray-500">{termsConditions.length} items</span>
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newTerm}
-              onChange={(e) => setNewTerm(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addItem('term'))}
-              placeholder="Add a term or condition..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
-            />
-            <button
-              type="button"
-              onClick={() => addItem('term')}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition flex items-center gap-1"
-            >
-              <Plus className="w-4 h-4" />
-              Add
-            </button>
-          </div>
-
-          <div className="space-y-2">
-            {termsConditions.map((item, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg"
-              >
-                <span className="text-sm text-gray-700">• {item}</span>
-                <button
-                  type="button"
-                  onClick={() => removeItem('term', index)}
-                  className="text-gray-400 hover:text-red-500"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            {/* ── Default Toggle ── */}
+            <FadeIn delay={200}>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <div className={cn('relative w-10 h-6 rounded-full transition-colors duration-200', isDefault ? 'bg-emerald-500' : 'bg-gray-200')} onClick={() => setIsDefault(!isDefault)}>
+                    <div className={cn('absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200', isDefault ? 'translate-x-[18px]' : 'translate-x-0.5')} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+                      <Star className="w-3.5 h-3.5 text-emerald-400" /> Set as default template
+                    </p>
+                    <p className="text-sm text-gray-400 mt-0.5">Auto-applied when creating quotes for this category</p>
+                  </div>
+                </label>
               </div>
-            ))}
+            </FadeIn>
           </div>
-        </div>
 
-        {/* Submit */}
-        <div className="flex justify-end gap-3">
-          <Link
-            href="/vendor/equipment/templates"
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-          >
-            Cancel
-          </Link>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4" />
-                Create Template
-              </>
-            )}
-          </button>
+          {/* ══════════ RIGHT COLUMN ══════════ */}
+          <div className="space-y-4">
+            {/* ── Inclusions ── */}
+            <FadeIn delay={120}>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 p-5">
+                <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2.5">
+                  <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                  </div>
+                  Inclusions <span className="text-red-400 text-xs">*</span>
+                  {inclusions.length > 0 && <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">{inclusions.length}</span>}
+                </h2>
+                <ListInput value={newInclusion} onChange={setNewInclusion} onAdd={() => addItem('inclusion')} placeholder="Add what's included..." color="emerald" />
+                {inclusions.length > 0 && (
+                  <div className="space-y-1.5 mt-3">
+                    {inclusions.map((item, idx) => (
+                      <ListChip key={idx} item={item} onRemove={() => removeItem('inclusion', idx)} color="emerald" />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </FadeIn>
+
+            {/* ── Exclusions ── */}
+            <FadeIn delay={170}>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 p-5">
+                <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2.5">
+                  <div className="w-7 h-7 bg-red-50 rounded-lg flex items-center justify-center">
+                    <XCircle className="w-3.5 h-3.5 text-red-500" />
+                  </div>
+                  Exclusions
+                  {exclusions.length > 0 && <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-md border border-red-100">{exclusions.length}</span>}
+                </h2>
+                <ListInput value={newExclusion} onChange={setNewExclusion} onAdd={() => addItem('exclusion')} placeholder="Add what's not included..." color="red" />
+                {exclusions.length > 0 && (
+                  <div className="space-y-1.5 mt-3">
+                    {exclusions.map((item, idx) => (
+                      <ListChip key={idx} item={item} onRemove={() => removeItem('exclusion', idx)} color="red" />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </FadeIn>
+
+            {/* ── Terms & Conditions ── */}
+            <FadeIn delay={220}>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300 p-5">
+                <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2.5">
+                  <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <ScrollText className="w-3.5 h-3.5 text-gray-500" />
+                  </div>
+                  Terms & Conditions
+                  {termsConditions.length > 0 && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-md border border-gray-200">{termsConditions.length}</span>}
+                </h2>
+                <ListInput value={newTerm} onChange={setNewTerm} onAdd={() => addItem('term')} placeholder="Add a term or condition..." color="gray" />
+                {termsConditions.length > 0 && (
+                  <div className="space-y-1.5 mt-3">
+                    {termsConditions.map((item, idx) => (
+                      <ListChip key={idx} item={item} onRemove={() => removeItem('term', idx)} color="gray" />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </FadeIn>
+          </div>
         </div>
       </form>
+
+      {/* ── Sticky Bottom CTA ── */}
+      <div className="sticky bottom-0 left-0 right-0 mt-5 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-5 py-3 flex gap-3 z-20">
+        <Link href="/vendor/equipment/templates" className="px-5 h-11 bg-gray-100 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-200 flex items-center active:scale-[0.98] transition-all">
+          Cancel
+        </Link>
+        <button form="equipment-create-form" type="submit" disabled={isLoading} className="flex-1 h-11 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-sm font-bold rounded-xl shadow-md shadow-emerald-500/25 disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+          {isLoading ? (
+            <><div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Creating...</>
+          ) : (
+            <><Save className="w-4 h-4" /> Create Template</>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

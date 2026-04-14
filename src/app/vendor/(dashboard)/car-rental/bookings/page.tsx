@@ -105,10 +105,10 @@ interface StaffDriver {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   PENDING_VENDOR: { label: 'New Booking', color: 'bg-amber-100 text-amber-700', icon: AlertCircle },
-  BROADCASTED: { label: 'Open', color: 'bg-blue-100 text-blue-700', icon: AlertCircle },
+  BROADCASTED: { label: 'Open', color: 'bg-emerald-100 text-emerald-700', icon: AlertCircle },
   ACCEPTED: { label: 'Accepted', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-  DRIVER_ASSIGNED: { label: 'Driver Assigned', color: 'bg-indigo-100 text-indigo-700', icon: User },
-  IN_PROGRESS: { label: 'In Progress', color: 'bg-purple-100 text-purple-700', icon: Navigation },
+  DRIVER_ASSIGNED: { label: 'Driver Assigned', color: 'bg-emerald-100 text-emerald-700', icon: User },
+  IN_PROGRESS: { label: 'In Progress', color: 'bg-emerald-100 text-emerald-700', icon: Navigation },
   COMPLETED: { label: 'Completed', color: 'bg-gray-100 text-gray-700', icon: CheckCircle },
   CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-700', icon: XCircle },
   DROPPED: { label: 'Dropped', color: 'bg-red-100 text-red-700', icon: XCircle },
@@ -368,116 +368,135 @@ export default function VendorCarRentalBookingsPage() {
   };
 
   if (isLoading) {
+    const shimmer = 'relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-shimmer before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent';
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full" />
+      <div className="space-y-5">
+        {/* Header skeleton */}
+        <div className={`h-24 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl ${shimmer}`} />
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
+              <div className={`w-9 h-9 bg-gray-100 rounded-xl ${shimmer}`} />
+              <div className={`h-7 bg-gray-200 rounded-lg w-16 ${shimmer}`} />
+              <div className={`h-3 bg-gray-100 rounded w-12 ${shimmer}`} />
+            </div>
+          ))}
+        </div>
+        {/* Filter skeleton */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-3">
+          <div className="flex gap-3">
+            <div className={`h-9 bg-gray-100 rounded-xl w-32 ${shimmer}`} />
+            <div className={`h-9 bg-gray-100 rounded-xl w-32 ${shimmer}`} />
+            <div className={`h-9 bg-gray-100 rounded-xl flex-1 ${shimmer}`} />
+          </div>
+        </div>
+        {/* List skeleton */}
+        <div className="space-y-2.5">
+          {[1,2,3].map(i => {
+            const borderColors = ['#10B981', '#F59E0B', '#10B981'];
+            return (
+              <div key={i} className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #e8e8ee', borderLeft: `3px solid ${borderColors[i-1]}` }}>
+                <div className="px-5 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className={`h-4 bg-gray-200 rounded-lg w-28 ${shimmer}`} />
+                        <div className={`h-5 bg-gray-100 rounded-full w-20 ${shimmer}`} />
+                      </div>
+                      <div className="flex gap-3">
+                        <div className={`h-3 bg-gray-100 rounded w-24 ${shimmer}`} />
+                        <div className={`h-3 bg-gray-100 rounded w-28 ${shimmer}`} />
+                        <div className={`h-3 bg-gray-100 rounded w-20 ${shimmer}`} />
+                      </div>
+                      <div className="flex gap-2">
+                        <div className={`h-3 bg-gray-100 rounded w-44 ${shimmer}`} />
+                        <div className={`h-3 bg-emerald-100 rounded w-10 ${shimmer}`} />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="space-y-1.5 text-right">
+                        <div className={`h-6 bg-gray-200 rounded-lg w-20 ml-auto ${shimmer}`} />
+                        <div className={`h-3 bg-gray-100 rounded w-14 ml-auto ${shimmer}`} />
+                      </div>
+                      <div className={`w-8 h-8 bg-gray-100 rounded-lg ${shimmer}`} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Car Rental Bookings</h1>
-          <p className="text-gray-600">Manage your car rental bookings</p>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-teal-500 p-5 animate-slide-down">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white" />
+          <div className="absolute right-20 -bottom-10 w-32 h-32 rounded-full bg-white" />
         </div>
-        <button
-          onClick={fetchBookings}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh
-        </button>
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
+              <Car className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-extrabold text-white">Car Rental Bookings</h1>
+              <p className="text-emerald-100 text-xs mt-0.5">Manage your car rental bookings</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold backdrop-blur-sm border bg-white/15 text-white border-white/20">
+              <TrendingUp className="w-3 h-3" />
+              ₹{stats.totalEarnings.toLocaleString()} earned
+            </div>
+            <button
+              onClick={fetchBookings}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white transition border border-white/20"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Refresh
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-white rounded-xl p-4 shadow-sm border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-gray-600" />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+        {[
+          { label: 'Total', value: stats.total, icon: <Calendar className="w-4 h-4" />, iconBg: 'bg-gradient-to-br from-gray-100 to-gray-50', iconColor: 'text-gray-500', border: 'border-gray-100', sub: 'all bookings' },
+          { label: 'Pending', value: stats.pending, icon: <AlertCircle className="w-4 h-4" />, iconBg: 'bg-gradient-to-br from-amber-100 to-amber-50', iconColor: 'text-amber-500', border: 'border-amber-100', sub: 'awaiting action' },
+          { label: 'Active', value: stats.active, icon: <Navigation className="w-4 h-4" />, iconBg: 'bg-gradient-to-br from-green-100 to-green-50', iconColor: 'text-green-500', border: 'border-green-100', sub: 'in progress' },
+          { label: 'Completed', value: stats.completed, icon: <CheckCircle className="w-4 h-4" />, iconBg: 'bg-gradient-to-br from-emerald-100 to-emerald-50', iconColor: 'text-emerald-500', border: 'border-emerald-100', sub: 'finished trips' },
+          { label: 'Cancelled', value: stats.cancelled, icon: <XCircle className="w-4 h-4" />, iconBg: 'bg-gradient-to-br from-red-100 to-red-50', iconColor: 'text-red-500', border: 'border-red-100', sub: 'dropped / cancelled' },
+          { label: 'Earned', value: `₹${stats.totalEarnings.toLocaleString()}`, icon: <TrendingUp className="w-4 h-4" />, iconBg: 'bg-gradient-to-br from-emerald-100 to-emerald-50', iconColor: 'text-emerald-500', border: 'border-emerald-100', sub: 'total earnings' },
+        ].map((s) => (
+          <div key={s.label} className={`bg-white rounded-2xl border ${s.border} p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 cursor-default group`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className={`w-9 h-9 rounded-xl ${s.iconBg} flex items-center justify-center ${s.iconColor} group-hover:scale-110 transition-transform`}>{s.icon}</div>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{s.label}</span>
             </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.total}</p>
-              <p className="text-xs text-gray-500">Total</p>
-            </div>
+            <p className="text-2xl font-extrabold text-gray-900">{s.value}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">{s.sub}</p>
           </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-4 shadow-sm border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-              <AlertCircle className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.pending}</p>
-              <p className="text-xs text-gray-500">Pending</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-4 shadow-sm border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Navigation className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.active}</p>
-              <p className="text-xs text-gray-500">Active</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-4 shadow-sm border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.completed}</p>
-              <p className="text-xs text-gray-500">Completed</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-4 shadow-sm border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-              <XCircle className="w-5 h-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.cancelled}</p>
-              <p className="text-xs text-gray-500">Cancelled</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-4 shadow-sm border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-xl font-bold">₹{stats.totalEarnings.toLocaleString()}</p>
-              <p className="text-xs text-gray-500">Earned</p>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border">
-        <div className="flex flex-wrap gap-4 items-center">
+      <div className="bg-white rounded-2xl border border-gray-100 p-3 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+        <div className="flex flex-wrap gap-3 items-center">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <span className="text-sm text-gray-600">Filter:</span>
+            <Filter className="w-4 h-4 text-gray-400" />
           </div>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all"
           >
             <option value="all">All Status</option>
             <option value="my_bookings">My Bookings</option>
@@ -492,7 +511,7 @@ export default function VendorCarRentalBookingsPage() {
           <select
             value={tripTypeFilter}
             onChange={(e) => setTripTypeFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all"
           >
             <option value="all">All Trip Types</option>
             {Object.entries(TRIP_TYPE_CONFIG).map(([key, config]) => (
@@ -505,7 +524,7 @@ export default function VendorCarRentalBookingsPage() {
           <DateFilterDropdown
             onFilterChange={(start, end) => {
               setDateFilter({ start, end });
-              setCurrentPage(1); // Reset to page 1 when filter changes
+              setCurrentPage(1);
             }}
             initialStartDate={dateFilter.start || undefined}
             initialEndDate={dateFilter.end || undefined}
@@ -519,7 +538,7 @@ export default function VendorCarRentalBookingsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search booking, customer..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500"
+                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all placeholder:text-gray-400"
               />
             </div>
           </form>
@@ -527,12 +546,18 @@ export default function VendorCarRentalBookingsPage() {
       </div>
 
       {/* Bookings List */}
-      <div className="space-y-4">
+      <div className="space-y-2.5">
         {bookings.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center">
-            <Car className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="font-medium text-gray-900 mb-1">No bookings found</h3>
-            <p className="text-sm text-gray-500">
+          <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center">
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <div className="absolute inset-0 bg-emerald-100 rounded-3xl rotate-6" />
+              <div className="absolute inset-0 bg-emerald-50 rounded-3xl -rotate-3" />
+              <div className="relative w-full h-full bg-white rounded-3xl border border-emerald-100 flex items-center justify-center shadow-sm">
+                <Car className="w-7 h-7 text-emerald-400" />
+              </div>
+            </div>
+            <p className="text-gray-900 font-bold text-base">No bookings found</p>
+            <p className="text-gray-400 text-sm mt-1">
               {statusFilter !== 'all' || tripTypeFilter !== 'all'
                 ? 'Try adjusting your filters'
                 : 'New car rental bookings will appear here'}
@@ -545,213 +570,162 @@ export default function VendorCarRentalBookingsPage() {
             const TripIcon = tripConfig.icon;
             const isActionLoading = actionLoading === booking.bookingNumber;
 
+            const statusBorder = booking.status === 'ACCEPTED' || booking.status === 'DRIVER_ASSIGNED' ? '#10B981'
+              : booking.status === 'IN_PROGRESS' ? '#10B981'
+              : booking.status === 'BROADCASTED' ? '#10B981'
+              : booking.status === 'CANCELLED' || booking.status === 'DROPPED' ? '#EF4444'
+              : booking.status === 'COMPLETED' ? '#6B7280'
+              : '#F59E0B';
+
             return (
-              <div key={booking.id} className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                <div className="p-4 md:p-6">
-                  {/* Header */}
-                  <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="font-mono text-sm text-gray-500">
-                          #{booking.bookingNumber}
-                        </span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}>
+              <div
+                key={booking.id}
+                className="bg-white rounded-2xl hover:shadow-[0_12px_32px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 transition-all duration-200 overflow-hidden group"
+                style={{ border: '1px solid #e8e8ee', borderLeft: `3px solid ${statusBorder}` }}
+              >
+                <div className="px-5 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    {/* Left content */}
+                    <div className="flex-1 min-w-0">
+                      {/* Booking number + badges */}
+                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                        <span className="text-sm font-bold text-gray-900">#{booking.bookingNumber}</span>
+                        <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusConfig.color}`}>
                           {statusConfig.label}
                         </span>
-                        {/* Ownership Badge */}
                         {!booking.acceptedVendorId && ['PENDING_VENDOR', 'BROADCASTED'].includes(booking.status) ? (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-700 border border-cyan-300">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
                             Available
                           </span>
                         ) : booking.isOwnBooking ? (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-300">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
                             Your Booking
                           </span>
                         ) : null}
                         {booking.paidAmount >= booking.grandTotal ? (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600">
                             Fully Paid
                           </span>
                         ) : booking.paidAmount > 0 ? (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600">
                             Advance Paid (₹{booking.paidAmount.toLocaleString()})
                           </span>
                         ) : null}
                       </div>
-                      <h3 className="font-semibold text-gray-900">{booking.carCategoryName}</h3>
-                      {booking.location && (
-                        <p className="text-xs text-gray-500">Location: {booking.location.name}</p>
-                      )}
-                    </div>
 
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-emerald-600">
-                        ₹{booking.grandTotal.toLocaleString()}
-                      </p>
-                      {booking.paidAmount > 0 && booking.paidAmount < booking.grandTotal ? (
-                        <div className="text-xs space-y-0.5 mt-1">
-                          <p className="text-emerald-600 font-medium">
-                            Paid: ₹{booking.paidAmount.toLocaleString()}
-                          </p>
-                          <p className="text-amber-600 font-medium">
-                            Balance: ₹{(booking.grandTotal - booking.paidAmount).toLocaleString()}
-                          </p>
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-500 flex items-center gap-1 justify-end">
-                          <TripIcon className="w-3 h-3" />
-                          {tripConfig.label}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Trip Details */}
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                    {/* Route */}
-                    <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-xs text-gray-500 mb-1">Route</p>
-                        {(() => {
-                          const stops = booking.intermediateStops?.filter((s) => s.cityText) || [];
-                          if (stops.length > 0) {
-                            const allCities = [booking.pickupCity, ...stops.map((s) => s.cityText), booking.dropCity || booking.pickupCity];
-                            return (
-                              <div className="space-y-0.5">
-                                {allCities.map((city, i) => (
-                                  <div key={i} className="flex items-center gap-1.5">
-                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${i === 0 ? 'bg-emerald-500' : i === allCities.length - 1 ? 'bg-red-500' : 'bg-orange-400'}`} />
-                                    <span className="text-sm font-medium truncate">{city}</span>
-                                  </div>
-                                ))}
-                                <p className="text-xs text-blue-600 font-medium mt-1">{allCities.length - 1} legs · Multi-Stop</p>
-                              </div>
-                            );
-                          }
-                          return (
-                            <div>
-                              <p className="text-sm font-medium">
-                                {booking.dropCity && booking.dropCity !== booking.pickupCity
-                                  ? `${booking.pickupCity} → ${booking.dropCity}`
-                                  : booking.pickupCity}
-                              </p>
-                              {booking.chargeableKm && booking.chargeableKm > 0 && (
-                                <p className="text-xs text-gray-400">{booking.chargeableKm} km · ₹{booking.perKmRate}/km</p>
-                              )}
-                            </div>
-                          );
-                        })()}
-                        {booking.pickupAddress && (
-                          <p className="text-xs text-gray-400 truncate mt-1">{booking.pickupAddress}</p>
-                        )}
+                      {/* Car category + customer + route info */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                        <span className="flex items-center gap-1 font-medium text-gray-700">
+                          <Car className="w-3 h-3 text-gray-400" /> {booking.carCategoryName}
+                        </span>
+                        <span className="text-gray-300">·</span>
+                        <span className="flex items-center gap-1">
+                          <User className="w-3 h-3 text-gray-400" /> {booking.customerName}
+                        </span>
+                        <span className="text-gray-300">·</span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-gray-400" />
+                          {booking.dropCity && booking.dropCity !== booking.pickupCity
+                            ? `${booking.pickupCity} → ${booking.dropCity}`
+                            : booking.pickupCity}
+                        </span>
+                        <span className="text-gray-300">·</span>
+                        <span className="flex items-center gap-1">
+                          <TripIcon className="w-3 h-3 text-gray-400" /> {tripConfig.label}
+                        </span>
                       </div>
-                    </div>
 
-                    {/* Pickup date */}
-                    <div className="flex items-start gap-2">
-                      <Calendar className="w-4 h-4 text-emerald-500 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-gray-500">Pickup</p>
-                        <p className="text-sm font-medium">
-                          {new Date(booking.pickupDate).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}{' '}
-                          at {booking.pickupTime}
-                        </p>
+                      {/* Date info */}
+                      <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(booking.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at {booking.pickupTime}
+                        </span>
                         {booking.returnDate && (
-                          <p className="text-xs text-gray-400">
-                            Return: {new Date(booking.returnDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                          </p>
+                          <span className="font-semibold text-emerald-600">
+                            → {new Date(booking.returnDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </span>
                         )}
                         {booking.localPackageHours && (
-                          <p className="text-xs text-gray-400">
-                            {booking.localPackageHours}hrs / {booking.localPackageKm}km
-                          </p>
+                          <span className="font-semibold text-emerald-600">({booking.localPackageHours}hrs / {booking.localPackageKm}km)</span>
+                        )}
+                        {booking.totalDays && booking.totalDays > 1 && (
+                          <span className="font-semibold text-emerald-500">({booking.totalDays}d)</span>
                         )}
                       </div>
+
+                      {/* Multi-stop route if applicable */}
+                      {(() => {
+                        const stops = booking.intermediateStops?.filter((s) => s.cityText) || [];
+                        if (stops.length > 0) {
+                          const allCities = [booking.pickupCity, ...stops.map((s) => s.cityText), booking.dropCity || booking.pickupCity];
+                          return (
+                            <div className="flex items-center gap-1.5 mt-1.5 text-xs">
+                              {allCities.map((city, i) => (
+                                <span key={i} className="flex items-center gap-1">
+                                  <span className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-emerald-500' : i === allCities.length - 1 ? 'bg-red-500' : 'bg-emerald-400'}`} />
+                                  <span className="text-gray-600 font-medium">{city}</span>
+                                  {i < allCities.length - 1 && <span className="text-gray-300">→</span>}
+                                </span>
+                              ))}
+                              <span className="text-emerald-600 font-semibold ml-1">{allCities.length - 1} legs</span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+
+                      {/* Driver info if assigned */}
+                      {booking.driverName && (
+                        <div className="flex items-center gap-3 mt-2 px-3 py-1.5 bg-emerald-50 border border-emerald-100 rounded-lg text-xs text-emerald-700">
+                          <span className="flex items-center gap-1 font-medium"><User className="w-3 h-3" /> {booking.driverName}</span>
+                          <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {booking.driverPhone}</span>
+                          <span className="flex items-center gap-1"><Car className="w-3 h-3" /> {booking.vehicleNumber}</span>
+                          {booking.vehicle_models && <span className="text-emerald-500">({booking.vehicle_models})</span>}
+                        </div>
+                      )}
+
+                      {booking.status === 'DROPPED' && (
+                        <div className="mt-2 px-3 py-2 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 flex items-center gap-1.5">
+                          <XCircle className="w-3 h-3 shrink-0" />
+                          <span className="font-medium">Dropped</span>
+                          {(booking as any).dropReason && <span>· {(booking as any).dropReason}</span>}
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex items-start gap-2">
-                      <User className="w-4 h-4 text-emerald-500 mt-0.5" />
-                      <div>
-                        <p className="text-xs text-gray-500">Customer</p>
-                        <p className="text-sm font-medium">{booking.customerName}</p>
-                        <p className="text-xs text-gray-400 flex items-center gap-1">
-                          <Phone className="w-3 h-3" />{booking.customerPhone}
-                        </p>
-                        {booking.customerEmail && (
-                          <p className="text-xs text-gray-400 truncate">{booking.customerEmail}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Fare Details */}
-                    <div className="flex items-start gap-2">
-                      <TrendingUp className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Fare Breakdown</p>
-                        {booking.tripType === 'LOCAL' && booking.localPackageHours ? (
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium">{booking.localPackageHours}hrs / {booking.localPackageKm}km</p>
-                            <p className="text-xs text-gray-400">Base: ₹{(booking.kmCharges || booking.grandTotal)?.toLocaleString()}</p>
+                    {/* Right -- Price + Eye */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right">
+                        <p className="text-xl font-extrabold text-gray-900">₹{booking.grandTotal.toLocaleString()}</p>
+                        {booking.paidAmount > 0 && booking.paidAmount < booking.grandTotal ? (
+                          <div className="text-[10px] space-y-0.5 mt-0.5">
+                            <p className="text-emerald-600 font-semibold">Paid: ₹{booking.paidAmount.toLocaleString()}</p>
+                            <p className="text-amber-600 font-semibold">Bal: ₹{(booking.grandTotal - booking.paidAmount).toLocaleString()}</p>
                           </div>
                         ) : (
-                          <div className="space-y-0.5">
-                            {booking.chargeableKm && booking.chargeableKm > 0 ? (
-                              <p className="text-xs text-gray-500">{booking.chargeableKm} km @ ₹{booking.perKmRate}/km</p>
-                            ) : null}
-                            {booking.kmCharges && booking.kmCharges > 0 ? (
-                              <p className="text-xs text-gray-400">Distance: ₹{booking.kmCharges.toLocaleString()}</p>
-                            ) : null}
-                            {booking.driverBatta && booking.driverBatta > 0 ? (
-                              <p className="text-xs text-gray-400">Driver allowance: ₹{booking.driverBatta.toLocaleString()}</p>
-                            ) : null}
-                            {booking.totalDays && booking.totalDays > 1 ? (
-                              <p className="text-xs text-blue-500">{booking.totalDays} days</p>
-                            ) : null}
-                          </div>
+                          <p className="text-[10px] text-gray-400 mt-0.5">{tripConfig.label}</p>
                         )}
-                        <p className="text-sm font-bold text-emerald-600 mt-1">Total: ₹{booking.grandTotal.toLocaleString()}</p>
                       </div>
+                      <Link
+                        href={`/vendor/car-rental/bookings/${booking.bookingNumber}`}
+                        className="w-8 h-8 rounded-lg bg-gray-50 group-hover:bg-emerald-50 flex items-center justify-center transition-colors"
+                      >
+                        <Eye className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 transition-colors" />
+                      </Link>
                     </div>
-
                   </div>
+                </div>
 
-                  {/* Driver Details (if assigned) */}
-                  {booking.driverName && (
-                    <div className="bg-emerald-50 rounded-lg p-3 mb-4">
-                      <p className="text-xs text-emerald-700 font-medium mb-2">Driver Assigned</p>
-                      <div className="flex flex-wrap gap-4 text-sm">
-                        <span className="flex items-center gap-1">
-                          <User className="w-4 h-4" />
-                          {booking.driverName}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-4 h-4" />
-                          {booking.driverPhone}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Car className="w-4 h-4" />
-                          {booking.vehicleNumber}
-                        </span>
-                        {booking.vehicle_models && (
-                          <span className="text-gray-500">({booking.vehicle_models})</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex flex-wrap gap-2 pt-4 border-t">
+                {/* Actions */}
+                {(booking.status === 'PENDING_VENDOR' || booking.status === 'BROADCASTED' || booking.status === 'ACCEPTED' || booking.status === 'DRIVER_ASSIGNED' || booking.status === 'IN_PROGRESS') && (
+                  <div className="px-5 py-3 border-t border-gray-100 flex flex-wrap items-center gap-2">
                     {(booking.status === 'PENDING_VENDOR' || booking.status === 'BROADCASTED') && (
                       <>
                         <button
                           onClick={() => handleAction(booking.bookingNumber, 'accept')}
                           disabled={isActionLoading}
-                          className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+                          className="px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold rounded-lg hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 transition-all shadow-sm"
                         >
                           {isActionLoading ? 'Processing...' : 'Accept'}
                         </button>
@@ -761,7 +735,7 @@ export default function VendorCarRentalBookingsPage() {
                             if (reason) handleAction(booking.bookingNumber, 'reject', { reason });
                           }}
                           disabled={isActionLoading}
-                          className="px-4 py-2 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 disabled:opacity-50"
+                          className="px-4 py-1.5 bg-red-50 text-red-600 text-xs font-bold rounded-lg hover:bg-red-100 disabled:opacity-50 transition-all border border-red-100"
                         >
                           Reject
                         </button>
@@ -771,46 +745,35 @@ export default function VendorCarRentalBookingsPage() {
                       <button
                         onClick={() => openAssignDriverModal(booking)}
                         disabled={isActionLoading}
-                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                        className="px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs font-bold rounded-lg hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 transition-all shadow-sm"
                       >
                         Assign Driver
                       </button>
                     )}
                     {booking.status === 'DRIVER_ASSIGNED' && (
-                      <div className="w-full px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-center gap-2">
-                        <span>🚗</span>
-                        <span>Trip will be started by your assigned driver. You will see all status updates here.</span>
-                      </div>
-                    )}
-                    {booking.status === 'DROPPED' && (
-                      <div className="w-full px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-start gap-2 mb-2">
-                        <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <span className="font-medium">Booking Dropped</span>
-                          {(booking as any).dropReason && (
-                            <p className="text-xs text-red-600 mt-1">Reason: {(booking as any).dropReason}</p>
-                          )}
-                        </div>
+                      <div className="px-3 py-2 bg-emerald-50 border border-emerald-100 rounded-lg text-xs text-emerald-600 flex items-center gap-1.5">
+                        <Car className="w-3 h-3" />
+                        <span>Trip will be started by your assigned driver</span>
                       </div>
                     )}
                     {booking.status === 'IN_PROGRESS' && (
                       <button
                         onClick={() => handleAction(booking.bookingNumber, 'complete_trip')}
                         disabled={isActionLoading}
-                        className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50"
+                        className="px-4 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs font-bold rounded-lg hover:from-green-600 hover:to-emerald-600 disabled:opacity-50 transition-all shadow-sm"
                       >
                         {isActionLoading ? 'Processing...' : 'Complete Trip'}
                       </button>
                     )}
                     <Link
                       href={`/vendor/car-rental/bookings/${booking.bookingNumber}`}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 flex items-center gap-1"
+                      className="px-4 py-1.5 bg-gray-50 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-100 flex items-center gap-1 transition-all border border-gray-200"
                     >
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-3 h-3" />
                       View Details
                     </Link>
                   </div>
-                </div>
+                )}
               </div>
             );
           })
@@ -871,8 +834,8 @@ export default function VendorCarRentalBookingsPage() {
               )}
 
               {fleetVehicles.length === 0 && (
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="text-sm text-blue-700">
+                <div className="bg-emerald-50 p-3 rounded-lg">
+                  <p className="text-sm text-emerald-700">
                     No fleet vehicles found. <a href="/vendor/fleet/add" className="underline font-medium">Add vehicles</a> to your car-rental fleet.
                   </p>
                 </div>

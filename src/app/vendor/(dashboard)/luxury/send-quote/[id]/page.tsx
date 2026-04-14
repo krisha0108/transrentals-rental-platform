@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -111,6 +111,14 @@ export default function SendQuotePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiSuccess, setApiSuccess] = useState('');
+
+  // Refs for required fields
+  const vehicleNameRef = useRef<HTMLInputElement>(null);
+  const baseAmountRef = useRef<HTMLInputElement>(null);
+  const quickTotalPriceRef = useRef<HTMLInputElement>(null);
+  const customValidDateRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [selectedFleet, setSelectedFleet] = useState<string>('');
@@ -268,15 +276,37 @@ export default function SendQuotePage() {
     return { subtotal, gst, total, advance };
   };
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!vehicleName.trim()) newErrors.vehicleName = 'Vehicle name/model is required';
+    if (!quickQuoteMode) {
+      if (!baseAmount || parseFloat(String(baseAmount)) <= 0) newErrors.baseAmount = 'Base amount is required and must be greater than 0';
+    } else {
+      if (!quickTotalPrice || parseFloat(quickTotalPrice) <= 0) newErrors.quickTotalPrice = 'Total quote price is required and must be greater than 0';
+    }
+    if (validityMode === 'custom' && !customValidDate) newErrors.customValidDate = 'Please select a validity date';
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      const firstRef =
+        newErrors.vehicleName ? vehicleNameRef :
+        newErrors.baseAmount ? baseAmountRef :
+        newErrors.quickTotalPrice ? quickTotalPriceRef :
+        customValidDateRef;
+      if (firstRef?.current) {
+        firstRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstRef.current.focus();
+      }
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!vehicleName || (!quickQuoteMode && !baseAmount) || (quickQuoteMode && !quickTotalPrice)) {
-      setError('Please select a vehicle and enter pricing');
-      return;
-    }
+    setError(null);
+    if (!validateForm()) return;
 
     setIsSubmitting(true);
-    setError(null);
 
     const { subtotal, gst, total, advance } = calculateTotal();
 
@@ -315,10 +345,8 @@ export default function SendQuotePage() {
       const data = await response.json();
 
       if (data.success) {
-        setSuccess(true);
-        setTimeout(() => {
-          router.push('/vendor/luxury/bookings');
-        }, 2000);
+        setApiSuccess('Quote sent successfully! Redirecting...');
+        setTimeout(() => router.push('/vendor/luxury/bookings'), 2000);
       } else {
         setError(data.error || 'Failed to submit quote');
       }
@@ -386,6 +414,29 @@ export default function SendQuotePage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      {/* Success Modal */}
+      {apiSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 flex flex-col items-center gap-4 max-w-sm w-full mx-4">
+            <div className="relative">
+              <svg className="w-20 h-20 animate-spin-slow" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#e5e7eb" strokeWidth="6"/>
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#22c55e" strokeWidth="6" strokeDasharray="180 226" strokeLinecap="round"/>
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-green-500" />
+              </div>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Quote Sent!</h3>
+            <p className="text-gray-500 text-center text-sm">{apiSuccess}</p>
+            <div className="flex gap-2 mt-1">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/vendor/luxury/bookings" className="p-2 hover:bg-gray-100 rounded-lg">
@@ -592,13 +643,14 @@ export default function SendQuotePage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Name *</label>
                 <input
+                  ref={vehicleNameRef}
                   type="text"
                   value={vehicleName}
-                  onChange={(e) => setVehicleName(e.target.value)}
+                  onChange={(e) => { setVehicleName(e.target.value); if (errors.vehicleName) setErrors(prev => ({ ...prev, vehicleName: '' })); }}
                   placeholder="e.g., Mercedes S-Class"
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                  required
+                  className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${errors.vehicleName ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                 />
+                {errors.vehicleName && <p className="mt-1 text-xs text-red-500">{errors.vehicleName}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Number</label>
@@ -646,14 +698,15 @@ export default function SendQuotePage() {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={quickTotalPriceRef}
                   type="number"
                   value={quickTotalPrice}
-                  onChange={(e) => setQuickTotalPrice(e.target.value)}
+                  onChange={(e) => { setQuickTotalPrice(e.target.value); if (errors.quickTotalPrice) setErrors(prev => ({ ...prev, quickTotalPrice: '' })); }}
                   placeholder="Enter your all-inclusive total price"
-                  className="w-full pl-8 p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-lg font-semibold"
-                  required
+                  className={`w-full pl-8 p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-lg font-semibold ${errors.quickTotalPrice ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                 />
               </div>
+              {errors.quickTotalPrice && <p className="mt-1 text-xs text-red-500">{errors.quickTotalPrice}</p>}
               <p className="text-xs text-gray-500 mt-1">Enter one total price including all charges (base, chauffeur, decoration, GST, etc.)</p>
             </div>
           ) : (
@@ -663,14 +716,15 @@ export default function SendQuotePage() {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={baseAmountRef}
                   type="number"
                   value={baseAmount}
-                  onChange={(e) => setBaseAmount(e.target.value ? parseInt(e.target.value) : '')}
+                  onChange={(e) => { setBaseAmount(e.target.value ? parseInt(e.target.value) : ''); if (errors.baseAmount) setErrors(prev => ({ ...prev, baseAmount: '' })); }}
                   placeholder="Enter base amount"
-                  className="w-full pl-8 p-3 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                  required
+                  className={`w-full pl-8 p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 ${errors.baseAmount ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                 />
               </div>
+              {errors.baseAmount && <p className="mt-1 text-xs text-red-500">{errors.baseAmount}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Chauffeur Charges</label>
@@ -953,10 +1007,14 @@ export default function SendQuotePage() {
                 </select>
               ) : (
                 <div className="flex gap-2">
-                  <input type="date" value={customValidDate} onChange={(e) => setCustomValidDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="flex-1 p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
-                    required={validityMode === 'custom'} />
+                  <div className="flex-1">
+                    <input ref={customValidDateRef} type="date" value={customValidDate}
+                      onChange={(e) => { setCustomValidDate(e.target.value); if (errors.customValidDate) setErrors(prev => ({ ...prev, customValidDate: '' })); }}
+                      min={new Date().toISOString().split('T')[0]}
+                      className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-sm ${errors.customValidDate ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                    />
+                    {errors.customValidDate && <p className="mt-1 text-xs text-red-500">{errors.customValidDate}</p>}
+                  </div>
                   <input type="time" value={customValidTime} onChange={(e) => setCustomValidTime(e.target.value)}
                     className="w-[130px] p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-sm" />
                 </div>
@@ -990,7 +1048,7 @@ export default function SendQuotePage() {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting || !vehicleName || !baseAmount || advanceExceedsTotal}
+            disabled={isSubmitting}
             className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
           >
             {isSubmitting ? (

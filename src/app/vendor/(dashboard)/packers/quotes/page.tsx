@@ -1,23 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Package,
   Send,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Eye,
   MapPin,
   Calendar,
-  ArrowRight,
-  IndianRupee,
+  CheckCircle,
+  XCircle,
   AlertCircle,
-  Loader2,
+  Eye,
+  Edit,
+  IndianRupee,
   RefreshCw,
+  TrendingUp,
+  Clock,
   Search,
   X,
+  ChevronRight,
+  Sparkles,
+  Award,
+  Zap,
+  ArrowUpRight,
+  ArrowRight,
+  Users,
+  Loader2,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
@@ -48,34 +56,36 @@ interface Quote {
   };
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  DRAFT: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
-  SENT: { label: 'Sent', color: 'bg-blue-100 text-blue-700', icon: Send },
-  VIEWED: { label: 'Viewed', color: 'bg-purple-100 text-purple-700', icon: Eye },
-  ACCEPTED: { label: 'Accepted', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-  REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-700', icon: XCircle },
-  EXPIRED: { label: 'Expired', color: 'bg-gray-100 text-gray-600', icon: AlertCircle },
-  WITHDRAWN: { label: 'Withdrawn', color: 'bg-gray-100 text-gray-600', icon: XCircle },
+interface Stats {
+  total: number;
+  pending: number;
+  accepted: number;
+  wonValue: number;
+}
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; accent: string; glow: string; icon: any }> = {
+  DRAFT:     { label: 'Draft',     color: 'text-gray-600',    bg: 'bg-gray-50',    border: 'border-gray-200',    accent: 'bg-gray-300',    glow: '',                                            icon: Edit },
+  SENT:      { label: 'Sent',      color: 'text-blue-600',    bg: 'bg-blue-50',    border: 'border-blue-200',    accent: 'bg-blue-500',    glow: '',                                            icon: Send },
+  VIEWED:    { label: 'Viewed',    color: 'text-purple-600',  bg: 'bg-purple-50',  border: 'border-purple-200',  accent: 'bg-purple-500',  glow: '',                                            icon: Eye },
+  ACCEPTED:  { label: 'Won',       color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-300', accent: 'bg-emerald-500', glow: 'shadow-emerald-100 ring-1 ring-emerald-200',  icon: CheckCircle },
+  REJECTED:  { label: 'Rejected',  color: 'text-red-600',     bg: 'bg-red-50',     border: 'border-red-200',     accent: 'bg-red-400',     glow: '',                                            icon: XCircle },
+  EXPIRED:   { label: 'Expired',   color: 'text-violet-600',   bg: 'bg-violet-50',   border: 'border-violet-200',   accent: 'bg-violet-400',   glow: '',                                            icon: AlertCircle },
+  WITHDRAWN: { label: 'Withdrawn', color: 'text-gray-500',    bg: 'bg-gray-50',    border: 'border-gray-200',    accent: 'bg-gray-300',    glow: '',                                            icon: XCircle },
 };
 
 export default function VendorPackersQuotesPage() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [stats, setStats] = useState<Stats>({ total: 0, pending: 0, accepted: 0, wonValue: 0 });
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
-  // Date filter state
-  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
-    start: null,
-    end: null,
-  });
+  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({ start: null, end: null });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -85,46 +95,81 @@ export default function VendorPackersQuotesPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  useEffect(() => {
-    fetchQuotes();
-  }, [filter, currentPage, dateFilter, debouncedSearch]);
-
-  const fetchQuotes = async () => {
+  const fetchQuotes = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
+      let status = '';
+      if (filter === 'active') status = 'SENT,VIEWED';
+      else if (filter === 'accepted') status = 'ACCEPTED';
+      else if (filter === 'expired') status = 'EXPIRED,REJECTED,WITHDRAWN';
 
-      if (filter !== 'all') params.set('status', filter);
-
-      // Pagination params
+      if (status) params.set('status', status);
       params.set('page', currentPage.toString());
       params.set('limit', '20');
-
-      // Date filter params
       if (dateFilter.start) params.set('startDate', dateFilter.start);
       if (dateFilter.end) params.set('endDate', dateFilter.end);
-
-      // Search param
       if (debouncedSearch) params.set('search', debouncedSearch);
 
       const response = await fetch(`/api/vendor/packers-quotes?${params}`);
       const data = await response.json();
 
       if (data.success) {
-        setQuotes(data.quotes || []);
-        // Set pagination state
+        const allQuotes = data.quotes || [];
+        setQuotes(allQuotes);
+
+        if (filter === 'all') {
+          setStats({
+            total: allQuotes.length,
+            pending: allQuotes.filter((q: Quote) => ['SENT', 'VIEWED'].includes(q.status)).length,
+            accepted: allQuotes.filter((q: Quote) => q.status === 'ACCEPTED').length,
+            wonValue: allQuotes.filter((q: Quote) => q.status === 'ACCEPTED').reduce((sum: number, q: Quote) => sum + q.totalAmount, 0),
+          });
+        }
+
         if (data.pagination) {
           setTotalPages(data.pagination.totalPages);
           setTotalItems(data.pagination.total);
         }
-      } else {
-        setError(data.error || 'Failed to load quotes');
       }
-    } catch (err) {
-      setError('Failed to load quotes');
+    } catch (error) {
+      console.error('Failed to fetch quotes:', error);
     } finally {
       setIsLoading(false);
     }
+  }, [filter, currentPage, dateFilter, debouncedSearch]);
+
+  useEffect(() => {
+    fetchQuotes();
+  }, [fetchQuotes]);
+
+  const filteredQuotes = useMemo(() => {
+    let result = quotes.filter((q) => {
+      if (filter === 'active') return ['SENT', 'VIEWED'].includes(q.status);
+      if (filter === 'accepted') return q.status === 'ACCEPTED';
+      if (filter === 'expired') return ['EXPIRED', 'REJECTED', 'WITHDRAWN'].includes(q.status);
+      return true;
+    });
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (q) =>
+          q.quoteNumber.toLowerCase().includes(query) ||
+          q.request?.customerName?.toLowerCase().includes(query) ||
+          q.request?.pickupCity?.toLowerCase().includes(query) ||
+          q.request?.dropCity?.toLowerCase().includes(query) ||
+          q.request?.requestNumber?.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [quotes, filter, searchQuery]);
+
+  const isExpiringSoon = (validTill: string) => {
+    if (!validTill) return false;
+    const diff = new Date(validTill).getTime() - Date.now();
+    return diff > 0 && diff < 24 * 3600000;
   };
 
   const getTimeAgo = (dateString: string) => {
@@ -136,122 +181,169 @@ export default function VendorPackersQuotesPage() {
     return `${days}d ago`;
   };
 
-  const isExpired = (validTill: string) => {
-    return new Date(validTill) < new Date();
-  };
+  const conversionRate = stats.total > 0 ? Math.round((stats.accepted / stats.total) * 100) : 0;
+
+  const filterTabs = [
+    { value: 'all',      label: 'All',     icon: Send,        count: stats.total,    activeColor: 'bg-white text-gray-900 shadow-lg shadow-gray-200/50' },
+    { value: 'active',   label: 'Active',  icon: Zap,         count: stats.pending,  activeColor: 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' },
+    { value: 'accepted', label: 'Won',     icon: Award,       count: stats.accepted, activeColor: 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' },
+    { value: 'expired',  label: 'Closed',  icon: AlertCircle, count: 0,              activeColor: 'bg-violet-500 text-white shadow-lg shadow-violet-500/30' },
+  ];
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600">Loading quotes...</p>
-        </div>
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     );
   }
 
-  const stats = {
-    total: quotes.length,
-    pending: quotes.filter((q) => q.status === 'SENT' || q.status === 'VIEWED').length,
-    accepted: quotes.filter((q) => q.status === 'ACCEPTED').length,
-    rejected: quotes.filter((q) => q.status === 'REJECTED').length,
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-            <Send className="w-5 h-5 text-blue-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Quotes</h1>
-            <p className="text-gray-600">Track your submitted quotes</p>
-          </div>
+    <div className="space-y-5">
+      {/* ══════════ Hero Header ══════════ */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-5 md:p-6">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white" />
+          <div className="absolute right-20 -bottom-10 w-32 h-32 rounded-full bg-white" />
+          <div className="absolute left-1/3 -top-6 w-24 h-24 rounded-full bg-white" />
         </div>
-
-        <Link
-          href="/vendor/packers/requests"
-          className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition"
-        >
-          View Requests
-        </Link>
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20">
+              <Send className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl md:text-2xl font-extrabold text-white leading-tight">My Quotes</h1>
+              <p className="text-emerald-100 text-sm mt-0.5">Track all your packers & movers quotes</p>
+            </div>
+          </div>
+          <Link
+            href="/vendor/packers/requests"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-emerald-50 text-emerald-600 font-bold rounded-xl text-sm shadow-lg shadow-emerald-600/20 transition-all duration-200 active:scale-95 group"
+          >
+            <Sparkles className="w-4 h-4" />
+            View New Requests
+            <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </Link>
+        </div>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
-          <AlertCircle className="w-5 h-5" />
-          {error}
+      {/* ══════════ Stats Cards ══════════ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-9 h-9 bg-gradient-to-br from-gray-100 to-gray-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Send className="w-4 h-4 text-gray-500" />
+            </div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total</span>
+          </div>
+          <p className="text-3xl font-extrabold text-gray-900">{stats.total}</p>
+          <p className="text-[11px] text-gray-400 mt-0.5">quotes sent</p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 border border-blue-100 hover:shadow-md hover:shadow-blue-100/50 hover:-translate-y-0.5 transition-all duration-300 group">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Clock className="w-4 h-4 text-blue-500" />
+            </div>
+            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Pending</span>
+          </div>
+          <p className="text-3xl font-extrabold text-blue-600">{stats.pending}</p>
+          <p className="text-[11px] text-blue-400 mt-0.5">awaiting response</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-emerald-50 to-white rounded-2xl p-4 border border-emerald-200 hover:shadow-md hover:shadow-emerald-100/50 hover:-translate-y-0.5 transition-all duration-300 group">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-sm shadow-emerald-500/20 group-hover:scale-110 transition-transform">
+              <Award className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Won</span>
+          </div>
+          <p className="text-3xl font-extrabold text-emerald-600">{stats.accepted}</p>
+          <p className="text-[11px] text-emerald-500 mt-0.5">bookings converted</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-50/50/50 rounded-2xl p-4 border border-emerald-200 hover:shadow-md hover:shadow-emerald-100/50 hover:-translate-y-0.5 transition-all duration-300 group">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-sm shadow-emerald-500/20 group-hover:scale-110 transition-transform">
+              <TrendingUp className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Revenue</span>
+          </div>
+          <p className="text-2xl font-extrabold text-emerald-600">₹{stats.wonValue.toLocaleString()}</p>
+          <p className="text-[11px] text-emerald-400 mt-0.5">total won value</p>
+        </div>
+      </div>
+
+      {/* ══════════ Conversion Rate Bar ══════════ */}
+      {stats.total > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-gray-400" />
+              <span className="text-xs font-bold text-gray-600">Conversion Rate</span>
+            </div>
+            <span className="text-sm font-extrabold text-emerald-600">{conversionRate}%</span>
+          </div>
+          <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-1000 ease-out"
+              style={{ width: `${conversionRate}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-[10px] text-gray-400">{stats.accepted} won out of {stats.total} quotes</span>
+            {conversionRate >= 30 && (
+              <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
+                <Sparkles className="w-3 h-3" /> Great performance!
+              </span>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 border">
-          <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-          <p className="text-sm text-gray-500">Total Quotes</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-blue-100">
-          <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
-          <p className="text-sm text-gray-500">Pending</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-green-100">
-          <p className="text-2xl font-bold text-green-600">{stats.accepted}</p>
-          <p className="text-sm text-gray-500">Accepted</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-red-100">
-          <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
-          <p className="text-sm text-gray-500">Rejected</p>
-        </div>
-      </div>
+      {/* ══════════ Filters + Search ══════════ */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
+            {filterTabs.map((f) => {
+              const Icon = f.icon;
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => { setFilter(f.value); setCurrentPage(1); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap ${
+                    filter === f.value
+                      ? f.activeColor
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {f.label}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold min-w-[20px] text-center ${
+                    filter === f.value
+                      ? f.value === 'all' ? 'bg-gray-100 text-gray-600' : 'bg-white/25 text-white'
+                      : 'bg-gray-200/60 text-gray-400'
+                  }`}>{f.count}</span>
+                </button>
+              );
+            })}
+          </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by quote #, customer, city..."
-          className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-        {searchQuery && (
-          <button
-            onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
-      {/* Filter */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border">
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {[
-              { value: 'all', label: 'All Quotes' },
-              { value: 'SENT', label: 'Sent' },
-              { value: 'VIEWED', label: 'Viewed' },
-              { value: 'ACCEPTED', label: 'Accepted' },
-              { value: 'REJECTED', label: 'Rejected' },
-            ].map((f) => (
-              <button
-                key={f.value}
-                onClick={() => {
-                  setFilter(f.value);
-                  setCurrentPage(1);
-                }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
-                  filter === f.value
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {f.label}
+          <div className="relative flex-1 min-w-[200px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name, city, quote #..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all placeholder:text-gray-400"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition">
+                <X className="w-3 h-3 text-gray-500" />
               </button>
-            ))}
+            )}
           </div>
 
           <DateFilterDropdown
@@ -265,148 +357,197 @@ export default function VendorPackersQuotesPage() {
         </div>
       </div>
 
-      {/* Quotes List */}
-      <div className="space-y-4">
-        {quotes.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center border">
-            <Send className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="font-medium text-gray-900 mb-1">No quotes found</h3>
-            <p className="text-sm text-gray-500 mb-4">Your submitted quotes will appear here</p>
-            <Link
-              href="/vendor/packers/requests"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              View Quote Requests
-            </Link>
+      {/* ══════════ Quotes Grid ══════════ */}
+      {filteredQuotes.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
+          <div className="relative w-20 h-20 mx-auto mb-5">
+            <div className="absolute inset-0 bg-emerald-100 rounded-3xl rotate-6" />
+            <div className="absolute inset-0 bg-emerald-50 rounded-3xl -rotate-3" />
+            <div className="relative w-full h-full bg-white rounded-3xl border border-emerald-100 flex items-center justify-center shadow-sm">
+              <Send className="w-9 h-9 text-emerald-400" />
+            </div>
           </div>
-        ) : (
-          quotes.map((quote) => {
-            const expired = isExpired(quote.validTill);
+          <h3 className="text-lg font-bold text-gray-900 mb-1.5">No quotes found</h3>
+          <p className="text-sm text-gray-400 mb-6 max-w-xs mx-auto">
+            {searchQuery ? 'No quotes match your search. Try different keywords.' : filter !== 'all' ? 'No quotes match this filter.' : 'Start sending quotes to packers requests and track them here.'}
+          </p>
+          <Link
+            href="/vendor/packers/requests"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:from-emerald-600 hover:to-emerald-700 transition-all active:scale-95"
+          >
+            <Sparkles className="w-4 h-4" /> Browse Requests
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filteredQuotes.map((quote) => {
+            const expired = new Date(quote.validTill) < new Date();
             const effectiveStatus = expired && quote.status === 'SENT' ? 'EXPIRED' : quote.status;
             const statusConfig = STATUS_CONFIG[effectiveStatus] || STATUS_CONFIG.SENT;
             const StatusIcon = statusConfig.icon;
+            const expiringSoon = isExpiringSoon(quote.validTill) && quote.status === 'SENT';
+            const isWon = quote.status === 'ACCEPTED';
 
             return (
-              <div
+              <Link
                 key={quote.id}
-                className="bg-white rounded-xl shadow-sm border overflow-hidden"
+                href={`/vendor/packers/quotes/${quote.id}`}
+                className={`block bg-white rounded-2xl border overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group relative ${
+                  isWon
+                    ? 'border-emerald-200 shadow-sm ' + statusConfig.glow
+                    : expiringSoon
+                    ? 'border-violet-200 shadow-sm'
+                    : 'border-gray-100 hover:border-gray-200'
+                }`}
               >
-                <div className="px-4 py-2 bg-gray-50 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-semibold text-gray-900">
-                      #{quote.quoteNumber}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      for #{quote.request.requestNumber}
-                    </span>
+                {/* Status accent bar */}
+                <div className={`h-1 w-full ${statusConfig.accent}`} />
+
+                {/* Won ribbon */}
+                {isWon && (
+                  <div className="absolute top-3 -right-8 bg-emerald-500 text-white text-[9px] font-extrabold uppercase tracking-widest py-0.5 px-10 rotate-45 shadow-sm">
+                    Won
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${statusConfig.color}`}>
+                )}
+
+                {/* Card Header */}
+                <div className="px-4 py-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">#{quote.quoteNumber}</span>
+                    <span className="text-[10px] text-gray-400">{getTimeAgo(quote.createdAt)}</span>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
                     <StatusIcon className="w-3 h-3" />
                     {statusConfig.label}
                   </span>
                 </div>
 
-                <div className="p-4 md:p-6">
-                  <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                        <Package className="w-6 h-6 text-blue-600" />
+                {/* Card Body */}
+                <div className="px-4 pb-4">
+                  {expiringSoon && (
+                    <div className="flex items-center gap-2 bg-gradient-to-r from-amber-50 to-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3 animate-pulse">
+                      <Zap className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                      <span className="text-[11px] font-bold text-violet-700">Expiring soon — respond quickly!</span>
+                    </div>
+                  )}
+
+                  {/* Service + Price */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                        isWon ? 'bg-gradient-to-br from-emerald-100 to-emerald-50' : 'bg-gradient-to-br from-emerald-100 to-emerald-50'
+                      }`}>
+                        <Package className={`w-5 h-5 ${isWon ? 'text-emerald-600' : 'text-emerald-500'}`} />
                       </div>
-                      <div>
-                        <h3 className="font-bold text-gray-900">{quote.request.customerName}</h3>
-                        <p className="text-sm text-gray-500 capitalize">
-                          {quote.request.shiftingType} Shifting
-                        </p>
-                        <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-                          <MapPin className="w-4 h-4" />
-                          {quote.request.pickupCity}
-                          <ArrowRight className="w-3 h-3" />
-                          {quote.request.dropCity}
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold text-gray-900 truncate group-hover:text-emerald-600 transition-colors capitalize">
+                          {quote.request.shiftingType?.toLowerCase()} Shifting
+                        </h3>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-md font-medium flex items-center gap-0.5">
+                            <Users className="w-2.5 h-2.5" /> {quote.teamSize}
+                          </span>
+                          <span className="text-[11px] text-gray-400 flex items-center gap-0.5">
+                            <Clock className="w-3 h-3" /> {quote.estimatedDays}d
+                          </span>
                         </div>
                       </div>
                     </div>
-
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-gray-900 flex items-center justify-end">
-                        <IndianRupee className="w-5 h-5" />
-                        {quote.totalAmount.toLocaleString()}
+                    <div className="text-right shrink-0">
+                      <p className={`text-xl font-extrabold ${isWon ? 'text-emerald-600' : 'text-emerald-600'}`}>
+                        ₹{quote.totalAmount.toLocaleString()}
                       </p>
-                      <p className="text-sm text-gray-500">Quoted Amount</p>
+                      <p className="text-[10px] text-gray-400 font-medium">total amount</p>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-blue-500" />
-                      Shifting: {new Date(quote.request.preferredDate).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
+                  {/* Customer row */}
+                  <div className="flex items-center gap-2.5 mb-3 bg-gray-50/80 rounded-xl px-3 py-2">
+                    <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm shadow-blue-500/20">
+                      <span className="text-[10px] font-bold text-white">
+                        {quote.request?.customerName?.charAt(0)?.toUpperCase() || 'C'}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-4 h-4 text-blue-500" />
-                      Quoted: {getTimeAgo(quote.createdAt)}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-gray-700 truncate">{quote.request?.customerName}</p>
+                      <p className="text-[10px] text-gray-400">Req #{quote.request?.requestNumber}</p>
                     </div>
+                  </div>
+
+                  {/* Route + Date */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-xl px-3 py-2">
+                      <div className="flex items-center gap-1 text-gray-400 mb-0.5">
+                        <MapPin className="w-3 h-3" />
+                        <span className="text-[9px] font-bold uppercase tracking-wider">Route</span>
+                      </div>
+                      <p className="text-[11px] font-bold text-gray-700 truncate flex items-center gap-1">
+                        {quote.request?.pickupCity}
+                        <ArrowRight className="w-2.5 h-2.5 text-gray-400 shrink-0" />
+                        {quote.request?.dropCity}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-emerald-50/50 to-white border border-emerald-100/50 rounded-xl px-3 py-2">
+                      <div className="flex items-center gap-1 text-emerald-400 mb-0.5">
+                        <Calendar className="w-3 h-3" />
+                        <span className="text-[9px] font-bold uppercase tracking-wider">Shifting</span>
+                      </div>
+                      <p className="text-[11px] font-bold text-gray-700">
+                        {quote.request?.preferredDate && new Date(quote.request.preferredDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Footer info */}
+                  <div className="flex items-center justify-between text-[10px] text-gray-400 mb-3">
                     <div className="flex items-center gap-1.5">
-                      <span className={expired ? 'text-red-500' : 'text-green-500'}>
-                        Valid till: {new Date(quote.validTill).toLocaleString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          hour12: true,
-                        })}
+                      <Clock className="w-3 h-3" />
+                      <span className={expired ? 'text-red-500 font-semibold' : ''}>
+                        Valid till {new Date(quote.validTill).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       </span>
                     </div>
                   </div>
 
-                  {/* Service details */}
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                      Team: {quote.teamSize} members
-                    </span>
-                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                      Duration: {quote.estimatedDays} day(s)
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 pt-4 border-t">
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-3 border-t border-gray-100">
                     <Link
                       href={`/vendor/packers/quotes/${quote.id}`}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition flex items-center gap-1"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-all active:scale-95"
                     >
-                      <Eye className="w-4 h-4" />
+                      <Eye className="w-3.5 h-3.5" />
                       View Details
+                      <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
                     </Link>
                     {quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status) && (
                       <Link
                         href={`/vendor/packers/requests/${quote.request.id}/quote`}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-emerald-500/20 active:scale-95"
                       >
-                        <RefreshCw className="w-4 h-4" />
-                        Send Fresh Quote
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Re-Quote
                       </Link>
                     )}
-                    {quote.status === 'ACCEPTED' && (
+                    {isWon && (
                       <Link
                         href={`/vendor/packers/bookings`}
-                        className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-emerald-500/20 active:scale-95"
                       >
-                        <CheckCircle className="w-4 h-4" />
-                        View Booking
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Booking
                       </Link>
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
 
-      {/* Pagination */}
-      {quotes.length > 0 && (
+      {/* ══════════ Pagination ══════════ */}
+      {filteredQuotes.length > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

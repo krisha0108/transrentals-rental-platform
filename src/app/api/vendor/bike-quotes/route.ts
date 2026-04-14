@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Request ID is required' }, { status: 400 });
     }
 
-    if (!vehicleName || !dailyRate || !securityDeposit) {
+    if (!vehicleName || !dailyRate || securityDeposit === undefined || securityDeposit === null) {
       return NextResponse.json(
         { error: 'Vehicle details and pricing are required' },
         { status: 400 }
@@ -440,8 +440,16 @@ export async function POST(request: NextRequest) {
     };
 
     // Create the quote (or update existing withdrawn quote)
+    const { vendorFleetId: _fleetId, vehicleModelId: _modelId, ...quoteFieldsWithoutRelations } = quoteFields;
     const quote = withdrawnQuote
-      ? await prisma.bike_quotes.update({ where: { id: withdrawnQuote.id }, data: quoteFields })
+      ? await prisma.bike_quotes.update({
+          where: { id: withdrawnQuote.id },
+          data: {
+            ...quoteFieldsWithoutRelations,
+            vendor_fleets: vendorFleetId ? { connect: { id: vendorFleetId } } : { disconnect: true },
+            vehicle_models: vehicleModelId ? { connect: { id: vehicleModelId } } : { disconnect: true },
+          },
+        })
       : await prisma.bike_quotes.create({ data: { id: generateId(), requestId, vendorId: vendorId, ...quoteFields } });
 
     // Update quote request stats

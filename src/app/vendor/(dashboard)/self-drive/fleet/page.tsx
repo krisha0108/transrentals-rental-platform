@@ -176,7 +176,7 @@ export default function VendorSelfDriveFleetPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     );
   }
@@ -190,7 +190,7 @@ export default function VendorSelfDriveFleetPage() {
           <p className="text-gray-600">Manage your self-drive car inventory</p>
         </div>
         <Link href="/vendor/self-drive/fleet/add">
-          <Button className="bg-indigo-600 hover:bg-indigo-700">
+          <Button className="bg-emerald-600 hover:bg-emerald-700">
             <Plus className="w-5 h-5 mr-2" />
             Add New Car
           </Button>
@@ -201,8 +201,8 @@ export default function VendorSelfDriveFleetPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <Car className="w-5 h-5 text-indigo-600" />
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <Car className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{totalCars}</p>
@@ -223,8 +223,8 @@ export default function VendorSelfDriveFleetPage() {
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <XCircle className="w-5 h-5 text-orange-600" />
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <XCircle className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{totalCars - activeCars}</p>
@@ -234,8 +234,8 @@ export default function VendorSelfDriveFleetPage() {
         </div>
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Calendar className="w-5 h-5 text-purple-600" />
+            <div className="p-2 bg-emerald-100 rounded-lg">
+              <Calendar className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">—</p>
@@ -255,14 +255,14 @@ export default function VendorSelfDriveFleetPage() {
               placeholder="Search by name, brand or registration..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
             />
           </div>
           <div className="flex gap-2">
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+              className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -279,7 +279,7 @@ export default function VendorSelfDriveFleetPage() {
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No cars found</h3>
           <p className="text-gray-500 mb-4">Add your first car to start accepting bookings</p>
           <Link href="/vendor/self-drive/fleet/add">
-            <Button className="bg-indigo-600 hover:bg-indigo-700">
+            <Button className="bg-emerald-600 hover:bg-emerald-700">
               <Plus className="w-5 h-5 mr-2" />
               Add Car
             </Button>
@@ -423,7 +423,7 @@ export default function VendorSelfDriveFleetPage() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
                         <div>
                           <p className="text-xs text-gray-500">Daily Rate</p>
-                          <p className="font-semibold text-indigo-600">₹{pricing.dailyRate}</p>
+                          <p className="font-semibold text-emerald-600">₹{pricing.dailyRate}</p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500">KM Limit/Day</p>

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 
@@ -26,27 +26,18 @@ export const metadata: Metadata = {
   },
 };
 
-const topCities = ALL_CITIES.slice(0, 12);
+const topCities = ALL_CITIES.slice(0, 60);
 
 export default function FortunerOnRentPage() {
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Premium Luxury SUV"
-        title="Fortuner on Rent Without Driver"
-        titleHighlight="Starting @₹4999/Day"
-        description="India's most aspirational SUV for rent. Commanding presence, powerful performance, premium luxury. Perfect for VIP travel, weddings & special occasions."
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Luxury SUV', color: 'text-yellow-600' },
-        ]}
-        gradientFrom="yellow-50"
-        gradientTo="amber-50"
+      <SwiftRentalTypeHero
+        vehicleName="Toyota Fortuner"
+        selfDrivePrice="₹4,999/day"
       />
 
       {/* Hero */}
-      <section className="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white py-16">
+      <section className="relative bg-gradient-to-br from-slate-800 to-slate-900 text-white py-16">
         <div className="container-custom">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
@@ -56,10 +47,7 @@ export default function FortunerOnRentPage() {
               Fortuner 4x2 • Fortuner 4x4 • Fortuner Legender
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <a href="#variants" className="bg-yellow-500 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-400 transition">
-                View Variants & Prices
-              </a>
-              <a href="#cities" className="border-2 border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-gray-900 transition">
+              <a href="#cities" className="border-2 border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-slate-900 transition">
                 Find Near You
               </a>
             </div>
@@ -118,7 +106,7 @@ export default function FortunerOnRentPage() {
       <section id="cities" className="py-12 bg-white">
         <div className="container-custom">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Fortuner on Rent in 200+ Cities
+            Fortuner on Rent Across India
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {topCities.map((city) => (
@@ -130,9 +118,6 @@ export default function FortunerOnRentPage() {
                 <span className="font-medium text-gray-800">{city.name}</span>
               </Link>
             ))}
-          </div>
-          <div className="text-center mt-6">
-            <p className="text-gray-600">+ 190 more cities available</p>
           </div>
         </div>
       </section>

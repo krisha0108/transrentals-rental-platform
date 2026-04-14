@@ -102,7 +102,7 @@ export default function VendorSelfDriveOpenRequestsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     );
   }
@@ -124,11 +124,11 @@ export default function VendorSelfDriveOpenRequestsPage() {
       </div>
 
       {/* Info Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-        <Radio className="w-5 h-5 text-blue-500 mt-0.5" />
+      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-3">
+        <Radio className="w-5 h-5 text-emerald-500 mt-0.5" />
         <div>
-          <h3 className="font-semibold text-blue-800">How Open Requests Work</h3>
-          <p className="text-blue-700 text-sm">
+          <h3 className="font-semibold text-emerald-800">How Open Requests Work</h3>
+          <p className="text-emerald-700 text-sm">
             These are bookings that are open to all vendors in the area. First vendor to accept wins the booking.
           </p>
         </div>
@@ -144,7 +144,7 @@ export default function VendorSelfDriveOpenRequestsPage() {
               placeholder="Search by booking number, customer, or location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -152,7 +152,7 @@ export default function VendorSelfDriveOpenRequestsPage() {
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
             >
               <option value="all">All Categories</option>
               <option value="Hatchback">Hatchback</option>
@@ -187,7 +187,7 @@ export default function VendorSelfDriveOpenRequestsPage() {
                       <span className="text-xl font-bold text-gray-900">
                         #{booking.bookingNumber}
                       </span>
-                      <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                      <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
                         Open Request
                       </span>
                     </div>
@@ -206,11 +206,11 @@ export default function VendorSelfDriveOpenRequestsPage() {
 
                     {/* Request Details Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="bg-indigo-50 rounded-lg p-3">
+                      <div className="bg-emerald-50 rounded-lg p-3">
                         <p className="text-xs text-gray-500">Category</p>
                         <p className="font-semibold text-gray-900">{booking.requestedCategory || 'Any'}</p>
                       </div>
-                      <div className="bg-blue-50 rounded-lg p-3">
+                      <div className="bg-emerald-50 rounded-lg p-3">
                         <p className="text-xs text-gray-500">Seats</p>
                         <p className="font-semibold text-gray-900">{booking.requestedSeats || 5} Seater</p>
                       </div>
@@ -218,7 +218,7 @@ export default function VendorSelfDriveOpenRequestsPage() {
                         <p className="text-xs text-gray-500">Duration</p>
                         <p className="font-semibold text-gray-900">{booking.totalDays} Days</p>
                       </div>
-                      <div className="bg-purple-50 rounded-lg p-3">
+                      <div className="bg-emerald-50 rounded-lg p-3">
                         <p className="text-xs text-gray-500">Daily Rate</p>
                         <p className="font-semibold text-gray-900">₹{booking.dailyRate?.toLocaleString() || 'TBD'}</p>
                       </div>

@@ -74,13 +74,13 @@ interface Booking {
 
 const getStatusConfig = (status: string) => {
   const configs: Record<string, { label: string; bg: string; text: string }> = {
-    PENDING_VENDOR: { label: 'Awaiting Response', bg: 'bg-yellow-100', text: 'text-yellow-700' },
-    BROADCASTED: { label: 'Open Request', bg: 'bg-blue-100', text: 'text-blue-700' },
-    PENDING_PAYMENT: { label: 'Awaiting Payment', bg: 'bg-orange-100', text: 'text-orange-700' },
+    PENDING_VENDOR: { label: 'Awaiting Response', bg: 'bg-emerald-100', text: 'text-emerald-700' },
+    BROADCASTED: { label: 'Open Request', bg: 'bg-emerald-100', text: 'text-emerald-700' },
+    PENDING_PAYMENT: { label: 'Awaiting Payment', bg: 'bg-emerald-100', text: 'text-emerald-700' },
     PAYMENT_VERIFIED: { label: 'Payment Received', bg: 'bg-emerald-100', text: 'text-emerald-700' },
     ACCEPTED: { label: 'Accepted', bg: 'bg-green-100', text: 'text-green-700' },
-    READY_FOR_PICKUP: { label: 'Ready for Pickup', bg: 'bg-cyan-100', text: 'text-cyan-700' },
-    IN_PROGRESS: { label: 'In Progress', bg: 'bg-purple-100', text: 'text-purple-700' },
+    READY_FOR_PICKUP: { label: 'Ready for Pickup', bg: 'bg-emerald-100', text: 'text-emerald-700' },
+    IN_PROGRESS: { label: 'In Progress', bg: 'bg-emerald-100', text: 'text-emerald-700' },
     COMPLETED: { label: 'Completed', bg: 'bg-gray-100', text: 'text-gray-700' },
     CANCELLED: { label: 'Cancelled', bg: 'bg-red-100', text: 'text-red-700' },
     DROPPED: { label: 'Dropped', bg: 'bg-red-100', text: 'text-red-700' },
@@ -93,7 +93,7 @@ export default function VendorBookingDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const bookingId = params.id as string;
+  const bookingId = params?.id as string;
 
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState<Booking | null>(null);
@@ -285,22 +285,65 @@ export default function VendorBookingDetailPage() {
     });
   };
 
+  const shimmer = 'relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-shimmer before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent';
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+      <div className="space-y-3">
+        <div className="flex items-center gap-2.5">
+          <div className={`w-8 h-8 bg-gray-100 rounded-lg ${shimmer}`} />
+          <div className="space-y-1.5">
+            <div className={`h-5 w-40 bg-gray-200 rounded-lg ${shimmer}`} />
+            <div className={`h-3 w-48 bg-gray-50 rounded ${shimmer}`} />
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 px-5 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 bg-white/20 rounded-xl ${shimmer}`} />
+                <div className="space-y-2">
+                  <div className={`h-5 w-44 bg-white/25 rounded-lg ${shimmer}`} />
+                  <div className={`h-3 w-56 bg-white/15 rounded ${shimmer}`} />
+                </div>
+              </div>
+              <div className="space-y-1.5 text-right">
+                <div className={`h-7 w-28 bg-white/20 rounded-lg ml-auto ${shimmer}`} />
+                <div className={`h-3 w-20 bg-white/10 rounded ml-auto ${shimmer}`} />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div className="lg:col-span-2 space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className={`bg-white rounded-xl border border-gray-100 p-4 h-36 ${shimmer}`} />
+            ))}
+          </div>
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className={`bg-white rounded-xl border border-gray-100 p-4 h-40 ${shimmer}`} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!booking) {
     return (
-      <div className="text-center py-12">
-        <Car className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Booking Not Found</h2>
-        <p className="text-gray-500 mb-4">The booking you're looking for doesn't exist.</p>
-        <Link href="/vendor/self-drive/bookings">
-          <Button>Back to Bookings</Button>
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="relative w-16 h-16 mb-4">
+          <div className="absolute inset-0 bg-emerald-100 rounded-3xl rotate-6" />
+          <div className="absolute inset-0 bg-emerald-50 rounded-3xl -rotate-3" />
+          <div className="relative w-full h-full bg-white rounded-3xl border border-emerald-100 flex items-center justify-center shadow-sm">
+            <Car className="w-7 h-7 text-emerald-400" />
+          </div>
+        </div>
+        <h2 className="text-lg font-bold text-gray-900 mb-1">Booking Not Found</h2>
+        <p className="text-sm text-gray-400 mb-5">The booking you&apos;re looking for doesn&apos;t exist.</p>
+        <Link href="/vendor/self-drive/bookings" className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/25 transition-all active:scale-95">
+          <ArrowLeft className="w-4 h-4" /> Back to Bookings
         </Link>
       </div>
     );
@@ -313,369 +356,304 @@ export default function VendorBookingDetailPage() {
   const canCompleteTrip = booking.status === 'IN_PROGRESS';
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          href="/vendor/self-drive/bookings"
-          className="p-2 hover:bg-gray-100 rounded-lg transition"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">#{booking.bookingNumber}</h1>
-          <p className="text-gray-600">Self-Drive Car Booking</p>
+    <div className="space-y-4">
+      {/* ══════════ Header ══════════ */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm animate-slide-down lg:flex lg:items-center lg:justify-between lg:gap-4">
+        <div className="flex items-center gap-3">
+          <Link href="/vendor/self-drive/bookings" className="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all active:scale-95 group shadow-sm">
+            <ArrowLeft className="w-4 h-4 text-slate-600 group-hover:-translate-x-0.5 transition-transform" />
+          </Link>
+          <div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h1 className="text-base font-bold text-gray-900">#{booking.bookingNumber}</h1>
+              <span className={cn('px-2 py-0.5 rounded-md text-[10px] font-bold border', statusConfig.bg, statusConfig.text)}>
+                {statusConfig.label}
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-400">Self-Drive Car Booking</p>
+          </div>
         </div>
-        <span className={cn('px-4 py-2 rounded-full text-sm font-medium', statusConfig.bg, statusConfig.text)}>
-          {statusConfig.label}
-        </span>
+        <button onClick={() => setShowChat(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 transition-all active:scale-95">
+          <MessageCircle className="w-3.5 h-3.5" /> Chat
+        </button>
       </div>
 
       {/* Dropped Banner */}
       {booking.status === 'DROPPED' && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+        <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5">
+          <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
+            <XCircle className="w-4 h-4 text-red-500" />
+          </div>
           <div>
-            <p className="font-semibold text-red-800">This booking has been dropped</p>
-            {(booking as any).dropReason && (
-              <p className="text-sm text-red-600 mt-1">Reason: {(booking as any).dropReason}</p>
-            )}
-            {(booking as any).droppedAt && (
-              <p className="text-xs text-red-500 mt-1">
-                Dropped on: {new Date((booking as any).droppedAt).toLocaleString('en-IN')}
-              </p>
-            )}
+            <p className="text-xs font-bold text-red-800">Booking Dropped</p>
+            {(booking as any).dropReason && <p className="text-[10px] text-red-600">{(booking as any).dropReason}</p>}
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Customer Details */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <User className="w-5 h-5 text-indigo-500" />
-              Customer Details
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                  <User className="w-5 h-5 text-indigo-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Name</p>
-                  <p className="font-medium text-gray-900">{booking.customerName}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Mail className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Email</p>
-                  <p className="font-medium text-gray-900">{booking.customerEmail}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Location</p>
-                  <p className="font-medium text-gray-900">{booking.locationName}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="mt-4 pt-4 border-t flex gap-3">
-              <button
-                onClick={() => setShowChat(true)}
-                className="flex-1 flex items-center justify-center gap-2 py-3 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Chat
-              </button>
-            </div>
-          </div>
-
-          {/* Vehicle Details */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Car className="w-5 h-5 text-indigo-500" />
-              Vehicle Details
-            </h2>
+      {/* ══════════ Hero Banner ══════════ */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-[0_18px_50px_-24px_rgba(15,23,42,0.15)] opacity-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+        <div className="bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700 px-6 py-5 text-slate-50">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-indigo-100 rounded-xl flex items-center justify-center">
-                <Car className="w-8 h-8 text-indigo-600" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-white/15 text-white shadow-lg shadow-slate-900/20">
+                <Car className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xl font-bold text-gray-900">{booking.requestedVehicleName}</p>
-                <p className="text-gray-500">{booking.requestedBrand} • {booking.requestedCategory}</p>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-white/60 mb-1">Premium booking</p>
+                <h2 className="text-2xl font-extrabold text-white">{booking.requestedVehicleName}</h2>
+                <p className="text-sm text-white/70 mt-1">{booking.requestedBrand} · {booking.requestedCategory}</p>
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-3 gap-4">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Settings2 className="w-4 h-4" />
-                <span>{booking.requestedTransmission || 'Manual'}</span>
+            <div className="flex flex-col items-start gap-1 text-right lg:items-end lg:text-right">
+              <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-white/70">{booking.status.replace('_', ' ')}</span>
+              <p className="text-3xl font-extrabold text-white">₹{(booking.grandTotal || 0).toLocaleString()}</p>
+              <p className="text-sm text-white/70">₹{booking.dailyRate}/day · {booking.totalDays} days</p>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-white/60">Pickup</p>
+              <p className="mt-1 text-sm font-semibold text-white">{formatDate(booking.pickupDate)}</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-white/60">Drop</p>
+              <p className="mt-1 text-sm font-semibold text-white">{formatDate(booking.dropDate)}</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-white/60">Seats</p>
+              <p className="mt-1 text-sm font-semibold text-white">{booking.requestedSeats || 5} seats</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+        {/* ══════════ Main Content ══════════ */}
+        <div className="lg:col-span-2 space-y-3">
+          {/* Customer */}
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <User className="w-4 h-4 text-emerald-500" /> Customer
+              </h3>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-base font-bold text-white shadow-sm shadow-emerald-400/20">
+                  {booking.customerName.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 truncate">{booking.customerName}</p>
+                  <p className="text-xs text-slate-500">{booking.customerEmail}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Fuel className="w-4 h-4" />
-                <span>{booking.requestedFuelType || 'Petrol'}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <User className="w-4 h-4" />
-                <span>{booking.requestedSeats || 5} Seats</span>
+              <div className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-sm text-slate-600 border border-slate-200">
+                <MapPin className="w-4 h-4 text-emerald-500" />
+                <span className="font-semibold text-slate-800">{booking.locationName}</span>
               </div>
             </div>
           </div>
 
           {/* Trip Details */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-indigo-500" />
-              Trip Details
-            </h2>
-            <div className="space-y-4">
-              <div className="flex items-start gap-4">
-                <div className="w-3 h-3 mt-2 bg-green-500 rounded-full" />
-                <div>
-                  <p className="text-sm text-gray-500">Pickup</p>
-                  <p className="font-semibold text-gray-900">
-                    {formatDate(booking.pickupDate)} at {booking.pickupTime}
-                  </p>
-                  <p className="text-sm text-gray-600">{booking.pickupAddress || booking.locationName}</p>
-                </div>
-              </div>
-              <div className="border-l-2 border-dashed border-gray-200 ml-1.5 h-6" />
-              <div className="flex items-start gap-4">
-                <div className="w-3 h-3 mt-2 bg-red-500 rounded-full" />
-                <div>
-                  <p className="text-sm text-gray-500">Drop</p>
-                  <p className="font-semibold text-gray-900">
-                    {formatDate(booking.dropDate)} at {booking.dropTime}
-                  </p>
-                  <p className="text-sm text-gray-600">{booking.pickupAddress || booking.locationName}</p>
-                </div>
-              </div>
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-emerald-500" /> Trip Details
+              </h3>
             </div>
-            <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-500">Total Duration</p>
-                <p className="font-bold text-gray-900">{booking.totalDays} Day(s)</p>
+            <div className="p-4 space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Duration</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">{booking.totalDays} days</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">KM Limit</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">{(booking.kmLimitPerDay || 200) * booking.totalDays} KM</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Extra KM</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900">₹{booking.extraKmRate || 12}/km</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">KM Limit</p>
-                <p className="font-bold text-gray-900">{(booking.kmLimitPerDay || 200) * booking.totalDays} KM</p>
-                <p className="text-xs text-gray-500">₹{booking.extraKmRate || 12}/extra km</p>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Pickup</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(booking.pickupDate)} at {booking.pickupTime}</p>
+                  <p className="text-xs text-slate-500">{booking.pickupAddress || booking.locationName}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Drop-off</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(booking.dropDate)} at {booking.dropTime}</p>
+                  <p className="text-xs text-slate-500">{booking.pickupAddress || booking.locationName}</p>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Customer Notes */}
           {booking.customerNotes && (
-            <div className="bg-amber-50 rounded-xl border border-amber-200 p-6">
-              <h2 className="font-bold text-amber-800 mb-2 flex items-center gap-2">
-                <AlertCircle className="w-5 h-5" />
-                Customer Notes
-              </h2>
-              <p className="text-amber-700">{booking.customerNotes}</p>
+            <div className="bg-gradient-to-br from-emerald-50 to-emerald-50/50 rounded-xl border border-emerald-200 overflow-hidden">
+              <div className="px-3.5 py-2.5 border-b border-emerald-100">
+                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-emerald-500" /> Customer Notes
+                </h3>
+              </div>
+              <div className="px-3.5 py-2.5">
+                <p className="text-sm text-gray-700 leading-relaxed">{booking.customerNotes}</p>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
+        {/* ══════════ Sidebar ══════════ */}
+        <div className="space-y-3">
           {/* Payment Summary */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <IndianRupee className="w-5 h-5 text-indigo-500" />
-              Payment Summary
-            </h2>
-            <div className="space-y-3 text-sm">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-3.5 py-2.5 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                <IndianRupee className="w-3.5 h-3.5 text-emerald-500" /> Payment
+              </h3>
+            </div>
+            <div className="p-3.5 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">₹{booking.dailyRate} × {booking.totalDays} days</span>
-                <span>₹{(booking.baseAmount || 0).toLocaleString()}</span>
+                <span className="text-gray-500">₹{booking.dailyRate} x {booking.totalDays} days</span>
+                <span className="font-semibold text-gray-900">₹{(booking.baseAmount || 0).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-gray-500">
-                <span>Security Deposit</span>
-                <span>₹{(booking.securityDeposit || 0).toLocaleString()}</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-400">Security Deposit</span>
+                <span className="font-bold text-gray-700">₹{(booking.securityDeposit || 0).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between pt-3 border-t font-bold text-lg">
-                <span>Total</span>
-                <span className="text-green-600">₹{(booking.grandTotal || 0).toLocaleString()}</span>
+              <div className="flex justify-between pt-2 border-t border-dashed border-gray-200">
+                <span className="font-bold text-gray-900">Total</span>
+                <span className="text-lg font-extrabold text-emerald-600">₹{(booking.grandTotal || 0).toLocaleString()}</span>
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
-            <h2 className="font-bold text-gray-900">Actions</h2>
-
-            {/* Accept/Reject */}
-            {canAcceptReject && (
-              <div className="space-y-3">
-                <Button
-                  onClick={handleAccept}
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  size="lg"
-                  disabled={processing}
-                >
-                  {processing ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <CheckCircle className="w-5 h-5 mr-2" />}
-                  Accept Booking
-                </Button>
-                <Button
-                  onClick={() => setShowRejectModal(true)}
-                  variant="outline"
-                  className="w-full border-red-200 text-red-600 hover:bg-red-50"
-                  size="lg"
-                  disabled={processing}
-                >
-                  <XCircle className="w-5 h-5 mr-2" />
-                  Reject
-                </Button>
-              </div>
-            )}
-
-            {/* Generate OTP */}
-            {canGenerateOtp && (
-              <div className="space-y-3">
-                <div className="bg-cyan-50 rounded-lg p-4 text-center">
-                  <KeyRound className="w-8 h-8 text-cyan-600 mx-auto mb-2" />
-                  <p className="text-sm text-cyan-700">
-                    {booking.status === 'PAYMENT_VERIFIED' ? 'Payment received — booking confirmed!' : 'Customer is ready for pickup'}
-                  </p>
-                  <p className="text-xs text-cyan-600">Generate OTP to start the trip</p>
+          {/* Actions */}
+          <div className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-sm">
+            <div className="px-3.5 py-3 bg-slate-50 border-b border-slate-200">
+              <h3 className="text-sm font-bold text-slate-900">Actions</h3>
+            </div>
+            <div className="p-4 space-y-4">
+              {canAcceptReject && (
+                <div className="space-y-3">
+                  <button onClick={handleAccept} disabled={processing} className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-bold text-sm rounded-3xl transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98] disabled:opacity-50">
+                    {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    Accept Booking
+                  </button>
+                  <button onClick={() => setShowRejectModal(true)} disabled={processing} className="w-full flex items-center justify-center gap-2 py-3 bg-white hover:bg-red-50 text-red-600 font-bold text-sm rounded-3xl transition-all border border-red-200 active:scale-[0.98] disabled:opacity-50">
+                    <XCircle className="w-4 h-4" /> Reject
+                  </button>
                 </div>
-                <Button
-                  onClick={handleGenerateOtp}
-                  className="w-full bg-cyan-600 hover:bg-cyan-700"
-                  size="lg"
-                  disabled={processing}
-                >
-                  {processing ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <KeyRound className="w-5 h-5 mr-2" />}
-                  Generate OTP
-                </Button>
-                {generatedOtp && (
-                  <div className="bg-gray-100 rounded-lg p-4 text-center">
-                    <p className="text-sm text-gray-600 mb-2">OTP (Dev Mode)</p>
-                    <div className="flex items-center justify-center gap-2">
-                      <span className="text-2xl font-bold font-mono tracking-widest">{generatedOtp}</span>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(generatedOtp);
-                          setOtpCopied(true);
-                          setTimeout(() => setOtpCopied(false), 2000);
-                        }}
-                        className="p-2 hover:bg-gray-200 rounded"
-                      >
-                        {otpCopied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4 text-gray-500" />}
-                      </button>
-                    </div>
+              )}
+
+              {canGenerateOtp && (
+                <div className="space-y-2">
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
+                    <KeyRound className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
+                    <p className="text-xs font-semibold text-emerald-700">
+                      {booking.status === 'PAYMENT_VERIFIED' ? 'Payment received!' : 'Ready for pickup'}
+                    </p>
+                    <p className="text-[10px] text-emerald-600">Generate OTP to start trip</p>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Verify OTP */}
-            {canVerifyOtp && (
-              <div className="space-y-3">
-                <div className="bg-cyan-50 rounded-lg p-4 text-center">
-                  <KeyRound className="w-8 h-8 text-cyan-600 mx-auto mb-2" />
-                  <p className="text-sm text-cyan-700">Ask customer for OTP to start trip</p>
-                </div>
-                <input
-                  type="text"
-                  value={otpInput}
-                  onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="Enter 6-digit OTP"
-                  className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border rounded-lg focus:ring-2 focus:ring-cyan-500"
-                  maxLength={6}
-                />
-                <Button
-                  onClick={handleVerifyOtp}
-                  className="w-full bg-cyan-600 hover:bg-cyan-700"
-                  size="lg"
-                  disabled={processing || otpInput.length !== 6}
-                >
-                  {processing ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Play className="w-5 h-5 mr-2" />}
-                  Verify & Start Trip
-                </Button>
-              </div>
-            )}
-
-            {/* Complete Trip */}
-            {canCompleteTrip && (
-              <div className="space-y-3">
-                <div className="bg-purple-50 rounded-lg p-4 text-center">
-                  <Play className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                  <p className="text-sm text-purple-700">Trip in progress</p>
-                  {booking.pickedUpAt && (
-                    <p className="text-xs text-purple-600">Started: {formatDateTime(booking.pickedUpAt)}</p>
+                  <button onClick={handleGenerateOtp} disabled={processing} className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold text-sm rounded-xl transition-all shadow-sm shadow-emerald-500/20 active:scale-[0.98] disabled:opacity-50">
+                    {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                    Generate OTP
+                  </button>
+                  {generatedOtp && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-center">
+                      <p className="text-[10px] text-gray-500 mb-1">OTP (Dev)</p>
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-xl font-bold font-mono tracking-widest">{generatedOtp}</span>
+                        <button onClick={() => { navigator.clipboard.writeText(generatedOtp); setOtpCopied(true); setTimeout(() => setOtpCopied(false), 2000); }} className="p-1.5 hover:bg-gray-200 rounded-lg transition">
+                          {otpCopied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5 text-gray-400" />}
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
-                <Button
-                  onClick={() => setShowCompleteModal(true)}
-                  className="w-full bg-purple-600 hover:bg-purple-700"
-                  size="lg"
-                >
-                  <Flag className="w-5 h-5 mr-2" />
-                  Complete Trip
-                </Button>
-              </div>
-            )}
+              )}
 
-            {/* Completed */}
-            {booking.status === 'COMPLETED' && (
-              <div className="bg-gray-50 rounded-lg p-4 text-center">
-                <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-700">Trip Completed</p>
-                {booking.returnedAt && (
-                  <p className="text-xs text-gray-500">Returned: {formatDateTime(booking.returnedAt)}</p>
-                )}
-              </div>
-            )}
+              {canVerifyOtp && (
+                <div className="space-y-2">
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
+                    <KeyRound className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
+                    <p className="text-xs font-semibold text-emerald-700">Ask customer for OTP</p>
+                  </div>
+                  <input type="text" value={otpInput} onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="Enter 6-digit OTP" className="w-full px-3 py-2.5 text-center text-xl font-mono tracking-widest border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all" maxLength={6} />
+                  <button onClick={handleVerifyOtp} disabled={processing || otpInput.length !== 6} className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold text-sm rounded-xl transition-all shadow-sm shadow-emerald-500/20 active:scale-[0.98] disabled:opacity-50">
+                    {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                    Verify & Start Trip
+                  </button>
+                </div>
+              )}
+
+              {canCompleteTrip && (
+                <div className="space-y-2">
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
+                    <Play className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
+                    <p className="text-xs font-semibold text-emerald-700">Trip in progress</p>
+                    {booking.pickedUpAt && <p className="text-[10px] text-emerald-500">Started: {formatDateTime(booking.pickedUpAt)}</p>}
+                  </div>
+                  <button onClick={() => setShowCompleteModal(true)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold text-sm rounded-xl transition-all shadow-sm shadow-emerald-500/20 active:scale-[0.98]">
+                    <Flag className="w-4 h-4" /> Complete Trip
+                  </button>
+                </div>
+              )}
+
+              {booking.status === 'COMPLETED' && (
+                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center">
+                  <CheckCircle className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
+                  <p className="text-xs font-semibold text-emerald-700">Trip Completed</p>
+                  {booking.returnedAt && <p className="text-[10px] text-emerald-500">{formatDateTime(booking.returnedAt)}</p>}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Timeline */}
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-indigo-500" />
-              Timeline
-            </h2>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 mt-2 bg-green-500 rounded-full" />
-                <div>
-                  <p className="font-medium text-gray-900">Booking Created</p>
-                  <p className="text-sm text-gray-500">{formatDateTime(booking.createdAt)}</p>
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-3.5 py-2.5 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-emerald-500" /> Timeline
+              </h3>
+            </div>
+            <div className="p-3.5 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <div className="flex-1 flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Created</span>
+                  <span className="text-xs font-bold text-gray-700">{formatDateTime(booking.createdAt)}</span>
                 </div>
               </div>
               {booking.acceptedAt && (
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 mt-2 bg-green-500 rounded-full" />
-                  <div>
-                    <p className="font-medium text-gray-900">Accepted by You</p>
-                    <p className="text-sm text-gray-500">{formatDateTime(booking.acceptedAt)}</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <div className="flex-1 flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Accepted</span>
+                    <span className="text-xs font-bold text-gray-700">{formatDateTime(booking.acceptedAt)}</span>
                   </div>
                 </div>
               )}
               {booking.pickedUpAt && (
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 mt-2 bg-green-500 rounded-full" />
-                  <div>
-                    <p className="font-medium text-gray-900">Trip Started</p>
-                    <p className="text-sm text-gray-500">{formatDateTime(booking.pickedUpAt)}</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <div className="flex-1 flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Trip Started</span>
+                    <span className="text-xs font-bold text-gray-700">{formatDateTime(booking.pickedUpAt)}</span>
                   </div>
                 </div>
               )}
               {booking.returnedAt && (
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 mt-2 bg-green-500 rounded-full" />
-                  <div>
-                    <p className="font-medium text-gray-900">Trip Completed</p>
-                    <p className="text-sm text-gray-500">{formatDateTime(booking.returnedAt)}</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0" />
+                  <div className="flex-1 flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Completed</span>
+                    <span className="text-xs font-bold text-gray-700">{formatDateTime(booking.returnedAt)}</span>
                   </div>
                 </div>
               )}
@@ -686,9 +664,9 @@ export default function VendorBookingDetailPage() {
 
       {/* Reject Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Reject Booking</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+          <div className="bg-white/95 rounded-[32px] shadow-2xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Reject Booking</h2>
             <p className="text-gray-600 mb-4">
               Are you sure? This booking will be broadcasted to other vendors.
             </p>
@@ -723,9 +701,9 @@ export default function VendorBookingDetailPage() {
 
       {/* Complete Trip Modal */}
       {showCompleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Complete Trip</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
+          <div className="bg-white/95 rounded-[32px] shadow-2xl max-w-md w-full p-6">
+            <h2 className="text-xl font-bold text-slate-900 mb-4">Complete Trip</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -768,7 +746,7 @@ export default function VendorBookingDetailPage() {
               <Button variant="outline" className="flex-1" onClick={() => setShowCompleteModal(false)}>
                 Cancel
               </Button>
-              <Button className="flex-1 bg-purple-600 hover:bg-purple-700" onClick={handleCompleteTrip} disabled={processing}>
+              <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={handleCompleteTrip} disabled={processing}>
                 {processing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Complete Trip
               </Button>

@@ -654,7 +654,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
   // ============ RENDER ============
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="pb-24">
       {/* Back */}
       <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition">
         <ArrowLeft className="w-4 h-4" /> Back to B2B Requests
@@ -681,7 +681,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
                 {!isSelfDrive && booking.dropLocation && ` → ${booking.dropLocation}`}
               </div>
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-blue-500" />
+                <Calendar className="w-4 h-4 text-emerald-500" />
                 {isSelfDrive
                   ? `${formatDate(booking.scheduledDate)}${booking.returnDate ? ` → ${formatDate(booking.returnDate)}` : ''} (${rentalDays} day${rentalDays > 1 ? 's' : ''})`
                   : `${formatDate(booking.scheduledDate)} at ${booking.scheduledTime}${booking.returnDate ? ` — Return: ${formatDate(booking.returnDate)}` : ''}`
@@ -689,7 +689,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
               </div>
               {!isSelfDrive && booking.vehicleCategory && (
                 <div className="flex items-center gap-2">
-                  <Car className="w-4 h-4 text-purple-500" />
+                  <Car className="w-4 h-4 text-emerald-500" />
                   Category: {booking.vehicleCategory}
                 </div>
               )}
@@ -726,10 +726,10 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
               <p className="text-xs text-teal-600">Vehicles</p>
             </div>
             {booking.passengerCount && (
-              <div className="bg-blue-50 rounded-xl p-4 text-center min-w-[80px]">
-                <Users className="w-6 h-6 text-blue-600 mx-auto mb-1" />
-                <p className="text-2xl font-bold text-blue-700">{booking.passengerCount}</p>
-                <p className="text-xs text-blue-600">Persons</p>
+              <div className="bg-emerald-50 rounded-xl p-4 text-center min-w-[80px]">
+                <Users className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
+                <p className="text-2xl font-bold text-emerald-700">{booking.passengerCount}</p>
+                <p className="text-xs text-emerald-600">Persons</p>
               </div>
             )}
           </div>
@@ -787,7 +787,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
             </p>
 
             {fleet.length === 0 && (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm flex items-center gap-2">
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-sm flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 No self-drive vehicles found in your fleet. Please add self-drive vehicles first.
               </div>
@@ -1038,7 +1038,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           {/* Inclusions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg flex items-center gap-2">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-green-500" />
                 Inclusions ({inclusions.length})
               </h2>
@@ -1083,7 +1083,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           {/* Exclusions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg flex items-center gap-2">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <XCircle className="w-5 h-5 text-red-500" />
                 Exclusions ({exclusions.length})
               </h2>
@@ -1128,7 +1128,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           {/* Terms & Conditions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg">Terms & Conditions ({termsConditions.length})</h2>
+              <h2 className="text-sm font-bold text-gray-900">Terms & Conditions ({termsConditions.length})</h2>
               <button
                 type="button"
                 onClick={() => setEditMode(editMode === 'terms' ? null : 'terms')}
@@ -1170,7 +1170,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
 
           {/* Notes */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="font-semibold text-lg mb-4">Notes for Customer (Optional)</h2>
+            <h2 className="text-sm font-bold text-gray-900 mb-4">Notes for Customer (Optional)</h2>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -1358,7 +1358,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           {/* Inclusions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg flex items-center gap-2">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-green-500" />
                 Inclusions ({inclusions.length})
               </h2>
@@ -1403,7 +1403,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           {/* Exclusions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg flex items-center gap-2">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <XCircle className="w-5 h-5 text-red-500" />
                 Exclusions ({exclusions.length})
               </h2>
@@ -1448,7 +1448,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           {/* Terms & Conditions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg">Terms & Conditions ({termsConditions.length})</h2>
+              <h2 className="text-sm font-bold text-gray-900">Terms & Conditions ({termsConditions.length})</h2>
               <button
                 type="button"
                 onClick={() => setEditMode(editMode === 'terms' ? null : 'terms')}

@@ -102,7 +102,7 @@ export default function VendorWanderQuoteDetailPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center py-20">
-      <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+      <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
     </div>
   );
 
@@ -168,8 +168,8 @@ export default function VendorWanderQuoteDetailPage() {
         <div className="flex items-start justify-between mb-4">
           <h2 className="font-semibold text-gray-900 text-lg">{listing?.title}</h2>
           <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-            req?.status === 'PENDING' ? 'bg-blue-50 text-blue-700' :
-            req?.status === 'QUOTED' ? 'bg-amber-50 text-amber-700' :
+            req?.status === 'PENDING' ? 'bg-emerald-50 text-emerald-700' :
+            req?.status === 'QUOTED' ? 'bg-emerald-50 text-emerald-700' :
             req?.status === 'ACCEPTED' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
           }`}>
             {req?.status}
@@ -178,14 +178,14 @@ export default function VendorWanderQuoteDetailPage() {
 
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="flex items-center gap-2 text-sm text-gray-700">
-            <Calendar className="w-4 h-4 text-indigo-500" />
+            <Calendar className="w-4 h-4 text-emerald-500" />
             <div>
               <p className="text-xs text-gray-500">Travel Date</p>
               <p className="font-medium">{travelDate}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-sm text-gray-700">
-            <Users className="w-4 h-4 text-indigo-500" />
+            <Users className="w-4 h-4 text-emerald-500" />
             <div>
               <p className="text-xs text-gray-500">Group Size</p>
               <p className="font-medium">{groupSize} traveler{groupSize > 1 ? 's' : ''}</p>
@@ -193,7 +193,7 @@ export default function VendorWanderQuoteDetailPage() {
           </div>
           {req?.pickupLocation && (
             <div className="flex items-center gap-2 text-sm text-gray-700">
-              <MapPin className="w-4 h-4 text-indigo-500" />
+              <MapPin className="w-4 h-4 text-emerald-500" />
               <div>
                 <p className="text-xs text-gray-500">Pickup From</p>
                 <p className="font-medium">{req.pickupLocation}</p>
@@ -201,7 +201,7 @@ export default function VendorWanderQuoteDetailPage() {
             </div>
           )}
           <div className="flex items-center gap-2 text-sm text-gray-700">
-            <Clock className="w-4 h-4 text-indigo-500" />
+            <Clock className="w-4 h-4 text-emerald-500" />
             <div>
               <p className="text-xs text-gray-500">Requested On</p>
               <p className="font-medium">{req && new Date(req.createdAt).toLocaleDateString('en-IN')}</p>
@@ -215,11 +215,11 @@ export default function VendorWanderQuoteDetailPage() {
               <p className="text-xs text-gray-500">Customer</p>
               {/* Booking type badge */}
               {req.bookingFor === 'COMPANY' ? (
-                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                   🏢 B2B — Company
                 </span>
               ) : req.customer?.isB2B && req.customer?.b2bStatus === 'APPROVED' ? (
-                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
                   👤 B2B — Personal
                 </span>
               ) : (
@@ -230,37 +230,37 @@ export default function VendorWanderQuoteDetailPage() {
             </div>
             <p className="font-medium text-gray-800">{req.customer.name} — {req.customer.phone}</p>
             {req.bookingFor === 'COMPANY' && req.companyName && (
-              <p className="text-xs text-blue-600 mt-0.5">🏢 {req.companyName}</p>
+              <p className="text-xs text-emerald-600 mt-0.5">🏢 {req.companyName}</p>
             )}
           </div>
         )}
 
         {/* Advance payment notice — only for non-company bookings */}
         {hasAdvance && req?.bookingFor !== 'COMPANY' && (
-          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
-            <Zap className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2">
+            <Zap className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-bold text-amber-700">
+              <p className="text-xs font-bold text-emerald-700">
                 Advance payment required from customer:
                 {listing.advancePaymentType === 'PERCENTAGE'
                   ? ` ${listing.advancePaymentValue}% of your quoted amount`
                   : ` ₹${Number(listing.advancePaymentValue).toLocaleString('en-IN')} fixed`}
               </p>
-              <p className="text-xs text-amber-600 mt-0.5">This booking requires advance payment before confirmation.</p>
+              <p className="text-xs text-emerald-600 mt-0.5">This booking requires advance payment before confirmation.</p>
             </div>
           </div>
         )}
         {req?.bookingFor === 'COMPANY' && (
-          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-2">
-            <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-blue-700 font-medium">B2B Company booking — No advance payment. Send invoice after trip completion.</p>
+          <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-2">
+            <Info className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-emerald-700 font-medium">B2B Company booking — No advance payment. Send invoice after trip completion.</p>
           </div>
         )}
 
         {req?.requirements && (
-          <div className="mt-3 p-3 bg-indigo-50 rounded-lg">
-            <p className="text-xs text-indigo-600 font-medium mb-1">Special Requirements</p>
-            <p className="text-sm text-indigo-800">{req.requirements}</p>
+          <div className="mt-3 p-3 bg-emerald-50 rounded-lg">
+            <p className="text-xs text-emerald-600 font-medium mb-1">Special Requirements</p>
+            <p className="text-sm text-emerald-800">{req.requirements}</p>
           </div>
         )}
       </div>
@@ -289,14 +289,14 @@ export default function VendorWanderQuoteDetailPage() {
             const adv = calcAdvance(myQuote.amount);
             if (!adv) return null;
             return (
-              <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                <Zap className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-start gap-2">
+                <Zap className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-bold text-amber-700">
+                  <p className="text-xs font-bold text-emerald-700">
                     Customer must pay ₹{adv.toLocaleString('en-IN')} advance
                     {listing.advancePaymentType === 'PERCENTAGE' ? ` (${listing.advancePaymentValue}% of your quote)` : ''}
                   </p>
-                  <p className="text-xs text-amber-600 mt-0.5">
+                  <p className="text-xs text-emerald-600 mt-0.5">
                     Balance ₹{(Number(myQuote.amount) - adv).toLocaleString('en-IN')} due on trip day
                   </p>
                 </div>
@@ -314,9 +314,9 @@ export default function VendorWanderQuoteDetailPage() {
 
           {/* Advance payment notice — only for non-company bookings */}
           {hasAdvance && req?.bookingFor !== 'COMPANY' && (
-            <div className="mb-5 flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl p-3.5">
-              <Zap className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-700">
+            <div className="mb-5 flex items-start gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl p-3.5">
+              <Zap className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-emerald-700">
                 <span className="font-bold">Advance payment required</span> — customer will pay{' '}
                 {listing?.advancePaymentType === 'PERCENTAGE'
                   ? <><span className="font-bold">{listing.advancePaymentValue}%</span> of your quoted price upfront</>
@@ -327,9 +327,9 @@ export default function VendorWanderQuoteDetailPage() {
           )}
           {/* B2B Company — no advance needed */}
           {req?.bookingFor === 'COMPANY' && (
-            <div className="mb-5 flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-xl p-3.5">
-              <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-blue-700">
+            <div className="mb-5 flex items-start gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl p-3.5">
+              <Info className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-emerald-700">
                 <span className="font-bold">B2B Company booking</span> — No advance payment needed. Customer will pay via invoice after trip completion.
               </p>
             </div>
@@ -356,11 +356,11 @@ export default function VendorWanderQuoteDetailPage() {
                         type="number"
                         value={quoteForm.perPersonAmount}
                         onChange={(e) => recalcTotal(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
                     {isPP && listing?.basePrice && (
-                      <p className="text-xs text-indigo-500 mt-1">
+                      <p className="text-xs text-emerald-500 mt-1">
                         Listed price: ₹{Number(listing.basePrice).toLocaleString('en-IN')} / person
                       </p>
                     )}
@@ -370,7 +370,7 @@ export default function VendorWanderQuoteDetailPage() {
                   <label className="block text-xs text-gray-500 mb-1">
                     Total Amount (₹) <span className="text-red-500">*</span>
                     {isPP && quoteForm.perPersonAmount && (
-                      <span className="ml-1 text-indigo-500 font-normal">
+                      <span className="ml-1 text-emerald-500 font-normal">
                         (₹{quoteForm.perPersonAmount} × {groupSize})
                       </span>
                     )}
@@ -382,7 +382,7 @@ export default function VendorWanderQuoteDetailPage() {
                       value={quoteForm.amount}
                       onChange={(e) => setQuoteForm(f => ({ ...f, amount: e.target.value }))}
                       placeholder="e.g. 12000"
-                      className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -391,13 +391,13 @@ export default function VendorWanderQuoteDetailPage() {
 
             {/* Advance payment preview */}
             {hasAdvance && quoteForm.amount && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-                <Zap className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-3">
+                <Zap className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-amber-800 mb-1">
+                  <p className="text-sm font-bold text-emerald-800 mb-1">
                     Advance Payment Required by This Tour
                   </p>
-                  <p className="text-xs text-amber-600 mb-2">
+                  <p className="text-xs text-emerald-600 mb-2">
                     {listing.advancePaymentType === 'PERCENTAGE'
                       ? `This tour requires ${listing.advancePaymentValue}% advance payment from the customer.`
                       : `This tour requires a fixed advance of ₹${Number(listing.advancePaymentValue).toLocaleString('en-IN')} from the customer.`}
@@ -409,12 +409,12 @@ export default function VendorWanderQuoteDetailPage() {
                     return (
                       <div className="flex gap-4 text-sm">
                         <div>
-                          <p className="text-[10px] text-amber-500 uppercase tracking-wider">Customer pays now</p>
-                          <p className="font-black text-amber-700 text-base">₹{adv.toLocaleString('en-IN')}</p>
+                          <p className="text-[10px] text-emerald-500 uppercase tracking-wider">Customer pays now</p>
+                          <p className="font-black text-emerald-700 text-base">₹{adv.toLocaleString('en-IN')}</p>
                         </div>
-                        <div className="border-l border-amber-200 pl-4">
-                          <p className="text-[10px] text-amber-500 uppercase tracking-wider">Balance on trip day</p>
-                          <p className="font-black text-amber-700 text-base">₹{balance.toLocaleString('en-IN')}</p>
+                        <div className="border-l border-emerald-200 pl-4">
+                          <p className="text-[10px] text-emerald-500 uppercase tracking-wider">Balance on trip day</p>
+                          <p className="font-black text-emerald-700 text-base">₹{balance.toLocaleString('en-IN')}</p>
                         </div>
                       </div>
                     );
@@ -448,9 +448,9 @@ export default function VendorWanderQuoteDetailPage() {
               <label className="block text-sm font-semibold text-gray-700 mb-1">Extra Inclusions <span className="text-gray-400 font-normal">(specific to this quote)</span></label>
               <div className="flex flex-wrap gap-2 mb-2">
                 {quoteForm.extraInclusions.map((inc) => (
-                  <span key={inc} className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-full text-xs text-indigo-700">
+                  <span key={inc} className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-xs text-emerald-700">
                     {inc}
-                    <button onClick={() => removeExtra('extraInclusions', inc)} className="text-indigo-400 hover:text-red-500 ml-0.5">
+                    <button onClick={() => removeExtra('extraInclusions', inc)} className="text-emerald-400 hover:text-red-500 ml-0.5">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
@@ -463,12 +463,12 @@ export default function VendorWanderQuoteDetailPage() {
                   onChange={(e) => setQuoteForm(f => ({ ...f, extraInclusionInput: e.target.value }))}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addExtra('extraInclusions', 'extraInclusionInput'); } }}
                   placeholder="e.g. Welcome drink, Boat ride..."
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button
                   type="button"
                   onClick={() => addExtra('extraInclusions', 'extraInclusionInput')}
-                  className="flex items-center gap-1 px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700"
+                  className="flex items-center gap-1 px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -502,7 +502,7 @@ export default function VendorWanderQuoteDetailPage() {
                   onChange={(e) => setQuoteForm(f => ({ ...f, extraExclusionInput: e.target.value }))}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addExtra('extraExclusions', 'extraExclusionInput'); } }}
                   placeholder="e.g. Entry fees, Lunch..."
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button
                   type="button"
@@ -524,13 +524,13 @@ export default function VendorWanderQuoteDetailPage() {
                     value={quoteForm.validUntil}
                     onChange={(e) => setQuoteForm(f => ({ ...f, validUntil: e.target.value }))}
                     min={new Date().toISOString().split('T')[0]}
-                    className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                   <input
                     type="time"
                     value={quoteForm.validUntilTime}
                     onChange={(e) => setQuoteForm(f => ({ ...f, validUntilTime: e.target.value }))}
-                    className="w-[130px] px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-[130px] px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
@@ -543,14 +543,14 @@ export default function VendorWanderQuoteDetailPage() {
                 onChange={(e) => setQuoteForm(f => ({ ...f, notes: e.target.value }))}
                 rows={3}
                 placeholder="Any special notes, terms, or details..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
               />
             </div>
 
             <button
               onClick={submitQuote}
               disabled={submitting}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-medium"
+              className="w-full flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition font-medium"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               Submit Quote

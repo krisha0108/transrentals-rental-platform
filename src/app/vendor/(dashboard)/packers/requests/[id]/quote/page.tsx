@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -136,6 +136,9 @@ export default function SendPackersQuotePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState('');
+  const [apiSuccess, setApiSuccess] = useState('');
 
   // Templates
   const [templates, setTemplates] = useState<PackersTemplate[]>([]);
@@ -175,6 +178,16 @@ export default function SendPackersQuotePage() {
 
   // Input states
   const [newItem, setNewItem] = useState('');
+
+  // Refs for validation focus
+  const vehicleTypeRef = useRef<HTMLInputElement>(null);
+  const quickTotalPriceRef = useRef<HTMLInputElement>(null);
+  const packingChargesRef = useRef<HTMLInputElement>(null);
+  const loadingChargesRef = useRef<HTMLInputElement>(null);
+  const transportChargesRef = useRef<HTMLInputElement>(null);
+  const unloadingChargesRef = useRef<HTMLInputElement>(null);
+  const unpackingChargesRef = useRef<HTMLInputElement>(null);
+  const validUntilRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchRequestDetails();
@@ -298,7 +311,6 @@ export default function SendPackersQuotePage() {
       }
     } catch (error) {
       console.error('Failed to fetch request details:', error);
-      alert('Failed to load request details');
     } finally {
       setIsLoading(false);
     }
@@ -345,10 +357,50 @@ export default function SendPackersQuotePage() {
 
   const advanceExceedsTotal = calculateAdvance() > calculateTotal() && calculateTotal() > 0;
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!vehicleType.trim()) newErrors.vehicleType = 'Vehicle type is required';
+    if (quickQuoteMode) {
+      if (!quickTotalPrice || parseFloat(quickTotalPrice) <= 0) newErrors.quickTotalPrice = 'Total price must be greater than 0';
+    } else {
+      if (packingCharges === '') newErrors.packingCharges = 'Packing charges required (enter 0 if not applicable)';
+      if (loadingCharges === '') newErrors.loadingCharges = 'Loading charges required (enter 0 if not applicable)';
+      if (!transportCharges || parseFloat(transportCharges) <= 0) newErrors.transportCharges = 'Transport charges are required and must be greater than 0';
+      if (unloadingCharges === '') newErrors.unloadingCharges = 'Unloading charges required (enter 0 if not applicable)';
+      if (unpackingCharges === '') newErrors.unpackingCharges = 'Unpacking charges required (enter 0 if not applicable)';
+    }
+    if (!validUntil) newErrors.validUntil = 'Quote validity date is required';
+    if (advanceMode === 'manual' && customAdvanceAmount) {
+      const adv = parseFloat(customAdvanceAmount) || 0;
+      const total = calculateTotal();
+      if (total > 0 && adv > total) newErrors.customAdvanceAmount = 'Advance amount cannot exceed total price';
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      const firstRef =
+        newErrors.vehicleType ? vehicleTypeRef :
+        newErrors.quickTotalPrice ? quickTotalPriceRef :
+        newErrors.packingCharges ? packingChargesRef :
+        newErrors.loadingCharges ? loadingChargesRef :
+        newErrors.transportCharges ? transportChargesRef :
+        newErrors.unloadingCharges ? unloadingChargesRef :
+        newErrors.unpackingCharges ? unpackingChargesRef :
+        newErrors.validUntil ? validUntilRef :
+        null;
+      if (firstRef?.current) {
+        firstRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstRef.current.focus();
+      }
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setApiError('');
+    if (!validateForm()) return;
     setIsSubmitting(true);
-    setSubmitStatus('submitting');
 
     try {
       const response = await fetch('/api/vendor/packers-quotes', {
@@ -388,20 +440,20 @@ export default function SendPackersQuotePage() {
       const data = await response.json();
 
       if (data.success) {
-        setSubmitStatus('success');
-        // Wait a moment to show success state before redirecting
-        setTimeout(() => {
-          router.push('/vendor/packers/quotes');
-        }, 1500);
+        setIsSubmitting(false);
+        setApiSuccess('Quote sent successfully! Redirecting...');
+        setTimeout(() => router.push('/vendor/packers/requests'), 2000);
       } else {
         setSubmitStatus('error');
-        alert(data.error || 'Failed to send quote. Please try again.');
+        setApiError(data.error || 'Failed to send quote. Please try again.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setIsSubmitting(false);
       }
     } catch (error) {
       console.error('Failed to submit quote:', error);
       setSubmitStatus('error');
-      alert('Failed to send quote. Please try again.');
+      setApiError('Something went wrong. Please try again.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       setIsSubmitting(false);
     }
   };
@@ -418,30 +470,28 @@ export default function SendPackersQuotePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Full-screen Loader Overlay */}
-      {(submitStatus === 'submitting' || submitStatus === 'success') && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4 max-w-sm mx-4">
-            {submitStatus === 'submitting' ? (
-              <>
-                <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-                <h3 className="text-xl font-semibold text-gray-900">Sending Quote...</h3>
-                <p className="text-gray-500 text-center">Please wait while we submit your quote</p>
-              </>
-            ) : (
-              <>
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-10 h-10 text-green-500" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900">Quote Sent Successfully!</h3>
-                <p className="text-gray-500 text-center">Redirecting to your quotes...</p>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2">
-                  <div className="bg-cyan-500 h-1.5 rounded-full animate-pulse" style={{ width: '100%' }} />
-                </div>
-              </>
-            )}
+    <div className="pb-24">
+      {/* Success Modal Overlay */}
+      {apiSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mx-4 max-w-sm w-full flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
+            <div className="relative flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-green-500" />
+              </div>
+              <svg className="absolute w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#22c55e" strokeWidth="4" strokeDasharray="226" strokeDashoffset="226" style={{ animation: 'dash 1.8s ease-out forwards' }} />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">Quote Sent!</h2>
+            <p className="text-sm text-gray-500 text-center">Your quote has been submitted successfully. Redirecting to your quotes...</p>
+            <div className="flex gap-1 mt-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
           </div>
+          <style>{`@keyframes dash { to { stroke-dashoffset: 0; } }`}</style>
         </div>
       )}
       {/* Header */}
@@ -558,9 +608,9 @@ export default function SendPackersQuotePage() {
 
       {/* Template Selector */}
       {templates.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <FileSpreadsheet className="w-5 h-5 text-cyan-500" />
               Use Template
             </h2>
@@ -624,10 +674,20 @@ export default function SendPackersQuotePage() {
         </div>
       )}
 
+      {apiError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <p className="flex-1 text-sm text-red-700 font-medium">{apiError}</p>
+          <button type="button" onClick={() => setApiError('')} className="text-red-400 hover:text-red-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Service Details */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Package className="w-5 h-5 text-cyan-500" />
             Service Details
           </h2>
@@ -701,19 +761,22 @@ export default function SendPackersQuotePage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vehicle Type {!selectedFleetVehicleId && '*'}
+                Vehicle Type *
               </label>
               <input
+                ref={vehicleTypeRef}
                 type="text"
                 value={vehicleType}
-                onChange={(e) => setVehicleType(e.target.value)}
+                data-error={!!errors.vehicleType}
+                onChange={(e) => { setVehicleType(e.target.value); if (errors.vehicleType) setErrors(prev => ({ ...prev, vehicleType: '' })); }}
                 placeholder="e.g., Tata Ace, Chhota Hathi, 14ft Truck"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-cyan-500 ${errors.vehicleType ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 disabled={!!selectedFleetVehicleId}
               />
               {selectedFleetVehicleId && (
                 <p className="text-xs text-gray-500 mt-1">Auto-filled from selected fleet vehicle</p>
               )}
+              {errors.vehicleType && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.vehicleType}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -745,9 +808,9 @@ export default function SendPackersQuotePage() {
         </div>
 
         {/* Pricing */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <IndianRupee className="w-5 h-5 text-cyan-600" />
               Pricing Breakdown
             </h2>
@@ -769,32 +832,40 @@ export default function SendPackersQuotePage() {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={quickTotalPriceRef}
                   type="number"
                   value={quickTotalPrice}
-                  onChange={(e) => setQuickTotalPrice(e.target.value)}
+                  data-error={!!errors.quickTotalPrice}
+                  onChange={(e) => {
+                    setQuickTotalPrice(e.target.value);
+                    if (errors.quickTotalPrice) setErrors(prev => ({ ...prev, quickTotalPrice: '' }));
+                  }}
                   placeholder="Enter your all-inclusive total price"
-                  className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 text-lg font-semibold"
-                  required
+                  className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-cyan-500 text-lg font-semibold ${errors.quickTotalPrice ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Enter one total price including all charges</p>
+              {errors.quickTotalPrice ? <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.quickTotalPrice}</p> : <p className="text-xs text-gray-500 mt-1">Enter one total price including all charges</p>}
             </div>
           ) : (
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Packing Charges
+                Packing Charges *
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={packingChargesRef}
                   type="number"
                   value={packingCharges}
-                  onChange={(e) => setPackingCharges(e.target.value)}
-                  placeholder="0"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                  data-error={!!errors.packingCharges}
+                  onChange={(e) => { setPackingCharges(e.target.value); if (errors.packingCharges) setErrors(prev => ({ ...prev, packingCharges: '' })); }}
+                  placeholder="Enter 0 if not applicable"
+                  min="0"
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-cyan-500 ${errors.packingCharges ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.packingCharges && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.packingCharges}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -813,18 +884,22 @@ export default function SendPackersQuotePage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Loading Charges
+                Loading Charges *
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={loadingChargesRef}
                   type="number"
                   value={loadingCharges}
-                  onChange={(e) => setLoadingCharges(e.target.value)}
-                  placeholder="0"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                  data-error={!!errors.loadingCharges}
+                  onChange={(e) => { setLoadingCharges(e.target.value); if (errors.loadingCharges) setErrors(prev => ({ ...prev, loadingCharges: '' })); }}
+                  placeholder="Enter 0 if not applicable"
+                  min="0"
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-cyan-500 ${errors.loadingCharges ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.loadingCharges && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.loadingCharges}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -833,44 +908,57 @@ export default function SendPackersQuotePage() {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={transportChargesRef}
                   type="number"
                   value={transportCharges}
-                  onChange={(e) => setTransportCharges(e.target.value)}
+                  data-error={!!errors.transportCharges}
+                  onChange={(e) => {
+                    setTransportCharges(e.target.value);
+                    if (errors.transportCharges) setErrors(prev => ({ ...prev, transportCharges: '' }));
+                  }}
                   placeholder="5000"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
-                  required
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-cyan-500 ${errors.transportCharges ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.transportCharges && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.transportCharges}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Unloading Charges
+                Unloading Charges *
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={unloadingChargesRef}
                   type="number"
                   value={unloadingCharges}
-                  onChange={(e) => setUnloadingCharges(e.target.value)}
-                  placeholder="0"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                  data-error={!!errors.unloadingCharges}
+                  onChange={(e) => { setUnloadingCharges(e.target.value); if (errors.unloadingCharges) setErrors(prev => ({ ...prev, unloadingCharges: '' })); }}
+                  placeholder="Enter 0 if not applicable"
+                  min="0"
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-cyan-500 ${errors.unloadingCharges ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.unloadingCharges && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.unloadingCharges}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Unpacking Charges
+                Unpacking Charges *
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={unpackingChargesRef}
                   type="number"
                   value={unpackingCharges}
-                  onChange={(e) => setUnpackingCharges(e.target.value)}
-                  placeholder="0"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                  data-error={!!errors.unpackingCharges}
+                  onChange={(e) => { setUnpackingCharges(e.target.value); if (errors.unpackingCharges) setErrors(prev => ({ ...prev, unpackingCharges: '' })); }}
+                  placeholder="Enter 0 if not applicable"
+                  min="0"
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-cyan-500 ${errors.unpackingCharges ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.unpackingCharges && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.unpackingCharges}</p>}
             </div>
             {request.needStorage && (
               <div>
@@ -974,13 +1062,15 @@ export default function SendPackersQuotePage() {
                   <input
                     type="number"
                     value={customAdvanceAmount}
-                    onChange={(e) => setCustomAdvanceAmount(e.target.value)}
+                    data-error={!!errors.customAdvanceAmount}
+                    onChange={(e) => { setCustomAdvanceAmount(e.target.value); if (errors.customAdvanceAmount) setErrors(prev => ({ ...prev, customAdvanceAmount: '' })); }}
                     placeholder="Enter advance amount"
                     min="0"
-                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                    className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-cyan-500 ${errors.customAdvanceAmount ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                   />
                 </div>
               )}
+              {errors.customAdvanceAmount && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.customAdvanceAmount}</p>}
             </div>
           </div>
 
@@ -1012,9 +1102,9 @@ export default function SendPackersQuotePage() {
         </div>
 
         {/* Inclusions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-500" />
               Inclusions ({inclusions.length})
             </h2>
@@ -1073,9 +1163,9 @@ export default function SendPackersQuotePage() {
         </div>
 
         {/* Exclusions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <XCircle className="w-5 h-5 text-red-500" />
               Exclusions ({exclusions.length})
             </h2>
@@ -1134,9 +1224,9 @@ export default function SendPackersQuotePage() {
         </div>
 
         {/* Terms & Conditions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">Terms & Conditions ({termsConditions.length})</h2>
+            <h2 className="text-sm font-bold text-gray-900">Terms & Conditions ({termsConditions.length})</h2>
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'terms' ? null : 'terms')}
@@ -1193,8 +1283,8 @@ export default function SendPackersQuotePage() {
         </div>
 
         {/* Additional Info */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4">Additional Information</h2>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4">Additional Information</h2>
 
           <div className="space-y-4">
             <div>
@@ -1216,12 +1306,16 @@ export default function SendPackersQuotePage() {
               </label>
               <div className="flex gap-2">
                 <input
+                  ref={validUntilRef}
                   type="date"
                   value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
+                  data-error={!!errors.validUntil}
+                  onChange={(e) => {
+                    setValidUntil(e.target.value);
+                    if (errors.validUntil) setErrors(prev => ({ ...prev, validUntil: '' }));
+                  }}
                   min={new Date().toISOString().split('T')[0]}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
-                  required
+                  className={`flex-1 px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-cyan-500 ${errors.validUntil ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
                 <input
                   type="time"
@@ -1230,6 +1324,7 @@ export default function SendPackersQuotePage() {
                   className="w-[130px] px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
+              {errors.validUntil && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.validUntil}</p>}
             </div>
           </div>
         </div>
@@ -1244,7 +1339,7 @@ export default function SendPackersQuotePage() {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting || calculateTotal() === 0 || advanceExceedsTotal}
+            disabled={isSubmitting}
             className="flex-1 py-3 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (

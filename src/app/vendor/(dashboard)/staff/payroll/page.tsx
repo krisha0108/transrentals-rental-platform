@@ -311,154 +311,211 @@ export default function PayrollPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+        <div className="animate-pulse space-y-6">
+          <div className="h-10 bg-gray-200 rounded-xl w-1/3"></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => <div key={i} className="bg-white rounded-2xl p-4 space-y-2 border border-gray-100"><div className="h-4 bg-gray-200 rounded w-1/2"></div><div className="h-8 bg-gray-100 rounded w-1/3"></div></div>)}
+          </div>
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => <div key={i} className="bg-white rounded-2xl p-5 border border-gray-100 space-y-3"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-gray-200 rounded-full"></div><div className="flex-1 space-y-2"><div className="h-4 bg-gray-200 rounded w-2/3"></div><div className="h-3 bg-gray-100 rounded w-1/3"></div></div></div><div className="h-3 bg-gray-100 rounded w-full"></div><div className="flex gap-2"><div className="h-8 bg-gray-100 rounded-lg flex-1"></div><div className="h-8 bg-gray-100 rounded-lg w-24"></div></div></div>)}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+      <style jsx global>{`
+        @keyframes float-slow { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-12px) translateX(8px); } }
+        @keyframes float-rev { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(10px) translateX(-6px); } }
+        @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+        @keyframes fade-up { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes pop-in { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes gradient-x { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+        .animate-float-rev { animation: float-rev 7s ease-in-out infinite; }
+        .animate-fade-up { animation: fade-up 0.5s ease-out both; }
+        .animate-pop-in { animation: pop-in 0.4s ease-out both; }
+        .animate-gradient-x { background-size: 200% 200%; animation: gradient-x 6s ease infinite; }
+        .shimmer-bg { background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.4) 50%, transparent 65%); background-size: 200% 100%; animation: shimmer 2.5s linear infinite; }
+      `}</style>
+      <div className="max-w-[1600px] mx-auto space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/vendor/staff" className="p-2 hover:bg-gray-100 rounded-lg transition">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Payroll Management</h1>
-            <p className="text-gray-600">Salary calculation based on attendance</p>
+      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 animate-gradient-x rounded-2xl p-6 sm:p-8 shadow-lg animate-fade-up">
+        <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl animate-float-slow"></div>
+        <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-cyan-300/20 rounded-full blur-3xl animate-float-rev"></div>
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Link href="/vendor/staff" className="p-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl transition">
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </Link>
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg ring-1 ring-white/30">
+              <Wallet className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Payroll Management</h1>
+              <p className="text-emerald-100 mt-1 text-sm sm:text-base">Salary calculation based on attendance</p>
+            </div>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={fetchPayrollData}
-            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </button>
-          <button
-            onClick={exportToCSV}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            Export CSV
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={fetchPayrollData}
+              className="group inline-flex items-center gap-2 px-4 py-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/30 text-white rounded-xl font-semibold transition-all"
+            >
+              <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+              Refresh
+            </button>
+            <button
+              onClick={exportToCSV}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white text-emerald-700 hover:bg-emerald-50 rounded-xl font-semibold transition-all shadow-md"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Export CSV
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Month Navigator */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="relative overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-sm p-4 animate-fade-up">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500"></div>
         <div className="flex items-center justify-between">
           <button
             onClick={goToPrevMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg transition border border-gray-200"
+            className="p-2.5 hover:bg-emerald-50 rounded-xl transition border border-gray-200 hover:border-emerald-300 group"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-5 h-5 text-gray-600 group-hover:text-emerald-600" />
           </button>
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-green-600" />
-            <span className="text-lg font-bold text-gray-900">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md">
+              <Calendar className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-lg font-bold bg-gradient-to-r from-emerald-700 to-teal-700 bg-clip-text text-transparent">
               {MONTHS[selectedMonth]} {selectedYear}
             </span>
           </div>
           <button
             onClick={goToNextMonth}
             disabled={isCurrentMonth}
-            className={`p-2 hover:bg-gray-100 rounded-lg transition border border-gray-200 ${isCurrentMonth ? 'opacity-30 cursor-not-allowed' : ''}`}
+            className={`p-2.5 hover:bg-emerald-50 rounded-xl transition border border-gray-200 hover:border-emerald-300 group ${isCurrentMonth ? 'opacity-30 cursor-not-allowed' : ''}`}
           >
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-emerald-600" />
           </button>
         </div>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 border border-gray-200 border-l-4 border-l-blue-500">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Users className="w-5 h-5 text-blue-600" />
+        <div className="group relative bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-emerald-200 transition-all duration-300 overflow-hidden animate-fade-up" style={{ animationDelay: '0ms' }}>
+          <div className="absolute inset-0 shimmer-bg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="absolute -right-6 -top-6 w-20 h-20 bg-emerald-100/40 rounded-full blur-2xl"></div>
+          <div className="relative flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-md">
+              <Users className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">{summary?.totalStaff || 0}</p>
-              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Total Staff</p>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Total Staff</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-200 border-l-4 border-l-purple-500">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Briefcase className="w-5 h-5 text-purple-600" />
+        <div className="group relative bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-emerald-200 transition-all duration-300 overflow-hidden animate-fade-up" style={{ animationDelay: '80ms' }}>
+          <div className="absolute inset-0 shimmer-bg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="absolute -right-6 -top-6 w-20 h-20 bg-emerald-100/40 rounded-full blur-2xl"></div>
+          <div className="relative flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-md">
+              <Briefcase className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-xl font-bold text-gray-900">{formatCurrency(summary?.totalBaseSalary || 0)}</p>
-              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Base Salary</p>
+              <p className="text-lg font-bold text-gray-900">{formatCurrency(summary?.totalBaseSalary || 0)}</p>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Base Salary</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-200 border-l-4 border-l-green-500">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-600" />
+        <div className="group relative bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-emerald-200 transition-all duration-300 overflow-hidden animate-fade-up" style={{ animationDelay: '160ms' }}>
+          <div className="absolute inset-0 shimmer-bg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="absolute -right-6 -top-6 w-20 h-20 bg-emerald-100/40 rounded-full blur-2xl"></div>
+          <div className="relative flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md">
+              <CheckCircle className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-xl font-bold text-green-600">{formatCurrency(totalPaid)}</p>
-              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Paid</p>
+              <p className="text-lg font-bold text-emerald-600">{formatCurrency(totalPaid)}</p>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Paid</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-200 border-l-4 border-l-amber-500">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-100 rounded-lg">
-              <Clock className="w-5 h-5 text-amber-600" />
+        <div className="group relative bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-emerald-200 transition-all duration-300 overflow-hidden animate-fade-up" style={{ animationDelay: '240ms' }}>
+          <div className="absolute inset-0 shimmer-bg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="absolute -right-6 -top-6 w-20 h-20 bg-emerald-100/40 rounded-full blur-2xl"></div>
+          <div className="relative flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-md">
+              <Clock className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-xl font-bold text-amber-600">{formatCurrency(totalPending)}</p>
-              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">Pending</p>
+              <p className="text-lg font-bold text-emerald-600">{formatCurrency(totalPending)}</p>
+              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Pending</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Payment Progress */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
+      <div className="relative overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-fade-up">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500"></div>
         <div className="flex items-center justify-between mb-3">
-          <span className="font-semibold text-gray-900">Payment Progress</span>
-          <span className="text-sm font-bold text-green-600">{paidCount}/{payrollData.length} paid</span>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+              <IndianRupee className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-base font-bold text-gray-900">Payment Progress</span>
+          </div>
+          <span className="text-sm font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">{paidCount}/{payrollData.length} paid</span>
         </div>
-        <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-green-500 rounded-full transition-all duration-500"
+            className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-full transition-all duration-700 shimmer-bg"
             style={{ width: payrollData.length > 0 ? `${(paidCount / payrollData.length) * 100}%` : '0%' }}
           />
         </div>
-        <div className="flex items-center justify-between mt-2">
+        <div className="flex items-center justify-between mt-3">
           <span className="text-sm text-gray-500">
             Net Payable: <span className="font-bold text-gray-900">{formatCurrency(summary?.totalNetSalary || 0)}</span>
           </span>
-          <span className="text-sm text-gray-500">{summary?.daysInMonth || 0} days in month</span>
+          <span className="text-xs text-gray-500 font-medium px-2 py-0.5 bg-gray-50 rounded-md">{summary?.daysInMonth || 0} days in month</span>
         </div>
       </div>
 
       {/* Staff Payroll Cards */}
       {payrollData.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Payroll Data</h3>
-          <p className="text-gray-500 mb-4">Add staff members with salary to see payroll</p>
-          <Link
-            href="/vendor/staff/add"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Add Staff
-          </Link>
+        <div className="relative overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center animate-pop-in">
+          <div className="absolute -right-10 -top-10 w-40 h-40 bg-emerald-100/40 rounded-full blur-3xl"></div>
+          <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-teal-100/40 rounded-full blur-3xl"></div>
+          <div className="relative">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
+              <Users className="w-10 h-10 text-emerald-500" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Payroll Data</h3>
+            <p className="text-gray-500 mb-4">Add staff members with salary to see payroll</p>
+            <Link
+              href="/vendor/staff/add"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:shadow-lg transition-all font-semibold"
+            >
+              Add Staff
+            </Link>
+          </div>
         </div>
       ) : (
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Staff Salaries</h2>
+        <div className="animate-fade-up">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1.5 h-6 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-full"></div>
+            <h2 className="text-lg font-bold text-gray-900">Staff Salaries</h2>
+            <span className="text-xs font-semibold text-gray-500 px-2 py-0.5 bg-gray-100 rounded-full">{payrollData.length}</span>
+          </div>
           <div className="space-y-4">
-            {payrollData.map((item) => {
+            {payrollData.map((item, idx) => {
               const isPaid = !!paidMap[item.staffId];
               const isOpen = expandedId === item.staffId;
               const s = item.staff;
@@ -468,93 +525,100 @@ export default function PayrollPage() {
               return (
                 <div
                   key={item.staffId}
-                  className={`bg-white rounded-xl border overflow-hidden transition-shadow hover:shadow-md ${isPaid ? 'border-green-200' : 'border-gray-200'}`}
+                  style={{ animationDelay: `${idx * 50}ms` }}
+                  className={`group relative bg-white rounded-2xl border overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 animate-fade-up ${isPaid ? 'border-emerald-200' : 'border-gray-100 hover:border-emerald-200'}`}
                 >
+                  <div className={`absolute inset-x-0 top-0 h-1 ${isPaid ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gradient-to-r from-emerald-500 via-emerald-500 to-teal-500'}`}></div>
                   {/* Top Row - Staff Info */}
                   <div
-                    className="flex items-center gap-4 p-4 cursor-pointer"
+                    className="flex items-center gap-4 p-4 cursor-pointer hover:bg-gradient-to-r hover:from-emerald-50/30 hover:to-transparent transition-colors"
                     onClick={() => setExpandedId(isOpen ? null : item.staffId)}
                   >
-                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg font-bold ${isPaid ? 'bg-green-100 text-green-600' : 'bg-indigo-100 text-indigo-600'}`}>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold shadow-md ring-2 ring-white ${isPaid ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white' : 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white'}`}>
                       {s.name?.charAt(0)?.toUpperCase() || 'S'}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-gray-900 truncate">{s.name || 'Staff'}</span>
                         {isPaid && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] font-bold rounded-full shadow-sm">
                             <Check className="w-3 h-3" />
                             PAID
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mt-0.5">
-                        <span className="text-xs font-semibold text-blue-600 capitalize">{roleLabels[s.role] || s.role}</span>
-                        {s.phone && <span className="text-xs text-gray-400">{s.phone}</span>}
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">{roleLabels[s.role] || s.role}</span>
+                        {s.phone && (
+                          <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                            <Phone className="w-3 h-3" />
+                            {s.phone}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className={`text-lg font-bold ${isPaid ? 'text-green-600' : 'text-gray-900'}`}>
+                      <p className={`text-lg font-black ${isPaid ? 'text-emerald-600' : 'bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent'}`}>
                         {formatCurrency(item.netSalary)}
                       </p>
-                      <p className="text-[10px] text-gray-400 font-semibold">NET PAY</p>
+                      <p className="text-[9px] text-gray-400 font-bold tracking-wider">NET PAY</p>
                     </div>
-                    <div className="ml-1">
-                      {isOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                    <div className={`ml-1 p-1.5 rounded-lg transition-colors ${isOpen ? 'bg-emerald-50' : 'bg-gray-50'}`}>
+                      {isOpen ? <ChevronUp className="w-4 h-4 text-emerald-600" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                     </div>
                   </div>
 
                   {/* Salary Breakdown Visual */}
-                  <div className="mx-4 mb-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
+                  <div className="mx-4 mb-4 bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 rounded-2xl p-4 border border-slate-100">
                     {/* Monthly → Earned → Deducted */}
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-white rounded-lg p-3 text-center border border-gray-200">
+                      <div className="flex-1 bg-white rounded-xl p-3 text-center border border-gray-200 shadow-sm">
                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Monthly Salary</p>
                         <p className="text-sm font-black text-gray-900 mt-1">{fmt(item.baseSalary)}</p>
                       </div>
                       <ArrowRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                      <div className="flex-1 bg-green-50 rounded-lg p-3 text-center border border-green-200">
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Earned</p>
-                        <p className="text-sm font-black text-green-600 mt-1">{fmt(item.netSalary)}</p>
+                      <div className="flex-1 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-3 text-center border border-emerald-200 shadow-sm">
+                        <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-wider">Earned</p>
+                        <p className="text-sm font-black text-emerald-600 mt-1">{fmt(item.netSalary)}</p>
                       </div>
-                      <div className="flex-1 bg-red-50 rounded-lg p-3 text-center border border-red-200">
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Deducted</p>
+                      <div className="flex-1 bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-3 text-center border border-red-200 shadow-sm">
+                        <p className="text-[9px] font-bold text-red-400 uppercase tracking-wider">Deducted</p>
                         <p className="text-sm font-black text-red-500 mt-1">{fmt(deducted)}</p>
                       </div>
                     </div>
 
                     {/* Progress Bar: earned vs total */}
                     <div className="mt-3">
-                      <div className="h-2 bg-red-200 rounded-full overflow-hidden">
+                      <div className="h-2.5 bg-red-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-green-500 rounded-full transition-all duration-500"
+                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-700"
                           style={{ width: `${earnedPct}%` }}
                         />
                       </div>
-                      <div className="flex items-center justify-between mt-1.5">
-                        <span className="text-xs font-bold text-green-600">{earnedPct}% earned</span>
-                        <span className="text-xs text-gray-400 font-semibold">{item.effectiveDays}/{item.workingDays} days</span>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs font-bold text-emerald-600">{earnedPct}% earned</span>
+                        <span className="text-xs text-gray-500 font-semibold px-2 py-0.5 bg-white rounded-md border border-gray-200">{item.effectiveDays}/{item.workingDays} days</span>
                       </div>
                     </div>
 
-                    {/* Attendance Dots */}
-                    <div className="flex flex-wrap items-center gap-4 mt-3">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-green-500" />
-                        <span className="text-xs text-gray-500 font-medium">{item.presentDays} present</span>
+                    {/* Attendance Pills */}
+                    <div className="flex flex-wrap items-center gap-2 mt-3">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="text-[10px] text-emerald-700 font-semibold">{item.presentDays} present</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-red-500" />
-                        <span className="text-xs text-gray-500 font-medium">{item.absentDays} absent</span>
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-50 border border-red-200">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        <span className="text-[10px] text-red-700 font-semibold">{item.absentDays} absent</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                        <span className="text-xs text-gray-500 font-medium">{item.leaveDays} leave</span>
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="text-[10px] text-emerald-700 font-semibold">{item.leaveDays} leave</span>
                       </div>
                       {item.halfDays > 0 && (
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-full bg-orange-500" />
-                          <span className="text-xs text-gray-500 font-medium">{item.halfDays} half</span>
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <span className="text-[10px] text-emerald-700 font-semibold">{item.halfDays} half</span>
                         </div>
                       )}
                     </div>
@@ -562,8 +626,8 @@ export default function PayrollPage() {
 
                   {/* Expanded Detail Section */}
                   {isOpen && (
-                    <div className="border-t border-gray-100 bg-slate-50 px-4 py-4">
-                      <div className="space-y-2">
+                    <div className="border-t border-gray-100 bg-gradient-to-br from-slate-50 to-emerald-50/20 px-4 py-4 animate-fade-up">
+                      <div className="space-y-2 bg-white rounded-xl p-4 border border-gray-100">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-500">Monthly Salary</span>
                           <span className="font-semibold">{formatCurrency(item.baseSalary)}</span>
@@ -593,21 +657,23 @@ export default function PayrollPage() {
                         <div className="border-t border-gray-200 pt-2 mt-2">
                           <div className="flex justify-between">
                             <span className="font-bold text-gray-900">Net Salary</span>
-                            <span className="font-bold text-green-600 text-lg">{formatCurrency(item.netSalary)}</span>
+                            <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600 text-lg">{formatCurrency(item.netSalary)}</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Bank Details */}
                       {(s.bankName || s.accountNumber) && (
-                        <div className="flex items-center gap-3 mt-4 bg-blue-50 rounded-lg p-3 border border-blue-100">
-                          <CreditCard className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                        <div className="flex items-center gap-3 mt-4 bg-gradient-to-r from-emerald-50 to-emerald-50 rounded-xl p-3 border border-emerald-100">
+                          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <CreditCard className="w-4 h-4 text-white" />
+                          </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold text-gray-900">{s.bankName || 'Bank'}</p>
                             <p className="text-xs text-gray-500">A/C: {s.accountNumber ? `****${s.accountNumber.slice(-4)}` : 'N/A'}</p>
                           </div>
                           {s.ifscCode && (
-                            <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                            <span className="text-[10px] font-bold text-emerald-700 bg-white border border-emerald-200 px-2 py-1 rounded-full shadow-sm">
                               {s.ifscCode}
                             </span>
                           )}
@@ -619,7 +685,7 @@ export default function PayrollPage() {
                         {!isPaid && (
                           <button
                             onClick={(e) => { e.stopPropagation(); handleMarkPaid(item); }}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold text-sm"
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all font-semibold text-sm"
                           >
                             <Send className="w-4 h-4" />
                             Mark as Paid - {formatCurrency(item.netSalary)}
@@ -627,7 +693,7 @@ export default function PayrollPage() {
                         )}
                         <button
                           onClick={(e) => { e.stopPropagation(); generatePayslip(item); }}
-                          className="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm"
+                          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 transition text-sm font-semibold"
                         >
                           <FileText className="w-4 h-4" />
                           Payslip
@@ -636,9 +702,9 @@ export default function PayrollPage() {
 
                       {/* Paid Info */}
                       {isPaid && paidMap[item.staffId] && (
-                        <div className="flex items-center gap-2 mt-3 bg-green-50 rounded-lg p-3 border border-green-200">
-                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                          <span className="text-xs text-green-700 font-semibold">
+                        <div className="flex items-center gap-2 mt-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-3 border border-emerald-200">
+                          <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                          <span className="text-xs text-emerald-700 font-semibold">
                             Paid via {PAYMENT_METHODS.find(m => m.value === paidMap[item.staffId].method)?.label || paidMap[item.staffId].method}
                             {paidMap[item.staffId].txnId ? ` (${paidMap[item.staffId].txnId})` : ''}
                           </span>
@@ -655,28 +721,38 @@ export default function PayrollPage() {
 
       {/* Payment Modal */}
       {showPaymentModal && paymentItem && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">Mark Payment</h2>
-                  <p className="text-sm text-gray-500">{paymentItem.staff.name} - {MONTH_SHORT[selectedMonth]} {selectedYear}</p>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-pop-in">
+            <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 animate-gradient-x p-6">
+              <div className="absolute -right-8 -top-8 w-28 h-28 bg-white/10 rounded-full blur-2xl animate-float-slow"></div>
+              <div className="absolute -left-8 -bottom-8 w-28 h-28 bg-cyan-300/20 rounded-full blur-2xl animate-float-rev"></div>
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/30">
+                    <Wallet className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Mark Payment</h2>
+                    <p className="text-xs text-emerald-100">{paymentItem.staff.name} - {MONTH_SHORT[selectedMonth]} {selectedYear}</p>
+                  </div>
                 </div>
-                <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition">
-                  <X className="w-5 h-5" />
+                <button onClick={() => setShowPaymentModal(false)} className="p-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl transition">
+                  <X className="w-5 h-5 text-white" />
                 </button>
               </div>
             </div>
 
             <div className="p-6 space-y-5">
               {/* Amount Card */}
-              <div className="bg-green-50 rounded-xl p-5 border border-green-200 text-center">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Net Salary</p>
-                <p className="text-3xl font-black text-green-600 mt-1">{formatCurrency(paymentItem.netSalary)}</p>
-                <div className="flex justify-center gap-6 mt-2">
-                  <span className="text-xs text-gray-400 font-semibold">Base: {formatCurrency(paymentItem.baseSalary)}</span>
-                  <span className="text-xs text-gray-400 font-semibold">Effective: {paymentItem.effectiveDays}d</span>
+              <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 rounded-2xl p-5 border border-emerald-200 text-center">
+                <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-200/30 rounded-full blur-2xl"></div>
+                <div className="relative">
+                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Net Salary</p>
+                  <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600 mt-1">{formatCurrency(paymentItem.netSalary)}</p>
+                  <div className="flex justify-center gap-6 mt-2">
+                    <span className="text-xs text-gray-500 font-semibold">Base: {formatCurrency(paymentItem.baseSalary)}</span>
+                    <span className="text-xs text-gray-500 font-semibold">Effective: {paymentItem.effectiveDays}d</span>
+                  </div>
                 </div>
               </div>
 
@@ -691,13 +767,13 @@ export default function PayrollPage() {
                       <button
                         key={m.value}
                         onClick={() => setPaymentMethod(m.value)}
-                        className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition text-xs font-medium ${
+                        className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all text-xs font-semibold ${
                           active
-                            ? 'border-green-500 bg-green-50 text-green-700'
-                            : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300'
+                            ? 'border-emerald-500 bg-gradient-to-br from-emerald-50 to-teal-50 text-emerald-700 shadow-sm -translate-y-0.5'
+                            : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-emerald-300 hover:bg-emerald-50/50'
                         }`}
                       >
-                        <Icon className={`w-5 h-5 ${active ? 'text-green-600' : 'text-gray-400'}`} />
+                        <Icon className={`w-5 h-5 ${active ? 'text-emerald-600' : 'text-gray-400'}`} />
                         {m.label}
                       </button>
                     );
@@ -713,7 +789,7 @@ export default function PayrollPage() {
                   value={transactionId}
                   onChange={(e) => setTransactionId(e.target.value)}
                   placeholder="Enter transaction/reference ID"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
                 />
               </div>
 
@@ -725,23 +801,23 @@ export default function PayrollPage() {
                   onChange={(e) => setRemarks(e.target.value)}
                   placeholder="Add any notes..."
                   rows={2}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none transition"
                 />
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+            <div className="p-6 bg-gradient-to-r from-gray-50 to-emerald-50/30 border-t border-gray-100 flex justify-end gap-3">
               <button
                 onClick={() => setShowPaymentModal(false)}
                 disabled={isProcessing}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+                className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition disabled:opacity-50 font-semibold"
               >
                 Cancel
               </button>
               <button
                 onClick={processPayment}
                 disabled={isProcessing}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 font-semibold"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 font-semibold"
               >
                 {isProcessing ? (
                   <>
@@ -762,13 +838,20 @@ export default function PayrollPage() {
 
       {/* Payslip Modal */}
       {showSlipModal && slipItem && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Payment Slip</h2>
-                <button onClick={() => setShowSlipModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition">
-                  <X className="w-5 h-5" />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-pop-in">
+            <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 animate-gradient-x p-6">
+              <div className="absolute -right-8 -top-8 w-28 h-28 bg-white/10 rounded-full blur-2xl animate-float-slow"></div>
+              <div className="absolute -left-8 -bottom-8 w-28 h-28 bg-pink-300/20 rounded-full blur-2xl animate-float-rev"></div>
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/30">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-lg font-bold text-white">Payment Slip</h2>
+                </div>
+                <button onClick={() => setShowSlipModal(false)} className="p-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl transition">
+                  <X className="w-5 h-5 text-white" />
                 </button>
               </div>
             </div>
@@ -776,7 +859,7 @@ export default function PayrollPage() {
             <div ref={payslipRef} className="p-6">
               <div className="payslip border border-gray-300 rounded-lg p-6">
                 <div className="header text-center border-b-2 border-gray-800 pb-4 mb-6">
-                  <h1 className="text-2xl font-bold text-blue-900">TransRentals</h1>
+                  <h1 className="text-2xl font-bold text-emerald-900">TransRentals</h1>
                   <p className="text-gray-600">Staff Salary Slip</p>
                   <p className="text-sm text-gray-500 mt-2">Pay Period: {MONTHS[selectedMonth]} {selectedYear}</p>
                 </div>
@@ -806,10 +889,10 @@ export default function PayrollPage() {
                   <tbody>
                     <tr><td className="p-3">Days in Month</td><td className="text-right p-3">{slipItem.workingDays}</td></tr>
                     <tr><td className="p-3">Present Days</td><td className="text-right p-3 text-green-600">{slipItem.presentDays}</td></tr>
-                    <tr><td className="p-3">Leave Days</td><td className="text-right p-3 text-yellow-600">{slipItem.leaveDays}</td></tr>
+                    <tr><td className="p-3">Leave Days</td><td className="text-right p-3 text-emerald-600">{slipItem.leaveDays}</td></tr>
                     <tr><td className="p-3">Absent Days</td><td className="text-right p-3 text-red-600">{slipItem.absentDays}</td></tr>
                     <tr><td className="p-3">Half Days</td><td className="text-right p-3">{slipItem.halfDays}</td></tr>
-                    <tr className="font-semibold bg-blue-50">
+                    <tr className="font-semibold bg-emerald-50">
                       <td className="p-3">Effective Days</td>
                       <td className="text-right p-3">{slipItem.effectiveDays}</td>
                     </tr>
@@ -872,13 +955,13 @@ export default function PayrollPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
-              <button onClick={() => setShowSlipModal(false)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+            <div className="p-6 bg-gradient-to-r from-gray-50 to-emerald-50/30 border-t border-gray-100 flex justify-end gap-3">
+              <button onClick={() => setShowSlipModal(false)} className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition font-semibold">
                 Close
               </button>
               <button
                 onClick={downloadPayslip}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all font-semibold"
               >
                 <Printer className="w-4 h-4" />
                 Print / Download
@@ -887,6 +970,7 @@ export default function PayrollPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

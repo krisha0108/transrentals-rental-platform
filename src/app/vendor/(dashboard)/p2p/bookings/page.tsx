@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Truck,
@@ -28,6 +29,12 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  ArrowLeft,
+  Sparkles,
+  Filter,
+  Network,
+  TrendingUp,
+  Briefcase,
 } from 'lucide-react';
 import { formatPrice, formatDate } from '@/lib/utils';
 
@@ -131,14 +138,14 @@ const SERVICE_TYPES = [
 const URGENCY_OPTIONS = [
   { label: 'All', value: '' },
   { label: 'High', value: 'HIGH', color: 'bg-red-500 text-white', pill: 'bg-red-100 text-red-700' },
-  { label: 'Medium', value: 'MEDIUM', color: 'bg-yellow-500 text-white', pill: 'bg-yellow-100 text-yellow-700' },
+  { label: 'Medium', value: 'MEDIUM', color: 'bg-emerald-500 text-white', pill: 'bg-emerald-100 text-emerald-700' },
   { label: 'Low', value: 'LOW', color: 'bg-green-500 text-white', pill: 'bg-green-100 text-green-700' },
 ];
 
 const URGENCY_BADGE: Record<string, string> = {
-  HIGH: 'bg-red-100 text-red-700',
-  MEDIUM: 'bg-yellow-100 text-yellow-700',
-  LOW: 'bg-green-100 text-green-700',
+  HIGH: 'bg-red-100/90 backdrop-blur text-red-700 ring-1 ring-red-200',
+  MEDIUM: 'bg-emerald-100/90 backdrop-blur text-emerald-700 ring-1 ring-emerald-200',
+  LOW: 'bg-green-100/90 backdrop-blur text-green-700 ring-1 ring-green-200',
 };
 
 const URGENCY_LABEL: Record<string, string> = {
@@ -444,7 +451,7 @@ export default function BrowseBookingsPage() {
         {[1, 2, 3, 4, 5].map((s) => (
           <Star
             key={s}
-            className={`w-3.5 h-3.5 ${s <= Math.round(r) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`}
+            className={`w-3.5 h-3.5 ${s <= Math.round(r) ? 'text-emerald-500 fill-emerald-500' : 'text-gray-300'}`}
           />
         ))}
         {rating !== null && <span className="ml-1 text-xs text-gray-500">{Number(rating).toFixed(1)}</span>}
@@ -559,22 +566,55 @@ export default function BrowseBookingsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+      <style jsx global>{`
+        @keyframes float-slow { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-12px) translateX(8px); } }
+        @keyframes float-rev { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(10px) translateX(-6px); } }
+        @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+        @keyframes fade-up { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes pop-in { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes gradient-x { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+        .animate-float-rev { animation: float-rev 7s ease-in-out infinite; }
+        .animate-fade-up { animation: fade-up 0.5s ease-out both; }
+        .animate-pop-in { animation: pop-in 0.4s ease-out both; }
+        .animate-gradient-x { background-size: 200% 200%; animation: gradient-x 6s ease infinite; }
+        .shimmer-bg { background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.4) 50%, transparent 65%); background-size: 200% 100%; animation: shimmer 2.5s linear infinite; }
+      `}</style>
+      <div className="max-w-[1600px] mx-auto space-y-6">
       {/* ---------------------------------------------------------------- */}
-      {/* Header */}
+      {/* Header Banner */}
       {/* ---------------------------------------------------------------- */}
-      <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 rounded-2xl p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Available Bookings</h1>
-            <p className="text-purple-200 mt-1">
-              {pagination ? `${pagination.total} booking${pagination.total !== 1 ? 's' : ''} available` : 'Browse bookings from other vendors'}
-            </p>
+      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 animate-gradient-x rounded-2xl p-6 sm:p-8 shadow-lg animate-fade-up text-white">
+        <div className="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-3xl animate-float-slow" />
+        <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-emerald-300/20 rounded-full blur-3xl animate-float-rev" />
+        <div className="absolute top-1/2 right-1/3 w-24 h-24 bg-white/5 rounded-full blur-2xl" />
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/vendor/p2p"
+              className="p-2 hover:bg-white/20 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl transition"
+            >
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </Link>
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg ring-1 ring-white/30">
+              <Briefcase className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2">
+                Available Bookings
+                <Sparkles className="w-5 h-5 text-emerald-200 animate-pulse" />
+              </h1>
+              <p className="text-emerald-100 mt-1 text-sm sm:text-base">
+                {pagination ? `${pagination.total} booking${pagination.total !== 1 ? 's' : ''} available from partner vendors` : 'Browse bookings from other vendors'}
+              </p>
+            </div>
           </div>
           {pagination && (
-            <div className="hidden sm:flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2">
+            <div className="hidden sm:flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2.5 transition-all">
               <CalendarCheck className="w-5 h-5" />
               <span className="text-lg font-bold">{pagination.total}</span>
+              <span className="text-xs text-emerald-100 font-medium">live</span>
             </div>
           )}
         </div>
@@ -583,7 +623,13 @@ export default function BrowseBookingsPage() {
       {/* ---------------------------------------------------------------- */}
       {/* Filter Bar */}
       {/* ---------------------------------------------------------------- */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-4">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4 animate-fade-up">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="p-1.5 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md">
+            <Filter className="h-3.5 w-3.5" />
+          </div>
+          <h3 className="text-base font-bold text-gray-900">Filters</h3>
+        </div>
         {/* Search + City */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -593,7 +639,7 @@ export default function BrowseBookingsPage() {
               placeholder="Search bookings..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
             />
           </div>
           <div className="relative sm:w-56">
@@ -603,14 +649,14 @@ export default function BrowseBookingsPage() {
               placeholder="Filter by city..."
               value={fromCity}
               onChange={(e) => setFromCity(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
             />
           </div>
         </div>
 
         {/* Service Type Pills */}
         <div>
-          <p className="text-xs font-medium text-gray-500 mb-2">Service Type</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">Service Type</p>
           <div className="flex flex-wrap gap-2">
             {SERVICE_TYPES.map((st) => {
               const active = serviceType === st.value;
@@ -618,8 +664,10 @@ export default function BrowseBookingsPage() {
                 <button
                   key={st.value}
                   onClick={() => setServiceType(st.value)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                    active ? 'bg-purple-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                    active
+                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md scale-105'
+                      : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-white hover:border-emerald-200'
                   }`}
                 >
                   {st.icon && <st.icon className="w-3.5 h-3.5" />}
@@ -632,7 +680,7 @@ export default function BrowseBookingsPage() {
 
         {/* Urgency Pills */}
         <div>
-          <p className="text-xs font-medium text-gray-500 mb-2">Urgency</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">Urgency</p>
           <div className="flex flex-wrap gap-2">
             {URGENCY_OPTIONS.map((u) => {
               const active = urgency === u.value;
@@ -640,10 +688,10 @@ export default function BrowseBookingsPage() {
                 <button
                   key={u.value}
                   onClick={() => setUrgency(u.value)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
                     active
-                      ? u.color || 'bg-purple-600 text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? (u.color ? `${u.color} shadow-md scale-105` : 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md scale-105')
+                      : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-white hover:border-emerald-200'
                   }`}
                 >
                   {u.label}
@@ -659,8 +707,11 @@ export default function BrowseBookingsPage() {
       {/* ---------------------------------------------------------------- */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-10 h-10 text-purple-600 animate-spin mb-3" />
-          <p className="text-gray-500 text-sm">Loading bookings...</p>
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 rounded-full border-4 border-emerald-100"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-emerald-600 border-r-emerald-600 animate-spin"></div>
+          </div>
+          <p className="mt-4 text-sm font-medium text-gray-600">Loading available bookings...</p>
         </div>
       )}
 
@@ -668,14 +719,16 @@ export default function BrowseBookingsPage() {
       {/* Error State */}
       {/* ---------------------------------------------------------------- */}
       {!loading && error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-          <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-2" />
-          <p className="text-red-700 font-medium">{error}</p>
+        <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-8 text-center animate-fade-up">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-100 to-rose-100 flex items-center justify-center mx-auto mb-3 shadow-inner">
+            <AlertCircle className="h-6 w-6 text-red-500" />
+          </div>
+          <p className="text-red-600 font-semibold">{error}</p>
           <button
             onClick={fetchBookings}
-            className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+            className="mt-4 px-5 py-2.5 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl hover:shadow-lg hover:scale-105 transition text-sm font-semibold"
           >
-            Retry
+            Try Again
           </button>
         </div>
       )}
@@ -684,10 +737,12 @@ export default function BrowseBookingsPage() {
       {/* Empty State */}
       {/* ---------------------------------------------------------------- */}
       {!loading && !error && postings.length === 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-16 text-center">
-          <CalendarCheck className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No bookings available</h3>
-          <p className="text-gray-500 text-sm">Try adjusting your filters or check back later</p>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center animate-fade-up">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-100 flex items-center justify-center mx-auto mb-4 shadow-inner">
+            <CalendarCheck className="w-7 h-7 text-emerald-500" />
+          </div>
+          <h3 className="text-base font-semibold text-gray-800 mb-1">No bookings available</h3>
+          <p className="text-xs text-gray-500 max-w-sm mx-auto">Try adjusting your filters or check back later</p>
         </div>
       )}
 
@@ -696,33 +751,35 @@ export default function BrowseBookingsPage() {
       {/* ---------------------------------------------------------------- */}
       {!loading && !error && postings.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {postings.map((posting) => {
-            const urgencyClass = URGENCY_BADGE[posting.urgency] || 'bg-gray-100 text-gray-700';
+          {postings.map((posting, idx) => {
+            const urgencyClass = URGENCY_BADGE[posting.urgency] || 'bg-gray-100/90 backdrop-blur text-gray-700 ring-1 ring-gray-200';
             const urgencyLbl = URGENCY_LABEL[posting.urgency] || posting.urgency;
 
             return (
               <div
                 key={posting.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all relative overflow-hidden"
+                style={{ animationDelay: `${idx * 60}ms` }}
+                className="group relative bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 hover:border-emerald-200 transition-all duration-300 overflow-hidden animate-fade-up"
               >
+                <div className="absolute inset-0 shimmer-bg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                 {/* Urgency Badge */}
-                <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-bold ${urgencyClass}`}>
+                <div className={`absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full text-[10px] font-bold ${urgencyClass}`}>
                   {urgencyLbl}
                 </div>
 
-                <div className="p-5">
+                <div className="relative p-5">
                   {/* Posting Number */}
-                  <p className="text-xs text-gray-400 font-mono mb-2">{posting.postingNumber}</p>
+                  <p className="text-[10px] text-gray-400 font-mono mb-2 tracking-wider">{posting.postingNumber}</p>
 
                   {/* Vendor Info */}
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                      {posting.vendor.logo ? (
-                        <img src={posting.vendor.logo} alt="" className="w-10 h-10 rounded-full object-cover" />
-                      ) : (
-                        posting.vendor.businessName?.charAt(0) || 'V'
-                      )}
-                    </div>
+                    {posting.vendor.logo ? (
+                      <img src={posting.vendor.logo} alt="" className="w-11 h-11 rounded-full object-cover ring-2 ring-emerald-100 flex-shrink-0" />
+                    ) : (
+                      <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 via-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-md ring-2 ring-white">
+                        {posting.vendor.businessName?.charAt(0) || 'V'}
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <p className="font-semibold text-gray-900 text-sm truncate">{posting.vendor.businessName}</p>
                       <div className="flex items-center gap-2">
@@ -737,76 +794,76 @@ export default function BrowseBookingsPage() {
                   </div>
 
                   {/* Booking Type + Vehicle */}
-                  <div className="flex items-center gap-2 flex-wrap mb-3">
+                  <div className="flex items-center gap-1.5 flex-wrap mb-3">
                     {posting.bookingType && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-emerald-50 to-emerald-50 text-emerald-700 text-[11px] font-semibold rounded-md border border-emerald-100">
                         {getServiceIcon(posting.serviceType)}
                         {posting.bookingType}
                       </span>
                     )}
                     {posting.vehicleRequired && (
-                      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                      <span className="px-2 py-1 bg-gray-50 text-gray-700 text-[11px] font-semibold rounded-md border border-gray-200">
                         {posting.vehicleRequired}
                       </span>
                     )}
                     {posting.vehicleCategory && (
-                      <span className="px-2 py-1 bg-gray-50 text-gray-500 text-xs rounded">
+                      <span className="px-2 py-1 bg-gray-50 text-gray-500 text-[11px] font-medium rounded-md border border-gray-100">
                         {posting.vehicleCategory}
                       </span>
                     )}
                   </div>
 
                   {/* Route */}
-                  <div className="flex items-center gap-2 text-sm text-gray-700 mb-3">
-                    <MapPin className="w-4 h-4 text-purple-500 flex-shrink-0" />
-                    <span className="font-medium">{posting.fromCity}</span>
+                  <div className="flex items-center gap-2 text-sm mb-3 p-2.5 rounded-xl bg-gradient-to-r from-emerald-50/60 to-emerald-50/60 border border-emerald-100/60">
+                    <MapPin className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span className="text-gray-800 font-semibold truncate">{posting.fromCity}</span>
                     {posting.toCity && (
                       <>
-                        <span className="text-gray-400">&rarr;</span>
-                        <span className="font-medium">{posting.toCity}</span>
+                        <span className="text-emerald-400">&rarr;</span>
+                        <span className="text-gray-800 font-semibold truncate">{posting.toCity}</span>
                       </>
                     )}
                     {posting.returnDate && (
-                      <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded font-medium">Round Trip</span>
+                      <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] rounded font-bold flex-shrink-0">Round Trip</span>
                     )}
                   </div>
 
                   {/* Trip Date/Time */}
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-3">
-                    <span className="inline-flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {formatDate(posting.tripDate)}
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 border border-gray-100 text-xs text-gray-700">
+                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                      <span className="font-medium">{formatDate(posting.tripDate)}</span>
                     </span>
                     {posting.tripTime && (
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" />
-                        {posting.tripTime}
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-50 border border-gray-100 text-xs text-gray-700">
+                        <Clock className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="font-medium">{posting.tripTime}</span>
                       </span>
                     )}
                     {posting.returnDate && (
-                      <span className="inline-flex items-center gap-1 text-blue-600">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-100 text-xs text-emerald-700">
                         <Calendar className="w-3.5 h-3.5" />
-                        Return: {formatDate(posting.returnDate)}
+                        <span className="font-medium">Return: {formatDate(posting.returnDate)}</span>
                       </span>
                     )}
                   </div>
 
                   {/* Passengers or Goods */}
-                  <div className="flex flex-wrap gap-2 mb-3">
+                  <div className="flex flex-wrap gap-1.5 mb-3">
                     {posting.passengers != null && posting.passengers > 0 && (
-                      <span className="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
-                        <User className="w-3.5 h-3.5" />
+                      <span className="inline-flex items-center gap-1 text-[11px] text-gray-700 bg-gray-50 px-2 py-1 rounded-md font-semibold border border-gray-200">
+                        <User className="w-3 h-3" />
                         {posting.passengers} passenger{posting.passengers !== 1 ? 's' : ''}
                       </span>
                     )}
                     {posting.goodsType && (
-                      <span className="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded">
-                        <Package className="w-3.5 h-3.5" />
+                      <span className="inline-flex items-center gap-1 text-[11px] text-gray-700 bg-gray-50 px-2 py-1 rounded-md font-semibold border border-gray-200">
+                        <Package className="w-3 h-3" />
                         {posting.goodsType}
                       </span>
                     )}
                     {posting.estimatedWeight && (
-                      <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
+                      <span className="text-[11px] text-gray-600 bg-gray-50 px-2 py-1 rounded-md font-semibold border border-gray-200">
                         ~{posting.estimatedWeight}
                       </span>
                     )}
@@ -814,28 +871,28 @@ export default function BrowseBookingsPage() {
 
                   {/* Reason */}
                   {posting.reason && (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 text-orange-700 text-xs rounded mb-3">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-[11px] rounded-md mb-3 border border-emerald-100 font-medium">
                       <AlertCircle className="w-3 h-3 flex-shrink-0" />
                       {posting.reason}
                     </div>
                   )}
 
                   {/* Commission Breakdown */}
-                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                  <div className="bg-gradient-to-br from-emerald-50/60 via-emerald-50/40 to-emerald-50/40 border border-emerald-100 rounded-xl p-3 mb-4">
                     <div className="grid grid-cols-3 gap-2 text-center">
                       <div>
-                        <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Customer Budget</p>
+                        <p className="text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Customer Budget</p>
                         <p className="text-sm font-bold text-gray-900">{formatPrice(posting.customerBudget)}</p>
                       </div>
-                      <div className="border-x border-gray-200">
-                        <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Your Earning</p>
-                        <p className="text-sm font-bold text-green-600">
+                      <div className="border-x border-emerald-100">
+                        <p className="text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Your Earning</p>
+                        <p className="text-sm font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                           {formatPrice(posting.partnerEarning ?? posting.customerBudget)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Commission</p>
-                        <p className="text-sm font-bold text-purple-600">
+                        <p className="text-[9px] uppercase tracking-wider text-gray-500 font-bold mb-0.5">Commission</p>
+                        <p className="text-sm font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
                           {formatPrice(posting.commission ?? 0)}
                         </p>
                       </div>
@@ -846,7 +903,7 @@ export default function BrowseBookingsPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => openModal(posting)}
-                      className="flex-1 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium text-sm flex items-center justify-center gap-2"
+                      className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl px-4 py-2.5 hover:shadow-lg hover:shadow-emerald-200 hover:scale-[1.02] transition-all font-semibold text-sm flex items-center justify-center gap-2"
                     >
                       <Plus className="w-4 h-4" />
                       Accept Booking
@@ -855,7 +912,7 @@ export default function BrowseBookingsPage() {
                       <>
                         <a
                           href={`tel:${posting.vendor.phone}`}
-                          className="flex items-center justify-center w-10 h-[42px] bg-gray-100 hover:bg-green-100 text-gray-600 hover:text-green-700 rounded-lg transition"
+                          className="flex items-center justify-center w-10 h-10 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl border border-emerald-100 hover:scale-110 transition-all"
                           title="Call Vendor"
                         >
                           <Phone className="w-4 h-4" />
@@ -864,7 +921,7 @@ export default function BrowseBookingsPage() {
                           href={`https://wa.me/91${posting.vendor.phone.replace(/\D/g, '').slice(-10)}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center justify-center w-10 h-[42px] bg-gray-100 hover:bg-green-100 text-gray-600 hover:text-green-700 rounded-lg transition"
+                          className="flex items-center justify-center w-10 h-10 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl border border-emerald-100 hover:scale-110 transition-all"
                           title="WhatsApp Vendor"
                         >
                           <MessageCircle className="w-4 h-4" />
@@ -875,10 +932,10 @@ export default function BrowseBookingsPage() {
                 </div>
 
                 {/* Comment & Share Bar */}
-                <div className="border-t border-gray-100 px-5 py-2.5 flex items-center justify-between">
+                <div className="relative border-t border-gray-100 px-5 py-2.5 flex items-center justify-between bg-gray-50/40">
                   <button
                     onClick={() => toggleComments(posting.id)}
-                    className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-purple-600 transition"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-emerald-600 px-2.5 py-1.5 rounded-lg hover:bg-white transition"
                   >
                     <MessageCircle className="w-4 h-4" />
                     <span>{commentCountMap[posting.id] || 0}</span>
@@ -892,14 +949,14 @@ export default function BrowseBookingsPage() {
                   <div className="relative">
                     <button
                       onClick={() => toggleShareDropdown(posting.id)}
-                      className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-purple-600 transition"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-emerald-600 px-2.5 py-1.5 rounded-lg hover:bg-white transition"
                     >
                       <Share2 className="w-4 h-4" />
                       Share
                     </button>
 
                     {shareDropdown === posting.id && (
-                      <div className="absolute right-0 bottom-full mb-2 w-44 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                      <div className="absolute right-0 bottom-full mb-2 w-44 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-20 animate-pop-in">
                         <button
                           onClick={() => handleCopyLink(posting)}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
@@ -925,11 +982,11 @@ export default function BrowseBookingsPage() {
 
                 {/* Expandable Comment Section */}
                 {expandedComments[posting.id] && (
-                  <div className="border-t border-gray-100 px-5 py-3 bg-gray-50/50">
+                  <div className="border-t border-gray-100 px-5 py-3 bg-gradient-to-b from-emerald-50/30 to-white animate-fade-up">
                     {/* Comments List */}
                     {commentLoading[posting.id] ? (
                       <div className="flex items-center justify-center py-4">
-                        <Loader2 className="w-5 h-5 text-purple-500 animate-spin" />
+                        <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
                       </div>
                     ) : (
                       <div className="space-y-3 max-h-60 overflow-y-auto mb-3">
@@ -947,7 +1004,7 @@ export default function BrowseBookingsPage() {
                                 className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5"
                               />
                             ) : (
-                              <div className="w-7 h-7 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5">
+                              <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5">
                                 {comment.vendor.businessName?.charAt(0) || 'V'}
                               </div>
                             )}
@@ -984,12 +1041,12 @@ export default function BrowseBookingsPage() {
                             handleSendComment(posting.id);
                           }
                         }}
-                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white"
+                        className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"
                       />
                       <button
                         onClick={() => handleSendComment(posting.id)}
                         disabled={commentSending[posting.id] || !commentInputs[posting.id]?.trim()}
-                        className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="p-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg hover:scale-105 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                       >
                         {commentSending[posting.id] ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -1010,11 +1067,11 @@ export default function BrowseBookingsPage() {
       {/* Pagination */}
       {/* ---------------------------------------------------------------- */}
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-2">
+        <div className="flex items-center justify-center gap-2 pt-2 animate-fade-up">
           <button
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            className="inline-flex items-center gap-1 px-4 py-2.5 text-sm font-semibold rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4" />
             Prev
@@ -1046,10 +1103,10 @@ export default function BrowseBookingsPage() {
                   <button
                     key={item}
                     onClick={() => setPage(item as number)}
-                    className={`w-9 h-9 rounded-lg text-sm font-medium transition ${
+                    className={`w-9 h-9 rounded-xl text-sm font-semibold transition ${
                       page === item
-                        ? 'bg-purple-600 text-white shadow-sm'
-                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-md scale-105'
+                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 shadow-sm'
                     }`}
                   >
                     {item}
@@ -1060,7 +1117,7 @@ export default function BrowseBookingsPage() {
           <button
             disabled={page >= (pagination?.totalPages ?? 1)}
             onClick={() => setPage((p) => p + 1)}
-            className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            className="inline-flex items-center gap-1 px-4 py-2.5 text-sm font-semibold rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700 shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
             <ChevronRight className="w-4 h-4" />
@@ -1072,79 +1129,92 @@ export default function BrowseBookingsPage() {
       {/* Accept Modal */}
       {/* ---------------------------------------------------------------- */}
       {selectedPosting && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={closeModal}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
           <div
-            className="bg-white rounded-2xl max-w-md w-full mx-4 p-6 max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-2xl max-w-md w-full mx-4 max-h-[92vh] overflow-hidden shadow-2xl animate-pop-in flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-gray-900">Accept Booking</h2>
-              <button
-                onClick={closeModal}
-                className="p-1.5 hover:bg-gray-100 rounded-lg transition"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
+            <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 animate-gradient-x px-6 py-5 text-white flex-shrink-0">
+              <div className="absolute -right-6 -top-6 w-28 h-28 bg-white/10 rounded-full blur-2xl animate-float-slow" />
+              <div className="absolute -left-6 -bottom-6 w-28 h-28 bg-emerald-300/20 rounded-full blur-2xl animate-float-rev" />
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/30">
+                    <CalendarCheck className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold">Accept Booking</h2>
+                    <p className="text-xs text-emerald-100">Confirm vehicle & driver details</p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeModal}
+                  className="p-1.5 hover:bg-white/20 bg-white/10 rounded-lg transition"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
             </div>
 
+            <div className="p-6 overflow-y-auto">
             {/* Success State */}
             {acceptSuccess ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CalendarCheck className="w-8 h-8 text-green-600" />
+              <div className="text-center py-8 animate-pop-in">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <CalendarCheck className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">Booking Accepted!</h3>
+                <h3 className="text-base font-bold text-gray-900 mb-1">Booking Accepted!</h3>
                 <p className="text-sm text-gray-500">The posting vendor has been notified.</p>
               </div>
             ) : (
               <>
                 {/* Booking Summary */}
-                <div className="bg-purple-50 rounded-xl p-4 mb-4">
-                  <p className="text-xs text-purple-500 font-mono">{selectedPosting.postingNumber}</p>
-                  <p className="font-semibold text-gray-900 mt-1">
+                <div className="p-4 bg-gradient-to-br from-emerald-50/60 via-emerald-50/40 to-emerald-50/40 border border-emerald-100 rounded-2xl mb-4">
+                  <p className="text-[10px] text-emerald-500 font-mono tracking-wider">{selectedPosting.postingNumber}</p>
+                  <p className="font-bold text-gray-900 mt-1 text-base">
                     {selectedPosting.bookingType || selectedPosting.serviceType}
                   </p>
-                  <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>{selectedPosting.fromCity}</span>
+                  <div className="flex items-center gap-2 text-sm text-gray-700 mt-1">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="font-semibold">{selectedPosting.fromCity}</span>
                     {selectedPosting.toCity && (
                       <>
-                        <span>&rarr;</span>
-                        <span>{selectedPosting.toCity}</span>
+                        <span className="text-emerald-400">&rarr;</span>
+                        <span className="font-semibold">{selectedPosting.toCity}</span>
                       </>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
-                    <span className="inline-flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-700 bg-white/70 px-2 py-0.5 rounded-md border border-white">
+                      <Calendar className="w-3 h-3 text-gray-400" />
                       {formatDate(selectedPosting.tripDate)}
                     </span>
                     {selectedPosting.tripTime && (
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-700 bg-white/70 px-2 py-0.5 rounded-md border border-white">
+                        <Clock className="w-3 h-3 text-gray-400" />
                         {selectedPosting.tripTime}
                       </span>
                     )}
                     {selectedPosting.vehicleRequired && (
-                      <span>{selectedPosting.vehicleRequired}</span>
+                      <span className="text-[11px] font-medium text-gray-700 bg-white/70 px-2 py-0.5 rounded-md border border-white">{selectedPosting.vehicleRequired}</span>
                     )}
                   </div>
                 </div>
 
                 {/* Commission Breakdown Preview */}
-                <div className="bg-green-50 rounded-xl p-4 mb-4">
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Customer Budget</span>
-                    <span className="text-sm font-semibold text-gray-900">{formatPrice(selectedPosting.customerBudget)}</span>
+                    <span className="text-xs font-semibold text-gray-600">Customer Budget</span>
+                    <span className="text-sm font-bold text-gray-900">{formatPrice(selectedPosting.customerBudget)}</span>
                   </div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Commission to Poster</span>
-                    <span className="text-sm font-medium text-purple-600">-{formatPrice(selectedPosting.commission ?? 0)}</span>
+                    <span className="text-xs font-semibold text-gray-600">Commission to Poster</span>
+                    <span className="text-sm font-bold bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">-{formatPrice(selectedPosting.commission ?? 0)}</span>
                   </div>
                   <div className="border-t border-green-200 pt-2 flex items-center justify-between">
                     <span className="text-sm font-bold text-gray-900">Your Earning</span>
-                    <span className="text-lg font-bold text-green-600">
+                    <span className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                       {formatPrice(selectedPosting.partnerEarning ?? selectedPosting.customerBudget)}
                     </span>
                   </div>
@@ -1162,14 +1232,14 @@ export default function BrowseBookingsPage() {
                         <button
                           type="button"
                           onClick={() => { setUseFleetVehicle(true); setSelectedVehicleId(''); setAcceptForm((f) => ({ ...f, vehicleName: '', vehicleNumber: '' })); }}
-                          className={useFleetVehicle ? 'bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition' : 'bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-sm transition hover:bg-gray-200'}
+                          className={useFleetVehicle ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition shadow-md' : 'bg-gray-50 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg text-sm font-semibold transition hover:bg-white hover:border-emerald-200'}
                         >
                           Select from Fleet
                         </button>
                         <button
                           type="button"
                           onClick={() => { setUseFleetVehicle(false); setSelectedVehicleId(''); setAcceptForm((f) => ({ ...f, vehicleName: '', vehicleNumber: '' })); }}
-                          className={!useFleetVehicle ? 'bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition' : 'bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-sm transition hover:bg-gray-200'}
+                          className={!useFleetVehicle ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition shadow-md' : 'bg-gray-50 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg text-sm font-semibold transition hover:bg-white hover:border-emerald-200'}
                         >
                           Enter Manually
                         </button>
@@ -1181,7 +1251,7 @@ export default function BrowseBookingsPage() {
                         <select
                           value={selectedVehicleId}
                           onChange={(e) => handleModalFleetSelect(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
                           disabled={modalFleetLoading}
                         >
                           <option value="">
@@ -1194,9 +1264,9 @@ export default function BrowseBookingsPage() {
                           ))}
                         </select>
                         {selectedVehicleId && (acceptForm.vehicleName || acceptForm.vehicleNumber) && (
-                          <div className="mt-2 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2 text-sm text-purple-800">
+                          <div className="mt-2 bg-gradient-to-r from-emerald-50 to-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 text-sm text-emerald-800">
                             <span className="font-medium">{acceptForm.vehicleName}</span>
-                            {acceptForm.vehicleNumber && <span className="ml-2 text-purple-600">({acceptForm.vehicleNumber})</span>}
+                            {acceptForm.vehicleNumber && <span className="ml-2 text-emerald-600">({acceptForm.vehicleNumber})</span>}
                           </div>
                         )}
                       </div>
@@ -1211,7 +1281,7 @@ export default function BrowseBookingsPage() {
                             placeholder="e.g. Tata Ace, Innova Crysta"
                             value={acceptForm.vehicleName}
                             onChange={(e) => setAcceptForm((f) => ({ ...f, vehicleName: e.target.value }))}
-                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
                           />
                         </div>
                         <div>
@@ -1223,7 +1293,7 @@ export default function BrowseBookingsPage() {
                             placeholder="e.g. MH04AB1234"
                             value={acceptForm.vehicleNumber}
                             onChange={(e) => setAcceptForm((f) => ({ ...f, vehicleNumber: e.target.value }))}
-                            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                            className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
                           />
                         </div>
                       </div>
@@ -1240,14 +1310,14 @@ export default function BrowseBookingsPage() {
                         <button
                           type="button"
                           onClick={() => { setUseFleetDriver(true); setSelectedDriverId(''); setAcceptForm((f) => ({ ...f, driverName: '', driverPhone: '' })); }}
-                          className={useFleetDriver ? 'bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition' : 'bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-sm transition hover:bg-gray-200'}
+                          className={useFleetDriver ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition shadow-md' : 'bg-gray-50 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg text-sm font-semibold transition hover:bg-white hover:border-emerald-200'}
                         >
                           Select from Staff
                         </button>
                         <button
                           type="button"
                           onClick={() => { setUseFleetDriver(false); setSelectedDriverId(''); setAcceptForm((f) => ({ ...f, driverName: '', driverPhone: '' })); }}
-                          className={!useFleetDriver ? 'bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition' : 'bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-sm transition hover:bg-gray-200'}
+                          className={!useFleetDriver ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold transition shadow-md' : 'bg-gray-50 text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg text-sm font-semibold transition hover:bg-white hover:border-emerald-200'}
                         >
                           Enter Manually
                         </button>
@@ -1259,7 +1329,7 @@ export default function BrowseBookingsPage() {
                         <select
                           value={selectedDriverId}
                           onChange={(e) => handleModalDriverSelect(e.target.value)}
-                          className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
                           disabled={modalDriversLoading}
                         >
                           <option value="">
@@ -1272,10 +1342,10 @@ export default function BrowseBookingsPage() {
                           ))}
                         </select>
                         {selectedDriverId && acceptForm.driverName && (
-                          <div className="mt-2 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2 text-sm text-purple-800">
+                          <div className="mt-2 bg-gradient-to-r from-emerald-50 to-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 text-sm text-emerald-800">
                             <User className="w-3.5 h-3.5 inline mr-1" />
                             <span className="font-medium">{acceptForm.driverName}</span>
-                            {acceptForm.driverPhone && <span className="ml-2 text-purple-600">({acceptForm.driverPhone})</span>}
+                            {acceptForm.driverPhone && <span className="ml-2 text-emerald-600">({acceptForm.driverPhone})</span>}
                           </div>
                         )}
                       </div>
@@ -1292,7 +1362,7 @@ export default function BrowseBookingsPage() {
                               placeholder="Full name of driver"
                               value={acceptForm.driverName}
                               onChange={(e) => setAcceptForm((f) => ({ ...f, driverName: e.target.value }))}
-                              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                              className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
                             />
                           </div>
                         </div>
@@ -1307,7 +1377,7 @@ export default function BrowseBookingsPage() {
                               placeholder="10-digit phone number"
                               value={acceptForm.driverPhone}
                               onChange={(e) => setAcceptForm((f) => ({ ...f, driverPhone: e.target.value }))}
-                              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                              className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition"
                             />
                           </div>
                         </div>
@@ -1323,14 +1393,14 @@ export default function BrowseBookingsPage() {
                       placeholder="Any additional information..."
                       value={acceptForm.notes}
                       onChange={(e) => setAcceptForm((f) => ({ ...f, notes: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm resize-none"
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition resize-none"
                     />
                   </div>
                 </div>
 
                 {/* Error message */}
                 {acceptError && (
-                  <div className="flex items-center gap-2 text-red-600 text-sm mb-3 bg-red-50 px-3 py-2 rounded-lg">
+                  <div className="flex items-center gap-2 text-red-700 text-sm mb-3 bg-red-50 border border-red-200 px-3 py-2 rounded-xl font-medium animate-pop-in">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     {acceptError}
                   </div>
@@ -1341,14 +1411,14 @@ export default function BrowseBookingsPage() {
                   <button
                     onClick={closeModal}
                     disabled={accepting}
-                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition text-sm font-medium disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition text-sm font-semibold disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleAccept}
                     disabled={accepting}
-                    className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-60"
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-200 hover:scale-[1.02] transition-all text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60 disabled:hover:scale-100"
                   >
                     {accepting ? (
                       <>
@@ -1362,9 +1432,11 @@ export default function BrowseBookingsPage() {
                 </div>
               </>
             )}
+            </div>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

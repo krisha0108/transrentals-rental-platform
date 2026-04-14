@@ -12,6 +12,7 @@ import {
   XCircle,
   AlertCircle,
   ArrowRight,
+  Eye,
   Filter,
   Search,
   RefreshCw,
@@ -66,17 +67,17 @@ interface VehicleOption {
 const STATUS_CONFIG = {
   PENDING_PAYMENT: {
     label: 'Awaiting Payment',
-    color: 'bg-orange-100 text-orange-700',
+    color: 'bg-emerald-100 text-emerald-700',
     icon: Clock,
   },
   PAYMENT_SUBMITTED: {
     label: 'Payment Submitted',
-    color: 'bg-amber-100 text-amber-700',
+    color: 'bg-emerald-100 text-emerald-700',
     icon: Clock,
   },
   PAYMENT_VERIFIED: {
     label: 'Payment Verified',
-    color: 'bg-blue-100 text-blue-700',
+    color: 'bg-emerald-100 text-emerald-700',
     icon: CheckCircle,
   },
   PENDING_VENDOR: {
@@ -86,7 +87,7 @@ const STATUS_CONFIG = {
   },
   BROADCASTED: {
     label: 'Open',
-    color: 'bg-blue-100 text-blue-700',
+    color: 'bg-emerald-100 text-emerald-700',
     icon: Radio,
   },
   ACCEPTED: {
@@ -96,7 +97,7 @@ const STATUS_CONFIG = {
   },
   IN_PROGRESS: {
     label: 'In Progress',
-    color: 'bg-purple-100 text-purple-700',
+    color: 'bg-emerald-100 text-emerald-700',
     icon: Bike,
   },
   CONFIRMED: {
@@ -275,7 +276,7 @@ export default function VendorBikeBookingsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Real-time Notification Banner */}
       <NewBookingNotification
         booking={latestNotification}
@@ -287,177 +288,102 @@ export default function VendorBikeBookingsPage() {
         }}
       />
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Bike Rental Bookings</h1>
-          <p className="text-gray-600">Manage your bike rental bookings in real-time</p>
+      {/* ── Header ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-500 p-5 animate-slide-down">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white" />
+          <div className="absolute right-20 -bottom-10 w-32 h-32 rounded-full bg-white" />
         </div>
-        <div className="flex items-center gap-3">
-          {/* Connection Status */}
-          <div
-            className={cn(
-              'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm',
-              isConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            )}
-          >
-            {isConnected ? (
-              <>
-                <Wifi className="w-4 h-4" />
-                <span>Live</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="w-4 h-4" />
-                <span>Offline</span>
-              </>
-            )}
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
+              <Bike className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-extrabold text-white">Bike Bookings</h1>
+              <p className="text-emerald-100 text-xs mt-0.5">Manage bookings in real-time</p>
+            </div>
           </div>
+          <div className="flex items-center gap-2">
+            <div className={cn('flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold backdrop-blur-sm border', isConnected ? 'bg-emerald-500/20 text-white border-emerald-400/30' : 'bg-red-500/20 text-white border-red-400/30')}>
+              {isConnected ? <><Wifi className="w-3 h-3" /> Live</> : <><WifiOff className="w-3 h-3" /> Offline</>}
+            </div>
 
-          {/* Sound Toggle */}
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className={cn(
-              'p-2 rounded-lg transition',
-              soundEnabled ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
-            )}
-            title={soundEnabled ? 'Sound On' : 'Sound Off'}
-          >
-            <Volume2 className="w-5 h-5" />
-          </button>
-
-          {/* Pending Notifications */}
-          {pendingBookings.length > 0 && (
-            <button
-              onClick={() => {
-                if (pendingBookings[0]) {
-                  setLatestNotification(pendingBookings[0]);
-                  setShowNotification(true);
-                }
-              }}
-              className="relative p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                {pendingBookings.length}
-              </span>
+            <button onClick={() => setSoundEnabled(!soundEnabled)} className={cn('w-8 h-8 rounded-lg flex items-center justify-center transition backdrop-blur-sm border', soundEnabled ? 'bg-white/20 text-white border-white/20' : 'bg-white/10 text-white/50 border-white/10')} title={soundEnabled ? 'Sound On' : 'Sound Off'}>
+              <Volume2 className="w-4 h-4" />
             </button>
-          )}
 
-          <Button variant="outline" size="sm" onClick={fetchData}>
-            <RefreshCw className={cn('w-4 h-4 mr-2', isLoading && 'animate-spin')} />
-            Refresh
-          </Button>
-        </div>
-      </div>
+            {pendingBookings.length > 0 && (
+              <button onClick={() => { if (pendingBookings[0]) { setLatestNotification(pendingBookings[0]); setShowNotification(true); } }} className="relative w-8 h-8 bg-white/20 backdrop-blur-sm text-white rounded-lg flex items-center justify-center hover:bg-white/30 transition border border-white/20">
+                <Bell className="w-4 h-4" />
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center animate-pulse">{pendingBookings.length}</span>
+              </button>
+            )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-              <CalendarCheck className="w-5 h-5 text-gray-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-              <p className="text-sm text-gray-500">Total Bookings</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <Inbox className="w-5 h-5 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
-              <p className="text-sm text-gray-500">Pending</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 relative">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Radio className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.open}</p>
-              <p className="text-sm text-gray-500">Open Requests</p>
-            </div>
-          </div>
-          {pendingBookings.length > 0 && (
-            <span className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-          )}
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
-              <p className="text-sm text-gray-500">Active</p>
-            </div>
+            <button onClick={fetchData} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white transition border border-white/20">
+              <RefreshCw className={cn('w-3.5 h-3.5', isLoading && 'animate-spin')} /> Refresh
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Link
-          href="/vendor/bike-rentals/bookings/direct"
-          className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl p-6 text-white hover:shadow-lg transition-shadow"
-        >
-          <div className="flex items-center justify-between">
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+        {[
+          { label: 'Total', value: stats.total, icon: <CalendarCheck className="w-4 h-4" />, iconBg: 'bg-gradient-to-br from-gray-100 to-gray-50', iconColor: 'text-gray-500', border: 'border-gray-100', sub: 'all bookings' },
+          { label: 'Pending', value: stats.pending, icon: <Inbox className="w-4 h-4" />, iconBg: 'bg-gradient-to-br from-emerald-100 to-emerald-50', iconColor: 'text-emerald-500', border: 'border-emerald-100', sub: 'awaiting action' },
+          { label: 'Open', value: stats.open, icon: <Radio className="w-4 h-4" />, iconBg: 'bg-gradient-to-br from-emerald-100 to-emerald-50', iconColor: 'text-emerald-500', border: 'border-emerald-100', sub: 'available to accept', pulse: pendingBookings.length > 0 },
+          { label: 'Active', value: stats.active, icon: <CheckCircle className="w-4 h-4" />, iconBg: 'bg-gradient-to-br from-emerald-100 to-emerald-50', iconColor: 'text-emerald-500', border: 'border-emerald-100', sub: 'in progress' },
+        ].map((s: any) => (
+          <div key={s.label} className={`bg-white rounded-2xl border ${s.border} p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 relative group cursor-default`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className={`w-9 h-9 rounded-xl ${s.iconBg} flex items-center justify-center ${s.iconColor} group-hover:scale-110 transition-transform`}>{s.icon}</div>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{s.label}</span>
+            </div>
+            <p className="text-3xl font-extrabold text-gray-900">{s.value}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">{s.sub}</p>
+            {s.pulse && <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Quick Links ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.15s' }}>
+        <Link href="/vendor/bike-rentals/bookings/direct" className="relative overflow-hidden group bg-gradient-to-r from-emerald-500 to-emerald-500 hover:from-emerald-600 hover:to-emerald-600 rounded-2xl px-5 py-4 text-white hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-200 active:scale-[0.98]">
+          <div className="absolute inset-0 opacity-10"><div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-white" /></div>
+          <div className="relative flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-lg">Direct Requests</h3>
-              <p className="text-orange-100">Bookings for your specific vehicles</p>
+              <h3 className="font-extrabold text-base">Direct Requests</h3>
+              <p className="text-emerald-100 text-xs mt-0.5">Bookings for your vehicles</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-3xl font-bold">{stats.pending}</span>
-              <ArrowRight className="w-6 h-6" />
+              <span className="text-3xl font-extrabold">{stats.pending}</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
         </Link>
-        <Link
-          href="/vendor/bike-rentals/bookings/open"
-          className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl p-6 text-white hover:shadow-lg transition-shadow relative"
-        >
-          <div className="flex items-center justify-between">
+        <Link href="/vendor/bike-rentals/bookings/open" className="relative overflow-hidden group bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 rounded-2xl px-5 py-4 text-white hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-200 active:scale-[0.98]">
+          <div className="absolute inset-0 opacity-10"><div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-white" /></div>
+          <div className="relative flex items-center justify-between">
             <div>
-              <h3 className="font-bold text-lg">Open Requests</h3>
-              <p className="text-blue-100">Available for you to accept</p>
+              <h3 className="font-extrabold text-base">Open Requests</h3>
+              <p className="text-emerald-100 text-xs mt-0.5">Available to accept</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-3xl font-bold">{stats.open}</span>
-              <ArrowRight className="w-6 h-6" />
+              <span className="text-3xl font-extrabold">{stats.open}</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </div>
           </div>
           {pendingBookings.length > 0 && (
-            <span className="absolute top-4 right-4 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse">
-              {pendingBookings.length} NEW
-            </span>
+            <span className="absolute top-3 right-3 px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full animate-pulse shadow-lg shadow-red-500/30">{pendingBookings.length} NEW</span>
           )}
         </Link>
       </div>
 
-      {/* Filters & Search */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by booking ID, customer, or vehicle..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
-          {/* Filter Buttons */}
-          <div className="flex gap-2 overflow-x-auto">
+      {/* ── Filters ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-3 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
             {[
               { value: 'all', label: 'All' },
               { value: 'pending', label: 'Pending' },
@@ -465,142 +391,150 @@ export default function VendorBikeBookingsPage() {
               { value: 'open', label: 'Open' },
               { value: 'active', label: 'Active' },
             ].map((f) => (
-              <button
-                key={f.value}
-                onClick={() => {
-                  setFilter(f.value);
-                  setCurrentPage(1);
-                }}
-                className={cn(
-                  'px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors',
-                  filter === f.value
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                )}
-              >
+              <button key={f.value} onClick={() => { setFilter(f.value); setCurrentPage(1); }} className={cn('px-3.5 py-2 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap', filter === f.value ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500 hover:text-gray-700 hover:bg-white/50')}>
                 {f.label}
               </button>
             ))}
           </div>
 
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input type="text" placeholder="Search booking, customer, vehicle..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all placeholder:text-gray-400" />
+          </div>
+
           <DateFilterDropdown
-            onFilterChange={(start, end) => {
-              setDateFilter({ start, end });
-              setCurrentPage(1); // Reset to page 1 when filter changes
-            }}
+            onFilterChange={(start, end) => { setDateFilter({ start, end }); setCurrentPage(1); }}
             initialStartDate={dateFilter.start || undefined}
             initialEndDate={dateFilter.end || undefined}
           />
         </div>
       </div>
 
-      {/* Bookings List */}
-      <div className="space-y-4">
-        {isLoading ? (
-          <div className="bg-white rounded-xl p-12 text-center">
-            <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-4 animate-spin" />
-            <p className="text-gray-500">Loading bookings...</p>
-          </div>
-        ) : filteredBookings.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center">
-            <CalendarCheck className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No bookings found</h3>
-            <p className="text-gray-500">Try adjusting your filters or search query</p>
-          </div>
-        ) : (
-          filteredBookings.map((booking) => {
-            const statusConfig = STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG];
-            const StatusIcon = statusConfig?.icon || AlertCircle;
-
+      {/* ── Bookings List ── */}
+      {isLoading ? (
+        <div className="space-y-2.5">
+          {[1, 2, 3, 4].map(i => {
+            const shimmer = 'relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-shimmer before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent';
+            const borderColors = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'];
             return (
-              <div
-                key={booking.id}
-                className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-              >
-                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                  {/* Booking Info */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-lg font-bold text-gray-900">
-                        #{booking.bookingNumber}
-                      </span>
-                      <span
-                        className={cn(
-                          'inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium',
-                          statusConfig?.color
-                        )}
-                      >
-                        <StatusIcon className="w-3 h-3" />
-                        {statusConfig?.label}
-                      </span>
-                      {(booking.type === 'open' || booking.status === 'BROADCASTED') && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                          <Radio className="w-3 h-3" />
-                          Open Request
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <User className="w-4 h-4" />
-                        <span>{booking.customerName}</span>
+              <div key={i} className="bg-white rounded-2xl overflow-hidden" style={{ border: '1px solid #e8e8ee', borderLeft: `3px solid ${borderColors[i - 1]}` }}>
+                <div className="px-5 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className={`h-4 bg-gray-200 rounded-lg w-28 ${shimmer}`} />
+                        <div className={`h-5 bg-gray-100 rounded-full w-20 ${shimmer}`} />
                       </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Bike className="w-4 h-4" />
-                        <span>{booking.vehicleName}</span>
+                      <div className="flex gap-3">
+                        <div className={`h-3 bg-gray-100 rounded w-24 ${shimmer}`} />
+                        <div className={`h-3 bg-gray-100 rounded w-28 ${shimmer}`} />
+                        <div className={`h-3 bg-gray-100 rounded w-20 ${shimmer}`} />
                       </div>
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <MapPin className="w-4 h-4" />
-                        <span>{booking.locationName}</span>
+                      <div className="flex gap-2">
+                        <div className={`h-3 bg-gray-100 rounded w-44 ${shimmer}`} />
+                        <div className={`h-3 bg-emerald-100 rounded w-10 ${shimmer}`} />
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
-                      <span>
-                        {formatDate(booking.pickupDate)} {booking.pickupTime} →{' '}
-                        {formatDate(booking.dropDate)} {booking.dropTime}
-                      </span>
-                      <span className="text-gray-300">|</span>
-                      <span>{booking.totalDays} days</span>
-                    </div>
-                  </div>
-
-                  {booking.status === 'DROPPED' && (
-                    <div className="w-full px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-start gap-2 mb-2">
-                      <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <span className="font-medium">Booking Dropped</span>
-                        {(booking as any).dropReason && (
-                          <p className="text-xs text-red-600 mt-1">Reason: {(booking as any).dropReason}</p>
-                        )}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="space-y-1.5 text-right">
+                        <div className={`h-6 bg-gray-200 rounded-lg w-20 ml-auto ${shimmer}`} />
+                        <div className={`h-3 bg-gray-100 rounded w-14 ml-auto ${shimmer}`} />
                       </div>
-                    </div>
-                  )}
-
-                  {/* Amount & Actions */}
-                  <div className="flex flex-col items-end gap-3">
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-gray-900">
-                        ₹{booking.grandTotal || booking.totalAmount}
-                      </p>
-                      <p className="text-sm text-gray-500">Total Amount</p>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Link href={`/vendor/bike-rentals/bookings/${booking.id}`}>
-                        <Button size="sm" variant="outline">
-                          View Details
-                        </Button>
-                      </Link>
+                      <div className={`w-8 h-8 bg-gray-100 rounded-lg ${shimmer}`} />
                     </div>
                   </div>
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      ) : filteredBookings.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center">
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 bg-emerald-100 rounded-3xl rotate-6" />
+            <div className="absolute inset-0 bg-emerald-50 rounded-3xl -rotate-3" />
+            <div className="relative w-full h-full bg-white rounded-3xl border border-emerald-100 flex items-center justify-center shadow-sm">
+              <CalendarCheck className="w-7 h-7 text-emerald-400" />
+            </div>
+          </div>
+          <p className="text-gray-900 font-bold text-base">No bookings found</p>
+          <p className="text-gray-400 text-sm mt-1">Try adjusting your filters or search</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {filteredBookings.map((booking) => {
+            const sc = STATUS_CONFIG[booking.status as keyof typeof STATUS_CONFIG];
+            const StatusIcon = sc?.icon || AlertCircle;
+            const statusBorder = booking.status === 'ACCEPTED' || booking.status === 'CONFIRMED' ? '#10B981'
+              : booking.status === 'IN_PROGRESS' ? '#8B5CF6'
+              : booking.status === 'BROADCASTED' ? '#3B82F6'
+              : booking.status === 'CANCELLED' || booking.status === 'DROPPED' ? '#EF4444'
+              : booking.status === 'COMPLETED' ? '#6B7280'
+              : '#F59E0B';
+
+            return (
+              <Link key={booking.id} href={`/vendor/bike-rentals/bookings/${booking.id}`}
+                className="block bg-white rounded-2xl hover:shadow-[0_12px_32px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 transition-all duration-200 overflow-hidden group"
+                style={{ border: '1px solid #e8e8ee', borderLeft: `3px solid ${statusBorder}` }}
+              >
+                <div className="px-5 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    {/* Left */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                        <span className="text-sm font-bold text-gray-900">#{booking.bookingNumber}</span>
+                        <span className={cn('inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold', sc?.color)}>
+                          <StatusIcon className="w-2.5 h-2.5" /> {sc?.label}
+                        </span>
+                        {(booking.type === 'open' || booking.status === 'BROADCASTED') && (
+                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600">
+                            <Radio className="w-2.5 h-2.5" /> Open
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                        <span className="flex items-center gap-1 font-medium text-gray-700"><User className="w-3 h-3 text-gray-400" /> {booking.customerName}</span>
+                        <span className="text-gray-300">·</span>
+                        <span className="flex items-center gap-1"><Bike className="w-3 h-3 text-gray-400" /> {booking.vehicleName}</span>
+                        <span className="text-gray-300">·</span>
+                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-gray-400" /> {booking.locationName}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <CalendarCheck className="w-3 h-3" />
+                          {formatDate(booking.pickupDate)} {booking.pickupTime} → {formatDate(booking.dropDate)} {booking.dropTime}
+                        </span>
+                        <span className="font-semibold text-emerald-600">({booking.totalDays}d)</span>
+                      </div>
+
+                      {booking.status === 'DROPPED' && (
+                        <div className="mt-2 px-3 py-2 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 flex items-center gap-1.5">
+                          <XCircle className="w-3 h-3 shrink-0" />
+                          <span className="font-medium">Dropped</span>
+                          {(booking as any).dropReason && <span>· {(booking as any).dropReason}</span>}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right — Price + View */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right">
+                        <p className="text-xl font-extrabold text-gray-900">₹{(booking.grandTotal || booking.totalAmount).toLocaleString()}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">₹{booking.dailyRate}/day</p>
+                      </div>
+                      <div className="w-8 h-8 rounded-lg bg-gray-50 group-hover:bg-emerald-50 flex items-center justify-center transition-colors">
+                        <Eye className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 transition-colors" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       {/* Pagination */}
       {filteredBookings.length > 0 && (

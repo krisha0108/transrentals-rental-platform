@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -179,6 +179,9 @@ export default function SendMiniTruckQuotePage() {
   const [selectedFleetId, setSelectedFleetId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState('');
+  const [apiSuccess, setApiSuccess] = useState('');
 
   // Quote form state
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -207,6 +210,11 @@ export default function SendMiniTruckQuotePage() {
   const [editMode, setEditMode] = useState<'inclusions' | 'exclusions' | 'terms' | null>(null);
 
   const [newItem, setNewItem] = useState('');
+
+  const vehicleNameRef = useRef<HTMLInputElement>(null);
+  const vehicleNumberRef = useRef<HTMLInputElement>(null);
+  const baseAmountRef = useRef<HTMLInputElement>(null);
+  const validUntilRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchRequestDetails();
@@ -369,8 +377,32 @@ export default function SendMiniTruckQuotePage() {
 
   const advanceExceedsTotal = calculateAdvance() > calculateTotal() && calculateTotal() > 0;
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!vehicleName.trim()) newErrors.vehicleName = 'Vehicle name/model is required';
+    if (!vehicleNumber.trim()) newErrors.vehicleNumber = 'Vehicle number is required';
+    if (!baseAmount || parseFloat(baseAmount) <= 0) newErrors.baseAmount = 'Base amount is required and must be greater than 0';
+    if (!validUntil) newErrors.validUntil = 'Quote validity date is required';
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      const firstRef =
+        newErrors.vehicleName ? vehicleNameRef :
+        newErrors.vehicleNumber ? vehicleNumberRef :
+        newErrors.baseAmount ? baseAmountRef :
+        validUntilRef;
+      if (firstRef?.current) {
+        firstRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstRef.current.focus();
+      }
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setApiError('');
+    if (!validateForm()) return;
     setIsSubmitting(true);
 
     try {
@@ -412,14 +444,17 @@ export default function SendMiniTruckQuotePage() {
       const data = await response.json();
 
       if (data.success) {
-        alert('Quote sent successfully!');
-        router.push('/vendor/mini-truck/requests');
+        setApiSuccess('Quote sent successfully! Redirecting...');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => router.push('/vendor/mini-truck/requests'), 2000);
       } else {
-        alert(data.error || 'Failed to send quote. Please try again.');
+        setApiError(data.error || 'Failed to send quote. Please try again.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (error) {
       console.error('Failed to submit quote:', error);
-      alert('Failed to send quote. Please try again.');
+      setApiError('Something went wrong. Please try again.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
@@ -428,13 +463,36 @@ export default function SendMiniTruckQuotePage() {
   if (isLoading || !request) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="pb-24">
+      {/* Success Modal Overlay */}
+      {apiSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mx-4 max-w-sm w-full flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
+            <div className="relative flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-green-500" />
+              </div>
+              <svg className="absolute w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#22c55e" strokeWidth="4" strokeDasharray="226" strokeDashoffset="226" style={{ animation: 'dash 1.8s ease-out forwards' }} />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">Quote Sent!</h2>
+            <p className="text-sm text-gray-500 text-center">Your quote has been submitted successfully. Redirecting to your quotes...</p>
+            <div className="flex gap-1 mt-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+          <style>{`@keyframes dash { to { stroke-dashoffset: 0; } }`}</style>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
@@ -445,7 +503,7 @@ export default function SendMiniTruckQuotePage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Send className="w-6 h-6 text-orange-500" />
+            <Send className="w-6 h-6 text-emerald-500" />
             Send Quote
           </h1>
           <p className="text-gray-600">#{request.requestNumber}</p>
@@ -453,11 +511,11 @@ export default function SendMiniTruckQuotePage() {
       </div>
 
       {/* Request Summary */}
-      <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
-        <h3 className="font-semibold text-orange-800 mb-3">Request Summary</h3>
+      <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+        <h3 className="font-semibold text-emerald-800 mb-3">Request Summary</h3>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="flex items-start gap-3">
-            <Truck className="w-5 h-5 text-orange-600 mt-0.5" />
+            <Truck className="w-5 h-5 text-emerald-600 mt-0.5" />
             <div>
               <p className="font-medium text-gray-900">{request.chauffeur_vehicle_categories}</p>
               <p className="text-sm text-gray-600">
@@ -466,7 +524,7 @@ export default function SendMiniTruckQuotePage() {
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <Package className="w-5 h-5 text-orange-600 mt-0.5" />
+            <Package className="w-5 h-5 text-emerald-600 mt-0.5" />
             <div>
               <p className="font-medium text-gray-900">
                 {GOODS_TYPES[request.goodsType] || request.goodsType}
@@ -477,7 +535,7 @@ export default function SendMiniTruckQuotePage() {
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <MapPin className="w-5 h-5 text-orange-600 mt-0.5" />
+            <MapPin className="w-5 h-5 text-emerald-600 mt-0.5" />
             <div>
               <p className="font-medium text-gray-900">
                 {request.pickupCity} → {request.dropCity}
@@ -488,7 +546,7 @@ export default function SendMiniTruckQuotePage() {
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <Calendar className="w-5 h-5 text-orange-600 mt-0.5" />
+            <Calendar className="w-5 h-5 text-emerald-600 mt-0.5" />
             <div>
               <p className="font-medium text-gray-900">
                 {new Date(request.pickupDate).toLocaleDateString('en-IN', {
@@ -504,7 +562,7 @@ export default function SendMiniTruckQuotePage() {
           </div>
           {request.estimatedWeight && (
             <div className="flex items-start gap-3">
-              <Weight className="w-5 h-5 text-orange-600 mt-0.5" />
+              <Weight className="w-5 h-5 text-emerald-600 mt-0.5" />
               <div>
                 <p className="font-medium text-gray-900">
                   Estimated Weight: {request.estimatedWeight} kg
@@ -514,7 +572,7 @@ export default function SendMiniTruckQuotePage() {
           )}
           {request.requiresLabour && (
             <div className="flex items-start gap-3">
-              <Users className="w-5 h-5 text-orange-600 mt-0.5" />
+              <Users className="w-5 h-5 text-emerald-600 mt-0.5" />
               <div>
                 <p className="font-medium text-gray-900">
                   Labour Required: {request.labourCount || 'Not specified'}
@@ -524,7 +582,7 @@ export default function SendMiniTruckQuotePage() {
           )}
           {request.specialRequirements && (
             <div className="flex items-start gap-3 md:col-span-2">
-              <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-emerald-600 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-600">{request.specialRequirements}</p>
               </div>
@@ -533,12 +591,22 @@ export default function SendMiniTruckQuotePage() {
         </div>
       </div>
 
+      {apiError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <p className="flex-1 text-sm text-red-700 font-medium">{apiError}</p>
+          <button type="button" onClick={() => setApiError('')} className="text-red-400 hover:text-red-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Template Selection */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-orange-500" />
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
               Select Template (Optional)
             </h2>
             {selectedTemplateId && (
@@ -560,21 +628,21 @@ export default function SendMiniTruckQuotePage() {
                 onClick={() => selectTemplate(template)}
                 className={`p-4 rounded-lg border-2 text-left transition ${
                   selectedTemplateId === template.id
-                    ? 'border-orange-500 bg-orange-50'
-                    : 'border-gray-200 hover:border-orange-300'
+                    ? 'border-emerald-500 bg-emerald-50'
+                    : 'border-gray-200 hover:border-emerald-300'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="font-semibold text-gray-900">{template.name}</h3>
                   {selectedTemplateId === template.id && (
-                    <CheckCircle className="w-5 h-5 text-orange-500" />
+                    <CheckCircle className="w-5 h-5 text-emerald-500" />
                   )}
                 </div>
                 <p className="text-xs text-gray-500">
                   {template.inclusions.length} inclusions • {template.exclusions.length} exclusions
                 </p>
                 {template.baseRateHint && (
-                  <p className="text-sm text-orange-600 mt-1">
+                  <p className="text-sm text-emerald-600 mt-1">
                     Suggested: ₹{template.baseRateHint.toLocaleString()}
                   </p>
                 )}
@@ -584,9 +652,9 @@ export default function SendMiniTruckQuotePage() {
         </div>
 
         {/* Vehicle Details */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <Truck className="w-5 h-5 text-orange-500" />
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Truck className="w-5 h-5 text-emerald-500" />
             Vehicle Details
           </h2>
 
@@ -598,7 +666,7 @@ export default function SendMiniTruckQuotePage() {
               <select
                 value={selectedFleetId}
                 onChange={(e) => handleFleetSelection(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white"
               >
                 <option value="">-- Select a vehicle from fleet (or enter manually below) --</option>
                 {fleetVehicles.map((vehicle) => {
@@ -629,33 +697,41 @@ export default function SendMiniTruckQuotePage() {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vehicle Name/Model
+                Vehicle Name/Model <span className="text-red-500">*</span>
               </label>
               <input
+                ref={vehicleNameRef}
                 type="text"
                 value={vehicleName}
+                data-error={!!errors.vehicleName}
                 onChange={(e) => {
                   setVehicleName(e.target.value);
                   setSelectedFleetId('');
+                  if (errors.vehicleName) setErrors(prev => ({ ...prev, vehicleName: '' }));
                 }}
                 placeholder="e.g., Tata Ace, Mahindra Supro"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.vehicleName ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
               />
+              {errors.vehicleName && <p className="mt-1 text-xs text-red-500">{errors.vehicleName}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Vehicle Number
+                Vehicle Number <span className="text-red-500">*</span>
               </label>
               <input
+                ref={vehicleNumberRef}
                 type="text"
                 value={vehicleNumber}
+                data-error={!!errors.vehicleNumber}
                 onChange={(e) => {
                   setVehicleNumber(e.target.value.toUpperCase());
                   setSelectedFleetId('');
+                  if (errors.vehicleNumber) setErrors(prev => ({ ...prev, vehicleNumber: '' }));
                 }}
                 placeholder="e.g., DL 01 AB 1234"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.vehicleNumber ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
               />
+              {errors.vehicleNumber && <p className="mt-1 text-xs text-red-500">{errors.vehicleNumber}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -666,7 +742,7 @@ export default function SendMiniTruckQuotePage() {
                 value={vehicleCapacity}
                 onChange={(e) => setVehicleCapacity(e.target.value)}
                 placeholder="e.g., 750 kg, 1 ton"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
@@ -674,10 +750,10 @@ export default function SendMiniTruckQuotePage() {
 
         {/* Labour Details */}
         {request.requiresLabour && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg flex items-center gap-2">
-                <Users className="w-5 h-5 text-orange-500" />
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-500" />
                 Labour Details
               </h2>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -685,7 +761,7 @@ export default function SendMiniTruckQuotePage() {
                   type="checkbox"
                   checked={labourIncluded}
                   onChange={(e) => setLabourIncluded(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                  className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                 />
                 <span className="text-sm font-medium text-gray-700">Include Labour</span>
               </label>
@@ -703,7 +779,7 @@ export default function SendMiniTruckQuotePage() {
                     onChange={(e) => setLabourCount(e.target.value)}
                     placeholder="e.g., 2"
                     min="1"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -717,7 +793,7 @@ export default function SendMiniTruckQuotePage() {
                       value={labourCharges}
                       onChange={(e) => setLabourCharges(e.target.value)}
                       placeholder="0"
-                      className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                      className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -727,9 +803,9 @@ export default function SendMiniTruckQuotePage() {
         )}
 
         {/* Pricing */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <IndianRupee className="w-5 h-5 text-orange-500" />
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <IndianRupee className="w-5 h-5 text-emerald-500" />
             Pricing
           </h2>
 
@@ -741,14 +817,19 @@ export default function SendMiniTruckQuotePage() {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={baseAmountRef}
                   type="number"
                   value={baseAmount}
-                  onChange={(e) => setBaseAmount(e.target.value)}
+                  data-error={!!errors.baseAmount}
+                  onChange={(e) => {
+                    setBaseAmount(e.target.value);
+                    if (errors.baseAmount) setErrors(prev => ({ ...prev, baseAmount: '' }));
+                  }}
                   placeholder="2000"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  required
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.baseAmount ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
                 />
               </div>
+              {errors.baseAmount && <p className="mt-1 text-xs text-red-500">{errors.baseAmount}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -761,7 +842,7 @@ export default function SendMiniTruckQuotePage() {
                   value={perKmRate}
                   onChange={(e) => setPerKmRate(e.target.value)}
                   placeholder="0"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
@@ -776,7 +857,7 @@ export default function SendMiniTruckQuotePage() {
                   value={loadingCharges}
                   onChange={(e) => setLoadingCharges(e.target.value)}
                   placeholder="0"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
@@ -791,7 +872,7 @@ export default function SendMiniTruckQuotePage() {
                   value={unloadingCharges}
                   onChange={(e) => setUnloadingCharges(e.target.value)}
                   placeholder="0"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
@@ -806,7 +887,7 @@ export default function SendMiniTruckQuotePage() {
                   value={tollCharges}
                   onChange={(e) => setTollCharges(e.target.value)}
                   placeholder="0"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
@@ -816,11 +897,11 @@ export default function SendMiniTruckQuotePage() {
               </label>
               <div className="flex gap-1 mb-2 bg-gray-100 rounded-lg p-0.5">
                 <button type="button" onClick={() => setAdvanceMode('percent')}
-                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'percent' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}>
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'percent' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500'}`}>
                   By Percentage
                 </button>
                 <button type="button" onClick={() => setAdvanceMode('manual')}
-                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'manual' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}>
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'manual' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500'}`}>
                   Custom Amount
                 </button>
               </div>
@@ -829,7 +910,7 @@ export default function SendMiniTruckQuotePage() {
                   <select
                     value={advancePercent}
                     onChange={(e) => setAdvancePercent(e.target.value)}
-                    className="w-24 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    className="w-24 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="30">30%</option>
                     <option value="40">40%</option>
@@ -849,7 +930,7 @@ export default function SendMiniTruckQuotePage() {
                     onChange={(e) => setCustomAdvanceAmount(e.target.value)}
                     placeholder="Enter advance amount"
                     min="0"
-                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               )}
@@ -861,16 +942,16 @@ export default function SendMiniTruckQuotePage() {
           )}
 
           {/* Total */}
-          <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-100">
+          <div className="mt-6 p-4 bg-emerald-50 rounded-lg border border-emerald-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-orange-800">Total Quote Amount</span>
-              <span className="text-2xl font-bold text-orange-600">
+              <span className="font-semibold text-emerald-800">Total Quote Amount</span>
+              <span className="text-2xl font-bold text-emerald-600">
                 ₹{calculateTotal().toLocaleString()}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-orange-700">Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Custom)'}</span>
-              <span className="font-semibold text-orange-600">
+              <span className="text-emerald-700">Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Custom)'}</span>
+              <span className="font-semibold text-emerald-600">
                 ₹{calculateAdvance().toLocaleString()}
               </span>
             </div>
@@ -884,16 +965,16 @@ export default function SendMiniTruckQuotePage() {
         </div>
 
         {/* Inclusions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-500" />
               Inclusions ({inclusions.length})
             </h2>
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'inclusions' ? null : 'inclusions')}
-              className="text-sm text-orange-600 hover:underline flex items-center gap-1"
+              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
             >
               <Edit3 className="w-4 h-4" />
               {editMode === 'inclusions' ? 'Done' : 'Edit'}
@@ -928,7 +1009,7 @@ export default function SendMiniTruckQuotePage() {
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addItem(inclusions, setInclusions))}
                 placeholder="Add inclusion..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="button"
@@ -942,16 +1023,16 @@ export default function SendMiniTruckQuotePage() {
         </div>
 
         {/* Exclusions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <XCircle className="w-5 h-5 text-red-500" />
               Exclusions ({exclusions.length})
             </h2>
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'exclusions' ? null : 'exclusions')}
-              className="text-sm text-orange-600 hover:underline flex items-center gap-1"
+              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
             >
               <Edit3 className="w-4 h-4" />
               {editMode === 'exclusions' ? 'Done' : 'Edit'}
@@ -986,7 +1067,7 @@ export default function SendMiniTruckQuotePage() {
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addItem(exclusions, setExclusions))}
                 placeholder="Add exclusion..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="button"
@@ -1000,13 +1081,13 @@ export default function SendMiniTruckQuotePage() {
         </div>
 
         {/* Terms & Conditions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">Terms & Conditions ({termsConditions.length})</h2>
+            <h2 className="text-sm font-bold text-gray-900">Terms & Conditions ({termsConditions.length})</h2>
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'terms' ? null : 'terms')}
-              className="text-sm text-orange-600 hover:underline flex items-center gap-1"
+              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
             >
               <Edit3 className="w-4 h-4" />
               {editMode === 'terms' ? 'Done' : 'Edit'}
@@ -1019,7 +1100,7 @@ export default function SendMiniTruckQuotePage() {
                 key={idx}
                 className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
               >
-                <span className="text-orange-500 font-bold">{idx + 1}.</span>
+                <span className="text-emerald-500 font-bold">{idx + 1}.</span>
                 <span className="flex-1 text-sm text-gray-700">{item}</span>
                 {editMode === 'terms' && (
                   <button
@@ -1042,12 +1123,12 @@ export default function SendMiniTruckQuotePage() {
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addItem(termsConditions, setTermsConditions))}
                 placeholder="Add term..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="button"
                 onClick={() => addItem(termsConditions, setTermsConditions)}
-                className="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200"
+                className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
               >
                 <Plus className="w-5 h-5" />
               </button>
@@ -1056,8 +1137,8 @@ export default function SendMiniTruckQuotePage() {
         </div>
 
         {/* Additional Info */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4">Additional Information</h2>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4">Additional Information</h2>
 
           <div className="space-y-4">
             <div>
@@ -1069,7 +1150,7 @@ export default function SendMiniTruckQuotePage() {
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Any special notes or messages for the customer..."
                 rows={3}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -1079,20 +1160,25 @@ export default function SendMiniTruckQuotePage() {
               </label>
               <div className="flex gap-2">
                 <input
+                  ref={validUntilRef}
                   type="date"
                   value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
+                  data-error={!!errors.validUntil}
+                  onChange={(e) => {
+                    setValidUntil(e.target.value);
+                    if (errors.validUntil) setErrors(prev => ({ ...prev, validUntil: '' }));
+                  }}
                   min={new Date().toISOString().split('T')[0]}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  required
+                  className={`flex-1 px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.validUntil ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
                 />
                 <input
                   type="time"
                   value={validUntilTime}
                   onChange={(e) => setValidUntilTime(e.target.value)}
-                  className="w-[130px] px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-[130px] px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
+              {errors.validUntil && <p className="mt-1 text-xs text-red-500">{errors.validUntil}</p>}
             </div>
           </div>
         </div>
@@ -1108,7 +1194,7 @@ export default function SendMiniTruckQuotePage() {
           <button
             type="submit"
             disabled={isSubmitting || !baseAmount || calculateTotal() === 0 || advanceExceedsTotal}
-            className="flex-1 py-3 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>

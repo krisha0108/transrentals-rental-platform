@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysAgo);
 
-    // Get keyword performance data
+    // Get keyword performance data (capped to avoid memory issues)
     const keywords = await prisma.keyword_performance.findMany({
       where: {
         date: { gte: startDate },
@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
           : sortBy === 'clicks'
           ? { clicks: 'desc' }
           : { conversions: 'desc' },
+      take: 2000,
     });
 
     // Aggregate by keyword (sum across dates)

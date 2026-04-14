@@ -236,32 +236,112 @@ export default function CreatePostPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50/40 via-[#F9FAFB] to-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-20 sm:pb-6">
+      <style jsx global>{`
+        @keyframes fade-up { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes slide-in-left { 0% { opacity: 0; transform: translateX(-20px); } 100% { opacity: 1; transform: translateX(0); } }
+        @keyframes scale-in { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes float-slow { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        @keyframes float-rev { 0%,100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
+        @keyframes pulse-border { 0%,100% { border-color: rgba(239,68,68,0.3); } 50% { border-color: rgba(239,68,68,0.8); } }
+        @keyframes glow-emerald { 0%,100% { box-shadow: 0 0 12px rgba(5,150,105,0.2); } 50% { box-shadow: 0 0 24px rgba(5,150,105,0.4); } }
+        @keyframes wiggle { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
+        @keyframes typing-blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes orbit { 0% { transform: rotate(0deg) translateX(60px) rotate(0deg); } 100% { transform: rotate(360deg) translateX(60px) rotate(-360deg); } }
+        @keyframes sparkle { 0%,100% { opacity: 0; transform: scale(0); } 50% { opacity: 1; transform: scale(1); } }
+        @keyframes slide-in-right { 0% { opacity: 0; transform: translateX(20px); } 100% { opacity: 1; transform: translateX(0); } }
+        @keyframes bounce-in { 0% { opacity: 0; transform: scale(0.3); } 50% { transform: scale(1.05); } 70% { transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes gradient-shift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        @keyframes ripple { 0% { transform: scale(1); opacity: 0.4; } 100% { transform: scale(2.5); opacity: 0; } }
+        @keyframes draw-line { 0% { width: 0%; } 100% { width: 100%; } }
+        .animate-fade-up { animation: fade-up 0.4s ease-out both; }
+        .animate-slide-in-left { animation: slide-in-left 0.5s ease-out both; }
+        .animate-slide-in-right { animation: slide-in-right 0.5s ease-out both; }
+        .animate-scale-in { animation: scale-in 0.4s ease-out both; }
+        .animate-bounce-in { animation: bounce-in 0.6s ease-out both; }
+        .animate-float-slow { animation: float-slow 4s ease-in-out infinite; }
+        .animate-float-rev { animation: float-rev 5s ease-in-out infinite; }
+        .animate-pulse-border { animation: pulse-border 2s ease-in-out infinite; }
+        .animate-glow-emerald { animation: glow-emerald 2.5s ease-in-out infinite; }
+        .animate-wiggle { animation: wiggle 0.5s ease-in-out; }
+        .animate-typing-blink { animation: typing-blink 1s ease-in-out infinite; }
+        .animate-orbit { animation: orbit 12s linear infinite; }
+        .animate-gradient-shift { background-size: 200% 200%; animation: gradient-shift 4s ease infinite; }
+        .animate-draw-line { animation: draw-line 1s ease-out both; }
+      `}</style>
 
-        {/* Dark Green Banner Header */}
-        <div className="relative bg-[#071a0d] rounded-2xl overflow-hidden px-6 pt-6 pb-5 mb-6">
-          <div className="absolute -top-8 -right-8 w-40 h-40 bg-green-500/15 rounded-full blur-2xl pointer-events-none" />
-          <div className="flex items-center gap-3">
-            <Link href="/vendor/social" className="p-2 -ml-1 rounded-xl hover:bg-white/10 text-white/70 transition-colors">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-0.5 block">Vendor Network</span>
-              <h1 className="text-xl font-black text-white tracking-tight leading-none">Create Post</h1>
-              <p className="text-green-200/50 text-xs mt-1">Share with the vendor community</p>
+      <div className="max-w-2xl mx-auto space-y-5">
+
+        {/* Header */}
+        <div className="relative overflow-hidden rounded-2xl shadow-xl animate-fade-up">
+          {/* Multi-layer bg */}
+          <div className="absolute inset-0 bg-emerald-700"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(16,185,129,0.6)_0%,_transparent_60%)]"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(6,182,212,0.3)_0%,_transparent_50%)]"></div>
+
+          {/* Animated rings */}
+          <div className="absolute -right-6 -top-6 w-32 h-32 border border-white/10 rounded-full animate-float-slow"></div>
+          <div className="absolute -right-2 -top-2 w-20 h-20 border border-white/10 rounded-full animate-float-rev"></div>
+          <div className="absolute -left-4 -bottom-4 w-24 h-24 border border-white/10 rounded-full animate-float-rev"></div>
+
+          {/* Orbiting particle */}
+          <div className="absolute right-20 top-1/2 -translate-y-1/2">
+            <div className="animate-orbit">
+              <div className="w-2 h-2 bg-emerald-300/60 rounded-full blur-[1px]"></div>
+            </div>
+          </div>
+
+          {/* Sparkle dots */}
+          {[
+            { top: '15%', left: '70%', delay: '0s', size: 'w-1 h-1' },
+            { top: '60%', left: '80%', delay: '1.5s', size: 'w-1.5 h-1.5' },
+            { top: '30%', left: '90%', delay: '3s', size: 'w-1 h-1' },
+            { top: '75%', left: '65%', delay: '2s', size: 'w-1 h-1' },
+          ].map((s, i) => (
+            <div key={i} className={`absolute ${s.size} bg-white rounded-full`} style={{ top: s.top, left: s.left, animation: `sparkle 3s ease-in-out ${s.delay} infinite` }}></div>
+          ))}
+
+          {/* Light sweep line */}
+          <div className="absolute bottom-0 left-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-300/40 to-transparent animate-draw-line" style={{ animationDelay: '500ms' }}></div>
+
+          {/* Content */}
+          <div className="relative px-6 py-7">
+            <div className="flex items-center gap-4">
+              <Link href="/vendor/social" className="group p-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur-sm text-white transition-all">
+                <ArrowLeft className="h-5 w-5 group-hover:-translate-x-0.5 transition-transform" />
+              </Link>
+              <div className="flex-1 animate-slide-in-left" style={{ animationDelay: '150ms' }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[9px] font-bold uppercase tracking-[0.25em] text-emerald-300/80 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10">Vendor Network</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+                  Create Post
+                  <div className="relative">
+                    <Send className="h-5 w-5 text-emerald-300 animate-float-slow" />
+                    <div className="absolute inset-0 bg-emerald-400/30 rounded-full blur-md animate-float-rev"></div>
+                  </div>
+                </h1>
+                <p className="text-emerald-100/50 text-xs mt-1.5 font-medium">Share with the vendor community</p>
+              </div>
+
+              {/* Right decorative icon */}
+              <div className="hidden sm:flex items-center justify-center w-14 h-14 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm animate-scale-in" style={{ animationDelay: '300ms' }}>
+                <Send className="h-6 w-6 text-white/60" />
+              </div>
             </div>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/* Category dropdown */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-5">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+          {/* Category */}
+          <div className="group/card relative z-10 bg-white border border-gray-100 rounded-2xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-bounce-in hover:shadow-[0_4px_20px_rgba(5,150,105,0.1)] hover:border-emerald-300 transition-all duration-300" style={{ animationDelay: '80ms' }}>
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-400 via-emerald-600 to-emerald-400 rounded-t-2xl opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
+            <label className="block text-[13px] font-bold text-gray-800 mb-1 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center"><Search className="w-3 h-3 text-emerald-600" /></span>
               Category <span className="text-red-500">*</span>
             </label>
-            <p className="text-xs text-gray-400 mb-3">
+            <p className="text-[11px] text-gray-400 mb-3 pl-8">
               Choose the most relevant category for your post
             </p>
             <CategoryDropdown
@@ -272,24 +352,26 @@ export default function CreatePostPage() {
             />
           </div>
 
-          {/* SOS warning banner */}
+          {/* SOS warning */}
           {isSOS && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
-              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Zap className="h-4 w-4 text-red-500" />
+            <div className="bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-200 animate-pulse-border rounded-2xl p-4 flex gap-3 animate-scale-in shadow-sm">
+              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Zap className="h-5 w-5 text-red-500 animate-wiggle" />
               </div>
               <div>
-                <p className="text-sm font-bold text-red-700">SOS Post</p>
-                <p className="text-xs text-red-600 mt-0.5 leading-relaxed">
+                <p className="text-[13px] font-bold text-red-700">SOS Post</p>
+                <p className="text-[11px] text-red-600/80 mt-0.5 leading-relaxed">
                   This will appear as an urgent story at the top of the feed for 24 hours. Use only for genuine urgent requests.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Content textarea */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-5">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+          {/* Content */}
+          <div className={`group/text relative bg-white border rounded-2xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-bounce-in hover:shadow-[0_4px_20px_rgba(5,150,105,0.1)] transition-all duration-300 ${isSOS ? 'border-red-200 hover:border-red-300' : 'border-gray-100 hover:border-emerald-300'}`} style={{ animationDelay: '160ms' }}>
+            <div className={`absolute top-0 left-0 right-0 h-0.5 rounded-t-2xl opacity-0 group-hover/text:opacity-100 transition-opacity ${isSOS ? 'bg-gradient-to-r from-red-400 via-red-500 to-red-400' : 'bg-gradient-to-r from-emerald-400 via-emerald-600 to-emerald-400'}`}></div>
+            <label className="block text-[13px] font-bold text-gray-800 mb-2 flex items-center gap-2">
+              <span className={`w-6 h-6 rounded-lg flex items-center justify-center ${isSOS ? 'bg-red-100' : 'bg-emerald-100'}`}><Send className={`w-3 h-3 ${isSOS ? 'text-red-600' : 'text-emerald-600'}`} /></span>
               What&apos;s on your mind? <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -300,42 +382,53 @@ export default function CreatePostPage() {
                   ? 'Describe your urgent need — be specific about what help you require...'
                   : 'Share updates, tips, questions, or anything useful for fellow vendors...'
               }
-              className="w-full text-sm text-gray-800 placeholder-gray-400 resize-none focus:outline-none leading-relaxed"
+              className="w-full text-[14px] text-gray-800 placeholder-gray-400 resize-none focus:outline-none leading-relaxed"
               rows={8}
             />
-            <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-              <span className="text-xs text-gray-300">Shift+Enter for new line</span>
-              <span className={`text-xs font-medium ${remaining < 50 ? 'text-red-500' : remaining < 150 ? 'text-amber-500' : 'text-gray-400'}`}>
-                {remaining} left
-              </span>
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+              <span className="text-[10px] text-gray-400">Shift+Enter for new line</span>
+              <div className="flex items-center gap-2">
+                <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${remaining < 50 ? 'bg-red-500' : remaining < 150 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                    style={{ width: `${Math.max(0, (content.length / MAX_CHARS) * 100)}%` }}
+                  ></div>
+                </div>
+                <span className={`text-[11px] font-semibold ${remaining < 50 ? 'text-red-500' : remaining < 150 ? 'text-amber-500' : 'text-gray-400'}`}>
+                  {remaining}
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Error */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 flex items-center gap-2">
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-[13px] text-red-600 flex items-center gap-2 animate-fade-up">
               <X className="h-4 w-4 flex-shrink-0" />
               {error}
             </div>
           )}
 
           {/* Actions */}
-          <div className="flex gap-3 pb-4">
+          <div className="flex gap-3 pt-2 pb-4 animate-bounce-in" style={{ animationDelay: '280ms' }}>
             <Link
               href="/vendor/social"
-              className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 text-center transition-colors"
+              className="group flex-1 py-3 border border-gray-200 bg-white rounded-xl text-[13px] font-semibold text-gray-600 hover:bg-gray-50 hover:border-gray-300 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97]"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={submitting || !content.trim() || !selectedCategory}
-              className={`flex-1 py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-sm ${
-                isSOS ? 'bg-red-500 hover:bg-red-600' : 'bg-green-700 hover:bg-green-600'
+              className={`group relative flex-1 py-3 rounded-xl text-[13px] font-bold text-white flex items-center justify-center gap-2 disabled:opacity-50 transition-all shadow-md hover:shadow-xl active:scale-[0.97] overflow-hidden ${
+                isSOS
+                  ? 'bg-red-500 hover:bg-red-600 shadow-red-200/50'
+                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200/50 animate-glow-emerald'
               }`}
             >
-              <Send className="h-4 w-4" />
-              {submitting ? 'Posting...' : isSOS ? 'Post SOS' : 'Post'}
+              <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12"></div>
+              <Send className="relative h-4 w-4 group-hover:rotate-12 transition-transform" />
+              <span className="relative">{submitting ? 'Posting...' : isSOS ? 'Post SOS' : 'Post'}</span>
             </button>
           </div>
         </form>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -161,6 +161,9 @@ export default function SendEquipmentQuotePage() {
   const [selectedFleetId, setSelectedFleetId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState('');
+  const [apiSuccess, setApiSuccess] = useState('');
 
   const config = EQUIPMENT_CONFIG;
 
@@ -199,6 +202,16 @@ export default function SendEquipmentQuotePage() {
 
   // Input states
   const [newItem, setNewItem] = useState('');
+
+  // Refs for validation scroll + focus
+  const equipmentNameRef = useRef<HTMLInputElement>(null);
+  const equipmentModelRef = useRef<HTMLInputElement>(null);
+  const quickTotalPriceRef = useRef<HTMLInputElement>(null);
+  const dailyRateRef = useRef<HTMLInputElement>(null);
+  const deliveryChargesRef = useRef<HTMLInputElement>(null);
+  const operatorChargesRef = useRef<HTMLInputElement>(null);
+  const securityDepositRef = useRef<HTMLInputElement>(null);
+  const validUntilRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchRequestDetails();
@@ -437,8 +450,49 @@ export default function SendEquipmentQuotePage() {
 
   const advanceExceedsTotal = calculateAdvance() > calculateTotal() && calculateTotal() > 0;
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (!equipmentName.trim()) newErrors.equipmentName = 'Equipment name is required';
+    if (!equipmentModel.trim()) newErrors.equipmentModel = 'Equipment model/type is required';
+    if (quickQuoteMode) {
+      if (!quickTotalPrice || parseFloat(quickTotalPrice) <= 0) newErrors.quickTotalPrice = 'Total price must be greater than 0';
+    } else {
+      if (!dailyRate || parseFloat(dailyRate) <= 0) newErrors.dailyRate = 'Daily rate is required and must be greater than 0';
+      if (deliveryCharges === '') newErrors.deliveryCharges = 'Delivery charges required (enter 0 if not applicable)';
+      if (operatorCharges === '') newErrors.operatorCharges = 'Operator charges required (enter 0 if not applicable)';
+      if (securityDeposit === '') newErrors.securityDeposit = 'Security deposit required (enter 0 if not applicable)';
+    }
+    if (!validUntil) newErrors.validUntil = 'Quote validity date is required';
+    if (advanceMode === 'manual' && customAdvanceAmount) {
+      const adv = parseFloat(customAdvanceAmount) || 0;
+      const total = calculateTotal();
+      if (total > 0 && adv > total) newErrors.customAdvanceAmount = 'Advance amount cannot exceed total price';
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      const firstRef =
+        newErrors.equipmentName ? equipmentNameRef :
+        newErrors.equipmentModel ? equipmentModelRef :
+        newErrors.quickTotalPrice ? quickTotalPriceRef :
+        newErrors.dailyRate ? dailyRateRef :
+        newErrors.deliveryCharges ? deliveryChargesRef :
+        newErrors.operatorCharges ? operatorChargesRef :
+        newErrors.securityDeposit ? securityDepositRef :
+        newErrors.validUntil ? validUntilRef :
+        null;
+      if (firstRef?.current) {
+        firstRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstRef.current.focus();
+      }
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setApiError('');
+    if (!validateForm()) return;
     setIsSubmitting(true);
 
     try {
@@ -480,14 +534,17 @@ export default function SendEquipmentQuotePage() {
       const data = await response.json();
 
       if (data.success) {
-        alert('Quote sent successfully!');
-        router.push('/vendor/equipment/quotes');
+        setApiSuccess('Quote sent successfully! Redirecting...');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => router.push('/vendor/equipment/quotes'), 2000);
       } else {
-        alert(data.error || 'Failed to send quote. Please try again.');
+        setApiError(data.error || 'Failed to send quote. Please try again.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (error) {
       console.error('Failed to submit quote:', error);
-      alert('Failed to send quote. Please try again.');
+      setApiError('Something went wrong. Please try again.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
     }
@@ -500,13 +557,36 @@ export default function SendEquipmentQuotePage() {
   if (isLoading || !request) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="pb-24">
+      {/* Success Modal Overlay */}
+      {apiSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 mx-4 max-w-sm w-full flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
+            <div className="relative flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-green-500" />
+              </div>
+              <svg className="absolute w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#22c55e" strokeWidth="4" strokeDasharray="226" strokeDashoffset="226" style={{ animation: 'dash 1.8s ease-out forwards' }} />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">Quote Sent!</h2>
+            <p className="text-sm text-gray-500 text-center">Your quote has been submitted successfully. Redirecting to your quotes...</p>
+            <div className="flex gap-1 mt-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+          <style>{`@keyframes dash { to { stroke-dashoffset: 0; } }`}</style>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
@@ -517,7 +597,7 @@ export default function SendEquipmentQuotePage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Send className="w-6 h-6 text-amber-500" />
+            <Send className="w-6 h-6 text-emerald-500" />
             Send Equipment Quote
           </h1>
           <p className="text-gray-600">#{request.requestNumber}</p>
@@ -525,11 +605,11 @@ export default function SendEquipmentQuotePage() {
       </div>
 
       {/* Request Summary */}
-      <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-        <h3 className="font-semibold text-amber-800 mb-3">Request Summary</h3>
+      <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+        <h3 className="font-semibold text-emerald-800 mb-3">Request Summary</h3>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="flex items-start gap-3">
-            <Wrench className="w-5 h-5 text-amber-600 mt-0.5" />
+            <Wrench className="w-5 h-5 text-emerald-600 mt-0.5" />
             <div>
               <p className="font-medium text-gray-900">{request.equipmentType}</p>
               <p className="text-sm text-gray-600">{getCategoryName(request.equipmentCategory)}</p>
@@ -539,7 +619,7 @@ export default function SendEquipmentQuotePage() {
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <Package className="w-5 h-5 text-amber-600 mt-0.5" />
+            <Package className="w-5 h-5 text-emerald-600 mt-0.5" />
             <div>
               <p className="text-sm text-gray-600">Quantity: {request.quantity}</p>
               <p className="text-sm text-gray-600">
@@ -548,7 +628,7 @@ export default function SendEquipmentQuotePage() {
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <MapPin className="w-5 h-5 text-amber-600 mt-0.5" />
+            <MapPin className="w-5 h-5 text-emerald-600 mt-0.5" />
             <div>
               <p className="font-medium text-gray-900">{request.city}</p>
               {request.deliveryAddress && (
@@ -557,7 +637,7 @@ export default function SendEquipmentQuotePage() {
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <Calendar className="w-5 h-5 text-amber-600 mt-0.5" />
+            <Calendar className="w-5 h-5 text-emerald-600 mt-0.5" />
             <div>
               <p className="font-medium text-gray-900">
                 {new Date(request.startDate).toLocaleDateString('en-IN', {
@@ -579,15 +659,15 @@ export default function SendEquipmentQuotePage() {
           </div>
           {request.needOperator && (
             <div className="flex items-start gap-3">
-              <User className="w-5 h-5 text-amber-600 mt-0.5" />
+              <User className="w-5 h-5 text-emerald-600 mt-0.5" />
               <div>
-                <p className="text-sm text-blue-600 font-medium">Operator Required</p>
+                <p className="text-sm text-emerald-600 font-medium">Operator Required</p>
               </div>
             </div>
           )}
           {request.requirements && (
             <div className="md:col-span-2 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-emerald-600 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-600">{request.requirements}</p>
               </div>
@@ -596,12 +676,22 @@ export default function SendEquipmentQuotePage() {
         </div>
       </div>
 
+      {apiError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <p className="flex-1 text-sm text-red-700 font-medium">{apiError}</p>
+          <button type="button" onClick={() => setApiError('')} className="text-red-400 hover:text-red-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Template Selection */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-amber-500" />
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
               Select Template
             </h2>
             {selectedTemplateId && (
@@ -623,21 +713,21 @@ export default function SendEquipmentQuotePage() {
                 onClick={() => selectTemplate(template)}
                 className={`p-4 rounded-lg border-2 text-left transition ${
                   selectedTemplateId === template.id
-                    ? 'border-amber-500 bg-amber-50'
-                    : 'border-gray-200 hover:border-amber-300'
+                    ? 'border-emerald-600 bg-emerald-50'
+                    : 'border-gray-200 hover:border-emerald-300'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="font-semibold text-gray-900">{template.name}</h3>
                   {selectedTemplateId === template.id && (
-                    <CheckCircle className="w-5 h-5 text-amber-500" />
+                    <CheckCircle className="w-5 h-5 text-emerald-500" />
                   )}
                 </div>
                 <p className="text-xs text-gray-500">
                   {template.inclusions.length} inclusions • {template.exclusions.length} exclusions
                 </p>
                 {(template.baseRateHint || template.dailyRateHint || template.weeklyRateHint || template.monthlyRateHint) && (
-                  <p className="text-sm text-amber-600 mt-1">
+                  <p className="text-sm text-emerald-600 mt-1">
                     {(template.baseRateHint || template.dailyRateHint) && `Daily: ₹${(template.baseRateHint || template.dailyRateHint)!.toLocaleString()}`}
                     {template.weeklyRateHint && ` Weekly: ₹${template.weeklyRateHint.toLocaleString()}`}
                     {template.monthlyRateHint && ` Monthly: ₹${template.monthlyRateHint.toLocaleString()}`}
@@ -649,9 +739,9 @@ export default function SendEquipmentQuotePage() {
         </div>
 
         {/* Equipment Details */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <Wrench className="w-5 h-5 text-amber-500" />
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Wrench className="w-5 h-5 text-emerald-500" />
             Equipment Details
           </h2>
 
@@ -664,7 +754,7 @@ export default function SendEquipmentQuotePage() {
               <select
                 value={selectedFleetId}
                 onChange={(e) => handleFleetSelection(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 bg-white"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white"
               >
                 <option value="">-- Select equipment from fleet (or enter manually below) --</option>
                 {fleetEquipment.map((equipment) => {
@@ -700,34 +790,41 @@ export default function SendEquipmentQuotePage() {
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Equipment Name *
+                Equipment Name <span className="text-red-500">*</span>
               </label>
               <input
+                ref={equipmentNameRef}
                 type="text"
                 value={equipmentName}
+                data-error={!!errors.equipmentName}
                 onChange={(e) => {
                   setEquipmentName(e.target.value);
                   setSelectedFleetId('');
+                  if (errors.equipmentName) setErrors(prev => ({ ...prev, equipmentName: '' }));
                 }}
                 placeholder="e.g., Mobile Crane 20 Ton"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
-                required
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.equipmentName ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
               />
+              {errors.equipmentName && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.equipmentName}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Equipment Registration Number
+                Equipment Registration Number <span className="text-red-500">*</span>
               </label>
               <input
+                ref={equipmentModelRef}
                 type="text"
                 value={equipmentModel}
+                data-error={!!errors.equipmentModel}
                 onChange={(e) => {
                   setEquipmentModel(e.target.value.toUpperCase());
                   setSelectedFleetId('');
+                  if (errors.equipmentModel) setErrors(prev => ({ ...prev, equipmentModel: '' }));
                 }}
                 placeholder="e.g., GJ87YH6534"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 uppercase"
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 uppercase ${errors.equipmentModel ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
               />
+              {errors.equipmentModel && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.equipmentModel}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -736,7 +833,7 @@ export default function SendEquipmentQuotePage() {
               <select
                 value={equipmentCategory}
                 onChange={(e) => setEquipmentCategory(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 bg-white"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white"
                 required
               >
                 <option value="">Select category</option>
@@ -751,9 +848,9 @@ export default function SendEquipmentQuotePage() {
         </div>
 
         {/* Rental Period */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-amber-500" />
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-emerald-500" />
             Rental Period
           </h2>
 
@@ -766,7 +863,7 @@ export default function SendEquipmentQuotePage() {
                 type="date"
                 value={rentalStartDate}
                 onChange={(e) => setRentalStartDate(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 required
               />
             </div>
@@ -779,7 +876,7 @@ export default function SendEquipmentQuotePage() {
                 value={rentalEndDate}
                 onChange={(e) => setRentalEndDate(e.target.value)}
                 min={rentalStartDate}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 required
               />
             </div>
@@ -798,19 +895,19 @@ export default function SendEquipmentQuotePage() {
         </div>
 
         {/* Pricing */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
-              <IndianRupee className="w-5 h-5 text-amber-600" />
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <IndianRupee className="w-5 h-5 text-emerald-600" />
               Pricing
             </h2>
             <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
               <button type="button" onClick={() => setQuickQuoteMode(false)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${!quickQuoteMode ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500'}`}>
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${!quickQuoteMode ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500'}`}>
                 Itemized
               </button>
               <button type="button" onClick={() => setQuickQuoteMode(true)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${quickQuoteMode ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500'}`}>
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${quickQuoteMode ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500'}`}>
                 Quick Quote
               </button>
             </div>
@@ -822,15 +919,19 @@ export default function SendEquipmentQuotePage() {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={quickTotalPriceRef}
                   type="number"
                   value={quickTotalPrice}
-                  onChange={(e) => setQuickTotalPrice(e.target.value)}
+                  data-error={!!errors.quickTotalPrice}
+                  onChange={(e) => {
+                    setQuickTotalPrice(e.target.value);
+                    if (errors.quickTotalPrice) setErrors(prev => ({ ...prev, quickTotalPrice: '' }));
+                  }}
                   placeholder="Enter your all-inclusive total price"
-                  className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 text-lg font-semibold"
-                  required
+                  className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 text-lg font-semibold ${errors.quickTotalPrice ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Enter one total price including all charges</p>
+              {errors.quickTotalPrice ? <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.quickTotalPrice}</p> : <p className="text-xs text-gray-500 mt-1">Enter one total price including all charges</p>}
             </div>
           ) : (
           <div className="grid md:grid-cols-2 gap-4">
@@ -841,14 +942,19 @@ export default function SendEquipmentQuotePage() {
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={dailyRateRef}
                   type="number"
                   value={dailyRate}
-                  onChange={(e) => setDailyRate(e.target.value)}
+                  data-error={!!errors.dailyRate}
+                  onChange={(e) => {
+                    setDailyRate(e.target.value);
+                    if (errors.dailyRate) setErrors(prev => ({ ...prev, dailyRate: '' }));
+                  }}
                   placeholder="5000"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
-                  required
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.dailyRate ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.dailyRate && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.dailyRate}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -861,7 +967,7 @@ export default function SendEquipmentQuotePage() {
                   value={weeklyRate}
                   onChange={(e) => setWeeklyRate(e.target.value)}
                   placeholder="30000"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
@@ -876,56 +982,65 @@ export default function SendEquipmentQuotePage() {
                   value={monthlyRate}
                   onChange={(e) => setMonthlyRate(e.target.value)}
                   placeholder="100000"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Delivery Charges
+                Delivery Charges <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={deliveryChargesRef}
                   type="number"
                   value={deliveryCharges}
-                  onChange={(e) => setDeliveryCharges(e.target.value)}
-                  placeholder="2000"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                  data-error={!!errors.deliveryCharges}
+                  onChange={(e) => { setDeliveryCharges(e.target.value); if (errors.deliveryCharges) setErrors(prev => ({ ...prev, deliveryCharges: '' })); }}
+                  placeholder="Enter 0 if not applicable"
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.deliveryCharges ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.deliveryCharges && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.deliveryCharges}</p>}
             </div>
             {request.needOperator && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Operator Charges (per day)
+                  Operator Charges (per day) <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                   <input
+                    ref={operatorChargesRef}
                     type="number"
                     value={operatorCharges}
-                    onChange={(e) => setOperatorCharges(e.target.value)}
-                    placeholder="1000"
-                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                    data-error={!!errors.operatorCharges}
+                    onChange={(e) => { setOperatorCharges(e.target.value); if (errors.operatorCharges) setErrors(prev => ({ ...prev, operatorCharges: '' })); }}
+                    placeholder="Enter 0 if not applicable"
+                    className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.operatorCharges ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                   />
                 </div>
+                {errors.operatorCharges && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.operatorCharges}</p>}
               </div>
             )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Security Deposit
+                Security Deposit <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                 <input
+                  ref={securityDepositRef}
                   type="number"
                   value={securityDeposit}
-                  onChange={(e) => setSecurityDeposit(e.target.value)}
-                  placeholder="10000"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                  data-error={!!errors.securityDeposit}
+                  onChange={(e) => { setSecurityDeposit(e.target.value); if (errors.securityDeposit) setErrors(prev => ({ ...prev, securityDeposit: '' })); }}
+                  placeholder="Enter 0 if not applicable"
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.securityDeposit ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
+              {errors.securityDeposit && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.securityDeposit}</p>}
             </div>
           </div>
           )}
@@ -938,11 +1053,11 @@ export default function SendEquipmentQuotePage() {
               </label>
               <div className="flex gap-1 mb-2 bg-gray-100 rounded-lg p-0.5">
                 <button type="button" onClick={() => setAdvanceMode('percent')}
-                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'percent' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500'}`}>
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'percent' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500'}`}>
                   By Percentage
                 </button>
                 <button type="button" onClick={() => setAdvanceMode('manual')}
-                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'manual' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500'}`}>
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'manual' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500'}`}>
                   Custom Amount
                 </button>
               </div>
@@ -951,7 +1066,7 @@ export default function SendEquipmentQuotePage() {
                   <select
                     value={advancePercent}
                     onChange={(e) => setAdvancePercent(e.target.value)}
-                    className="w-24 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                    className="w-24 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="20">20%</option>
                     <option value="25">25%</option>
@@ -973,7 +1088,7 @@ export default function SendEquipmentQuotePage() {
                     onChange={(e) => setCustomAdvanceAmount(e.target.value)}
                     placeholder="Enter advance amount"
                     min="0"
-                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                    className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               )}
@@ -985,16 +1100,16 @@ export default function SendEquipmentQuotePage() {
           )}
 
           {/* Total */}
-          <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-100">
+          <div className="mt-6 p-4 bg-emerald-50 rounded-lg border border-emerald-100">
             <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-amber-800">Total Quote Amount</span>
-              <span className="text-2xl font-bold text-amber-600">
+              <span className="font-semibold text-emerald-800">Total Quote Amount</span>
+              <span className="text-2xl font-bold text-emerald-600">
                 ₹{calculateTotal().toLocaleString()}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-amber-700">Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Custom)'}</span>
-              <span className="font-semibold text-amber-600">
+              <span className="text-emerald-700">Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Custom)'}</span>
+              <span className="font-semibold text-emerald-600">
                 ₹{calculateAdvance().toLocaleString()}
               </span>
             </div>
@@ -1005,7 +1120,7 @@ export default function SendEquipmentQuotePage() {
               </span>
             </div>
             {securityDeposit && (
-              <div className="flex items-center justify-between text-sm mt-1 pt-1 border-t border-amber-200">
+              <div className="flex items-center justify-between text-sm mt-1 pt-1 border-t border-emerald-200">
                 <span className="text-gray-600">Security Deposit (Refundable)</span>
                 <span className="text-gray-700">
                   ₹{parseFloat(securityDeposit).toLocaleString()}
@@ -1016,16 +1131,16 @@ export default function SendEquipmentQuotePage() {
         </div>
 
         {/* Inclusions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-500" />
               Inclusions ({inclusions.length})
             </h2>
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'inclusions' ? null : 'inclusions')}
-              className="text-sm text-amber-600 hover:underline flex items-center gap-1"
+              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
             >
               <Edit3 className="w-4 h-4" />
               {editMode === 'inclusions' ? 'Done' : 'Edit'}
@@ -1063,7 +1178,7 @@ export default function SendEquipmentQuotePage() {
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addItem(inclusions, setInclusions))}
                 placeholder="Add inclusion..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="button"
@@ -1077,16 +1192,16 @@ export default function SendEquipmentQuotePage() {
         </div>
 
         {/* Exclusions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <XCircle className="w-5 h-5 text-red-500" />
               Exclusions ({exclusions.length})
             </h2>
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'exclusions' ? null : 'exclusions')}
-              className="text-sm text-amber-600 hover:underline flex items-center gap-1"
+              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
             >
               <Edit3 className="w-4 h-4" />
               {editMode === 'exclusions' ? 'Done' : 'Edit'}
@@ -1124,7 +1239,7 @@ export default function SendEquipmentQuotePage() {
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addItem(exclusions, setExclusions))}
                 placeholder="Add exclusion..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="button"
@@ -1138,13 +1253,13 @@ export default function SendEquipmentQuotePage() {
         </div>
 
         {/* Terms & Conditions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">Terms & Conditions ({termsConditions.length})</h2>
+            <h2 className="text-sm font-bold text-gray-900">Terms & Conditions ({termsConditions.length})</h2>
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'terms' ? null : 'terms')}
-              className="text-sm text-amber-600 hover:underline flex items-center gap-1"
+              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
             >
               <Edit3 className="w-4 h-4" />
               {editMode === 'terms' ? 'Done' : 'Edit'}
@@ -1157,7 +1272,7 @@ export default function SendEquipmentQuotePage() {
                 key={idx}
                 className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
               >
-                <span className="text-amber-500 font-bold">{idx + 1}.</span>
+                <span className="text-emerald-500 font-bold">{idx + 1}.</span>
                 <span className="flex-1 text-sm text-gray-700">{item}</span>
                 {editMode === 'terms' && (
                   <button
@@ -1183,12 +1298,12 @@ export default function SendEquipmentQuotePage() {
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addItem(termsConditions, setTermsConditions))}
                 placeholder="Add term..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="button"
                 onClick={() => addItem(termsConditions, setTermsConditions)}
-                className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200"
+                className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
               >
                 <Plus className="w-5 h-5" />
               </button>
@@ -1197,8 +1312,8 @@ export default function SendEquipmentQuotePage() {
         </div>
 
         {/* Additional Info */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4">Additional Information</h2>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4">Additional Information</h2>
 
           <div className="space-y-4">
             <div>
@@ -1210,7 +1325,7 @@ export default function SendEquipmentQuotePage() {
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Any special notes or messages for the customer..."
                 rows={3}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -1220,20 +1335,25 @@ export default function SendEquipmentQuotePage() {
               </label>
               <div className="flex gap-2">
                 <input
+                  ref={validUntilRef}
                   type="date"
                   value={validUntil}
-                  onChange={(e) => setValidUntil(e.target.value)}
+                  data-error={!!errors.validUntil}
+                  onChange={(e) => {
+                    setValidUntil(e.target.value);
+                    if (errors.validUntil) setErrors(prev => ({ ...prev, validUntil: '' }));
+                  }}
                   min={new Date().toISOString().split('T')[0]}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
-                  required
+                  className={`flex-1 px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.validUntil ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
                 <input
                   type="time"
                   value={validUntilTime}
                   onChange={(e) => setValidUntilTime(e.target.value)}
-                  className="w-[130px] px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500"
+                  className="w-[130px] px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
+              {errors.validUntil && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.validUntil}</p>}
             </div>
           </div>
         </div>
@@ -1249,7 +1369,7 @@ export default function SendEquipmentQuotePage() {
           <button
             type="submit"
             disabled={isSubmitting || calculateTotal() === 0 || advanceExceedsTotal}
-            className="flex-1 py-3 bg-amber-600 text-white font-bold rounded-lg hover:bg-amber-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isSubmitting ? (
               <>

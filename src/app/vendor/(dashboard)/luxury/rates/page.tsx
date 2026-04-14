@@ -247,7 +247,7 @@ export default function VendorLuxuryRatesPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full mx-auto mb-4" />
+          <div className="animate-spin w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-gray-500">Loading your luxury rates...</p>
         </div>
       </div>
@@ -260,7 +260,7 @@ export default function VendorLuxuryRatesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <Crown className="w-8 h-8 text-amber-500" />
+            <Crown className="w-8 h-8 text-emerald-500" />
             <h1 className="text-2xl font-bold text-gray-900">Luxury Local Rates</h1>
           </div>
           <p className="text-gray-600 mt-1">
@@ -280,7 +280,7 @@ export default function VendorLuxuryRatesPage() {
               setEditingRate(null);
               setShowAddModal(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-gray-900 font-bold rounded-lg hover:bg-amber-600"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-gray-900 font-bold rounded-lg hover:bg-emerald-600"
           >
             <Plus className="w-5 h-5" />
             Add Rate
@@ -338,7 +338,7 @@ export default function VendorLuxuryRatesPage() {
       {/* Rates List */}
       {rates.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-          <Crown className="w-16 h-16 text-amber-400 mx-auto mb-4" />
+          <Crown className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No rates configured yet</h3>
           <p className="text-gray-500 mb-6">
             Add your luxury car rates to start receiving instant bookings for local trips.
@@ -349,7 +349,7 @@ export default function VendorLuxuryRatesPage() {
               setEditingRate(null);
               setShowAddModal(true);
             }}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 text-gray-900 font-bold rounded-lg hover:bg-amber-600"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-gray-900 font-bold rounded-lg hover:bg-emerald-600"
           >
             <Plus className="w-5 h-5" />
             Add Your First Rate
@@ -391,7 +391,7 @@ export default function VendorLuxuryRatesPage() {
                   >
                     <div className="flex items-center gap-6">
                       <div className="flex items-center gap-2 text-gray-700">
-                        <Clock className="w-4 h-4 text-amber-500" />
+                        <Clock className="w-4 h-4 text-emerald-500" />
                         <span className="font-medium">{getPackageLabel(rate.packageType)}</span>
                       </div>
 
@@ -662,7 +662,7 @@ export default function VendorLuxuryRatesPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-6 py-2 bg-amber-500 text-gray-900 font-bold rounded-lg hover:bg-amber-600 disabled:opacity-50"
+                  className="px-6 py-2 bg-emerald-500 text-gray-900 font-bold rounded-lg hover:bg-emerald-600 disabled:opacity-50"
                 >
                   {isSubmitting ? 'Saving...' : editingRate ? 'Update Rate' : 'Add Rate'}
                 </button>

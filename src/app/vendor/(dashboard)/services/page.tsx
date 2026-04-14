@@ -79,174 +79,375 @@ export default function VendorServicesPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'APPROVED':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
+        return <CheckCircle className="w-5 h-5 text-emerald-500" />;
       case 'REJECTED':
         return <XCircle className="w-5 h-5 text-red-500" />;
       default:
-        return <Clock className="w-5 h-5 text-yellow-500" />;
+        return <Clock className="w-5 h-5 text-amber-500" />;
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'APPROVED':
-        return 'bg-green-100 text-green-700';
+        return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20';
       case 'REJECTED':
-        return 'bg-red-100 text-red-700';
+        return 'bg-red-50 text-red-700 ring-1 ring-red-600/20';
       default:
-        return 'bg-yellow-100 text-yellow-700';
+        return 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20';
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Services</h1>
-          <p className="text-gray-600">Services you are approved to offer</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={fetchServices}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Link href="/vendor/services/request">
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Request Service
-            </Button>
-          </Link>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#F9FAFB] -m-4 sm:-m-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-24">
+      <style jsx>{`
+        @keyframes fade-up {
+          from { opacity: 0; transform: translateY(24px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scale-in {
+          from { opacity: 0; transform: scale(0.85); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes bounce-in {
+          0% { opacity: 0; transform: scale(0.3); }
+          50% { opacity: 1; transform: scale(1.08); }
+          70% { transform: scale(0.95); }
+          100% { transform: scale(1); }
+        }
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        @keyframes float-rev {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(8px); }
+        }
+        @keyframes sparkle {
+          0%, 100% { opacity: 0; transform: scale(0); }
+          50% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes bubble-rise-1 {
+          0% { opacity: 0; transform: translateY(0) scale(0.5); }
+          30% { opacity: 0.7; }
+          100% { opacity: 0; transform: translateY(-80px) scale(1.2); }
+        }
+        @keyframes bubble-rise-2 {
+          0% { opacity: 0; transform: translateY(0) scale(0.3); }
+          40% { opacity: 0.5; }
+          100% { opacity: 0; transform: translateY(-100px) scale(1); }
+        }
+        @keyframes bubble-drift {
+          0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+          30% { opacity: 0.6; }
+          100% { opacity: 0; transform: translate(20px, -60px) scale(1.1); }
+        }
+        @keyframes shimmer-sweep {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes gradient-x {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        @keyframes glow-emerald {
+          0%, 100% { box-shadow: 0 0 8px rgba(5, 150, 105, 0.2); }
+          50% { box-shadow: 0 0 20px rgba(5, 150, 105, 0.4); }
+        }
+        @keyframes slide-in-left {
+          from { opacity: 0; transform: translateX(-30px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(1.5); }
+        }
+        @keyframes skeleton-shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .animate-fade-up {
+          animation: fade-up 0.6s ease-out both;
+        }
+        .animate-scale-in {
+          animation: scale-in 0.5s ease-out both;
+        }
+        .animate-bounce-in {
+          animation: bounce-in 0.7s ease-out both;
+        }
+        .animate-float-slow {
+          animation: float-slow 4s ease-in-out infinite;
+        }
+        .animate-float-rev {
+          animation: float-rev 5s ease-in-out infinite;
+        }
+        .animate-slide-in-left {
+          animation: slide-in-left 0.6s ease-out both;
+        }
+        .animate-gradient-x {
+          animation: gradient-x 8s ease infinite;
+        }
+        .skeleton-shimmer {
+          background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+          background-size: 200% 100%;
+          animation: skeleton-shimmer 1.5s ease-in-out infinite;
+        }
+      `}</style>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl p-5 shadow-sm border">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Approved</p>
-              <p className="text-2xl font-bold text-gray-900">{approvedServiceIds.length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-5 shadow-sm border">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-6 h-6 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Pending</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {requests.filter((r) => r.status === 'PENDING').length}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl p-5 shadow-sm border">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-              <XCircle className="w-6 h-6 text-red-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Rejected</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {requests.filter((r) => r.status === 'REJECTED').length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div className="w-full space-y-6">
+        {/* Header */}
+        <div
+          className="relative overflow-hidden rounded-2xl px-6 py-7 sm:px-8 sm:py-8 animate-fade-up"
+          style={{
+            background: 'linear-gradient(135deg, #059669, #047857, #0d9488, #059669)',
+            backgroundSize: '300% 300%',
+            animation: 'gradient-x 8s ease infinite, fade-up 0.6s ease-out both',
+          }}
+        >
+          {/* Filled floating bubbles */}
+          <div className="absolute right-8 top-4 w-20 h-20 rounded-full bg-white/10" style={{ animation: 'float-slow 4s ease-in-out infinite' }} />
+          <div className="absolute right-28 bottom-3 w-12 h-12 rounded-full bg-white/10" style={{ animation: 'float-rev 5s ease-in-out infinite' }} />
+          <div className="absolute right-48 top-6 w-8 h-8 rounded-full bg-white/5" style={{ animation: 'float-slow 6s ease-in-out infinite 0.5s' }} />
 
-      {/* Approved Services */}
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-        <div className="p-4 border-b bg-gray-50">
-          <h3 className="font-semibold text-gray-900">Approved Services</h3>
+          {/* Sparkle dots */}
+          <div className="absolute right-16 top-8 w-2 h-2 rounded-full bg-white/60" style={{ animation: 'sparkle 2s ease-in-out infinite' }} />
+          <div className="absolute right-36 bottom-6 w-1.5 h-1.5 rounded-full bg-white/50" style={{ animation: 'sparkle 2.5s ease-in-out infinite 0.5s' }} />
+          <div className="absolute right-56 top-10 w-1 h-1 rounded-full bg-white/40" style={{ animation: 'sparkle 3s ease-in-out infinite 1s' }} />
+
+          {/* Rising bubbles */}
+          <div className="absolute right-20 bottom-0 w-3 h-3 rounded-full bg-white/20" style={{ animation: 'bubble-rise-1 3s ease-out infinite' }} />
+          <div className="absolute right-40 bottom-0 w-2 h-2 rounded-full bg-white/15" style={{ animation: 'bubble-rise-2 4s ease-out infinite 1s' }} />
+          <div className="absolute right-52 bottom-0 w-2.5 h-2.5 rounded-full bg-white/10" style={{ animation: 'bubble-drift 3.5s ease-out infinite 0.5s' }} />
+
+          {/* Shimmer sweep */}
+          <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" style={{ animation: 'shimmer-sweep 4s ease-in-out infinite' }} />
+          </div>
+
+          <div className="relative flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              {/* Glassmorphic icon badge */}
+              <div
+                className="w-14 h-14 rounded-xl flex items-center justify-center backdrop-blur-sm border border-white/30"
+                style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  animation: 'bounce-in 0.7s ease-out both',
+                }}
+              >
+                <Layers className="w-7 h-7 text-white" />
+              </div>
+              <div className="animate-slide-in-left">
+                <h1 className="text-2xl font-bold text-white">My Services</h1>
+                <p className="text-emerald-100 text-sm mt-0.5">Services you are approved to offer</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={fetchServices}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-white border border-white/30 backdrop-blur-sm transition-all duration-300 hover:bg-white/20"
+                style={{ background: 'rgba(255,255,255,0.12)' }}
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+              <Link href="/vendor/services/request">
+                <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-emerald-700 bg-white shadow-lg shadow-emerald-900/20 transition-all duration-300 hover:shadow-xl hover:scale-105">
+                  <Plus className="w-4 h-4" />
+                  Request Service
+                </button>
+              </Link>
+            </div>
+          </div>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center h-48">
-            <RefreshCw className="w-8 h-8 animate-spin text-blue-500" />
-          </div>
-        ) : approvedServices.length === 0 ? (
-          <div className="p-12 text-center">
-            <Layers className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No approved services yet</h3>
-            <p className="text-gray-500 mb-4">Request services to start offering them</p>
-            <Link href="/vendor/services/request">
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Request Service
-              </Button>
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-            {approvedServices.map((service) => (
-              <div key={service.id} className="p-4 border rounded-lg hover:bg-gray-50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
-                    {getServiceIcon(service.slug)}
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">{service.name}</h4>
-                    <p className="text-xs text-green-600 flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3" />
-                      Active
-                    </p>
-                  </div>
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            {
+              icon: <CheckCircle className="w-6 h-6" />,
+              label: 'Approved',
+              value: approvedServiceIds.length,
+              color: 'emerald',
+              gradient: 'from-emerald-500 to-teal-500',
+              bg: 'bg-emerald-50',
+              text: 'text-emerald-600',
+              blob: 'bg-emerald-100',
+            },
+            {
+              icon: <Clock className="w-6 h-6" />,
+              label: 'Pending',
+              value: requests.filter((r) => r.status === 'PENDING').length,
+              color: 'amber',
+              gradient: 'from-amber-500 to-orange-500',
+              bg: 'bg-amber-50',
+              text: 'text-amber-600',
+              blob: 'bg-amber-100',
+            },
+            {
+              icon: <XCircle className="w-6 h-6" />,
+              label: 'Rejected',
+              value: requests.filter((r) => r.status === 'REJECTED').length,
+              color: 'red',
+              gradient: 'from-red-500 to-rose-500',
+              bg: 'bg-red-50',
+              text: 'text-red-600',
+              blob: 'bg-red-100',
+            },
+          ].map((stat, i) => (
+            <div
+              key={stat.label}
+              className="group relative overflow-hidden bg-white rounded-2xl p-5 shadow-sm border border-gray-100 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl cursor-default"
+              style={{ animation: `fade-up 0.6s ease-out ${0.1 + i * 0.1}s both` }}
+            >
+              {/* Background blob */}
+              <div className={`absolute -top-6 -right-6 w-24 h-24 ${stat.blob} rounded-full opacity-40 transition-transform duration-700 group-hover:scale-150`} />
+              {/* Shimmer on hover */}
+              <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent" style={{ animation: 'shimmer-sweep 1.5s ease-in-out infinite' }} />
+              </div>
+              <div className="relative flex items-center gap-4">
+                {/* Icon badge */}
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center text-white shadow-lg transition-all duration-500 group-hover:rotate-6 group-hover:scale-110`}>
+                  {stat.icon}
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{stat.label}</p>
+                  <p className={`text-3xl font-bold ${stat.text} transition-transform duration-300 group-hover:scale-110 origin-left`}>
+                    {stat.value}
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </div>
+          ))}
+        </div>
 
-      {/* Pending/Rejected Requests */}
-      {requests.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div className="p-4 border-b bg-gray-50">
-            <h3 className="font-semibold text-gray-900">Service Requests</h3>
+        {/* Approved Services */}
+        <div
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+          style={{ animation: 'fade-up 0.6s ease-out 0.5s both' }}
+        >
+          <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+            <h3 className="text-base font-bold text-gray-900">Approved Services</h3>
           </div>
 
-          <div className="divide-y">
-            {requests.map((request) => (
-              <div key={request.id} className="p-4 hover:bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
-                      {getServiceIcon(request.services?.slug)}
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-4 rounded-xl border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl skeleton-shimmer flex-shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-28 rounded skeleton-shimmer" />
+                      <div className="h-3 w-16 rounded skeleton-shimmer" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : approvedServices.length === 0 ? (
+            <div className="p-12 text-center">
+              <div
+                className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4"
+                style={{ animation: 'bounce-in 0.7s ease-out both' }}
+              >
+                <Layers className="w-8 h-8 text-emerald-300" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No approved services yet</h3>
+              <p className="text-sm text-gray-500 mb-5">Request services to start offering them</p>
+              <Link href="/vendor/services/request">
+                <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white bg-emerald-600 shadow-lg shadow-emerald-600/25 transition-all duration-300 hover:bg-emerald-700 hover:shadow-xl hover:scale-105">
+                  <Plus className="w-4 h-4" />
+                  Request Service
+                </button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
+              {approvedServices.map((service, i) => (
+                <div
+                  key={service.id}
+                  className="group relative overflow-hidden p-4 border border-gray-100 rounded-xl transition-all duration-500 hover:-translate-y-1 hover:shadow-lg hover:border-emerald-200"
+                  style={{
+                    animation: `fade-up 0.5s ease-out ${0.6 + i * 0.08}s both`,
+                  }}
+                >
+                  {/* Shimmer on hover */}
+                  <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-50/80 to-transparent" style={{ animation: 'shimmer-sweep 1.5s ease-in-out infinite' }} />
+                  </div>
+                  {/* Emerald glow border on hover */}
+                  <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ boxShadow: '0 0 0 1px rgba(5,150,105,0.2), 0 0 16px rgba(5,150,105,0.08)' }} />
+                  <div className="relative flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center text-white shadow-md transition-all duration-500 group-hover:rotate-12 group-hover:scale-110">
+                      {getServiceIcon(service.slug)}
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900">{request.services?.name || 'Unknown Service'}</h4>
-                      <p className="text-sm text-gray-500">
-                        Requested on {new Date(request.createdAt).toLocaleDateString()}
+                      <h4 className="text-sm font-semibold text-gray-900">{service.name}</h4>
+                      <p className="text-xs text-emerald-600 flex items-center gap-1.5 mt-0.5">
+                        <span className="relative flex h-2 w-2">
+                          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                        </span>
+                        Active
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {getStatusIcon(request.status)}
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(request.status)}`}>
-                      {request.status}
-                    </span>
-                  </div>
                 </div>
-
-                {request.status === 'REJECTED' && request.rejectionReason && (
-                  <div className="mt-3 p-3 bg-red-50 rounded-lg">
-                    <p className="text-sm text-red-700">
-                      <strong>Reason:</strong> {request.rejectionReason}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Pending/Rejected Requests */}
+        {requests.length > 0 && (
+          <div
+            className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+            style={{ animation: 'fade-up 0.6s ease-out 0.7s both' }}
+          >
+            <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+              <h3 className="text-base font-bold text-gray-900">Service Requests</h3>
+            </div>
+
+            <div className="divide-y divide-gray-50">
+              {requests.map((request, i) => (
+                <div
+                  key={request.id}
+                  className="group p-4 sm:px-5 transition-colors duration-300 hover:bg-emerald-50/30"
+                  style={{ animation: `fade-up 0.5s ease-out ${0.8 + i * 0.08}s both` }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-gradient-to-br from-slate-100 to-gray-200 rounded-xl flex items-center justify-center text-gray-500 transition-all duration-500 group-hover:scale-110 group-hover:rotate-6">
+                        {getServiceIcon(request.services?.slug)}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900">{request.services?.name || 'Unknown Service'}</h4>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Requested on {new Date(request.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {getStatusIcon(request.status)}
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(request.status)}`}>
+                        {request.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {request.status === 'REJECTED' && request.rejectionReason && (
+                    <div className="mt-3 p-3 bg-red-50 rounded-xl border border-red-100">
+                      <p className="text-sm text-red-700">
+                        <strong>Reason:</strong> {request.rejectionReason}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
