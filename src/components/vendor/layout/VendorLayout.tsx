@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { VendorSidebar } from './VendorSidebar';
-import { Menu, Loader2, AlertTriangle, Bell } from 'lucide-react';
-import Link from 'next/link';
+import { Menu, Loader2, AlertTriangle } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { ToastProvider } from '@/components/ui/toast';
@@ -37,30 +36,12 @@ export function VendorLayout({ children }: VendorLayoutProps) {
   const [approvedServiceIds, setApprovedServiceIds] = useState<string[]>([]);
   const [approvedServiceSlugs, setApprovedServiceSlugs] = useState<string[]>([]);
   const [statusLoading, setStatusLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
 
   // Browser push notifications via Notification API (polling-based)
   useVendorWebNotifications();
-
-  // Poll unread notification count
-  useEffect(() => {
-    if (status !== 'authenticated') return;
-    const fetchUnread = async () => {
-      try {
-        const res = await fetch('/api/vendor/notifications/unread-count', { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          setUnreadCount(data.unreadCount || 0);
-        }
-      } catch {}
-    };
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 30_000);
-    return () => clearInterval(interval);
-  }, [status]);
 
   // Fetch fresh vendor status from database
   useEffect(() => {
@@ -162,7 +143,7 @@ export function VendorLayout({ children }: VendorLayoutProps) {
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-[#f5f6fa]">
         <VendorSidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
@@ -172,33 +153,17 @@ export function VendorLayout({ children }: VendorLayoutProps) {
         />
 
         <div className="lg:pl-64">
-          {/* Top bar with menu and notification bell */}
-          <div className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          {/* Mobile menu button only */}
+          <div className="lg:hidden sticky top-0 z-30 bg-[#f5f6fa]/80 backdrop-blur-md border-b border-gray-200/50 px-4 py-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition"
+              className="p-2 hover:bg-white rounded-xl transition"
             >
               <Menu className="w-6 h-6 text-gray-700" />
             </button>
-            <div className="lg:hidden flex-1" />
-            <Link
-              href="/vendor/notifications"
-              className="relative p-2 hover:bg-gray-100 rounded-lg transition"
-            >
-              <Bell className="w-6 h-6 text-gray-700" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs font-bold min-w-[20px] h-5 flex items-center justify-center rounded-full px-1">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </Link>
           </div>
 
-          <main className={
-            pathname?.startsWith('/vendor/social') ? '' :
-            pathname?.startsWith('/vendor/wander') ? 'p-6' :
-            'p-6'
-          }>
+          <main className="p-4 lg:p-6">
             {children}
           </main>
         </div>

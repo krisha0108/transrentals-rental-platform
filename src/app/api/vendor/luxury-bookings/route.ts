@@ -440,6 +440,99 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (body.action === 'revenue_chart') {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const sixtyDaysAgo = new Date(now);
+      sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+      const vendorFilter = { OR: [{ assignedVendorId: vendor.id }, { acceptedVendorId: vendor.id }] };
+      const activeStatuses = ['COMPLETED', 'CONFIRMED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'ADVANCE_PAID', 'PENDING_PAYMENT', 'PAYMENT_SUBMITTED'];
+
+      // Get bookings for last 30 days, previous 30 days, and all-time totals
+      const [currentPeriodBookings, prevPeriodAgg, allTimeAgg, totalQuoteRequests, allTimeBookingsCount] = await Promise.all([
+        prisma.luxury_bookings.findMany({
+          where: {
+            ...vendorFilter,
+            status: { in: activeStatuses },
+            createdAt: { gte: thirtyDaysAgo },
+          },
+          select: { grandTotal: true, createdAt: true },
+          orderBy: { createdAt: 'asc' },
+        }),
+        prisma.luxury_bookings.aggregate({
+          where: {
+            ...vendorFilter,
+            status: { in: activeStatuses },
+            createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo },
+          },
+          _sum: { grandTotal: true },
+        }),
+        prisma.luxury_bookings.aggregate({
+          where: {
+            ...vendorFilter,
+            status: { in: activeStatuses },
+          },
+          _sum: { grandTotal: true },
+        }),
+        prisma.luxury_quote_requests.count({
+          where: {
+            createdAt: { gte: thirtyDaysAgo },
+            OR: [
+              { locationId: { in: vendor.vendor_approved_locations.map((l) => l.locationId) } },
+              { locationId: null },
+            ],
+          },
+        }),
+        prisma.luxury_bookings.count({
+          where: {
+            ...vendorFilter,
+            status: { in: activeStatuses },
+          },
+        }),
+      ]);
+
+      // Build daily data for last 7 days for chart display
+      const dailyData: { date: string; revenue: number }[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const dayLabel = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        const dayRevenue = currentPeriodBookings
+          .filter((b) => b.createdAt.toISOString().split('T')[0] === dateStr)
+          .reduce((sum, b) => sum + (Number(b.grandTotal) || 0), 0);
+        dailyData.push({ date: dayLabel, revenue: dayRevenue });
+      }
+
+      const totalRevenue30 = currentPeriodBookings.reduce((sum, b) => sum + (Number(b.grandTotal) || 0), 0);
+      const prevRevenue = Number(prevPeriodAgg._sum.grandTotal) || 0;
+      const allTimeRevenue = Number(allTimeAgg._sum.grandTotal) || 0;
+
+      // Use 30-day revenue if available, otherwise show all-time
+      const displayRevenue = totalRevenue30 > 0 ? totalRevenue30 : allTimeRevenue;
+      const displayBookings = currentPeriodBookings.length > 0 ? currentPeriodBookings.length : allTimeBookingsCount;
+      const periodLabel = totalRevenue30 > 0 ? '30d' : 'all';
+
+      const percentChange = prevRevenue > 0 ? Math.round(((totalRevenue30 - prevRevenue) / prevRevenue) * 100) : totalRevenue30 > 0 ? 100 : 0;
+      const avgBooking = displayBookings > 0 ? Math.round(displayRevenue / displayBookings) : 0;
+      const conversionRate = totalQuoteRequests > 0 ? Math.round((currentPeriodBookings.length / totalQuoteRequests) * 1000) / 10 : 0;
+
+      return NextResponse.json({
+        success: true,
+        revenueChart: {
+          dailyData,
+          totalRevenue: displayRevenue,
+          percentChange,
+          avgBooking,
+          conversionRate,
+          totalBookings: displayBookings,
+          periodLabel,
+        },
+      });
+    }
+
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error: any) {
     logger.error('Failed to process vendor luxury request', error);

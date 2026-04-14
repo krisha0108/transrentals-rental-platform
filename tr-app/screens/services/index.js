@@ -9,3 +9,4 @@ export { default as notificationService } from './notificationService';
 export { default as helpdeskService } from './helpdeskService';
 export { default as fleetService } from './fleetService';
 export { default as b2bService } from './b2bService';
+export { default as wanderService } from './wanderService';

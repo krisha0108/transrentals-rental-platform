@@ -130,7 +130,7 @@ export default function TransporterFleetPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -140,8 +140,8 @@ export default function TransporterFleetPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-            <Truck className="w-5 h-5 text-indigo-600" />
+          <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+            <Truck className="w-5 h-5 text-emerald-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Truck Fleet</h1>
@@ -150,7 +150,7 @@ export default function TransporterFleetPage() {
         </div>
         <Link
           href="/vendor/fleet/add"
-          className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition flex items-center gap-2"
+          className="px-4 py-2 bg-emerald-700 text-white font-medium rounded-lg hover:bg-emerald-700 transition flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
           Add Vehicle
@@ -195,7 +195,7 @@ export default function TransporterFleetPage() {
             onClick={() => setFilter(f.value)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
               filter === f.value
-                ? 'bg-indigo-100 text-indigo-700'
+                ? 'bg-emerald-100 text-emerald-700'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
@@ -219,7 +219,7 @@ export default function TransporterFleetPage() {
           {fleet.length === 0 && (
             <Link
               href="/vendor/fleet/add"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-700"
             >
               <Plus className="w-5 h-5" />
               Add Your First Vehicle
@@ -234,7 +234,7 @@ export default function TransporterFleetPage() {
               className="bg-white rounded-xl shadow-sm border overflow-hidden"
             >
               {/* Vehicle Image */}
-              <div className="h-40 bg-gradient-to-br from-indigo-100 to-indigo-50 flex items-center justify-center">
+              <div className="h-40 bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center">
                 {vehicle.images && vehicle.images.length > 0 ? (
                   <img
                     src={vehicle.images[0]}
@@ -242,7 +242,7 @@ export default function TransporterFleetPage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <Truck className="w-16 h-16 text-indigo-300" />
+                  <Truck className="w-16 h-16 text-emerald-300" />
                 )}
               </div>
 
@@ -287,7 +287,7 @@ export default function TransporterFleetPage() {
 
                 {/* Service Info */}
                 {vehicle.service && (
-                  <p className="text-xs text-indigo-600 mb-3">
+                  <p className="text-xs text-emerald-600 mb-3">
                     {vehicle.service.name}
                     {vehicle.sub_service && ` - ${vehicle.sub_service.name}`}
                   </p>

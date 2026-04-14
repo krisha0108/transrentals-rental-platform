@@ -101,11 +101,14 @@ interface Booking {
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
   PENDING_PAYMENT: { label: 'Payment Pending', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
   PAYMENT_SUBMITTED: { label: 'Payment Verification', color: 'text-orange-700', bgColor: 'bg-orange-100' },
-  ACCEPTED: { label: 'Confirmed', color: 'text-green-700', bgColor: 'bg-green-100' },
+  PENDING_VENDOR:   { label: 'Finding Vendor', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  BROADCASTED:      { label: 'Finding Vendor', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  CONFIRMED:        { label: 'Confirmed', color: 'text-green-700', bgColor: 'bg-green-100' },
+  ACCEPTED:         { label: 'Confirmed', color: 'text-green-700', bgColor: 'bg-green-100' },
   READY_FOR_PICKUP: { label: 'Ready for Pickup', color: 'text-cyan-700', bgColor: 'bg-cyan-100' },
-  IN_PROGRESS: { label: 'Trip Started', color: 'text-purple-700', bgColor: 'bg-purple-100' },
-  COMPLETED: { label: 'Completed', color: 'text-green-700', bgColor: 'bg-green-100' },
-  CANCELLED: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
+  IN_PROGRESS:      { label: 'Trip Started', color: 'text-purple-700', bgColor: 'bg-purple-100' },
+  COMPLETED:        { label: 'Completed', color: 'text-green-700', bgColor: 'bg-green-100' },
+  CANCELLED:        { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
 };
 
 export default function CustomerSelfDriveBookingPage() {

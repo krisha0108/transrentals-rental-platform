@@ -5,7 +5,7 @@ import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -101,20 +101,11 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
-        badge={`Innova Rental in ${locationName}`}
-        title="Toyota Innova on Rent"
-        titleHighlight="7-Seater Family Trips @₹1999/day"
-        description={`${locationName} family outings, pilgrimages, and long road trips — the Toyota Innova handles them all. India's most trusted 7-seater with legendary reliability.`}
-        features={[
-          { icon: 'zap', text: '7-Seater Comfort', color: 'text-amber-600' },
-          { icon: 'shield', text: 'Toyota Reliability', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="amber-50"
-        gradientTo="yellow-50"
+      <SwiftRentalTypeHero
+        city={locationName}
+        citySlug={params.location}
+        vehicleName="Toyota Innova"
+        selfDrivePrice="₹2,499/day"
       />
 
       <section className="bg-gradient-to-br from-purple-700 to-indigo-800 text-white py-12">

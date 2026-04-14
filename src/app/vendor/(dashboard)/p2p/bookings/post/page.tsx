@@ -15,6 +15,14 @@ import {
   Info,
   Loader2,
   CheckCircle,
+  Briefcase,
+  Send,
+  Sparkles,
+  Route,
+  FileText,
+  Wallet,
+  Network,
+  Zap,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 
@@ -63,11 +71,11 @@ const URGENCY_OPTIONS = [
     value: 'MEDIUM',
     label: 'Medium',
     sub: 'Within a day',
-    gradient: 'from-amber-400 to-yellow-500',
-    ring: 'ring-amber-400',
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    text: 'text-amber-700',
+    gradient: 'from-emerald-400 to-emerald-500',
+    ring: 'ring-emerald-400',
+    bg: 'bg-emerald-50',
+    border: 'border-emerald-200',
+    text: 'text-emerald-700',
   },
   {
     value: 'LOW',
@@ -195,38 +203,65 @@ export default function PostBookingPage() {
 
   // ---- input classes ----
   const inputCls =
-    'rounded-lg border border-gray-300 px-3 py-2 w-full focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition';
-  const labelCls = 'block text-sm font-medium text-gray-700 mb-1.5';
-  const cardCls = 'bg-white rounded-xl shadow-sm border border-gray-100 p-5';
+    'w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none';
+  const labelCls = 'block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide';
+  const cardCls = 'bg-white rounded-2xl shadow-sm border border-gray-100 p-5';
 
   // ====================================================================
   // Render
   // ====================================================================
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12">
-      {/* ---- Header ---- */}
-      <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 rounded-2xl p-6 text-white">
-        <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+      <style jsx global>{`
+        @keyframes float-slow { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(-12px) translateX(8px); } }
+        @keyframes float-rev { 0%,100% { transform: translateY(0) translateX(0); } 50% { transform: translateY(10px) translateX(-6px); } }
+        @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+        @keyframes fade-up { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes pop-in { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+        @keyframes gradient-x { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        .animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+        .animate-float-rev { animation: float-rev 7s ease-in-out infinite; }
+        .animate-fade-up { animation: fade-up 0.5s ease-out both; }
+        .animate-pop-in { animation: pop-in 0.4s ease-out both; }
+        .animate-gradient-x { background-size: 200% 200%; animation: gradient-x 6s ease infinite; }
+        .shimmer-bg { background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.4) 50%, transparent 65%); background-size: 200% 100%; animation: shimmer 2.5s linear infinite; }
+      `}</style>
+
+      <div className="max-w-[1600px] mx-auto space-y-6">
+      {/* ---- Animated Gradient Header ---- */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 animate-gradient-x rounded-2xl p-6 sm:p-8 shadow-lg animate-fade-up text-white">
+        <div className="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-3xl animate-float-slow" />
+        <div className="absolute -left-10 -bottom-10 w-48 h-48 bg-emerald-300/20 rounded-full blur-3xl animate-float-rev" />
+        <div className="absolute top-1/2 right-1/3 w-24 h-24 bg-white/5 rounded-full blur-2xl" />
+        <div className="relative flex items-center gap-4">
           <Link
             href="/vendor/p2p/bookings"
-            className="p-2 hover:bg-white/10 rounded-lg transition"
+            className="p-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-xl transition"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 text-white" />
           </Link>
+          <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg ring-1 ring-white/30">
+            <Briefcase className="w-7 h-7 text-white" />
+          </div>
           <div>
-            <h1 className="text-2xl font-bold">Share a Booking</h1>
-            <p className="text-purple-200 text-sm mt-1">
-              Let other vendors fulfill a booking you cannot handle
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2">
+              Share a Booking
+              <Sparkles className="w-5 h-5 text-emerald-200 animate-pulse" />
+            </h1>
+            <p className="text-emerald-100 mt-1 text-sm sm:text-base">
+              Let partner vendors fulfill a booking you cannot handle
             </p>
           </div>
         </div>
       </div>
 
       {/* ---- Info banner ---- */}
-      <div className={`${cardCls} flex items-start gap-3`}>
-        <Info className="w-5 h-5 text-purple-600 mt-0.5 shrink-0" />
+      <div className="bg-gradient-to-br from-emerald-50 via-emerald-50/60 to-emerald-50 border border-emerald-100 rounded-2xl p-5 flex items-start gap-3 animate-fade-up" style={{ animationDelay: '40ms' }}>
+        <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md shrink-0">
+          <Info className="w-4 h-4" />
+        </div>
         <div>
-          <h3 className="font-medium text-gray-900">How booking sharing works</h3>
+          <h3 className="text-sm font-bold text-gray-900">How booking sharing works</h3>
           <p className="text-sm text-gray-600 mt-1">
             Got a booking but can&apos;t fulfill it? Share it with partner vendors.
             They complete the trip, the customer pays you, and you pay the partner minus your commission. Everyone wins!
@@ -236,51 +271,145 @@ export default function PostBookingPage() {
 
       {/* ---- Error banner ---- */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3 animate-fade-up">
           <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
           <p className="text-sm text-red-700">{error}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* ==============================================================
             Service Type Selector
         =============================================================== */}
-        <div className={cardCls}>
-          <label className={`${labelCls} mb-3`}>Service Type *</label>
-          <div className="grid grid-cols-2 sm:grid-cols-2 max-w-xs gap-3">
-            {SERVICE_OPTIONS.map(({ key, label, icon: Icon }) => {
-              const selected = serviceType === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => handleServiceSelect(key)}
-                  className={`flex flex-col items-center gap-2 py-4 px-2 rounded-xl border-2 transition-all ${
-                    selected
-                      ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-200'
-                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
-                  }`}
-                >
-                  <Icon className="w-6 h-6" />
-                  <span className="text-xs font-semibold">{label}</span>
-                </button>
-              );
-            })}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-fade-up" style={{ animationDelay: '60ms' }}>
+          <div className="bg-gradient-to-r from-slate-50 to-emerald-50/40 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md">
+              <Network className="w-4 h-4" />
+            </div>
+            <h2 className="text-base font-bold text-gray-900">Service Type</h2>
           </div>
+          <div className="p-6">
+            <p className="text-xs text-gray-500 mb-4">Choose what type of trip you want to share with partner vendors</p>
+            <div className="grid grid-cols-2 gap-4">
+              {SERVICE_OPTIONS.map(({ key, label, icon: Icon }) => {
+                const selected = serviceType === key;
+                const desc = key === 'truck' ? 'Goods, freight & cargo' : 'Passengers & travel';
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => handleServiceSelect(key)}
+                    className={`group relative overflow-hidden rounded-2xl border-2 p-5 text-left transition-all duration-300 ${
+                      selected
+                        ? 'border-transparent bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 text-white shadow-xl shadow-emerald-200 scale-[1.02]'
+                        : 'border-gray-200 bg-gradient-to-br from-gray-50 to-white hover:border-emerald-300 hover:shadow-lg hover:-translate-y-0.5'
+                    }`}
+                  >
+                    <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full blur-2xl transition-all duration-500 ${
+                      selected ? 'bg-white/20 group-hover:scale-150' : 'bg-emerald-200/30 group-hover:scale-150 group-hover:bg-emerald-300/40'
+                    }`}></div>
+                    {selected && (
+                      <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white/25 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/40">
+                        <CheckCircle className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                    <div className="relative">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-md mb-3 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 ${
+                        selected
+                          ? 'bg-white/25 backdrop-blur-sm ring-1 ring-white/40 text-white'
+                          : 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white'
+                      }`}>
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <h3 className={`font-bold text-base mb-0.5 ${selected ? 'text-white' : 'text-gray-900'}`}>{label}</h3>
+                      <p className={`text-xs ${selected ? 'text-white/80' : 'text-gray-500'}`}>{desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* ==============================================================
+            Route & Schedule
+        =============================================================== */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-fade-up" style={{ animationDelay: '180ms' }}>
+          <div className="bg-gradient-to-r from-slate-50 to-emerald-50/40 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md">
+              <Route className="w-4 h-4" />
+            </div>
+            <h2 className="text-base font-bold text-gray-900">Route &amp; Schedule</h2>
+          </div>
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>
+                <MapPin className="w-4 h-4 inline mr-1" />
+                From City *
+              </label>
+              <input
+                type="text"
+                value={fromCity}
+                onChange={(e) => setFromCity(e.target.value)}
+                placeholder="e.g., Mumbai"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>
+                <MapPin className="w-4 h-4 inline mr-1" />
+                To City *
+              </label>
+              <input
+                type="text"
+                value={toCity}
+                onChange={(e) => setToCity(e.target.value)}
+                placeholder="e.g., Pune"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>
+                <Calendar className="w-4 h-4 inline mr-1" />
+                Trip Date *
+              </label>
+              <input
+                type="date"
+                min={new Date().toISOString().split('T')[0]}
+                value={tripDate}
+                onChange={(e) => setTripDate(e.target.value)}
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>
+                <Clock className="w-4 h-4 inline mr-1" />
+                Trip Time
+              </label>
+              <input
+                type="time"
+                value={tripTime}
+                onChange={(e) => setTripTime(e.target.value)}
+                className={inputCls}
+              />
+            </div>
+          </div>
+        </div>
         </div>
 
         {/* ==============================================================
             Dynamic Fields by Service Type
         =============================================================== */}
         {serviceType && (
-          <div className={cardCls}>
-            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-purple-600" />
-              Vehicle &amp; Trip Details
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-fade-up" style={{ animationDelay: '120ms' }}>
+            <div className="bg-gradient-to-r from-slate-50 to-emerald-50/40 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md">
+                <Truck className="w-4 h-4" />
+              </div>
+              <h2 className="text-base font-bold text-gray-900">Vehicle &amp; Trip Details</h2>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Vehicle Required</label>
                 <select value={vehicleRequired} onChange={(e) => setVehicleRequired(e.target.value)} className={inputCls}>
@@ -355,7 +484,7 @@ export default function PostBookingPage() {
                       type="checkbox"
                       checked={needInsurance}
                       onChange={(e) => setNeedInsurance(e.target.checked)}
-                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                      className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
                     />
                     <span className="text-sm text-gray-700">Need Insurance</span>
                   </label>
@@ -364,7 +493,7 @@ export default function PostBookingPage() {
                       type="checkbox"
                       checked={needLabour}
                       onChange={(e) => setNeedLabour(e.target.checked)}
-                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                      className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
                     />
                     <span className="text-sm text-gray-700">Need Labour</span>
                   </label>
@@ -382,84 +511,21 @@ export default function PostBookingPage() {
                   )}
                 </div>
               )}
-            </div>
+          </div>
           </div>
         )}
 
         {/* ==============================================================
-            Route & Schedule
-        =============================================================== */}
-        <div className={cardCls}>
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-purple-600" />
-            Route &amp; Schedule
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>
-                <MapPin className="w-4 h-4 inline mr-1" />
-                From City *
-              </label>
-              <input
-                type="text"
-                value={fromCity}
-                onChange={(e) => setFromCity(e.target.value)}
-                placeholder="e.g., Mumbai"
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className={labelCls}>
-                <MapPin className="w-4 h-4 inline mr-1" />
-                To City *
-              </label>
-              <input
-                type="text"
-                value={toCity}
-                onChange={(e) => setToCity(e.target.value)}
-                placeholder="e.g., Pune"
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className={labelCls}>
-                <Calendar className="w-4 h-4 inline mr-1" />
-                Trip Date *
-              </label>
-              <input
-                type="date"
-                min={new Date().toISOString().split('T')[0]}
-                value={tripDate}
-                onChange={(e) => setTripDate(e.target.value)}
-                className={inputCls}
-              />
-            </div>
-            <div>
-              <label className={labelCls}>
-                <Clock className="w-4 h-4 inline mr-1" />
-                Trip Time
-              </label>
-              <input
-                type="time"
-                value={tripTime}
-                onChange={(e) => setTripTime(e.target.value)}
-                className={inputCls}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* ==============================================================
             Urgency Selector
         =============================================================== */}
-        <div className={cardCls}>
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-purple-600" />
-            Urgency Level
-          </h2>
-
-          <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-fade-up" style={{ animationDelay: '240ms' }}>
+          <div className="bg-gradient-to-r from-slate-50 to-rose-50/40 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-md">
+              <Zap className="w-4 h-4" />
+            </div>
+            <h2 className="text-base font-bold text-gray-900">Urgency Level</h2>
+          </div>
+          <div className="p-6 grid grid-cols-3 gap-3">
             {URGENCY_OPTIONS.map((opt) => {
               const selected = urgency === opt.value;
               return (
@@ -490,16 +556,18 @@ export default function PostBookingPage() {
           </div>
         </div>
 
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* ==============================================================
             Reason & Notes
         =============================================================== */}
-        <div className={cardCls}>
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Info className="w-4 h-4 text-purple-600" />
-            Reason &amp; Notes
-          </h2>
-
-          <div className="grid grid-cols-1 gap-4">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-fade-up" style={{ animationDelay: '300ms' }}>
+          <div className="bg-gradient-to-r from-slate-50 to-emerald-50/40 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md">
+              <FileText className="w-4 h-4" />
+            </div>
+            <h2 className="text-base font-bold text-gray-900">Reason &amp; Notes</h2>
+          </div>
+          <div className="p-6 grid grid-cols-1 gap-4">
             <div>
               <label className={labelCls}>Why are you sharing this booking?</label>
               <select value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls}>
@@ -525,12 +593,14 @@ export default function PostBookingPage() {
         {/* ==============================================================
             Budget & Commission Calculator
         =============================================================== */}
-        <div className={cardCls}>
-          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-purple-600" />
-            Budget &amp; Commission
-          </h2>
-
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-fade-up" style={{ animationDelay: '360ms' }}>
+          <div className="bg-gradient-to-r from-slate-50 to-emerald-50/40 px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md">
+              <Wallet className="w-4 h-4" />
+            </div>
+            <h2 className="text-base font-bold text-gray-900">Budget &amp; Commission</h2>
+          </div>
+          <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Customer Budget */}
             <div>
@@ -561,7 +631,7 @@ export default function PostBookingPage() {
                   max={50}
                   value={commissionPercent}
                   onChange={(e) => setCommissionPercent(Number(e.target.value))}
-                  className="flex-1 accent-purple-600"
+                  className="flex-1 accent-emerald-600"
                 />
                 <div className="w-20">
                   <input
@@ -580,8 +650,12 @@ export default function PostBookingPage() {
 
           {/* Preview card */}
           {budget > 0 && (
-            <div className="mt-5 bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-purple-800 mb-3">Earnings Preview</h3>
+            <div className="mt-5 relative overflow-hidden bg-gradient-to-br from-emerald-50 via-emerald-50/60 to-emerald-50 border border-emerald-100 rounded-2xl p-5 animate-fade-up">
+              <div className="absolute -right-8 -top-8 w-24 h-24 bg-emerald-200/40 rounded-full blur-2xl animate-float-slow" />
+              <h3 className="relative text-sm font-bold text-emerald-900 mb-3 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600" />
+                Earnings Preview
+              </h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide">Customer Budget</p>
@@ -589,7 +663,7 @@ export default function PostBookingPage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide">Your Commission</p>
-                  <p className="text-lg font-bold text-purple-600 mt-1">{formatPrice(commissionAmount)}</p>
+                  <p className="text-lg font-bold text-emerald-600 mt-1">{formatPrice(commissionAmount)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide">Partner Earning</p>
@@ -597,27 +671,29 @@ export default function PostBookingPage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 uppercase tracking-wide">Platform Fee (5%)</p>
-                  <p className="text-lg font-bold text-amber-600 mt-1">{formatPrice(platformFee)}</p>
+                  <p className="text-lg font-bold text-emerald-600 mt-1">{formatPrice(platformFee)}</p>
                 </div>
               </div>
             </div>
           )}
+          </div>
+        </div>
         </div>
 
         {/* ==============================================================
             Submit
         =============================================================== */}
-        <div className="flex gap-4 pt-2">
+        <div className="flex gap-4 pt-2 animate-fade-up" style={{ animationDelay: '420ms' }}>
           <Link
             href="/vendor/p2p/bookings"
-            className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-center font-medium"
+            className="flex-1 px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition text-center font-semibold text-sm"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium shadow-lg shadow-purple-200"
+            className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold text-sm shadow-lg shadow-emerald-200 hover:scale-[1.01]"
           >
             {isSubmitting ? (
               <>
@@ -626,13 +702,14 @@ export default function PostBookingPage() {
               </>
             ) : (
               <>
-                <CheckCircle className="w-5 h-5" />
+                <Send className="w-5 h-5" />
                 Share Booking
               </>
             )}
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 }

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { listingId, name, phone, email, travelDate, groupSize, pickupLocation, requirements, bookingFor, companyName } = body;
+    const { listingId, customerId: bodyCustomerId, name, phone, email, travelDate, groupSize, pickupLocation, requirements, bookingFor, companyName } = body;
 
     if (!listingId) return NextResponse.json({ error: 'Tour listing is required' }, { status: 400 });
     if (!name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -29,21 +29,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Find or create customer
-    let customer = await prisma.customers.findFirst({
-      where: {
-        OR: [
-          ...(email ? [{ email: email.toLowerCase() }] : []),
-          { phone: phone.trim() },
-        ],
-      },
-    });
-
+    // Use supplied customerId if the app sent it (logged-in customer), otherwise find/create
+    let customer = null;
+    if (bodyCustomerId) {
+      customer = await prisma.customers.findUnique({ where: { id: bodyCustomerId } });
+    }
     if (!customer) {
-      const customerId = await generateCustomerId();
+      customer = await prisma.customers.findFirst({
+        where: {
+          OR: [
+            ...(email ? [{ email: email.toLowerCase() }] : []),
+            { phone: phone.trim() },
+          ],
+        },
+      });
+    }
+    if (!customer) {
+      const newId = await generateCustomerId();
       customer = await prisma.customers.create({
         data: {
-          id: customerId,
+          id: newId,
           name: name.trim(),
           phone: phone.trim(),
           email: email ? email.toLowerCase() : `${phone.trim()}@wander.local`,

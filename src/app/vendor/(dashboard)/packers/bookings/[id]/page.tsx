@@ -27,6 +27,7 @@ import {
   ArrowRight,
   TruckIcon,
   Loader2,
+  FileText,
 } from 'lucide-react';
 
 interface PackersBooking {
@@ -100,19 +101,19 @@ interface StaffMember {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
-  PENDING_PAYMENT: { label: 'Awaiting Advance', color: 'text-amber-700', bgColor: 'bg-amber-100' },
-  PAYMENT_SUBMITTED: { label: 'Payment Review', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  ADVANCE_PAID: { label: 'Booking Confirmed', color: 'text-green-700', bgColor: 'bg-green-100' },
-  CONFIRMED: { label: 'Confirmed', color: 'text-green-700', bgColor: 'bg-green-100' },
-  TEAM_ASSIGNED: { label: 'Team Assigned', color: 'text-indigo-700', bgColor: 'bg-indigo-100' },
-  PACKING: { label: 'Packing', color: 'text-cyan-700', bgColor: 'bg-cyan-100' },
-  LOADING: { label: 'Loading', color: 'text-teal-700', bgColor: 'bg-teal-100' },
-  IN_TRANSIT: { label: 'In Transit', color: 'text-purple-700', bgColor: 'bg-purple-100' },
-  UNLOADING: { label: 'Unloading', color: 'text-orange-700', bgColor: 'bg-orange-100' },
-  UNPACKING: { label: 'Unpacking', color: 'text-pink-700', bgColor: 'bg-pink-100' },
-  COMPLETED: { label: 'Completed', color: 'text-gray-700', bgColor: 'bg-gray-100' },
-  CANCELLED: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
-  DROPPED: { label: 'Dropped', color: 'text-red-700', bgColor: 'bg-red-100' },
+  PENDING_PAYMENT:   { label: 'Awaiting Advance',  color: 'text-yellow-700 border-yellow-200',   bgColor: 'bg-yellow-50' },
+  PAYMENT_SUBMITTED: { label: 'Payment Review',    color: 'text-blue-700 border-blue-200',       bgColor: 'bg-blue-50' },
+  ADVANCE_PAID:      { label: 'Booking Confirmed', color: 'text-emerald-700 border-emerald-200', bgColor: 'bg-emerald-50' },
+  CONFIRMED:         { label: 'Confirmed',         color: 'text-emerald-700 border-emerald-200', bgColor: 'bg-emerald-50' },
+  TEAM_ASSIGNED:     { label: 'Team Assigned',     color: 'text-emerald-700 border-emerald-200',   bgColor: 'bg-emerald-50' },
+  PACKING:           { label: 'Packing',           color: 'text-violet-700 border-violet-200',   bgColor: 'bg-violet-50' },
+  LOADING:           { label: 'Loading',           color: 'text-cyan-700 border-cyan-200',       bgColor: 'bg-cyan-50' },
+  IN_TRANSIT:        { label: 'In Transit',        color: 'text-purple-700 border-purple-200',   bgColor: 'bg-purple-50' },
+  UNLOADING:         { label: 'Unloading',         color: 'text-teal-700 border-teal-200',       bgColor: 'bg-teal-50' },
+  UNPACKING:         { label: 'Unpacking',         color: 'text-pink-700 border-pink-200',       bgColor: 'bg-pink-50' },
+  COMPLETED:         { label: 'Completed',         color: 'text-gray-700 border-gray-200',       bgColor: 'bg-gray-50' },
+  CANCELLED:         { label: 'Cancelled',         color: 'text-red-700 border-red-200',         bgColor: 'bg-red-50' },
+  DROPPED:           { label: 'Dropped',           color: 'text-red-700 border-red-200',         bgColor: 'bg-red-50' },
 };
 
 const PROPERTY_TYPES: Record<string, string> = {
@@ -304,516 +305,421 @@ export default function VendorPackersBookingDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 text-cyan-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading booking details...</p>
-        </div>
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
       </div>
     );
   }
 
   if (error || !booking) {
     return (
-      <div className="max-w-4xl mx-auto py-12 px-4 text-center">
-        <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Booking Not Found</h1>
-        <p className="text-gray-600 mb-6">{error || 'The booking details could not be loaded.'}</p>
-        <Link href="/vendor/packers/bookings" className="text-cyan-600 font-medium hover:underline inline-flex items-center gap-2">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Bookings
-        </Link>
+      <div className="max-w-md mx-auto mt-20 bg-white rounded-2xl border border-gray-100 p-8 text-center shadow-sm">
+        <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <AlertCircle className="w-7 h-7 text-red-400" />
+        </div>
+        <h3 className="font-bold text-gray-900 mb-1">Booking Not Found</h3>
+        <p className="text-gray-400 text-sm mb-5">{error || 'The booking does not exist.'}</p>
+        <button onClick={() => router.push('/vendor/packers/bookings')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-bold transition-all active:scale-95">
+          <ArrowLeft className="w-4 h-4" /> Back to Bookings
+        </button>
       </div>
     );
   }
 
   const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING_PAYMENT;
+  const balanceAmount = getBalanceAmount();
+  const formatDate = (d: string) => new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  const ACTIVE_STATUSES = ['PACKING', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'UNPACKING'];
+
+  // Progress steps for moving timeline
+  const paymentDone = booking.advancePaymentVerified || ['ADVANCE_PAID', 'CONFIRMED', 'TEAM_ASSIGNED', 'PACKING', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'UNPACKING', 'COMPLETED'].includes(booking.status);
+  const teamDone = !!booking.teamLeaderName;
+  const packingDone = ['PACKING', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'UNPACKING', 'COMPLETED'].includes(booking.status);
+  const loadingDone = ['LOADING', 'IN_TRANSIT', 'UNLOADING', 'UNPACKING', 'COMPLETED'].includes(booking.status);
+  const transitDone = ['IN_TRANSIT', 'UNLOADING', 'UNPACKING', 'COMPLETED'].includes(booking.status);
+  const unloadingDone = ['UNLOADING', 'UNPACKING', 'COMPLETED'].includes(booking.status);
+  const unpackingDone = ['UNPACKING', 'COMPLETED'].includes(booking.status);
+  const completed = booking.status === 'COMPLETED';
+  const isDropped = booking.status === 'DROPPED';
+
+  const steps = [
+    { label: 'Payment',    done: paymentDone,   icon: CheckCircle, time: null as any },
+    { label: 'Team',       done: teamDone,      icon: Users,       time: null as any },
+    { label: 'Packing',    done: packingDone,   icon: Boxes,       time: booking.packingStartedAt },
+    { label: 'Loading',    done: loadingDone,   icon: Package,     time: booking.packingCompletedAt },
+    { label: 'In Transit', done: transitDone,   icon: Navigation,  time: booking.loadingCompletedAt },
+    { label: 'Unloading',  done: unloadingDone, icon: TruckIcon,   time: booking.unloadingStartedAt },
+    { label: 'Unpacking',  done: unpackingDone, icon: Boxes,       time: booking.unloadingCompletedAt },
+    { label: 'Completed',  done: completed,     icon: CheckCircle, time: booking.completedAt },
+  ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Link href="/vendor/packers/bookings" className="p-2 hover:bg-gray-100 rounded-lg transition">
-            <ArrowLeft className="w-5 h-5" />
+    <div className="space-y-5">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <Link href="/vendor/packers/bookings" className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+            <ArrowLeft className="w-4 h-4 text-gray-600" />
           </Link>
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">Booking #{booking.bookingNumber}</h1>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusConfig.bgColor} ${statusConfig.color}`}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg font-bold text-gray-900">#{booking.bookingNumber}</h1>
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${statusConfig.color} ${statusConfig.bgColor}`}>
                 {statusConfig.label}
               </span>
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${booking.paymentStatus === 'PAID' || booking.paymentStatus === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>
+                {booking.paymentStatus}
+              </span>
             </div>
-            <p className="text-gray-500 text-sm">Created on {new Date(booking.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Created {formatDate(booking.createdAt)}</p>
           </div>
         </div>
       </div>
 
       {/* Dropped Banner */}
-      {booking.status === 'DROPPED' && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-          <XCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+      {isDropped && (
+        <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 flex items-start gap-3">
+          <XCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
           <div>
-            <p className="font-semibold text-red-800">This booking has been dropped</p>
-            {(booking as any).dropReason && (
-              <p className="text-sm text-red-600 mt-1">Reason: {(booking as any).dropReason}</p>
-            )}
-            {(booking as any).droppedAt && (
-              <p className="text-xs text-red-500 mt-1">
-                Dropped on: {new Date((booking as any).droppedAt).toLocaleString('en-IN')}
-              </p>
-            )}
+            <p className="text-sm font-semibold text-red-800">This booking has been dropped</p>
+            {(booking as any).dropReason && <p className="text-xs text-red-600 mt-0.5">Reason: {(booking as any).dropReason}</p>}
+            {(booking as any).droppedAt && <p className="text-xs text-red-500 mt-0.5">Dropped: {new Date((booking as any).droppedAt).toLocaleString('en-IN')}</p>}
           </div>
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Main Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Moving Summary Card */}
-          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <div className="p-6 border-b bg-gradient-to-r from-cyan-50 to-teal-100">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                  <Package className="w-6 h-6 text-cyan-600" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">{getPropertySizeName(booking.propertySize || '')}</h2>
-                  <p className="text-gray-600">{booking.serviceType?.replace('-', ' ').toUpperCase() || 'Packers & Movers'}</p>
-                  <p className="text-sm text-gray-500 capitalize">{booking.movingService || 'Full Service'}</p>
-                </div>
+      {/* ── Service + Price Hero ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-emerald-50 via-emerald-50/30 to-white gap-3">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-12 h-12 bg-white rounded-xl border border-emerald-100 flex items-center justify-center shadow-sm shrink-0">
+              <Package className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-gray-900 truncate capitalize">
+                {booking.shiftingType?.toLowerCase()} Shifting
+              </h2>
+              <p className="text-xs text-gray-400">
+                {[getPropertySizeName(booking.propertySize || ''), getPropertyTypeName(booking.propertyType || '')].filter(Boolean).join(' · ') || booking.serviceType}
+              </p>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-2xl font-extrabold text-gray-900">₹{booking.totalAmount.toLocaleString()}</p>
+            <p className="text-xs text-gray-400">total amount</p>
+          </div>
+        </div>
+        {/* Quick stats strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 border-t border-gray-100">
+          {[
+            { label: 'Pickup',   value: booking.pickupCity, sub: booking.pickupFloor !== undefined ? `Floor ${booking.pickupFloor}` : '' },
+            { label: 'Drop-off', value: booking.dropCity,   sub: booking.dropFloor !== undefined ? `Floor ${booking.dropFloor}` : '' },
+            { label: 'Date',     value: new Date(booking.scheduledDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }), sub: new Date(booking.scheduledDate).toLocaleDateString('en-IN', { weekday: 'short' }) },
+            { label: 'Team',     value: `${booking.teamSize || '—'} members`, sub: booking.teamLeaderName ? 'Assigned' : 'Pending' },
+          ].map((s, i) => (
+            <div key={i} className="px-4 py-3">
+              <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">{s.label}</p>
+              <p className="text-sm font-bold text-gray-900 mt-0.5 truncate">{s.value}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">{s.sub}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-4">
+        {/* ══ Main Content ══ */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Customer */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <User className="w-4 h-4 text-blue-500" /> Customer
+            </h3>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-sm font-bold text-blue-600 shrink-0">
+                {booking.customerName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-gray-900 truncate">{booking.customerName}</p>
+                {booking.customerEmail && <p className="text-xs text-gray-400 truncate">{booking.customerEmail}</p>}
               </div>
             </div>
-
-            <div className="p-6 space-y-6">
-              {/* Route */}
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <div className="flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-green-500 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">From</p>
-                      <p className="font-medium">{booking.pickupCity}</p>
-                      {booking.pickupAddress && <p className="text-sm text-gray-600">{booking.pickupAddress}</p>}
-                      {booking.pickupFloor !== undefined && (
-                        <p className="text-xs text-gray-500">Floor: {booking.pickupFloor} {booking.hasPickupLift ? '(Lift)' : '(No Lift)'}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <ArrowRight className="w-6 h-6 text-gray-400 flex-shrink-0" />
-                <div className="flex-1">
-                  <div className="flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-red-500 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">To</p>
-                      <p className="font-medium">{booking.dropCity}</p>
-                      {booking.dropAddress && <p className="text-sm text-gray-600">{booking.dropAddress}</p>}
-                      {booking.dropFloor !== undefined && (
-                        <p className="text-xs text-gray-500">Floor: {booking.dropFloor} {booking.hasDropLift ? '(Lift)' : '(No Lift)'}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Date & Property Details */}
-              <div className="grid md:grid-cols-2 gap-6 pt-6 border-t">
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <Calendar className="w-5 h-5 text-cyan-500 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Scheduled Date</p>
-                      <p className="font-medium">{new Date(booking.scheduledDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <Users className="w-5 h-5 text-cyan-500 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Team Size</p>
-                      <p className="font-medium">{booking.teamSize || 'Not specified'} members</p>
-                      {booking.quoteRequest?.propertySize && (
-                        <p className="text-sm text-gray-600">{getPropertySizeName(booking.quoteRequest.propertySize)}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="flex flex-wrap gap-1.5">
+              {booking.customerPhone && (
+                <a href={`tel:${booking.customerPhone}`} className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all">
+                  <User className="w-3 h-3" /> {booking.customerPhone}
+                </a>
+              )}
+              {booking.customerEmail && (
+                <a href={`mailto:${booking.customerEmail}`} className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-600 transition-all">
+                  <Mail className="w-3 h-3" /> Email
+                </a>
+              )}
+              {booking.customerPhone && (
+                <a href={`https://wa.me/${booking.customerPhone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] transition-all">
+                  WhatsApp
+                </a>
+              )}
             </div>
           </div>
 
-          {/* Customer & Payment Section */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <User className="w-5 h-5 text-cyan-600" />
-                Customer Info
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-gray-500">Name</p>
-                  <p className="font-medium">{booking.customerName}</p>
+          {/* Route Detail */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-emerald-500" /> Route
+            </h3>
+            <div className="relative pl-6">
+              <div className="absolute left-2 top-3 bottom-3 w-0.5 bg-gradient-to-b from-emerald-400 to-rose-400" />
+              <div className="relative mb-4">
+                <div className="absolute -left-6 top-1 w-4 h-4 rounded-full bg-emerald-500 ring-4 ring-emerald-100" />
+                <div className="flex items-center gap-2 mb-0.5">
+                  <Home className="w-3.5 h-3.5 text-emerald-600" />
+                  <p className="text-sm font-bold text-gray-900">{booking.pickupCity}</p>
                 </div>
-                {booking.customerEmail && (
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="font-medium">{booking.customerEmail}</p>
-                  </div>
+                {booking.pickupAddress && <p className="text-xs text-gray-500">{booking.pickupAddress}</p>}
+                {booking.pickupFloor !== undefined && (
+                  <p className="text-[10px] text-gray-400 mt-0.5">Floor {booking.pickupFloor} · {booking.hasPickupLift ? 'Lift available' : 'No lift'}</p>
+                )}
+              </div>
+              <div className="relative">
+                <div className="absolute -left-6 top-1 w-4 h-4 rounded-full bg-rose-500 ring-4 ring-rose-100" />
+                <div className="flex items-center gap-2 mb-0.5">
+                  <Building className="w-3.5 h-3.5 text-rose-600" />
+                  <p className="text-sm font-bold text-gray-900">{booking.dropCity}</p>
+                </div>
+                {booking.dropAddress && <p className="text-xs text-gray-500">{booking.dropAddress}</p>}
+                {booking.dropFloor !== undefined && (
+                  <p className="text-[10px] text-gray-400 mt-0.5">Floor {booking.dropFloor} · {booking.hasDropLift ? 'Lift available' : 'No lift'}</p>
                 )}
               </div>
             </div>
-
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-cyan-600" />
-                Payment Summary
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Total Amount</span>
-                  <span className="font-bold text-gray-900">₹{booking.totalAmount.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Advance {booking.advancePaid ? '(Paid)' : '(Pending)'}</span>
-                  <span className={`font-bold ${booking.advancePaid ? 'text-green-600' : 'text-yellow-600'}`}>
-                    ₹{booking.advanceAmount.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm pt-2 border-t">
-                  <span className="text-gray-900 font-semibold">Remaining Balance</span>
-                  <span className="font-bold text-cyan-600 text-lg">₹{getBalanceAmount().toLocaleString()}</span>
-                </div>
-                <div className="mt-2 text-center">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${booking.paymentStatus === 'PAID' || booking.paymentStatus === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                    {booking.paymentStatus}
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* Team Assignment Section */}
-          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <div className="p-6 border-b flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Users className="w-5 h-5 text-cyan-600" />
-                Team Assignment
+          {/* Customer Notes */}
+          {booking.customerNotes && (
+            <div className="bg-amber-50/60 rounded-2xl border border-amber-100 p-5">
+              <h3 className="text-sm font-bold text-gray-900 mb-1.5 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-amber-500" /> Customer Notes
+              </h3>
+              <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">{booking.customerNotes}</p>
+            </div>
+          )}
+
+          {/* Team Assignment */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <Users className="w-4 h-4 text-emerald-500" /> Team Assignment
               </h3>
               {!booking.teamLeaderName && !showAssignForm && ['ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
-                <button
-                  onClick={handleOpenAssignForm}
-                  className="px-4 py-2 bg-cyan-600 text-white text-sm font-medium rounded-lg hover:bg-cyan-700 transition"
-                >
+                <button onClick={handleOpenAssignForm} className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg transition active:scale-95">
                   Assign Team
                 </button>
               )}
               {booking.teamLeaderName && !showAssignForm && ['TEAM_ASSIGNED', 'ADVANCE_PAID'].includes(booking.status) && (
-                <button
-                  onClick={handleOpenAssignForm}
-                  className="text-cyan-600 text-sm font-medium hover:underline flex items-center gap-1"
-                >
-                  <Edit className="w-4 h-4" />
-                  Change Team
+                <button onClick={handleOpenAssignForm} className="text-emerald-600 text-xs font-bold hover:underline flex items-center gap-1">
+                  <Edit className="w-3.5 h-3.5" /> Change
                 </button>
               )}
             </div>
 
             {showAssignForm ? (
-              <div className="p-6 bg-cyan-50/30 space-y-6">
-                <div className="space-y-4">
-                  {/* Team Leader Selection */}
-                  <div className="space-y-3 pb-4 border-b border-cyan-200">
-                    <label className="block text-sm font-medium text-gray-700">
-                      <Users className="w-4 h-4 inline mr-1 text-cyan-500" />
-                      Select Team Leader from Staff *
-                    </label>
-                    {staffMembers.length > 0 ? (
-                      <select
-                        className="w-full px-4 py-2.5 border border-cyan-200 rounded-lg focus:ring-2 focus:ring-cyan-500 bg-white"
-                        value={staffMembers.find(s => s.name === assignForm.teamLeaderName)?.id || ''}
-                        onChange={(e) => {
-                          const member = staffMembers.find(s => s.id === e.target.value);
-                          if (member) {
-                            setAssignForm({ ...assignForm, teamLeaderName: member.name, teamLeaderPhone: member.phone });
-                          } else {
-                            setAssignForm({ ...assignForm, teamLeaderName: '', teamLeaderPhone: '' });
-                          }
-                        }}
-                      >
-                        <option value="">-- Select team leader --</option>
-                        {staffMembers.map((member) => (
-                          <option
-                            key={member.id}
-                            value={member.id}
-                            disabled={member.isAvailableForDates === false}
-                          >
-                            {member.name} ({member.phone}) - {member.role}{member.isAvailableForDates === false ? ' — Assigned for this date' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Team Leader Name *</label>
-                          <input
-                            type="text"
-                            value={assignForm.teamLeaderName}
-                            onChange={(e) => setAssignForm({ ...assignForm, teamLeaderName: e.target.value })}
-                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-cyan-500"
-                            placeholder="Enter team leader name"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Team Leader Phone *</label>
-                          <input
-                            type="tel"
-                            value={assignForm.teamLeaderPhone}
-                            onChange={(e) => setAssignForm({ ...assignForm, teamLeaderPhone: e.target.value })}
-                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-cyan-500"
-                            placeholder="9737965551"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {assignForm.teamLeaderName && (
-                      <div className="p-3 bg-white border border-cyan-200 rounded-lg space-y-1">
-                        <p className="text-sm font-bold text-cyan-800">{assignForm.teamLeaderName}</p>
-                        <p className="text-xs text-cyan-600">{assignForm.teamLeaderPhone}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Team Members */}
-                  <div className="space-y-3">
-                    <label className="block text-sm font-medium text-gray-700">
-                      <Boxes className="w-4 h-4 inline mr-1 text-cyan-500" />
-                      Team Members (Optional)
-                    </label>
-                    <textarea
-                      value={assignForm.teamMembers}
-                      onChange={(e) => setAssignForm({ ...assignForm, teamMembers: e.target.value })}
-                      className="w-full px-4 py-2 border border-cyan-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
-                      placeholder="Enter team member names (comma separated)&#10;Example: Rajesh Kumar, Amit Singh, Suresh Verma"
-                      rows={3}
-                    />
-                    <p className="text-xs text-gray-500">You can add additional team members who will assist in packing and moving</p>
-                  </div>
+              <div className="p-5 bg-emerald-50/30 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">Team Leader *</label>
+                  {staffMembers.length > 0 ? (
+                    <select
+                      className="w-full px-3 py-2 text-sm border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30 bg-white"
+                      value={staffMembers.find((s) => s.name === assignForm.teamLeaderName)?.id || ''}
+                      onChange={(e) => {
+                        const member = staffMembers.find((s) => s.id === e.target.value);
+                        if (member) setAssignForm({ ...assignForm, teamLeaderName: member.name, teamLeaderPhone: member.phone });
+                        else setAssignForm({ ...assignForm, teamLeaderName: '', teamLeaderPhone: '' });
+                      }}
+                    >
+                      <option value="">-- Select team leader --</option>
+                      {staffMembers.map((m) => (
+                        <option key={m.id} value={m.id} disabled={m.isAvailableForDates === false}>
+                          {m.name} ({m.phone}) - {m.role}{m.isAvailableForDates === false ? ' — Busy' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <input
+                        type="text" placeholder="Name"
+                        value={assignForm.teamLeaderName}
+                        onChange={(e) => setAssignForm({ ...assignForm, teamLeaderName: e.target.value })}
+                        className="px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-emerald-500/30"
+                      />
+                      <input
+                        type="tel" placeholder="Phone"
+                        value={assignForm.teamLeaderPhone}
+                        onChange={(e) => setAssignForm({ ...assignForm, teamLeaderPhone: e.target.value })}
+                        className="px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-emerald-500/30"
+                      />
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                  <button
-                    onClick={() => setShowAssignForm(false)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-900 text-sm font-medium"
-                  >
-                    Cancel
-                  </button>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                    <Boxes className="w-3.5 h-3.5 inline mr-1 text-emerald-500" />
+                    Team Members (Optional)
+                  </label>
+                  <textarea
+                    value={assignForm.teamMembers}
+                    onChange={(e) => setAssignForm({ ...assignForm, teamMembers: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500/30"
+                    placeholder="Comma-separated names"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-emerald-100">
+                  <button onClick={() => setShowAssignForm(false)} className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900 font-semibold">Cancel</button>
                   <button
                     onClick={handleAssignSubmit}
                     disabled={actionLoading || !assignForm.teamLeaderName || !assignForm.teamLeaderPhone}
-                    className="px-6 py-2 bg-cyan-600 text-white text-sm font-medium rounded-lg hover:bg-cyan-700 disabled:opacity-50"
+                    className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-lg disabled:opacity-50 active:scale-95 transition"
                   >
-                    {actionLoading ? 'Saving...' : 'Confirm Assignment'}
+                    {actionLoading ? 'Saving...' : 'Confirm'}
                   </button>
                 </div>
               </div>
             ) : booking.teamLeaderName ? (
-              <div className="p-6">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-16 h-16 bg-cyan-100 rounded-full flex items-center justify-center text-cyan-600">
-                    <User className="w-8 h-8" />
+              <div className="p-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center text-white shadow-sm shadow-emerald-500/20 shrink-0">
+                    <User className="w-6 h-6" />
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-bold">Team Leader</p>
-                    <p className="font-bold text-gray-900 text-lg">{booking.teamLeaderName}</p>
-                    <p className="text-cyan-600 font-medium">{booking.teamLeaderPhone}</p>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Team Leader</p>
+                    <p className="font-bold text-gray-900">{booking.teamLeaderName}</p>
+                    <p className="text-emerald-600 text-xs font-medium">{booking.teamLeaderPhone}</p>
                   </div>
                 </div>
-
                 {booking.teamMembers && (
-                  <div className="pt-4 border-t">
-                    <p className="text-xs text-gray-500 uppercase font-bold mb-2">Team Members</p>
-                    <div className="bg-cyan-50 p-3 rounded-lg">
-                      <p className="text-sm text-gray-700">{booking.teamMembers}</p>
-                    </div>
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Team Members</p>
+                    <p className="text-xs text-gray-700">{booking.teamMembers}</p>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="p-12 text-center text-gray-500">
-                <Users className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                <p>No team assigned yet.</p>
-                {['ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
-                  <button
-                    onClick={handleOpenAssignForm}
-                    className="mt-4 px-6 py-2 bg-cyan-600 text-white text-sm font-medium rounded-lg hover:bg-cyan-700"
-                  >
-                    Assign Team Now
-                  </button>
-                )}
+              <div className="p-8 text-center">
+                <Users className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm text-gray-400">No team assigned yet</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Sidebar / Status Flow */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h3 className="font-bold text-gray-900 mb-6 border-b pb-4">Moving Progress</h3>
-
-            {(() => {
-              const isDropped = booking.status === 'DROPPED';
-              const paymentDone = booking.advancePaymentVerified || ['ADVANCE_PAID', 'CONFIRMED', 'TEAM_ASSIGNED', 'PACKING', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'UNPACKING', 'COMPLETED'].includes(booking.status);
-              const teamDone = !!booking.teamLeaderName;
-              const packingDone = ['PACKING', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'UNPACKING', 'COMPLETED'].includes(booking.status);
-              const loadingDone = ['LOADING', 'IN_TRANSIT', 'UNLOADING', 'UNPACKING', 'COMPLETED'].includes(booking.status);
-              const transitDone = ['IN_TRANSIT', 'UNLOADING', 'UNPACKING', 'COMPLETED'].includes(booking.status);
-              const unloadingDone = ['UNLOADING', 'UNPACKING', 'COMPLETED'].includes(booking.status);
-              const unpackingDone = ['UNPACKING', 'COMPLETED'].includes(booking.status);
-              const completed = booking.status === 'COMPLETED';
-
-              let droppedAfterStep = -1;
-              if (isDropped) {
-                if (unpackingDone) droppedAfterStep = 6;
-                else if (unloadingDone) droppedAfterStep = 5;
-                else if (transitDone) droppedAfterStep = 4;
-                else if (loadingDone) droppedAfterStep = 3;
-                else if (packingDone) droppedAfterStep = 2;
-                else if (teamDone) droppedAfterStep = 1;
-                else if (paymentDone) droppedAfterStep = 0;
-              }
-
-              const steps = [
-                { label: 'Payment Verified', desc: 'Booking confirmed', done: paymentDone, icon: <CheckCircle className="w-5 h-5" />, time: null },
-                { label: 'Team Assigned', desc: 'Moving team ready', done: teamDone, icon: <Users className="w-5 h-5" />, time: null },
-                { label: 'Packing', desc: 'Items being packed', done: packingDone, icon: <Boxes className="w-5 h-5" />, time: booking.packingStartedAt },
-                { label: 'Loading', desc: 'Loading into vehicle', done: loadingDone, icon: <Package className="w-5 h-5" />, time: booking.packingCompletedAt },
-                { label: 'In Transit', desc: 'Moving to destination', done: transitDone, icon: <Navigation className="w-5 h-5" />, time: booking.loadingCompletedAt },
-                { label: 'Unloading', desc: 'Unloading at destination', done: unloadingDone, icon: <TruckIcon className="w-5 h-5" />, time: booking.unloadingStartedAt },
-                { label: 'Unpacking', desc: 'Setting up at new place', done: unpackingDone, icon: <Boxes className="w-5 h-5" />, time: booking.unloadingCompletedAt },
-                { label: 'Completed', desc: 'Moving completed', done: completed, icon: <CheckCircle className="w-5 h-5" />, time: booking.completedAt },
-              ];
-
-              const timelineItems: any[] = [];
-              for (let i = 0; i < steps.length; i++) {
-                const step = steps[i];
-                const isAfterDrop = isDropped && i > droppedAfterStep;
-                timelineItems.push({
-                  ...step,
-                  bgClass: isAfterDrop ? 'bg-gray-200 text-gray-400' : (step.done ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'),
-                  textClass: isAfterDrop ? 'text-gray-400' : (step.done ? 'text-gray-900' : 'text-gray-400'),
-                });
-                if (isDropped && i === droppedAfterStep) {
-                  timelineItems.push({
-                    label: 'Booking Dropped', desc: (booking as any).dropReason ? `Reason: ${(booking as any).dropReason}` : 'Booking was dropped',
-                    done: false, icon: <XCircle className="w-5 h-5" />, time: (booking as any).droppedAt,
-                    isDroppedMarker: true, bgClass: 'bg-red-600 text-white', textClass: 'text-red-700',
-                  });
-                }
-              }
-
-              return (
-                <div className="space-y-8 relative">
-                  <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-gray-100 -z-10" />
-                  {timelineItems.map((item: any, idx: number) => (
-                    <div key={idx} className="flex gap-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${item.bgClass}`}>
-                        {item.icon}
-                      </div>
-                      <div>
-                        <p className={`font-bold ${item.textClass}`}>{item.label}</p>
-                        <p className={`text-xs ${item.isDroppedMarker ? 'text-red-500' : 'text-gray-500'}`}>{item.desc}</p>
-                        {item.time && (
-                          <p className={`text-[10px] font-mono mt-1 ${item.isDroppedMarker ? 'text-red-500' : 'text-green-600'}`}>
-                            {new Date(item.time).toLocaleString('en-IN')}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-
-
-            {/* Status Display - Vendor can only view, driver manages actions via driver app */}
-            {booking.status === 'COMPLETED' && (
-              <div className="mt-6 pt-6 border-t">
-                <div className="text-center py-4">
-                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                  <p className="text-green-600 font-medium">Booking Completed</p>
-                  {booking.completedAt && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      {new Date(booking.completedAt).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  )}
+        {/* ══ Sidebar ══ */}
+        <div className="space-y-4">
+          {/* Payment Summary */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-emerald-500" /> Payment
+            </h3>
+            <div className="space-y-2.5">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Total Amount</span>
+                <span className="font-semibold text-gray-700">₹{booking.totalAmount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Advance {booking.advancePaid ? '(Paid)' : '(Pending)'}</span>
+                <span className={`font-semibold ${booking.advancePaid ? 'text-emerald-600' : 'text-yellow-600'}`}>
+                  ₹{booking.advanceAmount.toLocaleString()}
+                </span>
+              </div>
+              <div className="border-t border-gray-100 pt-2.5 mt-1">
+                <div className="flex justify-between items-end">
+                  <span className="text-sm font-bold text-gray-900">Balance</span>
+                  <span className="text-xl font-extrabold text-emerald-600">₹{balanceAmount.toLocaleString()}</span>
                 </div>
               </div>
-            )}
+            </div>
+          </div>
 
-            {/* Status Messages */}
-            <div className="mt-6 pt-6 border-t">
-              {booking.status === 'TEAM_ASSIGNED' && (
-                <div className="bg-cyan-50 p-4 rounded-xl border border-cyan-200">
-                  <p className="text-sm font-bold text-cyan-800 mb-1">Ready to Start</p>
-                  <p className="text-xs text-cyan-700">
-                    Team leader {booking.teamLeaderName} will start packing with OTP verification.
-                  </p>
-                </div>
+          {/* Status Hint */}
+          {booking.status === 'ADVANCE_PAID' && !booking.teamLeaderName && (
+            <div className="bg-blue-50 rounded-2xl border border-blue-100 p-4">
+              <p className="text-xs font-bold text-blue-800 mb-0.5">Assignment Pending</p>
+              <p className="text-[11px] text-blue-700">Assign a team to proceed with the moving.</p>
+            </div>
+          )}
+          {booking.status === 'TEAM_ASSIGNED' && (
+            <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-4">
+              <p className="text-xs font-bold text-emerald-800 mb-0.5">Ready to Start</p>
+              <p className="text-[11px] text-emerald-700">{booking.teamLeaderName} will start packing with OTP verification.</p>
+            </div>
+          )}
+          {ACTIVE_STATUSES.includes(booking.status) && (
+            <div className="bg-violet-50 rounded-2xl border border-violet-100 p-4 text-center">
+              <div className="inline-flex items-center justify-center w-10 h-10 bg-violet-100 rounded-full mb-2 animate-pulse">
+                <Navigation className="w-5 h-5 text-violet-600" />
+              </div>
+              <p className="text-xs font-bold text-violet-800">Moving in Progress</p>
+            </div>
+          )}
+          {booking.status === 'COMPLETED' && (
+            <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-5 text-center">
+              <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
+              <h3 className="text-sm font-bold text-emerald-800">Booking Completed!</h3>
+              {booking.completedAt && (
+                <p className="text-[11px] text-emerald-600 mt-0.5">
+                  {new Date(booking.completedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
               )}
-              {['PACKING', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'UNPACKING'].includes(booking.status) && (
-                <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
-                  <p className="text-sm font-bold text-purple-800 mb-2 flex items-center gap-2">
-                    <Navigation className="w-4 h-4" />
-                    Moving in Progress
-                  </p>
-                  <div className="flex justify-center">
-                    <div className="animate-bounce p-3 bg-purple-200 rounded-full text-purple-700">
-                      <Package className="w-6 h-6" />
+            </div>
+          )}
+
+          {/* Moving Progress Timeline */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-violet-500" /> Moving Progress
+            </h3>
+            <div className="relative space-y-3">
+              <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-gray-100" />
+              {steps.map((step, idx) => {
+                const Icon = step.icon;
+                return (
+                  <div key={idx} className="relative flex items-start gap-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center z-10 shrink-0 ${
+                      step.done ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-400'
+                    }`}>
+                      <Icon className="w-3 h-3" />
+                    </div>
+                    <div className="min-w-0 -mt-0.5">
+                      <p className={`text-xs font-bold ${step.done ? 'text-gray-900' : 'text-gray-400'}`}>{step.label}</p>
+                      {step.time && (
+                        <p className="text-[10px] text-emerald-600 font-mono">
+                          {new Date(step.time).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
                     </div>
                   </div>
-                </div>
-              )}
-              {booking.status === 'ADVANCE_PAID' && !booking.teamLeaderName && (
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                  <p className="text-sm font-bold text-blue-800 mb-1">Assignment Pending</p>
-                  <p className="text-xs text-blue-700">Please assign a team to proceed with the moving.</p>
-                </div>
-              )}
+                );
+              })}
             </div>
           </div>
 
           {/* Payment Proof */}
           {booking.advancePaymentProof && (
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="font-bold text-gray-900 mb-4">Payment Proof</h3>
-              <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden group">
-                <img
-                  src={booking.advancePaymentProof}
-                  alt="Payment Proof"
-                  className="w-full h-full object-cover"
-                />
-                <a
-                  href={booking.advancePaymentProof}
-                  target="_blank"
-                  className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
-                >
-                  <Eye className="text-white w-8 h-8" />
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-emerald-500" /> Payment Proof
+              </h3>
+              <div className="relative aspect-video bg-gray-50 rounded-xl overflow-hidden group border border-gray-100">
+                <img src={booking.advancePaymentProof} alt="Payment Proof" className="w-full h-full object-cover" />
+                <a href={booking.advancePaymentProof} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                  <Eye className="text-white w-7 h-7" />
                 </a>
               </div>
             </div>
           )}
         </div>
       </div>
-
     </div>
   );
 }

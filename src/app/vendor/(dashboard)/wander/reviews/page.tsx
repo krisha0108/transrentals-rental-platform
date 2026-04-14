@@ -17,7 +17,7 @@ function StarRow({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg' }
   return (
     <span className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((s) => (
-        <Star key={s} className={`${sz} ${s <= rating ? 'fill-amber-400 text-amber-400' : 'fill-gray-100 text-gray-200'}`} />
+        <Star key={s} className={`${sz} ${s <= rating ? 'fill-emerald-400 text-emerald-400' : 'fill-gray-100 text-gray-200'}`} />
       ))}
     </span>
   );
@@ -28,10 +28,10 @@ function RatingBar({ rating, count, total }: { rating: number; count: number; to
   return (
     <div className="flex items-center gap-2">
       <span className="text-[11px] font-bold text-slate-500 w-3 text-right">{rating}</span>
-      <Star className="w-3 h-3 fill-amber-400 text-amber-400 flex-shrink-0" />
+      <Star className="w-3 h-3 fill-emerald-400 text-emerald-400 flex-shrink-0" />
       <div className="flex-1 h-1.5 bg-slate-200/60 rounded-full overflow-hidden">
         <div
-          className="h-full bg-amber-400 rounded-full transition-all duration-500"
+          className="h-full bg-emerald-400 rounded-full transition-all duration-500"
           style={{ width: `${Math.max(pct, pct > 0 ? 4 : 0)}%` }}
         />
       </div>
@@ -123,19 +123,19 @@ export default function VendorWanderReviewsPage() {
     <div className="-mx-6 -mt-6 bg-slate-50 min-h-screen">
 
       {/* ── Dark Header ── */}
-      <div className="relative bg-[#071a0d] overflow-hidden px-8 pt-8 pb-6">
-        <div className="absolute -top-20 -right-20 w-80 h-80 bg-green-600/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-0 left-1/4 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700 overflow-hidden px-8 pt-8 pb-6">
+        <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 left-1/4 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative flex items-start justify-between gap-4 mb-7">
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-green-400">
-                <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> Wander Tours
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-emerald-200">
+                <Star className="w-3 h-3 fill-emerald-400 text-emerald-400" /> Wander Tours
               </span>
             </div>
             <h1 className="text-[28px] font-black text-white tracking-tight leading-none mb-2">Tour Reviews</h1>
-            <p className="text-green-200/50 text-sm">Manage customer feedback and respond to reviews</p>
+            <p className="text-emerald-100/70 text-sm">Manage customer feedback and respond to reviews</p>
           </div>
           <button
             onClick={() => fetchReviews(tab)}
@@ -148,14 +148,14 @@ export default function VendorWanderReviewsPage() {
         {/* Metric Cards */}
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Total Reviews',  value: total,          icon: MessageSquare, iconBg: 'bg-white/10',        iconColor: 'text-green-300',   valColor: 'text-white' },
-            { label: 'Avg Rating',     value: avgRating || '—', icon: Star,        iconBg: 'bg-amber-500/20',    iconColor: 'text-amber-400',   valColor: 'text-amber-300' },
-            { label: 'Active',         value: activeCount,    icon: Eye,           iconBg: 'bg-green-500/25',    iconColor: 'text-green-400',   valColor: 'text-green-300' },
+            { label: 'Total Reviews',  value: total,          icon: MessageSquare, iconBg: 'bg-white/10',        iconColor: 'text-emerald-200',   valColor: 'text-white' },
+            { label: 'Avg Rating',     value: avgRating || '—', icon: Star,        iconBg: 'bg-emerald-500/20',    iconColor: 'text-emerald-400',   valColor: 'text-emerald-300' },
+            { label: 'Active',         value: activeCount,    icon: Eye,           iconBg: 'bg-white/15',    iconColor: 'text-emerald-200',   valColor: 'text-emerald-200' },
             { label: 'Replied',        value: repliedCount,   icon: ThumbsUp,      iconBg: 'bg-teal-500/20',     iconColor: 'text-teal-400',    valColor: 'text-teal-300' },
           ].map(m => (
-            <div key={m.label} className="bg-white/[0.06] hover:bg-white/[0.09] border border-white/[0.08] rounded-2xl px-4 py-4 transition-colors">
+            <div key={m.label} className="bg-white/15 hover:bg-white/20 border border-white/20 rounded-2xl px-4 py-4 transition-colors">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{m.label}</p>
+                <p className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">{m.label}</p>
                 <div className={`w-7 h-7 rounded-lg ${m.iconBg} flex items-center justify-center`}>
                   <m.icon className={`w-3.5 h-3.5 ${m.iconColor}`} />
                 </div>
@@ -175,7 +175,7 @@ export default function VendorWanderReviewsPage() {
               onClick={() => setTab(t.key)}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
                 tab === t.key
-                  ? 'bg-green-700 text-white shadow-sm'
+                  ? 'bg-emerald-600 text-white shadow-sm'
                   : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
               }`}
             >
@@ -189,13 +189,13 @@ export default function VendorWanderReviewsPage() {
       <div className="px-8 py-7">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-44 gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
             <p className="text-sm text-gray-400 font-medium">Loading reviews...</p>
           </div>
         ) : reviews.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 bg-white border border-dashed border-gray-200 rounded-2xl">
-            <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mb-4">
-              <Star className="w-8 h-8 text-amber-200" />
+            <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4">
+              <Star className="w-8 h-8 text-emerald-200" />
             </div>
             <p className="font-bold text-gray-800 mb-1 text-base">No reviews yet</p>
             <p className="text-sm text-gray-400">Reviews from completed tours will appear here</p>
@@ -220,13 +220,13 @@ export default function VendorWanderReviewsPage() {
                     {/* Top rating color bar */}
                     <div className={`h-1 ${
                       review.rating >= 4 ? 'bg-gradient-to-r from-emerald-400 to-teal-400' :
-                      review.rating === 3 ? 'bg-amber-400' : 'bg-red-400'
+                      review.rating === 3 ? 'bg-emerald-400' : 'bg-red-400'
                     }`} />
 
                     <div className="p-5">
                       <div className="flex items-start gap-4">
                         {/* Avatar */}
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 text-white font-black text-base shadow-sm">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center flex-shrink-0 text-white font-black text-base shadow-sm">
                           {review.customer?.name?.[0]?.toUpperCase() || 'C'}
                         </div>
 
@@ -245,13 +245,13 @@ export default function VendorWanderReviewsPage() {
                                   {isHidden ? 'Hidden' : 'Active'}
                                 </span>
                                 {review.isVerified && (
-                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center gap-1">
+                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-1">
                                     <Check className="w-2.5 h-2.5" /> Verified
                                   </span>
                                 )}
                               </div>
                               {review.listing?.title && (
-                                <p className="text-[11px] text-indigo-500 font-medium">📍 {review.listing.title}</p>
+                                <p className="text-[11px] text-emerald-500 font-medium">📍 {review.listing.title}</p>
                               )}
                             </div>
 
@@ -272,7 +272,7 @@ export default function VendorWanderReviewsPage() {
                                 <button
                                   onClick={() => handleAction(review.id, 'show')}
                                   disabled={actionLoading === review.id + '_show'}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 border border-indigo-200 hover:bg-indigo-50 rounded-xl transition disabled:opacity-50"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600 border border-emerald-200 hover:bg-emerald-50 rounded-xl transition disabled:opacity-50"
                                 >
                                   {actionLoading === review.id + '_show'
                                     ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -284,8 +284,8 @@ export default function VendorWanderReviewsPage() {
                                 onClick={() => setReplyOpen(prev => ({ ...prev, [review.id]: !prev[review.id] }))}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-xl border transition ${
                                   isReplyOpen
-                                    ? 'border-green-300 bg-green-50 text-green-700'
-                                    : 'border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-green-600'
+                                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                                    : 'border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-emerald-600'
                                 }`}
                               >
                                 <MessageSquare className="w-3 h-3" />
@@ -309,14 +309,14 @@ export default function VendorWanderReviewsPage() {
 
                           {/* Existing reply */}
                           {hasReply && (
-                            <div className="mt-4 bg-indigo-50/60 border border-indigo-100 rounded-xl p-4">
-                              <p className="text-[10px] text-indigo-500 uppercase tracking-wider font-bold mb-1.5 flex items-center gap-1">
+                            <div className="mt-4 bg-emerald-50/60 border border-emerald-100 rounded-xl p-4">
+                              <p className="text-[10px] text-emerald-500 uppercase tracking-wider font-bold mb-1.5 flex items-center gap-1">
                                 <MessageSquare className="w-3 h-3" /> Your Reply
                                 {review.vendorRepliedAt && (
-                                  <span className="ml-1 font-normal normal-case text-indigo-400">· {fmt(review.vendorRepliedAt)}</span>
+                                  <span className="ml-1 font-normal normal-case text-emerald-400">· {fmt(review.vendorRepliedAt)}</span>
                                 )}
                               </p>
-                              <p className="text-sm text-indigo-800 leading-relaxed">{review.vendorReply}</p>
+                              <p className="text-sm text-emerald-800 leading-relaxed">{review.vendorReply}</p>
                             </div>
                           )}
 
@@ -328,7 +328,7 @@ export default function VendorWanderReviewsPage() {
                                 onChange={e => setReplyText(prev => ({ ...prev, [review.id]: e.target.value }))}
                                 placeholder={hasReply ? 'Update your reply...' : 'Write a professional reply...'}
                                 rows={3}
-                                className="w-full border border-indigo-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-300/50/50 resize-none bg-indigo-50/30 transition"
+                                className="w-full border border-emerald-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300/50/50 resize-none bg-emerald-50/30 transition"
                               />
                               <div className="flex items-center gap-2 justify-end">
                                 <button
@@ -340,7 +340,7 @@ export default function VendorWanderReviewsPage() {
                                 <button
                                   onClick={() => handleReplySubmit(review.id)}
                                   disabled={replySubmitting === review.id || !replyText[review.id]?.trim()}
-                                  className="px-5 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-200 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm"
+                                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-600 disabled:bg-gray-200 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm"
                                 >
                                   {replySubmitting === review.id
                                     ? <><Loader2 className="w-3 h-3 animate-spin" /> Saving...</>
@@ -368,12 +368,12 @@ export default function VendorWanderReviewsPage() {
             <div className="space-y-4 lg:sticky lg:top-[120px]">
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                 <h3 className="font-black text-gray-900 text-sm flex items-center gap-2 mb-5">
-                  <Award className="w-4 h-4 text-amber-500" /> Rating Summary
+                  <Award className="w-4 h-4 text-emerald-500" /> Rating Summary
                 </h3>
 
                 {/* Big avg rating */}
-                <div className="flex flex-col items-center py-4 mb-5 bg-amber-50/50 rounded-xl border border-amber-100">
-                  <p className="text-5xl font-black text-amber-500 leading-none">{avgRating || '—'}</p>
+                <div className="flex flex-col items-center py-4 mb-5 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                  <p className="text-5xl font-black text-emerald-500 leading-none">{avgRating || '—'}</p>
                   <div className="mt-2">
                     <StarRow rating={Math.round(Number(avgRating) || 0)} size="lg" />
                   </div>
@@ -392,9 +392,9 @@ export default function VendorWanderReviewsPage() {
                     <p className="text-xl font-black text-emerald-700">{activeCount}</p>
                     <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wide mt-0.5">Active</p>
                   </div>
-                  <div className="bg-indigo-50 rounded-xl py-3">
-                    <p className="text-xl font-black text-indigo-700">{repliedCount}</p>
-                    <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wide mt-0.5">Replied</p>
+                  <div className="bg-emerald-50 rounded-xl py-3">
+                    <p className="text-xl font-black text-emerald-700">{repliedCount}</p>
+                    <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-wide mt-0.5">Replied</p>
                   </div>
                 </div>
               </div>

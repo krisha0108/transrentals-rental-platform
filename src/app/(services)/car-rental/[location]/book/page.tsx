@@ -114,6 +114,12 @@ function BookingContent({ location }: { location: string }) {
       return;
     }
 
+    const phoneDigits = customerPhone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10 || !/^[6-9]/.test(phoneDigits)) {
+      alert('Please enter a valid 10-digit Indian mobile number (starting with 6-9)');
+      return;
+    }
+
     if (!agreeTerms) {
       alert('Please agree to the terms and conditions');
       return;
@@ -384,9 +390,12 @@ function BookingContent({ location }: { location: string }) {
                       <input
                         type="tel"
                         value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '');
+                          if (val.length <= 10) setCustomerPhone(val);
+                        }}
                         placeholder="10-digit mobile number"
-                        pattern="[0-9]{10}"
+                        maxLength={10}
                         className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         required
                       />

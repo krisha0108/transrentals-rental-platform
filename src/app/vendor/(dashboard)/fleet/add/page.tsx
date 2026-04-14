@@ -276,17 +276,17 @@ export default function AddFleetVehiclePage() {
     const name = service.name.toLowerCase();
     const slug = (service.slug || "").toLowerCase();
     if (name.includes("bike") || slug.includes("bike"))
-      return { bg: "bg-orange-50", border: "border-orange-500", icon: "text-orange-600", activeBg: "bg-orange-100" };
+      return { bg: "bg-emerald-50", border: "border-emerald-500", icon: "text-emerald-600", activeBg: "bg-emerald-100" };
     if (name.includes("bus") || slug.includes("bus"))
-      return { bg: "bg-indigo-50", border: "border-indigo-500", icon: "text-indigo-600", activeBg: "bg-indigo-100" };
+      return { bg: "bg-emerald-50", border: "border-emerald-500", icon: "text-emerald-600", activeBg: "bg-emerald-100" };
     if (name.includes("truck") || slug.includes("truck") || name.includes("transporter") || slug.includes("transporter"))
-      return { bg: "bg-blue-50", border: "border-blue-500", icon: "text-blue-600", activeBg: "bg-blue-100" };
+      return { bg: "bg-emerald-50", border: "border-emerald-500", icon: "text-emerald-600", activeBg: "bg-emerald-100" };
     if (name.includes("equipment") || slug.includes("equipment") || name.includes("crane") || name.includes("jcb"))
-      return { bg: "bg-amber-50", border: "border-amber-500", icon: "text-amber-600", activeBg: "bg-amber-100" };
+      return { bg: "bg-emerald-50", border: "border-emerald-500", icon: "text-emerald-600", activeBg: "bg-emerald-100" };
     if (name.includes("packer") || slug.includes("packer") || name.includes("mover") || slug.includes("mover"))
       return { bg: "bg-cyan-50", border: "border-cyan-500", icon: "text-cyan-600", activeBg: "bg-cyan-100" };
     if (name.includes("luxury") || slug.includes("luxury"))
-      return { bg: "bg-purple-50", border: "border-purple-500", icon: "text-purple-600", activeBg: "bg-purple-100" };
+      return { bg: "bg-emerald-50", border: "border-emerald-500", icon: "text-emerald-600", activeBg: "bg-emerald-100" };
     if (name.includes("self-drive") || slug.includes("self-drive"))
       return { bg: "bg-sky-50", border: "border-sky-500", icon: "text-sky-600", activeBg: "bg-sky-100" };
     if (name.includes("driver") || name.includes("chauffeur") || slug.includes("car-rental"))
@@ -588,10 +588,38 @@ export default function AddFleetVehiclePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+        <div className="max-w-4xl mx-auto animate-pulse space-y-6 py-8">
+          {/* Header bar */}
+          <div className="h-8 bg-gray-200 rounded-xl w-1/3"></div>
+          {/* Progress steps */}
+          <div className="flex items-center gap-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
+                <div className="h-3 bg-gray-100 rounded w-16 hidden sm:block"></div>
+                {i < 3 && <div className="h-0.5 bg-gray-100 w-8"></div>}
+              </div>
+            ))}
+          </div>
+          {/* Form card */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
+            <div className="h-5 bg-gray-200 rounded w-1/4"></div>
+            <div className="space-y-4">
+              <div className="h-10 bg-gray-100 rounded-xl"></div>
+              <div className="h-10 bg-gray-100 rounded-xl"></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="h-10 bg-gray-100 rounded-xl"></div>
+                <div className="h-10 bg-gray-100 rounded-xl"></div>
+              </div>
+              <div className="h-10 bg-gray-100 rounded-xl"></div>
+              <div className="h-10 bg-gray-100 rounded-xl w-2/3"></div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <div className="h-10 bg-gray-100 rounded-lg w-24"></div>
+              <div className="h-10 bg-gray-200 rounded-lg w-24"></div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -599,75 +627,102 @@ export default function AddFleetVehiclePage() {
 
   if (mainServices.length === 0) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => router.back()}>
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <h1 className="text-2xl font-bold text-gray-900">Add Vehicle</h1>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+        <div className="max-w-[1600px] mx-auto space-y-6">
+          <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 rounded-2xl p-6 sm:p-8 shadow-lg">
+            <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+            <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+            <div className="relative flex items-center gap-4">
+              <Button variant="outline" size="sm" onClick={() => router.back()} className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Add Vehicle</h1>
+            </div>
+          </div>
 
-        <div className="bg-yellow-50 rounded-xl p-8 text-center border border-yellow-200">
-          <Layers className="w-12 h-12 mx-auto mb-4 text-yellow-600" />
-          <h2 className="text-lg font-semibold text-yellow-800 mb-2">No Approved Services</h2>
-          <p className="text-yellow-700 mb-4">You need at least one approved service before adding vehicles to your fleet.</p>
-          <Button onClick={() => router.push("/vendor/services/request")}>Request Services</Button>
+          <div className="bg-white rounded-2xl border border-emerald-100 shadow-sm p-10 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-100 flex items-center justify-center">
+              <Layers className="w-8 h-8 text-emerald-600" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">No Approved Services</h2>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">You need at least one approved service before adding vehicles to your fleet.</p>
+            <Button onClick={() => router.push("/vendor/services/request")} className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md">Request Services</Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="sm" onClick={() => router.back()}>
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Add Vehicle</h1>
-          <p className="text-gray-600">Add a new vehicle to your fleet</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+      <div className="max-w-[1600px] mx-auto space-y-6">
+        {/* Header */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 rounded-2xl p-6 sm:p-8 shadow-lg">
+          <div className="absolute inset-0 bg-grid-white/5 opacity-20"></div>
+          <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="relative flex items-center gap-4">
+            <Button variant="outline" size="sm" onClick={() => router.back()} className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm shadow-md">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Add Vehicle</h1>
+              <p className="text-emerald-100 mt-1 text-sm sm:text-base">Add a new vehicle to your fleet</p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Progress Steps */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border">
-        <div className="flex items-center justify-between">
-          {steps.map((s, idx) => (
-            <React.Fragment key={s.num}>
-              <button
-                onClick={() => {
-                  if (s.num <= step) setStep(s.num);
-                }}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-lg transition-colors",
-                  step === s.num ? "bg-blue-100 text-blue-700" : step > s.num ? "text-green-600 cursor-pointer" : "text-gray-400"
-                )}
-              >
-                <div
+        {/* Progress Steps */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between">
+            {steps.map((s, idx) => (
+              <React.Fragment key={s.num}>
+                <button
+                  onClick={() => {
+                    if (s.num <= step) setStep(s.num);
+                  }}
                   className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-                    step === s.num ? "bg-blue-600 text-white" : step > s.num ? "bg-green-600 text-white" : "bg-gray-200 text-gray-500"
+                    "flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition-all",
+                    step === s.num
+                      ? "bg-gradient-to-r from-emerald-50 to-emerald-50 text-emerald-700 shadow-sm"
+                      : step > s.num
+                        ? "text-green-600 cursor-pointer hover:bg-green-50"
+                        : "text-gray-400"
                   )}
                 >
-                  {step > s.num ? <Check className="w-4 h-4" /> : s.num}
-                </div>
-                <span className="hidden md:block font-medium">{s.label}</span>
-              </button>
-              {idx < steps.length - 1 && <div className="flex-1 h-0.5 bg-gray-200 mx-2" />}
-            </React.Fragment>
-          ))}
+                  <div
+                    className={cn(
+                      "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold transition-all",
+                      step === s.num
+                        ? "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md"
+                        : step > s.num
+                          ? "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-sm"
+                          : "bg-gray-100 text-gray-500"
+                    )}
+                  >
+                    {step > s.num ? <Check className="w-4 h-4" /> : s.num}
+                  </div>
+                  <span className="hidden md:block font-semibold text-sm">{s.label}</span>
+                </button>
+                {idx < steps.length - 1 && (
+                  <div className={cn(
+                    "flex-1 h-1 rounded-full mx-1 sm:mx-2 transition-all",
+                    step > s.num ? "bg-gradient-to-r from-green-500 to-emerald-500" : "bg-gray-100"
+                  )} />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Step 1 */}
-      {step === 1 && (
-        <div className="space-y-6">
+        {/* Step 1 */}
+        {step === 1 && (
+          <div className="space-y-6">
           {/* Service Selection */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <Layers className="w-4 h-4 text-indigo-600" />
+              <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                <Layers className="w-4 h-4 text-emerald-600" />
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Select Service</h2>
@@ -708,10 +763,10 @@ export default function AddFleetVehiclePage() {
 
           {/* Category Selection (for Bike and Self-Drive) */}
           {needsModelSelection && selectedService && availableCategories.length > 0 && (
-            <div className="bg-white rounded-xl p-6 shadow-sm border">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Tag className="w-4 h-4 text-purple-600" />
+                <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                  <Tag className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">
@@ -726,7 +781,7 @@ export default function AddFleetVehiclePage() {
                   onClick={() => setSubServiceId("")}
                   className={cn(
                     "px-4 py-2 rounded-lg border transition-colors font-medium",
-                    !subServiceId ? "border-purple-500 bg-purple-50 text-purple-700" : "border-gray-200 hover:border-gray-300 text-gray-600"
+                    !subServiceId ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-gray-200 hover:border-gray-300 text-gray-600"
                   )}
                 >
                   All Categories
@@ -742,7 +797,7 @@ export default function AddFleetVehiclePage() {
                     }}
                     className={cn(
                       "px-4 py-2 rounded-lg border transition-colors font-medium",
-                      subServiceId === category.id ? "border-purple-500 bg-purple-50 text-purple-700" : "border-gray-200 hover:border-gray-300 text-gray-600"
+                      subServiceId === category.id ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-gray-200 hover:border-gray-300 text-gray-600"
                     )}
                   >
                     {category.name}
@@ -754,8 +809,8 @@ export default function AddFleetVehiclePage() {
 
           {/* Bus Vehicle Category Selection */}
           {isBusService && serviceId && busVehicleCategories.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <div className="p-6 border-b bg-gray-50">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30">
                 <h2 className="text-lg font-semibold text-gray-900">Select Bus Category</h2>
                 <p className="text-sm text-gray-600 mt-1">Choose the type of bus (optional filter for models)</p>
               </div>
@@ -770,11 +825,11 @@ export default function AddFleetVehiclePage() {
                     }}
                     className={cn(
                       "p-4 rounded-xl border-2 transition-all text-left",
-                      !selectedVehicleCategoryId ? "border-indigo-500 bg-indigo-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                      !selectedVehicleCategoryId ? "border-emerald-500 bg-emerald-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <Bus className="w-6 h-6 text-indigo-600" />
+                      <Bus className="w-6 h-6 text-emerald-600" />
                       <div>
                         <p className="font-medium text-gray-900">All Categories</p>
                         <p className="text-xs text-gray-500">Show all bus models</p>
@@ -791,14 +846,14 @@ export default function AddFleetVehiclePage() {
                       }}
                       className={cn(
                         "p-4 rounded-xl border-2 transition-all text-left",
-                        selectedVehicleCategoryId === category.id ? "border-indigo-500 bg-indigo-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        selectedVehicleCategoryId === category.id ? "border-emerald-500 bg-emerald-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                       )}
                     >
                       <div className="flex items-center gap-3">
                         {category.image ? (
                           <img src={category.image} alt={category.name} className="w-10 h-10 object-contain" />
                         ) : (
-                          <Bus className="w-6 h-6 text-indigo-600" />
+                          <Bus className="w-6 h-6 text-emerald-600" />
                         )}
                         <div>
                           <p className="font-medium text-gray-900">{category.name}</p>
@@ -814,8 +869,8 @@ export default function AddFleetVehiclePage() {
 
           {/* Truck Vehicle Category Selection */}
           {isTruckService && serviceId && truckVehicleCategories.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <div className="p-6 border-b bg-gray-50">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30">
                 <h2 className="text-lg font-semibold text-gray-900">Select Truck Category <span className="text-red-500">*</span></h2>
                 <p className="text-sm text-gray-600 mt-1">Choose the type of truck for your fleet</p>
               </div>
@@ -830,14 +885,14 @@ export default function AddFleetVehiclePage() {
                       }}
                       className={cn(
                         "p-4 rounded-xl border-2 transition-all text-left",
-                        selectedVehicleCategoryId === category.id ? "border-blue-500 bg-blue-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        selectedVehicleCategoryId === category.id ? "border-emerald-500 bg-emerald-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                       )}
                     >
                       <div className="flex items-center gap-3">
                         {category.image ? (
                           <img src={category.image} alt={category.name} className="w-10 h-10 object-contain" />
                         ) : (
-                          <Truck className="w-6 h-6 text-blue-600" />
+                          <Truck className="w-6 h-6 text-emerald-600" />
                         )}
                         <div>
                           <p className="font-medium text-gray-900">{category.name}</p>
@@ -853,8 +908,8 @@ export default function AddFleetVehiclePage() {
 
           {/* Equipment Category Selection */}
           {isEquipmentService && serviceId && equipmentVehicleCategories.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <div className="p-6 border-b bg-gray-50">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30">
                 <h2 className="text-lg font-semibold text-gray-900">Select Equipment Category <span className="text-red-500">*</span></h2>
                 <p className="text-sm text-gray-600 mt-1">Choose the type of equipment for your fleet</p>
               </div>
@@ -869,14 +924,14 @@ export default function AddFleetVehiclePage() {
                       }}
                       className={cn(
                         "p-4 rounded-xl border-2 transition-all text-left",
-                        selectedVehicleCategoryId === category.id ? "border-amber-500 bg-amber-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        selectedVehicleCategoryId === category.id ? "border-emerald-500 bg-emerald-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                       )}
                     >
                       <div className="flex items-center gap-3">
                         {category.image ? (
                           <img src={category.image} alt={category.name} className="w-10 h-10 object-contain" />
                         ) : (
-                          <Wrench className="w-6 h-6 text-amber-600" />
+                          <Wrench className="w-6 h-6 text-emerald-600" />
                         )}
                         <div>
                           <p className="font-medium text-gray-900">{category.name}</p>
@@ -892,8 +947,8 @@ export default function AddFleetVehiclePage() {
 
           {/* Packers & Movers Vehicle Category Selection */}
           {isPackersService && serviceId && packersVehicleCategories.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <div className="p-6 border-b bg-gray-50">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30">
                 <h2 className="text-lg font-semibold text-gray-900">Select Vehicle Category <span className="text-red-500">*</span></h2>
                 <p className="text-sm text-gray-600 mt-1">Choose the type of vehicle for your fleet</p>
               </div>
@@ -931,10 +986,10 @@ export default function AddFleetVehiclePage() {
 
           {/* Luxury Car Category Selection (Optional Filter) */}
           {isLuxuryService && serviceId && luxuryVehicleCategories.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <div className="p-6 border-b bg-gradient-to-r from-purple-50 to-purple-100">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b bg-gradient-to-r from-emerald-50 to-emerald-100">
                 <div className="flex items-center gap-3">
-                  <Crown className="w-6 h-6 text-purple-600" />
+                  <Crown className="w-6 h-6 text-emerald-600" />
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900">Select Luxury Car Category</h2>
                     <p className="text-sm text-gray-600 mt-1">Filter models by category (optional)</p>
@@ -952,11 +1007,11 @@ export default function AddFleetVehiclePage() {
                     }}
                     className={cn(
                       "p-4 rounded-xl border-2 transition-all text-left",
-                      !selectedVehicleCategoryId ? "border-purple-500 bg-purple-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                      !selectedVehicleCategoryId ? "border-emerald-500 bg-emerald-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <Crown className="w-6 h-6 text-purple-600" />
+                      <Crown className="w-6 h-6 text-emerald-600" />
                       <div>
                         <p className="font-medium text-gray-900">All Categories</p>
                         <p className="text-xs text-gray-500">Show all luxury models</p>
@@ -973,14 +1028,14 @@ export default function AddFleetVehiclePage() {
                       }}
                       className={cn(
                         "p-4 rounded-xl border-2 transition-all text-left",
-                        selectedVehicleCategoryId === category.id ? "border-purple-500 bg-purple-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        selectedVehicleCategoryId === category.id ? "border-emerald-500 bg-emerald-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                       )}
                     >
                       <div className="flex items-center gap-3">
                         {category.image ? (
                           <img src={category.image} alt={category.name} className="w-10 h-10 object-contain" />
                         ) : (
-                          <Crown className="w-6 h-6 text-purple-600" />
+                          <Crown className="w-6 h-6 text-emerald-600" />
                         )}
                         <div>
                           <p className="font-medium text-gray-900">{category.name}</p>
@@ -992,12 +1047,12 @@ export default function AddFleetVehiclePage() {
                   ))}
                 </div>
 
-                <div className="mt-6 p-4 bg-purple-50 rounded-xl border border-purple-200">
+                <div className="mt-6 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
                   <div className="flex items-start gap-3">
-                    <Info className="w-5 h-5 text-purple-600 mt-0.5" />
+                    <Info className="w-5 h-5 text-emerald-600 mt-0.5" />
                     <div>
-                      <p className="font-medium text-purple-800">Quote-Based Pricing</p>
-                      <p className="text-sm text-purple-600 mt-1">Luxury car rental is quote-based. You'll set pricing when sending quotes to customers, not while adding vehicles.</p>
+                      <p className="font-medium text-emerald-800">Quote-Based Pricing</p>
+                      <p className="text-sm text-emerald-600 mt-1">Luxury car rental is quote-based. You'll set pricing when sending quotes to customers, not while adding vehicles.</p>
                     </div>
                   </div>
                 </div>
@@ -1007,8 +1062,8 @@ export default function AddFleetVehiclePage() {
 
           {/* Car Category + Brand */}
           {isCarService && serviceId && (
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-              <div className="p-6 border-b bg-gray-50">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30">
                 <h2 className="text-lg font-semibold text-gray-900">Select Vehicle Category & Brand</h2>
                 <p className="text-sm text-gray-600 mt-1">For car rentals, choose category + brand (pricing is handled by admin)</p>
               </div>
@@ -1029,14 +1084,14 @@ export default function AddFleetVehiclePage() {
                         }}
                         className={cn(
                           "p-4 rounded-xl border-2 transition-all text-left",
-                          selectedVehicleCategoryId === category.id ? "border-blue-500 bg-blue-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                          selectedVehicleCategoryId === category.id ? "border-emerald-500 bg-emerald-50 shadow-md" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                         )}
                       >
                         <div className="flex items-center gap-3">
                           {category.image ? (
                             <img src={category.image} alt={category.name} className="w-10 h-10 object-contain" />
                           ) : (
-                            <Car className="w-6 h-6 text-blue-600" />
+                            <Car className="w-6 h-6 text-emerald-600" />
                           )}
                           <div>
                             <p className="font-medium text-gray-900">{category.name}</p>
@@ -1056,7 +1111,7 @@ export default function AddFleetVehiclePage() {
                     </label>
 
                     {availableBrands.length === 0 ? (
-                      <p className="text-sm text-yellow-600">No brands available for this category. Contact admin to add brands.</p>
+                      <p className="text-sm text-emerald-600">No brands available for this category. Contact admin to add brands.</p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         {availableBrands.map((brand) => (
@@ -1075,12 +1130,12 @@ export default function AddFleetVehiclePage() {
                       </div>
                     )}
 
-                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-200 mt-4">
+                    <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 mt-4">
                       <div className="flex items-start gap-3">
-                        <Info className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <Info className="w-5 h-5 text-emerald-600 mt-0.5" />
                         <div>
-                          <p className="font-medium text-blue-800">Pricing Note</p>
-                          <p className="text-sm text-blue-600 mt-1">Pricing for car rentals is managed by the admin. You just add vehicle details and locations.</p>
+                          <p className="font-medium text-emerald-800">Pricing Note</p>
+                          <p className="text-sm text-emerald-600 mt-1">Pricing for car rentals is managed by the admin. You just add vehicle details and locations.</p>
                         </div>
                       </div>
                     </div>
@@ -1092,23 +1147,23 @@ export default function AddFleetVehiclePage() {
 
           {/* Vehicle Model Selection (for Bike, Self-Drive, Bus, Luxury) */}
           {needsModelSelection && !needsCategoryOnly && serviceId && (
-            <div className="bg-white rounded-xl p-6 shadow-sm border">
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center gap-2 mb-4">
                 <div className={cn(
                   "w-8 h-8 rounded-lg flex items-center justify-center",
-                  isBikeService ? "bg-orange-100" :
-                    isBusService ? "bg-indigo-100" :
-                      isLuxuryService ? "bg-purple-100" :
-                        "bg-blue-100"
+                  isBikeService ? "bg-emerald-100" :
+                    isBusService ? "bg-emerald-100" :
+                      isLuxuryService ? "bg-emerald-100" :
+                        "bg-emerald-100"
                 )}>
                   {isBikeService ? (
-                    <Bike className="w-4 h-4 text-orange-600" />
+                    <Bike className="w-4 h-4 text-emerald-600" />
                   ) : isBusService ? (
-                    <Bus className="w-4 h-4 text-indigo-600" />
+                    <Bus className="w-4 h-4 text-emerald-600" />
                   ) : isLuxuryService ? (
-                    <Crown className="w-4 h-4 text-purple-600" />
+                    <Crown className="w-4 h-4 text-emerald-600" />
                   ) : (
-                    <CarFront className="w-4 h-4 text-blue-600" />
+                    <CarFront className="w-4 h-4 text-emerald-600" />
                   )}
                 </div>
                 <div>
@@ -1127,7 +1182,7 @@ export default function AddFleetVehiclePage() {
                   placeholder="Search by brand or model..."
                   value={modelSearch}
                   onChange={(e) => setModelSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none"
                 />
               </div>
 
@@ -1140,7 +1195,7 @@ export default function AddFleetVehiclePage() {
                       onClick={() => setSelectedBrandId("")}
                       className={cn(
                         "px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
-                        !selectedBrandId ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        !selectedBrandId ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                       )}
                     >
                       All Brands
@@ -1151,12 +1206,12 @@ export default function AddFleetVehiclePage() {
                         onClick={() => setSelectedBrandId(b.id)}
                         className={cn(
                           "px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1",
-                          selectedBrandId === b.id ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          selectedBrandId === b.id ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                         )}
                       >
                         {b.name}
                         {"count" in b ? (
-                          <span className={cn("text-xs px-1.5 py-0.5 rounded-full", selectedBrandId === b.id ? "bg-blue-500" : "bg-gray-200")}>
+                          <span className={cn("text-xs px-1.5 py-0.5 rounded-full", selectedBrandId === b.id ? "bg-emerald-500" : "bg-gray-200")}>
                             {b.count}
                           </span>
                         ) : null}
@@ -1191,7 +1246,7 @@ export default function AddFleetVehiclePage() {
                         onClick={() => setVehicleModelId(model.id)}
                         className={cn(
                           "flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left",
-                          isSelected ? "border-blue-500 bg-blue-50 shadow-md" : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
+                          isSelected ? "border-emerald-500 bg-emerald-50 shadow-md" : "border-gray-200 hover:border-emerald-300 hover:bg-gray-50"
                         )}
                       >
                         <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
@@ -1236,7 +1291,7 @@ export default function AddFleetVehiclePage() {
                             {model.seatingCapacity ? <span>{model.seatingCapacity} Seater</span> : null}
                           </div>
                         </div>
-                        {isSelected ? <Check className="w-5 h-5 text-blue-600 flex-shrink-0" /> : null}
+                        {isSelected ? <Check className="w-5 h-5 text-emerald-600 flex-shrink-0" /> : null}
                       </button>
                     );
                   })}
@@ -1247,41 +1302,41 @@ export default function AddFleetVehiclePage() {
 
           {/* Next */}
           <div className="flex justify-end">
-            <Button onClick={() => setStep(2)} disabled={!canGoStep2}>
+            <Button onClick={() => setStep(2)} disabled={!canGoStep2} className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-700 hover:to-emerald-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all">
               Next: Vehicle Details
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
-        </div>
-      )}
+          </div>
+        )}
 
       {/* Step 2 */}
       {step === 2 && (
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div className="p-6 border-b bg-gray-50">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30">
             <h2 className="text-lg font-semibold text-gray-900">Vehicle Details</h2>
             <p className="text-sm text-gray-600 mt-1">Enter your vehicle's specific details</p>
           </div>
 
-          <div className={cn("p-4 border-b", isLuxuryService ? "bg-purple-50" : "bg-blue-50")}>
+          <div className={cn("p-4 border-b", isLuxuryService ? "bg-emerald-50" : "bg-emerald-50")}>
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center overflow-hidden">
                 {needsModelSelection && selectedModel?.sideImage ? (
                   <img src={selectedModel.sideImage} alt={selectedModel.name} className="w-full h-full object-contain" />
                 ) : isBikeService ? (
-                  <Bike className="w-8 h-8 text-orange-600" />
+                  <Bike className="w-8 h-8 text-emerald-600" />
                 ) : isTruckService ? (
-                  <Truck className="w-8 h-8 text-blue-600" />
+                  <Truck className="w-8 h-8 text-emerald-600" />
                 ) : isEquipmentService ? (
-                  <Wrench className="w-8 h-8 text-amber-600" />
+                  <Wrench className="w-8 h-8 text-emerald-600" />
                 ) : isPackersService ? (
                   <Package className="w-8 h-8 text-cyan-600" />
                 ) : isLuxuryService ? (
-                  <Crown className="w-8 h-8 text-purple-600" />
+                  <Crown className="w-8 h-8 text-emerald-600" />
                 ) : isBusService ? (
-                  <Bus className="w-8 h-8 text-indigo-600" />
+                  <Bus className="w-8 h-8 text-emerald-600" />
                 ) : isSelfDriveService ? (
-                  <CarFront className="w-8 h-8 text-blue-600" />
+                  <CarFront className="w-8 h-8 text-emerald-600" />
                 ) : (
                   <Car className="w-8 h-8 text-green-600" />
                 )}
@@ -1321,7 +1376,7 @@ export default function AddFleetVehiclePage() {
           </div>
 
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Registration Number {isCarService ? <span className="text-red-500">*</span> : null}
@@ -1331,7 +1386,7 @@ export default function AddFleetVehiclePage() {
                   value={registrationNumber}
                   onChange={(e) => setRegistrationNumber(e.target.value.toUpperCase())}
                   placeholder="e.g., GJ01AB1234"
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none"
                 />
               </div>
 
@@ -1344,7 +1399,7 @@ export default function AddFleetVehiclePage() {
                   placeholder="e.g., 2022"
                   min="2000"
                   max={new Date().getFullYear()}
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none"
                 />
               </div>
 
@@ -1355,16 +1410,16 @@ export default function AddFleetVehiclePage() {
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
                   placeholder={isBikeService ? "e.g., Matte Black" : "e.g., White"}
-                  className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none"
                 />
               </div>
             </div>
 
             {/* Vehicle Images Section - Only for specific services */}
             {needsVehicleImages && (
-              <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+              <div className="mt-6 p-4 bg-gradient-to-br from-emerald-50 to-emerald-50 rounded-xl border border-emerald-200">
                 <div className="flex items-center gap-2 mb-4">
-                  <ImageIcon className="w-5 h-5 text-blue-600" />
+                  <ImageIcon className="w-5 h-5 text-emerald-600" />
                   <h3 className="font-semibold text-gray-900">Vehicle Images (Optional)</h3>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">
@@ -1408,7 +1463,7 @@ export default function AddFleetVehiclePage() {
                           </button>
                         </div>
                       ) : (
-                        <label className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-400 hover:bg-white transition block">
+                        <label className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-emerald-400 hover:bg-white transition block">
                           <input
                             type="file"
                             accept="image/*"
@@ -1480,7 +1535,7 @@ export default function AddFleetVehiclePage() {
             )}
           </div>
 
-          <div className="p-6 border-t bg-gray-50 flex justify-between">
+          <div className="p-6 border-t border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30 flex justify-between">
             <Button variant="outline" onClick={() => setStep(1)}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
@@ -1492,18 +1547,18 @@ export default function AddFleetVehiclePage() {
 
       {/* Step 3 */}
       {step === 3 && (
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div className="p-6 border-b bg-gray-50">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30">
             <h2 className="text-lg font-semibold text-gray-900">Select Operating Locations</h2>
             <p className="text-sm text-gray-600 mt-1">Choose where this vehicle will be available for booking</p>
           </div>
 
           <div className="p-6">
             {approvedLocations.length === 0 ? (
-              <div className="text-center py-12 bg-yellow-50 rounded-xl">
-                <MapPin className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
-                <p className="text-yellow-800 font-medium">No Approved Locations</p>
-                <p className="text-yellow-600 text-sm mt-1 mb-4">You need approved locations to add vehicles</p>
+              <div className="text-center py-12 bg-emerald-50 rounded-xl">
+                <MapPin className="w-12 h-12 mx-auto mb-4 text-emerald-500" />
+                <p className="text-emerald-800 font-medium">No Approved Locations</p>
+                <p className="text-emerald-600 text-sm mt-1 mb-4">You need approved locations to add vehicles</p>
                 <Button variant="outline" onClick={() => router.push("/vendor/locations/request")}>
                   Request Location Approval
                 </Button>
@@ -1518,7 +1573,7 @@ export default function AddFleetVehiclePage() {
                       placeholder="Search locations..."
                       value={locationSearch}
                       onChange={(e) => setLocationSearch(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                      className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -1533,7 +1588,7 @@ export default function AddFleetVehiclePage() {
 
                 <div className="mb-4 flex items-center gap-2">
                   <span className="text-sm text-gray-500">Selected:</span>
-                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                  <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
                     {selectedLocations.length} of {approvedLocations.length} locations
                   </span>
                 </div>
@@ -1547,16 +1602,16 @@ export default function AddFleetVehiclePage() {
                         onClick={() => toggleLocation(location.id)}
                         className={cn(
                           "relative p-4 rounded-xl border-2 transition-all text-left",
-                          isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-blue-300"
+                          isSelected ? "border-emerald-500 bg-emerald-50" : "border-gray-200 hover:border-emerald-300"
                         )}
                       >
                         <div className="flex items-center gap-2">
-                          <MapPin className={cn("w-4 h-4 flex-shrink-0", isSelected ? "text-blue-600" : "text-gray-400")} />
-                          <span className={cn("font-medium truncate", isSelected ? "text-blue-700" : "text-gray-700")}>{location.name}</span>
+                          <MapPin className={cn("w-4 h-4 flex-shrink-0", isSelected ? "text-emerald-600" : "text-gray-400")} />
+                          <span className={cn("font-medium truncate", isSelected ? "text-emerald-700" : "text-gray-700")}>{location.name}</span>
                         </div>
                         {isSelected ? (
                           <div className="absolute top-2 right-2">
-                            <Check className="w-4 h-4 text-blue-600" />
+                            <Check className="w-4 h-4 text-emerald-600" />
                           </div>
                         ) : null}
                       </button>
@@ -1567,7 +1622,7 @@ export default function AddFleetVehiclePage() {
             )}
           </div>
 
-          <div className="p-6 border-t bg-gray-50 flex justify-between">
+          <div className="p-6 border-t border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30 flex justify-between">
             <Button variant="outline" onClick={() => setStep(2)}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
@@ -1598,8 +1653,8 @@ export default function AddFleetVehiclePage() {
 
       {/* Step 4 (Bike and Self-Drive) */}
       {step === 4 && needsPricing && (
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div className="p-6 border-b bg-gray-50">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30">
             <h2 className="text-lg font-semibold text-gray-900">Set Pricing</h2>
             <p className="text-sm text-gray-600 mt-1">
               Define your {isBikeService ? "bike" : "car"} rental rates and policies
@@ -1607,8 +1662,8 @@ export default function AddFleetVehiclePage() {
           </div>
 
           <div className="p-6 space-y-6">
-            <div className="p-6 bg-blue-50 rounded-xl border border-blue-200">
-              <label className="block text-sm font-semibold text-blue-800 mb-3">
+            <div className="p-6 bg-emerald-50 rounded-xl border border-emerald-200">
+              <label className="block text-sm font-semibold text-emerald-800 mb-3">
                 Per Day Rate <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -1618,13 +1673,13 @@ export default function AddFleetVehiclePage() {
                   value={perDayRate}
                   onChange={(e) => setPerDayRate(e.target.value)}
                   placeholder="Enter daily rate"
-                  className="w-full pl-10 pr-4 py-4 text-xl font-bold border-2 border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-4 text-xl font-bold bg-white border-2 border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none"
                 />
               </div>
-              <p className="text-sm text-blue-600 mt-2">This is the main rental rate customers will see</p>
+              <p className="text-sm text-emerald-600 mt-2">This is the main rental rate customers will see</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Km Limit Per Day</label>
                 <div className="relative">
@@ -1633,7 +1688,7 @@ export default function AddFleetVehiclePage() {
                     value={kmPerDay}
                     onChange={(e) => setKmPerDay(e.target.value)}
                     placeholder="100"
-                    className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">km</span>
                 </div>
@@ -1648,7 +1703,7 @@ export default function AddFleetVehiclePage() {
                     value={extraKmRate}
                     onChange={(e) => setExtraKmRate(e.target.value)}
                     placeholder="5"
-                    className="w-full pl-10 pr-16 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-16 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all outline-none"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">/km</span>
                 </div>
@@ -1663,7 +1718,7 @@ export default function AddFleetVehiclePage() {
                     value={securityDeposit}
                     onChange={(e) => setSecurityDeposit(e.target.value)}
                     placeholder="2000"
-                    className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Refundable deposit collected at pickup</p>
@@ -1696,7 +1751,7 @@ export default function AddFleetVehiclePage() {
             </div>
           </div>
 
-          <div className="p-6 border-t bg-gray-50 flex justify-between">
+          <div className="p-6 border-t border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30 flex justify-between">
             <Button variant="outline" onClick={() => setStep(3)}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
@@ -1727,8 +1782,8 @@ export default function AddFleetVehiclePage() {
 
       {/* Step 5 - City Wise Pricing */}
       {step === 5 && needsPricing && (
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-          <div className="p-6 border-b bg-gray-50">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30">
             <h2 className="text-lg font-semibold text-gray-900">City Wise Pricing (Optional)</h2>
             <p className="text-sm text-gray-600 mt-1">
               Set specific prices for individual cities. Leave blank to use the base price of ₹{perDayRate}
@@ -1743,7 +1798,7 @@ export default function AddFleetVehiclePage() {
                 placeholder="Search selected cities..."
                 value={citySearch}
                 onChange={(e) => setCitySearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -1758,8 +1813,8 @@ export default function AddFleetVehiclePage() {
                 return (
                   <div key={locId} className="p-5 rounded-xl border bg-gray-50 space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <MapPin className="w-4 h-4 text-blue-600" />
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                        <MapPin className="w-4 h-4 text-emerald-600" />
                       </div>
                       <span className="font-bold text-gray-900">{location.name}</span>
                     </div>
@@ -1775,7 +1830,7 @@ export default function AddFleetVehiclePage() {
                             [locId]: { ...prev[locId], perDayRate: e.target.value }
                           }))}
                           placeholder={perDayRate}
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm transition-all outline-none"
                         />
                       </div>
                       <div>
@@ -1788,7 +1843,7 @@ export default function AddFleetVehiclePage() {
                             [locId]: { ...prev[locId], kmPerDay: e.target.value }
                           }))}
                           placeholder={kmPerDay}
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm transition-all outline-none"
                         />
                       </div>
                       <div>
@@ -1801,7 +1856,7 @@ export default function AddFleetVehiclePage() {
                             [locId]: { ...prev[locId], extraKmRate: e.target.value }
                           }))}
                           placeholder={extraKmRate}
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm transition-all outline-none"
                         />
                       </div>
                       <div>
@@ -1814,7 +1869,7 @@ export default function AddFleetVehiclePage() {
                             [locId]: { ...prev[locId], securityDeposit: e.target.value }
                           }))}
                           placeholder={securityDeposit}
-                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm transition-all outline-none"
                         />
                       </div>
                     </div>
@@ -1830,7 +1885,7 @@ export default function AddFleetVehiclePage() {
             )}
           </div>
 
-          <div className="p-6 border-t bg-gray-50 flex justify-between">
+          <div className="p-6 border-t border-gray-100 bg-gradient-to-r from-slate-50 to-emerald-50/30 flex justify-between">
             <Button variant="outline" onClick={() => setStep(4)}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
@@ -1852,15 +1907,16 @@ export default function AddFleetVehiclePage() {
         </div>
       )}
 
-      {/* Safety: if step > totalSteps */}
-      {step > totalSteps ? (
-        <div className="bg-white rounded-xl p-6 border text-center text-gray-600">
-          Invalid step.{" "}
-          <Button variant="outline" onClick={() => setStep(1)}>
-            Go to Step 1
-          </Button>
-        </div>
-      ) : null}
+        {/* Safety: if step > totalSteps */}
+        {step > totalSteps ? (
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm text-center text-gray-600">
+            Invalid step.{" "}
+            <Button variant="outline" onClick={() => setStep(1)} className="rounded-xl">
+              Go to Step 1
+            </Button>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

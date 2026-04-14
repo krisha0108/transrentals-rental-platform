@@ -24,7 +24,15 @@ import {
   Gift,
   Key,
   Star,
+  Phone,
+  MessageSquare,
+  FileText,
+  EllipsisVertical,
+  ChevronRight,
+  TrendingUp,
+  Plus,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface LuxuryBooking {
   id: string;
@@ -103,16 +111,16 @@ interface FleetVehicle {
   services: { id: string; name: string; slug: string } | null;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
-  PENDING_PAYMENT: { label: 'Awaiting Advance', color: 'text-amber-700', bgColor: 'bg-amber-100' },
-  PAYMENT_SUBMITTED: { label: 'Payment Review', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  ADVANCE_PAID: { label: 'Booking Confirmed', color: 'text-green-700', bgColor: 'bg-green-100' },
-  CONFIRMED: { label: 'Confirmed', color: 'text-green-700', bgColor: 'bg-green-100' },
-  DRIVER_ASSIGNED: { label: 'Driver Assigned', color: 'text-indigo-700', bgColor: 'bg-indigo-100' },
-  IN_PROGRESS: { label: 'Trip In Progress', color: 'text-purple-700', bgColor: 'bg-purple-100' },
-  COMPLETED: { label: 'Completed', color: 'text-gray-700', bgColor: 'bg-gray-100' },
-  CANCELLED: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
-  DROPPED: { label: 'Dropped', color: 'text-red-700', bgColor: 'bg-red-100' },
+const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string; icon: any }> = {
+  PENDING_PAYMENT: { label: 'Awaiting Advance', color: 'text-[#D4A017]', bgColor: 'bg-[#FFF9EA]', icon: Clock },
+  PAYMENT_SUBMITTED: { label: 'Payment Review', color: 'text-[#4F7DF3]', bgColor: 'bg-[#EEF4FF]', icon: RefreshCw },
+  ADVANCE_PAID: { label: 'Booking Confirmed', color: 'text-[#22A06B]', bgColor: 'bg-[#EAFBF3]', icon: CheckCircle },
+  CONFIRMED: { label: 'Confirmed', color: 'text-[#22A06B]', bgColor: 'bg-[#EAFBF3]', icon: Crown },
+  DRIVER_ASSIGNED: { label: 'Driver Assigned', color: 'text-[#9B7CF6]', bgColor: 'bg-[#F4F0FF]', icon: User },
+  IN_PROGRESS: { label: 'Trip In Progress', color: 'text-[#9B7CF6]', bgColor: 'bg-[#F4F0FF]', icon: Navigation },
+  COMPLETED: { label: 'Completed', color: 'text-[#6B7280]', bgColor: 'bg-[#F3F4F6]', icon: Star },
+  CANCELLED: { label: 'Cancelled', color: 'text-[#E8A1A1]', bgColor: 'bg-[#FFF0F0]', icon: XCircle },
+  DROPPED: { label: 'Dropped', color: 'text-[#E8A1A1]', bgColor: 'bg-[#FFF0F0]', icon: AlertCircle },
 };
 
 const LUXURY_CATEGORIES: Record<string, string> = {
@@ -124,10 +132,30 @@ const LUXURY_CATEGORIES: Record<string, string> = {
   'convertible': 'Convertible',
 };
 
+// Helper for dynamic icon background styling
+const getVehicleStyle = (category: string | null) => {
+  if (!category) return 'bg-[#FAFAFA] border-[#EEEEEE] text-[#6B7280]';
+  const cat = category?.toLowerCase() || '';
+  if (cat.includes('sedan')) return 'bg-[#FDF0D5]/50 border-[#FDF0D5] text-[#D4A017]'; 
+  if (cat.includes('suv')) return 'bg-[#EEF4FF]/60 border-[#E0EAFF] text-[#4F7DF3]'; 
+  if (cat.includes('vintage') || cat.includes('limousine') || cat.includes('premium')) return 'bg-[#FFF9EA] border-[#FDECB2]/50 text-[#C89B3C]'; 
+  return 'bg-[#FAFAFA] border-[#EEEEEE] text-[#6B7280]';
+};
+
+const getOccasionStyle = (occasion: string | null) => {
+  if (!occasion) return 'bg-[#F8F9FB] text-[#6B7280] border-[#EEEEEE]';
+  const occ = occasion.toLowerCase();
+  if (occ.includes('wedding')) return 'bg-[#FFF0F0] text-[#E8A1A1] border-[#FFE4E4]';
+  if (occ.includes('romantic') || occ.includes('anniversary')) return 'bg-[#F4F0FF] text-[#9B7CF6] border-[#ECE4FF]';
+  if (occ.includes('corporate') || occ.includes('business')) return 'bg-[#EEF4FF] text-[#4F7DF3] border-[#E0EFFF]';
+  if (occ.includes('vip')) return 'bg-gradient-to-r from-[#FDF0D5] to-[#F1E0B0] text-[#C89B3C] border-[#F1E0B0] shadow-sm';
+  return 'bg-[#F8F9FB] text-[#6B7280] border-[#EEEEEE]';
+};
+
 export default function VendorLuxuryBookingDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const id = (params?.id as string) || '';
 
   const [booking, setBooking] = useState<LuxuryBooking | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -140,7 +168,7 @@ export default function VendorLuxuryBookingDetailPage() {
     driverName: '',
     driverPhone: '',
     vehicleNumber: '',
-    vehicle_models: '',
+    vehicle_model: '',
     vehicleBrand: '',
     vehicleColor: '',
   });
@@ -153,8 +181,9 @@ export default function VendorLuxuryBookingDetailPage() {
   const [otpInput, setOtpInput] = useState('');
   const [showStartTripForm, setShowStartTripForm] = useState(false);
   const [showCompleteTripForm, setShowCompleteTripForm] = useState(false);
-
+  
   const fetchBooking = async () => {
+    if (!id) return;
     try {
       const response = await fetch(`/api/vendor/luxury-bookings/${id}`);
       const data = await response.json();
@@ -165,7 +194,7 @@ export default function VendorLuxuryBookingDetailPage() {
           driverName: data.booking.driverName || '',
           driverPhone: data.booking.driverPhone || '',
           vehicleNumber: data.booking.vehicleNumber || data.booking.acceptedQuote?.vehicleNumber || '',
-          vehicle_models: data.booking.vehicle_models || '',
+          vehicle_model: data.booking.vehicle_model || '',
           vehicleBrand: data.booking.vehicleBrand || '',
           vehicleColor: data.booking.vehicleColor || '',
         });
@@ -222,7 +251,6 @@ export default function VendorLuxuryBookingDetailPage() {
       if (data.success && data.fleet) {
         // Filter for luxury vehicles
         const luxuryFleet = data.fleet.filter((v: FleetVehicle) => {
-          if (!v.isActive) return false;
           const slug = v.services?.slug?.toLowerCase() || '';
           const name = v.services?.name?.toLowerCase() || '';
           return slug.includes('luxury') || name.includes('luxury');
@@ -241,13 +269,13 @@ export default function VendorLuxuryBookingDetailPage() {
     }
   };
 
-  const handleFleetSelection = (fleetId: string) => {
-    if (!fleetId) {
-      setAssignForm({ ...assignForm, vehicleNumber: '', vehicle_models: '', vehicleBrand: '' });
+  const handleFleetSelection = (vehicleId: string) => {
+    if (!vehicleId) {
+      setAssignForm({ ...assignForm, vehicleNumber: '', vehicle_model: '', vehicleBrand: '' });
       return;
     }
 
-    const vehicle = fleetVehicles.find(v => v.id === fleetId);
+    const vehicle = fleetVehicles.find((v) => v.id === vehicleId);
     if (vehicle) {
       let vModel = '';
       let vBrand = '';
@@ -262,7 +290,7 @@ export default function VendorLuxuryBookingDetailPage() {
       setAssignForm({
         ...assignForm,
         vehicleNumber: vehicle.registrationNumber || '',
-        vehicle_models: vModel,
+        vehicle_model: vModel,
         vehicleBrand: vBrand,
       });
     }
@@ -398,8 +426,216 @@ export default function VendorLuxuryBookingDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 text-amber-500 animate-spin" />
+      <div className="min-h-screen bg-[#F8F9FB] pb-12 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="w-full bg-white border-b border-[#EEEEEE] px-6 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="w-10 h-10 bg-gray-100 rounded-xl" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-56 bg-gray-100 rounded-lg" />
+                  <div className="h-7 w-24 bg-emerald-100 rounded-full" />
+                </div>
+                <div className="h-4 w-40 bg-gray-50 rounded" />
+              </div>
+            </div>
+            <div className="h-10 w-32 bg-gray-50 rounded-xl" />
+          </div>
+        </div>
+
+        <div className="w-full px-6 py-8">
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Left Column (2/3) */}
+            <div className="lg:col-span-2 space-y-8">
+
+              {/* Trip Details Card Skeleton */}
+              <div className="bg-white rounded-2xl border border-[#EEEEEE] overflow-hidden">
+                <div className="h-2 bg-gradient-to-r from-emerald-200 to-emerald-300" />
+                {/* Vehicle Header */}
+                <div className="p-6 flex items-center justify-between border-b border-[#EEEEEE]/50">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-emerald-50 rounded-2xl" />
+                    <div className="space-y-2">
+                      <div className="h-6 w-44 bg-gray-100 rounded" />
+                      <div className="flex items-center gap-2">
+                        <div className="h-5 w-20 bg-gray-50 rounded-lg" />
+                        <div className="h-5 w-24 bg-gray-50 rounded-lg" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="h-3 w-16 bg-gray-100 rounded" />
+                    <div className="h-5 w-28 bg-gray-100 rounded" />
+                  </div>
+                </div>
+
+                {/* Trip Details Grid */}
+                <div className="p-8 grid md:grid-cols-2 gap-x-12 gap-y-8">
+                  {/* Left: Pickup + Drop */}
+                  <div className="space-y-6">
+                    {[1, 2].map(i => (
+                      <div key={i} className="flex items-start gap-4">
+                        <div className={`w-12 h-12 rounded-xl ${i === 1 ? 'bg-emerald-50' : 'bg-red-50'}`} />
+                        <div className="space-y-2 flex-1">
+                          <div className="h-3 w-24 bg-gray-100 rounded" />
+                          <div className="h-5 w-36 bg-gray-100 rounded" />
+                          <div className="h-3.5 w-full bg-gray-50 rounded" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Right: Schedule + Decoration */}
+                  <div className="space-y-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-emerald-50 rounded-xl" />
+                      <div className="space-y-2 flex-1">
+                        <div className="h-3 w-16 bg-gray-100 rounded" />
+                        <div className="h-5 w-48 bg-gray-100 rounded" />
+                        <div className="h-3.5 w-28 bg-gray-50 rounded" />
+                        <div className="flex gap-2 mt-2">
+                          <div className="h-7 w-16 bg-gray-50 rounded-xl" />
+                          <div className="h-7 w-24 bg-gray-50 rounded-xl" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-emerald-50 rounded-xl" />
+                      <div className="space-y-2 flex-1">
+                        <div className="h-3 w-20 bg-gray-100 rounded" />
+                        <div className="h-5 w-32 bg-gray-100 rounded" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Requirements */}
+                <div className="px-8 pb-8">
+                  <div className="bg-[#FAFAFA] border border-[#EEEEEE] rounded-2xl p-5 space-y-2">
+                    <div className="h-3 w-32 bg-gray-100 rounded" />
+                    <div className="h-4 w-full bg-gray-50 rounded" />
+                    <div className="h-4 w-3/4 bg-gray-50 rounded" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer & Payment Grid Skeleton */}
+              <div className="grid md:grid-cols-2 gap-8">
+                {/* Customer Card */}
+                <div className="bg-white rounded-2xl border border-[#EEEEEE] p-8">
+                  <div className="flex items-center gap-2 mb-8">
+                    <div className="w-5 h-5 bg-emerald-100 rounded" />
+                    <div className="h-4 w-28 bg-gray-100 rounded" />
+                  </div>
+                  <div className="space-y-5">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="flex items-center gap-5 p-4 bg-[#FAFAFA] rounded-2xl">
+                        <div className="w-12 h-12 bg-white rounded-xl border border-[#EEEEEE]" />
+                        <div className="space-y-1.5 flex-1">
+                          <div className="h-3 w-16 bg-gray-100 rounded" />
+                          <div className="h-4.5 w-32 bg-gray-100 rounded" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Payment Card */}
+                <div className="bg-white rounded-2xl border border-[#EEEEEE] p-8 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50/50 rounded-bl-full -mr-12 -mt-12" />
+                  <div className="flex items-center gap-2 mb-8">
+                    <div className="w-5 h-5 bg-emerald-100 rounded" />
+                    <div className="h-4 w-32 bg-gray-100 rounded" />
+                  </div>
+                  <div className="space-y-5">
+                    <div className="flex justify-between items-center py-2">
+                      <div className="h-4 w-32 bg-gray-100 rounded" />
+                      <div className="h-7 w-24 bg-gray-100 rounded" />
+                    </div>
+                    <div className="flex justify-between items-center p-4 bg-emerald-50/60 rounded-2xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-white rounded-lg" />
+                        <div className="h-4 w-20 bg-emerald-100 rounded" />
+                      </div>
+                      <div className="h-5 w-20 bg-emerald-100 rounded" />
+                    </div>
+                    <div className="flex justify-between items-center p-4 bg-emerald-50 rounded-2xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-white rounded-lg" />
+                        <div className="h-4 w-20 bg-emerald-100 rounded" />
+                      </div>
+                      <div className="h-8 w-24 bg-emerald-100 rounded" />
+                    </div>
+                    <div className="flex justify-end pt-3">
+                      <div className="h-7 w-28 bg-gray-50 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Driver Assignment Skeleton */}
+              <div className="bg-white rounded-2xl border border-[#EEEEEE] overflow-hidden">
+                <div className="p-8 border-b border-[#EEEEEE]/50 bg-[#FAFAFA]/50 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 bg-emerald-100 rounded" />
+                    <div className="h-4 w-44 bg-gray-100 rounded" />
+                  </div>
+                  <div className="h-10 w-36 bg-gray-900/10 rounded-2xl" />
+                </div>
+                <div className="p-8 space-y-4">
+                  <div className="flex items-center gap-5 p-5 bg-[#FAFAFA] rounded-2xl">
+                    <div className="w-14 h-14 bg-white rounded-xl border border-[#EEEEEE]" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-3 w-24 bg-gray-100 rounded" />
+                      <div className="h-5 w-36 bg-gray-100 rounded" />
+                      <div className="h-3.5 w-28 bg-gray-50 rounded" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Sidebar (1/3) */}
+            <div className="space-y-8">
+              {/* Quick Actions */}
+              <div className="bg-white rounded-2xl border border-[#EEEEEE] p-6 space-y-3">
+                <div className="h-4 w-24 bg-gray-100 rounded mb-4" />
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="h-12 w-full bg-gray-50 rounded-xl" />
+                ))}
+              </div>
+
+              {/* Timeline */}
+              <div className="bg-white rounded-2xl border border-[#EEEEEE] p-6">
+                <div className="h-4 w-20 bg-gray-100 rounded mb-6" />
+                <div className="space-y-6">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="w-3 h-3 bg-emerald-100 rounded-full mt-1 flex-shrink-0" />
+                      <div className="space-y-1.5 flex-1">
+                        <div className="h-3 w-16 bg-gray-100 rounded" />
+                        <div className="h-4 w-full bg-gray-50 rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Chat / Notes */}
+              <div className="bg-white rounded-2xl border border-[#EEEEEE] p-6">
+                <div className="h-4 w-28 bg-gray-100 rounded mb-4" />
+                <div className="space-y-3">
+                  {[1, 2].map(i => (
+                    <div key={i} className="p-3 bg-gray-50 rounded-xl space-y-1.5">
+                      <div className="h-3 w-full bg-gray-100 rounded" />
+                      <div className="h-3 w-2/3 bg-gray-100 rounded" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -410,7 +646,7 @@ export default function VendorLuxuryBookingDetailPage() {
         <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Booking Not Found</h1>
         <p className="text-gray-600 mb-6">{error || 'The booking details could not be loaded.'}</p>
-        <Link href="/vendor/luxury/bookings" className="text-amber-600 font-medium hover:underline inline-flex items-center gap-2">
+        <Link href="/vendor/luxury/bookings" className="text-emerald-600 font-medium hover:underline inline-flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" />
           Back to Bookings
         </Link>
@@ -421,21 +657,36 @@ export default function VendorLuxuryBookingDetailPage() {
   const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING_PAYMENT;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Link href="/vendor/luxury/bookings" className="p-2 hover:bg-gray-100 rounded-lg transition">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">Booking #{booking.bookingNumber}</h1>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusConfig.bgColor} ${statusConfig.color}`}>
-                {statusConfig.label}
-              </span>
+    <div className="min-h-screen bg-[#F8F9FB] text-[#1F2A37] font-sans pb-12">
+      {/* Header Premium Identity Zone */}
+      <div className="w-full bg-white border-b border-[#EEEEEE] sticky top-0 z-50 transition-all duration-300 shadow-sm">
+        <div className="w-full px-6 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <Link href="/vendor/luxury/bookings" className="w-10 h-10 bg-[#FAFAFA] hover:bg-[#F3F4F6] rounded-xl flex items-center justify-center border border-[#EEEEEE] transition-all focus:ring-2 focus:ring-[#C89B3C] outline-none group">
+                <ArrowLeft className="w-5 h-5 text-[#6B7280] group-hover:text-[#1F2A37]" />
+              </Link>
+              <div>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl md:text-4xl font-black text-[#1F2A37] tracking-tight">Booking #{booking.bookingNumber}</h1>
+                  <div className={cn("px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1.5", statusConfig.bgColor, statusConfig.color)}>
+                    <statusConfig.icon className="w-4 h-4" />
+                    {statusConfig.label}
+                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40" />
+                  </div>
+                </div>
+                <p className="text-base text-[#6B7280] font-bold mt-1">Created on {new Date(booking.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              </div>
             </div>
-            <p className="text-gray-500 text-sm">Created on {new Date(booking.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+
+            <div className="flex items-center gap-4">
+              <div className="hidden sm:flex items-center gap-3 mr-2">
+                <a href={`tel:${booking.customerPhone}`} className="px-5 py-2.5 bg-[#FAFAFA] hover:bg-[#F3F4F6] border border-[#EEEEEE] rounded-xl text-sm font-bold text-[#6B7280] transition-all flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Call Customer
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -458,470 +709,487 @@ export default function VendorLuxuryBookingDetailPage() {
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Main Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Trip Summary Card */}
-          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <div className="p-6 border-b bg-gradient-to-r from-amber-50 to-yellow-50">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                  <Crown className="w-6 h-6 text-amber-600" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">
-                    {booking.acceptedQuote?.vehicleName || booking.carCategoryName || getCategoryName(booking.carCategory)}
-                  </h2>
-                  <p className="text-gray-600 capitalize">{booking.tripType?.replace('-', ' ')} • {booking.occasion || 'Premium Rental'}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-green-500 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Pickup</p>
-                    <p className="font-medium">{booking.pickupCity}</p>
-                    {booking.pickupAddress && <p className="text-sm text-gray-600">{booking.pickupAddress}</p>}
-                  </div>
-                </div>
-                {booking.dropCity && (
-                  <div className="flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-red-500 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Drop</p>
-                      <p className="font-medium">{booking.dropCity}</p>
-                      {booking.dropAddress && <p className="text-sm text-gray-600">{booking.dropAddress}</p>}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <Calendar className="w-5 h-5 text-amber-500 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Schedule</p>
-                    <p className="font-medium">{new Date(booking.pickupDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                    <p className="text-sm text-gray-600">at {booking.pickupTime}</p>
-                    {booking.totalDays && booking.totalDays > 1 && (
-                      <p className="text-sm text-amber-600 font-medium">{booking.totalDays} Days</p>
-                    )}
-                    {booking.totalHours && (
-                      <p className="text-sm text-amber-600 font-medium">{booking.totalHours} Hours Package</p>
-                    )}
-                  </div>
-                </div>
-                {booking.needDecoration && (
-                  <div className="flex items-start gap-3">
-                    <Gift className="w-5 h-5 text-pink-500 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Decoration</p>
-                      <p className="font-medium capitalize">{booking.decorationType || 'Requested'}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {(booking.customerNotes || booking.quoteRequest?.requirements) && (
-              <div className="px-6 pb-6">
-                <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
-                  <p className="text-xs text-amber-700 font-bold uppercase mb-1">Special Requirements</p>
-                  <p className="text-sm text-amber-800">{booking.customerNotes || booking.quoteRequest?.requirements}</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Customer & Payment Section */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <User className="w-5 h-5 text-amber-600" />
-                Customer Info
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-gray-500">Name</p>
-                  <p className="font-medium">{booking.customerName}</p>
-                </div>
-                {booking.customerEmail && (
-                  <div>
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="font-medium">{booking.customerEmail}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-amber-600" />
-                Payment Summary
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Total Amount</span>
-                  <span className="font-bold text-gray-900">₹{booking.grandTotal?.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Advance (Paid)</span>
-                  <span className="font-bold text-green-600">₹{(booking.advancePaid || booking.advanceAmount || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm pt-2 border-t">
-                  <span className="text-gray-900 font-semibold">Balance Due</span>
-                  <span className="font-bold text-amber-600 text-lg">₹{(booking.grandTotal - (booking.advancePaid || booking.advanceAmount || 0)).toLocaleString()}</span>
-                </div>
-                <div className="mt-2 text-center">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${booking.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {booking.paymentStatus}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Driver Assignment Section */}
-          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <div className="p-6 border-b flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Users className="w-5 h-5 text-indigo-600" />
-                Driver & Vehicle Assignment
-              </h3>
-              {!booking.driverName && !showAssignForm && ['ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
-                <button
-                  onClick={() => setShowAssignForm(true)}
-                  className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition"
-                >
-                  Assign Driver
-                </button>
-              )}
-              {booking.driverName && !showAssignForm && ['DRIVER_ASSIGNED', 'ADVANCE_PAID'].includes(booking.status) && (
-                <button
-                  onClick={() => setShowAssignForm(true)}
-                  className="text-indigo-600 text-sm font-medium hover:underline flex items-center gap-1"
-                >
-                  <Edit className="w-4 h-4" />
-                  Update Details
-                </button>
-              )}
-            </div>
-
-            {showAssignForm ? (
-              <div className="p-6 bg-indigo-50/30 space-y-6">
-                <div className="space-y-4">
-                  {/* Vehicle Selection */}
-                  {fleetVehicles.length > 0 && (
-                    <div className="space-y-3 pb-4 border-b border-indigo-200">
-                      <label className="block text-sm font-medium text-gray-700">
-                        <Car className="w-4 h-4 inline mr-1 text-amber-500" />
-                        Select Vehicle from Fleet
-                      </label>
-                      <select
-                        className="w-full px-4 py-2.5 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 bg-white"
-                        onChange={(e) => handleFleetSelection(e.target.value)}
-                      >
-                        <option value="">-- Select a vehicle from your fleet --</option>
-                        {fleetVehicles.map((vehicle) => {
-                          let displayName = '';
-                          if (vehicle.vehicle_models) {
-                            displayName = vehicle.vehicle_models.brands?.name
-                              ? `${vehicle.vehicle_models.brands.name} ${vehicle.vehicle_models.name}`
-                              : vehicle.vehicle_models.name;
-                          } else if (vehicle.brands && vehicle.chauffeur_vehicle_categories) {
-                            displayName = `${vehicle.brands.name} ${vehicle.chauffeur_vehicle_categories.name}`;
-                          } else if (vehicle.chauffeur_vehicle_categories) {
-                            displayName = vehicle.chauffeur_vehicle_categories.name;
-                          }
-                          const regNum = vehicle.registrationNumber ? ` (${vehicle.registrationNumber})` : '';
-                          const isBookedForDates = vehicle.isAvailableForDates === false;
-                          return (
-                            <option key={vehicle.id} value={vehicle.id} disabled={isBookedForDates}>
-                              {displayName}{regNum}{isBookedForDates ? ' — Booked for these dates' : ''}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Manual Vehicle Entry */}
-                  <div className="grid md:grid-cols-2 gap-4 pb-4 border-b border-indigo-200">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Number</label>
-                      <input
-                        type="text"
-                        value={assignForm.vehicleNumber}
-                        onChange={(e) => setAssignForm({ ...assignForm, vehicleNumber: e.target.value })}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        placeholder="MH 12 AB 1234"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Model</label>
-                      <input
-                        type="text"
-                        value={assignForm.vehicle_models}
-                        onChange={(e) => setAssignForm({ ...assignForm, vehicle_models: e.target.value })}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Mercedes S-Class"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-                      <input
-                        type="text"
-                        value={assignForm.vehicleBrand}
-                        onChange={(e) => setAssignForm({ ...assignForm, vehicleBrand: e.target.value })}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Mercedes-Benz"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
-                      <input
-                        type="text"
-                        value={assignForm.vehicleColor}
-                        onChange={(e) => setAssignForm({ ...assignForm, vehicleColor: e.target.value })}
-                        className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                        placeholder="Black"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Driver Selection */}
-                  <div className="space-y-3">
-                    <label className="block text-sm font-medium text-gray-700">Chauffeur / Driver Details *</label>
-                    {staffDrivers.length > 0 ? (
-                      <>
-                        <select
-                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                          value={staffDrivers.find(d => d.name === assignForm.driverName)?.id || ''}
-                          onChange={(e) => {
-                            const driver = staffDrivers.find(d => d.id === e.target.value);
-                            if (driver) {
-                              setAssignForm({ ...assignForm, driverName: driver.name, driverPhone: driver.phone });
-                            }
-                          }}
-                        >
-                          <option value="">-- Select from your staff --</option>
-                          {staffDrivers.map(d => {
-                            const isBusyForDates = d.isAvailableForDates === false;
-                            return (
-                              <option key={d.id} value={d.id} disabled={isBusyForDates}>
-                                {d.name} ({d.phone}){isBusyForDates ? ' \u2014 Assigned for these dates' : ''}
-                              </option>
-                            );
-                          })}
-                        </select>
-                      </>
-                    ) : null}
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Chauffeur Name *</label>
-                        <input
-                          type="text"
-                          value={assignForm.driverName}
-                          onChange={(e) => setAssignForm({ ...assignForm, driverName: e.target.value })}
-                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                          placeholder="Enter chauffeur name"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Chauffeur Phone *</label>
-                        <input
-                          type="tel"
-                          value={assignForm.driverPhone}
-                          onChange={(e) => setAssignForm({ ...assignForm, driverPhone: e.target.value })}
-                          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-                          placeholder="e.g., 9737965551"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                  <button
-                    onClick={() => setShowAssignForm(false)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-900 text-sm font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleAssignSubmit}
-                    disabled={actionLoading || !assignForm.driverName || !assignForm.driverPhone}
-                    className="px-6 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-                  >
-                    {actionLoading ? 'Saving...' : 'Confirm Assignment'}
-                  </button>
-                </div>
-              </div>
-            ) : booking.driverName ? (
-              <div className="p-6 grid md:grid-cols-2 gap-8">
+      <div className="w-full px-6 py-8">
+        {/* Main Operational Container */}
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Content Area */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Trip Detailed Info Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-[#EEEEEE] overflow-hidden group hover:shadow-md transition-all duration-300">
+              <div className="relative h-2 bg-gradient-to-r from-[#C19736] via-[#D4A017] to-[#C19736]" />
+              <div className={cn("p-6 flex flex-wrap items-center justify-between gap-4 border-b border-[#EEEEEE]/50", getOccasionStyle(booking.occasion || ''))}>
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
-                    <User className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-bold">Assigned Chauffeur</p>
-                    <p className="font-bold text-gray-900 text-lg">{booking.driverName}</p>
-                    <p className="text-indigo-600 font-medium">{booking.driverPhone}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 md:border-l md:pl-8">
-                  <div className="w-16 h-16 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
+                  <div className={cn("w-16 h-16 rounded-2xl border flex items-center justify-center shadow-sm", getVehicleStyle(booking.carCategory))}>
                     <Crown className="w-8 h-8" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 uppercase font-bold">Vehicle Details</p>
-                    <p className="font-bold text-gray-900 text-lg">{booking.vehicleNumber || 'N/A'}</p>
-                    <p className="text-gray-600">{booking.vehicleBrand} {booking.vehicle_models}</p>
-                    {booking.vehicleColor && <p className="text-sm text-gray-500">{booking.vehicleColor}</p>}
+                    <h2 className="text-2xl font-black text-[#1F2A37] tracking-tight">
+                      {booking.acceptedQuote?.vehicleName || booking.carCategoryName || getCategoryName(booking.carCategory)}
+                    </h2>
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <p className="text-xs font-black uppercase tracking-widest px-2.5 py-1 bg-white/50 rounded-lg border border-current/10">
+                        {booking.tripType?.replace('-', ' ')}
+                      </p>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current opacity-30" />
+                      <p className="text-xs font-black uppercase tracking-widest opacity-80">
+                        {booking.occasion || 'Premium Rental'}
+                      </p>
+                    </div>
                   </div>
                 </div>
+                <div className="bg-white/40 px-4 py-2 rounded-xl border border-white/50 backdrop-blur-sm self-start">
+                  <p className="text-[10px] text-[#6B7280] uppercase font-black tracking-widest mb-1">Booking Ref</p>
+                  <p className="text-base font-black text-[#1F2A37]">{booking.bookingNumber}</p>
+                </div>
               </div>
-            ) : (
-              <div className="p-12 text-center text-gray-500">
-                <Users className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                <p>No chauffeur assigned yet.</p>
-                {['ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
-                  <button
-                    onClick={() => setShowAssignForm(true)}
-                    className="mt-4 px-6 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700"
-                  >
-                    Assign Chauffeur Now
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* Sidebar / Status Flow */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <h3 className="font-bold text-gray-900 mb-6 border-b pb-4">Trip Progress</h3>
+              <div className="p-8 grid md:grid-cols-2 gap-x-12 gap-y-8">
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-[#EAFBF3] border border-[#E0EFE8] flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-6 h-6 text-[#22A06B]" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#6B7280] uppercase font-black tracking-widest mb-2">Pickup Location</p>
+                      <p className="text-lg font-bold text-[#1F2A37] leading-tight">{booking.pickupCity}</p>
+                      {booking.pickupAddress && <p className="text-sm text-[#6B7280] mt-2 font-medium leading-relaxed">{booking.pickupAddress}</p>}
+                    </div>
+                  </div>
 
-            {(() => {
-              const isDropped = booking.status === 'DROPPED';
-              const paymentDone = ['ADVANCE_PAID', 'CONFIRMED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status);
-              const driverDone = !!booking.driverName;
-              const tripStarted = ['IN_PROGRESS', 'COMPLETED'].includes(booking.status);
-              const completed = booking.status === 'COMPLETED';
-
-              let droppedAfterStep = -1;
-              if (isDropped) {
-                if (tripStarted) droppedAfterStep = 2;
-                else if (driverDone) droppedAfterStep = 1;
-                else if (paymentDone) droppedAfterStep = 0;
-              }
-
-              const steps = [
-                { label: 'Payment Verified', desc: 'Booking confirmed', done: paymentDone, icon: <CheckCircle className="w-5 h-5" />, time: null },
-                { label: 'Chauffeur Assigned', desc: 'Vehicle & driver ready', done: driverDone, icon: <Users className="w-5 h-5" />, time: null },
-                { label: 'Trip Started', desc: 'Customer picked up', done: tripStarted, icon: <Navigation className="w-5 h-5" />, time: booking.tripStartedAt },
-                { label: 'Trip Completed', desc: 'Service delivered', done: completed, icon: <Star className="w-5 h-5" />, time: booking.tripEndedAt },
-              ];
-
-              const timelineItems: any[] = [];
-              for (let i = 0; i < steps.length; i++) {
-                const step = steps[i];
-                const isAfterDrop = isDropped && i > droppedAfterStep;
-                timelineItems.push({
-                  ...step,
-                  bgClass: isAfterDrop ? 'bg-gray-200 text-gray-400' : (step.done ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-400'),
-                  textClass: isAfterDrop ? 'text-gray-400' : (step.done ? 'text-gray-900' : 'text-gray-400'),
-                });
-                if (isDropped && i === droppedAfterStep) {
-                  timelineItems.push({
-                    label: 'Booking Dropped', desc: (booking as any).dropReason ? `Reason: ${(booking as any).dropReason}` : 'Booking was dropped',
-                    done: false, icon: <XCircle className="w-5 h-5" />, time: (booking as any).droppedAt,
-                    isDroppedMarker: true, bgClass: 'bg-red-600 text-white', textClass: 'text-red-700',
-                  });
-                }
-              }
-
-              return (
-                <div className="space-y-8 relative">
-                  <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-gray-100 -z-10" />
-                  {timelineItems.map((item: any, idx: number) => (
-                    <div key={idx} className="flex gap-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${item.bgClass}`}>
-                        {item.icon}
+                  {booking.dropCity && (
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-[#FFF0F0] border border-[#FFE0E0] flex items-center justify-center flex-shrink-0">
+                        <MapPin className="w-6 h-6 text-[#E8A1A1]" />
                       </div>
                       <div>
-                        <p className={`font-bold ${item.textClass}`}>{item.label}</p>
-                        <p className={`text-xs ${item.isDroppedMarker ? 'text-red-500' : 'text-gray-500'}`}>{item.desc}</p>
-                        {item.time && (
-                          <p className={`text-[10px] font-mono mt-1 ${item.isDroppedMarker ? 'text-red-500' : 'text-green-600'}`}>
-                            {new Date(item.time).toLocaleString('en-IN')}
-                          </p>
+                        <p className="text-xs text-[#6B7280] uppercase font-black tracking-widest mb-2">Drop / Return</p>
+                        <p className="text-lg font-bold text-[#1F2A37] leading-tight">{booking.dropCity}</p>
+                        {booking.dropAddress && <p className="text-sm text-[#6B7280] mt-2 font-medium leading-relaxed">{booking.dropAddress}</p>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-[#FFF9EA] border border-[#FDECB2] flex items-center justify-center flex-shrink-0">
+                      <Calendar className="w-6 h-6 text-[#C89B3C]" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#6B7280] uppercase font-black tracking-widest mb-2">Schedule</p>
+                      <p className="text-lg font-bold text-[#1F2A37] leading-tight">{new Date(booking.pickupDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                      <p className="text-sm text-[#6B7280] mt-2 font-medium">at <span className="text-[#C89B3C] font-black">{booking.pickupTime}</span></p>
+                      <div className="flex items-center gap-2 mt-4">
+                        {booking.totalDays && (
+                          <div className="px-3 py-1.5 bg-[#FAFAFA] border border-[#EEEEEE] rounded-xl text-xs font-black uppercase text-[#1F2A37]">
+                            {booking.totalDays} Days
+                          </div>
+                        )}
+                        {booking.totalHours && (
+                          <div className="px-3 py-1.5 bg-[#FAFAFA] border border-[#EEEEEE] rounded-xl text-xs font-black uppercase text-[#1F2A37]">
+                            {booking.totalHours} Hours Package
+                          </div>
                         )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              );
-            })()}
+                  </div>
 
-            {/* Driver Actions */}
-            {booking.status === 'DRIVER_ASSIGNED' && (
-              <div className="mt-8 pt-6 border-t">
-                <div className="px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-center gap-2">
-                  <span>🚗</span>
-                  <span>Trip will be started by your assigned chauffeur. You will see all status updates here.</span>
+                  {booking.needDecoration && (
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-[#F4F0FF] border border-[#ECE4FF] flex items-center justify-center flex-shrink-0">
+                        <Gift className="w-6 h-6 text-[#9B7CF6]" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-[#6B7280] uppercase font-black tracking-widest mb-2">Decoration</p>
+                        <p className="text-lg font-bold text-[#1F2A37] capitalize">{booking.decorationType || 'Premium requested'}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
 
-            {/* Complete Trip Button */}
-            {booking.status === 'IN_PROGRESS' && (
-              <div className="mt-8 pt-6 border-t space-y-4">
-                <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  Complete Trip
-                </h4>
-                <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
-                  <p className="text-sm font-bold text-purple-800 mb-2 flex items-center gap-2">
-                    <Navigation className="w-4 h-4" />
-                    Trip in Progress
-                  </p>
-                  <div className="flex justify-center mb-4">
-                    <div className="animate-bounce p-3 bg-purple-200 rounded-full text-purple-700">
-                      <Crown className="w-6 h-6" />
+              {(booking.customerNotes || booking.quoteRequest?.requirements) && (
+                <div className="px-8 pb-8">
+                  <div className="bg-[#FAFAFA] border border-[#EEEEEE] rounded-2xl p-5 group-hover:bg-[#FDFBF7] transition-all">
+                    <p className="text-[10px] text-[#6B7280] uppercase font-black tracking-[0.1em] mb-2.5 flex items-center gap-2">
+                       <AlertCircle className="w-3.5 h-3.5 text-[#C89B3C]" />
+                       Special Requirements
+                    </p>
+                    <p className="text-sm text-[#1F2A37] font-medium leading-relaxed italic border-l-2 border-[#C89B3C]/30 pl-4">
+                      "{booking.customerNotes || booking.quoteRequest?.requirements}"
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Customer & Payment Section */}
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="bg-white rounded-2xl shadow-sm border border-[#EEEEEE] p-8 group hover:shadow-md transition-all">
+                <h3 className="text-xs font-black text-[#6B7280] uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
+                  <User className="w-5 h-5 text-[#C89B3C]" />
+                  Customer Details
+                </h3>
+                <div className="space-y-6">
+                  <div className="flex items-center gap-5 p-4 bg-[#FAFAFA] rounded-2xl border border-[#EEEEEE]/50">
+                    <div className="w-12 h-12 rounded-xl bg-white border border-[#EEEEEE] flex items-center justify-center">
+                      <User className="w-6 h-6 text-[#6B7280]" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-[#6B7280] uppercase font-black tracking-widest mb-1">Full Name</p>
+                      <p className="text-base font-bold text-[#1F2A37]">{booking.customerName}</p>
                     </div>
                   </div>
-                  <p className="text-xs text-purple-700 mb-3 text-center">
-                    When the trip is finished, click below to complete.
-                  </p>
-                  <button
-                    onClick={handleCompleteTrip}
-                    disabled={actionLoading}
-                    className="w-full px-4 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 disabled:opacity-50"
-                  >
-                    {actionLoading ? 'Completing...' : 'Complete Trip'}
-                  </button>
+                  {booking.customerEmail && (
+                    <div className="flex items-center gap-5 p-4 bg-[#FAFAFA] rounded-2xl border border-[#EEEEEE]/50">
+                      <div className="w-12 h-12 rounded-xl bg-white border border-[#EEEEEE] flex items-center justify-center">
+                        <Mail className="w-6 h-6 text-[#6B7280]" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-[#6B7280] uppercase font-black tracking-widest mb-1">Email Address</p>
+                        <p className="text-base font-bold text-[#1F2A37] break-all">{booking.customerEmail}</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-5 p-4 bg-[#FAFAFA] rounded-2xl border border-[#EEEEEE]/50">
+                    <div className="w-12 h-12 rounded-xl bg-white border border-[#EEEEEE] flex items-center justify-center">
+                      <Phone className="w-6 h-6 text-[#6B7280]" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-[#6B7280] uppercase font-black tracking-widest mb-1">Phone Number</p>
+                      <p className="text-base font-bold text-[#1F2A37]">{booking.customerPhone}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
 
-            {/* Status Messages */}
-            <div className="mt-6 pt-6 border-t">
-              {booking.status === 'ADVANCE_PAID' && !booking.driverName && (
-                <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
-                  <p className="text-sm font-bold text-amber-800 mb-1">Assignment Pending</p>
-                  <p className="text-xs text-amber-700">Please assign a chauffeur and vehicle to proceed.</p>
+              <div className="bg-white rounded-2xl shadow-sm border border-[#EEEEEE] p-8 group hover:shadow-md transition-all relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#EAFBF3]/50 rounded-bl-full -mr-12 -mt-12" />
+                <h3 className="text-xs font-black text-[#6B7280] uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-[#C89B3C]" />
+                  Financial Summary
+                </h3>
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center py-2 px-1">
+                    <span className="text-sm font-bold text-[#6B7280] uppercase tracking-wider">Total Booking Value</span>
+                    <span className="text-2xl font-black text-[#1F2A37]">₹{booking.grandTotal?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-[#EAFBF3]/60 rounded-2xl border border-[#EAFBF3]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                        <CheckCircle className="w-4 h-4 text-[#22A06B]" />
+                      </div>
+                      <span className="text-sm font-bold text-[#22A06B] uppercase tracking-wider">Amount Paid</span>
+                    </div>
+                    <span className="text-lg font-black text-[#22A06B]">₹{(booking.advancePaid || booking.advanceAmount || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-[#FFF9EA] rounded-2xl border border-[#FFF0C2]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                        <Clock className="w-4 h-4 text-[#D4A017]" />
+                      </div>
+                      <span className="text-sm font-bold text-[#D4A017] uppercase tracking-wider">Balance Due</span>
+                    </div>
+                    <span className="text-3xl font-black text-[#D4A017]">₹{(booking.grandTotal - (booking.advancePaid || booking.advanceAmount || 0)).toLocaleString()}</span>
+                  </div>
+                  <div className="pt-4 flex justify-end">
+                    <div className={cn(
+                      "inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest",
+                      booking.paymentStatus === 'PAID' ? 'bg-[#22A06B]/10 text-[#22A06B]' : 'bg-[#D4A017]/10 text-[#D4A017]'
+                    )}>
+                      <CreditCard className="w-4 h-4" />
+                      {booking.paymentStatus}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Driver & Vehicle Assignment Section */}
+            <div className="bg-white rounded-2xl shadow-sm border border-[#EEEEEE] overflow-hidden group hover:shadow-md transition-all">
+              <div className="p-8 border-b border-[#EEEEEE]/50 flex flex-wrap items-center justify-between gap-6 bg-[#FAFAFA]/50">
+                <h3 className="text-xs font-black text-[#6B7280] uppercase tracking-[0.2em] flex items-center gap-2">
+                  <Users className="w-5 h-5 text-[#C89B3C]" />
+                  Driver & Vehicle Assignment
+                </h3>
+                {!booking.driverName && !showAssignForm && ['ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
+                  <button
+                    onClick={() => setShowAssignForm(true)}
+                    className="px-6 py-3 bg-[#1F2A37] text-white text-xs font-black uppercase tracking-widest rounded-2xl hover:bg-[#111827] transition-all shadow-sm hover:shadow-md flex items-center gap-2.5"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Assign Chauffeur
+                  </button>
+                )}
+                {booking.driverName && !showAssignForm && ['DRIVER_ASSIGNED', 'ADVANCE_PAID'].includes(booking.status) && (
+                  <button
+                    onClick={() => setShowAssignForm(true)}
+                    className="text-[#6B7280] hover:text-[#C89B3C] text-xs font-black uppercase tracking-widest flex items-center gap-2.5 transition-all"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Update Details
+                  </button>
+                )}
+              </div>
+
+              {showAssignForm ? (
+                <div className="p-10 bg-[#FAFAFA]/50 border-b-2 border-[#EEEEEE]/50 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="space-y-4">
+                      <label className="text-xs font-black text-[#1F2A37] uppercase tracking-[0.2em] flex items-center gap-2.5">
+                        <User className="w-5 h-5 text-[#C89B3C]" />
+                        Chauffeur Selection
+                      </label>
+                      <select
+                        className="w-full h-14 px-5 bg-white border border-[#EEEEEE] rounded-2xl text-base font-bold text-[#1F2A37] focus:ring-4 focus:ring-[#C89B3C]/10 focus:border-[#C89B3C] outline-none transition-all shadow-sm"
+                        value={staffDrivers.find(d => d.name === assignForm.driverName)?.id || ''}
+                        onChange={(e) => {
+                          const driver = staffDrivers.find(d => d.id === e.target.value);
+                          if (driver) {
+                            setAssignForm({ ...assignForm, driverName: driver.name, driverPhone: driver.phone });
+                          }
+                        }}
+                      >
+                        <option value="">Select Staff Chauffeur</option>
+                        {staffDrivers.map(driver => (
+                          <option key={driver.id} value={driver.id}>
+                            {driver.name} ({driver.phone})  {driver.isAvailableForDates === false ? '[Booked]' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] font-bold text-[#6B7280] ml-1">Verified staff members from your roster</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <label className="text-xs font-black text-[#1F2A37] uppercase tracking-[0.2em] flex items-center gap-2.5">
+                        <Car className="w-5 h-5 text-[#C89B3C]" />
+                        Luxury Fleet Selection
+                      </label>
+                      <select
+                        className="w-full h-14 px-5 bg-white border border-[#EEEEEE] rounded-2xl text-base font-bold text-[#1F2A37] focus:ring-4 focus:ring-[#C89B3C]/10 focus:border-[#C89B3C] outline-none transition-all shadow-sm"
+                        value={fleetVehicles.find(v => v.registrationNumber === assignForm.vehicleNumber)?.id || ''}
+                        onChange={(e) => handleFleetSelection(e.target.value)}
+                      >
+                        <option value="">Select Luxury Vehicle</option>
+                        {fleetVehicles.map(v => (
+                          <option key={v.id} value={v.id}>
+                            {v.registrationNumber} - {v.vehicle_models?.name} {v.isAvailableForDates === false ? '[Reserved]' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] font-bold text-[#6B7280] ml-1">Only active luxury inventory shown</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <label className="text-xs font-black text-[#1F2A37] uppercase tracking-[0.2em] flex items-center gap-2.5">
+                        <Edit className="w-5 h-5 text-[#C89B3C]" />
+                        Manual Vehicle Details
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Vehicle Number"
+                        className="w-full h-14 px-5 bg-white border border-[#EEEEEE] rounded-2xl text-base font-bold text-[#1F2A37] focus:ring-4 focus:ring-[#C89B3C]/10 focus:border-[#C89B3C] outline-none transition-all"
+                        value={assignForm.vehicleNumber}
+                        onChange={(e) => setAssignForm({ ...assignForm, vehicleNumber: e.target.value })}
+                      />
+                    </div>
+
+                    <div className="lg:col-span-3 pt-10 border-t border-[#EEEEEE]/50 flex flex-wrap items-center gap-6">
+                      <button
+                        onClick={handleAssignSubmit}
+                        disabled={actionLoading}
+                        className="flex-1 min-w-[280px] py-5 bg-[#C89B3C] text-white text-sm font-black uppercase tracking-[0.25em] rounded-2xl hover:bg-[#B38A35] shadow-xl hover:shadow-[#C89B3C]/30 transition-all flex items-center justify-center gap-4"
+                      >
+                        {actionLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-6 h-6" />}
+                        Confirm Deployment
+                      </button>
+                      <button
+                        onClick={() => setShowAssignForm(false)}
+                        className="px-10 py-5 bg-white border border-[#EEEEEE] text-[#6B7280] text-sm font-black uppercase tracking-[0.25em] rounded-2xl hover:bg-[#FAFAFA] transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : booking.driverName ? (
+                <div className="split-card flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[#EEEEEE]">
+                  <div className="flex-1 p-10 group/driver">
+                    <div className="flex items-center gap-6">
+                      <div className="w-20 h-20 bg-[#F4F6F9] rounded-2xl flex items-center justify-center shadow-sm group-hover/driver:scale-105 transition-all">
+                        <User className="w-10 h-10 text-[#1F2A37]" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-[#6B7280] uppercase font-black tracking-widest mb-2">Assigned Driver</p>
+                        <p className="text-2xl font-black text-[#1F2A37] tracking-tight">{booking.driverName}</p>
+                        <a href={`tel:${booking.driverPhone}`} className="text-base font-bold text-[#C89B3C] flex items-center gap-2 mt-2 hover:underline">
+                          <Phone className="w-4 h-4" />
+                          {booking.driverPhone}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex-1 p-10 group/vehicle">
+                    <div className="flex items-center gap-6">
+                      <div className="w-20 h-20 bg-[#FFF9EA] rounded-2xl flex items-center justify-center shadow-sm border border-[#FDECB2] group-hover/vehicle:scale-105 transition-all">
+                        <Car className="w-10 h-10 text-[#C89B3C]" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-[#6B7280] uppercase font-black tracking-widest mb-2">Assigned Vehicle</p>
+                        <p className="text-2xl font-black text-[#1F2A37] tracking-tight">{booking.vehicleNumber || 'N/A'}</p>
+                        <p className="text-base font-bold text-[#6B7280] mt-1.5 line-clamp-1">{booking.vehicleBrand} {booking.vehicle_model}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-20 px-8 text-center bg-[#FAFAFA]/30">
+                  <div className="w-20 h-20 bg-white border border-[#EEEEEE] rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                    <Users className="w-8 h-8 text-[#D1D5DB]" />
+                  </div>
+                  <h4 className="text-base font-black text-[#1F2A37] tracking-tight mb-2">No Chauffeur Assigned</h4>
+                  <p className="text-xs text-[#6B7280] font-medium max-w-xs mx-auto leading-relaxed">Please assign a vehicle and driver to proceed with the booking operations.</p>
+                  {['ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
+                    <button
+                      onClick={() => setShowAssignForm(true)}
+                      className="mt-8 px-8 py-3 bg-[#1F2A37] text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-[#111827] shadow-lg transition-all"
+                    >
+                      Assign Now
+                    </button>
+                  )}
                 </div>
               )}
-              {booking.status === 'COMPLETED' && (
-                <div className="bg-green-50 p-4 rounded-xl border border-green-200">
-                  <p className="text-sm font-bold text-green-800 mb-1">Trip Completed</p>
-                  <p className="text-xs text-green-700">Thank you for providing premium service!</p>
+            </div>
+          </div>
+
+          {/* Sidebar / Status Flow Content */}
+          <div className="space-y-8">
+            {/* Trip Progress Timeline Section */}
+            <div className="bg-white rounded-2xl shadow-sm border border-[#EEEEEE] p-8 group hover:shadow-md transition-all sticky top-28">
+              <h3 className="text-xs font-black text-[#1F2A37] uppercase tracking-[0.2em] mb-12 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#C89B3C] animate-pulse" />
+                Operational Progress
+              </h3>
+
+              {(() => {
+                const isDropped = booking.status === 'DROPPED';
+                const paymentDone = ['ADVANCE_PAID', 'CONFIRMED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status);
+                const driverDone = !!booking.driverName;
+                const tripStarted = ['IN_PROGRESS', 'COMPLETED'].includes(booking.status);
+                const completed = booking.status === 'COMPLETED';
+
+                let droppedAfterStep = -1;
+                if (isDropped) {
+                  if (tripStarted) droppedAfterStep = 2;
+                  else if (driverDone) droppedAfterStep = 1;
+                  else if (paymentDone) droppedAfterStep = 0;
+                }
+
+                const steps = [
+                  { label: 'Payment Verified', desc: 'Financial clearance', done: paymentDone, icon: <CheckCircle className="w-5 h-5" /> },
+                  { label: 'Chauffeur Assigned', desc: 'Driver & car ready', done: driverDone, icon: <Users className="w-5 h-5" /> },
+                  { label: 'Trip Started', desc: 'Pickup successful', done: tripStarted, icon: <Navigation className="w-5 h-5" />, time: booking.tripStartedAt },
+                  { label: 'Trip Completed', desc: 'Mission accomplished', done: completed, icon: <Star className="w-5 h-5" />, time: booking.tripEndedAt },
+                ];
+
+                return (
+                  <div className="space-y-0 relative">
+                    <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-[#F3F4F6] -z-10" />
+                    
+                    {steps.map((step: any, idx: number) => {
+                      const isLast = idx === steps.length - 1;
+                      const isActive = step.done && (!steps[idx+1]?.done || isLast);
+                      const isUpcoming = !step.done;
+                      
+                      return (
+                        <div key={idx} className={cn("flex gap-8 pb-12 last:pb-0 relative group/step", isUpcoming && "opacity-50")}>
+                          {/* Connector Line Highlight */}
+                          {!isLast && step.done && (
+                            <div className="absolute left-[19px] top-10 h-full w-0.5 bg-[#C89B3C] z-0" />
+                          )}
+                          
+                          <div className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center z-10 transition-all duration-500",
+                            step.done ? "bg-[#C89B3C] text-white shadow-lg ring-4 ring-[#C89B3C]/10" : "bg-white border-2 border-[#EEEEEE] text-[#D1D5DB]",
+                            isActive && "scale-125 ring-8 ring-[#C89B3C]/10"
+                          )}>
+                            {step.icon}
+                          </div>
+
+                          <div className="flex-1 pt-1">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className={cn(
+                                "text-base font-black tracking-tight transition-colors",
+                                step.done ? "text-[#1F2A37]" : "text-[#9CA3AF]"
+                              )}>
+                                {step.label}
+                                {isActive && <span className="ml-2 inline-block w-2 h-2 rounded-full bg-[#22A06B] animate-pulse" />}
+                              </p>
+                              {step.time && (
+                                <span className="text-[10px] font-black text-[#C89B3C] bg-[#FFF9EA] px-2.5 py-1 rounded-lg border border-[#FDECB2]">
+                                  {new Date(step.time).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs font-medium text-[#6B7280] mt-1.5">{step.desc}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {isDropped && (
+                      <div className="mt-6 p-5 bg-[#FFF0F0] border border-[#FFE0E0] rounded-2xl flex items-start gap-5">
+                        <XCircle className="w-6 h-6 text-[#E8A1A1] flex-shrink-0" />
+                        <div>
+                          <p className="text-xs font-black text-[#1F2A37] uppercase tracking-widest leading-none">Trip Dropped</p>
+                          <p className="text-sm font-medium text-[#E8A1A1] mt-3">{(booking as any).dropReason || 'Manually cancelled'}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Action Area Component */}
+              {booking.status === 'IN_PROGRESS' && (
+                <div className="mt-10 pt-10 border-t border-[#EEEEEE] space-y-5">
+                   <div className="bg-[#EEF4FF] p-5 rounded-2xl border border-[#D0E2FF] flex items-center gap-4">
+                     <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#4F7DF3] shadow-sm">
+                        <Navigation className="w-5 h-5" />
+                     </div>
+                     <p className="text-xs font-bold text-[#4F7DF3] leading-relaxed">Trip is currently active. Monitor the chauffeur progress.</p>
+                   </div>
+                   <button
+                    onClick={handleCompleteTrip}
+                    disabled={actionLoading}
+                    className="w-full px-6 py-5 bg-[#1F2A37] text-white text-xs font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-[#111827] shadow-xl hover:shadow-[#1F2A37]/20 transition-all flex items-center justify-center gap-3.5"
+                  >
+                    {actionLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                    Complete Mission
+                  </button>
                 </div>
               )}
+
+              <div className="mt-10">
+                {booking.status === 'ADVANCE_PAID' && !booking.driverName && (
+                  <div className="p-5 bg-[#FFF9EA] border border-[#FDECB2] rounded-2xl">
+                    <p className="text-xs font-black text-[#D4A017] uppercase tracking-widest mb-2 flex items-center gap-2">
+                       <AlertCircle className="w-4 h-4" />
+                       Action Required
+                    </p>
+                    <p className="text-sm font-medium text-[#D4A017] leading-relaxed">Chauffeur assignment is pending. Please assign a vehicle to proceed.</p>
+                  </div>
+                )}
+                {booking.status === 'COMPLETED' && (
+                  <div className="p-5 bg-[#EAFBF3] border border-[#E0EFE8] rounded-2xl">
+                    <p className="text-xs font-black text-[#22A06B] uppercase tracking-widest mb-2 flex items-center gap-2">
+                       <CheckCircle className="w-4 h-4" />
+                       Perfect Service
+                    </p>
+                    <p className="text-sm font-medium text-[#22A06B] leading-relaxed">Trip was successfully completed. Payment and feedback verified.</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

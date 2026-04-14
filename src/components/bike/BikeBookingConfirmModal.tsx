@@ -200,6 +200,12 @@ export function BikeBookingConfirmModal({
       return;
     }
 
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10 || !/^[6-9]/.test(phoneDigits)) {
+      setError('Please enter a valid 10-digit Indian mobile number (starting with 6-9)');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
@@ -597,8 +603,13 @@ export function BikeBookingConfirmModal({
                 type="tel"
                 name="phone"
                 value={formData.phone}
-                onChange={handleChange}
-                placeholder="+91 9737965551"
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  if (val.length <= 10) setFormData({ ...formData, phone: val });
+                  setError('');
+                }}
+                placeholder="10-digit mobile number"
+                maxLength={10}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 required
               />

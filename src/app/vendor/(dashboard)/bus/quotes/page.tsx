@@ -57,8 +57,8 @@ interface Stats {
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   DRAFT: { label: 'Draft', color: 'bg-gray-100 text-gray-600', icon: Edit },
-  SENT: { label: 'Sent', color: 'bg-blue-100 text-blue-700', icon: Send },
-  VIEWED: { label: 'Viewed', color: 'bg-purple-100 text-purple-700', icon: Eye },
+  SENT: { label: 'Sent', color: 'bg-emerald-100 text-emerald-700', icon: Send },
+  VIEWED: { label: 'Viewed', color: 'bg-emerald-100 text-emerald-700', icon: Eye },
   ACCEPTED: { label: 'Accepted', color: 'bg-green-100 text-green-700', icon: CheckCircle },
   REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-700', icon: XCircle },
   EXPIRED: { label: 'Expired', color: 'bg-yellow-100 text-yellow-700', icon: AlertCircle },
@@ -171,7 +171,7 @@ export default function VendorBusQuotesPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -180,8 +180,8 @@ export default function VendorBusQuotesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-            <Send className="w-5 h-5 text-orange-600" />
+          <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+            <Send className="w-5 h-5 text-emerald-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Quotes</h1>
@@ -191,7 +191,7 @@ export default function VendorBusQuotesPage() {
 
         <Link
           href="/vendor/bus/requests"
-          className="px-4 py-2 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 transition"
+          className="px-4 py-2 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition"
         >
           View New Requests
         </Link>
@@ -205,7 +205,7 @@ export default function VendorBusQuotesPage() {
           value={searchInput}
           onChange={(e) => handleSearchChange(e.target.value)}
           placeholder="Search by customer name, quote number, vehicle, city..."
-          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
         />
         {searchInput && (
           <button
@@ -223,16 +223,16 @@ export default function VendorBusQuotesPage() {
           <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
           <p className="text-sm text-gray-500">Total Quotes</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-blue-100">
-          <p className="text-2xl font-bold text-blue-600">{stats.pending}</p>
+        <div className="bg-white rounded-xl p-4 border border-emerald-100">
+          <p className="text-2xl font-bold text-emerald-600">{stats.pending}</p>
           <p className="text-sm text-gray-500">Pending Response</p>
         </div>
         <div className="bg-white rounded-xl p-4 border border-green-100">
           <p className="text-2xl font-bold text-green-600">{stats.accepted}</p>
           <p className="text-sm text-gray-500">Accepted</p>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-orange-100">
-          <p className="text-2xl font-bold text-orange-600">
+        <div className="bg-white rounded-xl p-4 border border-emerald-100">
+          <p className="text-2xl font-bold text-emerald-600">
             ₹{stats.wonValue.toLocaleString()}
           </p>
           <p className="text-sm text-gray-500">Won Value</p>
@@ -256,7 +256,7 @@ export default function VendorBusQuotesPage() {
               }}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
                 filter === f.value
-                  ? 'bg-orange-100 text-orange-700'
+                  ? 'bg-emerald-100 text-emerald-700'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -286,7 +286,7 @@ export default function VendorBusQuotesPage() {
             </p>
             <Link
               href="/vendor/bus/requests"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
             >
               View Requests
             </Link>
@@ -325,8 +325,8 @@ export default function VendorBusQuotesPage() {
                 <div className="p-4 md:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                        <Bus className="w-6 h-6 text-orange-600" />
+                      <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                        <Bus className="w-6 h-6 text-emerald-600" />
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-900">{quote.vehicleName || getCategoryName(quote.vehicleCategory) || quote.vehicleCategory}</h3>
@@ -341,7 +341,7 @@ export default function VendorBusQuotesPage() {
                     </div>
 
                     <div className="text-right">
-                      <p className="text-xl font-bold text-orange-600">
+                      <p className="text-xl font-bold text-emerald-600">
                         ₹{quote.totalAmount.toLocaleString()}
                       </p>
                       <p className="text-xs text-gray-500">
@@ -353,12 +353,12 @@ export default function VendorBusQuotesPage() {
                   {/* Trip Details */}
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
                     <div className="flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-orange-500" />
+                      <MapPin className="w-4 h-4 text-emerald-500" />
                       {quote.request?.pickupCity}
                       {quote.request?.dropCity && ` → ${quote.request.dropCity}`}
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-orange-500" />
+                      <Calendar className="w-4 h-4 text-emerald-500" />
                       {quote.request?.pickupDate && new Date(quote.request.pickupDate).toLocaleDateString('en-IN', {
                         day: 'numeric',
                         month: 'short',
@@ -380,7 +380,7 @@ export default function VendorBusQuotesPage() {
                       <>
                         <Link
                           href={`/vendor/bus/quotes/${quote.id}/edit`}
-                          className="px-4 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-200 transition flex items-center gap-1"
+                          className="px-4 py-2 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-lg hover:bg-blue-200 transition flex items-center gap-1"
                         >
                           <Edit className="w-4 h-4" />
                           Revise Quote
@@ -415,7 +415,7 @@ export default function VendorBusQuotesPage() {
                     {quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status) && (
                       <Link
                         href={`/vendor/bus/requests/${quote.request.id}/quote`}
-                        className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition flex items-center gap-1"
+                        className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition flex items-center gap-1"
                       >
                         <RefreshCw className="w-4 h-4" />
                         Send Fresh Quote

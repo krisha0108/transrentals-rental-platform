@@ -13,11 +13,11 @@ import {
 import VendorBookingChat from '@/components/vendor/VendorBookingChat';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  OPEN_FOR_QUOTES: { label: 'Open for Quotes', color: 'bg-blue-100 text-blue-700' },
-  QUOTES_RECEIVED: { label: 'Quotes Received', color: 'bg-amber-100 text-amber-700' },
-  SUPER_QUOTE_SENT: { label: 'Quote Sent to Customer', color: 'bg-purple-100 text-purple-700' },
+  OPEN_FOR_QUOTES: { label: 'Open for Quotes', color: 'bg-emerald-100 text-emerald-700' },
+  QUOTES_RECEIVED: { label: 'Quotes Received', color: 'bg-emerald-100 text-emerald-700' },
+  SUPER_QUOTE_SENT: { label: 'Quote Sent to Customer', color: 'bg-emerald-100 text-emerald-700' },
   CONFIRMED: { label: 'Confirmed', color: 'bg-green-100 text-green-700' },
-  TRIPS_CREATED: { label: 'Trips Created', color: 'bg-indigo-100 text-indigo-700' },
+  TRIPS_CREATED: { label: 'Trips Created', color: 'bg-emerald-100 text-emerald-700' },
   IN_PROGRESS: { label: 'In Progress', color: 'bg-cyan-100 text-cyan-700' },
   COMPLETED: { label: 'Completed', color: 'bg-emerald-100 text-emerald-700' },
   CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-700' },
@@ -264,7 +264,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowChat(true)}
-              className="flex items-center gap-2 px-4 py-3 bg-purple-100 text-purple-700 rounded-xl hover:bg-purple-200 transition font-medium text-sm"
+              className="flex items-center gap-2 px-4 py-3 bg-emerald-100 text-emerald-700 rounded-xl hover:bg-emerald-200 transition font-medium text-sm"
             >
               <MessageCircle className="w-5 h-5" />
               Chat
@@ -273,9 +273,9 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
               <p className="text-3xl font-bold text-teal-800">{booking.vehiclesRequired}</p>
               <p className="text-xs text-teal-600">Required</p>
             </div>
-            <div className="bg-amber-100 rounded-xl p-4 text-center min-w-[90px]">
-              <p className="text-3xl font-bold text-amber-800">{remaining}</p>
-              <p className="text-xs text-amber-600">Remaining</p>
+            <div className="bg-emerald-100 rounded-xl p-4 text-center min-w-[90px]">
+              <p className="text-3xl font-bold text-emerald-800">{remaining}</p>
+              <p className="text-xs text-emerald-600">Remaining</p>
             </div>
           </div>
         </div>
@@ -283,7 +283,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
 
       {/* Self-Drive Vehicle Preference */}
       {isSelfDrive && selfDrivePref && (
-        <div className="bg-gradient-to-r from-sky-50 to-blue-50 rounded-2xl border border-sky-200 p-6">
+        <div className="bg-gradient-to-r from-emerald-50 to-emerald-50 rounded-2xl border border-emerald-200 p-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Car className="w-5 h-5 text-sky-600" />
             Vehicle Preference
@@ -325,7 +325,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
         <h2 className="text-lg font-bold text-gray-900 mb-4">Booking Details</h2>
         <div className="grid md:grid-cols-2 gap-4 text-sm">
           <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-            <Car className="w-5 h-5 text-blue-500" />
+            <Car className="w-5 h-5 text-emerald-500" />
             <div>
               <div className="text-xs text-gray-500">Service Type</div>
               <div className="font-medium">{isSelfDrive ? 'Self Drive Rental' : `${booking.serviceType} Rental`}</div>
@@ -333,7 +333,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
           </div>
           {!isSelfDrive && (
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Route className="w-5 h-5 text-orange-500" />
+              <Route className="w-5 h-5 text-emerald-500" />
               <div>
                 <div className="text-xs text-gray-500">Trip Type</div>
                 <div className="font-medium">{booking.tripType}</div>
@@ -359,7 +359,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
           {isSelfDrive ? (
             <>
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Calendar className="w-5 h-5 text-blue-500" />
+                <Calendar className="w-5 h-5 text-emerald-500" />
                 <div>
                   <div className="text-xs text-gray-500">Pickup Date</div>
                   <div className="font-medium">{formatDate(booking.scheduledDate)}{booking.scheduledTime ? ` at ${formatTime(booking.scheduledTime)}` : ''}</div>
@@ -367,7 +367,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
               </div>
               {booking.returnDate && (
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Calendar className="w-5 h-5 text-purple-500" />
+                  <Calendar className="w-5 h-5 text-emerald-500" />
                   <div>
                     <div className="text-xs text-gray-500">Drop-off Date</div>
                     <div className="font-medium">{formatDate(booking.returnDate)}{booking.returnTime ? ` at ${booking.returnTime}` : ''}</div>
@@ -378,7 +378,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
           ) : (
             <>
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Calendar className="w-5 h-5 text-blue-500" />
+                <Calendar className="w-5 h-5 text-emerald-500" />
                 <div>
                   <div className="text-xs text-gray-500">Scheduled Date & Time</div>
                   <div className="font-medium">{formatDate(booking.scheduledDate)} at {formatTime(booking.scheduledTime)}</div>
@@ -386,7 +386,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
               </div>
               {booking.returnDate && (
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Calendar className="w-5 h-5 text-purple-500" />
+                  <Calendar className="w-5 h-5 text-emerald-500" />
                   <div>
                     <div className="text-xs text-gray-500">Return Date</div>
                     <div className="font-medium">{formatDate(booking.returnDate)}{booking.returnTime && ` at ${booking.returnTime}`}</div>
@@ -397,7 +397,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
           )}
           {booking.vehicleCategory && !isSelfDrive && (
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Car className="w-5 h-5 text-purple-500" />
+              <Car className="w-5 h-5 text-emerald-500" />
               <div>
                 <div className="text-xs text-gray-500">Vehicle Category</div>
                 <div className="font-medium capitalize">{booking.vehicleCategory}</div>
@@ -406,7 +406,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
           )}
           {booking.passengerCount && (
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Users className="w-5 h-5 text-indigo-500" />
+              <Users className="w-5 h-5 text-emerald-500" />
               <div>
                 <div className="text-xs text-gray-500">Passengers</div>
                 <div className="font-medium">{booking.passengerCount}</div>
@@ -415,7 +415,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
           )}
         </div>
         {booking.specialNotes && !isSelfDrive && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+          <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
             <span className="font-medium">Notes:</span> {booking.specialNotes}
           </div>
         )}
@@ -472,7 +472,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                       <h2 className="text-lg font-bold text-green-800">Your Quote</h2>
                       <span className="font-mono text-sm px-2 py-0.5 rounded text-green-600 bg-green-100">{quote.quoteNumber}</span>
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        isConfirmed ? 'bg-green-200 text-green-800' : 'bg-blue-100 text-blue-700'
+                        isConfirmed ? 'bg-green-200 text-green-800' : 'bg-emerald-100 text-emerald-700'
                       }`}>{quote.status}</span>
                     </div>
                     <p className="text-sm mt-0.5 text-green-600">
@@ -504,17 +504,17 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                               <div className="text-xs text-green-600">Per Vehicle ({sdDetails.rentalDays}d)</div>
                               <div className="font-bold text-green-800">₹{sdDetails.pricePerVehicle?.toLocaleString('en-IN')}</div>
                             </div>
-                            <div className="bg-blue-50 rounded-lg p-2 text-center">
-                              <div className="text-xs text-blue-600">Security Deposit</div>
-                              <div className="font-bold text-blue-800">₹{sdDetails.securityDeposit?.toLocaleString('en-IN')}</div>
+                            <div className="bg-emerald-50 rounded-lg p-2 text-center">
+                              <div className="text-xs text-emerald-600">Security Deposit</div>
+                              <div className="font-bold text-emerald-800">₹{sdDetails.securityDeposit?.toLocaleString('en-IN')}</div>
                             </div>
                             <div className="bg-gray-50 rounded-lg p-2 text-center">
                               <div className="text-xs text-gray-600">KM Limit</div>
                               <div className="font-bold text-gray-800">{sdDetails.kmLimitPerDay} km/day</div>
                             </div>
-                            <div className="bg-amber-50 rounded-lg p-2 text-center">
-                              <div className="text-xs text-amber-600">Advance ({sdDetails.advancePercent}%)</div>
-                              <div className="font-bold text-amber-800">₹{sdDetails.advanceAmount?.toLocaleString('en-IN')}</div>
+                            <div className="bg-emerald-50 rounded-lg p-2 text-center">
+                              <div className="text-xs text-emerald-600">Advance ({sdDetails.advancePercent}%)</div>
+                              <div className="font-bold text-emerald-800">₹{sdDetails.advanceAmount?.toLocaleString('en-IN')}</div>
                             </div>
                           </div>
                         )}
@@ -583,7 +583,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-gray-900">{vehicleLabel}</span>
-                          {category && <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{category}</span>}
+                          {category && <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">{category}</span>}
                           {regNo && <span className="font-mono text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">{regNo}</span>}
                         </div>
                         <div className="flex items-center gap-3 text-xs text-gray-500 mt-1 flex-wrap">
@@ -652,7 +652,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
       {booking.trips?.length > 0 && myQuotes.length > 0 && !myQuotes.every((q: any) => q.status === 'REJECTED') && (
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Truck className="w-5 h-5 text-indigo-500" />
+            <Truck className="w-5 h-5 text-emerald-500" />
             Trips ({booking.trips.length})
           </h2>
           <div className="space-y-4">
@@ -665,7 +665,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
               return (
                 <div key={trip.id} className={`rounded-xl border overflow-hidden ${
                   tripStatus === 'COMPLETED' ? 'border-green-200 bg-green-50/30' :
-                  tripStatus === 'STARTED' ? 'border-purple-200 bg-purple-50/30' :
+                  tripStatus === 'STARTED' ? 'border-emerald-200 bg-emerald-50/30' :
                   tripStatus === 'DRIVER_ARRIVED' ? 'border-cyan-200 bg-cyan-50/30' :
                   tripStatus === 'CANCELLED' || tripStatus === 'VENDOR_CANCELLED' ? 'border-red-200 bg-red-50/30' :
                   'border-gray-200 bg-gray-50/30'
@@ -674,7 +674,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                   <div className="p-4 flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
                       tripStatus === 'COMPLETED' ? 'bg-green-200 text-green-700' :
-                      tripStatus === 'STARTED' ? 'bg-purple-200 text-purple-700' :
+                      tripStatus === 'STARTED' ? 'bg-emerald-200 text-emerald-700' :
                       tripStatus === 'DRIVER_ARRIVED' ? 'bg-cyan-200 text-cyan-700' :
                       'bg-gray-200 text-gray-600'
                     }`}>{i + 1}</div>
@@ -683,10 +683,10 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                         <span className="font-mono text-sm font-bold">{trip.tripCode}</span>
                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                           tripStatus === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                          tripStatus === 'STARTED' ? 'bg-purple-100 text-purple-700' :
+                          tripStatus === 'STARTED' ? 'bg-emerald-100 text-emerald-700' :
                           tripStatus === 'DRIVER_ARRIVED' ? 'bg-cyan-100 text-cyan-700' :
                           tripStatus === 'CANCELLED' || tripStatus === 'VENDOR_CANCELLED' ? 'bg-red-100 text-red-700' :
-                          'bg-yellow-100 text-yellow-700'
+                          'bg-emerald-100 text-emerald-700'
                         }`}>{tripStatus.replace(/_/g, ' ')}</span>
                       </div>
                       <div className="text-xs text-gray-500 mt-0.5">
@@ -718,11 +718,11 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                       {/* PENDING → Mark Arrived */}
                       {tripStatus === 'PENDING' && (
                         <div className="flex items-center gap-3">
-                          <div className="flex-1 bg-amber-50 rounded-lg p-3 flex items-center gap-3">
-                            <KeyRound className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                          <div className="flex-1 bg-emerald-50 rounded-lg p-3 flex items-center gap-3">
+                            <KeyRound className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                             <div>
-                              <p className="text-sm font-medium text-amber-800">Vehicle Ready for Handover?</p>
-                              <p className="text-xs text-amber-600">Mark arrived to generate OTP for customer verification</p>
+                              <p className="text-sm font-medium text-emerald-800">Vehicle Ready for Handover?</p>
+                              <p className="text-xs text-emerald-600">Mark arrived to generate OTP for customer verification</p>
                             </div>
                           </div>
                           <button
@@ -798,19 +798,19 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                       {/* STARTED → End Trip */}
                       {tripStatus === 'STARTED' && (
                         <div className="flex items-center gap-3">
-                          <div className="flex-1 bg-purple-50 rounded-lg p-3 flex items-center gap-3">
-                            <Play className="w-5 h-5 text-purple-600 flex-shrink-0" />
+                          <div className="flex-1 bg-emerald-50 rounded-lg p-3 flex items-center gap-3">
+                            <Play className="w-5 h-5 text-emerald-600 flex-shrink-0" />
                             <div>
-                              <p className="text-sm font-medium text-purple-800">Trip In Progress</p>
+                              <p className="text-sm font-medium text-emerald-800">Trip In Progress</p>
                               {trip.startedAt && (
-                                <p className="text-xs text-purple-600">Started: {formatDateTime(trip.startedAt)}</p>
+                                <p className="text-xs text-emerald-600">Started: {formatDateTime(trip.startedAt)}</p>
                               )}
                             </div>
                           </div>
                           <button
                             onClick={() => handleEndTrip(trip.tripCode)}
                             disabled={tripProcessing === trip.tripCode}
-                            className="px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold text-sm flex items-center gap-2 disabled:opacity-50 transition"
+                            className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm flex items-center gap-2 disabled:opacity-50 transition"
                           >
                             {tripProcessing === trip.tripCode ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -854,7 +854,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                   {(!isSelfDrive || !isMyTrip) && (
                     <div className="px-4 pb-4">
                       {tripStatus === 'PENDING' && (
-                        <div className="bg-yellow-50 rounded-lg p-2 text-xs text-yellow-700 flex items-center gap-2">
+                        <div className="bg-emerald-50 rounded-lg p-2 text-xs text-emerald-700 flex items-center gap-2">
                           <Clock className="w-3.5 h-3.5" /> Waiting for driver to arrive
                         </div>
                       )}
@@ -864,7 +864,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                         </div>
                       )}
                       {tripStatus === 'STARTED' && (
-                        <div className="bg-purple-50 rounded-lg p-2 text-xs text-purple-700 flex items-center gap-2">
+                        <div className="bg-emerald-50 rounded-lg p-2 text-xs text-emerald-700 flex items-center gap-2">
                           <Play className="w-3.5 h-3.5" /> Trip in progress
                           {trip.startedAt && ` • Started: ${formatDateTime(trip.startedAt)}`}
                         </div>

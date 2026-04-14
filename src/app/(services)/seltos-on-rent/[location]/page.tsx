@@ -7,7 +7,7 @@ import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -73,20 +73,11 @@ export default async function SeltosLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
-        badge={`Seltos Rental in ${locationName}`}
-        title="Kia Seltos on Rent"
-        titleHighlight="Smart SUV @₹1499/day"
-        description={`The most tech-loaded SUV in ${locationName} — Kia Seltos with ADAS, 360° surround camera, and panoramic sunroof. Self-drive a car that thinks for you.`}
-        features={[
-          { icon: 'zap', text: 'ADAS Technology', color: 'text-violet-600' },
-          { icon: 'shield', text: '360° Camera', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="violet-50"
-        gradientTo="purple-50"
+      <SwiftRentalTypeHero
+        city={locationName}
+        citySlug={params.location}
+        vehicleName="Kia Seltos"
+        selfDrivePrice="₹1,899/day"
       />
 
       <section className="bg-gradient-to-br from-red-600 to-orange-600 text-white py-12">

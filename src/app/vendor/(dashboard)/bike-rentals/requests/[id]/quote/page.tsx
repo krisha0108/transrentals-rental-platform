@@ -394,14 +394,13 @@ export default function SendBikeQuotePage() {
   if (isLoading || !request) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-
+    <div className="pb-24">
       {/* Success Modal Overlay */}
       {apiSuccess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -426,91 +425,56 @@ export default function SendBikeQuotePage() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          href="/vendor/bike-rentals/requests"
-          className="p-2 hover:bg-gray-100 rounded-lg transition"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Send className="w-6 h-6 text-orange-500" />
-            Send Quote
-          </h1>
-          <p className="text-gray-600">#{request.requestNumber}</p>
+      {/* ── Hero Header ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-5 md:p-6 mb-5">
+        <div className="absolute inset-0 opacity-10"><div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white" /><div className="absolute right-20 -bottom-10 w-32 h-32 rounded-full bg-white" /><div className="absolute left-1/3 -top-6 w-24 h-24 rounded-full bg-white" /></div>
+        <div className="relative flex items-center gap-3.5">
+          <Link href="/vendor/bike-rentals/requests" className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/20 hover:bg-white/30 active:scale-95 transition-all shrink-0"><ArrowLeft className="w-5 h-5 text-white" /></Link>
+          <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20 shrink-0"><Send className="w-6 h-6 text-white" /></div>
+          <div className="min-w-0"><h1 className="text-xl md:text-2xl font-extrabold text-white leading-tight">Send Quote</h1><p className="text-emerald-100 text-xs md:text-sm mt-0.5">#{request.requestNumber}</p></div>
+        </div>
+        <div className="relative mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl px-3 py-2.5">
+            <div className="flex items-center gap-1.5 text-white/70 mb-1"><Bike className="w-3 h-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Bike</span></div>
+            <p className="text-sm font-bold text-white truncate">{request.vehicleModelName || request.vehicleCategoryName || 'Any Bike'}</p>
+            {request.vehicleBrand && <p className="text-[10px] text-white/60">{request.vehicleBrand}</p>}
+          </div>
+          <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl px-3 py-2.5">
+            <div className="flex items-center gap-1.5 text-white/70 mb-1"><MapPin className="w-3 h-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Location</span></div>
+            <p className="text-sm font-bold text-white truncate">{request.locationName}</p>
+            {request.helmetsRequired && <p className="text-[10px] text-emerald-200">{request.helmetsRequired} helmet(s)</p>}
+          </div>
+          <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl px-3 py-2.5">
+            <div className="flex items-center gap-1.5 text-white/70 mb-1"><Calendar className="w-3 h-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Dates</span></div>
+            <p className="text-sm font-bold text-white">{new Date(request.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} → {new Date(request.dropDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+            <p className="text-[10px] text-white/60">{formatBookingDuration(request)}{request.pickupTime ? ` • ${request.pickupTime}` : ''}</p>
+          </div>
+          <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl px-3 py-2.5">
+            <div className="flex items-center gap-1.5 text-white/70 mb-1"><Clock className="w-3 h-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Duration</span></div>
+            <p className="text-2xl font-extrabold text-white">{request.totalDays}<span className="text-sm font-medium ml-1">days</span></p>
+          </div>
         </div>
       </div>
 
-      {/* Request Summary */}
-      <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
-        <h3 className="font-semibold text-orange-800 mb-3">Request Summary</h3>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="flex items-start gap-3">
-            <Bike className="w-5 h-5 text-orange-600 mt-0.5" />
-            <div>
-              <p className="font-medium text-gray-900">
-                {request.vehicle_modelsName || request.vehicleCategoryName || 'Any Bike'}
-              </p>
-              <p className="text-sm text-gray-600">
-                {request.vehicleBrand && `${request.vehicleBrand} • `}
-                {formatBookingDuration(request)}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <MapPin className="w-5 h-5 text-orange-600 mt-0.5" />
-            <div>
-              <p className="font-medium text-gray-900">{request.locationName}</p>
-              {request.helmetsRequired && (
-                <p className="text-sm text-gray-600">{request.helmetsRequired} helmet(s) required</p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <Calendar className="w-5 h-5 text-orange-600 mt-0.5" />
-            <div>
-              <p className="font-medium text-gray-900">
-                {new Date(request.pickupDate).toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}
-                <span className="text-gray-600"> → </span>
-                {new Date(request.dropDate).toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                })}
-              </p>
-              {request.pickupTime && (
-                <p className="text-sm text-gray-600">Pickup: {request.pickupTime}</p>
-              )}
-            </div>
-          </div>
-          {request.customerNotes && (
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-600">{request.customerNotes}</p>
-              </div>
-            </div>
-          )}
+      {request.customerNotes && (
+        <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 mb-5">
+          <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <div><p className="text-xs font-bold text-amber-700">Customer Note</p><p className="text-sm text-amber-800 mt-0.5">{request.customerNotes}</p></div>
         </div>
-      </div>
+      )}
 
       {/* Template Selector */}
       {templates.length > 0 && (
-        <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-4 border border-orange-200">
+        <div className="bg-gradient-to-r from-emerald-50 to-emerald-50/50 rounded-xl p-4 border border-emerald-200">
           <div className="flex items-center gap-2 mb-3">
-            <Lightbulb className="w-5 h-5 text-orange-600" />
-            <h3 className="font-semibold text-orange-900">Quick Fill with Template</h3>
+            <Lightbulb className="w-5 h-5 text-emerald-600" />
+            <h3 className="font-semibold text-emerald-900">Quick Fill with Template</h3>
           </div>
-          <p className="text-sm text-orange-700 mb-3">Load saved template to auto-fill inclusions, exclusions, terms & rates</p>
+          <p className="text-sm text-emerald-700 mb-3">Load saved template to auto-fill inclusions, exclusions, terms & rates</p>
           <select
             value={selectedTemplateId}
             onChange={(e) => handleTemplateSelection(e.target.value)}
-            className="w-full px-4 py-2.5 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white"
+            className="w-full px-4 py-2.5 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white"
           >
             <option value="">-- Select a template (optional) --</option>
             {templates.map((template) => (
@@ -538,12 +502,15 @@ export default function SendBikeQuotePage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* ── LEFT COLUMN ── */}
+        <div className="space-y-5">
         {/* Vehicle Details */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <Bike className="w-5 h-5 text-orange-500" />
-            Vehicle Details
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="w-1.5 h-4 rounded-full bg-emerald-400" />
+            <Bike className="w-4 h-4 text-emerald-500" /> Vehicle Details
           </h2>
 
           {fleetVehicles.length > 0 && (
@@ -554,7 +521,7 @@ export default function SendBikeQuotePage() {
               <select
                 value={selectedFleetId}
                 onChange={(e) => handleFleetSelection(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 bg-white"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 bg-white"
               >
                 <option value="">-- Select a bike from fleet (or enter manually) --</option>
                 {fleetVehicles.map((vehicle) => {
@@ -595,7 +562,7 @@ export default function SendBikeQuotePage() {
                   if (errors.vehicleName) setErrors(prev => ({ ...prev, vehicleName: '' }));
                 }}
                 placeholder="e.g., Royal Enfield Classic 350"
-                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.vehicleName ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
+                className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.vehicleName ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
               />
               {errors.vehicleName && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.vehicleName}</p>}
             </div>
@@ -611,7 +578,7 @@ export default function SendBikeQuotePage() {
                   setSelectedFleetId('');
                 }}
                 placeholder="e.g., Royal Enfield"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             <div>
@@ -626,7 +593,7 @@ export default function SendBikeQuotePage() {
                   setSelectedFleetId('');
                 }}
                 placeholder="e.g., DL 01 AB 1234"
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
             </div>
             <div>
@@ -637,7 +604,7 @@ export default function SendBikeQuotePage() {
               <select
                 value={helmetsIncluded}
                 onChange={(e) => setHelmetsIncluded(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="1">1 Helmet</option>
                 <option value="2">2 Helmets</option>
@@ -647,10 +614,10 @@ export default function SendBikeQuotePage() {
         </div>
 
         {/* Pricing */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
-            <IndianRupee className="w-5 h-5 text-orange-500" />
-            Pricing
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="w-1.5 h-4 rounded-full bg-emerald-400" />
+            <IndianRupee className="w-4 h-4 text-emerald-500" /> Pricing
           </h2>
 
           {/* Price & Deposit Row */}
@@ -670,7 +637,7 @@ export default function SendBikeQuotePage() {
                     if (errors.totalPrice) setErrors(prev => ({ ...prev, totalPrice: '' }));
                   }}
                   placeholder={`${(request.totalDays || 1) * 800}`}
-                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.totalPrice ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.totalPrice ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
               {errors.totalPrice ? <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.totalPrice}</p> : <p className="text-xs text-gray-500 mt-1">Enter your total quote price for the entire rental period</p>}
@@ -691,7 +658,7 @@ export default function SendBikeQuotePage() {
                   }}
                   placeholder="2000"
                   disabled={noSecurityDeposit}
-                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${noSecurityDeposit ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : errors.securityDeposit ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
+                  className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${noSecurityDeposit ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed' : errors.securityDeposit ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
                 />
               </div>
               <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
@@ -702,7 +669,7 @@ export default function SendBikeQuotePage() {
                     setNoSecurityDeposit(e.target.checked);
                     if (e.target.checked) { setSecurityDeposit('0'); setErrors(prev => ({ ...prev, securityDeposit: '' })); }
                   }}
-                  className="w-4 h-4 rounded accent-orange-500"
+                  className="w-4 h-4 rounded accent-emerald-500"
                 />
                 <span className="text-sm text-gray-600">No security deposit required</span>
               </label>
@@ -723,14 +690,14 @@ export default function SendBikeQuotePage() {
                   onChange={(e) => setKmLimitPerDay(e.target.value)}
                   placeholder="e.g., 150"
                   disabled={kmLimitPerDay === 'unlimited'}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:text-gray-400"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 disabled:bg-gray-100 disabled:text-gray-400"
                 />
                 <button
                   type="button"
                   onClick={() => setKmLimitPerDay(kmLimitPerDay === 'unlimited' ? '' : 'unlimited')}
                   className={`px-3 py-2.5 text-xs font-semibold rounded-lg border transition whitespace-nowrap ${
                     kmLimitPerDay === 'unlimited'
-                      ? 'bg-orange-100 text-orange-700 border-orange-300'
+                      ? 'bg-emerald-100 text-emerald-700 border-emerald-300'
                       : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                   }`}
                 >
@@ -750,7 +717,7 @@ export default function SendBikeQuotePage() {
                   value={extraKmCharge}
                   onChange={(e) => setExtraKmCharge(e.target.value)}
                   placeholder="5"
-                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
@@ -765,11 +732,11 @@ export default function SendBikeQuotePage() {
               </label>
               <div className="flex gap-1 mb-2 bg-gray-100 rounded-lg p-0.5">
                 <button type="button" onClick={() => setAdvanceMode('percent')}
-                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'percent' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}>
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'percent' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500'}`}>
                   By Percentage
                 </button>
                 <button type="button" onClick={() => setAdvanceMode('manual')}
-                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'manual' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}>
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${advanceMode === 'manual' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500'}`}>
                   Custom Amount
                 </button>
               </div>
@@ -778,7 +745,7 @@ export default function SendBikeQuotePage() {
                   <select
                     value={advancePercent}
                     onChange={(e) => setAdvancePercent(e.target.value)}
-                    className="w-24 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                    className="w-24 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   >
                     <option value="20">20%</option>
                     <option value="25">25%</option>
@@ -799,7 +766,7 @@ export default function SendBikeQuotePage() {
                     onChange={(e) => setCustomAdvanceAmount(e.target.value)}
                     placeholder="Enter advance amount"
                     min="0"
-                    className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 ${errors.customAdvanceAmount ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}
+                    className={`w-full pl-8 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-emerald-500 ${errors.customAdvanceAmount ? 'border-red-500 bg-red-50' : 'border-gray-200'}`}
                   />
                 </div>
               )}
@@ -815,12 +782,12 @@ export default function SendBikeQuotePage() {
               <div className="flex gap-1 mb-2 bg-gray-100 rounded-lg p-0.5">
                 <button type="button"
                   onClick={() => setValidityMode('days')}
-                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${validityMode === 'days' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${validityMode === 'days' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                   Quick (Days)
                 </button>
                 <button type="button"
                   onClick={() => setValidityMode('custom')}
-                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${validityMode === 'custom' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                  className={`flex-1 text-xs font-medium py-1.5 rounded-md transition ${validityMode === 'custom' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                   Custom Date & Time
                 </button>
               </div>
@@ -828,7 +795,7 @@ export default function SendBikeQuotePage() {
                 <select
                   value={validityDays}
                   onChange={(e) => setValidityDays(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="1">1 day</option>
                   <option value="2">2 days</option>
@@ -840,10 +807,10 @@ export default function SendBikeQuotePage() {
                 <div className="flex gap-2">
                   <input type="date" value={customValidDate} onChange={(e) => setCustomValidDate(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 text-sm"
+                    className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm"
                     required={validityMode === 'custom'} />
                   <input type="time" value={customValidTime} onChange={(e) => setCustomValidTime(e.target.value)}
-                    className="w-[120px] px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 text-sm" />
+                    className="w-[120px] px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 text-sm" />
                 </div>
               )}
               <p className="text-xs text-gray-400 mt-1">
@@ -861,57 +828,42 @@ export default function SendBikeQuotePage() {
             </div>
           </div>
 
-          {/* Summary */}
-          <div className="mt-6 rounded-xl border border-orange-200 overflow-hidden">
-            <div className="bg-orange-100 px-4 py-2.5">
-              <h3 className="text-sm font-semibold text-orange-800">Quote Summary</h3>
-            </div>
-            <div className="bg-orange-50 p-4 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Rental Price ({request.totalDays} days)</span>
-                <span className="text-sm font-medium text-gray-800">₹{(parseFloat(totalPrice) || 0).toLocaleString()}</span>
+        </div>
+
+        {/* Notes */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-3">Notes for Customer <span className="text-gray-400 font-normal">(optional)</span></h2>
+          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any special notes..." rows={3} className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 hover:border-gray-300 transition-all resize-none" />
+        </div>
+        </div>
+
+        {/* ── RIGHT COLUMN ── */}
+        <div className="space-y-5">
+        {/* Quote Summary (sticky) */}
+        <div className="lg:sticky lg:top-[73px] z-10">
+          <div className="bg-white rounded-2xl border border-emerald-200 shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-3"><h3 className="text-sm font-bold text-white flex items-center gap-2"><IndianRupee className="w-4 h-4" /> Quote Summary</h3></div>
+            <div className="p-5 space-y-3">
+              <div className="flex justify-between text-sm"><span className="text-gray-500">Rental ({request.totalDays}d)</span><span className="font-medium">₹{(parseFloat(totalPrice) || 0).toLocaleString()}</span></div>
+              {parseFloat(securityDeposit) > 0 && <div className="flex justify-between text-sm"><span className="text-gray-500">Security Deposit</span><span className="font-medium">₹{(parseFloat(securityDeposit) || 0).toLocaleString()}</span></div>}
+              <div className="border-t border-emerald-100 pt-3"><div className="flex justify-between"><span className="text-sm font-bold text-gray-900">Total</span><span className="text-xl font-extrabold text-emerald-600">₹{((parseFloat(totalPrice) || 0) + (parseFloat(securityDeposit) || 0)).toLocaleString()}</span></div></div>
+              <div className="border-t border-emerald-100 pt-3 space-y-1">
+                <div className="flex justify-between text-sm"><span className="text-emerald-600 font-medium">Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : ''}</span><span className="font-bold text-emerald-600">₹{calculateAdvance().toLocaleString()}</span></div>
+                <div className="flex justify-between text-xs text-gray-400"><span>Remaining</span><span>₹{((parseFloat(totalPrice) || 0) - calculateAdvance() + (parseFloat(securityDeposit) || 0)).toLocaleString()}</span></div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Security Deposit (refundable)</span>
-                <span className="text-sm font-medium text-gray-800">₹{(parseFloat(securityDeposit) || 0).toLocaleString()}</span>
-              </div>
-              <div className="border-t border-orange-200 pt-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-gray-900">Total Amount to Pay</span>
-                  <span className="text-lg font-bold text-orange-600">₹{((parseFloat(totalPrice) || 0) + (parseFloat(securityDeposit) || 0)).toLocaleString()}</span>
-                </div>
-              </div>
-              <div className="border-t border-orange-200 pt-2.5 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-green-700 font-medium">Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Custom)'}</span>
-                  <span className="text-sm font-bold text-green-700">₹{calculateAdvance().toLocaleString()}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Remaining at pickup</span>
-                  <span className="text-xs text-gray-500">₹{((parseFloat(totalPrice) || 0) - calculateAdvance() + (parseFloat(securityDeposit) || 0)).toLocaleString()}</span>
-                </div>
-              </div>
-              {kmLimitPerDay && (
-                <div className="text-xs text-gray-500 pt-1.5 border-t border-orange-100">
-                  KM Limit: {kmLimitPerDay === 'unlimited' ? 'Unlimited' : `${kmLimitPerDay} km/day`}
-                  {kmLimitPerDay !== 'unlimited' && extraKmCharge && ` • Extra: ₹${extraKmCharge}/km`}
-                </div>
-              )}
+              {kmLimitPerDay && <div className="text-[10px] text-gray-400 pt-2 border-t border-gray-100">KM: {kmLimitPerDay === 'unlimited' ? 'Unlimited' : `${kmLimitPerDay}/day`}{kmLimitPerDay !== 'unlimited' && extraKmCharge && ` • Extra: ₹${extraKmCharge}/km`}</div>}
             </div>
           </div>
         </div>
 
         {/* Inclusions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-500" />
-              Inclusions ({inclusions.length})
-            </h2>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2"><div className="w-1.5 h-4 rounded-full bg-emerald-400" /><CheckCircle className="w-4 h-4 text-emerald-500" /> Inclusions <span className="text-[10px] font-semibold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded-md">{inclusions.length}</span></h2>
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'inclusions' ? null : 'inclusions')}
-              className="text-sm text-orange-600 hover:underline flex items-center gap-1"
+              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
             >
               <Edit3 className="w-4 h-4" />
               {editMode === 'inclusions' ? 'Done' : 'Edit'}
@@ -946,7 +898,7 @@ export default function SendBikeQuotePage() {
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addItem(inclusions, setInclusions))}
                 placeholder="Add inclusion..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="button"
@@ -960,16 +912,13 @@ export default function SendBikeQuotePage() {
         </div>
 
         {/* Exclusions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
-              <XCircle className="w-5 h-5 text-red-500" />
-              Exclusions ({exclusions.length})
-            </h2>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2"><div className="w-1.5 h-4 rounded-full bg-red-400" /><XCircle className="w-4 h-4 text-red-500" /> Exclusions <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-md">{exclusions.length}</span></h2>
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'exclusions' ? null : 'exclusions')}
-              className="text-sm text-orange-600 hover:underline flex items-center gap-1"
+              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
             >
               <Edit3 className="w-4 h-4" />
               {editMode === 'exclusions' ? 'Done' : 'Edit'}
@@ -1004,7 +953,7 @@ export default function SendBikeQuotePage() {
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addItem(exclusions, setExclusions))}
                 placeholder="Add exclusion..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="button"
@@ -1018,13 +967,13 @@ export default function SendBikeQuotePage() {
         </div>
 
         {/* Terms & Conditions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">Terms & Conditions ({termsConditions.length})</h2>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2"><div className="w-1.5 h-4 rounded-full bg-gray-400" /> Terms & Conditions <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-md">{termsConditions.length}</span></h2>
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'terms' ? null : 'terms')}
-              className="text-sm text-orange-600 hover:underline flex items-center gap-1"
+              className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
             >
               <Edit3 className="w-4 h-4" />
               {editMode === 'terms' ? 'Done' : 'Edit'}
@@ -1034,7 +983,7 @@ export default function SendBikeQuotePage() {
           <div className="space-y-2">
             {termsConditions.map((item, idx) => (
               <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                <span className="text-orange-500 font-bold">{idx + 1}.</span>
+                <span className="text-emerald-500 font-bold">{idx + 1}.</span>
                 <span className="flex-1 text-sm text-gray-700">{item}</span>
                 {editMode === 'terms' && (
                   <button
@@ -1057,12 +1006,12 @@ export default function SendBikeQuotePage() {
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addItem(termsConditions, setTermsConditions))}
                 placeholder="Add term..."
-                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
+                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="button"
                 onClick={() => addItem(termsConditions, setTermsConditions)}
-                className="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200"
+                className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
               >
                 <Plus className="w-5 h-5" />
               </button>
@@ -1070,45 +1019,17 @@ export default function SendBikeQuotePage() {
           )}
         </div>
 
-        {/* Notes */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4">Notes for Customer (Optional)</h2>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Any special notes or messages for the customer..."
-            rows={3}
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500"
-          />
-        </div>
-
-        {/* Submit */}
-        <div className="flex gap-3">
-          <Link
-            href="/vendor/bike-rentals/requests"
-            className="flex-1 py-3 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition text-center"
-          >
-            Cancel
-          </Link>
-          <button
-            type="submit"
-            disabled={isSubmitting || !totalPrice || !vehicleName || advanceExceedsTotal}
-            className="flex-1 py-3 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {isSubmitting ? (
-              <>
-                <span className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Send className="w-5 h-5" />
-                Send Quote (₹{(parseFloat(totalPrice) || 0).toLocaleString()})
-              </>
-            )}
-          </button>
-        </div>
+        </div>{/* end right column */}
+        </div>{/* end 2-col grid */}
       </form>
+
+      {/* ── Sticky Bottom CTA ── */}
+      <div className="sticky bottom-0 left-0 right-0 mt-5 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-5 py-3 -mx-4 md:-mx-6 flex gap-3 z-20">
+        <Link href="/vendor/bike-rentals/requests" className="px-5 h-11 bg-gray-100 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-200 flex items-center active:scale-[0.98] transition-all">Cancel</Link>
+        <button type="submit" disabled={isSubmitting || !totalPrice || !vehicleName || advanceExceedsTotal} onClick={handleSubmit} className="flex-1 h-11 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-sm font-bold rounded-xl shadow-md shadow-emerald-500/25 disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.98] transition-all">
+          {isSubmitting ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> Sending...</> : <><Send className="w-4 h-4" /> Send Quote (₹{(parseFloat(totalPrice) || 0).toLocaleString()})</>}
+        </button>
+      </div>
     </div>
   );
 }

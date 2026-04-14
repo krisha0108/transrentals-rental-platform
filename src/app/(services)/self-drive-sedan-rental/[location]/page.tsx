@@ -7,7 +7,7 @@ import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -102,20 +102,11 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
-        badge={`Self Drive Sedan in ${locationName}`}
-        title="Self Drive Sedan Rental"
-        titleHighlight="Business Comfort @₹999/day"
-        description={`Drive in style across ${locationName}. Self-drive Honda City, Dzire, Ciaz — smooth, comfortable, fuel-efficient sedans perfect for business trips and outstation travel.`}
-        features={[
-          { icon: 'zap', text: 'Smooth Highway Ride', color: 'text-slate-600' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="slate-50"
-        gradientTo="gray-50"
+      <SwiftRentalTypeHero
+        city={locationName}
+        citySlug={params.location}
+        vehicleName="Self Drive Sedan"
+        selfDrivePrice="₹1,299/day"
       />
 
       <section className="bg-gradient-to-br from-gray-800 to-blue-900 text-white py-12">

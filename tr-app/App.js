@@ -84,6 +84,11 @@ import notifee, { AndroidStyle, AndroidImportance, EventType } from '@notifee/re
 import { NotificationProvider, useInAppNotification } from './contexts/NotificationContext';
 import { AppState } from 'react-native';
 import { BASE_URL } from './screens/api';
+// Wander Screens
+import WanderScreen from './screens/customer/HomePage/WanderScreen';
+import WanderListingDetailScreen from './screens/customer/wander/WanderListingDetailScreen';
+import MyWanderBookingsScreen from './screens/customer/wander/MyWanderBookingsScreen';
+import WanderQuoteDetailScreen from './screens/customer/wander/WanderQuoteDetailScreen';
 // B2B Screens
 import B2BRegisterScreen from './screens/b2b/B2BRegisterScreen';
 import B2BDashboardScreen from './screens/b2b/B2BDashboardScreen';
@@ -702,7 +707,11 @@ function AppContent() {
         <Stack.Screen name="B2BChat" component={B2BChatScreen} />
         <Stack.Screen name="B2BInvoices" component={B2BInvoicesScreen} />
         <Stack.Screen name="B2BInvoiceDetail" component={B2BInvoiceDetailScreen} />
-
+        {/* Wander Screens */}
+        <Stack.Screen name="WanderScreen" component={WanderScreen} />
+        <Stack.Screen name="WanderListingDetail" component={WanderListingDetailScreen} />
+        <Stack.Screen name="MyWanderBookings" component={MyWanderBookingsScreen} />
+        <Stack.Screen name="WanderQuoteDetail" component={WanderQuoteDetailScreen} />
 
       </Stack.Navigator>
   );

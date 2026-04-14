@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { formatPriceHighlight } from '@/lib/utils';
@@ -27,27 +27,18 @@ export const metadata: Metadata = {
   },
 };
 
-const topCities = ALL_CITIES.slice(0, 12);
+const topCities = ALL_CITIES.slice(0, 60);
 
 export default function SwiftOnRentPage() {
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Most Popular Hatchback"
-        title="Swift on Rent Without Driver"
-        titleHighlight="Starting @₹899/Day"
-        description="India's most popular hatchback for rent. Sporty design, peppy performance, excellent mileage. Perfect for city commute and short trips."
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: '22 km/l Mileage', color: 'text-green-600' },
-        ]}
-        gradientFrom="red-50"
-        gradientTo="orange-50"
+      <SwiftRentalTypeHero
+        vehicleName="Maruti Swift"
+        selfDrivePrice="₹899/day"
       />
 
       {/* Hero */}
-      <section className="relative bg-gradient-to-br from-red-600 to-orange-600 text-white py-16">
+      <section className="relative bg-gradient-to-br from-red-600 to-orange-700 text-white py-16">
         <div className="container-custom">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
@@ -57,9 +48,6 @@ export default function SwiftOnRentPage() {
               Swift LXi • Swift VXi • Swift ZXi • Swift AMT • Swift CNG
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <a href="#variants" className="bg-white text-red-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
-                View Variants & Prices
-              </a>
               <a href="#cities" className="border-2 border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-red-600 transition">
                 Find Near You
               </a>
@@ -95,7 +83,7 @@ export default function SwiftOnRentPage() {
       <section id="cities" className="py-12 bg-gray-50">
         <div className="container-custom">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Swift on Rent in 200+ Cities
+            Swift on Rent Across India
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {topCities.map((city) => (
@@ -107,9 +95,6 @@ export default function SwiftOnRentPage() {
                 <span className="font-medium text-gray-800">{city.name}</span>
               </Link>
             ))}
-          </div>
-          <div className="text-center mt-6">
-            <p className="text-gray-600">+ 190 more cities available</p>
           </div>
         </div>
       </section>

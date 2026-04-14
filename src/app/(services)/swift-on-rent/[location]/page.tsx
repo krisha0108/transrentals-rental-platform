@@ -7,7 +7,7 @@ import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -101,20 +101,11 @@ export default async function SwiftOnRentLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
-        badge={`Swift Rental in ${locationName}`}
-        title="Maruti Swift on Rent"
-        titleHighlight="India's Favourite @₹899/day"
-        description={`The hatchback that changed India — now self-drive in ${locationName}. Swift's punchy engine, sporty handling, and 22 km/l mileage make it the perfect everyday companion.`}
-        features={[
-          { icon: 'zap', text: '22km/l Mileage', color: 'text-green-600' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="red-50"
-        gradientTo="orange-50"
+      <SwiftRentalTypeHero
+        city={locationName}
+        citySlug={params.location}
+        vehicleName="Maruti Swift"
+        selfDrivePrice="₹899/day"
       />
 
       <section className="bg-gradient-to-br from-red-600 to-orange-600 text-white py-12">

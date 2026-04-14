@@ -14,6 +14,12 @@ import {
   IndianRupee,
   Loader2,
   RefreshCw,
+  Sparkles,
+  Flame,
+  Clock,
+  Radar,
+  Info,
+  Activity,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -157,8 +163,64 @@ export default function VendorOpenRequestsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div className="space-y-8 animate-pulse pb-10">
+        {/* Header Skeleton */}
+        <div className="h-32 w-full rounded-3xl bg-slate-100/80"></div>
+
+        {/* Info Cards Skeleton */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="col-span-1 md:col-span-2 lg:col-span-1 h-32 rounded-3xl bg-slate-100/80"></div>
+          <div className="h-32 rounded-3xl bg-slate-100/80"></div>
+          <div className="h-32 rounded-3xl bg-slate-100/80"></div>
+          <div className="h-32 rounded-3xl bg-slate-100/80"></div>
+        </div>
+
+        {/* Bookings Skeleton List */}
+        <div className="grid gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex flex-col lg:flex-row h-auto lg:h-64 overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
+              <div className="flex-1 p-6 md:p-8 space-y-6">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-3 w-1/2">
+                    <div className="h-6 w-24 rounded-full bg-slate-100"></div>
+                    <div className="h-8 w-64 rounded-xl bg-slate-100"></div>
+                    <div className="h-5 w-32 rounded-md bg-slate-50"></div>
+                  </div>
+                  <div className="flex flex-col items-end space-y-2">
+                    <div className="h-4 w-12 rounded-sm bg-slate-100"></div>
+                    <div className="h-10 w-32 rounded-xl bg-slate-100"></div>
+                  </div>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4 pt-4 border-t border-slate-50">
+                  <div className="flex gap-3">
+                    <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100"></div>
+                    <div className="space-y-2 w-full">
+                      <div className="h-3 w-16 rounded-sm bg-slate-100"></div>
+                      <div className="h-4 w-32 rounded-md bg-slate-100"></div>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100"></div>
+                    <div className="space-y-2 w-full">
+                      <div className="h-3 w-16 rounded-sm bg-slate-100"></div>
+                      <div className="h-4 w-32 rounded-md bg-slate-100"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="w-full lg:w-80 p-6 md:p-8 bg-slate-50/50 flex flex-col justify-between border-l border-slate-100">
+                <div className="space-y-6">
+                  <div className="h-4 w-32 rounded-md bg-slate-200/50"></div>
+                  <div className="space-y-4 ml-6">
+                    <div className="h-10 w-full rounded-md bg-slate-200/50"></div>
+                    <div className="h-10 w-full rounded-md bg-slate-200/50"></div>
+                  </div>
+                </div>
+                <div className="mt-8 h-12 w-full rounded-xl bg-slate-200/80"></div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -175,8 +237,7 @@ export default function VendorOpenRequestsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Accept Booking Modal */}
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       <AcceptBookingModal
         isOpen={acceptModalOpen}
         onClose={() => {
@@ -204,48 +265,83 @@ export default function VendorOpenRequestsPage() {
         onAccept={handleAcceptBooking}
       />
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/vendor/bike-rentals/bookings"
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Open Requests</h1>
-            <p className="text-gray-600">Broadcasted bookings - show interest to win customers</p>
+      {/* Header Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-white p-6 shadow-sm border border-slate-200 animate-in fade-in slide-in-from-bottom-6 duration-700 fill-mode-both">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 transition-transform duration-1000 hover:scale-150"></div>
+        <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-600 shadow-lg shadow-emerald-500/30 text-white">
+              <Radar className="w-6 h-6 animate-[spin_4s_linear_infinite]" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Open Requests</h1>
+              <p className="text-sm font-medium text-slate-500 mt-1">Broadcasted bookings — show interest to win customers.</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <span className="flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50/80 px-4 py-2 text-xs font-semibold text-emerald-700">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              Matches appear automatically
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchData}
+              className="h-9 hover:bg-slate-50 transition-colors w-full sm:w-auto"
+            >
+              <RefreshCw className={cn('w-4 h-4 mr-2', loading && 'animate-spin')} />
+              Refresh
+            </Button>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchData}>
-          <RefreshCw className={cn('w-4 h-4 mr-2', loading && 'animate-spin')} />
-          Refresh
-        </Button>
       </div>
 
-      {/* Info Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-        <Radio className="w-5 h-5 text-blue-500 mt-0.5" />
-        <div>
-          <h3 className="font-semibold text-blue-800">How Open Requests Work</h3>
-          <p className="text-blue-700 text-sm">
-            These are bookings that were either rejected by other vendors or are generic requests.
-            Show interest with your best offer - the customer will choose from all interested vendors.
+      {/* Info Section */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="col-span-1 md:col-span-2 lg:col-span-1 rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100 fill-mode-both hover:-translate-y-1 transition-transform">
+          <h2 className="text-lg font-bold text-slate-900 mb-2">How it works</h2>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            These are generic or unfulfilled bookings. Submit your best offer quickly—customers review all interested vendors.
           </p>
         </div>
+        <div className="group rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-500/5 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 fill-mode-both">
+          <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3">
+            <Flame className="w-5 h-5" />
+          </div>
+          <h3 className="font-semibold text-slate-900 mb-1">Submit early</h3>
+          <p className="text-sm text-slate-500">Respond quickly to keep your offer competitive.</p>
+        </div>
+        <div className="group rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-emerald-500/5 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300 fill-mode-both">
+          <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
+            <Activity className="w-5 h-5" />
+          </div>
+          <h3 className="font-semibold text-slate-900 mb-1">See fit instantly</h3>
+          <p className="text-sm text-slate-500">View how many bikes match this request.</p>
+        </div>
+        <div className="group rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl hover:shadow-slate-500/5 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-400 fill-mode-both">
+          <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 transition-transform duration-500 group-hover:scale-110">
+            <Clock className="w-5 h-5" />
+          </div>
+          <h3 className="font-semibold text-slate-900 mb-1">No match yet?</h3>
+          <p className="text-sm text-slate-500">Keep monitoring open requests for better fits.</p>
+        </div>
       </div>
 
-      {/* Requests List */}
+      {/* Bookings List */}
       {bookings.length === 0 ? (
-        <div className="bg-white rounded-xl p-12 text-center">
-          <Radio className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No open requests</h3>
-          <p className="text-gray-500">Check back later for new opportunities</p>
+        <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-12 text-center shadow-sm animate-in fade-in zoom-in-95 duration-500 delay-500 fill-mode-both">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 transition-transform hover:scale-110">
+            <Radar className="h-8 w-8 text-emerald-300 animate-[spin_3s_linear_infinite]" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-900 mb-2">No open requests</h3>
+          <p className="text-sm text-slate-500 max-w-sm mx-auto">Matches in your service area will appear here automatically. Keep your fleet ready.</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {bookings.map((request) => {
+        <div className="grid gap-6">
+          {bookings.map((request, index) => {
             const matchingBikes = vendor_fleet.filter(bike => bike.dailyRate > 0);
             const hasMatchingBikes = matchingBikes.length > 0;
 
@@ -253,166 +349,111 @@ export default function VendorOpenRequestsPage() {
               <div
                 key={request.id}
                 className={cn(
-                  'bg-white rounded-xl shadow-sm border overflow-hidden',
-                  hasMatchingBikes ? 'border-green-200' : 'border-gray-100'
+                  "group relative overflow-hidden rounded-3xl border bg-white shadow-sm transition-all duration-500 hover:shadow-xl hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-8 fill-mode-both",
+                  hasMatchingBikes ? "border-emerald-200 ring-1 ring-emerald-50 hover:shadow-emerald-500/10" : "border-slate-200 hover:shadow-emerald-500/5"
                 )}
+                style={{ animationDelay: `${500 + index * 150}ms` }}
               >
-                {/* Status Banner */}
+                {/* Top matching banner */}
                 <div
                   className={cn(
-                    'px-6 py-3 flex items-center justify-between',
-                    hasMatchingBikes
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
-                      : 'bg-gray-100 text-gray-600'
+                    'flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-bold uppercase tracking-wider',
+                    hasMatchingBikes ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
                   )}
                 >
-                  <div className="flex items-center gap-2">
-                    {hasMatchingBikes ? (
-                      <>
-                        <Zap className="w-5 h-5" />
-                        <span className="font-medium">
-                          You have {matchingBikes.length} bike{matchingBikes.length > 1 ? 's' : ''} available!
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <AlertTriangle className="w-5 h-5" />
-                        <span className="font-medium">No bikes available in your fleet</span>
-                      </>
-                    )}
-                  </div>
+                  {hasMatchingBikes ? (
+                    <><Sparkles className="w-3.5 h-3.5" /> You have {matchingBikes.length} bike{matchingBikes.length > 1 ? 's' : ''} available!</>
+                  ) : (
+                    <><Info className="w-3.5 h-3.5" /> No bikes available in your fleet</>
+                  )}
                 </div>
 
-                <div className="p-6">
-                  <div className="flex flex-col lg:flex-row gap-6">
-                    {/* Request Details */}
-                    <div className="flex-1 space-y-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl font-bold text-gray-900">
-                          #{request.bookingNumber}
+                <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
+                  {/* Left Column: Core Request Info */}
+                  <div className="flex-1 p-6 md:p-8 space-y-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/80 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-700/10">
+                            <Activity className="w-3 h-3" />
+                            OPEN MATCH
+                          </span>
+                          <span className="text-xs font-semibold text-slate-400">#{request.bookingNumber}</span>
+                        </div>
+                        <h2 className="flex items-center gap-2.5 text-2xl font-bold text-slate-900 tracking-tight">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-500">
+                            <Bike className="w-4 h-4" />
+                          </div>
+                          <span>{request.vehicleBrand} {request.vehicleName}</span>
+                        </h2>
+                        <span className="inline-flex mt-2 items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-900/5">
+                          {request.chauffeur_vehicle_categories}
                         </span>
-                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                          Open Request
+                      </div>
+
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Budget</span>
+                        <div className="flex items-baseline gap-1 text-emerald-600">
+                          <span className="text-lg font-semibold">₹</span>
+                          <span className="text-4xl font-black tracking-tight">{request.grandTotal}</span>
+                        </div>
+                        <span className="text-xs font-medium text-slate-500 mt-1">
+                          ~₹{Math.round(request.grandTotal / request.totalDays)} / day
                         </span>
                       </div>
-
-                      {/* Customer Info */}
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <h4 className="font-semibold text-gray-900 mb-2">Customer Details</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-gray-400" />
-                            <span>{request.customerName}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-gray-400" />
-                            <span>{request.locationName}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Vehicle Request */}
-                      <div className="bg-purple-50 rounded-lg p-4">
-                        <h4 className="font-semibold text-gray-900 mb-2">Vehicle Request</h4>
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <Bike className="w-6 h-6 text-purple-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {request.vehicleBrand} {request.vehicleName}
-                            </p>
-                            <p className="text-sm text-gray-500">{request.chauffeur_vehicle_categories}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Trip Info */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <div className="flex items-center gap-2 text-gray-600 mb-1">
-                            <MapPin className="w-4 h-4" />
-                            <span className="text-sm">Location</span>
-                          </div>
-                          <p className="font-medium text-gray-900">{request.locationName}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <div className="flex items-center gap-2 text-gray-600 mb-1">
-                            <CalendarCheck className="w-4 h-4" />
-                            <span className="text-sm">Duration</span>
-                          </div>
-                          <p className="font-medium text-gray-900">{request.totalDays} Day{request.totalDays > 1 ? 's' : ''}</p>
-                          <p className="text-xs text-gray-500">
-                            {formatDate(request.pickupDate)} → {formatDate(request.dropDate)}
-                          </p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <div className="flex items-center gap-2 text-gray-600 mb-1">
-                            <IndianRupee className="w-4 h-4" />
-                            <span className="text-sm">Budget</span>
-                          </div>
-                          <p className="font-medium text-gray-900">₹{request.grandTotal}</p>
-                          <p className="text-xs text-gray-500">
-                            ~₹{Math.round(request.grandTotal / request.totalDays)}/day
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Customer Notes */}
-                      {request.customerNotes && (
-                        <div className="bg-amber-50 rounded-lg p-4">
-                          <h4 className="font-semibold text-gray-900 mb-1">Customer Notes</h4>
-                          <p className="text-sm text-gray-700">{request.customerNotes}</p>
-                        </div>
-                      )}
                     </div>
 
-                    {/* Matching Bikes & Actions */}
-                    <div className="lg:w-80 space-y-4">
-                      {/* Your Available Bikes */}
-                      {hasMatchingBikes && (
-                        <div className="bg-green-50 rounded-lg p-4">
-                          <h4 className="font-semibold text-gray-900 mb-3">Your Available Bikes</h4>
-                          <div className="space-y-2 max-h-48 overflow-y-auto">
-                            {matchingBikes.slice(0, 5).map((bike: any) => (
-                              <div
-                                key={bike.id}
-                                className="flex items-center justify-between bg-white rounded-lg p-3"
-                              >
-                                <div>
-                                  <p className="font-medium text-gray-900 text-sm">{bike.name}</p>
-                                  {bike.registrationNumber && (
-                                    <p className="text-xs text-gray-500">{bike.registrationNumber}</p>
-                                  )}
-                                </div>
-                                <p className="font-semibold text-green-600">₹{bike.dailyRate}/day</p>
-                              </div>
-                            ))}
-                          </div>
+                    <div className="grid sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-500">
+                          <User className="w-5 h-5" />
                         </div>
-                      )}
-
-                      {/* Potential Earnings */}
-                      {hasMatchingBikes && (
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <h4 className="font-semibold text-gray-900 mb-1">Potential Earnings</h4>
-                          <p className="text-2xl font-bold text-green-600">
-                            ₹{Math.round(matchingBikes[0].dailyRate * request.totalDays * 0.85)}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Based on {matchingBikes[0].name} for {request.totalDays} day{request.totalDays > 1 ? 's' : ''} (after 15% fee)
-                          </p>
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Customer</p>
+                          <p className="text-sm font-semibold text-slate-900 mt-0.5">{request.customerName}</p>
                         </div>
-                      )}
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-500">
+                          <MapPin className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Location</p>
+                          <p className="text-sm font-semibold text-slate-900 mt-0.5">{request.locationName}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-                      {/* Action Button */}
+                  {/* Right Column: Action & Summary */}
+                  <div className="w-full lg:w-80 p-6 md:p-8 bg-slate-50/50 flex flex-col justify-between">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+                        <CalendarCheck className="w-4 h-4" />
+                        Duration: {request.totalDays} Day{request.totalDays > 1 ? 's' : ''}
+                      </p>
+                      <div className="relative border-l-2 border-slate-200 ml-2 pl-4 py-1 space-y-4">
+                        <div className="relative">
+                          <div className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border-2 border-slate-400 bg-white"></div>
+                          <p className="text-xs font-medium text-slate-500">Pick-up</p>
+                          <p className="text-sm font-bold text-slate-900">{formatDate(request.pickupDate)}</p>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute -left-[21px] bottom-1 h-2.5 w-2.5 rounded-full border-2 border-slate-900 bg-white"></div>
+                          <p className="text-xs font-medium text-slate-500">Drop-off</p>
+                          <p className="text-sm font-bold text-slate-900">{formatDate(request.dropDate)}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-8">
                       <Button
                         onClick={() => {
                           setSelectedRequest(request);
                           setAcceptModalOpen(true);
                         }}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
                         size="lg"
+                        className="w-full h-12 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-600 hover:from-emerald-700 hover:to-emerald-700 text-white shadow-lg shadow-emerald-500/25 transition-all hover:translate-y-[-2px] hover:shadow-xl border-0"
                       >
                         {actionLoading === request.id ? (
                           <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -423,6 +464,7 @@ export default function VendorOpenRequestsPage() {
                       </Button>
                     </div>
                   </div>
+
                 </div>
               </div>
             );
