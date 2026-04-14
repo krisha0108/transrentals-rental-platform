@@ -473,7 +473,7 @@ export default function VendorSelfDriveEarningsPage() {
                         <p className="text-sm font-bold text-gray-900 tabular-nums">₹{transaction.amount.toLocaleString()}</p>
                         <span className={cn(
                           'inline-flex mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold',
-                          transaction.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                          transaction.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-emerald-50 text-emerald-600'
                         )}>
                           {transaction.status === 'completed' ? 'Completed' : 'Processing'}
                         </span>

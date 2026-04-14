@@ -152,14 +152,93 @@ export default function StaffManagementPage() {
     });
   };
 
+  const shimmer = 'relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent';
+
   if (isLoading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-        <div className="relative">
-          <div className="w-14 h-14 rounded-full border-4 border-emerald-100"></div>
-          <div className="w-14 h-14 animate-spin border-4 border-emerald-600 border-t-transparent rounded-full absolute inset-0"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 -m-4 sm:-m-6 p-4 sm:p-6">
+        <style jsx global>{`@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }`}</style>
+        <div className="space-y-6 max-w-[1600px] mx-auto">
+          {/* Hero Skeleton */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 p-6 sm:p-8">
+            <div className="absolute inset-0 opacity-10"><div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white" /><div className="absolute left-1/3 -bottom-8 w-32 h-32 rounded-full bg-white" /></div>
+            <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className={`w-14 h-14 rounded-2xl bg-white/20 ${shimmer}`} />
+                <div className="space-y-2">
+                  <div className={`h-7 w-52 bg-white/25 rounded-lg ${shimmer}`} />
+                  <div className={`h-4 w-72 bg-white/15 rounded ${shimmer}`} />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4].map(i => <div key={i} className={`h-10 ${i === 4 ? 'w-28 bg-white/30' : 'w-24 bg-white/15'} rounded-xl ${shimmer}`} />)}
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Skeleton */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2.5">
+                    <div className={`h-3 w-16 bg-gray-100 rounded ${shimmer}`} />
+                    <div className={`h-8 w-12 bg-gray-200 rounded-lg ${shimmer}`} />
+                  </div>
+                  <div className={`w-9 h-9 rounded-xl bg-emerald-100 ${shimmer}`} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Filter Bar Skeleton */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className={`flex-1 h-10 bg-gray-50 border border-gray-200 rounded-xl ${shimmer}`} />
+              <div className="flex gap-2">
+                <div className={`h-10 w-28 bg-gray-50 border border-gray-200 rounded-xl ${shimmer}`} />
+                <div className={`h-10 w-28 bg-gray-50 border border-gray-200 rounded-xl ${shimmer}`} />
+              </div>
+            </div>
+          </div>
+
+          {/* Staff Cards Skeleton */}
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                <div className="p-5">
+                  <div className="flex items-start gap-4">
+                    <div className={`w-12 h-12 rounded-2xl bg-gray-100 ${shimmer}`} />
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`h-4 w-32 bg-gray-200 rounded ${shimmer}`} />
+                        <div className={`h-5 w-16 bg-gray-100 rounded-full ${shimmer}`} />
+                      </div>
+                      <div className={`h-3 w-20 bg-gray-100 rounded ${shimmer}`} />
+                      <div className="flex gap-3 mt-2">
+                        <div className={`h-3 w-24 bg-gray-100 rounded ${shimmer}`} />
+                        <div className={`h-3 w-28 bg-gray-100 rounded ${shimmer}`} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    {[1, 2, 3].map(j => (
+                      <div key={j} className="bg-gray-50 rounded-xl p-2.5 text-center">
+                        <div className={`h-2.5 w-12 bg-gray-200 rounded mx-auto mb-1.5 ${shimmer}`} />
+                        <div className={`h-5 w-6 bg-gray-200 rounded mx-auto ${shimmer}`} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="px-5 py-3 border-t border-gray-50 flex gap-2">
+                  <div className={`h-8 flex-1 bg-gray-50 rounded-lg ${shimmer}`} />
+                  <div className={`h-8 flex-1 bg-gray-50 rounded-lg ${shimmer}`} />
+                  <div className={`h-8 w-8 bg-gray-50 rounded-lg ${shimmer}`} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <p className="text-sm text-gray-500 font-medium">Loading staff...</p>
       </div>
     );
   }

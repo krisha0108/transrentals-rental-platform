@@ -654,7 +654,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
   // ============ RENDER ============
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="pb-24">
       {/* Back */}
       <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition">
         <ArrowLeft className="w-4 h-4" /> Back to B2B Requests
@@ -1038,7 +1038,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           {/* Inclusions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg flex items-center gap-2">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-green-500" />
                 Inclusions ({inclusions.length})
               </h2>
@@ -1083,7 +1083,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           {/* Exclusions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg flex items-center gap-2">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <XCircle className="w-5 h-5 text-red-500" />
                 Exclusions ({exclusions.length})
               </h2>
@@ -1128,7 +1128,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           {/* Terms & Conditions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg">Terms & Conditions ({termsConditions.length})</h2>
+              <h2 className="text-sm font-bold text-gray-900">Terms & Conditions ({termsConditions.length})</h2>
               <button
                 type="button"
                 onClick={() => setEditMode(editMode === 'terms' ? null : 'terms')}
@@ -1170,7 +1170,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
 
           {/* Notes */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="font-semibold text-lg mb-4">Notes for Customer (Optional)</h2>
+            <h2 className="text-sm font-bold text-gray-900 mb-4">Notes for Customer (Optional)</h2>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -1358,7 +1358,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           {/* Inclusions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg flex items-center gap-2">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-green-500" />
                 Inclusions ({inclusions.length})
               </h2>
@@ -1403,7 +1403,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           {/* Exclusions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg flex items-center gap-2">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <XCircle className="w-5 h-5 text-red-500" />
                 Exclusions ({exclusions.length})
               </h2>
@@ -1448,7 +1448,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           {/* Terms & Conditions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg">Terms & Conditions ({termsConditions.length})</h2>
+              <h2 className="text-sm font-bold text-gray-900">Terms & Conditions ({termsConditions.length})</h2>
               <button
                 type="button"
                 onClick={() => setEditMode(editMode === 'terms' ? null : 'terms')}

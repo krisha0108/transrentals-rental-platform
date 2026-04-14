@@ -74,7 +74,7 @@ interface Booking {
 
 const getStatusConfig = (status: string) => {
   const configs: Record<string, { label: string; bg: string; text: string }> = {
-    PENDING_VENDOR: { label: 'Awaiting Response', bg: 'bg-yellow-100', text: 'text-yellow-700' },
+    PENDING_VENDOR: { label: 'Awaiting Response', bg: 'bg-emerald-100', text: 'text-emerald-700' },
     BROADCASTED: { label: 'Open Request', bg: 'bg-emerald-100', text: 'text-emerald-700' },
     PENDING_PAYMENT: { label: 'Awaiting Payment', bg: 'bg-emerald-100', text: 'text-emerald-700' },
     PAYMENT_VERIFIED: { label: 'Payment Received', bg: 'bg-emerald-100', text: 'text-emerald-700' },
@@ -495,10 +495,10 @@ export default function VendorBookingDetailPage() {
 
           {/* Customer Notes */}
           {booking.customerNotes && (
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 rounded-xl border border-amber-200 overflow-hidden">
-              <div className="px-3.5 py-2.5 border-b border-amber-100">
+            <div className="bg-gradient-to-br from-emerald-50 to-emerald-50/50 rounded-xl border border-emerald-200 overflow-hidden">
+              <div className="px-3.5 py-2.5 border-b border-emerald-100">
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-500" /> Customer Notes
+                  <AlertCircle className="w-3.5 h-3.5 text-emerald-500" /> Customer Notes
                 </h3>
               </div>
               <div className="px-3.5 py-2.5">

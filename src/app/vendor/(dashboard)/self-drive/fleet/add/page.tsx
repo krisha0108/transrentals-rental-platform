@@ -262,7 +262,7 @@ export default function AddSelfDriveCarPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     );
   }
@@ -295,7 +295,7 @@ export default function AddSelfDriveCarPage() {
                     currentStep > step.id
                       ? 'bg-green-500 text-white'
                       : currentStep === step.id
-                      ? 'bg-indigo-600 text-white'
+                      ? 'bg-emerald-600 text-white'
                       : 'bg-gray-200 text-gray-500'
                   )}
                 >
@@ -334,13 +334,13 @@ export default function AddSelfDriveCarPage() {
                   placeholder="Search by name or brand..."
                   value={modelSearch}
                   onChange={(e) => setModelSearch(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
               <select
                 value={selectedBrand}
                 onChange={(e) => setSelectedBrand(e.target.value)}
-                className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="">All Brands</option>
                 {availableBrands.map((brand) => (
@@ -379,8 +379,8 @@ export default function AddSelfDriveCarPage() {
                     className={cn(
                       'p-4 rounded-xl border-2 text-left transition-all',
                       vehicleModelId === model.id
-                        ? 'border-indigo-500 bg-indigo-50'
-                        : 'border-gray-200 hover:border-indigo-300'
+                        ? 'border-emerald-500 bg-emerald-50'
+                        : 'border-gray-200 hover:border-emerald-300'
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -416,7 +416,7 @@ export default function AddSelfDriveCarPage() {
                         </div>
                       </div>
                       {vehicleModelId === model.id && (
-                        <Check className="w-5 h-5 text-indigo-600" />
+                        <Check className="w-5 h-5 text-emerald-600" />
                       )}
                     </div>
                   </button>
@@ -433,7 +433,7 @@ export default function AddSelfDriveCarPage() {
 
             {/* Selected Model Preview */}
             {selectedModel && (
-              <div className="p-4 bg-indigo-50 rounded-xl flex items-center gap-4">
+              <div className="p-4 bg-emerald-50 rounded-xl flex items-center gap-4">
                 {selectedModel.sideImage ? (
                   <img
                     src={selectedModel.sideImage}
@@ -473,7 +473,7 @@ export default function AddSelfDriveCarPage() {
                   }}
                   placeholder="MH02AB1234"
                   className={cn(
-                    'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500',
+                    'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500',
                     errors.registrationNumber ? 'border-red-500' : 'border-gray-200'
                   )}
                 />
@@ -492,7 +492,7 @@ export default function AddSelfDriveCarPage() {
                   onChange={(e) => setYearOfManufacture(e.target.value)}
                   min={2010}
                   max={new Date().getFullYear()}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -505,7 +505,7 @@ export default function AddSelfDriveCarPage() {
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
                   placeholder="e.g., White, Silver, Black"
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
@@ -530,7 +530,7 @@ export default function AddSelfDriveCarPage() {
                     <button
                       type="button"
                       onClick={() => setSelectedLocations(approvedLocations.map((l) => l.id))}
-                      className="text-sm text-indigo-600 hover:underline"
+                      className="text-sm text-emerald-600 hover:underline"
                     >
                       Select All
                     </button>
@@ -552,7 +552,7 @@ export default function AddSelfDriveCarPage() {
                         className={cn(
                           'px-3 py-1.5 rounded-full text-sm border transition',
                           selectedLocations.includes(location.id)
-                            ? 'bg-indigo-100 border-indigo-300 text-indigo-700'
+                            ? 'bg-emerald-100 border-emerald-300 text-emerald-700'
                             : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
                         )}
                       >
@@ -592,7 +592,7 @@ export default function AddSelfDriveCarPage() {
                     }}
                     placeholder="e.g., 1499"
                     className={cn(
-                      'w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500',
+                      'w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500',
                       errors.dailyRate ? 'border-red-500' : 'border-gray-200'
                     )}
                   />
@@ -619,7 +619,7 @@ export default function AddSelfDriveCarPage() {
                     }}
                     placeholder="e.g., 5000"
                     className={cn(
-                      'w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500',
+                      'w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500',
                       errors.securityDeposit ? 'border-red-500' : 'border-gray-200'
                     )}
                   />
@@ -641,7 +641,7 @@ export default function AddSelfDriveCarPage() {
                     value={weeklyRate}
                     onChange={(e) => setWeeklyRate(e.target.value)}
                     placeholder="Leave blank for no weekly discount"
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
@@ -658,7 +658,7 @@ export default function AddSelfDriveCarPage() {
                     value={monthlyRate}
                     onChange={(e) => setMonthlyRate(e.target.value)}
                     placeholder="Leave blank for no monthly discount"
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
@@ -677,7 +677,7 @@ export default function AddSelfDriveCarPage() {
                       type="number"
                       value={kmLimitPerDay}
                       onChange={(e) => setKmLimitPerDay(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
                 </div>
@@ -699,7 +699,7 @@ export default function AddSelfDriveCarPage() {
                       }}
                       placeholder="e.g., 10"
                       className={cn(
-                        'w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500',
+                        'w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500',
                         errors.extraKmRate ? 'border-red-500' : 'border-gray-200'
                       )}
                     />
@@ -713,12 +713,12 @@ export default function AddSelfDriveCarPage() {
 
             {/* Pricing Preview */}
             {dailyRate && (
-              <div className="bg-indigo-50 rounded-xl p-4">
+              <div className="bg-emerald-50 rounded-xl p-4">
                 <h3 className="font-medium text-gray-900 mb-3">Pricing Preview</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <p className="text-gray-500">Daily</p>
-                    <p className="font-semibold text-indigo-600">₹{dailyRate}</p>
+                    <p className="font-semibold text-emerald-600">₹{dailyRate}</p>
                   </div>
                   <div>
                     <p className="text-gray-500">Weekly</p>
@@ -753,7 +753,7 @@ export default function AddSelfDriveCarPage() {
           </Button>
 
           {currentStep < 3 ? (
-            <Button onClick={nextStep} className="bg-indigo-600 hover:bg-indigo-700">
+            <Button onClick={nextStep} className="bg-emerald-600 hover:bg-emerald-700">
               Next
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>

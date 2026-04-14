@@ -336,7 +336,7 @@ export default function SendTransporterQuotePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="pb-24">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/vendor/transporter/requests" className="p-2 hover:bg-gray-100 rounded-lg transition">
@@ -407,12 +407,14 @@ export default function SendTransporterQuotePage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="space-y-5">
         {/* Template Selection */}
         {templates.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg flex items-center gap-2">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
                 Select Template (Optional)
               </h2>
@@ -447,8 +449,8 @@ export default function SendTransporterQuotePage() {
         )}
 
         {/* Vehicle Details */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4 flex items-center gap-2">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Truck className="w-5 h-5 text-emerald-500" />
             Vehicle Details
           </h2>
@@ -512,9 +514,9 @@ export default function SendTransporterQuotePage() {
 
         {/* Labour Details */}
         {request.requiresLabour && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-lg flex items-center gap-2">
+              <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
                 <Users className="w-5 h-5 text-emerald-500" />
                 Labour Details
               </h2>
@@ -560,9 +562,9 @@ export default function SendTransporterQuotePage() {
         )}
 
         {/* Pricing */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <IndianRupee className="w-5 h-5 text-emerald-500" />
               Pricing
             </h2>
@@ -729,9 +731,9 @@ export default function SendTransporterQuotePage() {
         </div>
 
         {/* Inclusions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-500" />
               Inclusions ({inclusions.length})
             </h2>
@@ -776,9 +778,9 @@ export default function SendTransporterQuotePage() {
         </div>
 
         {/* Exclusions */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg flex items-center gap-2">
+            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <XCircle className="w-5 h-5 text-red-500" />
               Exclusions ({exclusions.length})
             </h2>
@@ -823,9 +825,9 @@ export default function SendTransporterQuotePage() {
         </div>
 
         {/* Terms */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">Terms & Conditions ({termsConditions.length})</h2>
+            <h2 className="text-sm font-bold text-gray-900">Terms & Conditions ({termsConditions.length})</h2>
             <button
               type="button"
               onClick={() => setEditMode(editMode === 'terms' ? null : 'terms')}
@@ -868,8 +870,8 @@ export default function SendTransporterQuotePage() {
         </div>
 
         {/* Additional Info */}
-        <div className="bg-white rounded-xl shadow-sm p-6 border">
-          <h2 className="font-semibold text-lg mb-4">Additional Information</h2>
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold text-gray-900 mb-4">Additional Information</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Notes for Customer</label>

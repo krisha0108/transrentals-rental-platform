@@ -150,7 +150,7 @@ export default function VendorSelfDriveDirectRequestsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
       </div>
     );
   }
@@ -173,11 +173,11 @@ export default function VendorSelfDriveDirectRequestsPage() {
 
       {/* Alert */}
       {bookings.length > 0 && (
-        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-orange-500 mt-0.5" />
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-emerald-500 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-orange-800">Action Required</h3>
-            <p className="text-orange-700 text-sm">
+            <h3 className="font-semibold text-emerald-800">Action Required</h3>
+            <p className="text-emerald-700 text-sm">
               You have {bookings.length} pending requests. Respond within the deadline or
               the booking will be automatically broadcasted to other vendors.
             </p>
@@ -200,7 +200,7 @@ export default function VendorSelfDriveDirectRequestsPage() {
               className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
             >
               {/* Deadline Banner */}
-              <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white px-6 py-3 flex items-center justify-between">
+              <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-6 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Timer className="w-5 h-5" />
                   <span className="font-medium">{getTimeRemaining(booking.responseDeadline)}</span>
@@ -216,7 +216,7 @@ export default function VendorSelfDriveDirectRequestsPage() {
                       <span className="text-xl font-bold text-gray-900">
                         #{booking.bookingNumber}
                       </span>
-                      <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
+                      <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
                         Awaiting Response
                       </span>
                     </div>
@@ -238,11 +238,11 @@ export default function VendorSelfDriveDirectRequestsPage() {
 
                     {/* Vehicle & Trip Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-indigo-50 rounded-lg p-4">
+                      <div className="bg-emerald-50 rounded-lg p-4">
                         <h4 className="font-semibold text-gray-900 mb-2">Vehicle</h4>
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                            <Car className="w-6 h-6 text-indigo-600" />
+                          <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center">
+                            <Car className="w-6 h-6 text-emerald-600" />
                           </div>
                           <div>
                             <p className="font-medium text-gray-900">{booking.requestedVehicleName}</p>
@@ -288,7 +288,7 @@ export default function VendorSelfDriveDirectRequestsPage() {
 
                     {/* Customer Notes */}
                     {booking.customerNotes && (
-                      <div className="bg-amber-50 rounded-lg p-4">
+                      <div className="bg-emerald-50 rounded-lg p-4">
                         <h4 className="font-semibold text-gray-900 mb-1">Customer Notes</h4>
                         <p className="text-sm text-gray-700">{booking.customerNotes}</p>
                       </div>
@@ -379,7 +379,7 @@ export default function VendorSelfDriveDirectRequestsPage() {
               <select
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="">Select a reason...</option>
                 <option value="vehicle_unavailable">Car not available</option>
