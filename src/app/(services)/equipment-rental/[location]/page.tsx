@@ -17,6 +17,8 @@ import { prisma } from '@/lib/db/prisma';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { B2BServiceNote } from '@/components/common/B2BServiceNote';
+import { getCachedServiceBySlug, getCachedSubServices } from '@/lib/services/cached-service-lookups';
+import { getServiceLocations } from '@/lib/services/service-locations';
 
 function parseJsonField<T>(value: unknown, defaultValue: T): T {
   if (value === null || value === undefined) return defaultValue;
@@ -34,44 +36,7 @@ interface PageProps {
 
 // Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  try {
-    // Skip database calls during CI/CD build
-    if (process.env.SKIP_DATABASE_CALLS === '1') {
-      console.log('[equipment-rental] Skipping database calls during build');
-      return [];
-    }
-
-    // Fetch enabled locations from database
-    const service = await prisma.services.findUnique({
-      where: { slug: 'equipment-rental' },
-      include: {
-        service_locations: {
-          where: { isActive: true },
-          include: {
-            locations: {
-              select: { slug: true, name: true }
-            }
-          }
-        }
-      }
-    });
-
-    if (!service) {
-      console.log('[equipment-rental] Service not found in database');
-      return [];
-    }
-
-    const locations = service.service_locations.map((sl) => ({
-      location: sl.locations.slug,
-    }));
-
-    console.log(`[equipment-rental] Generating ${locations.length} location pages from database`);
-    return locations;
-  } catch (error) {
-    console.error('[equipment-rental] Error fetching locations:', error);
-    // Fallback to empty array if database error
-    return [];
-  }
+  return getServiceLocations('equipment-rental');
 }
 
 // Enable ISR - Revalidate every hour
@@ -144,11 +109,8 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
   const cityData = getCityBySlug(params.location);
 
-  // Fetch equipment from database (filtered by service and location)
-  const service = await prisma.services.findUnique({
-    where: { slug: 'equipment-rental' },
-    select: { id: true }
-  });
+  // Fetch equipment from database (filtered by service and location) (cached)
+  const service = await getCachedServiceBySlug('equipment-rental');
 
   const location = await prisma.locations.findFirst({
     where: {
@@ -171,13 +133,7 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
         },
         select: { id: true },
       }),
-      prisma.services.findMany({
-        where: {
-          parentId: service.id,
-          isActive: true,
-        },
-        select: { id: true },
-      }),
+      getCachedSubServices(service.id),
     ]);
 
     const activeCategoryIds = activeCategories.map((cat) => cat.id);

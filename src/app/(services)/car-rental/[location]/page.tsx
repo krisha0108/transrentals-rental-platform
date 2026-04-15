@@ -10,6 +10,8 @@ import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { prisma } from '@/lib/db/prisma';
 import { resolveServicePage } from '@/lib/services/service-availability';
+import { getCachedServiceBySlug } from '@/lib/services/cached-service-lookups';
+import { getServiceLocations } from '@/lib/services/service-locations';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
@@ -23,44 +25,7 @@ interface PageProps {
 
 // Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  try {
-    // Skip database calls during CI/CD build
-    if (process.env.SKIP_DATABASE_CALLS === '1') {
-      console.log('[car-rental] Skipping database calls during build');
-      return [];
-    }
-
-    // Fetch enabled locations from database
-    const service = await prisma.services.findUnique({
-      where: { slug: 'car-rental' },
-      include: {
-        service_locations: {
-          where: { isActive: true },
-          include: {
-            locations: {
-              select: { slug: true, name: true }
-            }
-          }
-        }
-      }
-    });
-
-    if (!service) {
-      console.log('[car-rental] Service not found in database');
-      return [];
-    }
-
-    const locations = service.service_locations.map((sl) => ({
-      location: sl.locations.slug,
-    }));
-
-    console.log(`[car-rental] Generating ${locations.length} location pages from database`);
-    return locations;
-  } catch (error) {
-    console.error('[car-rental] Error fetching locations:', error);
-    // Fallback to empty array if database error
-    return [];
-  }
+  return getServiceLocations('car-rental');
 }
 
 // Enable ISR - Revalidate every hour
@@ -107,11 +72,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 // Fetch packages for car-rental service in the given location
 async function getPackagesForLocation(locationSlug: string) {
   try {
-    // Get car-rental service
-    const carService = await prisma.services.findFirst({
-      where: { slug: 'car-rental' },
-      select: { id: true },
-    });
+    // Get car-rental service (cached)
+    const carService = await getCachedServiceBySlug('car-rental');
 
     if (!carService) {
       return [];

@@ -16,6 +16,8 @@ import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { prisma } from '@/lib/db/prisma';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { getCachedServiceBySlug } from '@/lib/services/cached-service-lookups';
+import { getServiceLocations } from '@/lib/services/service-locations';
 
 interface PageProps {
   params: {
@@ -25,44 +27,7 @@ interface PageProps {
 
 // Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  try {
-    // Skip database calls during CI/CD build
-    if (process.env.SKIP_DATABASE_CALLS === '1') {
-      console.log('[bus-rental] Skipping database calls during build');
-      return [];
-    }
-
-    // Fetch enabled locations from database
-    const service = await prisma.services.findUnique({
-      where: { slug: 'bus-rental' },
-      include: {
-        service_locations: {
-          where: { isActive: true },
-          include: {
-            locations: {
-              select: { slug: true, name: true }
-            }
-          }
-        }
-      }
-    });
-
-    if (!service) {
-      console.log('[bus-rental] Service not found in database');
-      return [];
-    }
-
-    const locations = service.service_locations.map((sl) => ({
-      location: sl.locations.slug,
-    }));
-
-    console.log(`[bus-rental] Generating ${locations.length} location pages from database`);
-    return locations;
-  } catch (error) {
-    console.error('[bus-rental] Error fetching locations:', error);
-    // Fallback to empty array if database error
-    return [];
-  }
+  return getServiceLocations('bus-rental');
 }
 
 // Enable ISR - Revalidate every hour
@@ -135,11 +100,8 @@ export default async function BusLocationPage({ params }: PageProps) {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
   const cityData = getCityBySlug(params.location);
 
-  // Fetch admin vehicle models for this location
-  const service = await prisma.services.findUnique({
-    where: { slug: 'bus-rental' },
-    select: { id: true, name: true, slug: true },
-  });
+  // Fetch admin vehicle models for this location (cached)
+  const service = await getCachedServiceBySlug('bus-rental');
 
   // Find the location record (MySQL collation is typically case-insensitive by default)
   const location = await prisma.locations.findFirst({
