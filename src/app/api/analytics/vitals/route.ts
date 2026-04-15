@@ -153,25 +153,21 @@ export async function POST(request: NextRequest) {
       inpRating: inp ? rateVital('inp', inp) : null,
     };
 
-    // Fire-and-forget: create vitals + update page performance in background
-    void (async () => {
-      try {
-        await prisma.web_vitals.create({ data: vitalsData });
-        await updatePagePerformance(prisma, pagePath, {
-          lcp,
-          fid,
-          cls,
-          fcp,
-          ttfb,
-          inp,
-          lcpRating: lcp ? rateVital('lcp', lcp) : null,
-          fidRating: fid ? rateVital('fid', fid) : null,
-          clsRating: cls ? rateVital('cls', cls) : null,
-        });
-      } catch (err) {
-        logger.error('Error tracking web vitals (background)', err);
-      }
-    })();
+    // Fire-and-forget: run both DB writes in parallel, release connections ASAP
+    prisma.web_vitals.create({ data: vitalsData }).catch((err) =>
+      logger.error('Error creating web vitals record', err)
+    );
+    updatePagePerformance(prisma, pagePath, {
+      lcp,
+      fid,
+      cls,
+      fcp,
+      ttfb,
+      inp,
+      lcpRating: lcp ? rateVital('lcp', lcp) : null,
+      fidRating: fid ? rateVital('fid', fid) : null,
+      clsRating: cls ? rateVital('cls', cls) : null,
+    }).catch((err) => logger.error('Error updating page performance', err));
 
     return NextResponse.json({ success: true, id: vitalsData.id });
   } catch (error) {
