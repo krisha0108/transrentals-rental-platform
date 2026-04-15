@@ -101,38 +101,18 @@ export default async function HydraLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <section className="py-12">
-        <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">Hydra Options in {locationName}</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            {[
-              { name: 'Hydra 8T', price: 6000 },
-              { name: 'Hydra 10T', price: 7000 },
-              { name: 'Hydra 12T', price: 8000 },
-              { name: 'Hydra 14T', price: 9000 },
-            ].map((v) => (
-              <div key={v.name} className="bg-white rounded-xl shadow-md p-6">
-                <h3 className="text-lg font-bold mb-2">{v.name}</h3>
-                <p className="text-2xl font-bold text-yellow-600 mb-4">₹{v.price.toLocaleString()}<span className="text-sm text-gray-500">/day</span></p>
-                <button className="w-full bg-yellow-600 text-white py-2 rounded-lg">Get Quote</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="py-12 bg-gray-50">
         <div className="container-custom">
           <h2 className="text-2xl font-bold text-center mb-8">Other Equipment in {locationName}</h2>
           <div className="grid md:grid-cols-4 gap-6">
             <Link href={`/crane-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Crane</h3><p className="text-sm text-gray-600 mt-2">From ₹8,000/day</p>
+              <h3 className="font-bold">Crane</h3><p className="text-sm text-gray-600 mt-2">Starting ₹8,000</p>
             </Link>
             <Link href={`/jcb-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">JCB</h3><p className="text-sm text-gray-600 mt-2">From ₹4,000/day</p>
+              <h3 className="font-bold">JCB</h3><p className="text-sm text-gray-600 mt-2">Starting ₹4,000</p>
             </Link>
             <Link href={`/excavator-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Excavator</h3><p className="text-sm text-gray-600 mt-2">From ₹5,000/day</p>
+              <h3 className="font-bold">Excavator</h3><p className="text-sm text-gray-600 mt-2">Starting ₹5,000</p>
             </Link>
             <Link href={`/equipment-rental/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">All Equipment</h3><p className="text-sm text-gray-600 mt-2">View all</p>

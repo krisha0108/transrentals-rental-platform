@@ -63,14 +63,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-const hatchbackModels = [
-  { name: 'Maruti Swift', price: 899, fuel: 'Petrol/CNG' },
-  { name: 'Hyundai i20', price: 999, fuel: 'Petrol' },
-  { name: 'Maruti Baleno', price: 949, fuel: 'Petrol/CNG' },
-  { name: 'Tata Tiago', price: 799, fuel: 'Petrol/CNG' },
-  { name: 'Hyundai Grand i10', price: 849, fuel: 'Petrol' },
-  { name: 'Maruti Wagon R', price: 799, fuel: 'Petrol/CNG' },
-];
 
 export default async function HatchbackRentalLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('self-drive-hatchback-rental', params.location);
@@ -129,7 +121,7 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
           <div className="flex flex-wrap gap-4">
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold">₹799/day</p>
+              <p className="text-xl font-bold">₹799</p>
             </div>
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Available</p>
@@ -139,30 +131,6 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
         </div>
       </section>
 
-      <section className="py-12">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Hatchbacks Available in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {hatchbackModels.map((car) => (
-              <div key={car.name} className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold">{car.name}</h3>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-green-600">₹{car.price}</p>
-                    <p className="text-xs text-gray-500">/day</p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">⛽ {car.fuel} • 👥 5 Seats</p>
-                <button className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
-                  Book Now
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <section className="py-12 bg-gray-50">
         <div className="container-custom">

@@ -64,14 +64,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-const suvModels = [
-  { name: 'Hyundai Creta', price: 1999, seats: 5, fuel: 'Petrol/Diesel' },
-  { name: 'Kia Seltos', price: 1999, seats: 5, fuel: 'Petrol/Diesel' },
-  { name: 'Mahindra Scorpio N', price: 2299, seats: 7, fuel: 'Diesel' },
-  { name: 'Mahindra XUV700', price: 2499, seats: 7, fuel: 'Petrol/Diesel' },
-  { name: 'Toyota Fortuner', price: 3999, seats: 7, fuel: 'Diesel' },
-  { name: 'Tata Harrier', price: 2199, seats: 5, fuel: 'Diesel' },
-];
 
 export default async function SUVRentalLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('self-drive-suv-rental', params.location);
@@ -108,7 +100,7 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location}
         vehicleName="Self Drive SUV"
-        selfDrivePrice="₹1,999/day"
+        selfDrivePrice="₹1,999"
       />
 
       {/* Hero */}
@@ -123,7 +115,7 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
           <div className="flex flex-wrap gap-4">
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold">₹1,999/day</p>
+              <p className="text-xl font-bold">₹1,999</p>
             </div>
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Available</p>
@@ -133,37 +125,6 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
               <p className="text-xs opacity-75">Seating</p>
               <p className="text-xl font-bold">5-7 Seater</p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SUV Models */}
-      <section className="py-12">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            SUVs Available in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {suvModels.map((suv) => (
-              <div key={suv.name} className="bg-white rounded-xl shadow-md overflow-hidden border hover:shadow-xl transition">
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold">{suv.name}</h3>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-blue-600">₹{suv.price}</p>
-                      <p className="text-xs text-gray-500">/day</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 text-sm text-gray-600 mb-4">
-                    <span>👥 {suv.seats} Seats</span>
-                    <span>⛽ {suv.fuel}</span>
-                  </div>
-                  <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
-                    Book Now
-                  </button>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>

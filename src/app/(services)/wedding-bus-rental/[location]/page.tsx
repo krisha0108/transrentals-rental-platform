@@ -163,14 +163,14 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
               {
                 name: 'Mini Bus',
                 seats: '20-25 Seater',
-                price: '₹3,999/day',
+                price: 'Starting ₹3,999',
                 features: ['AC Bus', 'Basic Decoration', 'Professional Driver'],
                 gradient: 'from-pink-500 to-rose-500',
               },
               {
                 name: 'Standard Bus',
                 seats: '30-35 Seater',
-                price: '₹5,999/day',
+                price: 'Starting ₹5,999',
                 features: ['Premium AC', 'Full Decoration', 'Music System', 'Water Bottles'],
                 gradient: 'from-rose-500 to-red-500',
                 popular: true,
@@ -178,7 +178,7 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
               {
                 name: 'Luxury Coach',
                 seats: '40-50 Seater',
-                price: '₹8,999/day',
+                price: 'Starting ₹8,999',
                 features: ['Luxury AC Coach', 'Premium Decoration', 'Entertainment', 'Push-back Seats'],
                 gradient: 'from-red-500 to-orange-500',
               },

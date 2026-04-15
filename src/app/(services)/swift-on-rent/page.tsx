@@ -34,7 +34,7 @@ export default function SwiftOnRentPage() {
     <>
       <SwiftRentalTypeHero
         vehicleName="Maruti Swift"
-        selfDrivePrice="₹899/day"
+        selfDrivePrice="₹899"
       />
 
       {/* Hero */}

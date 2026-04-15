@@ -33,7 +33,7 @@ export default function FortunerOnRentPage() {
     <>
       <SwiftRentalTypeHero
         vehicleName="Toyota Fortuner"
-        selfDrivePrice="₹4,999/day"
+        selfDrivePrice="₹4,999"
       />
 
       {/* Hero */}

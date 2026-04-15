@@ -19,7 +19,7 @@ export function SwiftRentalTypeHero({
   city: cityProp,
   citySlug: citySlugProp,
   vehicleName = 'Maruti Swift',
-  selfDrivePrice = '₹899/day',
+  selfDrivePrice = '₹899',
 }: SwiftRentalTypeHeroProps) {
   const { currentCity } = useLocation();
   const city = cityProp || currentCity?.name || 'India';

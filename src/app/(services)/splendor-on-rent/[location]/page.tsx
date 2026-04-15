@@ -11,7 +11,7 @@ import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -171,45 +171,12 @@ export default async function SplendorLocationPage({ params }: PageProps) {
           </div>
         </div>
 
-        <ServiceHeroWithChat
+        <BikeSearchHero
+          city={locationName}
+          citySlug={params.location}
           pageHeading={seoData?.pageHeading || undefined}
           pageDescription={seoData?.pageDescription || undefined}
-          badge={`Splendor Rental in ${locationName}`}
-          title="Hero Splendor on Rent"
-          titleHighlight="70km/l Mileage @₹249/day"
-          description={`India's most trusted bike for daily commute in ${locationName}. Hero Splendor — ultra fuel-efficient, low maintenance, perfectly suited for long daily rides.`}
-          features={[
-            { icon: 'zap', text: '70km/l Mileage', color: 'text-green-600' },
-            { icon: 'shield', text: 'Reliable Engine', color: 'text-emerald-600' },
-            { icon: 'star', text: '4.6/5 Rating', color: 'text-amber-500' },
-          ]}
-          gradientFrom="green-50"
-          gradientTo="emerald-50"
         />
-
-        {/* Available Models */}
-        <section className="py-12 bg-white">
-          <div className="container-custom">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-              Splendor Models in {locationName}
-            </h2>
-            <div className="grid md:grid-cols-4 gap-6">
-              {[
-                { name: 'Splendor Plus', cc: '97cc', price: '₹299/day', mileage: '70 km/l' },
-                { name: 'Splendor iSmart', cc: '110cc', price: '₹349/day', mileage: '75 km/l' },
-                { name: 'Super Splendor', cc: '125cc', price: '₹399/day', mileage: '65 km/l' },
-                { name: 'HF Deluxe', cc: '97cc', price: '₹279/day', mileage: '70 km/l' },
-              ].map((model) => (
-                <div key={model.name} className="bg-gradient-to-br from-green-50 to-white p-5 rounded-lg border-2 border-green-200">
-                  <div className="text-3xl mb-2">🏍️</div>
-                  <h3 className="font-bold mb-1">{model.name}</h3>
-                  <p className="text-sm text-gray-600 mb-1">{model.cc} • {model.mileage}</p>
-                  <p className="text-green-600 font-bold">{model.price}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
 
         <VehicleGrid
           vehicles={pageData.vehicles}

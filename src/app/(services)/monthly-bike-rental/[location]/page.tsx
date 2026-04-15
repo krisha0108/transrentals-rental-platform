@@ -5,7 +5,7 @@ import { permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { capitalize } from '@/lib/utils';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
@@ -139,37 +139,15 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
         reviewCount={412}
       />
 
-      <ServiceHeroWithChat
+      <BikeSearchHero
+        city={locationName}
+        citySlug={params.location}
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Monthly Bike Rental in ${locationName}`}
-        title="Monthly Bike Rental"
-        titleHighlight="Save 40% vs Daily @₹3999/mo"
-        description={`Staying in ${locationName} for a month? Skip EMIs and ownership costs. Any bike you want — Royal Enfield, Activa, Pulsar — with maintenance and insurance included.`}
-        features={[
-          { icon: 'star', text: '40% Cheaper Than Daily', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Free Maintenance', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Switch Bikes Anytime', color: 'text-purple-600' },
-        ]}
-        gradientFrom="purple-50"
-        gradientTo="violet-50"
       />
 
-      {/* Breadcrumb */}
-      <section className="bg-gray-100 py-3">
-        <div className="container-custom">
-          <nav className="text-sm text-gray-600">
-            <Link href="/" className="hover:text-emerald-700">Home</Link>
-            <span className="mx-2">/</span>
-            <Link href="/monthly-bike-rental" className="hover:text-emerald-700">Monthly Bike Rental</Link>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900">{locationName}</span>
-          </nav>
-        </div>
-      </section>
-
       {/* Hero */}
-      <section className="relative bg-gradient-to-br from-emerald-600 to-teal-700 text-white py-16">
+      <section className="relative bg-gradient-to-br from-emerald-600 to-teal-700 text-white py-16 mt-6">
         <div className="container-custom">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-3xl md:text-4xl font-bold mb-4">
