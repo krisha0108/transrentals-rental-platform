@@ -2,7 +2,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const dev = true; // 🏠 LOCAL DEV MODE - App will call local backend
+const dev = false; // 🏠 LOCAL DEV MODE - App will call local backend
 
 // For Android Emulator: Use 10.0.2.2 (this is the host machine's localhost)
 // For Physical Device: Use your computer's IP address
@@ -105,3 +105,4 @@ if (dev) {
   console.log('   ⚠️  Make sure ADB reverse: adb reverse tcp:3000 tcp:3000');
 }
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+ 
