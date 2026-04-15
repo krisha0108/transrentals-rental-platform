@@ -6,6 +6,7 @@ import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { prisma } from '@/lib/db/prisma';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { getCachedSelfDriveService } from '@/lib/services/cached-service-lookups';
 
 function parseJsonField<T>(value: unknown, defaultValue: T): T {
   if (value === null || value === undefined) return defaultValue;
@@ -138,14 +139,8 @@ async function getCarsForLocation(locationSlug: string): Promise<AggregatedCar[]
 
     console.log(`[getCarsForLocation] Found location: ${location.name} (${location.id})`);
 
-    // Find the self-drive car rental service
-    const carService = await prisma.services.findFirst({
-      where: {
-        slug: { in: ['self-drive-car-rental', 'self-drive-car-rentals', 'self-drive'] },
-        isActive: true,
-        parentId: null,
-      },
-    });
+    // Find the self-drive car rental service (cached)
+    const carService = await getCachedSelfDriveService();
 
     if (!carService) {
       console.log('[getCarsForLocation] Self-drive car service not found');
@@ -340,14 +335,7 @@ async function getCarsForLocation(locationSlug: string): Promise<AggregatedCar[]
 // Fetch brands for filters
 async function getCarBrands() {
   try {
-    const carService = await prisma.services.findFirst({
-      where: {
-        slug: { in: ['self-drive-car-rental', 'self-drive-car-rentals', 'self-drive'] },
-        isActive: true,
-        parentId: null,
-      },
-      select: { id: true },
-    });
+    const carService = await getCachedSelfDriveService();
 
     const brands = await prisma.brands.findMany({
       where: {
@@ -368,14 +356,7 @@ async function getCarBrands() {
 // Fetch categories for filters
 async function getCarCategories() {
   try {
-    const carService = await prisma.services.findFirst({
-      where: {
-        slug: { in: ['self-drive-car-rental', 'self-drive-car-rentals', 'self-drive'] },
-        isActive: true,
-        parentId: null,
-      },
-      select: { id: true },
-    });
+    const carService = await getCachedSelfDriveService();
 
     if (!carService) return [];
 

@@ -11,6 +11,7 @@ import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { prisma } from '@/lib/db/prisma';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { getServiceLocations } from '@/lib/services/service-locations';
 
 interface PageProps {
   params: {
@@ -20,44 +21,7 @@ interface PageProps {
 
 // Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  try {
-    // Skip database calls during CI/CD build
-    if (process.env.SKIP_DATABASE_CALLS === '1') {
-      console.log('[luxury-car-rental] Skipping database calls during build');
-      return [];
-    }
-
-    // Fetch enabled locations from database
-    const service = await prisma.services.findUnique({
-      where: { slug: 'luxury-car-rental' },
-      include: {
-        service_locations: {
-          where: { isActive: true },
-          include: {
-            locations: {
-              select: { slug: true, name: true }
-            }
-          }
-        }
-      }
-    });
-
-    if (!service) {
-      console.log('[luxury-car-rental] Service not found in database');
-      return [];
-    }
-
-    const locations = service.service_locations.map((sl) => ({
-      location: sl.locations.slug,
-    }));
-
-    console.log(`[luxury-car-rental] Generating ${locations.length} location pages from database`);
-    return locations;
-  } catch (error) {
-    console.error('[luxury-car-rental] Error fetching locations:', error);
-    // Fallback to empty array if database error
-    return [];
-  }
+  return getServiceLocations('luxury-car-rental');
 }
 
 // Enable ISR - Revalidate every hour
