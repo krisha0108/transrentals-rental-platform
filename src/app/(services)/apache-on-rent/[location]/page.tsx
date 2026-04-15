@@ -9,7 +9,7 @@ import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -171,45 +171,12 @@ export default async function ApacheLocationPage({ params }: PageProps) {
           </div>
         </div>
 
-        <ServiceHeroWithChat
+        <BikeSearchHero
+          city={locationName}
+          citySlug={params.location}
           pageHeading={seoData?.pageHeading || undefined}
           pageDescription={seoData?.pageDescription || undefined}
-          badge={`Apache Rental in ${locationName}`}
-          title="TVS Apache on Rent"
-          titleHighlight="Race DNA @₹499/day"
-          description={`Track-inspired performance for ${locationName} roads. TVS Apache RTR 160, RTR 200 — ABS equipped, race-tuned engine, designed for riders who never settle.`}
-          features={[
-            { icon: 'zap', text: 'Race-Tuned Engine', color: 'text-red-600' },
-            { icon: 'shield', text: 'Dual ABS', color: 'text-emerald-600' },
-            { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
-          ]}
-          gradientFrom="red-50"
-          gradientTo="rose-50"
         />
-
-        {/* Available Models */}
-        <section className="py-12 bg-white">
-          <div className="container-custom">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-              Apache Models in {locationName}
-            </h2>
-            <div className="grid md:grid-cols-4 gap-6">
-              {[
-                { name: 'RTR 160', cc: '160cc', price: '₹499/day', power: '16 HP' },
-                { name: 'RTR 180', cc: '177cc', price: '₹549/day', power: '17 HP' },
-                { name: 'RTR 200 4V', cc: '197cc', price: '₹699/day', power: '20 HP' },
-                { name: 'RR 310', cc: '312cc', price: '₹1,299/day', power: '34 HP' },
-              ].map((model) => (
-                <div key={model.name} className="bg-gradient-to-br from-red-50 to-white p-5 rounded-lg border-2 border-red-200">
-                  <div className="text-3xl mb-2">🏍️</div>
-                  <h3 className="font-bold mb-1">Apache {model.name}</h3>
-                  <p className="text-sm text-gray-600 mb-1">{model.cc} • {model.power}</p>
-                  <p className="text-red-600 font-bold">{model.price}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
 
         <VehicleGrid
           vehicles={pageData.vehicles}

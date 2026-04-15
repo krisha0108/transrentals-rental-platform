@@ -20,7 +20,7 @@ export default function ScorpioOnRentPage() {
     <>
       <SwiftRentalTypeHero
         vehicleName="Mahindra Scorpio"
-        selfDrivePrice="₹2,499/day"
+        selfDrivePrice="₹2,499"
       />
 
       <section className="relative bg-gradient-to-br from-amber-700 to-orange-800 text-white py-16">

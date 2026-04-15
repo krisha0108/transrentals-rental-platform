@@ -105,7 +105,7 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location}
         vehicleName="Toyota Innova"
-        selfDrivePrice="₹2,499/day"
+        selfDrivePrice="₹2,499"
       />
 
       <section className="bg-gradient-to-br from-purple-700 to-indigo-800 text-white py-12">

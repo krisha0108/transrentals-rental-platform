@@ -24,7 +24,7 @@ export default function SeltosOnRentPage() {
       <ServiceHeroWithChat
         badge="Connected Car SUV"
         title="Seltos on Rent Without Driver"
-        titleHighlight="Starting @₹1899/Day"
+        titleHighlight="Starting @₹1899"
         description="Kia Seltos - Feature-loaded compact SUV with connected car tech, sunroof, and premium interiors. Perfect for family trips and weekend getaways."
         features={[
           { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },

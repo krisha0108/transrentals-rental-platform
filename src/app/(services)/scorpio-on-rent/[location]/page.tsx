@@ -77,7 +77,7 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location}
         vehicleName="Mahindra Scorpio"
-        selfDrivePrice="₹2,499/day"
+        selfDrivePrice="₹2,499"
       />
 
       <section className="bg-gradient-to-br from-amber-700 to-orange-800 text-white py-12">
@@ -86,7 +86,7 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
           <div className="flex flex-wrap gap-4">
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold">₹2,499/day</p>
+              <p className="text-xl font-bold">₹2,499</p>
             </div>
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Type</p>
@@ -96,38 +96,18 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <section className="py-12">
-        <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">Scorpio Options in {locationName}</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { name: 'Scorpio Classic', price: 2299, seats: 7 },
-              { name: 'Scorpio-N Z6', price: 2799, seats: 6 },
-              { name: 'Scorpio-N Z8 L', price: 3499, seats: 7 },
-            ].map((v) => (
-              <div key={v.name} className="bg-white rounded-xl shadow-md p-6">
-                <h3 className="text-lg font-bold mb-1">{v.name}</h3>
-                <p className="text-sm text-gray-500 mb-3">{v.seats} Seater</p>
-                <p className="text-2xl font-bold text-amber-600 mb-4">₹{v.price}<span className="text-sm text-gray-500">/day</span></p>
-                <p className="text-sm text-emerald-600 font-medium text-center mt-2">Use the chat below to book</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="py-12 bg-gray-50">
         <div className="container-custom">
           <h2 className="text-2xl font-bold text-center mb-8">Other SUVs in {locationName}</h2>
           <div className="grid md:grid-cols-4 gap-6">
             <Link href={`/xuv700-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">XUV700</h3><p className="text-sm text-gray-600 mt-2">From ₹2,999/day</p>
+              <h3 className="font-bold">XUV700</h3><p className="text-sm text-gray-600 mt-2">From ₹2,999</p>
             </Link>
             <Link href={`/fortuner-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Fortuner</h3><p className="text-sm text-gray-600 mt-2">From ₹4,999/day</p>
+              <h3 className="font-bold">Fortuner</h3><p className="text-sm text-gray-600 mt-2">From ₹4,999</p>
             </Link>
             <Link href={`/creta-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
-              <h3 className="font-bold">Creta</h3><p className="text-sm text-gray-600 mt-2">From ₹1,999/day</p>
+              <h3 className="font-bold">Creta</h3><p className="text-sm text-gray-600 mt-2">From ₹1,999</p>
             </Link>
             <Link href={`/self-drive-suv-rental/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">All SUVs</h3><p className="text-sm text-gray-600 mt-2">View all</p>

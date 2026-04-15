@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -122,20 +122,24 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
 
   return (
     <>
-      <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
-        badge={`Monthly Car Rental in ${locationName}`}
-        title="Monthly Car Subscription"
-        titleHighlight="Long Term Rental @₹12k/month"
-        description={`Subscribe to cars monthly in ${locationName}. All-inclusive packages with maintenance, insurance, and support. Flexible and cost-effective.`}
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'All-Inclusive', color: 'text-violet-600' },
-          { icon: 'zap', text: 'Flexible Terms', color: 'text-purple-600' },
-        ]}
-        gradientFrom="violet-50"
-        gradientTo="purple-50"
+      {/* Breadcrumbs */}
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/monthly-car-rental" className="hover:text-primary">Monthly Car Rental</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{locationName}</span>
+          </nav>
+        </div>
+      </div>
+
+      <CarRentalBookingHero
+        city={locationName}
+        citySlug={params.location}
+        serviceSlug="car-rental"
+        serviceTitle="Monthly Car Rental"
       />
 
       {/* Why Monthly Car */}
