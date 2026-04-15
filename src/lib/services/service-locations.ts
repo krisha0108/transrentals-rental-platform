@@ -3,8 +3,41 @@
  * This ensures all services use database locations instead of static files
  */
 
+import { unstable_cache } from 'next/cache';
 import { prisma } from '@/lib/db/prisma';
 import { getParentServiceSlug } from '@/lib/constants/service-mapping';
+
+const _cachedServiceLocations = unstable_cache(
+  async (dbSlug: string) => {
+    const service = await prisma.services.findUnique({
+      where: { slug: dbSlug },
+      include: {
+        service_locations: {
+          where: { isActive: true },
+          include: {
+            locations: { select: { slug: true, name: true } },
+          },
+        },
+      },
+    });
+    if (!service) return null;
+    return service.service_locations.map((sl) => ({ location: sl.locations.slug }));
+  },
+  ['service-locations-static'],
+  { revalidate: 3600, tags: ['service-locations', 'services'] }
+);
+
+const _cachedAllActiveLocations = unstable_cache(
+  async () => {
+    const locations = await prisma.locations.findMany({
+      where: { isActive: true },
+      select: { slug: true, name: true },
+    });
+    return locations.map((loc) => ({ location: loc.slug }));
+  },
+  ['all-active-locations'],
+  { revalidate: 3600, tags: ['locations'] }
+);
 
 /**
  * Get locations for a specific service from database
@@ -30,30 +63,11 @@ export async function getServiceLocations(serviceSlug: string) {
     const parentSlug = getParentServiceSlug(serviceSlug);
     const dbSlug = PARENT_SLUG_TO_DB[parentSlug] || parentSlug;
 
-    // Fetch enabled locations from database
-    const service = await prisma.services.findUnique({
-      where: { slug: dbSlug },
-      include: {
-        service_locations: {
-          where: { isActive: true },
-          include: {
-            locations: {
-              select: { slug: true, name: true }
-            }
-          }
-        }
-      }
-    });
-
-    if (!service) {
+    const locations = await _cachedServiceLocations(dbSlug);
+    if (!locations) {
       console.log(`[${serviceSlug}] Service not found in database`);
       return [];
     }
-
-    const locations = service.service_locations.map((sl) => ({
-      location: sl.locations.slug,
-    }));
-
     console.log(`[${serviceSlug}] Generating ${locations.length} location pages from database`);
     return locations;
   } catch (error) {
@@ -75,16 +89,9 @@ export async function getAllActiveLocations() {
       return [];
     }
 
-    // Get all active locations
-    const locations = await prisma.locations.findMany({
-      where: { isActive: true },
-      select: { slug: true, name: true }
-    });
-
+    const locations = await _cachedAllActiveLocations();
     console.log(`[locations] Found ${locations.length} active locations in database`);
-    return locations.map((loc) => ({
-      location: loc.slug,
-    }));
+    return locations;
   } catch (error) {
     console.error('[locations] Error fetching locations:', error);
     return [];

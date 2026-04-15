@@ -248,7 +248,7 @@ export default function VendorNotificationsPage() {
 
   // Auto-refresh every 15 seconds
   useEffect(() => {
-    const interval = setInterval(() => fetchNotifications(), 15000);
+    const interval = setInterval(() => fetchNotifications(), 60000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
