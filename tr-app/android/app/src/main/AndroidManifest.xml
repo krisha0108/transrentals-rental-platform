@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.transrentals.customer">
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -46,5 +47,10 @@
         <!--
         android:networkSecurityConfig="@xml/otpless_network_security_config"
         -->
+        <!-- Suppress Razorpay deeplink auto-verify warnings -->
+        <activity
+            android:name="com.razorpay.DeeplinkActivity"
+            tools:node="merge"
+            android:autoVerify="false" />
     </application>
 </manifest>
