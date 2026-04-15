@@ -63,13 +63,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-const fortunerVariants = [
-  { name: 'Toyota Fortuner 4x2', price: 4999, fuel: 'Diesel', seats: 7 },
-  { name: 'Toyota Fortuner 4x2 AT', price: 5499, fuel: 'Diesel', seats: 7 },
-  { name: 'Toyota Fortuner 4x4', price: 5999, fuel: 'Diesel', seats: 7 },
-  { name: 'Toyota Fortuner 4x4 AT', price: 6499, fuel: 'Diesel', seats: 7 },
-  { name: 'Toyota Fortuner Legender', price: 7499, fuel: 'Diesel', seats: 7 },
-];
 
 export default async function FortunerOnRentLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('fortuner-on-rent', params.location);
@@ -105,7 +98,7 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
         city={locationName}
         citySlug={params.location}
         vehicleName="Toyota Fortuner"
-        selfDrivePrice="₹4,999/day"
+        selfDrivePrice="₹4,999"
       />
 
       <section className="bg-gradient-to-br from-gray-900 to-gray-800 text-white py-12">
@@ -119,7 +112,7 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
           <div className="flex flex-wrap gap-4">
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold text-yellow-400">₹4,999/day</p>
+              <p className="text-xl font-bold text-yellow-400">₹4,999</p>
             </div>
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Seating</p>
@@ -129,29 +122,6 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
               <p className="text-xs opacity-75">Engine</p>
               <p className="text-xl font-bold">2.8L Diesel</p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Fortuner Variants in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {fortunerVariants.map((variant) => (
-              <div key={variant.name} className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold">{variant.name}</h3>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-yellow-600">₹{variant.price}</p>
-                    <p className="text-xs text-gray-500">/day</p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">⛽ {variant.fuel} • 👥 {variant.seats} Seats • 🚙 Premium SUV</p>
-                <p className="text-sm text-emerald-600 font-medium text-center mt-2">Use the chat below to book</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>

@@ -34,7 +34,7 @@ export default function SelfDriveSedanRentalPage() {
     <>
       <SwiftRentalTypeHero
         vehicleName="Self Drive Sedan"
-        selfDrivePrice="₹1,299/day"
+        selfDrivePrice="₹1,299"
       />
 
       {/* Hero */}

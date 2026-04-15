@@ -9,7 +9,7 @@ import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -171,45 +171,12 @@ export default async function KTMLocationPage({ params }: PageProps) {
           </div>
         </div>
 
-        <ServiceHeroWithChat
+        <BikeSearchHero
+          city={locationName}
+          citySlug={params.location}
           pageHeading={seoData?.pageHeading || undefined}
           pageDescription={seoData?.pageDescription || undefined}
-          badge={`KTM Rental in ${locationName}`}
-          title="KTM Duke & Adventure on Rent"
-          titleHighlight="Performance Starts @₹799/day"
-          description={`Unleash pure performance in ${locationName}. KTM Duke 200, Duke 390, Adventure 390 — precision engineering for riders who refuse to be ordinary.`}
-          features={[
-            { icon: 'zap', text: '0-100 in 5 Seconds', color: 'text-orange-600' },
-            { icon: 'shield', text: 'ABS & Traction Control', color: 'text-emerald-600' },
-            { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          ]}
-          gradientFrom="orange-50"
-          gradientTo="red-50"
         />
-
-        {/* Available Models */}
-        <section className="py-12 bg-white">
-          <div className="container-custom">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-              KTM Models in {locationName}
-            </h2>
-            <div className="grid md:grid-cols-4 gap-6">
-              {[
-                { name: 'Duke 200', cc: '200cc', price: '₹999/day', power: '25 HP' },
-                { name: 'Duke 390', cc: '373cc', price: '₹1,499/day', power: '43 HP' },
-                { name: 'RC 200', cc: '200cc', price: '₹1,099/day', power: '25 HP' },
-                { name: 'RC 390', cc: '373cc', price: '₹1,599/day', power: '43 HP' },
-              ].map((model) => (
-                <div key={model.name} className="bg-gradient-to-br from-orange-50 to-white p-5 rounded-lg border-2 border-orange-200">
-                  <div className="text-3xl mb-2">🏍️</div>
-                  <h3 className="font-bold mb-1">KTM {model.name}</h3>
-                  <p className="text-sm text-gray-600 mb-1">{model.cc} • {model.power}</p>
-                  <p className="text-orange-600 font-bold">{model.price}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
 
         <VehicleGrid
           vehicles={pageData.vehicles}

@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -130,20 +130,24 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
 
   return (
     <>
-      <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
-        badge={`Corporate Car Rental in ${locationName}`}
-        title="Corporate Car Services"
-        titleHighlight="Employee Transport @₹15k/month"
-        description={`Professional corporate car rental in ${locationName}. Employee transport, business meetings, fleet management with GST invoices and monthly billing.`}
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Professional Service', color: 'text-slate-600' },
-          { icon: 'zap', text: 'Fleet Management', color: 'text-blue-600' },
-        ]}
-        gradientFrom="slate-50"
-        gradientTo="zinc-50"
+      {/* Breadcrumbs */}
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="container-custom py-3">
+          <nav className="text-sm text-gray-600">
+            <a href="/" className="hover:text-primary">Home</a>
+            <span className="mx-2">/</span>
+            <a href="/corporate-car-rental" className="hover:text-primary">Corporate Car Rental</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">{locationName}</span>
+          </nav>
+        </div>
+      </div>
+
+      <CarRentalBookingHero
+        city={locationName}
+        citySlug={params.location}
+        serviceSlug="car-rental"
+        serviceTitle="Corporate Car Rental"
       />
 
       {/* Why Corporate Car */}

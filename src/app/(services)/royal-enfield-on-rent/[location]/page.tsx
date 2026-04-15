@@ -8,7 +8,7 @@ import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { getServiceLocations } from '@/lib/services/service-locations';
 import { resolveServicePage } from '@/lib/services/service-availability';
@@ -199,45 +199,12 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
         </div>
       </div>
 
-      <ServiceHeroWithChat
+      <BikeSearchHero
+        city={locationName}
+        citySlug={params.location}
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Royal Enfield Rental in ${locationName}`}
-        title="Royal Enfield on Rent"
-        titleHighlight="Starting @₹899/day"
-        description={`Rent Royal Enfield bikes in ${locationName}. Classic 350, Himalayan, Meteor, Hunter available. Perfect for road trips, weekend adventures & touring.`}
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Well Maintained', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Touring Ready', color: 'text-red-600' },
-        ]}
-        gradientFrom="red-50"
-        gradientTo="orange-50"
       />
-
-      {/* Available Models */}
-      <section className="py-12 bg-white">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Royal Enfield Models in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            {[
-              { name: 'Classic 350', cc: '350cc', price: '₹899/day', type: 'Cruiser' },
-              { name: 'Himalayan', cc: '411cc', price: '₹1,099/day', type: 'Adventure' },
-              { name: 'Meteor 350', cc: '350cc', price: '₹999/day', type: 'Cruiser' },
-              { name: 'Hunter 350', cc: '350cc', price: '₹899/day', type: 'Roadster' },
-            ].map((model) => (
-              <div key={model.name} className="bg-gradient-to-br from-amber-50 to-white p-5 rounded-lg border-2 border-amber-200">
-                <div className="text-3xl mb-2">🏍️</div>
-                <h3 className="font-bold mb-1">{model.name}</h3>
-                <p className="text-sm text-gray-600 mb-1">{model.cc} • {model.type}</p>
-                <p className="text-primary font-bold">{model.price}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <VehicleGrid
         vehicles={pageData.vehicles}

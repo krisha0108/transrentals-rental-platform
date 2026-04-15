@@ -101,25 +101,6 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <section className="py-12">
-        <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">Generator Options in {locationName}</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { name: '15 KVA', price: 3000 },
-              { name: '62.5 KVA', price: 7000 },
-              { name: '125 KVA', price: 12000 },
-            ].map((v) => (
-              <div key={v.name} className="bg-white rounded-xl shadow-md p-6">
-                <h3 className="text-lg font-bold mb-2">{v.name} Generator</h3>
-                <p className="text-2xl font-bold text-blue-600 mb-4">₹{v.price.toLocaleString()}<span className="text-sm text-gray-500">/day</span></p>
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg">Get Quote</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="py-12 bg-gray-50">
         <div className="container-custom">
           <h2 className="text-2xl font-bold text-center mb-8">Other Equipment in {locationName}</h2>

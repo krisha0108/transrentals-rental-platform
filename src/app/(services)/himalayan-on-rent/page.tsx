@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeHeroWithLocation } from '@/components/bike/BikeHeroWithLocation';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 
@@ -17,28 +17,16 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function HimalayanOnRentPage() {
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Adventure Touring Bike"
-        title="Royal Enfield Himalayan on Rent"
-        titleHighlight="Starting @₹1499/Day"
-        description="The ultimate adventure touring motorcycle for Ladakh, Spiti, and Himalayan expeditions. Purpose-built for tough terrains."
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Adventure Ready', color: 'text-blue-600' },
-        ]}
-        gradientFrom="slate-50"
-        gradientTo="blue-50"
-      />
+      <BikeHeroWithLocation />
 
-      <section className="relative bg-gradient-to-br from-slate-800 to-blue-900 text-white py-16">
+      <section className="relative bg-white text-gray-900 py-16">
         <div className="container-custom">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">Royal Enfield Himalayan on Rent</h1>
             <p className="text-xl opacity-90 mb-8">Himalayan 411cc • Himalayan 450 (New)</p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <a href="#variants" className="bg-white text-slate-800 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">View Options</a>
-              <a href="#cities" className="border-2 border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-slate-800 transition">Find Near You</a>
+              <a href="#variants" className="bg-slate-800 text-white px-6 py-3 rounded-lg font-semibold hover:bg-slate-700 transition">View Options</a>
+              <a href="#cities" className="border-2 border-slate-800 text-slate-800 px-6 py-3 rounded-lg font-semibold hover:bg-slate-800 hover:text-white transition">Find Near You</a>
             </div>
           </div>
         </div>

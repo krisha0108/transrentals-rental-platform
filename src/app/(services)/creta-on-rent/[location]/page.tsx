@@ -63,13 +63,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-const cretaVariants = [
-  { name: 'Hyundai Creta E', price: 1999, fuel: 'Petrol' },
-  { name: 'Hyundai Creta EX', price: 2199, fuel: 'Petrol' },
-  { name: 'Hyundai Creta S', price: 2499, fuel: 'Petrol' },
-  { name: 'Hyundai Creta SX', price: 2799, fuel: 'Diesel' },
-  { name: 'Hyundai Creta SX(O) AT', price: 3299, fuel: 'Diesel' },
-];
 
 export default async function CretaOnRentLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('creta-on-rent', params.location);
@@ -128,7 +121,7 @@ export default async function CretaOnRentLocationPage({ params }: PageProps) {
           <div className="flex flex-wrap gap-4">
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold">₹1,999/day</p>
+              <p className="text-xl font-bold">₹1,999</p>
             </div>
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Seating</p>
@@ -138,29 +131,6 @@ export default async function CretaOnRentLocationPage({ params }: PageProps) {
               <p className="text-xs opacity-75">Variants</p>
               <p className="text-xl font-bold">5 Options</p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Creta Variants in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {cretaVariants.map((variant) => (
-              <div key={variant.name} className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold">{variant.name}</h3>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-blue-600">₹{variant.price}</p>
-                    <p className="text-xs text-gray-500">/day</p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">⛽ {variant.fuel} • 👥 5 Seats • 🚙 SUV</p>
-                <p className="text-sm text-emerald-600 font-medium text-center mt-2">Use the chat below to book</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>

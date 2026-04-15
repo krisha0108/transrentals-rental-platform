@@ -77,7 +77,7 @@ export default async function SeltosLocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location}
         vehicleName="Kia Seltos"
-        selfDrivePrice="₹1,899/day"
+        selfDrivePrice="₹1,899"
       />
 
       <section className="bg-gradient-to-br from-red-600 to-orange-600 text-white py-12">
@@ -86,31 +86,12 @@ export default async function SeltosLocationPage({ params }: PageProps) {
           <div className="flex flex-wrap gap-4">
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold">₹1,899/day</p>
+              <p className="text-xl font-bold">₹1,899</p>
             </div>
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Type</p>
               <p className="text-xl font-bold">Compact SUV</p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12">
-        <div className="container-custom">
-          <h2 className="text-2xl font-bold text-center mb-8">Seltos Variants in {locationName}</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { name: 'Kia Seltos HTK', price: 1899 },
-              { name: 'Kia Seltos HTX', price: 2199 },
-              { name: 'Kia Seltos GTX+ AT', price: 2999 },
-            ].map((v) => (
-              <div key={v.name} className="bg-white rounded-xl shadow-md p-6">
-                <h3 className="text-lg font-bold mb-2">{v.name}</h3>
-                <p className="text-3xl font-bold text-red-600 mb-4">₹{v.price}<span className="text-sm text-gray-500">/day</span></p>
-                <p className="text-sm text-emerald-600 font-medium text-center mt-2">Use the chat below to book</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>

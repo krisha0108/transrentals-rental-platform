@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeHeroWithLocation } from '@/components/bike/BikeHeroWithLocation';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
 import { BikeServiceSchema } from '@/components/seo/schemas';
@@ -82,14 +82,7 @@ export default function ElectricScooterRentalPage() {
         reviewCount={1234}
       />
 
-      <ServiceHeroWithChat
-        badge="Go Green with EV Rental"
-        title="Electric Scooter Rental"
-        titleHighlight="Zero Fuel Cost @₹399/Day"
-        description="Rent Ola S1, Ather 450X, TVS iQube electric scooters. Eco-friendly, silent, smart. Save money on fuel, save the planet."
-        gradientFrom="green-50"
-        gradientTo="emerald-50"
-      />
+      <BikeHeroWithLocation />
 
       {/* Popular Cities */}
       <section id="locations" className="py-16 bg-gray-50">

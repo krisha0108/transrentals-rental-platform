@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeHeroWithLocation } from '@/components/bike/BikeHeroWithLocation';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 
@@ -46,19 +46,7 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function PulsarRentalPage() {
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Pulsar Rental in 200+ Cities"
-        title="Pulsar on Rent"
-        titleHighlight="Starting @₹499/Day"
-        description="Rent Bajaj Pulsar bikes - India's most popular sports bike. Reliable, powerful, fuel-efficient. Perfect for daily commute and weekend rides."
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Well Maintained', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Fuel Efficient', color: 'text-blue-600' },
-        ]}
-        gradientFrom="blue-50"
-        gradientTo="indigo-50"
-      />
+      <BikeHeroWithLocation />
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-blue-600 to-indigo-700 text-white py-16">
