@@ -85,7 +85,7 @@ export default function TruckMyQuotesScreen({ navigation }) {
     filterKey: 'status',
   });
 
-  useEffect(() => { initialLoad(); }, [initialLoad, activeTab]);
+  useEffect(() => { initialLoad(); }, [activeTab]);
 
   const handleWithdraw = (quote) => {
     Alert.alert(

@@ -108,6 +108,8 @@ export default function CustomerSelfDriveQuoteDetailPage() {
   const [reRequestSuccess, setReRequestSuccess] = useState<string | null>(null);
   const [remainingAttempts, setRemainingAttempts] = useState(3);
   const [error, setError] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -200,6 +202,28 @@ export default function CustomerSelfDriveQuoteDetailPage() {
       setError('Failed to accept quote. Please try again.');
     } finally {
       setIsAccepting(false);
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    setIsCancelling(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/self-drive-quote-requests/${params.id}`, {
+        method: 'PATCH',
+      });
+      const data = await response.json();
+      if (data.success) {
+        router.push('/customer/self-drive-quotes');
+      } else {
+        setError(data.error || 'Failed to cancel request');
+        setShowCancelConfirm(false);
+      }
+    } catch {
+      setError('Failed to cancel request. Please try again.');
+      setShowCancelConfirm(false);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -397,6 +421,18 @@ export default function CustomerSelfDriveQuoteDetailPage() {
               <strong>Notes:</strong> {request.customerNotes}
             </div>
           )}
+
+          {/* Cancel Request Button */}
+          {(request.status === 'PENDING' || request.status === 'QUOTES_RECEIVED') && (
+            <div className="mt-4 pt-3 border-t flex justify-end">
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition"
+              >
+                Cancel Request
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Quotes */}
@@ -533,7 +569,7 @@ export default function CustomerSelfDriveQuoteDetailPage() {
                         )}
                         <span>Deposit: ₹{quote.securityDeposit.toLocaleString()}</span>
                         <span>Advance: {quote.advancePercent}%</span>
-                        {quote.deliveryCharge && quote.deliveryCharge > 0 && (
+                        {quote.deliveryCharge > 0 && (
                           <span>Delivery: ₹{quote.deliveryCharge}</span>
                         )}
                       </div>
@@ -812,6 +848,46 @@ export default function CustomerSelfDriveQuoteDetailPage() {
           </ul>
         </div>
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <XCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900">Cancel Quote Request?</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-5">
+              Are you sure you want to cancel this quote request? This action cannot be undone and all received quotes will be discarded.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={isCancelling}
+                className="flex-1 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition text-sm"
+              >
+                Keep Request
+              </button>
+              <button
+                onClick={handleCancelRequest}
+                disabled={isCancelling}
+                className="flex-1 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  'Yes, Cancel'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Accept Button */}
       {selectedQuote && (

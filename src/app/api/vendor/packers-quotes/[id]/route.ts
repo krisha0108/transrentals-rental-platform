@@ -13,11 +13,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const { id } = params;
     const quote = await prisma.packers_quotes.findFirst({
       where: { id, vendorId: auth.vendorId },
-      include: { packers_quote_requests: { select: { id: true, requestNumber: true, customerName: true, customerPhone: true, pickupCity: true, dropCity: true, preferredDate: true, shiftingType: true, status: true } } },
+      include: {
+        packers_quote_requests: { select: { id: true, requestNumber: true, customerName: true, customerEmail: true, customerPhone: true, pickupCity: true, pickupAddress: true, pickupFloor: true, hasPickupLift: true, dropCity: true, dropAddress: true, dropFloor: true, hasDropLift: true, preferredDate: true, serviceType: true, shiftingType: true, propertySize: true, needPacking: true, needUnpacking: true, needStorage: true, storageDays: true, needInsurance: true, insuranceValue: true, requirements: true, status: true } },
+        packers_bookings: { select: { id: true, bookingNumber: true, status: true } },
+      },
     });
     if (!quote) return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
     const parseJson = (f: any) => { if (!f) return []; if (Array.isArray(f)) return f; try { return JSON.parse(f); } catch { return []; } };
-    return NextResponse.json({ success: true, quote: { ...quote, request: quote.packers_quote_requests, inclusions: parseJson(quote.inclusions), exclusions: parseJson(quote.exclusions), termsConditions: parseJson(quote.termsConditions) } });
+    const { packers_bookings, ...quoteRest } = quote;
+    return NextResponse.json({ success: true, quote: { ...quoteRest, request: quote.packers_quote_requests, booking: packers_bookings || null, inclusions: parseJson(quote.inclusions), exclusions: parseJson(quote.exclusions), termsConditions: parseJson(quote.termsConditions) } });
   } catch (error: any) {
     logger.error('Failed to fetch packers quote', error);
     return NextResponse.json({ error: 'Failed to fetch quote', details: error?.message }, { status: 500 });

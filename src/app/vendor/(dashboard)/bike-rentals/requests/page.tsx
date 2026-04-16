@@ -53,7 +53,7 @@ interface QuoteRequest {
   totalQuotesReceived: number;
   quotesOpenTill: string;
   hasQuoted: boolean;
-  myQuote?: { id: string; quoteNumber: string; grandTotal: number; status: string };
+  myQuote?: { id: string; quoteNumber: string; grandTotal: number; status: string; bookingId?: string | null; bookingNumber?: string | null; bookingStatus?: string | null };
   createdAt: string;
 }
 
@@ -199,16 +199,14 @@ export default function VendorBikeRequestsPage() {
           </div>
 
           {/* Search bar */}
-          <form
-            onSubmit={(e) => { e.preventDefault(); setSearchQuery(searchInput); setCurrentPage(1); }}
-            className="mb-3"
-          >
-            <div className="relative">
+          <div className="mb-3 flex gap-2">
+            <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { setSearchQuery(searchInput); setCurrentPage(1); } }}
                 placeholder="Search requests..."
                 className="w-full pl-8 pr-8 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-300"
               />
@@ -222,7 +220,14 @@ export default function VendorBikeRequestsPage() {
                 </button>
               )}
             </div>
-          </form>
+            <button
+              onClick={() => { setSearchQuery(searchInput); setCurrentPage(1); }}
+              className="px-3 py-2 text-xs font-semibold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition flex items-center gap-1 shrink-0"
+            >
+              <Search className="w-3.5 h-3.5" />
+              Search
+            </button>
+          </div>
 
           {/* Filter tabs — stronger active state */}
           <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
@@ -352,13 +357,14 @@ export default function VendorBikeRequestsPage() {
 
         {/* Pagination */}
         {filteredRequests.length > 0 && (
-          <div className="p-3 border-t border-gray-100 bg-white">
+          <div className="px-3 py-2 border-t border-gray-100 bg-white">
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
               totalItems={totalItems}
               itemsPerPage={20}
               onPageChange={(page) => setCurrentPage(page)}
+              compact
             />
           </div>
         )}
@@ -409,6 +415,8 @@ export default function VendorBikeRequestsPage() {
                       })()}
                     </div>
                     <p className="text-[11px] text-gray-400 flex items-center gap-2 mt-0.5">
+                      <span className="font-mono font-semibold text-gray-500">#{selected.requestNumber}</span>
+                      <span className="text-gray-300">·</span>
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{selected.locationName}</span>
                       <span className="text-gray-300">·</span>
                       <span>{getTimeAgo(selected.createdAt)}</span>
@@ -606,14 +614,29 @@ export default function VendorBikeRequestsPage() {
                             {selected.myQuote.status === 'accepted' ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                             {selected.myQuote.status}
                           </span>
+                          {selected.myQuote.bookingNumber && (
+                            <span className="font-mono text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md">
+                              Bkg #{selected.myQuote.bookingNumber}
+                            </span>
+                          )}
                         </p>
                       </div>
-                      <Link
-                        href={`/vendor/bike-rentals/quotes/${selected.myQuote.id}`}
-                        className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95"
-                      >
-                        <Eye className="w-3.5 h-3.5" /> View Details
-                      </Link>
+                      <div className="flex flex-col gap-2 items-end">
+                        <Link
+                          href={`/vendor/bike-rentals/quotes/${selected.myQuote.id}`}
+                          className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> View Quote
+                        </Link>
+                        {selected.myQuote.bookingId && (
+                          <Link
+                            href={`/vendor/bike-rentals/bookings/${selected.myQuote.bookingId}`}
+                            className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-700 transition-all active:scale-95"
+                          >
+                            <Eye className="w-3.5 h-3.5" /> View Booking
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

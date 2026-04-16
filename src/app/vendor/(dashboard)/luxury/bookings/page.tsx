@@ -995,7 +995,7 @@ export default function VendorLuxuryBookingsPage() {
                                 Manage Trip
                               </Link>
                             )}
-                            {item.type === 'booking' && ['COMPLETED', 'PAYMENT_SUBMITTED', 'PENDING_PAYMENT'].includes(item.status) && (
+                            {item.type === 'booking' && ['COMPLETED', 'PAYMENT_SUBMITTED', 'PENDING_PAYMENT', 'CANCELLED', 'EXPIRED', 'DROPPED'].includes(item.status) && (
                               <Link
                                 href={`/vendor/luxury/bookings/${item.id}`}
                                 className="px-5 py-2.5 bg-white text-gray-600 text-base font-semibold rounded-lg border border-gray-200 hover:bg-gray-50 hover:border-gray-300 flex items-center gap-2 transition-all duration-200"

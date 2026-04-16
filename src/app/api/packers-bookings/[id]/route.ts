@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
+import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
 export const dynamic = 'force-dynamic';
 
 // GET - Get Packers Booking details
@@ -99,7 +100,7 @@ export async function PATCH(
 
     switch (action) {
       case 'cancel': {
-        if (!['PENDING_PAYMENT', 'ADVANCE_PAID', 'CONFIRMED'].includes(booking.status)) {
+        if (!['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'TEAM_ASSIGNED'].includes(booking.status)) {
           return NextResponse.json({ error: 'This booking cannot be cancelled' }, { status: 400 });
         }
         const { reason } = data;
@@ -131,6 +132,8 @@ export async function PATCH(
           where: { id },
           data: { rating, review: review || null, teamRating: teamRating || rating, packingRating: packingRating || rating },
         });
+
+        updateVendorRating(booking.vendorId, rating).catch(() => {});
 
         return NextResponse.json({ success: true, message: 'Rating submitted', booking: { id: updatedBooking.id, rating: updatedBooking.rating } });
       }

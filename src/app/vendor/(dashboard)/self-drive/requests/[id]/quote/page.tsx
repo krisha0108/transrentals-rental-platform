@@ -271,6 +271,16 @@ export default function SendSelfDriveQuotePage() {
     }
   };
 
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    const [hourStr, minuteStr] = timeString.split(':');
+    const hour = parseInt(hourStr, 10);
+    const minute = minuteStr || '00';
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minute} ${ampm}`;
+  };
+
   const addItem = (list: string[], setList: (items: string[]) => void) => {
     if (newItem.trim() && !list.includes(newItem.trim())) { setList([...list, newItem.trim()]); setNewItem(''); }
   };
@@ -445,7 +455,7 @@ export default function SendSelfDriveQuotePage() {
           <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl px-3 py-2.5">
             <div className="flex items-center gap-1.5 text-white/70 mb-1"><Calendar className="w-3 h-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Dates</span></div>
             <p className="text-sm font-bold text-white">{new Date(request.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} → {new Date(request.dropDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
-            <p className="text-[10px] text-white/60">{formatBookingDuration(request)}{request.pickupTime ? ` • ${request.pickupTime}` : ''}</p>
+            <p className="text-[10px] text-white/60">{formatBookingDuration(request)}{request.pickupTime ? ` • ${formatTime(request.pickupTime)}` : ''}{request.dropTime ? ` → ${formatTime(request.dropTime)}` : ''}</p>
           </div>
           <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl px-3 py-2.5">
             <div className="flex items-center gap-1.5 text-white/70 mb-1"><Settings2 className="w-3 h-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Preferences</span></div>

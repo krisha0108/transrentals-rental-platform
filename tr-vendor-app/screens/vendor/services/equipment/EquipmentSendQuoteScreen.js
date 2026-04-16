@@ -12,6 +12,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import CustomDropdown from '../../../../components/CustomDropdown';
 import { getQuoteRequestById, getFleetVehicles, submitQuote, getTemplates } from '../../../api/client';
 import { showError, showSuccess } from '../../../../services/alertService';
+import AppEvents, { EVT_QUOTE_SENT } from '../../../../utils/AppEvents';
 
 const C = {
   g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
@@ -246,6 +247,7 @@ export default function EquipmentSendQuoteScreen({ navigation, route }) {
         validityDays: validityMode === 'days' ? (parseInt(validityDays) || 3) : undefined,
         customValidTill: validityMode === 'custom' && customValidDate ? (() => { const d = new Date(customValidDate); d.setHours(customValidTime.hours, customValidTime.minutes, 0, 0); return d.toISOString(); })() : undefined,
       });
+      AppEvents.emit(EVT_QUOTE_SENT, { serviceType: 'equipment' });
       showSuccess('Quote sent successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
       showError(error?.response?.data?.error || 'Failed to send quote');

@@ -93,6 +93,8 @@ export async function GET(
         platformFee: booking.platformFee,
         securityDeposit: booking.securityDeposit,
         grandTotal: booking.grandTotal,
+        advanceAmount: booking.advanceAmount,
+        advancePercentage: booking.advancePercentage,
         kmLimitPerDay: booking.kmLimitPerDay,
         extraKmRate: booking.extraKmRate,
         status: booking.status,
@@ -108,6 +110,11 @@ export async function GET(
         tripStartOtp: booking.tripStartOtp,
         odometerStart: booking.odometerStart,
         odometerEnd: booking.odometerEnd,
+        cancelledAt: booking.cancelledAt,
+        cancelledBy: booking.cancelledBy,
+        cancellationReason: booking.cancellationReason,
+        refundAmount: booking.refundAmount,
+        paidAmount: booking.paidAmount,
       },
     });
   } catch (error: any) {

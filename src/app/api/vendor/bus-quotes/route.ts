@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
           OR: [
             { quoteNumber: { contains: search } },
             { vehicleName: { contains: search } },
+            { bus_bookings: { bookingNumber: { contains: search } } },
             {
               bus_quote_requests_bus_quotes_requestIdTobus_quote_requests: {
                 customerName: { contains: search },
@@ -108,6 +109,7 @@ export async function GET(request: NextRequest) {
               status: true,
             },
           },
+          bus_bookings: { select: { id: true, bookingNumber: true, status: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -162,6 +164,9 @@ export async function GET(request: NextRequest) {
         sentAt: q.sentAt,
         viewCount: q.viewCount,
         request: q.bus_quote_requests_bus_quotes_requestIdTobus_quote_requests,
+        bookingId: q.bus_bookings?.id || null,
+        bookingNumber: q.bus_bookings?.bookingNumber || null,
+        bookingStatus: q.bus_bookings?.status || null,
         createdAt: q.createdAt,
         updatedAt: q.updatedAt,
       })),

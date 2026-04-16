@@ -66,6 +66,7 @@ import {
   Image,
   Compass,
   MapIcon,
+  Ban,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut, useSession } from 'next-auth/react';
@@ -103,14 +104,12 @@ const approvedNavigationItems: NavItem[] = [
     icon: MessageSquare,
   },
   {
-    name: 'Booking Links',
-    href: '/vendor/booking-links',
-    icon: Link2,
-  },
-  {
     name: 'Direct Bookings',
-    href: '/vendor/direct-bookings',
     icon: BookOpen,
+    children: [
+      { name: 'Booking Links', href: '/vendor/booking-links', icon: Link2 },
+      { name: 'Bookings', href: '/vendor/direct-bookings', icon: BookOpen },
+    ],
   },
   {
     name: 'Bike Rentals',
@@ -123,6 +122,7 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Bookings', href: '/vendor/bike-rentals/bookings', icon: CalendarCheck },
       { name: 'Direct Requests', href: '/vendor/bike-rentals/bookings/direct', icon: Inbox },
       { name: 'Open Requests', href: '/vendor/bike-rentals/bookings/open', icon: Radio },
+      { name: 'Cancelled', href: '/vendor/bike-rentals/bookings/cancelled', icon: Ban },
       { name: 'Earnings', href: '/vendor/bike-rentals/earnings', icon: Wallet },
       { name: 'Templates', href: '/vendor/bike/templates', icon: FileSpreadsheet },
     ],
@@ -138,7 +138,8 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Bookings', href: '/vendor/self-drive/bookings', icon: CalendarCheck },
       { name: 'Direct Requests', href: '/vendor/self-drive/bookings/direct', icon: Inbox },
       { name: 'Open Requests', href: '/vendor/self-drive/bookings/open', icon: Radio },
-      { name: 'Earnings', href: '/vendor/self-drive/earnings', icon: Wallet },  
+      { name: 'Cancelled', href: '/vendor/self-drive/bookings/cancelled', icon: Ban },
+      { name: 'Earnings', href: '/vendor/self-drive/earnings', icon: Wallet },
       { name: 'Templates', href: '/vendor/self-drive/templates', icon: FileSpreadsheet },
     ],
   },
@@ -149,6 +150,7 @@ const approvedNavigationItems: NavItem[] = [
     serviceId: 'SVC_5', // Car Rental (Chauffeur)
     children: [
       { name: 'Bookings', href: '/vendor/car-rental/bookings', icon: CalendarCheck },
+      { name: 'Cancelled', href: '/vendor/car-rental/bookings/cancelled', icon: Ban },
       { name: 'Earnings', href: '/vendor/car-rental/earnings', icon: Wallet },
     ],
   },
@@ -160,6 +162,7 @@ const approvedNavigationItems: NavItem[] = [
     children: [
       { name: 'Bookings', href: '/vendor/luxury/bookings', icon: CalendarCheck },
       { name: 'Active Trips', href: '/vendor/luxury/bookings/active', icon: Radio },
+      { name: 'Cancelled', href: '/vendor/luxury/bookings/cancelled', icon: Ban },
       { name: 'Templates', href: '/vendor/luxury/templates', icon: FileText },
       { name: 'Earnings', href: '/vendor/luxury/earnings', icon: Wallet },
     ],
@@ -173,6 +176,7 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Quote Requests', href: '/vendor/bus/requests', icon: Inbox },
       { name: 'My Quotes', href: '/vendor/bus/quotes', icon: Send },
       { name: 'Bookings', href: '/vendor/bus/bookings', icon: CalendarCheck },
+      { name: 'Cancelled', href: '/vendor/bus/bookings/cancelled', icon: Ban },
       { name: 'Templates', href: '/vendor/bus/templates', icon: FileSpreadsheet },
       { name: 'Earnings', href: '/vendor/bus/earnings', icon: Wallet },
     ],
@@ -186,6 +190,7 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Quote Requests', href: '/vendor/packers/requests', icon: Inbox },
       { name: 'My Quotes', href: '/vendor/packers/quotes', icon: Send },
       { name: 'Bookings', href: '/vendor/packers/bookings', icon: CalendarCheck },
+      { name: 'Cancelled', href: '/vendor/packers/bookings/cancelled', icon: Ban },
       { name: 'Templates', href: '/vendor/packers/templates', icon: FileSpreadsheet },
       { name: 'Earnings', href: '/vendor/packers/earnings', icon: Wallet },
     ],
@@ -199,6 +204,7 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Quote Requests', href: '/vendor/transporter/requests', icon: Inbox },
       { name: 'My Quotes', href: '/vendor/transporter/quotes', icon: Send },
       { name: 'Bookings', href: '/vendor/transporter/bookings', icon: CalendarCheck },
+      { name: 'Cancelled', href: '/vendor/transporter/bookings/cancelled', icon: Ban },
       { name: 'Templates', href: '/vendor/transporter/templates', icon: FileSpreadsheet },
       { name: 'Earnings', href: '/vendor/transporter/earnings', icon: Wallet },
     ],
@@ -212,14 +218,10 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Quote Requests', href: '/vendor/equipment/requests', icon: Inbox },
       { name: 'My Quotes', href: '/vendor/equipment/quotes', icon: Send },
       { name: 'Bookings', href: '/vendor/equipment/bookings', icon: CalendarCheck },
+      { name: 'Cancelled', href: '/vendor/equipment/bookings/cancelled', icon: Ban },
       { name: 'Templates', href: '/vendor/equipment/templates', icon: FileSpreadsheet },
       { name: 'Earnings', href: '/vendor/equipment/earnings', icon: Wallet },
     ],
-  },
-  {
-    name: 'Bookings',
-    href: '/vendor/bookings',
-    icon: CalendarCheck,
   },
   {
     name: 'B2B Corporate',

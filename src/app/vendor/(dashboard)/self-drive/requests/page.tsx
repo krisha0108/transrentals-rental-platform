@@ -146,6 +146,16 @@ export default function VendorSelfDriveRequestsPage() {
     return `${days}d ago`;
   };
 
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    const [hourStr, minuteStr] = timeString.split(':');
+    const hour = parseInt(hourStr, 10);
+    const minute = minuteStr || '00';
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minute} ${ampm}`;
+  };
+
   const selected = useMemo(() => filteredRequests.find(r => r.id === selectedId) ?? null, [filteredRequests, selectedId]);
 
   const newCount = filteredRequests.filter(r => !r.hasQuoted).length;
@@ -359,13 +369,14 @@ export default function VendorSelfDriveRequestsPage() {
 
         {/* Pagination */}
         {filteredRequests.length > 0 && (
-          <div className="p-3 border-t border-gray-100 bg-white">
+          <div className="px-3 py-2 border-t border-gray-100 bg-white">
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
               totalItems={totalItems}
               itemsPerPage={20}
               onPageChange={(page) => setCurrentPage(page)}
+              compact
             />
           </div>
         )}
@@ -415,6 +426,8 @@ export default function VendorSelfDriveRequestsPage() {
                       })()}
                     </div>
                     <p className="text-[11px] text-gray-400 flex items-center gap-2 mt-0.5">
+                      <span className="font-mono font-semibold text-gray-500">#{selected.requestNumber}</span>
+                      <span className="text-gray-300">·</span>
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{selected.locationName}</span>
                       <span className="text-gray-300">·</span>
                       <span>{getTimeAgo(selected.createdAt)}</span>
@@ -493,7 +506,7 @@ export default function VendorSelfDriveRequestsPage() {
                     <p className="text-sm font-bold text-gray-900">
                       {new Date(selected.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
-                    {selected.pickupTime && <p className="text-[11px] text-gray-400 mt-0.5">{selected.pickupTime}</p>}
+                    {selected.pickupTime && <p className="text-[11px] text-gray-400 mt-0.5">{formatTime(selected.pickupTime)}</p>}
                   </div>
                   <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-3">
                     <div className="flex items-center gap-1.5 text-gray-400 mb-1">
@@ -503,7 +516,7 @@ export default function VendorSelfDriveRequestsPage() {
                     <p className="text-sm font-bold text-gray-900">
                       {new Date(selected.dropDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
-                    {selected.dropTime && <p className="text-[11px] text-gray-400 mt-0.5">{selected.dropTime}</p>}
+                    {selected.dropTime && <p className="text-[11px] text-gray-400 mt-0.5">{formatTime(selected.dropTime)}</p>}
                   </div>
                 </div>
 

@@ -10,10 +10,10 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
 import axios from 'axios';
-import { getVendorProfile, getVendorBookings, getVendorEarnings, getBaseURL, getBookings } from '../../api/client';
+import { getVendorProfile, getVendorBookings, getVendorEarnings, getBaseURL, getSessionToken } from '../../api/client';
 import { NotifBadgeContext } from '../../../contexts/NotifBadgeContext';
-
-const APP_VERSION = '4.0.2';
+import DeviceInfo from 'react-native-device-info';
+import AppEvents, { EVT_NEW_QUOTE, EVT_QUOTE_SENT } from '../../../utils/AppEvents';
 const { width: W } = Dimensions.get('window');
 
 // ── Design tokens ──────────────────────────────────────────────
@@ -75,13 +75,6 @@ const BOOKINGS_SCREEN_MAP = {
   car: 'CarRentalBookings', packers: 'PackersBookings',
   equipment: 'EquipmentBookings', luxury: 'LuxuryBookings',
 };
-const OPEN_STATUSES = ['PENDING_VENDOR', 'BROADCASTED', 'PAYMENT_VERIFIED', 'PAYMENT_SUBMITTED'];
-const OPEN_STATUS_CFG = {
-  PENDING_VENDOR:    { label: 'Action Needed', color: C.amber,  bg: C.amberL  },
-  BROADCASTED:       { label: 'Open',          color: C.blue,   bg: C.blueL   },
-  PAYMENT_VERIFIED:  { label: 'Ready',         color: C.g600,   bg: C.g50     },
-  PAYMENT_SUBMITTED: { label: 'Pmt. Review',   color: C.orange, bg: C.orangeL },
-};
 
 // ── Avatar ─────────────────────────────────────────────────────
 function Avatar({ name, size = 40, onPress }) {
@@ -124,39 +117,26 @@ const STATUS_CONFIG = {
 };
 
 export default function DashboardScreen({ navigation }) {
-  const { unreadCount } = React.useContext(NotifBadgeContext);
+  const { unreadCount, refreshBadge } = React.useContext(NotifBadgeContext);
   const [loading, setLoading]           = useState(true);
   const [refreshing, setRefreshing]     = useState(false);
   const [vendor, setVendor]             = useState(null);
   const [profile, setProfile]           = useState(null);
   const [earnings, setEarnings]         = useState(null);
-  const [bookingsData, setBookingsData] = useState(null);
-  const [openBookings, setOpenBookings] = useState([]);
-  const [openLoading, setOpenLoading]   = useState(false);
-  const [updateInfo, setUpdateInfo]     = useState(null);
+  const [bookingsData, setBookingsData]       = useState(null);
+  const [todayQuoteCounts, setTodayQuoteCounts] = useState({});
+  const [updateInfo, setUpdateInfo]           = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
 
-  const fetchOpenBookings = useCallback(async (svcIds) => {
-    setOpenLoading(true);
+  const fetchQuoteCounts = useCallback(async () => {
     try {
-      const services = (svcIds || []).map(id => SVC_ID_TO_SERVICE[id]).filter(Boolean);
-      if (!services.length) { setOpenBookings([]); return; }
-      const results = await Promise.allSettled(
-        services.map(async svc => {
-          const res = await getBookings(svc, { limit: 20 });
-          return (res?.bookings || [])
-            .filter(b => OPEN_STATUSES.includes(b.status))
-            .map(b => ({ ...b, _serviceType: svc }));
-        })
-      );
-      const all = results
-        .filter(r => r.status === 'fulfilled')
-        .flatMap(r => r.value)
-        .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-        .slice(0, 8);
-      setOpenBookings(all);
+      const [base, token] = await Promise.all([getBaseURL(), getSessionToken()]);
+      const res = await axios.get(`${base}/api/vendor/dashboard/quote-counts`, {
+        timeout: 8000,
+        headers: token ? { 'X-Session-Token': token } : {},
+      });
+      if (res.data?.success) setTodayQuoteCounts(res.data.counts || {});
     } catch (_) {}
-    finally { setOpenLoading(false); }
   }, []);
 
   const fetchData = useCallback(async () => {
@@ -170,13 +150,39 @@ export default function DashboardScreen({ navigation }) {
           const er = await getVendorEarnings();
           if (er?.success) { setEarnings(er.earnings); setBookingsData(er.bookings); }
         } catch (_) {}
-        fetchOpenBookings(p?.approvedServiceIds || []);
+        fetchQuoteCounts();
       }
     } catch (_) {}
     finally { setLoading(false); }
-  }, [fetchOpenBookings]);
+  }, [fetchQuoteCounts]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // New quote request arrived (FCM) → +1
+  useEffect(() => {
+    const handler = ({ serviceType }) => {
+      if (!serviceType) return;
+      setTodayQuoteCounts(prev => ({
+        ...prev,
+        [serviceType]: (prev[serviceType] || 0) + 1,
+      }));
+    };
+    AppEvents.on(EVT_NEW_QUOTE, handler);
+    return () => AppEvents.off(EVT_NEW_QUOTE, handler);
+  }, []);
+
+  // Vendor submitted a quote → -1 (no longer needs action)
+  useEffect(() => {
+    const handler = ({ serviceType }) => {
+      if (!serviceType) return;
+      setTodayQuoteCounts(prev => ({
+        ...prev,
+        [serviceType]: Math.max(0, (prev[serviceType] || 0) - 1),
+      }));
+    };
+    AppEvents.on(EVT_QUOTE_SENT, handler);
+    return () => AppEvents.off(EVT_QUOTE_SENT, handler);
+  }, []);
 
   const isVersionLower = (current, latest) => {
     const c = current.split('.').map(Number);
@@ -197,7 +203,8 @@ export default function DashboardScreen({ navigation }) {
       const res  = await axios.get(`${base}/api/vendor/app-version`, { timeout: 8000 });
       if (res.data?.success) {
         const { latestVersion, forceUpdate, updateMessage, playStoreUrl } = res.data;
-        if (latestVersion && isVersionLower(APP_VERSION, latestVersion)) {
+        const currentVersion = DeviceInfo.getVersion();
+        if (latestVersion && isVersionLower(currentVersion, latestVersion)) {
           setUpdateInfo({ latestVersion, forceUpdate, updateMessage, playStoreUrl });
           setShowUpdateModal(true);
         }
@@ -208,8 +215,10 @@ export default function DashboardScreen({ navigation }) {
   useEffect(() => { checkForUpdate(); }, [checkForUpdate]);
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true); await fetchData(); setRefreshing(false);
-  }, [fetchData]);
+    setRefreshing(true);
+    await Promise.all([fetchData(), refreshBadge()]);
+    setRefreshing(false);
+  }, [fetchData, refreshBadge]);
 
   const vendorStatus   = profile?.status || vendor?.status || VENDOR_STATUS.PENDING;
   const isApproved     = vendorStatus === VENDOR_STATUS.APPROVED;
@@ -603,93 +612,6 @@ export default function DashboardScreen({ navigation }) {
             </View>
           )}
 
-          {/* ── Open Bookings ────────────────────────── */}
-          {isApproved && (openLoading || openBookings.length > 0) && (
-            <View style={s.section}>
-              <View style={s.sectionRow}>
-                <Text style={s.sectionTitle}>Open Bookings</Text>
-                {openBookings.length > 0 && (
-                  <View style={[s.countPill, { backgroundColor: C.amberL, borderColor: '#FDE68A' }]}>
-                    <Text style={[s.countPillTxt, { color: C.amber }]}>
-                      {openBookings.length} need attention
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Loading skeleton */}
-              {openLoading && (
-                <View style={{ gap: 8 }}>
-                  {[0, 1, 2].map(i => (
-                    <View key={i} style={[s.obCard, { opacity: 0.6 }]}>
-                      <Bone w={40} h={40} r={12} />
-                      <View style={{ flex: 1, marginLeft: 12, gap: 6 }}>
-                        <Bone w={W * 0.38} h={12} r={4} />
-                        <Bone w={W * 0.52} h={9}  r={3} />
-                        <Bone w={80}       h={18} r={9} />
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* Booking cards */}
-              {!openLoading && openBookings.map(bk => {
-                const meta  = SVC_META[bk._serviceType] || { name: bk._serviceType, icon: 'car', color: C.g600 };
-                const stCfg = OPEN_STATUS_CFG[bk.status] || { label: bk.status, color: C.sub, bg: C.border };
-                const datePart = fmtDate(bk.pickupDate || bk.startDate || bk.scheduledDate || bk.createdAt);
-                const locPart  = bk.pickupLocation || bk.pickupCity || bk.pickupAddress || '';
-                const subtitle = [datePart, locPart].filter(Boolean).join('  ·  ');
-                return (
-                  <TouchableOpacity
-                    key={bk.id}
-                    style={s.obCard}
-                    onPress={() => {
-                      navigation.navigate(BOOKINGS_SCREEN_MAP[bk._serviceType] || 'CarRentalBookings');
-                      navigation.navigate(
-                        DETAIL_SCREEN_MAP[bk._serviceType] || 'CarRentalBookingDetail',
-                        { bookingId: bk.id, serviceType: bk._serviceType }
-                      );
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <View style={[s.obSvcIcon, { backgroundColor: meta.color + '15' }]}>
-                      <MaterialCommunityIcons name={meta.icon} size={19} color={meta.color} />
-                    </View>
-                    <View style={s.obInfo}>
-                      <View style={s.obRow}>
-                        <Text style={s.obCustomer} numberOfLines={1}>
-                          {bk.customerName || 'Customer'}
-                        </Text>
-                        <Text style={s.obNum}>#{bk.bookingNumber || String(bk.id).slice(-6)}</Text>
-                      </View>
-                      {!!subtitle && (
-                        <Text style={s.obMeta} numberOfLines={1}>{subtitle}</Text>
-                      )}
-                      <View style={s.obFooter}>
-                        <View style={[s.obSvcTag, { backgroundColor: meta.color + '12' }]}>
-                          <Text style={[s.obSvcTagTxt, { color: meta.color }]}>{meta.name}</Text>
-                        </View>
-                        <View style={[s.obStatusPill, { backgroundColor: stCfg.bg }]}>
-                          <Text style={[s.obStatusTxt, { color: stCfg.color }]}>{stCfg.label}</Text>
-                        </View>
-                      </View>
-                    </View>
-                    <Ionicons name="chevron-forward" size={14} color={C.muted} />
-                  </TouchableOpacity>
-                );
-              })}
-
-              {/* See all button */}
-              {!openLoading && openBookings.length > 0 && (
-                <TouchableOpacity style={s.obSeeAll}
-                  onPress={() => navigation.navigate('Bookings')} activeOpacity={0.75}>
-                  <Ionicons name="list-outline" size={14} color={C.g700} />
-                  <Text style={s.obSeeAllTxt}>See all bookings</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
 
           {/* ── Quick Actions ─────────────────────────── */}
           {isApproved && (
@@ -719,16 +641,27 @@ export default function DashboardScreen({ navigation }) {
                 </View>
               </View>
               <View style={s.svcGrid}>
-                {myServices.map((svc, i) => (
-                  <TouchableOpacity key={i} style={s.svcCard}
-                    onPress={() => navigation.navigate(svc.route)} activeOpacity={0.75}>
-                    <View style={[s.svcIconBox, { backgroundColor: svc.color + '14' }]}>
-                      <MaterialCommunityIcons name={svc.icon} size={22} color={svc.color} />
-                    </View>
-                    <Text style={s.svcName} numberOfLines={2}>{svc.name}</Text>
-                    <Ionicons name="chevron-forward" size={13} color={C.muted} style={{ marginTop: 'auto' }} />
-                  </TouchableOpacity>
-                ))}
+                {myServices.map((svc, i) => {
+                  const svcKey = SVC_ID_TO_SERVICE[svc.id];
+                  const todayCount = todayQuoteCounts[svcKey] || 0;
+                  return (
+                    <TouchableOpacity key={i} style={s.svcCard}
+                      onPress={() => navigation.navigate(svc.route)} activeOpacity={0.75}>
+                      <View style={{ marginRight: 10 }}>
+                        <View style={[s.svcIconBox, { backgroundColor: svc.color + '14' }]}>
+                          <MaterialCommunityIcons name={svc.icon} size={22} color={svc.color} />
+                        </View>
+                        {todayCount > 0 && (
+                          <View style={[s.svcCountDot, { backgroundColor: svc.color }]}>
+                            <Text style={s.svcCountDotTxt}>{todayCount > 99 ? '99+' : todayCount}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={s.svcName} numberOfLines={2}>{svc.name}</Text>
+                      <Ionicons name="chevron-forward" size={13} color={C.muted} />
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           )}
@@ -981,6 +914,14 @@ const s = StyleSheet.create({
   },
   svcIconBox: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   svcName:    { flex: 1, fontSize: 11.5, fontWeight: '700', color: C.text, marginLeft: 9, lineHeight: 15 },
+  svcCountDot: {
+    position: 'absolute', top: -5, right: -5,
+    minWidth: 18, height: 18, borderRadius: 9,
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5, borderColor: C.card,
+  },
+  svcCountDotTxt: { fontSize: 9, fontWeight: '800', color: '#fff' },
 
   // ── Manage — 2-column grid (NO single giant card) ─────────────
   manageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -1027,34 +968,6 @@ const s = StyleSheet.create({
   guideTitle:  { fontSize: 12, fontWeight: '700', color: C.text, marginBottom: 2 },
   guideDesc:   { fontSize: 11, color: C.muted, lineHeight: 15 },
   guideLine:   { height: 1, backgroundColor: C.border, marginLeft: 38 },
-
-  // ── Open Bookings ─────────────────────────────────────────────
-  obCard: {
-    backgroundColor: C.card, borderRadius: 14, padding: 13,
-    flexDirection: 'row', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
-    borderWidth: 1, borderColor: C.border, marginBottom: 8,
-  },
-  obSvcIcon:   { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  obInfo:      { flex: 1, marginLeft: 12, marginRight: 4 },
-  obRow:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
-  obCustomer:  { fontSize: 13, fontWeight: '700', color: C.text, flex: 1, marginRight: 6 },
-  obNum:       { fontSize: 10, fontWeight: '600', color: C.muted },
-  obMeta:      { fontSize: 11, color: C.sub, marginBottom: 5 },
-  obFooter:    { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5 },
-  obSvcTag:    { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
-  obSvcTagTxt: { fontSize: 9, fontWeight: '700' },
-  obStatusPill:{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  obStatusTxt: { fontSize: 9, fontWeight: '800' },
-  obEmpty:     { alignItems: 'center', paddingVertical: 20, gap: 8 },
-  obEmptyTxt:  { fontSize: 12, color: C.muted, fontWeight: '600' },
-  obSeeAll: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 10, borderRadius: 10, gap: 5, marginTop: 2,
-    backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100,
-  },
-  obSeeAllTxt: { fontSize: 12, fontWeight: '700', color: C.g700 },
 
   // ── Update modal ──────────────────────────────────────────────
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },

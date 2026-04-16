@@ -69,6 +69,17 @@ interface VendorQuote {
   createdAt: string;
 }
 
+const CANCEL_REASONS = [
+  'Plans changed / Shipment cancelled',
+  'Found a better deal',
+  'Submitted by mistake',
+  'Pickup date or location needs to change',
+  'No suitable quotes received',
+  'Goods type or weight changed',
+  'Emergency or urgent situation',
+  'Other',
+];
+
 export default function CustomerTruckQuoteDetailPage() {
   const { customer, isAuthenticated, isLoading: authLoading } = useCustomerAuth();
   const router = useRouter();
@@ -83,6 +94,11 @@ export default function CustomerTruckQuoteDetailPage() {
   const [isReRequesting, setIsReRequesting] = useState(false);
   const [reRequestSuccess, setReRequestSuccess] = useState<string | null>(null);
   const [remainingAttempts, setRemainingAttempts] = useState(3);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedCancelReason, setSelectedCancelReason] = useState('');
+  const [otherCancelReason, setOtherCancelReason] = useState('');
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -201,6 +217,34 @@ export default function CustomerTruckQuoteDetailPage() {
       setError('Failed to re-request quotes. Please try again.');
     } finally {
       setIsReRequesting(false);
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    const finalReason = selectedCancelReason === 'Other' ? otherCancelReason.trim() : selectedCancelReason;
+    if (!finalReason) {
+      setCancelError(selectedCancelReason === 'Other' ? 'Please describe your reason' : 'Please select a reason');
+      return;
+    }
+    setIsCancelling(true);
+    setCancelError(null);
+    try {
+      const res = await fetch(`/api/customer/quote-requests/truck/${params.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel', reason: finalReason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowCancelModal(false);
+        fetchQuoteRequest();
+      } else {
+        setCancelError(data.message || 'Failed to cancel request');
+      }
+    } catch {
+      setCancelError('Something went wrong. Please try again.');
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -686,6 +730,34 @@ export default function CustomerTruckQuoteDetailPage() {
           </div>
         )}
 
+        {/* Cancel Request */}
+        {request && ['PENDING', 'QUOTES_RECEIVED'].includes(request.status) && (
+          <div className="bg-white rounded-xl border border-red-100 p-4 mt-6">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Cancel Request</h3>
+            <p className="text-sm text-gray-500 mb-3">
+              Cancel this quote request if your plans have changed. Vendors will be notified immediately.
+            </p>
+            <button
+              onClick={() => { setShowCancelModal(true); setCancelError(null); setSelectedCancelReason(''); setOtherCancelReason(''); }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition text-sm font-medium"
+            >
+              <XCircle className="w-4 h-4" />
+              Cancel This Request
+            </button>
+          </div>
+        )}
+
+        {/* Cancelled Banner */}
+        {request?.status === 'CANCELLED' && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 mt-6 flex items-start gap-3">
+            <XCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-red-800">This quote request has been cancelled</p>
+              <p className="text-xs text-red-500 mt-0.5">No further quotes will be received for this request.</p>
+            </div>
+          </div>
+        )}
+
         {/* Help */}
         <div className="bg-blue-50 rounded-xl p-4 mt-6 border border-blue-100">
           <h4 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
@@ -730,6 +802,115 @@ export default function CustomerTruckQuoteDetailPage() {
                 </>
               )}
             </button>
+          </div>
+        </div>
+      )}
+      {/* Cancel Request Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+              <div className="w-9 h-9 bg-red-100 rounded-full flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Cancel Quote Request</h3>
+                <p className="text-xs text-gray-500">#{request?.requestNumber}</p>
+              </div>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="ml-auto w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Request Summary */}
+            <div className="mx-5 mt-4 mb-2 bg-gray-50 rounded-xl p-3.5 border border-gray-100">
+              <div className="flex items-center gap-2 text-sm text-gray-700 mb-1.5">
+                <Truck className="w-4 h-4 text-gray-400" />
+                <span className="font-medium capitalize">{request?.serviceType?.replace(/-/g, ' ')}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <MapPin className="w-4 h-4 text-gray-400" />
+                <span>{request?.pickupCity} → {request?.dropCity}</span>
+              </div>
+              {request?.goodsType && (
+                <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+                  <Package className="w-4 h-4 text-gray-400" />
+                  <span>{request.goodsType}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Reason Selection */}
+            <div className="px-5 py-3">
+              <p className="text-sm font-semibold text-gray-800 mb-3">Why are you cancelling?</p>
+              <div className="space-y-2">
+                {CANCEL_REASONS.map((reason) => (
+                  <label
+                    key={reason}
+                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${
+                      selectedCancelReason === reason
+                        ? 'border-red-400 bg-red-50'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="cancelReason"
+                      value={reason}
+                      checked={selectedCancelReason === reason}
+                      onChange={() => { setSelectedCancelReason(reason); setCancelError(null); }}
+                      className="mt-0.5 accent-red-500"
+                    />
+                    <span className="text-sm text-gray-700">{reason}</span>
+                  </label>
+                ))}
+              </div>
+
+              {selectedCancelReason === 'Other' && (
+                <textarea
+                  value={otherCancelReason}
+                  onChange={(e) => { setOtherCancelReason(e.target.value); setCancelError(null); }}
+                  placeholder="Please describe your reason..."
+                  rows={3}
+                  className="mt-3 w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-sm text-gray-700 resize-none transition"
+                />
+              )}
+
+              {cancelError && (
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {cancelError}
+                </p>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3 px-5 pb-5">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+              >
+                Keep Request
+              </button>
+              <button
+                onClick={handleCancelRequest}
+                disabled={isCancelling || !selectedCancelReason}
+                className="flex-1 py-3 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  'Cancel Request'
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

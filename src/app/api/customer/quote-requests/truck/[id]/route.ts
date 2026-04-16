@@ -118,3 +118,39 @@ export async function GET(
     );
   }
 }
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+    const { action, reason } = body;
+
+    if (action !== 'cancel') {
+      return NextResponse.json({ success: false, message: 'Invalid action' }, { status: 400 });
+    }
+
+    const quoteRequest = await prisma.truck_quote_requests.findUnique({ where: { id } });
+
+    if (!quoteRequest) {
+      return NextResponse.json({ success: false, message: 'Quote request not found' }, { status: 404 });
+    }
+
+    const cancellableStatuses = ['PENDING', 'QUOTES_RECEIVED'];
+    if (!cancellableStatuses.includes(quoteRequest.status)) {
+      return NextResponse.json({ success: false, message: 'This request cannot be cancelled' }, { status: 400 });
+    }
+
+    await prisma.truck_quote_requests.update({
+      where: { id },
+      data: { status: 'CANCELLED' },
+    });
+
+    return NextResponse.json({ success: true, message: 'Quote request cancelled successfully' });
+  } catch (error) {
+    logger.error('Error cancelling truck quote request', error);
+    return NextResponse.json({ success: false, message: 'Failed to cancel request' }, { status: 500 });
+  }
+}

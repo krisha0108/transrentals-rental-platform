@@ -13,15 +13,20 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const { id } = params;
     const quote = await prisma.bike_quotes.findFirst({
       where: { id, vendorId: auth.vendorId },
-      include: { bike_quote_requests_bike_quotes_requestIdTobike_quote_requests: { select: { id: true, requestNumber: true, customerName: true, customerPhone: true, locationName: true, pickupDate: true, dropDate: true, totalDays: true, status: true } } },
+      include: {
+        bike_quote_requests_bike_quotes_requestIdTobike_quote_requests: { select: { id: true, requestNumber: true, customerName: true, customerPhone: true, locationName: true, pickupDate: true, dropDate: true, totalDays: true, status: true } },
+        bike_bookings: { select: { id: true, bookingNumber: true, status: true } },
+      },
     });
     if (!quote) return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
-    // Map the long relation name to 'request' for cleaner response
     const response = {
       ...quote,
       request: quote.bike_quote_requests_bike_quotes_requestIdTobike_quote_requests,
+      bookingId: quote.bike_bookings?.id || null,
+      bookingNumber: quote.bike_bookings?.bookingNumber || null,
     };
     delete (response as any).bike_quote_requests_bike_quotes_requestIdTobike_quote_requests;
+    delete (response as any).bike_bookings;
     return NextResponse.json({ success: true, quote: response });
   } catch (error: any) {
     logger.error('Failed to fetch bike quote', error);

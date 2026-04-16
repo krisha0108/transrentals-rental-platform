@@ -13,7 +13,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const { id } = params;
     const quote = await prisma.self_drive_quotes.findFirst({
       where: { id, vendorId: auth.vendorId },
-      include: { self_drive_quote_requests_self_drive_quotes_requestIdToself_drive_quote_requests: { select: { id: true, requestNumber: true, customerName: true, customerPhone: true, locationName: true, pickupDate: true, dropDate: true, totalDays: true, status: true } } },
+      include: {
+        self_drive_quote_requests_self_drive_quotes_requestIdToself_drive_quote_requests: {
+          select: { id: true, requestNumber: true, customerName: true, customerPhone: true, customerEmail: true, locationName: true, pickupDate: true, pickupTime: true, dropDate: true, dropTime: true, totalDays: true, isDeliveryRequested: true, pickupAddress: true, customerNotes: true, budgetMin: true, budgetMax: true, vehicleCategoryName: true, vehicleBrand: true, transmission: true, fuelType: true, minSeats: true, status: true },
+        },
+        car_bookings: {
+          select: { id: true, bookingNumber: true, status: true, paymentStatus: true, tripStartOtp: true, tripStartOtpExpiry: true, tripOtpVerified: true, pickedUpAt: true, returnedAt: true, customerName: true, customerPhone: true },
+        },
+      },
     });
     if (!quote) return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
     // Map the long relation name to 'request' for cleaner response
@@ -22,7 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       request: quote.self_drive_quote_requests_self_drive_quotes_requestIdToself_drive_quote_requests,
     };
     delete (response as any).self_drive_quote_requests_self_drive_quotes_requestIdToself_drive_quote_requests;
-    return NextResponse.json({ success: true, quote: response });
+    return NextResponse.json({ success: true, quote: response, booking: quote.car_bookings || null });
   } catch (error: any) {
     logger.error('Failed to fetch self-drive quote', error);
     return NextResponse.json({ error: 'Failed to fetch quote', details: error?.message }, { status: 500 });

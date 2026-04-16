@@ -70,17 +70,23 @@ export async function GET(request: NextRequest) {
     // SEARCH FILTER
     const search = searchParams.get('search')?.trim();
     if (search) {
-      whereClause.OR = [
-        { quoteNumber: { contains: search } },
+      whereClause.AND = [
+        ...(whereClause.AND || []),
         {
-          packers_quote_requests: {
-            OR: [
-              { requestNumber: { contains: search } },
-              { customerName: { contains: search } },
-              { pickupCity: { contains: search } },
-              { dropCity: { contains: search } },
-            ],
-          },
+          OR: [
+            { quoteNumber: { contains: search } },
+            { packers_bookings: { bookingNumber: { contains: search } } },
+            {
+              packers_quote_requests: {
+                OR: [
+                  { requestNumber: { contains: search } },
+                  { customerName: { contains: search } },
+                  { pickupCity: { contains: search } },
+                  { dropCity: { contains: search } },
+                ],
+              },
+            },
+          ],
         },
       ];
     }
@@ -105,6 +111,7 @@ export async function GET(request: NextRequest) {
                 status: true,
               },
             },
+            packers_bookings: { select: { id: true, bookingNumber: true, status: true } },
           },
           orderBy: { createdAt: 'desc' },
           skip,
@@ -155,6 +162,9 @@ export async function GET(request: NextRequest) {
         validTill: q.validTill,
         validityDays: q.validityDays,
         request: q.packers_quote_requests,
+        bookingId: q.packers_bookings?.id || null,
+        bookingNumber: q.packers_bookings?.bookingNumber || null,
+        bookingStatus: q.packers_bookings?.status || null,
         createdAt: q.createdAt,
         updatedAt: q.updatedAt,
       })),

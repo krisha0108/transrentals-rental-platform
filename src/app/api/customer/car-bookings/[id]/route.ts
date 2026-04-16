@@ -46,6 +46,16 @@ export async function GET(
             name: true,
             phone: true,
             email: true,
+            isB2B: true,
+          },
+        },
+        self_drive_quotes: {
+          select: {
+            id: true,
+            termsConditions: true,
+            inclusions: true,
+            exclusions: true,
+            vendorMessage: true,
           },
         },
       },
@@ -111,6 +121,20 @@ export async function GET(
         paidAmount: booking.paidAmount,
         paymentMethod: booking.paymentMethod,
         transactionId: booking.transactionId,
+        paidAmount: booking.paidAmount,
+        refundAmount: booking.refundAmount,
+        refundTransactionId: booking.refundTransactionId,
+        cancelledBy: booking.cancelledBy,
+        // Accepted quote T&C
+        acceptedQuote: booking.self_drive_quotes
+          ? {
+              id: booking.self_drive_quotes.id,
+              termsConditions: booking.self_drive_quotes.termsConditions,
+              inclusions: booking.self_drive_quotes.inclusions,
+              exclusions: booking.self_drive_quotes.exclusions,
+              vendorMessage: booking.self_drive_quotes.vendorMessage,
+            }
+          : null,
         // Trip OTP
         tripStartOtp: booking.tripStartOtp,
         tripOtpVerified: booking.tripOtpVerified,

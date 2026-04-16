@@ -93,6 +93,7 @@ export async function sendQuoteRequestNotificationToVendors(
     serviceType,
     requestId,
     requestNumber,
+    incrementQuote: 'true',
   };
 
   // Process all vendors in parallel
@@ -261,6 +262,8 @@ export async function sendVendorDirectNotification(
       serviceType,
       bookingId: bookingId || '',
       bookingNumber: bookingNumber || '',
+      // Used by app to locally increment quote count without an API call
+      incrementQuote: type === 'quote_request' ? 'true' : 'false',
       ...extraData,
     };
 

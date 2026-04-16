@@ -449,7 +449,7 @@ async function acceptBusQuote(quoteRequestId: string, quoteId: string) {
   });
 
   if (existingBooking) {
-    throw new Error('A booking already exists for this quote request');
+    return { id: existingBooking.id, bookingNumber: existingBooking.bookingNumber, vendorId: existingBooking.vendorId, _existing: true };
   }
 
   const bookingNumber = generateBookingNumber('BB');
@@ -564,7 +564,7 @@ async function acceptBikeQuote(quoteRequestId: string, quoteId: string) {
   });
 
   if (existingBooking) {
-    throw new Error('A booking already exists for this quote request');
+    return { id: existingBooking.id, bookingNumber: existingBooking.bookingNumber, vendorId: existingBooking.assignedVendorId || existingBooking.acceptedVendorId, _existing: true };
   }
 
   const bookingNumber = generateBookingNumber('BK');
@@ -632,7 +632,7 @@ async function acceptBikeQuote(quoteRequestId: string, quoteId: string) {
         securityDeposit: quote.securityDeposit,
         grandTotal: quote.grandTotal,
         advanceAmount,
-        advancePercentage: quote.advancePercent,
+        advancePercentage: quote.advancePercent || (quote.grandTotal > 0 ? Math.round((advanceAmount / quote.grandTotal) * 100) : 30),
         // Helmets & extras
         helmetsRequired: quote.helmetsIncluded || 1,
         customerNotes: request.customerNotes,
@@ -681,7 +681,7 @@ async function acceptSelfDriveQuote(quoteRequestId: string, quoteId: string) {
   });
 
   if (existingBooking) {
-    throw new Error('A booking already exists for this quote request');
+    return { id: existingBooking.id, bookingNumber: existingBooking.bookingNumber, vendorId: existingBooking.assignedVendorId || existingBooking.acceptedVendorId, _existing: true };
   }
 
   const bookingNumber = generateBookingNumber('SD');
@@ -713,6 +713,7 @@ async function acceptSelfDriveQuote(quoteRequestId: string, quoteId: string) {
     // Calculate balance amount using vendor's advance percentage
     const advanceAmount = quote.advanceAmount || Math.round(quote.grandTotal * quote.advancePercent / 100);
     const balanceAmount = quote.grandTotal - advanceAmount;
+    const advancePercentage = quote.advancePercent || (quote.grandTotal > 0 ? Math.round((advanceAmount / quote.grandTotal) * 100) : 30);
 
     // Create booking (using CarBooking for self-drive)
     const booking = await tx.car_bookings.create({
@@ -758,7 +759,7 @@ async function acceptSelfDriveQuote(quoteRequestId: string, quoteId: string) {
         securityDeposit: quote.securityDeposit,
         grandTotal: quote.grandTotal,
         advanceAmount,
-        advancePercentage: quote.advancePercent,
+        advancePercentage: advancePercentage,
         kmLimitPerDay: quote.kmLimitPerDay || 200,
         extraKmRate: quote.extraKmRate || 10,
         // OTPs

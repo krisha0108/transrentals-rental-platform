@@ -87,6 +87,7 @@ interface FleetVehicle {
     name: string;
     luggageCapacity?: string;
   };
+  vehicleModelName?: string;
   isAvailable: boolean;
   isAvailableForDates?: boolean;
 }
@@ -222,7 +223,8 @@ export default function SendPackersQuotePage() {
         const mapped: FleetVehicle[] = packersFleet.map((f: any) => ({
           id: f.id,
           registrationNumber: f.registrationNumber,
-          chauffeur_vehicle_categories: f.chauffeur_vehicle_categories,
+          chauffeur_vehicle_categories: f.chauffeur_vehicle_categories || f.vehicle_models?.chauffeur_vehicle_categories,
+          vehicleModelName: f.vehicle_models?.name,
           isAvailable: f.isAvailable,
           isAvailableForDates: f.isAvailableForDates,
         }));
@@ -359,7 +361,7 @@ export default function SendPackersQuotePage() {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!vehicleType.trim()) newErrors.vehicleType = 'Vehicle type is required';
+    if (!vehicleType.trim() && !selectedFleetVehicleId) newErrors.vehicleType = 'Vehicle type is required';
     if (quickQuoteMode) {
       if (!quickTotalPrice || parseFloat(quickTotalPrice) <= 0) newErrors.quickTotalPrice = 'Total price must be greater than 0';
     } else {
@@ -732,8 +734,13 @@ export default function SendPackersQuotePage() {
                     setSelectedFleetVehicleId(e.target.value);
                     // Auto-fill vehicle type from selected fleet vehicle
                     const selected = fleetVehicles.find((f) => f.id === e.target.value);
-                    if (selected?.chauffeur_vehicle_categories?.name) {
-                      setVehicleType(selected.chauffeur_vehicle_categories.name);
+                    const vehicleTypeName =
+                      selected?.chauffeur_vehicle_categories?.name ||
+                      selected?.vehicleModelName ||
+                      '';
+                    if (vehicleTypeName) {
+                      setVehicleType(vehicleTypeName);
+                      setErrors(prev => ({ ...prev, vehicleType: '' }));
                     }
                   }}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500"
@@ -743,7 +750,7 @@ export default function SendPackersQuotePage() {
                     const isUnavailable = vehicle.isAvailableForDates === false || !vehicle.isAvailable;
                     return (
                       <option key={vehicle.id} value={vehicle.id} disabled={isUnavailable}>
-                        {vehicle.chauffeur_vehicle_categories?.name || 'Vehicle'}{' '}
+                        {vehicle.chauffeur_vehicle_categories?.name || vehicle.vehicleModelName || 'Vehicle'}{' '}
                         {vehicle.registrationNumber ? `(${vehicle.registrationNumber})` : ''}{' '}
                         {vehicle.isAvailableForDates === false ? '— Booked for this date' : !vehicle.isAvailable ? '- Not Available' : ''}
                       </option>
@@ -771,7 +778,7 @@ export default function SendPackersQuotePage() {
                 onChange={(e) => { setVehicleType(e.target.value); if (errors.vehicleType) setErrors(prev => ({ ...prev, vehicleType: '' })); }}
                 placeholder="e.g., Tata Ace, Chhota Hathi, 14ft Truck"
                 className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-cyan-500 ${errors.vehicleType ? 'border-red-400 bg-red-50' : 'border-gray-200'}`}
-                disabled={!!selectedFleetVehicleId}
+                disabled={!!selectedFleetVehicleId && !!vehicleType}
               />
               {selectedFleetVehicleId && (
                 <p className="text-xs text-gray-500 mt-1">Auto-filled from selected fleet vehicle</p>
@@ -1078,25 +1085,110 @@ export default function SendPackersQuotePage() {
             <p className="text-xs text-red-600 mt-1 font-medium">Advance amount cannot exceed total price</p>
           )}
 
-          {/* Total */}
-          <div className="mt-6 p-4 bg-cyan-50 rounded-lg border border-cyan-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-cyan-800">Total Quote Amount</span>
-              <span className="text-2xl font-bold text-cyan-600">
-                ₹{calculateTotal().toLocaleString()}
-              </span>
+          {/* Total Breakdown */}
+          <div className="mt-6 rounded-xl border border-cyan-200 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-cyan-600 to-cyan-700 px-4 py-3 flex items-center justify-between">
+              <span className="text-sm font-bold text-white">Price Breakdown</span>
+              <span className="text-xl font-extrabold text-white">₹{calculateTotal().toLocaleString()}</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-cyan-700">Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Custom)'}</span>
-              <span className="font-semibold text-cyan-600">
-                ₹{calculateAdvance().toLocaleString()}
-              </span>
+
+            {/* Line items */}
+            <div className="bg-white divide-y divide-gray-50">
+              {!quickQuoteMode ? (
+                <>
+                  {parseFloat(packingCharges) > 0 && (
+                    <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">Packing Charges</span>
+                      <span className="font-medium text-gray-800">₹{parseFloat(packingCharges).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {parseFloat(materialCharges) > 0 && (
+                    <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">Packing Materials</span>
+                      <span className="font-medium text-gray-800">₹{parseFloat(materialCharges).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {parseFloat(loadingCharges) > 0 && (
+                    <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">Loading Charges</span>
+                      <span className="font-medium text-gray-800">₹{parseFloat(loadingCharges).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {parseFloat(transportCharges) > 0 && (
+                    <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">Transportation</span>
+                      <span className="font-medium text-gray-800">₹{parseFloat(transportCharges).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {parseFloat(unloadingCharges) > 0 && (
+                    <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">Unloading Charges</span>
+                      <span className="font-medium text-gray-800">₹{parseFloat(unloadingCharges).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {parseFloat(unpackingCharges) > 0 && (
+                    <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">Unpacking Charges</span>
+                      <span className="font-medium text-gray-800">₹{parseFloat(unpackingCharges).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {parseFloat(storageCharges) > 0 && (
+                    <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">Storage Charges</span>
+                      <span className="font-medium text-gray-800">₹{parseFloat(storageCharges).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {parseFloat(insuranceCharges) > 0 && (
+                    <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">Insurance</span>
+                      <span className="font-medium text-gray-800">₹{parseFloat(insuranceCharges).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {/* Subtotal line if multiple items */}
+                  {calculateSubtotal() > 0 && parseFloat(gstAmount) > 0 && (
+                    <div className="flex items-center justify-between px-4 py-2.5 text-sm bg-gray-50/60">
+                      <span className="text-gray-500">Subtotal</span>
+                      <span className="text-gray-700">₹{calculateSubtotal().toLocaleString()}</span>
+                    </div>
+                  )}
+                  {parseFloat(gstAmount) > 0 && (
+                    <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+                      <span className="text-gray-600">GST</span>
+                      <span className="font-medium text-gray-800">₹{parseFloat(gstAmount).toLocaleString()}</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-center justify-between px-4 py-2.5 text-sm">
+                  <span className="text-gray-600">Total (Quick Quote)</span>
+                  <span className="font-medium text-gray-800">₹{(parseFloat(quickTotalPrice) || 0).toLocaleString()}</span>
+                </div>
+              )}
             </div>
-            <div className="flex items-center justify-between text-sm mt-1">
-              <span className="text-gray-600">Balance (on completion)</span>
-              <span className="text-gray-700">
-                ₹{(calculateTotal() - calculateAdvance()).toLocaleString()}
-              </span>
+
+            {/* Total + Advance + Balance */}
+            <div className="bg-cyan-50 divide-y divide-cyan-100">
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm font-bold text-cyan-800">Total Amount</span>
+                <span className="text-lg font-extrabold text-cyan-700">₹{calculateTotal().toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-2.5">
+                <div>
+                  <span className="text-sm font-semibold text-emerald-700">
+                    Advance {advanceMode === 'percent' ? `(${advancePercent}%)` : '(Custom)'}
+                  </span>
+                  <p className="text-[11px] text-emerald-500">Paid before moving day</p>
+                </div>
+                <span className="text-base font-bold text-emerald-600">₹{calculateAdvance().toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-2.5">
+                <div>
+                  <span className="text-sm font-semibold text-gray-600">Balance</span>
+                  <p className="text-[11px] text-gray-400">Due on completion</p>
+                </div>
+                <span className="text-base font-bold text-gray-700">₹{(calculateTotal() - calculateAdvance()).toLocaleString()}</span>
+              </div>
             </div>
           </div>
         </div>

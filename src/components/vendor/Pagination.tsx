@@ -8,6 +8,7 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
   totalItems: number;
   itemsPerPage: number;
+  compact?: boolean;
 }
 
 export default function Pagination({
@@ -16,6 +17,7 @@ export default function Pagination({
   onPageChange,
   totalItems,
   itemsPerPage,
+  compact = false,
 }: PaginationProps) {
   // Calculate range of items shown
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
@@ -61,6 +63,50 @@ export default function Pagination({
   };
 
   const pageNumbers = getPageNumbers();
+
+  // Compact layout for narrow panels (e.g. left sidebars)
+  if (compact) {
+    return (
+      <div className="flex items-center justify-between gap-2 py-2">
+        <span className="text-[11px] text-gray-400 shrink-0">
+          {startItem}–{endItem} of {totalItems}
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+          {pageNumbers.map((page, index) =>
+            page === '...' ? (
+              <span key={`e-${index}`} className="text-[11px] text-gray-400 px-0.5">…</span>
+            ) : (
+              <button
+                key={page}
+                onClick={() => onPageChange(page as number)}
+                className={`w-7 h-7 flex items-center justify-center rounded-lg text-[11px] font-semibold transition-colors ${
+                  page === currentPage
+                    ? 'bg-emerald-500 text-white'
+                    : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {page}
+              </button>
+            )
+          )}
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Always show pagination controls, even for single page
   return (

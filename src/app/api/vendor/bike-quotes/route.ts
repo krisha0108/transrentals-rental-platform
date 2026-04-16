@@ -85,6 +85,7 @@ export async function GET(request: NextRequest) {
         { quoteNumber: { contains: search } },
         { vehicleName: { contains: search } },
         { vehicleBrand: { contains: search } },
+        { bike_bookings: { bookingNumber: { contains: search } } },
         {
           bike_quote_requests_bike_quotes_requestIdTobike_quote_requests: {
             OR: [
@@ -114,6 +115,7 @@ export async function GET(request: NextRequest) {
               status: true,
             },
           },
+          bike_bookings: { select: { id: true, bookingNumber: true, status: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -155,6 +157,9 @@ export async function GET(request: NextRequest) {
         validityDays: q.validityDays,
         viewCount: q.viewCount,
         request: q.bike_quote_requests_bike_quotes_requestIdTobike_quote_requests,
+        bookingId: q.bike_bookings?.id || null,
+        bookingNumber: q.bike_bookings?.bookingNumber || null,
+        bookingStatus: q.bike_bookings?.status || null,
         createdAt: q.createdAt,
         updatedAt: q.updatedAt,
       })),
