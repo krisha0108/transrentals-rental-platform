@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
+import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
 export const dynamic = 'force-dynamic';
 
 // GET - Get Packers Booking details
@@ -131,6 +132,8 @@ export async function PATCH(
           where: { id },
           data: { rating, review: review || null, teamRating: teamRating || rating, packingRating: packingRating || rating },
         });
+
+        updateVendorRating(booking.vendorId, rating).catch(() => {});
 
         return NextResponse.json({ success: true, message: 'Rating submitted', booking: { id: updatedBooking.id, rating: updatedBooking.rating } });
       }

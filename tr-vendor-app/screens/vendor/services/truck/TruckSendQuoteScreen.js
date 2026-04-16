@@ -22,6 +22,7 @@ import CustomDropdown from '../../../../components/CustomDropdown';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { getQuoteRequestById, getFleetVehicles, submitQuote, getTemplates, getTemplateById } from '../../../api/client';
 import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
+import AppEvents, { EVT_QUOTE_SENT } from '../../../../utils/AppEvents';
 
 const C = {
   g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
@@ -272,6 +273,7 @@ export default function TruckSendQuoteScreen({ navigation, route }) {
         validityDays: validityMode === 'days' ? parseInt(validityDays) : undefined,
         customValidTill: validityMode === 'custom' && customValidDate ? (() => { const d = new Date(customValidDate); d.setHours(customValidTime.hours, customValidTime.minutes, 0, 0); return d.toISOString(); })() : undefined,
       });
+      AppEvents.emit(EVT_QUOTE_SENT, { serviceType: 'truck' });
       showSuccess('Quote sent successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
       console.error('Error submitting quote:', error);

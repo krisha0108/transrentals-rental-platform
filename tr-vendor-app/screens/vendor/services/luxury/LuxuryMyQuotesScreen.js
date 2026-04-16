@@ -86,7 +86,7 @@ export default function LuxuryMyQuotesScreen({ navigation }) {
     filterKey: 'status',
   });
 
-  useEffect(() => { initialLoad(); }, [initialLoad, activeTab]);
+  useEffect(() => { initialLoad(); }, [activeTab]);
 
   const handleWithdraw = (quote) => {
     Alert.alert(

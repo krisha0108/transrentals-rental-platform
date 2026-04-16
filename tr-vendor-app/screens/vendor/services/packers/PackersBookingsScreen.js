@@ -76,7 +76,7 @@ export default function PackersBookingsScreen({ navigation, route }) {
     loadMore, refresh, initialLoad, applyDateFilter, dateFilter,
   } = useInfiniteScroll(getBookings, { service: 'packers', pageSize: 20, type: filter });
 
-  useEffect(() => { initialLoad(); }, [initialLoad]);
+  useEffect(() => { initialLoad(); }, []);
 
   const tabFiltered = selectedFilter === 'all'
     ? allBookings

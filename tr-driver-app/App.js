@@ -14,7 +14,7 @@ export const navigationRef = createNavigationContainerRef();
 import { AuthProvider } from './contexts/AuthContext';
 import { updateDriverFcmToken, getDriverAppVersion } from './screens/api/client';
 
-const APP_VERSION = '1.0.0';
+import DeviceInfo from 'react-native-device-info';
 
 // Auth Screens
 import SplashScreen from './screens/auth/SplashScreen';
@@ -295,7 +295,8 @@ export default function App() {
       const res = await getDriverAppVersion();
       if (res.data?.success) {
         const { latestVersion, forceUpdate, updateMessage, playStoreUrl } = res.data;
-        if (latestVersion && isVersionLower(APP_VERSION, latestVersion)) {
+        const currentVersion = DeviceInfo.getVersion();
+        if (latestVersion && isVersionLower(currentVersion, latestVersion)) {
           setUpdateInfo({ latestVersion, forceUpdate, updateMessage, playStoreUrl });
           setShowUpdateModal(true);
         }
