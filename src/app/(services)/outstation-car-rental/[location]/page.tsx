@@ -11,7 +11,6 @@ import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { OutstationBookingHero } from '@/components/outstation-car-rental/OutstationBookingHero';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -181,22 +180,6 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
           </nav>
         </div>
       </div>
-
-      <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
-        badge={`Outstation Car Rental in ${locationName}`}
-        title="Outstation Self Drive"
-        titleHighlight="No Driver, Full Freedom @₹10/km"
-        description={`Drive out of ${locationName} on your own terms. Self-drive outstation cars — no driver means no awkward silences, stop whenever you want, take any route.`}
-        features={[
-          { icon: 'zap', text: 'No Driver Needed', color: 'text-blue-600' },
-          { icon: 'shield', text: 'Outstation Insurance', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="blue-50"
-        gradientTo="indigo-50"
-      />
 
       <OutstationBookingHero cityName={locationName} citySlug={params.location} vehicleCategories={vehicleCategories} cityPricing={cityPricing} />
 

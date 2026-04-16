@@ -16,6 +16,8 @@ import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { prisma } from '@/lib/db/prisma';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { getCachedServiceBySlug } from '@/lib/services/cached-service-lookups';
+import { getServiceLocations } from '@/lib/services/service-locations';
 
 interface PageProps {
   params: {
@@ -25,44 +27,7 @@ interface PageProps {
 
 // Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  try {
-    // Skip database calls during CI/CD build
-    if (process.env.SKIP_DATABASE_CALLS === '1') {
-      console.log('[transporter] Skipping database calls during build');
-      return [];
-    }
-
-    // Fetch enabled locations from database
-    const service = await prisma.services.findUnique({
-      where: { slug: 'transporter' },
-      include: {
-        service_locations: {
-          where: { isActive: true },
-          include: {
-            locations: {
-              select: { slug: true, name: true }
-            }
-          }
-        }
-      }
-    });
-
-    if (!service) {
-      console.log('[transporter] Service not found in database');
-      return [];
-    }
-
-    const locations = service.service_locations.map((sl) => ({
-      location: sl.locations.slug,
-    }));
-
-    console.log(`[transporter] Generating ${locations.length} location pages from database`);
-    return locations;
-  } catch (error) {
-    console.error('[transporter] Error fetching locations:', error);
-    // Fallback to empty array if database error
-    return [];
-  }
+  return getServiceLocations('transporter');
 }
 
 // Enable ISR - Revalidate every hour
@@ -131,11 +96,8 @@ export default async function TransporterLocationPage({ params }: PageProps) {
 
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  // Fetch trucks/transporters from database (filtered by service and location)
-  const service = await prisma.services.findUnique({
-    where: { slug: 'transporter' },
-    select: { id: true }
-  });
+  // Fetch trucks/transporters from database (filtered by service and location) (cached)
+  const service = await getCachedServiceBySlug('transporter');
 
   const location = await prisma.locations.findUnique({
     where: { slug: params.location },

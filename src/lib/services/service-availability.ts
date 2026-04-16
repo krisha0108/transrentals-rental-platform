@@ -1,5 +1,62 @@
+import { unstable_cache } from 'next/cache';
 import { prisma } from '@/lib/db/prisma';
 import { getCityBySlug, getStateBySlug, IndianState } from '@/data/indian-cities';
+
+// Cached DB check: is service active in this location? (1 hour cache per service+location)
+const _cachedIsServiceAvailable = unstable_cache(
+  async (serviceSlug: string, locationSlug: string): Promise<boolean> => {
+    const serviceLocation = await prisma.service_locations.findFirst({
+      where: {
+        services: { slug: serviceSlug },
+        locations: { slug: locationSlug },
+        isActive: true,
+      },
+    });
+    if (serviceLocation) return true;
+    const serviceExists = await prisma.services.findUnique({
+      where: { slug: serviceSlug },
+      select: { id: true },
+    });
+    return !serviceExists;
+  },
+  ['service-availability'],
+  { revalidate: 3600, tags: ['service-locations', 'services'] }
+);
+
+// Cached DB fetch: all active locations for a service (1 hour cache per service)
+const _cachedAvailableLocations = unstable_cache(
+  async (serviceSlug: string) => {
+    const service = await prisma.services.findUnique({
+      where: { slug: serviceSlug },
+      include: {
+        service_locations: {
+          where: { isActive: true },
+          include: {
+            locations: {
+              select: { id: true, name: true, slug: true, type: true },
+            },
+          },
+        },
+      },
+    });
+    if (!service) return [];
+    return service.service_locations.map((sl) => sl.locations);
+  },
+  ['service-available-locations'],
+  { revalidate: 3600, tags: ['service-locations', 'services'] }
+);
+
+// Cached DB lookup: city by slug from DB (for cities not in static data)
+const _cachedDbCityLookup = unstable_cache(
+  async (locationSlug: string) => {
+    return prisma.locations.findFirst({
+      where: { slug: locationSlug, type: { in: ['CITY', 'UNION_TERRITORY'] }, isActive: true },
+      select: { name: true, slug: true, code: true },
+    });
+  },
+  ['db-city-lookup'],
+  { revalidate: 3600, tags: ['locations'] }
+);
 
 /**
  * Check if a service is available in a specific location
@@ -12,37 +69,11 @@ export async function isServiceAvailableInLocation(
   locationSlug: string
 ): Promise<boolean> {
   try {
-    // Skip database calls during CI/CD build
-    if (process.env.SKIP_DATABASE_CALLS === '1') {
-      return true;
-    }
-
-    // During build time, prisma might be null - return true to render all pages
-    if (!prisma) {
-      console.log('Prisma client not available during build - returning true');
-      return true;
-    }
-
-    const serviceLocation = await prisma.service_locations.findFirst({
-      where: {
-        services: { slug: serviceSlug },
-        locations: { slug: locationSlug },
-        isActive: true,
-      },
-    });
-
-    if (serviceLocation) return true;
-
-    // If service doesn't exist in DB at all, it's a static SEO page — always available
-    const serviceExists = await prisma.services.findUnique({
-      where: { slug: serviceSlug },
-      select: { id: true },
-    });
-
-    return !serviceExists; // true = static service (not in DB), false = managed service with no active location
+    if (process.env.SKIP_DATABASE_CALLS === '1') return true;
+    if (!prisma) return true;
+    return await _cachedIsServiceAvailable(serviceSlug, locationSlug);
   } catch (error) {
     console.error('Error checking service availability:', error);
-    // In case of error, return true to avoid blocking users
     return true;
   }
 }
@@ -102,39 +133,9 @@ export async function getServiceWithLocationStatus(
  */
 export async function getAvailableLocationsForService(serviceSlug: string) {
   try {
-    // Skip database calls during CI/CD build
-    if (process.env.SKIP_DATABASE_CALLS === '1') {
-      return [];
-    }
-
-    if (!prisma) {
-      return [];
-    }
-
-    const service = await prisma.services.findUnique({
-      where: { slug: serviceSlug },
-      include: {
-        service_locations: {
-          where: { isActive: true },
-          include: {
-            locations: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                type: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!service) {
-      return [];
-    }
-
-    return service.service_locations.map((sl) => sl.locations);
+    if (process.env.SKIP_DATABASE_CALLS === '1') return [];
+    if (!prisma) return [];
+    return await _cachedAvailableLocations(serviceSlug);
   } catch (error) {
     console.error('Error fetching available locations:', error);
     return [];
@@ -213,10 +214,7 @@ export async function resolveServicePage(
   // Step 1b: Not in static data — check DB locations table (cities added later)
   if (!city && prisma && process.env.SKIP_DATABASE_CALLS !== '1') {
     try {
-      const dbLoc = await prisma.locations.findFirst({
-        where: { slug: locationSlug, type: { in: ['CITY', 'UNION_TERRITORY'] }, isActive: true },
-        select: { name: true, slug: true, code: true },
-      });
+      const dbLoc = await _cachedDbCityLookup(locationSlug);
       if (dbLoc) {
         city = {
           name: dbLoc.name,

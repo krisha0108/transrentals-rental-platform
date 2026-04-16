@@ -2,7 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeHeroWithLocation } from '@/components/bike/BikeHeroWithLocation';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { formatPriceHighlight } from '@/lib/utils';
 
@@ -79,14 +79,7 @@ export default function ActivaOnRentPage() {
         reviewCount={1890}
       />
       <div className="flex flex-col">
-        <ServiceHeroWithChat
-          badge="Activa Rental in 250+ Cities"
-          title="Activa on Rent | Scooty Rental"
-          titleHighlight="Starting @₹299/Day"
-          description="Rent Honda Activa and scooters for daily commute, weekend trips, or long-term use. Well-maintained vehicles with flexible rental options."
-          gradientFrom="cyan-50"
-          gradientTo="blue-50"
-        />
+        <BikeHeroWithLocation />
 
         <LocationsGrid service="activa-on-rent" />
 

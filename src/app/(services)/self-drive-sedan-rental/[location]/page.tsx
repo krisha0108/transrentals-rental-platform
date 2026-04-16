@@ -63,14 +63,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-const sedanModels = [
-  { name: 'Maruti Dzire', price: 1299, fuel: 'Petrol/CNG' },
-  { name: 'Honda Amaze', price: 1399, fuel: 'Petrol/Diesel' },
-  { name: 'Hyundai Verna', price: 1699, fuel: 'Petrol/Diesel' },
-  { name: 'Honda City', price: 1799, fuel: 'Petrol/Hybrid' },
-  { name: 'Skoda Slavia', price: 1899, fuel: 'Petrol' },
-  { name: 'Maruti Ciaz', price: 1599, fuel: 'Petrol/CNG' },
-];
 
 export default async function SedanRentalLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('self-drive-sedan-rental', params.location);
@@ -106,7 +98,7 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location}
         vehicleName="Self Drive Sedan"
-        selfDrivePrice="₹1,299/day"
+        selfDrivePrice="₹1,299"
       />
 
       <section className="bg-gradient-to-br from-gray-800 to-blue-900 text-white py-12">
@@ -120,7 +112,7 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
           <div className="flex flex-wrap gap-4">
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Starting from</p>
-              <p className="text-xl font-bold">₹1,299/day</p>
+              <p className="text-xl font-bold">₹1,299</p>
             </div>
             <div className="bg-white/20 px-4 py-2 rounded-lg">
               <p className="text-xs opacity-75">Available</p>
@@ -130,30 +122,6 @@ export default async function SedanRentalLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <section className="py-12">
-        <div className="container-custom">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">
-            Sedans Available in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {sedanModels.map((sedan) => (
-              <div key={sedan.name} className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold">{sedan.name}</h3>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-blue-600">₹{sedan.price}</p>
-                    <p className="text-xs text-gray-500">/day</p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">⛽ {sedan.fuel} • 👥 5 Seats</p>
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
-                  Book Now
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <section className="py-12 bg-gray-50">
         <div className="container-custom">

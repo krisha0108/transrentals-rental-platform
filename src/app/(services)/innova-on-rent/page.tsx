@@ -33,7 +33,7 @@ export default function InnovaOnRentPage() {
     <>
       <SwiftRentalTypeHero
         vehicleName="Toyota Innova"
-        selfDrivePrice="₹2,499/day"
+        selfDrivePrice="₹2,499"
       />
 
       {/* Hero */}

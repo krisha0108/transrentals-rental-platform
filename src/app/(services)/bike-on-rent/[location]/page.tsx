@@ -186,30 +186,6 @@ export default async function BikeLocationPage({ params }: PageProps) {
           serviceName="Bike on Rent"
         />
 
-        {/* Popular Bikes */}
-        <section className="py-16 bg-white">
-          <div className="container-custom">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3 text-center">
-              Popular Bikes for Rent in {cityName}
-            </h2>
-            <p className="text-gray-600 text-center mb-10">
-              When we launch in {cityName}, these top bikes will be available for rental
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {POPULAR_BIKES.map((bike) => (
-                <div key={bike.name} className="bg-gray-50 rounded-xl p-4 text-center hover:shadow-lg transition-shadow">
-                  <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <span className="text-3xl">🏍️</span>
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-1">{bike.name}</h3>
-                  <p className="text-sm text-gray-500 mb-2">{bike.type}</p>
-                  <p className="text-emerald-600 font-bold">₹{bike.price}/day</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Why TransRentals */}
         <section className="py-16 bg-gray-50">
           <div className="container-custom">

@@ -244,27 +244,6 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
         </div>
       </section>
 
-      {/* Packages */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Sports Car Packages in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { duration: 'Hourly (4 hrs)', price: '15000-40000', desc: 'Min 4 hours' },
-              { duration: 'Daily (24 hrs)', price: '25000-80000', desc: 'Full day' },
-              { duration: 'Weekend', price: '50000-150000', desc: '2-3 days' },
-            ].map((plan) => (
-              <div key={plan.duration} className="bg-gray-50 p-6 rounded-lg text-center">
-                <h3 className="font-semibold text-lg mb-2">{plan.duration}</h3>
-                <p className="text-2xl font-bold text-red-800 mb-2">₹{plan.price}</p>
-                <p className="text-sm text-gray-600">{plan.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* FAQs */}
       <section className="py-16 bg-gray-50">

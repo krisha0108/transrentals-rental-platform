@@ -9,7 +9,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
-import { getServiceLocations } from '@/lib/services/service-locations';;
+import { getServiceLocations } from '@/lib/services/service-locations';
+import { getCachedServiceBySlug } from '@/lib/services/cached-service-lookups';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -100,11 +101,8 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
   const cityData = getCityBySlug(params.location);
 
-  // Fetch admin vehicle models for this location
-  const service = await prisma.services.findUnique({
-    where: { slug: 'packers-and-movers' },
-    select: { id: true },
-  });
+  // Fetch admin vehicle models for this location (cached)
+  const service = await getCachedServiceBySlug('packers-and-movers');
 
   const location = await prisma.locations.findFirst({
     where: {
