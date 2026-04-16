@@ -70,6 +70,13 @@ interface Booking {
   tripStartOtp: string | null;
   odometerStart: number | null;
   odometerEnd: number | null;
+  cancelledAt?: string | null;
+  cancelledBy?: string | null;
+  cancellationReason?: string | null;
+  refundAmount?: number | null;
+  advanceAmount?: number;
+  advancePercentage?: number;
+  paidAmount?: number;
 }
 
 const getStatusConfig = (status: string) => {
@@ -285,6 +292,16 @@ export default function VendorBookingDetailPage() {
     });
   };
 
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    const [hourStr, minuteStr] = timeString.split(':');
+    const hour = parseInt(hourStr, 10);
+    const minute = minuteStr || '00';
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minute} ${ampm}`;
+  };
+
   const shimmer = 'relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-shimmer before:bg-gradient-to-r before:from-transparent before:via-white/40 before:to-transparent';
 
   if (loading) {
@@ -481,13 +498,19 @@ export default function VendorBookingDetailPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Pickup</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(booking.pickupDate)} at {booking.pickupTime}</p>
-                  <p className="text-xs text-slate-500">{booking.pickupAddress || booking.locationName}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(booking.pickupDate)}</p>
+                  {booking.pickupTime && (
+                    <p className="text-xs font-medium text-slate-600">{formatTime(booking.pickupTime)}</p>
+                  )}
+                  <p className="text-xs text-slate-500 mt-0.5">{booking.pickupAddress || booking.locationName}</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Drop-off</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(booking.dropDate)} at {booking.dropTime}</p>
-                  <p className="text-xs text-slate-500">{booking.pickupAddress || booking.locationName}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{formatDate(booking.dropDate)}</p>
+                  {booking.dropTime && (
+                    <p className="text-xs font-medium text-slate-600">{formatTime(booking.dropTime)}</p>
+                  )}
+                  <p className="text-xs text-slate-500 mt-0.5">{booking.pickupAddress || booking.locationName}</p>
                 </div>
               </div>
             </div>
@@ -506,6 +529,68 @@ export default function VendorBookingDetailPage() {
               </div>
             </div>
           )}
+
+          {/* ── Cancellation Details ── */}
+          {booking.status === 'CANCELLED' && (
+            <div className="rounded-xl border-2 border-red-300 overflow-hidden shadow-sm">
+              {/* Header */}
+              <div className="bg-red-600 px-4 py-3 flex items-center gap-2">
+                <XCircle className="w-4 h-4 text-white flex-shrink-0" />
+                <span className="text-sm font-bold text-white tracking-wide">Booking Cancelled</span>
+              </div>
+
+              <div className="bg-red-50 p-4 space-y-3">
+                {/* Who & when */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white rounded-lg p-3 border border-red-100">
+                    <p className="text-xs text-gray-400 mb-0.5">Cancelled By</p>
+                    <p className="text-sm font-bold text-red-700 capitalize">
+                      {booking.cancelledBy === 'CUSTOMER' ? 'Customer' : booking.cancelledBy || '—'}
+                    </p>
+                  </div>
+                  {booking.cancelledAt && (
+                    <div className="bg-white rounded-lg p-3 border border-red-100">
+                      <p className="text-xs text-gray-400 mb-0.5">Cancelled At</p>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {new Date(booking.cancelledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(booking.cancelledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Reason */}
+                {booking.cancellationReason && (
+                  <div className="bg-white rounded-lg p-3 border border-red-200">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Reason Given</p>
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5 w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
+                      <p className="text-sm font-medium text-red-800 leading-relaxed">
+                        {booking.cancellationReason}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Refund info */}
+                {booking.refundAmount != null && booking.refundAmount > 0 ? (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-orange-600 font-semibold uppercase tracking-wider">Refund Eligible</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Amount paid by customer</p>
+                    </div>
+                    <p className="text-lg font-extrabold text-orange-700">₹{booking.refundAmount.toLocaleString('en-IN')}</p>
+                  </div>
+                ) : booking.paidAmount != null && booking.paidAmount === 0 ? (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-xs text-green-700 font-medium">No payment was made — no refund required.</p>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ══════════ Sidebar ══════════ */}
@@ -519,17 +604,57 @@ export default function VendorBookingDetailPage() {
             </div>
             <div className="p-3.5 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">₹{booking.dailyRate} x {booking.totalDays} days</span>
-                <span className="font-semibold text-gray-900">₹{(booking.baseAmount || 0).toLocaleString()}</span>
+                <span className="text-gray-500">Daily Rate × {booking.totalDays} day{booking.totalDays > 1 ? 's' : ''}</span>
+                <span className="font-medium text-gray-900">₹{(booking.baseAmount || 0).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-400">Security Deposit</span>
-                <span className="font-bold text-gray-700">₹{(booking.securityDeposit || 0).toLocaleString()}</span>
+              {booking.gstAmount > 0 && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">GST</span>
+                  <span className="font-medium text-gray-700">₹{booking.gstAmount.toLocaleString()}</span>
+                </div>
+              )}
+              {booking.platformFee > 0 && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">Platform Fee</span>
+                  <span className="font-medium text-gray-700">₹{booking.platformFee.toLocaleString()}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-semibold border-t border-dashed border-gray-200 pt-2">
+                <span className="text-gray-800">Rental Total</span>
+                <span className="text-emerald-600">₹{(booking.grandTotal || 0).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between pt-2 border-t border-dashed border-gray-200">
-                <span className="font-bold text-gray-900">Total</span>
-                <span className="text-lg font-extrabold text-emerald-600">₹{(booking.grandTotal || 0).toLocaleString()}</span>
+              {(booking.securityDeposit || 0) > 0 && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">Security Deposit <span className="text-emerald-500">(Refundable)</span></span>
+                  <span className="font-medium text-gray-700">₹{booking.securityDeposit.toLocaleString()}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold text-base border-t border-gray-200 pt-2">
+                <span className="text-gray-900">Total to Pay</span>
+                <span className="text-emerald-600">₹{((booking.grandTotal || 0) + (booking.securityDeposit || 0)).toLocaleString()}</span>
               </div>
+              {(booking.advanceAmount || 0) > 0 && (() => {
+                const advPct = booking.advancePercentage || (booking.grandTotal > 0 ? Math.round(((booking.advanceAmount || 0) / booking.grandTotal) * 100) : 0);
+                const balance = (booking.grandTotal || 0) + (booking.securityDeposit || 0) - (booking.advanceAmount || 0);
+                return (
+                  <>
+                    <div className="flex justify-between text-xs text-emerald-700">
+                      <span>Advance {advPct > 0 ? `(${advPct}%)` : ''}</span>
+                      <span className="font-bold">₹{(booking.advanceAmount || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Balance at Pickup</span>
+                      <span className="font-bold">₹{balance.toLocaleString()}</span>
+                    </div>
+                  </>
+                );
+              })()}
+              {(booking.paidAmount || 0) > 0 && (
+                <div className="flex justify-between text-xs pt-1 border-t border-gray-100">
+                  <span className="text-gray-400">Paid so far</span>
+                  <span className="font-bold text-green-600">₹{(booking.paidAmount || 0).toLocaleString()}</span>
+                </div>
+              )}
             </div>
           </div>
 

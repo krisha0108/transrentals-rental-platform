@@ -156,6 +156,7 @@ export async function GET(request: NextRequest) {
               quoteNumber: true,
               grandTotal: true,
               status: true,
+              bike_bookings: { select: { id: true, bookingNumber: true, status: true } },
             },
           },
           locations: { select: { name: true, slug: true } },
@@ -194,7 +195,19 @@ export async function GET(request: NextRequest) {
         status: r.status,
         totalQuotesReceived: r.totalQuotesReceived,
         quotesOpenTill: r.quotesOpenTill,
-        myQuote: r.bike_quotes_bike_quotes_requestIdTobike_quote_requests[0] || null,
+        myQuote: (() => {
+          const q = r.bike_quotes_bike_quotes_requestIdTobike_quote_requests[0];
+          if (!q) return null;
+          return {
+            id: q.id,
+            quoteNumber: q.quoteNumber,
+            grandTotal: q.grandTotal,
+            status: q.status,
+            bookingId: q.bike_bookings?.id || null,
+            bookingNumber: q.bike_bookings?.bookingNumber || null,
+            bookingStatus: q.bike_bookings?.status || null,
+          };
+        })(),
         hasQuoted: r.bike_quotes_bike_quotes_requestIdTobike_quote_requests.length > 0,
         createdAt: r.createdAt,
       })),

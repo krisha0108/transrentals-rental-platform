@@ -99,7 +99,7 @@ export async function PATCH(
 
     switch (action) {
       case 'cancel': {
-        if (!['PENDING_PAYMENT', 'ADVANCE_PAID', 'CONFIRMED'].includes(booking.status)) {
+        if (!['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'TEAM_ASSIGNED'].includes(booking.status)) {
           return NextResponse.json({ error: 'This booking cannot be cancelled' }, { status: 400 });
         }
         const { reason } = data;

@@ -172,6 +172,17 @@ interface PaymentSettings {
   instructions: string;
 }
 
+const CANCEL_REASONS = [
+  'Plans changed / Trip cancelled',
+  'Found a better deal',
+  'Booked by mistake',
+  'Emergency or urgent situation',
+  'Pickup date or time needs to change',
+  'Vehicle does not meet my requirements',
+  'Payment issue',
+  'Other',
+];
+
 // Generate UPI payment link with amount
 const generateUpiLink = (upiId: string, name: string, amount: number, bookingNumber: string) => {
   const encodedName = encodeURIComponent(name);
@@ -198,7 +209,9 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
   const [review, setReview] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
+  const [selectedCancelReason, setSelectedCancelReason] = useState('');
+  const [otherCancelReason, setOtherCancelReason] = useState('');
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const [submittingPayment, setSubmittingPayment] = useState(false);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [transactionId, setTransactionId] = useState('');
@@ -352,27 +365,33 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
   };
 
   const handleCancel = async () => {
-    if (!cancelReason.trim()) return;
+    const finalReason = selectedCancelReason === 'Other' ? otherCancelReason.trim() : selectedCancelReason;
+    if (!finalReason) {
+      setCancelError(selectedCancelReason === 'Other' ? 'Please describe your reason' : 'Please select a reason for cancellation');
+      return;
+    }
 
     setCancelling(true);
+    setCancelError(null);
     try {
       const res = await fetch(`/api/luxury-bookings/${bookingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'cancel', reason: cancelReason.trim(), cancelledBy: 'customer' }),
+        body: JSON.stringify({ action: 'cancel', reason: finalReason, cancelledBy: 'CUSTOMER' }),
       });
 
       const data = await res.json();
 
       if (data.success) {
         setShowCancelModal(false);
-        setCancelReason('');
+        setSelectedCancelReason('');
+        setOtherCancelReason('');
         fetchBooking();
       } else {
-        alert(data.error || 'Failed to cancel booking');
+        setCancelError(data.error || 'Failed to cancel booking');
       }
     } catch (err) {
-      alert('Failed to cancel booking');
+      setCancelError('Something went wrong. Please try again.');
     } finally {
       setCancelling(false);
     }
@@ -850,13 +869,19 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
 
         {/* Cancel Option */}
         {['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED'].includes(booking.status) && (
-          <button
-            onClick={() => setShowCancelModal(true)}
-            disabled={cancelling}
-            className="w-full py-3 text-red-600 font-medium hover:underline disabled:opacity-50"
-          >
-            Cancel Booking
-          </button>
+          <div className="bg-white rounded-xl border border-red-100 p-4">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Cancel Booking</h3>
+            <p className="text-sm text-gray-500 mb-3">
+              Once cancelled, refund will be processed as per vendor's cancellation policy.
+            </p>
+            <button
+              onClick={() => { setShowCancelModal(true); setCancelError(null); setSelectedCancelReason(''); setOtherCancelReason(''); }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition text-sm font-medium"
+            >
+              <XCircle className="w-4 h-4" />
+              Cancel This Booking
+            </button>
+          </div>
         )}
 
         {/* Support */}
@@ -1038,45 +1063,77 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
 
       {/* Cancel Booking Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <XCircle className="w-5 h-5 text-red-600" />
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b">
+              <div className="flex items-center gap-2">
+                <XCircle className="w-5 h-5 text-red-500" />
+                <h2 className="font-bold text-gray-900">Cancel Booking</h2>
+              </div>
+              <button onClick={() => setShowCancelModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="bg-gray-50 rounded-xl p-4 text-sm space-y-1">
+                <p className="font-semibold text-gray-800">Booking #{booking.bookingNumber}</p>
+                <p className="text-gray-600">{booking.vehicleName || booking.carCategory} · {booking.tripType}</p>
+                {booking.advancePaid != null && booking.advancePaid > 0 && (
+                  <p className="text-amber-600 font-medium">Paid: ₹{booking.advancePaid.toLocaleString('en-IN')} — refund subject to cancellation policy</p>
+                )}
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Cancel Booking</h3>
-                <p className="text-xs text-gray-500">This action cannot be undone</p>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reason for Cancellation <span className="text-red-500">*</span>
+                </label>
+                <div className="space-y-2">
+                  {CANCEL_REASONS.map((reason) => (
+                    <label
+                      key={reason}
+                      onClick={() => { setSelectedCancelReason(reason); setCancelError(null); if (reason !== 'Other') setOtherCancelReason(''); }}
+                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedCancelReason === reason ? 'border-red-400 bg-red-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+                    >
+                      <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${selectedCancelReason === reason ? 'border-red-500 bg-red-500' : 'border-gray-300'}`}>
+                        {selectedCancelReason === reason && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                      <span className={`text-sm ${selectedCancelReason === reason ? 'text-red-700 font-medium' : 'text-gray-700'}`}>{reason}</span>
+                    </label>
+                  ))}
+                </div>
+                {selectedCancelReason === 'Other' && (
+                  <textarea
+                    value={otherCancelReason}
+                    onChange={(e) => setOtherCancelReason(e.target.value)}
+                    placeholder="Please describe your reason..."
+                    rows={3}
+                    autoFocus
+                    className="w-full mt-3 px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-red-400 focus:border-transparent resize-none"
+                  />
+                )}
+              </div>
+              {cancelError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {cancelError}
+                </div>
+              )}
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
+                <strong>Note:</strong> This action cannot be undone. The vendor will be notified immediately.
               </div>
             </div>
-            <div className="mb-5">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Why do you want to cancel? <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="Please tell us the reason for cancellation..."
-                rows={3}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400 resize-none"
-              />
-              {cancelReason.trim() === '' && (
-                <p className="text-xs text-red-500 mt-1">Reason is required to cancel</p>
-              )}
-            </div>
-            <div className="flex gap-3">
+            <div className="p-5 pt-0 flex gap-3">
               <button
-                onClick={() => { setShowCancelModal(false); setCancelReason(''); }}
-                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200"
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 py-3 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition text-sm"
               >
-                Go Back
+                Keep Booking
               </button>
               <button
                 onClick={handleCancel}
-                disabled={!cancelReason.trim() || cancelling}
-                className="flex-1 px-4 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={cancelling || !selectedCancelReason || (selectedCancelReason === 'Other' && !otherCancelReason.trim())}
+                className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {cancelling ? 'Cancelling...' : 'Confirm Cancel'}
+                {cancelling ? (<><Loader2 className="w-4 h-4 animate-spin" />Cancelling...</>) : (<><XCircle className="w-4 h-4" />Yes, Cancel</>)}
               </button>
             </div>
           </div>

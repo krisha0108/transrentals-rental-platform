@@ -64,6 +64,8 @@ interface Quote {
   viewCount: number;
   status: string;
   sentAt?: string;
+  bookingId?: string | null;
+  bookingNumber?: string | null;
   request: {
     id: string;
     requestNumber: string;
@@ -472,10 +474,15 @@ export default function VendorBikeQuoteDetailPage() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-emerald-800">Quote accepted! Booking created.</p>
+            {quote.bookingNumber && (
+              <p className="text-[11px] text-emerald-600 font-mono mt-0.5">#{quote.bookingNumber}</p>
+            )}
           </div>
-          <Link href={`/vendor/bike-rentals/bookings?quote=${quote.id}`} className="hidden sm:flex items-center gap-1 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold rounded-lg transition-all active:scale-95 shrink-0">
-            View Booking <ArrowUpRight className="w-3 h-3" />
-          </Link>
+          {quote.bookingId && (
+            <Link href={`/vendor/bike-rentals/bookings/${quote.bookingId}`} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold rounded-lg transition-all active:scale-95 shrink-0">
+              View Booking <ArrowUpRight className="w-3 h-3" />
+            </Link>
+          )}
         </div>
       )}
 

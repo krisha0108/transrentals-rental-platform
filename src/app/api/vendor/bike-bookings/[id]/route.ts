@@ -117,6 +117,8 @@ export async function GET(
         updatedAt: booking.updatedAt.toISOString(),
         droppedAt: booking.droppedAt?.toISOString(),
         dropReason: booking.dropReason,
+        cancellationReason: booking.cancellationReason,
+        cancelledAt: null, // bike_bookings schema does not have cancelledAt
         // Additional flags for UI
         // PAYMENT_VERIFIED: only the assigned vendor can accept (quote-based booking)
         // BROADCASTED / PENDING_VENDOR: any vendor with approved location or notification can accept

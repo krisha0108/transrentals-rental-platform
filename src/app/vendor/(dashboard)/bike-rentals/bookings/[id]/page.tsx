@@ -516,6 +516,26 @@ export default function VendorBookingDetailPage() {
         </div>
       </div>
 
+      {/* Cancelled Banner */}
+      {booking.status === 'CANCELLED' && (
+        <div className="bg-red-50 border border-red-200 rounded-xl overflow-hidden">
+          <div className="px-4 py-2.5 bg-red-100 border-b border-red-200 flex items-center gap-2">
+            <XCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <p className="text-sm font-bold text-red-800">Booking Cancelled by Customer</p>
+          </div>
+          <div className="px-4 py-3">
+            {(booking as any).cancellationReason ? (
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-red-600 uppercase tracking-wider">Reason</p>
+                <p className="text-sm text-red-900 font-medium">{(booking as any).cancellationReason}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-red-700">No reason provided by customer.</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Dropped Banner */}
       {booking.status === 'DROPPED' && (
         <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 flex items-start gap-3">

@@ -91,6 +91,10 @@ interface BookingDetails {
   acceptedAt?: string;
   droppedAt?: string;
   dropReason?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
+  refundAmount?: number;
   location?: { id: string; name: string };
   createdAt: string;
 }
@@ -699,6 +703,40 @@ export default function VendorBookingDetailPage() {
                 <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
                   <p className="text-xs font-medium text-amber-700 mb-1 uppercase tracking-wide">Customer Notes</p>
                   <p className="text-sm text-gray-700">{booking.customerNotes}</p>
+                </div>
+              )}
+
+              {/* Cancellation Details — shown prominently to vendor */}
+              {booking.status === 'CANCELLED' && (
+                <div className="bg-red-50 border border-red-300 rounded-xl p-4 space-y-3">
+                  <p className="text-xs font-bold text-red-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <XCircle className="w-3.5 h-3.5" />
+                    Booking Cancelled by Customer
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {booking.cancelledAt && (
+                      <div>
+                        <p className="text-xs text-gray-500 mb-0.5">Cancelled At</p>
+                        <p className="font-medium text-gray-800">
+                          {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                        </p>
+                      </div>
+                    )}
+                    {booking.refundAmount != null && booking.refundAmount > 0 && (
+                      <div>
+                        <p className="text-xs text-gray-500 mb-0.5">Refund Amount</p>
+                        <p className="font-semibold text-orange-700">₹{booking.refundAmount.toLocaleString('en-IN')}</p>
+                      </div>
+                    )}
+                  </div>
+                  {booking.cancellationReason && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Reason Given by Customer</p>
+                      <p className="text-sm text-red-800 bg-red-100 rounded-lg px-3 py-2 font-medium">
+                        {booking.cancellationReason}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

@@ -1,25 +1,30 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Bus,
   Send,
   MapPin,
   Calendar,
-  Clock,
   Users,
   CheckCircle,
   XCircle,
   AlertCircle,
   Eye,
   Edit,
-  Trash2,
-  IndianRupee,
-  Filter,
   RefreshCw,
+  TrendingUp,
+  Clock,
+  Inbox,
   Search,
   X,
+  ChevronRight,
+  Sparkles,
+  Award,
+  Zap,
+  ArrowUpRight,
+  ArrowRight,
 } from 'lucide-react';
 import { BUS_CATEGORIES, BUS_TRIP_TYPES } from '@/lib/bus-categories';
 import Pagination from '@/components/vendor/Pagination';
@@ -35,6 +40,9 @@ interface Quote {
   status: string;
   validTill: string;
   viewCount: number;
+  bookingId?: string | null;
+  bookingNumber?: string | null;
+  bookingStatus?: string | null;
   request: {
     id: string;
     requestNumber: string;
@@ -55,14 +63,14 @@ interface Stats {
   wonValue: number;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  DRAFT: { label: 'Draft', color: 'bg-gray-100 text-gray-600', icon: Edit },
-  SENT: { label: 'Sent', color: 'bg-emerald-100 text-emerald-700', icon: Send },
-  VIEWED: { label: 'Viewed', color: 'bg-emerald-100 text-emerald-700', icon: Eye },
-  ACCEPTED: { label: 'Accepted', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-  REJECTED: { label: 'Rejected', color: 'bg-red-100 text-red-700', icon: XCircle },
-  EXPIRED: { label: 'Expired', color: 'bg-yellow-100 text-yellow-700', icon: AlertCircle },
-  WITHDRAWN: { label: 'Withdrawn', color: 'bg-gray-100 text-gray-600', icon: XCircle },
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; accent: string; glow: string; icon: any }> = {
+  DRAFT:     { label: 'Draft',     color: 'text-gray-600',    bg: 'bg-gray-50',    border: 'border-gray-200',    accent: 'bg-gray-300',    glow: '', icon: Edit },
+  SENT:      { label: 'Sent',      color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', accent: 'bg-emerald-500', glow: '', icon: Send },
+  VIEWED:    { label: 'Viewed',    color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', accent: 'bg-emerald-500', glow: '', icon: Eye },
+  ACCEPTED:  { label: 'Won',       color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-300', accent: 'bg-emerald-500', glow: 'shadow-emerald-100 ring-1 ring-emerald-200', icon: CheckCircle },
+  REJECTED:  { label: 'Rejected',  color: 'text-red-600',     bg: 'bg-red-50',     border: 'border-red-200',     accent: 'bg-red-400',     glow: '', icon: XCircle },
+  EXPIRED:   { label: 'Expired',   color: 'text-amber-600',   bg: 'bg-amber-50',   border: 'border-amber-200',   accent: 'bg-amber-400',   glow: '', icon: AlertCircle },
+  WITHDRAWN: { label: 'Withdrawn', color: 'text-gray-500',    bg: 'bg-gray-50',    border: 'border-gray-200',    accent: 'bg-gray-300',    glow: '', icon: XCircle },
 };
 
 export default function VendorBusQuotesPage() {
@@ -71,51 +79,35 @@ export default function VendorBusQuotesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const [committedSearch, setCommittedSearch] = useState('');
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
-  // Date filter state
   const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
     start: null,
     end: null,
   });
 
-  const handleSearchChange = (value: string) => {
-    setSearchInput(value);
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    searchDebounceRef.current = setTimeout(() => {
-      setSearch(value);
-      setCurrentPage(1);
-    }, 400);
-  };
+  const handleSearch = () => { setCommittedSearch(searchInput); setCurrentPage(1); };
+  const handleClearSearch = () => { setSearchInput(''); setCommittedSearch(''); setCurrentPage(1); };
 
   const fetchQuotes = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Map filter to API status parameter
       let status = '';
-      if (filter === 'active') status = 'SENT'; // Could also include VIEWED
+      if (filter === 'active') status = 'SENT,VIEWED';
       else if (filter === 'accepted') status = 'ACCEPTED';
-      else if (filter === 'expired') status = 'EXPIRED';
+      else if (filter === 'expired') status = 'EXPIRED,REJECTED,WITHDRAWN';
 
       const params = new URLSearchParams();
       if (status) params.set('status', status);
-
-      // PAGINATION PARAMS
       params.set('page', currentPage.toString());
       params.set('limit', '20');
-
-      // DATE FILTER PARAMS
       if (dateFilter.start) params.set('startDate', dateFilter.start);
       if (dateFilter.end) params.set('endDate', dateFilter.end);
-
-      // SEARCH PARAM
-      if (search) params.set('search', search);
+      if (committedSearch) params.set('search', committedSearch);
 
       const response = await fetch(`/api/vendor/bus-quotes?${params}`);
       const data = await response.json();
@@ -124,13 +116,6 @@ export default function VendorBusQuotesPage() {
         const allQuotes = data.quotes || [];
         setQuotes(allQuotes);
 
-        // Set pagination state from response
-        if (data.pagination) {
-          setTotalPages(data.pagination.totalPages);
-          setTotalItems(data.pagination.total);
-        }
-
-        // Calculate stats from all quotes (need to fetch all for accurate stats)
         if (filter === 'all') {
           setStats({
             total: allQuotes.length,
@@ -139,25 +124,29 @@ export default function VendorBusQuotesPage() {
             wonValue: allQuotes.filter((q: Quote) => q.status === 'ACCEPTED').reduce((sum: number, q: Quote) => sum + q.totalAmount, 0),
           });
         }
+
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotalItems(data.pagination.total);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch quotes:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [filter, currentPage, dateFilter, search]);
+  }, [filter, currentPage, dateFilter, committedSearch]);
 
-  useEffect(() => {
-    fetchQuotes();
-  }, [fetchQuotes]);
+  useEffect(() => { fetchQuotes(); }, [fetchQuotes]);
 
-  // Client-side filtering for active/expired since API may not support all filters
-  const filteredQuotes = quotes.filter((q) => {
-    if (filter === 'active') return ['SENT', 'VIEWED'].includes(q.status);
-    if (filter === 'accepted') return q.status === 'ACCEPTED';
-    if (filter === 'expired') return ['EXPIRED', 'REJECTED', 'WITHDRAWN'].includes(q.status);
-    return true;
-  });
+  const filteredQuotes = useMemo(() => {
+    return quotes.filter((q) => {
+      if (filter === 'active') return ['SENT', 'VIEWED'].includes(q.status);
+      if (filter === 'accepted') return q.status === 'ACCEPTED';
+      if (filter === 'expired') return ['EXPIRED', 'REJECTED', 'WITHDRAWN'].includes(q.status);
+      return true;
+    });
+  }, [quotes, filter]);
 
   const getCategoryName = (id: string) => BUS_CATEGORIES.find((c) => c.id === id)?.shortName || id;
   const getTripTypeName = (id: string) => BUS_TRIP_TYPES.find((t) => t.id === id)?.name || id;
@@ -168,275 +157,416 @@ export default function VendorBusQuotesPage() {
     return diff > 0 && diff < 24 * 3600000;
   };
 
+  const getTimeAgo = (dateString: string) => {
+    const diff = Date.now() - new Date(dateString).getTime();
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 1) return 'Just now';
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+  };
+
+  const conversionRate = stats.total > 0 ? Math.round((stats.accepted / stats.total) * 100) : 0;
+
+  const filterTabs = [
+    { value: 'all',      label: 'All',    icon: Send,        count: stats.total,    activeColor: 'bg-white text-gray-900 shadow-lg shadow-gray-200/50' },
+    { value: 'active',   label: 'Active', icon: Zap,         count: stats.pending,  activeColor: 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' },
+    { value: 'accepted', label: 'Won',    icon: Award,       count: stats.accepted, activeColor: 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' },
+    { value: 'expired',  label: 'Closed', icon: AlertCircle, count: 0,              activeColor: 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' },
+  ];
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full" />
+      <div className="space-y-5">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-5">
+          <div className="animate-pulse space-y-3">
+            <div className="h-7 w-40 bg-white/20 rounded-lg" />
+            <div className="h-4 w-56 bg-white/10 rounded" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[1,2,3,4].map(i => <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 animate-pulse h-24" />)}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl border border-gray-100 animate-pulse h-64" />)}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-            <Send className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Quotes</h1>
-            <p className="text-gray-600">Quotes you&apos;ve sent to customers</p>
-          </div>
+    <div className="space-y-5">
+      {/* Hero Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-600 p-5 md:p-6">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white" />
+          <div className="absolute right-20 -bottom-10 w-32 h-32 rounded-full bg-white" />
         </div>
-
-        <Link
-          href="/vendor/bus/requests"
-          className="px-4 py-2 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition"
-        >
-          View New Requests
-        </Link>
-      </div>
-
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-        <input
-          type="text"
-          value={searchInput}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          placeholder="Search by customer name, quote number, vehicle, city..."
-          className="w-full pl-9 pr-9 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-        />
-        {searchInput && (
-          <button
-            onClick={() => handleSearchChange('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20">
+              <Send className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl md:text-2xl font-extrabold text-white leading-tight">My Quotes</h1>
+              <p className="text-emerald-100 text-sm mt-0.5">Track all your bus rental quotes</p>
+            </div>
+          </div>
+          <Link
+            href="/vendor/bus/requests"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-emerald-50 text-emerald-600 font-bold rounded-xl text-sm shadow-lg shadow-emerald-600/20 transition-all active:scale-95 group"
           >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 border">
-          <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-          <p className="text-sm text-gray-500">Total Quotes</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-emerald-100">
-          <p className="text-2xl font-bold text-emerald-600">{stats.pending}</p>
-          <p className="text-sm text-gray-500">Pending Response</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-green-100">
-          <p className="text-2xl font-bold text-green-600">{stats.accepted}</p>
-          <p className="text-sm text-gray-500">Accepted</p>
-        </div>
-        <div className="bg-white rounded-xl p-4 border border-emerald-100">
-          <p className="text-2xl font-bold text-emerald-600">
-            ₹{stats.wonValue.toLocaleString()}
-          </p>
-          <p className="text-sm text-gray-500">Won Value</p>
+            <Sparkles className="w-4 h-4" />
+            View New Requests
+            <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </Link>
         </div>
       </div>
 
-      {/* Filter */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {[
-            { value: 'all', label: 'All Quotes' },
-            { value: 'active', label: 'Active' },
-            { value: 'accepted', label: 'Accepted' },
-            { value: 'expired', label: 'Expired/Rejected' },
-          ].map((f) => (
-            <button
-              key={f.value}
-              onClick={() => {
-                setFilter(f.value);
-                setCurrentPage(1);
-              }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
-                filter === f.value
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        <DateFilterDropdown
-          onFilterChange={(start, end) => {
-            setDateFilter({ start, end });
-            setCurrentPage(1);
-          }}
-          initialStartDate={dateFilter.start || undefined}
-          initialEndDate={dateFilter.end || undefined}
-        />
-      </div>
-
-      {/* Quotes List */}
-      <div className="space-y-4">
-        {filteredQuotes.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center border">
-            <Send className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="font-medium text-gray-900 mb-1">No quotes found</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              {filter !== 'all' ? 'No quotes match this filter' : 'Send quotes from the requests page'}
-            </p>
-            <Link
-              href="/vendor/bus/requests"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-            >
-              View Requests
-            </Link>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center">
+              <Send className="w-4 h-4 text-gray-500" />
+            </div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total</span>
           </div>
-        ) : (
-          filteredQuotes.map((quote) => {
+          <p className="text-3xl font-extrabold text-gray-900">{stats.total}</p>
+          <p className="text-[11px] text-gray-400 mt-0.5">quotes sent</p>
+        </div>
+        <div className="bg-white rounded-2xl p-4 border border-emerald-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center">
+              <Clock className="w-4 h-4 text-emerald-500" />
+            </div>
+            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Pending</span>
+          </div>
+          <p className="text-3xl font-extrabold text-emerald-600">{stats.pending}</p>
+          <p className="text-[11px] text-emerald-400 mt-0.5">awaiting response</p>
+        </div>
+        <div className="bg-gradient-to-br from-emerald-50 to-white rounded-2xl p-4 border border-emerald-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-sm">
+              <Award className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Won</span>
+          </div>
+          <p className="text-3xl font-extrabold text-emerald-600">{stats.accepted}</p>
+          <p className="text-[11px] text-emerald-500 mt-0.5">bookings converted</p>
+        </div>
+        <div className="bg-gradient-to-br from-emerald-50 to-white rounded-2xl p-4 border border-emerald-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-sm">
+              <TrendingUp className="w-4 h-4 text-white" />
+            </div>
+            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Revenue</span>
+          </div>
+          <p className="text-2xl font-extrabold text-emerald-600">₹{stats.wonValue.toLocaleString()}</p>
+          <p className="text-[11px] text-emerald-400 mt-0.5">total won value</p>
+        </div>
+      </div>
+
+      {/* Conversion Rate */}
+      {stats.total > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-gray-400" />
+              <span className="text-xs font-bold text-gray-600">Conversion Rate</span>
+            </div>
+            <span className="text-sm font-extrabold text-emerald-600">{conversionRate}%</span>
+          </div>
+          <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${conversionRate}%` }} />
+          </div>
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-[10px] text-gray-400">{stats.accepted} won out of {stats.total} quotes</span>
+            {conversionRate >= 30 && (
+              <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5">
+                <Sparkles className="w-3 h-3" /> Great performance!
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Filters + Search */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Filter tabs */}
+          <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
+            {filterTabs.map((f) => {
+              const Icon = f.icon;
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => { setFilter(f.value); setCurrentPage(1); }}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap ${
+                    filter === f.value ? f.activeColor : 'text-gray-500 hover:text-gray-700 hover:bg-white/60'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {f.label}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold min-w-[20px] text-center ${
+                    filter === f.value
+                      ? f.value === 'all' ? 'bg-gray-100 text-gray-600' : 'bg-white/25 text-white'
+                      : 'bg-gray-200/60 text-gray-400'
+                  }`}>{f.count}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search */}
+          <div className="flex gap-2 flex-1 min-w-[200px] max-w-sm">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name, vehicle, booking number..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                className="w-full pl-9 pr-8 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all placeholder:text-gray-400"
+              />
+              {searchInput && (
+                <button onClick={handleClearSearch} className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition">
+                  <X className="w-3 h-3 text-gray-500" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={handleSearch}
+              className="px-4 py-2 text-sm font-medium bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition flex items-center gap-1.5 shrink-0"
+            >
+              <Search className="w-3.5 h-3.5" />
+              Search
+            </button>
+          </div>
+
+          <DateFilterDropdown
+            onFilterChange={(start, end) => { setDateFilter({ start, end }); setCurrentPage(1); }}
+            initialStartDate={dateFilter.start || undefined}
+            initialEndDate={dateFilter.end || undefined}
+          />
+        </div>
+      </div>
+
+      {/* Quotes Grid */}
+      {filteredQuotes.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
+          <div className="relative w-20 h-20 mx-auto mb-5">
+            <div className="absolute inset-0 bg-emerald-100 rounded-3xl rotate-6" />
+            <div className="absolute inset-0 bg-emerald-50 rounded-3xl -rotate-3" />
+            <div className="relative w-full h-full bg-white rounded-3xl border border-emerald-100 flex items-center justify-center shadow-sm">
+              <Send className="w-9 h-9 text-emerald-400" />
+            </div>
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-1.5">No quotes found</h3>
+          <p className="text-sm text-gray-400 mb-6 max-w-xs mx-auto">
+            {committedSearch ? 'No quotes match your search.' : filter !== 'all' ? 'No quotes match this filter.' : 'Send quotes from the requests page to track them here.'}
+          </p>
+          <Link
+            href="/vendor/bus/requests"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/25 hover:from-emerald-600 hover:to-emerald-700 transition-all active:scale-95"
+          >
+            <Sparkles className="w-4 h-4" /> Browse Requests
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filteredQuotes.map((quote, index) => {
             const statusConfig = STATUS_CONFIG[quote.status] || STATUS_CONFIG.SENT;
             const StatusIcon = statusConfig.icon;
+            const expiringSoon = isExpiringSoon(quote.validTill) && quote.status === 'SENT';
+            const isWon = quote.status === 'ACCEPTED';
 
             return (
-              <div
+              <Link
                 key={quote.id}
-                className="bg-white rounded-xl shadow-sm border overflow-hidden"
+                href={`/vendor/bus/quotes/${quote.id}`}
+                style={{ animationDelay: `${index * 0.05}s` }}
+                className={`block bg-white rounded-2xl border overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group relative ${
+                  isWon ? 'border-emerald-200 shadow-sm ' + statusConfig.glow
+                  : expiringSoon ? 'border-amber-200 shadow-sm'
+                  : 'border-gray-100 hover:border-gray-200'
+                }`}
               >
-                {/* Header */}
-                <div className="px-4 py-2 bg-gray-50 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-sm text-gray-700">#{quote.quoteNumber}</span>
-                    <span className="text-xs text-gray-500">
-                      for {quote.request?.requestNumber}
-                    </span>
+                {/* Status accent bar */}
+                <div className={`h-1 w-full ${statusConfig.accent}`} />
+
+                {/* Won ribbon */}
+                {isWon && (
+                  <div className="absolute top-3 -right-8 bg-emerald-500 text-white text-[9px] font-extrabold uppercase tracking-widest py-0.5 px-10 rotate-45 shadow-sm">
+                    Won
                   </div>
-                  <div className="flex items-center gap-2">
-                    {isExpiringSoon(quote.validTill) && quote.status === 'SENT' && (
-                      <span className="text-xs text-yellow-600 font-medium">
-                        Expiring soon!
+                )}
+
+                {/* Card Header */}
+                <div className="px-4 py-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">#{quote.quoteNumber}</span>
+                    {isWon && quote.bookingNumber && (
+                      <span className="font-mono text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                        Bkg #{quote.bookingNumber}
                       </span>
                     )}
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${statusConfig.color}`}>
-                      <StatusIcon className="w-3 h-3" />
-                      {statusConfig.label}
-                    </span>
+                    <span className="text-[10px] text-gray-400">{getTimeAgo(quote.createdAt)}</span>
                   </div>
+                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
+                    <StatusIcon className="w-3 h-3" />
+                    {statusConfig.label}
+                  </span>
                 </div>
 
-                <div className="p-4 md:p-6">
-                  <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                        <Bus className="w-6 h-6 text-emerald-600" />
+                {/* Card Body */}
+                <div className="px-4 pb-4">
+                  {expiringSoon && (
+                    <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3 animate-pulse">
+                      <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <span className="text-[11px] font-bold text-amber-700">Expiring soon!</span>
+                    </div>
+                  )}
+
+                  {/* Vehicle + Price */}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-11 h-11 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-xl flex items-center justify-center shrink-0">
+                        <Bus className="w-5 h-5 text-emerald-500" />
                       </div>
-                      <div>
-                        <h3 className="font-bold text-gray-900">{quote.vehicleName || getCategoryName(quote.vehicleCategory) || quote.vehicleCategory}</h3>
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                          <span>{getTripTypeName(quote.request?.tripType || '')}</span>
-                          <span>•</span>
-                          <Users className="w-3 h-3" />
-                          <span>{quote.seats} seats</span>
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold text-gray-900 truncate group-hover:text-emerald-600 transition-colors">
+                          {quote.vehicleName || getCategoryName(quote.vehicleCategory)}
+                        </h3>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span className="text-[11px] text-gray-400 flex items-center gap-0.5">
+                            <Users className="w-3 h-3" />{quote.seats} seats
+                          </span>
+                          {quote.request?.tripType && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-md font-medium">
+                              {getTripTypeName(quote.request.tripType)}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-sm text-gray-600">{quote.request?.customerName}</p>
                       </div>
                     </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xl font-extrabold text-emerald-600">₹{quote.totalAmount.toLocaleString()}</p>
+                      <p className="text-[10px] text-gray-400 font-medium">total amount</p>
+                    </div>
+                  </div>
 
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-emerald-600">
-                        ₹{quote.totalAmount.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Valid until {new Date(quote.validTill).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
-                      </p>
+                  {/* Customer row */}
+                  <div className="flex items-center gap-2.5 mb-3 bg-gray-50/80 rounded-xl px-3 py-2">
+                    <div className="w-7 h-7 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center shadow-sm shrink-0">
+                      <span className="text-[10px] font-bold text-white">
+                        {quote.request?.customerName?.charAt(0)?.toUpperCase() || 'C'}
+                      </span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-gray-700 truncate">{quote.request?.customerName}</p>
+                      <p className="text-[10px] text-gray-400">Req #{quote.request?.requestNumber}</p>
                     </div>
                   </div>
 
                   {/* Trip Details */}
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-emerald-500" />
-                      {quote.request?.pickupCity}
-                      {quote.request?.dropCity && ` → ${quote.request.dropCity}`}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
+                      <div className="flex items-center gap-1 text-gray-400 mb-0.5">
+                        <MapPin className="w-3 h-3" />
+                        <span className="text-[9px] font-bold uppercase tracking-wider">Route</span>
+                      </div>
+                      <p className="text-[11px] font-bold text-gray-700 truncate flex items-center gap-1">
+                        {quote.request?.pickupCity}
+                        {quote.request?.dropCity && (
+                          <><ArrowRight className="w-2.5 h-2.5 shrink-0" />{quote.request.dropCity}</>
+                        )}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-emerald-500" />
-                      {quote.request?.pickupDate && new Date(quote.request.pickupDate).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
+                    <div className="bg-emerald-50/50 border border-emerald-100/50 rounded-xl px-3 py-2">
+                      <div className="flex items-center gap-1 text-emerald-400 mb-0.5">
+                        <Calendar className="w-3 h-3" />
+                        <span className="text-[9px] font-bold uppercase tracking-wider">Pickup</span>
+                      </div>
+                      <p className="text-[11px] font-bold text-gray-700">
+                        {quote.request?.pickupDate && new Date(quote.request.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </p>
                     </div>
                   </div>
 
+                  {/* Footer */}
+                  <div className="flex items-center justify-between text-[10px] text-gray-400 mb-3">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" />
+                      <span>Valid till {new Date(quote.validTill).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                    </div>
+                    {quote.viewCount > 0 && (
+                      <div className="flex items-center gap-1 bg-purple-50 text-purple-600 font-semibold px-2 py-0.5 rounded-full">
+                        <Eye className="w-3 h-3" />
+                        <span>{quote.viewCount}x viewed</span>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Actions */}
-                  <div className="flex flex-wrap gap-2 pt-4 border-t">
+                  <div className="flex gap-2 pt-3 border-t border-gray-100" onClick={(e) => e.preventDefault()}>
                     <Link
                       href={`/vendor/bus/quotes/${quote.id}`}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition flex items-center gap-1"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-all active:scale-95"
                     >
-                      <Eye className="w-4 h-4" />
-                      View Details
+                      <Eye className="w-3.5 h-3.5" />
+                      View Quote Details
+                      <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
                     </Link>
                     {['SENT', 'VIEWED'].includes(quote.status) && (
-                      <>
-                        <Link
-                          href={`/vendor/bus/quotes/${quote.id}/edit`}
-                          className="px-4 py-2 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-lg hover:bg-blue-200 transition flex items-center gap-1"
-                        >
-                          <Edit className="w-4 h-4" />
-                          Revise Quote
-                        </Link>
-                        <button
-                          onClick={async () => {
-                            if (!confirm('Withdraw this quote?')) return;
-                            try {
-                              const res = await fetch(`/api/vendor/bus-quotes/${quote.id}`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ action: 'withdraw' }),
-                              });
-                              if (res.ok) {
-                                fetchQuotes();
-                              } else {
-                                const data = await res.json();
-                                alert(data.error || 'Failed to withdraw quote');
-                              }
-                            } catch (error) {
-                              console.error('Failed to withdraw:', error);
-                              alert('Failed to withdraw quote');
-                            }
-                          }}
-                          className="px-4 py-2 bg-red-50 text-red-600 text-sm font-medium rounded-lg hover:bg-red-100 transition flex items-center gap-1"
-                        >
-                          <XCircle className="w-4 h-4" />
-                          Withdraw
-                        </button>
-                      </>
+                      <button
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!confirm('Withdraw this quote?')) return;
+                          try {
+                            const res = await fetch(`/api/vendor/bus-quotes/${quote.id}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ action: 'withdraw' }),
+                            });
+                            if (res.ok) fetchQuotes();
+                            else { const d = await res.json(); alert(d.error || 'Failed to withdraw'); }
+                          } catch { alert('Failed to withdraw quote'); }
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold rounded-xl transition-all border border-red-100 active:scale-95"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        Withdraw
+                      </button>
                     )}
                     {quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status) && (
                       <Link
                         href={`/vendor/bus/requests/${quote.request.id}/quote`}
-                        className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95"
                       >
-                        <RefreshCw className="w-4 h-4" />
-                        Send Fresh Quote
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Re-Quote
                       </Link>
                     )}
-                    {quote.status === 'ACCEPTED' && (
+                    {isWon && (
                       <Link
-                        href={`/vendor/bus/bookings?quote=${quote.id}`}
-                        className="px-4 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-lg hover:bg-green-200 transition flex items-center gap-1"
+                        href={quote.bookingId ? `/vendor/bus/bookings/${quote.bookingId}` : `/vendor/bus/bookings`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm active:scale-95"
                       >
-                        <CheckCircle className="w-4 h-4" />
+                        <CheckCircle className="w-3.5 h-3.5" />
                         View Booking
                       </Link>
                     )}
                   </div>
                 </div>
-              </div>
+              </Link>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
 
       {/* Pagination */}
       {filteredQuotes.length > 0 && (

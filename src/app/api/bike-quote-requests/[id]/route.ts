@@ -187,3 +187,46 @@ export async function GET(
     );
   }
 }
+
+// PATCH - Cancel a bike quote request (customer)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: requestId } = await params;
+
+    const quoteRequest = await prisma.bike_quote_requests.findUnique({
+      where: { id: requestId },
+      select: { id: true, status: true },
+    });
+
+    if (!quoteRequest) {
+      return NextResponse.json(
+        { success: false, error: 'Quote request not found' },
+        { status: 404 }
+      );
+    }
+
+    const cancellableStatuses = ['PENDING', 'QUOTES_RECEIVED'];
+    if (!cancellableStatuses.includes(quoteRequest.status)) {
+      return NextResponse.json(
+        { success: false, error: 'This request cannot be cancelled in its current status.' },
+        { status: 400 }
+      );
+    }
+
+    await prisma.bike_quote_requests.update({
+      where: { id: requestId },
+      data: { status: 'CANCELLED' },
+    });
+
+    return NextResponse.json({ success: true, message: 'Quote request cancelled successfully.' });
+  } catch (error: any) {
+    logger.error('Failed to cancel bike quote request', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to cancel request', details: error?.message },
+      { status: 500 }
+    );
+  }
+}

@@ -291,7 +291,7 @@ export default function ViewPackersQuotePage() {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-emerald-800">Quote accepted! Booking #{quote.booking.bookingNumber}</p>
           </div>
-          <Link href={`/vendor/packers/bookings/${quote.booking.id}`} className="hidden sm:flex items-center gap-1 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold rounded-lg transition-all active:scale-95 shrink-0">
+          <Link href={`/vendor/packers/bookings/${quote.booking.id}`} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold rounded-lg transition-all active:scale-95 shrink-0">
             View Booking <ArrowUpRight className="w-3 h-3" />
           </Link>
         </div>
@@ -462,6 +462,17 @@ export default function ViewPackersQuotePage() {
                 <p className="text-sm font-extrabold text-emerald-600">
                   {new Date(quote.request.preferredDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
+                {(() => {
+                  const d = new Date(quote.request.preferredDate);
+                  const h = d.getHours();
+                  const m = d.getMinutes();
+                  if (h === 0 && m === 0) return null;
+                  return (
+                    <p className="text-xs font-bold text-emerald-500 mt-0.5">
+                      {d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                    </p>
+                  );
+                })()}
               </div>
 
               <div className="space-y-2">

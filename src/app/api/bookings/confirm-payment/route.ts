@@ -283,6 +283,46 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Try luxury booking
+    let luxuryBooking = await prisma.luxury_bookings.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (luxuryBooking) {
+      if (luxuryBooking.status !== 'PENDING_PAYMENT') {
+        return NextResponse.json(
+          { error: `Cannot confirm payment for booking with status: ${luxuryBooking.status}` },
+          { status: 400 }
+        );
+      }
+
+      const updatedBooking = await prisma.luxury_bookings.update({
+        where: { id: bookingId },
+        data: {
+          status: 'PAYMENT_SUBMITTED',
+          paymentStatus: 'SUBMITTED',
+          advancePaid: amount || luxuryBooking.advanceAmount,
+          advancePaidAt: new Date(),
+          advancePaymentRef: paymentReference,
+          advancePaymentProof: paymentProof || null,
+          advancePaymentDate: new Date(),
+          advancePaymentMethod: paymentMethod || 'BANK_TRANSFER',
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Payment confirmation submitted successfully',
+        booking: {
+          id: updatedBooking.id,
+          bookingNumber: updatedBooking.bookingNumber,
+          status: updatedBooking.status,
+          advancePaymentRef: updatedBooking.advancePaymentRef,
+          type: 'luxury',
+        },
+      });
+    }
+
     // Try wander booking
     let wanderBooking = await (prisma as any).wander_bookings.findUnique({
       where: { id: bookingId },

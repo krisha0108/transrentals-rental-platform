@@ -93,6 +93,29 @@ interface PackersBooking {
   cancelledBy?: string;
   cancellationReason?: string;
   createdAt: string;
+  quote?: {
+    id: string;
+    quoteNumber: string;
+    vehicleType?: string;
+    teamSize?: number;
+    estimatedDuration?: number;
+    packingCharges: number;
+    loadingCharges: number;
+    transportCharges: number;
+    unloadingCharges: number;
+    unpackingCharges: number;
+    storageCharges: number;
+    insuranceCharges: number;
+    materialCharges: number;
+    gstAmount: number;
+    totalAmount: number;
+    advanceAmount: number;
+    advancePercent?: number;
+    packingMaterials?: string;
+    inclusions?: any;
+    exclusions?: any;
+    termsConditions?: any;
+  };
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string; icon: any }> = {
@@ -109,6 +132,17 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
   COMPLETED: { label: 'Completed', color: 'text-gray-700', bgColor: 'bg-gray-100', icon: CheckCircle },
   CANCELLED: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100', icon: AlertCircle },
 };
+
+const CANCEL_REASONS = [
+  'Moving date needs to change',
+  'Found a better deal elsewhere',
+  'Plans have changed / Move cancelled',
+  'Submitted by mistake',
+  'Vendor not responding',
+  'Service quality concerns',
+  'Budget constraints',
+  'Other',
+];
 
 const SERVICE_TYPES: Record<string, string> = {
   'home-local': 'Local Home Shifting',
@@ -147,6 +181,11 @@ export default function CustomerPackersBookingDetailPage() {
   const [newChatMessage, setNewChatMessage] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedCancelReason, setSelectedCancelReason] = useState('');
+  const [otherCancelReason, setOtherCancelReason] = useState('');
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     // Check authentication from localStorage
@@ -293,6 +332,34 @@ export default function CustomerPackersBookingDetailPage() {
   const downloadInvoice = () => {
     if (!booking) return;
     window.open(`/api/packers-bookings/${booking.id}/invoice`, '_blank');
+  };
+
+  const handleCancelBooking = async () => {
+    const finalReason = selectedCancelReason === 'Other' ? otherCancelReason.trim() : selectedCancelReason;
+    if (!finalReason) {
+      setCancelError(selectedCancelReason === 'Other' ? 'Please describe your reason' : 'Please select a reason');
+      return;
+    }
+    setIsCancelling(true);
+    setCancelError(null);
+    try {
+      const res = await fetch(`/api/packers-bookings/${booking?.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel', reason: finalReason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowCancelModal(false);
+        setBooking(prev => prev ? { ...prev, status: 'CANCELLED', cancellationReason: finalReason, cancelledBy: 'CUSTOMER', cancelledAt: new Date().toISOString() } : prev);
+      } else {
+        setCancelError(data.error || 'Failed to cancel booking');
+      }
+    } catch {
+      setCancelError('Something went wrong. Please try again.');
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   if (isLoading || !customer) {
@@ -598,6 +665,116 @@ export default function CustomerPackersBookingDetailPage() {
           </div>
         )}
 
+        {/* Quote Details */}
+        {booking.quote && (
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900">Quote Details</h2>
+              <span className="text-xs text-gray-400 font-mono">#{booking.quote.quoteNumber}</span>
+            </div>
+            <div className="p-4 space-y-4">
+
+              {/* Vehicle & Team info */}
+              <div className="grid grid-cols-2 gap-3">
+                {booking.quote.vehicleType && (
+                  <div className="bg-teal-50 rounded-xl p-3 border border-teal-100">
+                    <p className="text-xs text-teal-500 font-bold uppercase tracking-wider mb-1">Vehicle Type</p>
+                    <p className="text-sm font-semibold text-teal-800">{booking.quote.vehicleType}</p>
+                  </div>
+                )}
+                {booking.quote.teamSize && (
+                  <div className="bg-teal-50 rounded-xl p-3 border border-teal-100">
+                    <p className="text-xs text-teal-500 font-bold uppercase tracking-wider mb-1">Team Size</p>
+                    <p className="text-sm font-semibold text-teal-800">{booking.quote.teamSize} packers</p>
+                  </div>
+                )}
+                {booking.quote.estimatedDuration && (
+                  <div className="bg-teal-50 rounded-xl p-3 border border-teal-100">
+                    <p className="text-xs text-teal-500 font-bold uppercase tracking-wider mb-1">Est. Duration</p>
+                    <p className="text-sm font-semibold text-teal-800">{booking.quote.estimatedDuration} day{booking.quote.estimatedDuration > 1 ? 's' : ''}</p>
+                  </div>
+                )}
+                {booking.quote.packingMaterials && (
+                  <div className="bg-teal-50 rounded-xl p-3 border border-teal-100 col-span-2">
+                    <p className="text-xs text-teal-500 font-bold uppercase tracking-wider mb-1">Packing Materials</p>
+                    <p className="text-sm text-teal-800">{booking.quote.packingMaterials}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Inclusions */}
+              {(() => {
+                const inc = Array.isArray(booking.quote.inclusions)
+                  ? booking.quote.inclusions
+                  : typeof booking.quote.inclusions === 'string'
+                  ? (() => { try { return JSON.parse(booking.quote.inclusions); } catch { return []; } })()
+                  : [];
+                return inc.length > 0 ? (
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <CheckCircle className="w-3.5 h-3.5 text-green-500" /> Inclusions
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {inc.map((item: string, i: number) => (
+                        <span key={i} className="text-xs bg-green-50 text-green-700 border border-green-200 px-2.5 py-1 rounded-full">
+                          ✓ {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Exclusions */}
+              {(() => {
+                const exc = Array.isArray(booking.quote.exclusions)
+                  ? booking.quote.exclusions
+                  : typeof booking.quote.exclusions === 'string'
+                  ? (() => { try { return JSON.parse(booking.quote.exclusions); } catch { return []; } })()
+                  : [];
+                return exc.length > 0 ? (
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <XCircle className="w-3.5 h-3.5 text-red-500" /> Exclusions
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {exc.map((item: string, i: number) => (
+                        <span key={i} className="text-xs bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-full">
+                          ✗ {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Terms & Conditions */}
+              {(() => {
+                const terms = Array.isArray(booking.quote.termsConditions)
+                  ? booking.quote.termsConditions
+                  : typeof booking.quote.termsConditions === 'string'
+                  ? (() => { try { return JSON.parse(booking.quote.termsConditions); } catch { return []; } })()
+                  : [];
+                return terms.length > 0 ? (
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-gray-400" /> Terms & Conditions
+                    </p>
+                    <ul className="space-y-1">
+                      {terms.map((item: string, i: number) => (
+                        <li key={i} className="text-xs text-gray-600 flex items-start gap-2">
+                          <span className="text-gray-400 mt-0.5">•</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null;
+              })()}
+            </div>
+          </div>
+        )}
+
         {/* Payment Details */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="p-4 border-b bg-gray-50">
@@ -650,19 +827,31 @@ export default function CustomerPackersBookingDetailPage() {
                 <span className="font-medium">₹{booking.materialCharges?.toLocaleString('en-IN')}</span>
               </div>
             )}
+            {booking.gstAmount > 0 && (
+              <div className="flex justify-between text-sm text-gray-500 border-t pt-3">
+                <span>GST</span>
+                <span>₹{booking.gstAmount?.toLocaleString('en-IN')}</span>
+              </div>
+            )}
             <div className="flex justify-between pt-3 border-t text-lg">
               <span className="font-semibold text-gray-900">Total Amount</span>
-              <span className="font-bold text-teal-600">₹{((booking.packingCharges || 0) + (booking.loadingCharges || 0) + (booking.transportCharges || 0) + (booking.unloadingCharges || 0) + (booking.unpackingCharges || 0) + (booking.storageCharges || 0) + (booking.insuranceCharges || 0) + (booking.materialCharges || 0))?.toLocaleString('en-IN')}</span>
+              <span className="font-bold text-teal-600">₹{(booking.totalAmount || ((booking.packingCharges || 0) + (booking.loadingCharges || 0) + (booking.transportCharges || 0) + (booking.unloadingCharges || 0) + (booking.unpackingCharges || 0) + (booking.storageCharges || 0) + (booking.insuranceCharges || 0) + (booking.materialCharges || 0) + (booking.gstAmount || 0)))?.toLocaleString('en-IN')}</span>
             </div>
+            {booking.advanceAmount && booking.advanceAmount > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Advance {booking.quote?.advancePercent ? `(${booking.quote.advancePercent}%)` : ''}</span>
+                <span className="font-medium text-gray-700">₹{booking.advanceAmount?.toLocaleString('en-IN')}</span>
+              </div>
+            )}
             {booking.advancePaid && booking.advancePaid > 0 && (
               <>
-                <div className="flex justify-between text-green-600">
-                  <span>Advance Paid</span>
-                  <span>- ₹{booking.advancePaid?.toLocaleString('en-IN')}</span>
+                <div className="flex justify-between text-sm text-green-600">
+                  <span className="flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> Advance Paid</span>
+                  <span className="font-semibold">- ₹{booking.advancePaid?.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between font-semibold">
-                  <span className="text-gray-900">Balance Due</span>
-                  <span className="text-teal-600">₹{booking.balanceAmount?.toLocaleString('en-IN')}</span>
+                <div className="flex justify-between font-semibold bg-teal-50 rounded-lg px-3 py-2.5 -mx-1">
+                  <span className="text-gray-800">Balance Due</span>
+                  <span className="text-teal-700">₹{booking.balanceAmount?.toLocaleString('en-IN')}</span>
                 </div>
               </>
             )}
@@ -794,6 +983,22 @@ export default function CustomerPackersBookingDetailPage() {
               Need Help?
             </Link>
           </div>
+
+          {['PENDING_PAYMENT', 'PAYMENT_SUBMITTED', 'ADVANCE_PAID', 'CONFIRMED', 'TEAM_ASSIGNED'].includes(booking.status) && (
+            <div className="bg-white rounded-xl border border-red-100 p-4">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Cancel Booking</h3>
+              <p className="text-sm text-gray-500 mb-3">
+                Need to cancel? You can cancel before the team is assigned. Refund eligibility depends on notice period.
+              </p>
+              <button
+                onClick={() => { setShowCancelModal(true); setCancelError(null); setSelectedCancelReason(''); setOtherCancelReason(''); }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl hover:bg-red-100 transition text-sm font-medium"
+              >
+                <XCircle className="w-4 h-4" />
+                Cancel This Booking
+              </button>
+            </div>
+          )}
 
           <Link
             href="/customer/dashboard"
@@ -1005,6 +1210,123 @@ export default function CustomerPackersBookingDetailPage() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Cancel Booking Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+              <div className="w-9 h-9 bg-red-100 rounded-full flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Cancel Booking</h3>
+                <p className="text-xs text-gray-500">#{booking?.bookingNumber}</p>
+              </div>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="ml-auto w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Booking Summary */}
+            <div className="mx-5 mt-4 mb-2 bg-gray-50 rounded-xl p-3.5 border border-gray-100">
+              <div className="flex items-center gap-2 text-sm text-gray-700 mb-1.5">
+                <Package className="w-4 h-4 text-gray-400" />
+                <span className="font-medium">{SHIFTING_TYPES[booking?.shiftingType || ''] || booking?.shiftingType}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                <MapPin className="w-4 h-4 text-gray-400" />
+                <span>{booking?.pickupCity} → {booking?.dropCity}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Calendar className="w-4 h-4 text-gray-400" />
+                <span>{booking?.scheduledDate ? formatDate(booking.scheduledDate) : '—'}</span>
+              </div>
+            </div>
+
+            {/* Refund notice */}
+            {booking?.advancePaid && booking.advancePaid > 0 && (
+              <div className="mx-5 mb-2 flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3">
+                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 leading-relaxed">
+                  Refund eligibility: 90% if cancelled 5+ days before moving date, 50% if 2–5 days before. No refund within 2 days.
+                </p>
+              </div>
+            )}
+
+            {/* Reason Selection */}
+            <div className="px-5 py-3">
+              <p className="text-sm font-semibold text-gray-800 mb-3">Why are you cancelling?</p>
+              <div className="space-y-2">
+                {CANCEL_REASONS.map((reason) => (
+                  <label
+                    key={reason}
+                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition ${
+                      selectedCancelReason === reason
+                        ? 'border-red-400 bg-red-50'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="cancelReason"
+                      value={reason}
+                      checked={selectedCancelReason === reason}
+                      onChange={() => { setSelectedCancelReason(reason); setCancelError(null); }}
+                      className="mt-0.5 accent-red-500"
+                    />
+                    <span className="text-sm text-gray-700">{reason}</span>
+                  </label>
+                ))}
+              </div>
+
+              {selectedCancelReason === 'Other' && (
+                <textarea
+                  value={otherCancelReason}
+                  onChange={(e) => { setOtherCancelReason(e.target.value); setCancelError(null); }}
+                  placeholder="Please describe your reason..."
+                  rows={3}
+                  className="mt-3 w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:border-red-400 focus:ring-2 focus:ring-red-100 outline-none text-sm text-gray-700 resize-none transition"
+                />
+              )}
+
+              {cancelError && (
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {cancelError}
+                </p>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3 px-5 pb-5">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+              >
+                Keep Booking
+              </button>
+              <button
+                onClick={handleCancelBooking}
+                disabled={isCancelling || !selectedCancelReason}
+                className="flex-1 py-3 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  'Cancel Booking'
+                )}
+              </button>
             </div>
           </div>
         </div>

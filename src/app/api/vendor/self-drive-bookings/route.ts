@@ -54,15 +54,15 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
     const search = searchParams.get('search')?.trim() || '';
 
-    // SEARCH FILTER
-    const searchFilter: any = search ? {
-      OR: [
-        { customerName: { contains: search } },
-        { customerPhone: { contains: search } },
-        { customerEmail: { contains: search } },
-        { bookingNumber: { contains: search } },
-      ],
-    } : {};
+    // SEARCH FILTER — built as an AND-able block
+    const searchAnd: any[] = search
+      ? [{ OR: [
+          { customerName: { contains: search } },
+          { customerPhone: { contains: search } },
+          { customerEmail: { contains: search } },
+          { bookingNumber: { contains: search } },
+        ]}]
+      : [];
 
     // Build date filter
     const dateFilter: any = {};
@@ -87,73 +87,75 @@ export async function GET(request: NextRequest) {
 
       whereClause = {
         ...dateFilter,
-        ...searchFilter,
-        OR: [
-          {
-            acceptedVendorId: vendor.id,
-            status: { in: dbStatuses },
-          },
-          {
-            assignedVendorId: vendor.id,
-            status: { in: dbStatuses },
-          },
-          ...(status === 'pending' ? [{
-            status: { in: dbStatuses },
-            locationId: { in: approvedLocationIds },
-            OR: [
-              { assignedVendorId: null },
-              { assignedVendorId: vendor.id },
-            ],
-          }] : []),
+        AND: [
+          ...searchAnd,
+          { OR: [
+            { acceptedVendorId: vendor.id, status: { in: dbStatuses } },
+            { assignedVendorId: vendor.id, status: { in: dbStatuses } },
+            ...(status === 'pending' ? [{
+              status: { in: dbStatuses },
+              locationId: { in: approvedLocationIds },
+              OR: [
+                { assignedVendorId: null },
+                { assignedVendorId: vendor.id },
+              ],
+            }] : []),
+          ]},
         ],
       };
     } else if (type === 'direct') {
       // Direct requests - booking was assigned to this vendor
       whereClause = {
         ...dateFilter,
-        ...searchFilter,
-        assignedVendorId: vendor.id,
-        status: 'PENDING_VENDOR',
+        AND: [
+          ...searchAnd,
+          { assignedVendorId: vendor.id, status: 'PENDING_VENDOR' },
+        ],
       };
     } else if (type === 'open') {
       // Open/Broadcasted requests - available to all vendors in approved locations
       whereClause = {
         ...dateFilter,
-        ...searchFilter,
-        status: 'BROADCASTED',
-        locationId: { in: approvedLocationIds },
+        AND: [
+          ...searchAnd,
+          { status: 'BROADCASTED', locationId: { in: approvedLocationIds } },
+        ],
       };
     } else if (type === 'accepted') {
       // Accepted by this vendor
       whereClause = {
         ...dateFilter,
-        ...searchFilter,
-        acceptedVendorId: vendor.id,
-        status: { in: ['ACCEPTED', 'IN_PROGRESS'] },
+        AND: [
+          ...searchAnd,
+          { acceptedVendorId: vendor.id, status: { in: ['ACCEPTED', 'IN_PROGRESS'] } },
+        ],
       };
     } else if (type === 'completed') {
       whereClause = {
         ...dateFilter,
-        ...searchFilter,
-        acceptedVendorId: vendor.id,
-        status: 'COMPLETED',
+        AND: [
+          ...searchAnd,
+          { acceptedVendorId: vendor.id, status: 'COMPLETED' },
+        ],
       };
     } else {
       // All bookings related to this vendor (default for 'all' or no filter)
       whereClause = {
         ...dateFilter,
-        ...searchFilter,
-        OR: [
-          { acceptedVendorId: vendor.id },
-          { assignedVendorId: vendor.id },
-          {
-            status: { in: ['BROADCASTED', 'PENDING_VENDOR', 'PENDING_PAYMENT', 'PAYMENT_SUBMITTED'] },
-            locationId: { in: approvedLocationIds },
-            OR: [
-              { assignedVendorId: null },
-              { assignedVendorId: vendor.id },
-            ],
-          },
+        AND: [
+          ...searchAnd,
+          { OR: [
+            { acceptedVendorId: vendor.id },
+            { assignedVendorId: vendor.id },
+            {
+              status: { in: ['BROADCASTED', 'PENDING_VENDOR', 'PENDING_PAYMENT', 'PAYMENT_SUBMITTED'] },
+              locationId: { in: approvedLocationIds },
+              OR: [
+                { assignedVendorId: null },
+                { assignedVendorId: vendor.id },
+              ],
+            },
+          ]},
         ],
       };
     }
