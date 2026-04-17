@@ -217,8 +217,35 @@ export function VendorLayout({ children }: VendorLayoutProps) {
   useVendorWebNotifications();
 
   useEffect(() => {
+    const vendorId = (session?.user as any)?.id || (session?.user as any)?.email || 'unknown';
+    const CACHE_KEY = `vendor_profile_cache_${vendorId}`;
+    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
     const fetchVendorStatus = async () => {
       if (status === 'authenticated') {
+        // Try sessionStorage cache first
+        try {
+          const cached = sessionStorage.getItem(CACHE_KEY);
+          if (cached) {
+            const { data, ts } = JSON.parse(cached);
+            if (Date.now() - ts < CACHE_TTL) {
+              setVendorStatus(data.status);
+              setApprovedServiceIds(data.approvedServiceIds || []);
+              setApprovedServiceSlugs(data.approvedServiceSlugs || []);
+              setOnboardingCounts({
+                docs:      data.documentsCount        || 0,
+                locations: data.locationRequestsCount || 0,
+                services:  data.serviceRequestsCount  || 0,
+              });
+              setStatusLoading(false);
+              return;
+            }
+          }
+        } catch {
+          // sessionStorage not available — fall through to fetch
+        }
+
+        // Cache miss or expired — fetch from API
         try {
           const res = await fetch('/api/vendor/profile');
           if (res.ok) {
@@ -231,6 +258,10 @@ export function VendorLayout({ children }: VendorLayoutProps) {
               locations: data.locationRequestsCount || 0,
               services:  data.serviceRequestsCount  || 0,
             });
+            // Save to cache
+            try {
+              sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+            } catch { /* ignore quota errors */ }
           } else {
             setVendorStatus((session?.user as any)?.status);
           }
