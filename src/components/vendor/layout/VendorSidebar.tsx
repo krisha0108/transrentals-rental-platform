@@ -642,10 +642,8 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
 
   const navigationItems = getFilteredNavigationItems();
 
-  // Debug log for troubleshooting (remove in production)
-  console.log('Approved service IDs from DB:', approvedServiceIds);
-
   const handleSignOut = async () => {
+    try { sessionStorage.removeItem('vendor_profile_cache'); } catch { /* ignore */ }
     await signOut({ callbackUrl: '/vendor/login' });
   };
 
