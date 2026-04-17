@@ -11,6 +11,7 @@ import {
   Flag, XCircle, MessageCircle,
 } from 'lucide-react';
 import VendorBookingChat from '@/components/vendor/VendorBookingChat';
+import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   OPEN_FOR_QUOTES: { label: 'Open for Quotes', color: 'bg-emerald-100 text-emerald-700' },
@@ -27,6 +28,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
   const bookingId = params.id;
   const router = useRouter();
   const { data: session } = useSession();
+  const { isApproved, openVerificationModal } = useVendorVerification();
   const [booking, setBooking] = useState<any>(null);
   const [myQuotes, setMyQuotes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -726,7 +728,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                             </div>
                           </div>
                           <button
-                            onClick={() => handleMarkArrived(trip.tripCode)}
+                            onClick={() => isApproved ? handleMarkArrived(trip.tripCode) : openVerificationModal()}
                             disabled={tripProcessing === trip.tripCode}
                             className="px-5 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl font-semibold text-sm flex items-center gap-2 disabled:opacity-50 transition"
                           >
@@ -751,7 +753,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                               <p className="text-xs text-cyan-600">Ask the customer to share the OTP they received via trip link</p>
                             </div>
                             <button
-                              onClick={() => handleResendOtp(trip.tripCode)}
+                              onClick={() => isApproved ? handleResendOtp(trip.tripCode) : openVerificationModal()}
                               disabled={tripProcessing === trip.tripCode}
                               className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 transition flex-shrink-0"
                             >
@@ -780,7 +782,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                               />
                             </div>
                             <button
-                              onClick={() => handleVerifyOtp(trip.tripCode)}
+                              onClick={() => isApproved ? handleVerifyOtp(trip.tripCode) : openVerificationModal()}
                               disabled={tripProcessing === trip.tripCode || (otpInputs[trip.tripCode] || '').length < 4}
                               className="px-5 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold text-sm flex items-center gap-2 disabled:opacity-50 transition"
                             >
@@ -808,7 +810,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                             </div>
                           </div>
                           <button
-                            onClick={() => handleEndTrip(trip.tripCode)}
+                            onClick={() => isApproved ? handleEndTrip(trip.tripCode) : openVerificationModal()}
                             disabled={tripProcessing === trip.tripCode}
                             className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-sm flex items-center gap-2 disabled:opacity-50 transition"
                           >

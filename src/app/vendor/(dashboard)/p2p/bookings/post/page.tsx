@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 import {
   ArrowLeft,
   Truck,
@@ -95,6 +96,7 @@ const URGENCY_OPTIONS = [
 
 export default function PostBookingPage() {
   const router = useRouter();
+  const { isApproved, openVerificationModal } = useVendorVerification();
 
   // ---- form state ----
   const [serviceType, setServiceType] = useState<ServiceType | ''>('');
@@ -277,7 +279,7 @@ export default function PostBookingPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={isApproved ? handleSubmit : (e) => { e.preventDefault(); openVerificationModal(); }} className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* ==============================================================
             Service Type Selector

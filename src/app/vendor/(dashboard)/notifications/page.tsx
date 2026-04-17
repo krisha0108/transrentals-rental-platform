@@ -28,6 +28,7 @@ import {
   Filter,
   Inbox,
   BellRing,
+  ChevronDown,
 } from 'lucide-react';
 
 interface Notification {
@@ -222,12 +223,41 @@ const FILTERS = [
   { id: 'payment', label: 'Payments', icon: CreditCard },
 ];
 
+const DATE_FILTERS = [
+  { id: 'all',       label: 'All Time' },
+  { id: 'today',     label: 'Today'     },
+  { id: 'yesterday', label: 'Yesterday' },
+  { id: 'week',      label: 'This Week' },
+  { id: 'month',     label: 'This Month'},
+];
+
+function isInDateRange(dateStr: string, dateFilter: string): boolean {
+  const date = new Date(dateStr);
+  const now  = new Date();
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+  const today     = startOfDay(now);
+  const yesterday = new Date(today.getTime() - 86400000);
+  const weekAgo   = new Date(today.getTime() - 6 * 86400000);
+  const monthAgo  = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  switch (dateFilter) {
+    case 'today':     return date >= today;
+    case 'yesterday': return date >= yesterday && date < today;
+    case 'week':      return date >= weekAgo;
+    case 'month':     return date >= monthAgo;
+    default:          return true;
+  }
+}
+
 export default function VendorNotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('all');
+  const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const fetchNotifications = useCallback(async (showRefresh = false) => {
@@ -245,6 +275,14 @@ export default function VendorNotificationsPage() {
   }, []);
 
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+
+  // Close date dropdown on outside click
+  useEffect(() => {
+    if (!showDateDropdown) return;
+    const handler = () => setShowDateDropdown(false);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [showDateDropdown]);
 
   // Auto-refresh every 15 seconds
   useEffect(() => {
@@ -293,13 +331,15 @@ export default function VendorNotificationsPage() {
   };
 
   const filteredNotifications = notifications.filter(n => {
-    if (filter === 'all') return true;
-    if (filter === 'unread') return !n.read;
-    if (filter === 'p2p') return n.type?.startsWith('p2p_') || n.serviceType === 'p2p';
-    if (filter === 'booking') return n.type?.includes('booking') || n.type === 'booking_confirmed' || n.type === 'booking_assigned';
-    if (filter === 'quote_request') return n.type === 'quote_request' || n.type === 'quote_accepted';
-    if (filter === 'payment') return n.type === 'payment' || n.type === 'payout' || n.type === 'advance_paid';
-    return n.type === filter;
+    // Type filter
+    if (filter === 'unread' && n.read) return false;
+    if (filter === 'p2p' && !(n.type?.startsWith('p2p_') || n.serviceType === 'p2p')) return false;
+    if (filter === 'booking' && !(n.type?.includes('booking') || n.type === 'booking_confirmed' || n.type === 'booking_assigned')) return false;
+    if (filter === 'quote_request' && !(n.type === 'quote_request' || n.type === 'quote_accepted')) return false;
+    if (filter === 'payment' && !(n.type === 'payment' || n.type === 'payout' || n.type === 'advance_paid')) return false;
+    // Date filter
+    if (!isInDateRange(n.createdAt, dateFilter)) return false;
+    return true;
   });
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -535,34 +575,69 @@ export default function VendorNotificationsPage() {
           </div>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide" style={{ animation: 'fade-up 0.4s ease-out 0.1s both' }}>
-          {FILTERS.map(f => {
-            const Icon = f.icon;
-            const isActive = filter === f.id;
-            const count = f.id === 'unread' ? unreadCount : f.id === 'p2p' ? p2pCount : 0;
-            return (
-              <button
-                key={f.id}
-                onClick={() => setFilter(f.id)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
-                  isActive
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25'
-                    : 'bg-white text-gray-600 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-300'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {f.label}
-                {count > 0 && (
-                  <span className={`min-w-[20px] h-5 flex items-center justify-center rounded-full text-xs font-bold px-1.5 ${
-                    isActive ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-700'
-                  }`}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Filter Pills + Date Filter */}
+        <div className="flex items-center gap-2 mb-6 flex-wrap" style={{ animation: 'fade-up 0.4s ease-out 0.1s both' }}>
+          {/* Type filter pills */}
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide flex-1">
+            {FILTERS.map(f => {
+              const Icon = f.icon;
+              const isActive = filter === f.id;
+              const count = f.id === 'unread' ? unreadCount : f.id === 'p2p' ? p2pCount : 0;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => setFilter(f.id)}
+                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
+                    isActive
+                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25'
+                      : 'bg-white text-gray-600 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-300'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {f.label}
+                  {count > 0 && (
+                    <span className={`min-w-[20px] h-5 flex items-center justify-center rounded-full text-xs font-bold px-1.5 ${
+                      isActive ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-700'
+                    }`}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Date filter dropdown */}
+          <div className="relative shrink-0">
+            <button
+              onClick={() => setShowDateDropdown(v => !v)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 border ${
+                dateFilter !== 'all'
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/25'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-emerald-50 hover:border-emerald-300'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              {DATE_FILTERS.find(d => d.id === dateFilter)?.label || 'All Time'}
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showDateDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showDateDropdown && (
+              <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-20 min-w-[160px] overflow-hidden">
+                {DATE_FILTERS.map(d => (
+                  <button
+                    key={d.id}
+                    onClick={() => { setDateFilter(d.id); setShowDateDropdown(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors hover:bg-emerald-50 ${
+                      dateFilter === d.id ? 'text-emerald-600 bg-emerald-50 font-semibold' : 'text-gray-700'
+                    }`}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Bulk Action Bar */}

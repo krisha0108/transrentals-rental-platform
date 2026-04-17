@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 import {
   Star, Eye, EyeOff, MessageSquare, Loader2, Check, RefreshCw,
   ThumbsUp, BarChart2, Award,
@@ -47,6 +48,7 @@ const TABS = [
 ];
 
 export default function VendorWanderReviewsPage() {
+  const { isApproved, openVerificationModal } = useVendorVerification();
   const [reviews, setReviews]               = useState<any[]>([]);
   const [total, setTotal]                   = useState(0);
   const [loading, setLoading]               = useState(true);
@@ -259,7 +261,7 @@ export default function VendorWanderReviewsPage() {
                             <div className="flex items-center gap-2 flex-shrink-0">
                               {!isHidden ? (
                                 <button
-                                  onClick={() => handleAction(review.id, 'hide')}
+                                  onClick={() => isApproved ? handleAction(review.id, 'hide') : openVerificationModal()}
                                   disabled={actionLoading === review.id + '_hide'}
                                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 border border-gray-200 hover:bg-gray-50 hover:text-gray-700 rounded-xl transition disabled:opacity-50"
                                 >
@@ -270,7 +272,7 @@ export default function VendorWanderReviewsPage() {
                                 </button>
                               ) : (
                                 <button
-                                  onClick={() => handleAction(review.id, 'show')}
+                                  onClick={() => isApproved ? handleAction(review.id, 'show') : openVerificationModal()}
                                   disabled={actionLoading === review.id + '_show'}
                                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600 border border-emerald-200 hover:bg-emerald-50 rounded-xl transition disabled:opacity-50"
                                 >
@@ -338,7 +340,7 @@ export default function VendorWanderReviewsPage() {
                                   Cancel
                                 </button>
                                 <button
-                                  onClick={() => handleReplySubmit(review.id)}
+                                  onClick={() => isApproved ? handleReplySubmit(review.id) : openVerificationModal()}
                                   disabled={replySubmitting === review.id || !replyText[review.id]?.trim()}
                                   className="px-5 py-2 bg-emerald-600 hover:bg-emerald-600 disabled:bg-gray-200 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm"
                                 >

@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 import {
   Compass, ChevronRight, ChevronLeft, Check, Loader2, AlertCircle,
   Plus, Trash2, MapPin, Search, X, Clock, Users, Car, GripVertical, Coffee,
@@ -116,6 +117,7 @@ const initForm = () => ({
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function CreateWanderListingPage() {
+  const { isApproved, openVerificationModal } = useVendorVerification();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(initForm());
@@ -1375,7 +1377,7 @@ export default function CreateWanderListingPage() {
           {step === STEPS.length ? (
             <>
               <button
-                onClick={() => handleSubmit(false)}
+                onClick={() => isApproved ? handleSubmit(false) : openVerificationModal()}
                 disabled={saving}
                 className="flex items-center gap-2 px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
               >
@@ -1383,7 +1385,7 @@ export default function CreateWanderListingPage() {
                 Save as Draft
               </button>
               <button
-                onClick={() => handleSubmit(true)}
+                onClick={() => isApproved ? handleSubmit(true) : openVerificationModal()}
                 disabled={saving}
                 className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
               >

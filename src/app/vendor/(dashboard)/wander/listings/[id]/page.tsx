@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 import {
   Compass, ChevronRight, ChevronLeft, Check, Loader2, AlertCircle,
   Plus, Trash2, MapPin, Search, X, Clock, Car, ArrowLeft,
@@ -128,6 +129,7 @@ function listingToForm(listing) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function EditWanderListingPage() {
+  const { isApproved, openVerificationModal } = useVendorVerification();
   const router = useRouter();
   const params = useParams();
   const listingId = params.id;
@@ -1185,7 +1187,7 @@ export default function EditWanderListingPage() {
           {step === STEPS.length ? (
             <>
               <button
-                onClick={() => handleSave(null)}
+                onClick={() => isApproved ? handleSave(null) : openVerificationModal()}
                 disabled={saving}
                 className="flex items-center gap-2 px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
               >
@@ -1193,7 +1195,7 @@ export default function EditWanderListingPage() {
                 Save Changes
               </button>
               <button
-                onClick={() => handleSave(true)}
+                onClick={() => isApproved ? handleSave(true) : openVerificationModal()}
                 disabled={saving}
                 className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
               >

@@ -296,6 +296,44 @@ export default function BookingDetailPage() {
         </div>
       </div>
 
+      {/* Cancellation Details Banner */}
+      {['CANCELLED', 'REFUNDED', 'EXPIRED'].includes(booking.status) && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+          <div className="flex items-start gap-3">
+            <XCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-800 mb-2">Booking Cancelled</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                {booking.cancelledBy && (
+                  <div>
+                    <p className="text-red-600 font-medium">Cancelled By</p>
+                    <p className="text-red-900 capitalize">{booking.cancelledBy.toLowerCase()}</p>
+                  </div>
+                )}
+                {booking.cancelledAt && (
+                  <div>
+                    <p className="text-red-600 font-medium">Cancelled On</p>
+                    <p className="text-red-900">{formatDateTime(booking.cancelledAt)}</p>
+                  </div>
+                )}
+                {booking.cancellationReason && (
+                  <div className="sm:col-span-3">
+                    <p className="text-red-600 font-medium">Reason</p>
+                    <p className="text-red-900">{booking.cancellationReason}</p>
+                  </div>
+                )}
+                {booking.refundAmount > 0 && (
+                  <div>
+                    <p className="text-red-600 font-medium">Refund Amount</p>
+                    <p className="text-red-900 font-semibold">₹{booking.refundAmount.toLocaleString()}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content - Left Side */}
         <div className="lg:col-span-2 space-y-6">
