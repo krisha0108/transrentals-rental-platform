@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 import { ArrowLeft, Zap, Send, ChevronDown, Search, X, Check } from 'lucide-react';
 import Link from 'next/link';
 
@@ -193,6 +194,7 @@ function CategoryDropdown({
 
 export default function CreatePostPage() {
   const router = useRouter();
+  const { isApproved, openVerificationModal } = useVendorVerification();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [content, setContent] = useState('');
@@ -332,7 +334,7 @@ export default function CreatePostPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={isApproved ? handleSubmit : (e) => { e.preventDefault(); openVerificationModal(); }} className="space-y-4">
 
           {/* Category */}
           <div className="group/card relative z-10 bg-white border border-gray-100 rounded-2xl p-5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] animate-bounce-in hover:shadow-[0_4px_20px_rgba(5,150,105,0.1)] hover:border-emerald-300 transition-all duration-300" style={{ animationDelay: '80ms' }}>

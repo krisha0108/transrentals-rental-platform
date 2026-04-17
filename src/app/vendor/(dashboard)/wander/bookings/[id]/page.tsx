@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 import Link from 'next/link';
 import {
   ArrowLeft, Loader2, AlertCircle, CalendarCheck, Users, MapPin,
@@ -37,6 +38,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string; strip: string 
 };
 
 export default function VendorWanderBookingDetailPage() {
+  const { isApproved, openVerificationModal } = useVendorVerification();
   const { id } = useParams();
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -182,7 +184,7 @@ export default function VendorWanderBookingDetailPage() {
           <div className="flex gap-3 flex-wrap">
             {(booking.status === 'CONFIRMED' || booking.status === 'GUIDE_ASSIGNED') && (
               <button
-                onClick={() => handleAction('start')}
+                onClick={() => isApproved ? handleAction('start') : openVerificationModal()}
                 disabled={actionLoading}
                 className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition"
               >
@@ -192,7 +194,7 @@ export default function VendorWanderBookingDetailPage() {
             )}
             {booking.status === 'STARTED' && (
               <button
-                onClick={() => handleAction('complete')}
+                onClick={() => isApproved ? handleAction('complete') : openVerificationModal()}
                 disabled={actionLoading}
                 className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition"
               >

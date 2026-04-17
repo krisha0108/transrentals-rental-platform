@@ -3773,10 +3773,32 @@ model vendors {
   wander_listings                                                 wander_listings[]
   wander_quotes                                                   wander_quotes[]
 
+  vendor_bank_accounts                                            vendor_bank_accounts[]
+
   @@index([approvedById], map: "vendors_approvedById_fkey")
   @@index([email])
   @@index([phone])
   @@index([status])
+}
+
+model vendor_bank_accounts {
+  id                String   @id @default(cuid())
+  vendorId          String
+  bankName          String
+  accountHolderName String
+  accountNumber     String
+  ifscCode          String
+  accountType       String   @default("SAVINGS")
+  branchName        String?
+  upiId             String?
+  isPrimary         Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  vendors           vendors  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+  @@index([isPrimary])
 }
 
 model web_vitals {

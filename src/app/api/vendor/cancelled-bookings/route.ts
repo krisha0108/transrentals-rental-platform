@@ -79,30 +79,39 @@ export async function GET(request: NextRequest) {
 
     switch (service) {
       case 'bike-rentals': {
+        // bike_bookings does not have cancelledAt/cancelledBy columns — use updatedAt for sorting/date-filter
+        const bikeDateFilter: any = {};
+        if (startDate || endDate) {
+          bikeDateFilter.updatedAt = {};
+          if (startDate) bikeDateFilter.updatedAt.gte = new Date(startDate);
+          if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            bikeDateFilter.updatedAt.lte = end;
+          }
+        }
+        const bikeWhere = {
+          status: { in: CANCELLED_STATUSES },
+          OR: [{ assignedVendorId: vendorId }, { acceptedVendorId: vendorId }],
+          ...searchFilter, ...bikeDateFilter,
+        };
         const [rows, count] = await Promise.all([
           prisma.bike_bookings.findMany({
-            where: {
-              status: { in: CANCELLED_STATUSES },
-              OR: [{ assignedVendorId: vendorId }, { acceptedVendorId: vendorId }],
-              ...searchFilter, ...dateFilter,
-            },
+            where: bikeWhere,
             select: {
-              ...commonSelect,
+              id: true, bookingNumber: true,
+              customerName: true, customerPhone: true,
+              status: true, cancellationReason: true,
+              grandTotal: true, paidAmount: true, refundAmount: true, createdAt: true,
               requestedVehicleName: true,
               pickupDate: true, dropDate: true, totalDays: true,
             },
-            orderBy: { cancelledAt: 'desc' },
+            orderBy: { updatedAt: 'desc' },
             skip, take: limit,
           }),
-          prisma.bike_bookings.count({
-            where: {
-              status: { in: CANCELLED_STATUSES },
-              OR: [{ assignedVendorId: vendorId }, { acceptedVendorId: vendorId }],
-              ...searchFilter, ...dateFilter,
-            },
-          }),
+          prisma.bike_bookings.count({ where: bikeWhere }),
         ]);
-        bookings = rows.map((b) => ({ ...b, vehicleName: b.requestedVehicleName, detailHref: `/vendor/bike-rentals/bookings/${b.id}` }));
+        bookings = rows.map((b) => ({ ...b, cancelledAt: null, cancelledBy: null, vehicleName: b.requestedVehicleName, detailHref: `/vendor/bike-rentals/bookings/${b.id}` }));
         total = count;
         break;
       }
@@ -244,10 +253,20 @@ export async function GET(request: NextRequest) {
       }
 
       case 'equipment': {
+        const eqDateFilter: any = {};
+        if (startDate || endDate) {
+          eqDateFilter.updatedAt = {};
+          if (startDate) eqDateFilter.updatedAt.gte = new Date(startDate);
+          if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            eqDateFilter.updatedAt.lte = end;
+          }
+        }
         const eqWhere = {
           status: { in: ['CANCELLED', 'DROPPED'] },
           vendorId: vendorId,
-          ...searchFilter, ...dateFilter,
+          ...searchFilter, ...eqDateFilter,
         };
         const [rows, count] = await Promise.all([
           prisma.equipment_bookings.findMany({
@@ -255,18 +274,17 @@ export async function GET(request: NextRequest) {
             select: {
               id: true, bookingNumber: true,
               customerName: true, customerPhone: true,
-              status: true, cancelledAt: true, cancelledBy: true,
-              cancellationReason: true, totalAmount: true,
-              advancePaid: true, refundAmount: true, createdAt: true,
+              status: true, cancellationReason: true,
+              totalAmount: true, advancePaid: true, refundAmount: true, createdAt: true,
               equipmentName: true,
               startDate: true, endDate: true, totalDays: true,
             },
-            orderBy: { cancelledAt: 'desc' },
+            orderBy: { updatedAt: 'desc' },
             skip, take: limit,
           }),
           prisma.equipment_bookings.count({ where: eqWhere }),
         ]);
-        bookings = rows.map((b) => ({ ...b, grandTotal: b.totalAmount, paidAmount: b.advancePaid, vehicleName: b.equipmentName || 'Equipment', pickupDate: b.startDate, dropDate: b.endDate, detailHref: `/vendor/equipment/bookings/${b.id}` }));
+        bookings = rows.map((b) => ({ ...b, cancelledAt: null, cancelledBy: null, grandTotal: b.totalAmount, paidAmount: b.advancePaid, vehicleName: b.equipmentName || 'Equipment', pickupDate: b.startDate, dropDate: b.endDate, detailHref: `/vendor/equipment/bookings/${b.id}` }));
         total = count;
         break;
       }
