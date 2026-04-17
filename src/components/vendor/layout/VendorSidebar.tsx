@@ -67,6 +67,8 @@ import {
   Compass,
   MapIcon,
   Ban,
+  Lock,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut, useSession } from 'next-auth/react';
@@ -87,6 +89,7 @@ interface NavItem {
   children?: NavItem[];
   requiresApproval?: boolean;
   serviceId?: string; // Maps to approved service ID (stable, doesn't change with slug)
+  locked?: boolean;   // Show in sidebar but block navigation (pre-verification)
 }
 
 // Navigation items for APPROVED vendors
@@ -104,8 +107,12 @@ const approvedNavigationItems: NavItem[] = [
     icon: MessageSquare,
   },
   {
-    name: 'Direct Bookings',
-    icon: BookOpen,
+    name: 'All Bookings',
+    href: '/vendor/all-bookings',
+    icon: Layers,
+  },
+  {
+    name: 'Direct Bookings',icon: BookOpen,
     children: [
       { name: 'Booking Links', href: '/vendor/booking-links', icon: Link2 },
       { name: 'Bookings', href: '/vendor/direct-bookings', icon: BookOpen },
@@ -468,6 +475,11 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Notification Settings', href: '/vendor/notification-settings', icon: Settings },
     ],
   },
+  {
+    name: 'Get Started',
+    href: '/vendor/get-started',
+    icon: Sparkles,
+  },
   // {
   //   name: 'Settings',
   //   href: '/vendor/settings',
@@ -481,6 +493,7 @@ const approvedNavigationItems: NavItem[] = [
 ];
 
 // Navigation items for NON-APPROVED vendors (pending, documents_pending, under_review)
+// These pages are fully navigable — actions are blocked at the component level via context
 const pendingNavigationItems: NavItem[] = [
   {
     name: 'Dashboard',
@@ -488,18 +501,106 @@ const pendingNavigationItems: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
+    name: 'Get Started',
+    href: '/vendor/get-started',
+    icon: Sparkles,
+  },
+  {
     name: 'Services & Locations',
     href: '/vendor/requests',
     icon: ClipboardList,
     children: [
-      { name: 'Request Service', href: '/vendor/services/request', icon: Layers },
-      { name: 'Request Location', href: '/vendor/locations/request', icon: MapPin },
+      { name: 'My Services',      href: '/vendor/services',          icon: Layers  },
+      { name: 'My Locations',     href: '/vendor/locations',         icon: MapPin  },
+      { name: 'Request Service',  href: '/vendor/services/request',  icon: Layers  },
+      { name: 'Request Location', href: '/vendor/locations/request', icon: MapPin  },
     ],
   },
   {
     name: 'Notifications',
     href: '/vendor/notifications',
     icon: Bell,
+  },
+  // ── Preview pages — fully navigable, actions locked until verified ──
+  {
+    name: 'Direct Bookings',
+    href: '/vendor/direct-bookings',
+    icon: BookOpen,
+    children: [
+      { name: 'Booking Links', href: '/vendor/booking-links',   icon: Link2    },
+      { name: 'Bookings',      href: '/vendor/direct-bookings', icon: BookOpen },
+    ],
+  },
+  {
+    name: 'Fleet Management',
+    href: '/vendor/fleet',
+    icon: Car,
+    children: [
+      { name: 'All Vehicles',         href: '/vendor/fleet',           icon: Car           },
+      { name: 'Add Vehicle',          href: '/vendor/fleet/add',       icon: Plus          },
+      { name: 'Documents',            href: '/vendor/fleet/documents', icon: FileText      },
+      { name: 'Service & Maintenance',href: '/vendor/fleet/service',   icon: Wrench        },
+      { name: 'Incidents',            href: '/vendor/fleet/incidents', icon: AlertTriangle },
+      { name: 'Fuel Tracking',        href: '/vendor/fleet/fuel',      icon: Fuel          },
+    ],
+  },
+  {
+    name: 'Staff Management',
+    href: '/vendor/staff',
+    icon: Users,
+    children: [
+      { name: 'All Staff',     href: '/vendor/staff',            icon: Users      },
+      { name: 'Add Employee',  href: '/vendor/staff/add',        icon: Plus       },
+      { name: 'Attendance',    href: '/vendor/staff/attendance', icon: Clock      },
+      { name: 'Payroll',       href: '/vendor/staff/payroll',    icon: CreditCard },
+    ],
+  },
+  {
+    name: 'B2B Corporate',
+    href: '/vendor/b2b-bookings',
+    icon: Building2,
+    children: [
+      { name: 'Open Requests',  href: '/vendor/b2b-bookings',           icon: Inbox         },
+      { name: 'My Assignments', href: '/vendor/b2b-bookings/my-quotes', icon: CalendarCheck },
+    ],
+  },
+  {
+    name: 'P2P Marketplace',
+    href: '/vendor/p2p',
+    icon: ArrowRightLeft,
+    children: [
+      { name: 'Dashboard',          href: '/vendor/p2p',                 icon: ArrowRightLeft },
+      { name: 'Available Vehicles', href: '/vendor/p2p/vehicles',        icon: Car            },
+      { name: 'Post Vehicle',       href: '/vendor/p2p/vehicles/post',   icon: Plus           },
+      { name: 'Available Bookings', href: '/vendor/p2p/bookings',        icon: CalendarCheck  },
+      { name: 'Share Booking',      href: '/vendor/p2p/bookings/post',   icon: Send           },
+      { name: 'My Activity',        href: '/vendor/p2p/activity',        icon: History        },
+      { name: 'My Postings',        href: '/vendor/p2p/my-postings',     icon: ClipboardList  },
+    ],
+  },
+  {
+    name: 'Social Network',
+    href: '/vendor/social',
+    icon: Smile,
+    children: [
+      { name: 'Feed',        href: '/vendor/social',            icon: LayoutDashboard },
+      { name: 'Create Post', href: '/vendor/social/create',     icon: Plus            },
+      { name: 'My Profile',  href: '/vendor/social/profile/me', icon: User            },
+      { name: 'Messages',    href: '/vendor/social/messages',   icon: MessageSquare   },
+    ],
+  },
+  {
+    name: 'Wander Tours',
+    href: '/vendor/wander',
+    icon: Compass,
+    children: [
+      { name: 'My Listings',    href: '/vendor/wander/listings',     icon: MapIcon       },
+      { name: 'Create Tour',    href: '/vendor/wander/listings/new', icon: Plus          },
+      { name: 'Quote Requests', href: '/vendor/wander/quotes',       icon: Inbox         },
+      { name: 'Bookings',       href: '/vendor/wander/bookings',     icon: CalendarCheck },
+      { name: 'Analytics',      href: '/vendor/wander/analytics',    icon: BarChart3     },
+      { name: 'Reviews',        href: '/vendor/wander/reviews',      icon: Star          },
+    ],
   },
   {
     name: 'Help & Support',
@@ -574,6 +675,30 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
     const hasChildren = item.children && item.children.length > 0;
     const isActive = isItemActive(item);
     const isExpanded = expandedSections.includes(item.name);
+
+    // ── Locked item: visible but navigates back to dashboard (no sub-menu) ──
+    if (item.locked) {
+      return (
+        <Link
+          key={item.name}
+          href="/vendor/dashboard"
+          onClick={onClose}
+          className="flex items-center justify-between w-full px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-800/60 hover:text-gray-400 transition-colors group"
+          title="Complete verification to unlock"
+        >
+          <div className="flex items-center gap-3">
+            <Icon className="w-5 h-5 opacity-50" />
+            <span className="font-medium opacity-60 text-sm">{item.name}</span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[9px] font-bold text-gray-600 bg-gray-800 border border-gray-700 px-1.5 py-0.5 rounded tracking-wide opacity-0 group-hover:opacity-100 transition-opacity">
+              LOCKED
+            </span>
+            <Lock className="w-3.5 h-3.5 text-gray-600" />
+          </div>
+        </Link>
+      );
+    }
 
     if (hasChildren) {
       return (
