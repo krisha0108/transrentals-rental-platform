@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
@@ -80,6 +80,17 @@ interface Message {
   createdAt: string;
 }
 
+interface CustomerGroup {
+  customerId: string;
+  customerName: string;
+  avatar?: string;
+  phone?: string;
+  conversations: Conversation[];
+  totalUnread: number;
+  lastMessageAt: string | null;
+  lastMessage: Conversation['lastMessage'];
+}
+
 interface QuickReply {
   id: string;
   title: string;
@@ -126,7 +137,8 @@ const SERVICE_COLORS: Record<string, string> = {
 
 export default function VendorChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [selectedCustomerGroup, setSelectedCustomerGroup] = useState<CustomerGroup | null>(null);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -188,11 +200,13 @@ export default function VendorChatPage() {
       if (data.success) {
         setMessages(data.messages || []);
         // Update unread count in conversation list
-        setConversations((prev) =>
-          prev.map((c) =>
-            c.id === selectedConversation.id ? { ...c, unreadCount: 0 } : c
-          )
-        );
+        if (selectedConversation) {
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.id === selectedConversation.id ? { ...c, unreadCount: 0 } : c
+            )
+          );
+        }
       }
     } catch (err) {
       console.error('Failed to fetch messages:', err);
@@ -432,6 +446,14 @@ export default function VendorChatPage() {
     return Icon;
   };
 
+  // Derived: active conversation from group + activeConvId
+  const selectedConversation = useMemo(() => {
+    if (!selectedCustomerGroup) return null;
+    return selectedCustomerGroup.conversations.find(c => c.id === activeConvId)
+      || selectedCustomerGroup.conversations[0]
+      || null;
+  }, [selectedCustomerGroup, activeConvId]);
+
   // Filter conversations
   const filteredConversations = conversations.filter((conv) => {
     if (!searchQuery) {
@@ -447,16 +469,48 @@ export default function VendorChatPage() {
     );
   });
 
-  // Group conversations by date
-  const groupedConversations: { label: string; items: Conversation[] }[] = [];
+  // Group conversations by customer (participant.id)
+  const customerGroups = useMemo<CustomerGroup[]>(() => {
+    const map = new Map<string, CustomerGroup>();
+    filteredConversations.forEach((conv) => {
+      const existing = map.get(conv.participant.id);
+      if (existing) {
+        existing.conversations.push(conv);
+        existing.totalUnread += conv.unreadCount;
+        if (!existing.lastMessageAt || (conv.lastMessageAt && conv.lastMessageAt > existing.lastMessageAt)) {
+          existing.lastMessageAt = conv.lastMessageAt;
+          existing.lastMessage = conv.lastMessage;
+        }
+      } else {
+        map.set(conv.participant.id, {
+          customerId: conv.participant.id,
+          customerName: conv.participant.name,
+          avatar: conv.participant.avatar,
+          phone: conv.participant.phone,
+          conversations: [conv],
+          totalUnread: conv.unreadCount,
+          lastMessageAt: conv.lastMessageAt,
+          lastMessage: conv.lastMessage,
+        });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => {
+      if (!a.lastMessageAt) return 1;
+      if (!b.lastMessageAt) return -1;
+      return b.lastMessageAt.localeCompare(a.lastMessageAt);
+    });
+  }, [filteredConversations]);
+
+  // Group customer groups by date for sidebar sections
+  const groupedCustomers: { label: string; items: CustomerGroup[] }[] = [];
   let currentGroup = '';
-  filteredConversations.forEach((conv) => {
-    const group = getDateGroup(conv.lastMessageAt);
-    if (group !== currentGroup) {
-      currentGroup = group;
-      groupedConversations.push({ label: group, items: [conv] });
+  customerGroups.forEach((group) => {
+    const label = getDateGroup(group.lastMessageAt);
+    if (label !== currentGroup) {
+      currentGroup = label;
+      groupedCustomers.push({ label, items: [group] });
     } else {
-      groupedConversations[groupedConversations.length - 1].items.push(conv);
+      groupedCustomers[groupedCustomers.length - 1].items.push(group);
     }
   });
 
@@ -466,14 +520,14 @@ export default function VendorChatPage() {
     fetchQuickReplies();
   }, [fetchConversations, fetchQuickReplies]);
 
-  // Load messages when conversation selected
+  // Load messages when active conversation changes
   useEffect(() => {
     if (selectedConversation) {
       setIsLoadingMessages(true);
+      setMessages([]);
       fetchMessages();
       setShowMobileSidebar(false);
 
-      // Poll for new messages every 3 seconds
       pollingRef.current = setInterval(fetchMessages, 3000);
 
       return () => {
@@ -482,7 +536,7 @@ export default function VendorChatPage() {
         }
       };
     }
-  }, [selectedConversation, fetchMessages]);
+  }, [selectedConversation?.id, fetchMessages]);
 
   // Scroll to bottom only when new messages are added (not on every poll)
   const prevMessageCount = useRef(0);
@@ -598,38 +652,50 @@ export default function VendorChatPage() {
                 <div className="flex-1 space-y-1.5"><div className="h-3 shimmer-emerald rounded w-24" /><div className="h-2 shimmer-emerald rounded w-32" /></div>
               </div>
             ))}</div>
-          ) : filteredConversations.length === 0 ? (
+          ) : customerGroups.length === 0 ? (
             <div className="text-center py-14 fade-in-up"><MessageCircle className="w-8 h-8 text-emerald-200 mx-auto mb-2" /><p className="text-xs text-gray-400 font-medium">No conversations</p></div>
           ) : (
             <div className="pb-1">
-              {groupedConversations.map((group) => (
-                <div key={group.label}>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 py-2 mt-1">{group.label}</p>
-                  {group.items.map((conv) => {
-                    const isSelected = selectedConversation?.id === conv.id;
-                    const sc = SERVICE_COLORS[conv.bookingType] || '#6B7280';
+              {groupedCustomers.map((section) => (
+                <div key={section.label}>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 py-2 mt-1">{section.label}</p>
+                  {section.items.map((cg) => {
+                    const isSelected = selectedCustomerGroup?.customerId === cg.customerId;
+                    const latestConv = cg.conversations[0];
+                    const sc = SERVICE_COLORS[latestConv?.bookingType] || '#6B7280';
 
                     return (
-                      <button key={conv.id} onClick={() => setSelectedConversation(conv)}
+                      <button key={cg.customerId}
+                        onClick={() => {
+                          const latest = [...cg.conversations].sort((a, b) =>
+                            (b.lastMessageAt || '').localeCompare(a.lastMessageAt || '')
+                          )[0];
+                          setSelectedCustomerGroup(cg);
+                          setActiveConvId(latest?.id || cg.conversations[0]?.id || null);
+                        }}
                         className={`w-full p-2.5 text-left rounded-xl flex items-center gap-3 mb-0.5 transition-all duration-200 ${
                           isSelected ? 'bg-emerald-50 shadow-sm border border-emerald-200/60 ring-1 ring-emerald-200/40' : 'hover:bg-emerald-50/40 border border-transparent'
                         }`}>
-                        {/* Left indicator */}
                         {isSelected && <div className="w-[3px] h-8 bg-emerald-600 rounded-full flex-shrink-0 -ml-0.5" />}
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all ${isSelected ? 'bg-emerald-100 ring-2 ring-emerald-300/50' : 'bg-gray-200/70'}`} style={{ color: sc }}>
-                          {conv.participant.avatar ? <img src={conv.participant.avatar} alt="" className="w-10 h-10 rounded-full object-cover" /> : conv.participant.name.charAt(0).toUpperCase()}
+                          {cg.avatar ? <img src={cg.avatar} alt="" className="w-10 h-10 rounded-full object-cover" /> : cg.customerName.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1">
-                            <span className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : isSelected ? 'font-semibold text-gray-900' : 'font-medium text-gray-600'}`}>{conv.participant.name}</span>
-                            <span className={`text-xs flex-shrink-0 ${conv.unreadCount > 0 ? 'text-emerald-600 font-bold' : 'text-gray-400'}`}>{conv.lastMessageAt ? formatTime(conv.lastMessageAt) : ''}</span>
+                            <span className={`text-sm truncate ${cg.totalUnread > 0 ? 'font-bold text-gray-900' : isSelected ? 'font-semibold text-gray-900' : 'font-medium text-gray-600'}`}>{cg.customerName}</span>
+                            <span className={`text-xs flex-shrink-0 ${cg.totalUnread > 0 ? 'text-emerald-600 font-bold' : 'text-gray-400'}`}>{cg.lastMessageAt ? formatTime(cg.lastMessageAt) : ''}</span>
                           </div>
                           <div className="flex items-center justify-between gap-1 mt-0.5">
-                            <p className={`text-[13px] truncate ${conv.unreadCount > 0 ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
-                              {conv.lastMessage?.senderType === 'vendor' && <CheckCheck className="w-3 h-3 inline mr-0.5 text-emerald-400" />}
-                              {conv.lastMessage?.content || 'No messages'}
+                            <p className={`text-[13px] truncate ${cg.totalUnread > 0 ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+                              {cg.lastMessage?.senderType === 'vendor' && <CheckCheck className="w-3 h-3 inline mr-0.5 text-emerald-400" />}
+                              {cg.lastMessage?.content || 'No messages'}
                             </p>
-                            {conv.unreadCount > 0 && <span className="bg-emerald-600 text-white text-xs font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center flex-shrink-0">{conv.unreadCount}</span>}
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {cg.conversations.length > 1 && (
+                                <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full font-medium">{cg.conversations.length}</span>
+                              )}
+                              {cg.totalUnread > 0 && <span className="bg-emerald-600 text-white text-xs font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center">{cg.totalUnread}</span>}
+                            </div>
                           </div>
                         </div>
                       </button>
@@ -643,8 +709,8 @@ export default function VendorChatPage() {
       </div>
 
       {/* ══════ CHAT AREA (flex) ══════ */}
-      <div className={`flex-1 flex flex-col min-w-0 ${showMobileSidebar && !selectedConversation ? 'hidden lg:flex' : 'flex'}`}>
-        {!selectedConversation ? (
+      <div className={`flex-1 flex flex-col min-w-0 ${showMobileSidebar && !selectedCustomerGroup ? 'hidden lg:flex' : 'flex'}`}>
+        {!selectedCustomerGroup ? (
           <div className="flex-1 flex items-center justify-center chat-bg">
             <div className="text-center bg-white/80 backdrop-blur-md rounded-3xl px-10 py-8 shadow-sm fade-in-up">
               <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3 pulse-ring">
@@ -659,7 +725,7 @@ export default function VendorChatPage() {
             {/* ── HEADER (fixed) ── */}
             <div className="bg-white px-5 py-3 flex items-center justify-between border-b border-gray-200 flex-shrink-0 z-10 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="flex items-center gap-3">
-                <button onClick={() => { setSelectedConversation(null); setShowMobileSidebar(true); }} className="p-1.5 hover:bg-emerald-50 rounded-lg lg:hidden transition-colors"><ArrowLeft className="w-4 h-4 text-gray-500" /></button>
+                <button onClick={() => { setSelectedCustomerGroup(null); setActiveConvId(null); setShowMobileSidebar(true); }} className="p-1.5 hover:bg-emerald-50 rounded-lg lg:hidden transition-colors"><ArrowLeft className="w-4 h-4 text-gray-500" /></button>
 
                 <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-50 flex-shrink-0 ring-2 ring-emerald-400/40 pulse-ring">
                   {selectedConversation.participant.avatar
@@ -694,6 +760,31 @@ export default function VendorChatPage() {
                 </Link>
               )}
             </div>
+
+            {/* ── BOOKING SWITCHER (only when customer has multiple bookings) ── */}
+            {selectedCustomerGroup && selectedCustomerGroup.conversations.length > 1 && (
+              <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2 overflow-x-auto scrollbar-hide flex-shrink-0">
+                <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide flex-shrink-0">Booking:</span>
+                {selectedCustomerGroup.conversations.map((conv) => {
+                  const isActive = activeConvId === conv.id;
+                  const sc = SERVICE_COLORS[conv.bookingType] || '#6B7280';
+                  const label = TYPE_LABELS[conv.bookingType] || conv.bookingType;
+                  return (
+                    <button key={conv.id} onClick={() => setActiveConvId(conv.id)}
+                      className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                        isActive ? 'text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                      style={isActive ? { backgroundColor: sc } : {}}>
+                      {label}
+                      {conv.bookingId && <span className="opacity-70">#{conv.bookingId.slice(-6)}</span>}
+                      {conv.unreadCount > 0 && !isActive && (
+                        <span className="bg-emerald-600 text-white text-[9px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">{conv.unreadCount}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* ── BACKGROUND + MESSAGES ── */}
             <div className="flex-1 overflow-y-auto chat-bg relative">
