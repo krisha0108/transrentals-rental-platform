@@ -42,6 +42,13 @@
                     android:host="otpless"
                     android:scheme="otpless.cnanmo473on4z9pa20jh" />
             </intent-filter>
+            <!-- TransRentals Deep Link: transrentals://wander/group/GANG-XXXX -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="transrentals" />
+            </intent-filter>
         </activity>
         <!-- Optional: Needed if you're using Silent Network Auth (SNA) -->
         <!--

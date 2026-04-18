@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, Image, ActivityIndicator, Dimensions,
-  Alert, Modal, Platform,
+  Alert, Modal, Platform, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
@@ -346,7 +346,7 @@ export default function WanderListingDetailScreen() {
             <View style={styles.tierGrid}>
               {priceTiers.map((t, i) => (
                 <View key={i} style={styles.tierItem}>
-                  <Text style={styles.tierGroup}>{t.minSize}–{t.maxSize} pax</Text>
+                  <Text style={styles.tierGroup}>{t.groupSize} persons</Text>
                   <Text style={styles.tierPrice}>₹{Number(t.price || 0).toLocaleString('en-IN')}</Text>
                 </View>
               ))}
@@ -449,14 +449,24 @@ export default function WanderListingDetailScreen() {
           <Text style={styles.ctaLabel}>{isOnRequest ? 'Get personalised' : 'Starting from'}</Text>
           <Text style={styles.ctaPrice}>{isOnRequest ? 'Quote' : price}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.ctaBtn}
-          onPress={() => setShowQuoteForm(true)}
-          activeOpacity={0.85}
-        >
-          <Icon name="send" size={16} color="#fff" />
-          <Text style={styles.ctaBtnText}>Request Quote</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={styles.ctaBtnOutline}
+            onPress={() => navigation.navigate('WanderGroup', { listingId: listing.id, listingTitle: listing.title })}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="people-outline" size={16} color={GREEN} />
+            <Text style={styles.ctaBtnOutlineText}>Friends</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.ctaBtn}
+            onPress={() => setShowQuoteForm(true)}
+            activeOpacity={0.85}
+          >
+            <Icon name="send" size={16} color="#fff" />
+            <Text style={styles.ctaBtnText}>Quote</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* SUCCESS MODAL */}
@@ -776,10 +786,16 @@ const styles = StyleSheet.create({
   ctaPrice: { fontSize: 20, fontWeight: '800', color: '#0F172A' },
   ctaBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: GREEN,
-    borderRadius: 14, paddingHorizontal: 22, paddingVertical: 14,
+    borderRadius: 14, paddingHorizontal: 18, paddingVertical: 14,
     shadowColor: GREEN, shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
   },
-  ctaBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  ctaBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  ctaBtnOutline: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14,
+    borderWidth: 1.5, borderColor: GREEN, backgroundColor: '#E8F8F2',
+  },
+  ctaBtnOutlineText: { color: GREEN, fontSize: 14, fontWeight: '700' },
 
   // Quote modal
   tourPill: {

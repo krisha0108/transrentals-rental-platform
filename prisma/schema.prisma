@@ -1271,6 +1271,8 @@ model customers {
   wander_quote_requests     wander_quote_requests[]
   wander_reviews            wander_reviews[]
   wander_wishlists          wander_wishlists[]
+  createdGroups             wander_friend_groups[]        @relation("GroupCreator")
+  groupMemberships          wander_friend_group_members[] @relation("GroupMemberCustomer")
 
   @@index([email])
   @@index([isActive])
@@ -4685,6 +4687,7 @@ model wander_listings {
   quoteRequests      wander_quote_requests[]
   reviews            wander_reviews[]
   wishlists          wander_wishlists[]
+  groupTrips         wander_group_trips[]    @relation("GroupTripListing")
 
   @@index([vendorId])
   @@index([categoryId])
@@ -5556,6 +5559,140 @@ model wander_wishlists {
   @@unique([customerId, listingId])
   @@index([customerId])
   @@index([listingId])
+}
+
+// ── Wander Group Trips ────────────────────────────────────────────────────────
+
+model wander_friend_groups {
+  id          String                        @id @default(cuid())
+  groupCode   String                        @unique // e.g. GANG-TRP4K2
+  name        String                        // e.g. "College Gang"
+  emoji       String?                       @default("🌏")
+  avatarUrl   String?                       // group photo
+  maxMembers  Int?                          // null = unlimited
+  createdById String
+  createdAt   DateTime                      @default(now())
+  updatedAt   DateTime                      @updatedAt
+  createdBy   customers                     @relation("GroupCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  members     wander_friend_group_members[]
+  trips       wander_group_trips[]
+  messages    wander_group_messages[]
+
+  @@index([createdById])
+  @@index([groupCode])
+}
+
+model wander_friend_group_members {
+  id           String                       @id @default(cuid())
+  groupId      String
+  customerId   String?
+  name         String
+  phone        String
+  role         String                       @default("MEMBER") // ADMIN | MEMBER
+  joinedAt     DateTime                     @default(now())
+  lastReadAt   DateTime?                    // for chat read receipts
+  group        wander_friend_groups         @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  customer     customers?                   @relation("GroupMemberCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  tripMembers   wander_group_trip_members[]
+  messages      wander_group_messages[]
+  dateVotes     wander_trip_date_votes[]
+  dateOptions   wander_trip_date_options[]  @relation("DateOptionAddedBy")
+  reactions     wander_group_message_reactions[] @relation("MemberReactions")
+
+  @@unique([groupId, phone])
+  @@index([groupId])
+  @@index([customerId])
+}
+
+model wander_group_trips {
+  id             String                      @id @default(cuid())
+  groupId        String
+  listingId      String?
+  proposedById   String
+  travelDate     DateTime?                   @db.Date
+  note           String?                     @db.Text
+  status         String                      @default("PLANNING") // PLANNING | SUBMITTED | CANCELLED
+  quoteRequestId String?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+  group          wander_friend_groups        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  listing        wander_listings?            @relation("GroupTripListing", fields: [listingId], references: [id], onDelete: SetNull)
+  tripMembers    wander_group_trip_members[]
+  dateOptions    wander_trip_date_options[]
+
+  @@index([groupId])
+  @@index([listingId])
+  @@index([status])
+}
+
+model wander_group_trip_members {
+  id            String                      @id @default(cuid())
+  groupTripId   String
+  groupMemberId String
+  requirements  String?                     @db.Text
+  isGoing       String                      @default("MAYBE") // YES | NO | MAYBE
+  respondedAt   DateTime?
+  groupTrip     wander_group_trips          @relation(fields: [groupTripId], references: [id], onDelete: Cascade)
+  groupMember   wander_friend_group_members @relation(fields: [groupMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([groupTripId, groupMemberId])
+  @@index([groupTripId])
+  @@index([groupMemberId])
+}
+
+model wander_group_messages {
+  id        String                           @id @default(cuid())
+  groupId   String
+  memberId  String
+  message   String                           @db.Text
+  createdAt DateTime                         @default(now())
+  group     wander_friend_groups             @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member    wander_friend_group_members      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  reactions wander_group_message_reactions[]
+
+  @@index([groupId])
+  @@index([memberId])
+}
+
+model wander_group_message_reactions {
+  id        String                      @id @default(cuid())
+  messageId String
+  memberId  String
+  emoji     String                      // e.g. "👍" "❤️" "😄" "😮" "😢"
+  createdAt DateTime                    @default(now())
+  message   wander_group_messages       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  member    wander_friend_group_members @relation("MemberReactions", fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, memberId, emoji])
+  @@index([messageId])
+  @@index([memberId])
+}
+
+model wander_trip_date_options {
+  id        String                      @id @default(cuid())
+  tripId    String
+  date      DateTime                    @db.Date
+  addedById String
+  createdAt DateTime                    @default(now())
+  trip      wander_group_trips          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  addedBy   wander_friend_group_members @relation("DateOptionAddedBy", fields: [addedById], references: [id], onDelete: Cascade)
+  votes     wander_trip_date_votes[]
+
+  @@index([tripId])
+  @@index([addedById])
+}
+
+model wander_trip_date_votes {
+  id        String                      @id @default(cuid())
+  optionId  String
+  memberId  String
+  createdAt DateTime                    @default(now())
+  option    wander_trip_date_options    @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  member    wander_friend_group_members @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([optionId, memberId])
+  @@index([optionId])
+  @@index([memberId])
 }
 
 // ── Social Network ────────────────────────────────────────────────────────────

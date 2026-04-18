@@ -276,6 +276,13 @@ export default function CustomerDashboardPage() {
         setDashboardView('b2b');
       }
 
+      // Auto-switch tab from URL param ?tab=tour
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam === 'tour') {
+        setDashboardView('tour');
+      }
+
       // Refresh customer data from API to get latest b2bStatus etc.
       const refreshId = parsed?.id ?? parsed?.customer_id ?? parsed?.customerId;
       if (refreshId) {

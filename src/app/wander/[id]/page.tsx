@@ -8,7 +8,7 @@ import {
   Compass, MapPin, Clock, Users, ChevronLeft, ChevronRight,
   Check, X, Star, Shield, Globe, Loader2, AlertCircle,
   Calendar, Phone, Mail, User, MessageSquare, ChevronDown,
-  Car, Info, ArrowLeft, Sparkles, CheckCircle, Building2,
+  Car, Info, ArrowLeft, Sparkles, CheckCircle, Building2, UserPlus,
 } from 'lucide-react';
 import ReviewsSection from '@/components/wander/ReviewsSection';
 
@@ -415,7 +415,185 @@ function QuoteForm({
         {submitting ? 'Submitting...' : 'Get Free Quote'}
       </button>
       <p className="text-center text-xs text-gray-400">Free · No payment required · Vendors will contact you</p>
+
+      <div className="relative flex items-center gap-2 my-1">
+        <div className="flex-1 h-px bg-gray-100" />
+        <span className="text-[10px] text-gray-400 font-medium">OR</span>
+        <div className="flex-1 h-px bg-gray-100" />
+      </div>
+
+      <PlanWithFriendsInline listingId={listingId} />
     </form>
+  );
+}
+
+/* ─── Plan with Friends Modal (shared) ───────────────────────────────────────── */
+function PlanWithFriendsModal({ listingId, listingTitle, onClose }: { listingId: string; listingTitle?: string; onClose: () => void }) {
+  const [creating, setCreating] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [travelDate, setTravelDate] = useState('');
+  const [tripNote, setTripNote] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const avatarRef = React.useRef<HTMLInputElement>(null);
+
+  const handlePickAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  const handleCreate = async () => {
+    if (!groupName.trim()) return;
+    setCreating(true);
+    try {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('customer') : null;
+      const cust = stored ? JSON.parse(stored) : null;
+      if (!cust?.id) { alert('Please log in first to create a group.'); setCreating(false); return; }
+      const res = await fetch('/api/wander/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: groupName.trim(),
+          createdById: cust.id,
+          creatorName: cust.name,
+          creatorPhone: cust.phone,
+          listingId,
+          travelDate: travelDate || null,
+          tripNote: tripNote.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      const gc = data.group?.groupCode || data.groupCode;
+      const memberId = data.memberId;
+      if (avatarFile && gc && memberId) {
+        try {
+          const fd = new FormData();
+          fd.append('memberId', memberId);
+          fd.append('file', avatarFile);
+          await fetch(`/api/wander/groups/${gc}/avatar`, { method: 'POST', body: fd });
+        } catch {}
+      }
+      window.location.href = `/wander/group/${gc}`;
+    } catch (e: any) {
+      alert(e.message || 'Something went wrong');
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Modal */}
+      <div className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden">
+        {/* Green header */}
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 pt-6 pb-5">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/20 rounded-2xl flex items-center justify-center">
+                <UserPlus className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-white font-black text-lg leading-tight">Plan with Friends</p>
+                {listingTitle && <p className="text-emerald-200 text-xs mt-0.5 truncate max-w-[200px]">{listingTitle}</p>}
+              </div>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full text-white transition">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 space-y-4">
+          <>
+            {/* Photo + name row */}
+              <div className="flex items-center gap-4">
+                <button type="button" onClick={() => avatarRef.current?.click()}
+                  className="w-16 h-16 rounded-2xl border-2 border-dashed border-emerald-300 flex flex-col items-center justify-center bg-emerald-50 hover:bg-emerald-100 transition overflow-hidden flex-shrink-0">
+                  {avatarPreview
+                    ? <img src={avatarPreview} className="w-16 h-16 object-cover" />
+                    : <><span className="text-2xl">📷</span><span className="text-[9px] text-emerald-500 font-semibold mt-0.5">Add Photo</span></>}
+                </button>
+                <div className="flex-1">
+                  <label className="text-xs font-semibold text-gray-600 block mb-1.5">Group Name *</label>
+                  <input
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 placeholder:text-gray-400"
+                    placeholder='e.g. "College Gang", "Family Trip"'
+                    value={groupName}
+                    onChange={e => setGroupName(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handlePickAvatar} />
+              </div>
+
+              {/* Travel date */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1.5">
+                  Travel Date <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input type="date" value={travelDate} onChange={e => setTravelDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 text-gray-700"
+                  />
+                </div>
+              </div>
+
+              {/* Trip note */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1.5">
+                  Trip Note <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <textarea rows={2} value={tripNote} onChange={e => setTripNote(e.target.value)}
+                  placeholder="e.g. Annual trip! Budget ~₹5000 per person"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 placeholder:text-gray-400 resize-none"
+                />
+              </div>
+
+              <button type="button" onClick={handleCreate} disabled={creating || !groupName.trim()}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+                {creating ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</> : <><UserPlus className="w-4 h-4" /> Create Group & Invite Friends</>}
+              </button>
+          </>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Plan with Friends Inline (inside QuoteForm) ────────────────────────────── */
+function PlanWithFriendsInline({ listingId }: { listingId: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}
+        className="w-full flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold text-sm py-3 rounded-xl transition">
+        <UserPlus className="w-4 h-4" /> Plan with Friends
+      </button>
+      {open && <PlanWithFriendsModal listingId={listingId} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+/* ─── Plan with Friends Card ─────────────────────────────────────────────────── */
+function PlanWithFriendsCard({ listingId, listingTitle }: { listingId: string; listingTitle: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button onClick={() => setOpen(true)}
+        className="w-full flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold text-sm py-3 rounded-2xl transition">
+        <UserPlus className="w-4 h-4" /> Plan with Friends
+      </button>
+      {open && <PlanWithFriendsModal listingId={listingId} listingTitle={listingTitle} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
@@ -532,13 +710,14 @@ export default function TourDetailPage() {
       .then(d => {
         if (d.error) setError(d.error);
         else {
-          setListing(d);
+          const l = d.listing ?? d;
+          setListing(l);
           // Fetch similar tours
-          const catParam = d.categoryId ? `&categoryIds=${d.categoryId}` : '';
+          const catParam = l.categoryId ? `&categoryIds=${l.categoryId}` : '';
           fetch(`/api/wander/listings?limit=4&page=1${catParam}`)
             .then(r => r.json())
             .then(sd => {
-              const others = (sd.listings || []).filter((l: any) => l.id !== d.id).slice(0, 3);
+              const others = (sd.listings || []).filter((s: any) => s.id !== l.id).slice(0, 3);
               setSimilarListings(others);
             })
             .catch(() => {});
@@ -962,7 +1141,7 @@ export default function TourDetailPage() {
                 </h2>
                 <p className="text-xs text-indigo-200 mt-0.5">Vendors will reply with custom pricing</p>
               </div>
-              <div className="p-5">
+              <div className="p-5 space-y-3">
               <QuoteForm
                 listingId={listing.id}
                 listingTitle={listing.title}
