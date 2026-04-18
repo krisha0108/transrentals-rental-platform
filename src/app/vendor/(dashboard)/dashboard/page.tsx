@@ -205,7 +205,9 @@ export default function VendorDashboard() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAllActions, setShowAllActions] = useState(false);
-  const [timeFilter, setTimeFilter] = useState<'month'|'year'|'all'>('month');
+  const [timeFilter, setTimeFilter] = useState<'today'|'week'|'month'|'quarter'|'year'|'all'|'custom'>('month');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -214,11 +216,17 @@ export default function VendorDashboard() {
   }, [status, router]);
 
   useEffect(() => {
+    if (timeFilter === 'custom' && (!customFrom || !customTo)) return;
+
     async function fetchData() {
       try {
+        const statsUrl = timeFilter === 'custom'
+          ? `/api/vendor/dashboard/stats?period=custom&from=${customFrom}&to=${customTo}`
+          : `/api/vendor/dashboard/stats?period=${timeFilter}`;
+
         const [profileRes, statsRes] = await Promise.all([
           fetch('/api/vendor/profile'),
-          fetch(`/api/vendor/dashboard/stats?period=${timeFilter}`),
+          fetch(statsUrl),
         ]);
 
         if (profileRes.ok) {
@@ -242,7 +250,7 @@ export default function VendorDashboard() {
     if (status === 'authenticated') {
       fetchData();
     }
-  }, [status, timeFilter]);
+  }, [status, timeFilter, customFrom, customTo]);
 
   if (status === 'loading' || loading) {
     return <DashboardSkeleton />;
@@ -259,8 +267,21 @@ export default function VendorDashboard() {
     );
   }
 
-  const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-  const greeting = new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening';
+  const now = new Date();
+  const currentMonth = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const greeting = now.getHours() < 12 ? 'Good Morning' : now.getHours() < 18 ? 'Good Afternoon' : 'Good Evening';
+
+  const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
+  const periodLabel = timeFilter === 'custom'
+    ? (customFrom && customTo ? `${fmtDate(customFrom)} – ${fmtDate(customTo)}` : 'Custom Range')
+    : ({
+        today: now.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+        week: 'This Week',
+        month: currentMonth,
+        quarter: 'Last 3 Months',
+        year: String(now.getFullYear()),
+        all: 'All Time',
+      } as Record<string, string>)[timeFilter];
 
   const allServices = [
     { slugs: ['bike-rental', 'bike', 'bike-rentals', 'two-wheeler'], name: 'Bike Rentals', description: 'Requests & Bookings', icon: '🏍️', href: '/vendor/bike-rentals/requests', color: '#3B82F6', bg: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-600' },
@@ -338,6 +359,10 @@ export default function VendorDashboard() {
           0%, 100% { box-shadow: 0 0 8px rgba(5,150,105,0.15); }
           50% { box-shadow: 0 0 20px rgba(5,150,105,0.3); }
         }
+        @keyframes fadeSlideDown {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
         .hover-shimmer {
           position: relative;
           overflow: hidden;
@@ -370,10 +395,18 @@ export default function VendorDashboard() {
               <p className="text-gray-400 text-xs">{greeting}, {profile?.ownerName}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {[{key:'month',label:'This Month'},{key:'year',label:'This Year'},{key:'all',label:'All Time'}].map(f => (
-              <button key={f.key} onClick={() => setTimeFilter(f.key as any)}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide max-w-full pb-0.5">
+            {([
+              {key:'today',label:'Today'},
+              {key:'week',label:'This Week'},
+              {key:'month',label:'This Month'},
+              {key:'quarter',label:'3 Months'},
+              {key:'year',label:'This Year'},
+              {key:'all',label:'All Time'},
+              {key:'custom',label:'Custom'},
+            ] as const).map(f => (
+              <button key={f.key} onClick={() => setTimeFilter(f.key)}
+                className={`whitespace-nowrap px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all flex-shrink-0 ${
                   timeFilter === f.key ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-gray-500 hover:bg-emerald-50 border border-gray-200'
                 }`}>{f.label}</button>
             ))}
@@ -381,11 +414,55 @@ export default function VendorDashboard() {
         </div>
       </AnimateIn>
 
+      {/* ══════════ Custom Date Picker ══════════ */}
+      {timeFilter === 'custom' && (
+        <div
+          className="bg-white rounded-2xl border border-emerald-100 shadow-[0_2px_10px_rgba(5,150,105,0.08)] px-4 py-3 flex flex-wrap items-center gap-3"
+          style={{ animation: 'fadeSlideDown 0.2s ease forwards' }}
+        >
+          <Calendar className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-col">
+              <span className="text-[10px] text-gray-400 font-medium mb-0.5 ml-0.5">From</span>
+              <input
+                type="date"
+                value={customFrom}
+                max={customTo || undefined}
+                onChange={e => setCustomFrom(e.target.value)}
+                className="text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-gray-50"
+              />
+            </div>
+            <span className="text-gray-400 text-sm mt-4">→</span>
+            <div className="flex flex-col">
+              <span className="text-[10px] text-gray-400 font-medium mb-0.5 ml-0.5">To</span>
+              <input
+                type="date"
+                value={customTo}
+                min={customFrom || undefined}
+                onChange={e => setCustomTo(e.target.value)}
+                className="text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent bg-gray-50"
+              />
+            </div>
+          </div>
+          {customFrom && customTo && (
+            <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
+              {fmtDate(customFrom)} – {fmtDate(customTo)}
+            </span>
+          )}
+          {(customFrom || customTo) && (
+            <button
+              onClick={() => { setCustomFrom(''); setCustomTo(''); }}
+              className="text-[11px] text-gray-400 hover:text-red-500 transition-colors ml-auto"
+            >Clear</button>
+          )}
+        </div>
+      )}
+
       {/* ══════════ ROW 1: KPI Cards — Revenue dominant ══════════ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* PRIMARY: Revenue */}
         <AnimateIn delay={80}>
-          <RevenueCard earnings={totalRevenue} month={currentMonth} bookings={stats?.totalBookings || 0} />
+          <RevenueCard earnings={totalRevenue} month={periodLabel} bookings={stats?.totalBookings || 0} />
         </AnimateIn>
 
         {/* Bookings */}
@@ -444,7 +521,7 @@ export default function VendorDashboard() {
               <h3 className="text-base font-bold text-gray-900">Revenue Breakdown</h3>
               <p className="text-xs text-gray-400 mt-0.5">Service-wise revenue distribution</p>
             </div>
-            <span className="text-xs font-semibold text-white bg-emerald-600 rounded-full px-3 py-1 shadow-sm">{currentMonth}</span>
+            <span className="text-xs font-semibold text-white bg-emerald-600 rounded-full px-3 py-1 shadow-sm">{periodLabel}</span>
           </div>
 
           {sortedBreakdown.length > 0 ? (
@@ -704,7 +781,7 @@ function RevenueCard({ earnings, month, bookings }: { earnings: number; month: s
           ₹{count.toLocaleString('en-IN')}
         </p>
         <div className="flex items-center gap-2 mt-1">
-          <p className="text-white/70 text-xs">Monthly Revenue</p>
+          <p className="text-white/70 text-xs">Revenue</p>
           <span className="flex items-center gap-0.5 text-white text-[10px] font-semibold bg-white/15 px-1.5 py-0.5 rounded">
             <TrendingUp className="h-2.5 w-2.5" /> +12%
           </span>

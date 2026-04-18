@@ -38,6 +38,13 @@ export async function GET() {
     console.error('[sitemap-states] DB error:', error);
   }
 
+  if (entries.length === 0) {
+    return new NextResponse('Service temporarily unavailable', {
+      status: 503,
+      headers: { 'Retry-After': '3600' },
+    });
+  }
+
   return new NextResponse(buildUrlsetXml(entries), {
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
