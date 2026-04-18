@@ -62,6 +62,10 @@ export async function GET(
         localPackageHours: booking.localPackageHours,
         localPackageKm:   booking.localPackageKm,
         baseFare:        booking.baseFare,
+        baseAmount:      booking.baseFare,
+        dailyRate:       booking.totalDays && booking.totalDays > 1
+                           ? Number(((booking.baseFare ?? 0) / booking.totalDays).toFixed(2))
+                           : (booking.baseFare ?? 0),
         perKmRate:       booking.perKmRate,
         chargeableKm:    booking.chargeableKm,
         kmCharges:       booking.kmCharges,

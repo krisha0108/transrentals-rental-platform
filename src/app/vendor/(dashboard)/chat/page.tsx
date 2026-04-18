@@ -165,6 +165,14 @@ export default function VendorChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Derived: active conversation from group + activeConvId (must be before any useCallback that uses it)
+  const selectedConversation = useMemo(() => {
+    if (!selectedCustomerGroup) return null;
+    return selectedCustomerGroup.conversations.find(c => c.id === activeConvId)
+      || selectedCustomerGroup.conversations[0]
+      || null;
+  }, [selectedCustomerGroup, activeConvId]);
+
   // Scroll to bottom
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -445,14 +453,6 @@ export default function VendorChatPage() {
     const Icon = SERVICE_ICONS[bookingType] || MessageCircle;
     return Icon;
   };
-
-  // Derived: active conversation from group + activeConvId
-  const selectedConversation = useMemo(() => {
-    if (!selectedCustomerGroup) return null;
-    return selectedCustomerGroup.conversations.find(c => c.id === activeConvId)
-      || selectedCustomerGroup.conversations[0]
-      || null;
-  }, [selectedCustomerGroup, activeConvId]);
 
   // Filter conversations
   const filteredConversations = conversations.filter((conv) => {
@@ -761,30 +761,62 @@ export default function VendorChatPage() {
               )}
             </div>
 
-            {/* ── BOOKING SWITCHER (only when customer has multiple bookings) ── */}
-            {selectedCustomerGroup && selectedCustomerGroup.conversations.length > 1 && (
-              <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2 overflow-x-auto scrollbar-hide flex-shrink-0">
-                <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide flex-shrink-0">Booking:</span>
-                {selectedCustomerGroup.conversations.map((conv) => {
-                  const isActive = activeConvId === conv.id;
-                  const sc = SERVICE_COLORS[conv.bookingType] || '#6B7280';
-                  const label = TYPE_LABELS[conv.bookingType] || conv.bookingType;
-                  return (
-                    <button key={conv.id} onClick={() => setActiveConvId(conv.id)}
-                      className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
-                        isActive ? 'text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                      }`}
-                      style={isActive ? { backgroundColor: sc } : {}}>
-                      {label}
-                      {conv.bookingId && <span className="opacity-70">#{conv.bookingId.slice(-6)}</span>}
-                      {conv.unreadCount > 0 && !isActive && (
-                        <span className="bg-emerald-600 text-white text-[9px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">{conv.unreadCount}</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            {/* ── BOOKING SWITCHER (tabs ≤3 bookings, dropdown >3) ── */}
+            {selectedCustomerGroup && selectedCustomerGroup.conversations.length > 1 && (() => {
+              const convs = selectedCustomerGroup.conversations;
+              const activeConv = convs.find(c => c.id === activeConvId) || convs[0];
+              const useDropdown = convs.length > 3;
+              const sc = SERVICE_COLORS[activeConv?.bookingType] || '#6B7280';
+              const activeLabel = TYPE_LABELS[activeConv?.bookingType] || activeConv?.bookingType || '';
+
+              return (
+                <div className="bg-white border-b border-gray-100 px-4 py-2 flex items-center gap-2 flex-shrink-0">
+                  <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide flex-shrink-0">Booking:</span>
+
+                  {useDropdown ? (
+                    <div className="relative">
+                      <select
+                        value={activeConvId || ''}
+                        onChange={e => setActiveConvId(e.target.value)}
+                        className="appearance-none pl-3 pr-8 py-1.5 rounded-lg text-[11px] font-semibold border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent cursor-pointer"
+                        style={{ color: sc }}
+                      >
+                        {convs.map(conv => {
+                          const label = TYPE_LABELS[conv.bookingType] || conv.bookingType;
+                          return (
+                            <option key={conv.id} value={conv.id}>
+                              {label}{conv.bookingId ? ` #${conv.bookingId.slice(-6)}` : ''}{conv.unreadCount > 0 ? ` (${conv.unreadCount})` : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+                      {convs.map((conv) => {
+                        const isActive = activeConvId === conv.id;
+                        const color = SERVICE_COLORS[conv.bookingType] || '#6B7280';
+                        const label = TYPE_LABELS[conv.bookingType] || conv.bookingType;
+                        return (
+                          <button key={conv.id} onClick={() => setActiveConvId(conv.id)}
+                            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                              isActive ? 'text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            }`}
+                            style={isActive ? { backgroundColor: color } : {}}>
+                            {label}
+                            {conv.bookingId && <span className="opacity-70">#{conv.bookingId.slice(-6)}</span>}
+                            {conv.unreadCount > 0 && !isActive && (
+                              <span className="bg-emerald-600 text-white text-[9px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">{conv.unreadCount}</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* ── BACKGROUND + MESSAGES ── */}
             <div className="flex-1 overflow-y-auto chat-bg relative">

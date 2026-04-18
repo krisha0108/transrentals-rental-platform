@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   RefreshControl, Image, TextInput, ScrollView, StatusBar,
@@ -64,15 +64,7 @@ export default function ChatListScreen({ navigation }) {
   const fetchChats = useCallback(async () => {
     try {
       const response = await apiGet('/vendor/chats');
-      const rawChats = response.data?.chats || [];
-      const seen = new Set();
-      const uniqueChats = rawChats.filter((chat) => {
-        const key = chat.bookingId || chat.id;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      setChats(uniqueChats);
+      setChats(response.data?.chats || []);
     } catch (error) {
       console.log('Error fetching chats:', error);
     } finally {
@@ -103,52 +95,128 @@ export default function ChatListScreen({ navigation }) {
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   };
 
-  const filteredChats = chats.filter((chat) => {
-    if (unreadOnly && !chat.unreadCount) return false;
-    if (serviceFilter !== 'all' && chat.bookingType?.toLowerCase() !== serviceFilter) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      const serviceLabel = (SERVICE_MAP[chat.bookingType?.toLowerCase()]?.label || '').toLowerCase();
-      return (
-        chat.customerName?.toLowerCase().includes(q) ||
-        chat.bookingNumber?.toLowerCase().includes(q) ||
-        serviceLabel.includes(q)
+  // Group chats by customerId → one entry per customer
+  const customerGroups = useMemo(() => {
+    const map = {};
+    chats.forEach((chat) => {
+      const cid = chat.customerId || `guest-${chat.bookingId}`;
+      if (!map[cid]) {
+        map[cid] = {
+          customerId: cid,
+          customerName: chat.customerName,
+          customerAvatar: chat.customerAvatar,
+          bookings: [],
+          totalUnread: 0,
+          lastMessageAt: null,
+          lastMessage: null,
+          lastSenderType: null,
+          serviceTypes: new Set(),
+        };
+      }
+      map[cid].bookings.push(chat);
+      map[cid].totalUnread += chat.unreadCount || 0;
+      map[cid].serviceTypes.add((chat.bookingType || '').toLowerCase());
+
+      const t = chat.lastMessageAt ? new Date(chat.lastMessageAt).getTime() : 0;
+      const cur = map[cid].lastMessageAt ? new Date(map[cid].lastMessageAt).getTime() : 0;
+      if (t > cur) {
+        map[cid].lastMessage = chat.lastMessage;
+        map[cid].lastMessageAt = chat.lastMessageAt;
+        map[cid].lastSenderType = chat.lastSenderType;
+      }
+    });
+
+    // Sort each group's bookings newest first
+    Object.values(map).forEach((g) => {
+      g.bookings.sort((a, b) => {
+        const aT = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+        const bT = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+        return bT - aT;
+      });
+    });
+
+    return Object.values(map);
+  }, [chats]);
+
+  // Apply filters
+  const filteredGroups = useMemo(() => {
+    let groups = customerGroups;
+
+    if (unreadOnly) {
+      groups = groups.filter((g) => g.totalUnread > 0);
+    }
+
+    if (serviceFilter !== 'all') {
+      groups = groups.filter((g) =>
+        g.bookings.some((b) => (b.bookingType || '').toLowerCase() === serviceFilter)
       );
     }
-    return true;
-  });
 
-  const unreadCount   = chats.filter(c => c.unreadCount > 0).length;
-  const serviceCounts = chats.reduce((acc, c) => {
-    const k = c.bookingType?.toLowerCase() || 'other';
-    acc[k] = (acc[k] || 0) + 1;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      groups = groups.filter((g) => {
+        const svcLabels = Array.from(g.serviceTypes).map(
+          (t) => (SERVICE_MAP[t]?.label || '').toLowerCase()
+        );
+        return (
+          g.customerName?.toLowerCase().includes(q) ||
+          g.bookings.some((b) => b.bookingNumber?.toLowerCase().includes(q)) ||
+          svcLabels.some((l) => l.includes(q))
+        );
+      });
+    }
+
+    // Sort by latest message
+    return groups.sort((a, b) => {
+      const aT = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+      const bT = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+      return bT - aT;
+    });
+  }, [customerGroups, unreadOnly, serviceFilter, searchQuery]);
+
+  const unreadCount = customerGroups.filter((g) => g.totalUnread > 0).length;
+
+  // Count groups per service type for filter badge
+  const serviceCounts = useMemo(() => {
+    const acc = {};
+    chats.forEach((c) => {
+      const k = (c.bookingType || '').toLowerCase();
+      acc[k] = (acc[k] || 0) + 1;
+    });
     return acc;
-  }, {});
+  }, [chats]);
 
-  const renderChatItem = ({ item }) => {
-    const badge   = SERVICE_MAP[item.bookingType?.toLowerCase()] || { label: 'Other', color: C.muted, bg: C.bg };
-    const isUnread = item.unreadCount > 0;
-    const initials = item.customerName?.charAt(0)?.toUpperCase() || 'C';
+  const openCustomerChat = (group) => {
+    const topBooking = group.bookings[0];
+    navigation.navigate('ChatScreen', {
+      bookingId: topBooking.bookingId,
+      customerName: group.customerName,
+      bookingNumber: topBooking.bookingNumber,
+      serviceType: topBooking.bookingType,
+      customerAvatar: group.customerAvatar || null,
+      customerBookings: group.bookings,  // all bookings for this customer
+    });
+  };
+
+  const renderCustomerGroup = ({ item: group }) => {
+    const isUnread = group.totalUnread > 0;
+    const initials = group.customerName?.charAt(0)?.toUpperCase() || 'C';
+    // Pick primary service type color from first booking
+    const primaryType = group.bookings[0]?.bookingType?.toLowerCase() || 'chauffeur';
+    const badge = SERVICE_MAP[primaryType] || { label: 'Other', color: C.muted, bg: C.bg };
 
     return (
       <TouchableOpacity
         style={[st.chatCard, isUnread && st.chatCardUnread]}
-        onPress={() => navigation.navigate('ChatScreen', {
-          bookingId: item.bookingId,
-          customerName: item.customerName,
-          bookingNumber: item.bookingNumber,
-          serviceType: item.bookingType,
-          customerAvatar: item.customerAvatar || null,
-        })}
+        onPress={() => openCustomerChat(group)}
         activeOpacity={0.78}
       >
-        {/* Unread left bar */}
         {isUnread && <View style={st.unreadBar} />}
 
         {/* Avatar */}
         <View style={st.avatarWrap}>
-          {item.customerAvatar ? (
-            <Image source={{ uri: item.customerAvatar }} style={st.avatar} />
+          {group.customerAvatar ? (
+            <Image source={{ uri: group.customerAvatar }} style={st.avatar} />
           ) : (
             <LinearGradient colors={[badge.color + 'EE', badge.color + '99']} style={st.avatarCircle}>
               <Text style={st.avatarInitial}>{initials}</Text>
@@ -156,7 +224,7 @@ export default function ChatListScreen({ navigation }) {
           )}
           {isUnread && (
             <View style={st.unreadBadge}>
-              <Text style={st.unreadBadgeTxt}>{item.unreadCount > 9 ? '9+' : item.unreadCount}</Text>
+              <Text style={st.unreadBadgeTxt}>{group.totalUnread > 9 ? '9+' : group.totalUnread}</Text>
             </View>
           )}
         </View>
@@ -166,28 +234,38 @@ export default function ChatListScreen({ navigation }) {
           {/* Row 1: name + time */}
           <View style={st.chatRow}>
             <Text style={[st.chatName, isUnread && { fontWeight: '800', color: C.text }]} numberOfLines={1}>
-              {item.customerName || 'Customer'}
+              {group.customerName || 'Customer'}
             </Text>
             <Text style={[st.chatTime, isUnread && { color: C.g600, fontWeight: '700' }]}>
-              {formatTime(item.lastMessageAt)}
+              {formatTime(group.lastMessageAt)}
             </Text>
           </View>
 
-          {/* Row 2: service pill + booking no */}
+          {/* Row 2: booking count pill + service type chips */}
           <View style={st.chatRow2}>
-            <View style={[st.svcPill, { backgroundColor: badge.bg }]}>
-              <Text style={[st.svcPillTxt, { color: badge.color }]}>{badge.label}</Text>
+            <View style={st.bookingCountPill}>
+              <MaterialCommunityIcons name="briefcase-outline" size={10} color={C.g700} />
+              <Text style={st.bookingCountTxt}>
+                {group.bookings.length} {group.bookings.length === 1 ? 'booking' : 'bookings'}
+              </Text>
             </View>
-            <Text style={st.bookingNo} numberOfLines={1}>#{item.bookingNumber}</Text>
+            {Array.from(group.serviceTypes).slice(0, 3).map((type) => {
+              const s = SERVICE_MAP[type] || { label: type, color: C.muted, bg: C.bg };
+              return (
+                <View key={type} style={[st.svcPill, { backgroundColor: s.bg }]}>
+                  <Text style={[st.svcPillTxt, { color: s.color }]}>{s.label}</Text>
+                </View>
+              );
+            })}
           </View>
 
           {/* Row 3: last message */}
           <View style={st.chatRow3}>
-            {item.lastSenderType === 'VENDOR' && (
+            {group.lastSenderType === 'VENDOR' && (
               <Ionicons name="checkmark-done" size={13} color={isUnread ? C.g600 : C.muted} style={{ marginRight: 3 }} />
             )}
             <Text style={[st.lastMsg, isUnread && { color: C.text, fontWeight: '600' }]} numberOfLines={1}>
-              {item.lastMessage || 'No messages yet'}
+              {group.lastMessage || 'No messages yet'}
             </Text>
           </View>
         </View>
@@ -233,7 +311,7 @@ export default function ChatListScreen({ navigation }) {
             </View>
             <Text style={st.heroTitle}>Messages</Text>
             <Text style={st.heroSub}>
-              {chats.length} conversation{chats.length !== 1 ? 's' : ''}{unreadCount > 0 ? ` · ${unreadCount} unread` : ''}
+              {customerGroups.length} customer{customerGroups.length !== 1 ? 's' : ''}{unreadCount > 0 ? ` · ${unreadCount} unread` : ''}
             </Text>
           </View>
           <TouchableOpacity
@@ -249,12 +327,12 @@ export default function ChatListScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Search bar inside hero */}
+        {/* Search bar */}
         <View style={st.searchBar}>
           <Ionicons name="search" size={16} color={C.muted} />
           <TextInput
             style={st.searchInput}
-            placeholder="Search name, booking, service..."
+            placeholder="Search customer, booking, service..."
             placeholderTextColor={C.muted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -295,7 +373,7 @@ export default function ChatListScreen({ navigation }) {
       </View>
 
       {/* ── LIST ── */}
-      {filteredChats.length === 0 ? (
+      {filteredGroups.length === 0 ? (
         <View style={st.empty}>
           <View style={st.emptyIcon}>
             <MaterialCommunityIcons name="chat-processing-outline" size={40} color={C.g500} />
@@ -313,9 +391,9 @@ export default function ChatListScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
-          data={filteredChats}
-          renderItem={renderChatItem}
-          keyExtractor={(item) => item.bookingId?.toString() || item.id?.toString()}
+          data={filteredGroups}
+          renderItem={renderCustomerGroup}
+          keyExtractor={(item) => item.customerId}
           contentContainerStyle={st.listContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
           showsVerticalScrollIndicator={false}
@@ -328,7 +406,6 @@ export default function ChatListScreen({ navigation }) {
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.bg },
 
-  /* Hero */
   hero:        { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 16, overflow: 'hidden' },
   heroLoading: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 18 },
   heroTopSimple: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -345,11 +422,9 @@ const st = StyleSheet.create({
   unreadToggleDot: { position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: C.red, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3, borderWidth: 2, borderColor: C.g800 },
   unreadToggleDotTxt: { fontSize: 9, fontWeight: '800', color: '#fff' },
 
-  /* Search */
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, paddingHorizontal: 13, paddingVertical: 10, gap: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   searchInput: { flex: 1, fontSize: 14, color: '#fff', padding: 0 },
 
-  /* Filter chips */
   filterWrap:   { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
   filterScroll: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   filterChip:   { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border },
@@ -357,10 +432,8 @@ const st = StyleSheet.create({
   filterChipBadge: { minWidth: 18, height: 18, borderRadius: 9, backgroundColor: C.border, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
   filterChipBadgeTxt: { fontSize: 10, fontWeight: '800', color: C.muted },
 
-  /* List */
   listContent: { padding: 14, paddingBottom: 120, gap: 10 },
 
-  /* Chat card */
   chatCard: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: C.card, borderRadius: 16, padding: 14,
@@ -372,7 +445,6 @@ const st = StyleSheet.create({
   chatCardUnread: { borderColor: C.g100, backgroundColor: C.g50 },
   unreadBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, backgroundColor: C.g500, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 },
 
-  /* Avatar */
   avatarWrap:    { marginRight: 12, position: 'relative' },
   avatar:        { width: 52, height: 52, borderRadius: 26 },
   avatarCircle:  { width: 52, height: 52, borderRadius: 26, justifyContent: 'center', alignItems: 'center' },
@@ -380,19 +452,20 @@ const st = StyleSheet.create({
   unreadBadge:   { position: 'absolute', top: -3, right: -3, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: C.red, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3, borderWidth: 2, borderColor: C.card },
   unreadBadgeTxt:{ fontSize: 9, fontWeight: '800', color: '#fff' },
 
-  /* Chat content */
-  chatMeta: { flex: 1, gap: 3 },
+  chatMeta: { flex: 1, gap: 4 },
   chatRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  chatRow2: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  chatRow2: { flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' },
   chatRow3: { flexDirection: 'row', alignItems: 'center' },
   chatName: { fontSize: 15, fontWeight: '700', color: C.text, flex: 1, marginRight: 6 },
   chatTime: { fontSize: 11, color: C.muted, fontWeight: '500' },
+
+  bookingCountPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.g50, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: C.g100 },
+  bookingCountTxt: { fontSize: 10, fontWeight: '700', color: C.g700 },
+
   svcPill:  { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
   svcPillTxt: { fontSize: 10, fontWeight: '700' },
-  bookingNo:  { fontSize: 11, color: C.muted, flex: 1 },
   lastMsg:    { fontSize: 13, color: C.muted, flex: 1 },
 
-  /* Empty */
   empty:     { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 },
   emptyIcon: { width: 90, height: 90, borderRadius: 45, backgroundColor: C.g50, justifyContent: 'center', alignItems: 'center', marginBottom: 18, borderWidth: 1, borderColor: C.g100 },
   emptyTitle:{ fontSize: 18, fontWeight: '800', color: C.text, marginBottom: 8, textAlign: 'center' },

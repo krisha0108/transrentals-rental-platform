@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,12 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
-  Keyboard,
+  ScrollView,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
@@ -34,30 +35,49 @@ const SHADOW_MD = Platform.select({
   android: { elevation: 5 },
 });
 
+const SERVICE_SHORT = {
+  bus: 'Bus',
+  truck: 'Truck',
+  equipment: 'Equip.',
+  packers: 'Packers',
+  bike: 'Bike',
+  car: 'Car',
+  b2b: 'B2B',
+};
+
+const BOOKING_DETAIL_SCREENS = {
+  bus: 'BusBookingDetail',
+  truck: 'TruckBookingDetail',
+  equipment: 'EquipmentBookingDetail',
+  packers: 'PackersBookingDetail',
+  bike: 'BikeBookingDetail',
+  car: 'BookingDetail',
+  chauffeur: 'BookingDetail',
+  luxury: 'BookingDetail',
+  b2b: 'B2BBookingDetail',
+};
+
 export default function BookingChatScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { bookingId, bookingNumber, vendorName, bookingType } = route.params || {};
 
-  const BOOKING_DETAIL_SCREENS = {
-    bus: 'BusBookingDetail',
-    truck: 'TruckBookingDetail',
-    equipment: 'EquipmentBookingDetail',
-    packers: 'PackersBookingDetail',
-    bike: 'BikeBookingDetail',
-    car: 'BookingDetail',
-    b2b: 'B2BBookingDetail',
-  };
+  const {
+    bookingId: initialBookingId,
+    bookingNumber: initialBookingNumber,
+    vendorName,
+    bookingType: initialBookingType,
+    vendorBookings,  // array of all bookings for this vendor (from ChatListScreen)
+  } = route.params || {};
 
-  const navigateToBookingDetail = () => {
-    const screenName = BOOKING_DETAIL_SCREENS[bookingType];
-    if (screenName) {
-      const params = bookingType === 'car'
-        ? { bookingId, bookingType: 'car' }
-        : { bookingId };
-      navigation.navigate(screenName, params);
-    }
-  };
+  // Active booking state — default to whichever was tapped
+  const [activeBookingId, setActiveBookingId] = useState(initialBookingId);
+  const [activeBookingType, setActiveBookingType] = useState(initialBookingType);
+
+  // Derive active booking info
+  const allBookings = vendorBookings && vendorBookings.length > 0 ? vendorBookings : [
+    { id: initialBookingId, bookingNumber: initialBookingNumber, type: initialBookingType },
+  ];
+  const activeBooking = allBookings.find((b) => b.id === activeBookingId) || allBookings[0];
 
   const [messages, setMessages] = useState([]);
   const [vendor, setVendor] = useState(null);
@@ -67,8 +87,8 @@ export default function BookingChatScreen() {
   const [customerName, setCustomerName] = useState('');
   const [showScrollButton, setShowScrollButton] = useState(false);
   const flatListRef = useRef(null);
+  const pollingRef = useRef(null);
 
-  // ── StatusBar management ──────────────────────────────────
   useFocusEffect(
     useCallback(() => {
       StatusBar.setBarStyle('light-content', true);
@@ -84,12 +104,19 @@ export default function BookingChatScreen() {
     }, [])
   );
 
+  // Reload messages when active booking changes
   useEffect(() => {
+    setLoading(true);
+    setMessages([]);
     loadCustomerData();
     fetchMessages();
-    const interval = setInterval(fetchMessages, 5000); // Auto-refresh every 5s
-    return () => clearInterval(interval);
-  }, [bookingId]);
+
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(fetchMessages, 5000);
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [activeBookingId]);
 
   const loadCustomerData = async () => {
     try {
@@ -98,17 +125,26 @@ export default function BookingChatScreen() {
         const customer = JSON.parse(data);
         setCustomerName(customer.name || 'Customer');
       }
-    } catch (error) {
-      console.log('Error loading customer data:', error);
-    }
+    } catch {}
   };
 
   const fetchMessages = async () => {
     try {
-      const response = await chatService.getBookingChat(bookingId);
+      const convId = activeBooking?.conversationId;
+      if (!convId) {
+        // Fallback to old booking-chat endpoint if no conversationId
+        const response = await chatService.getBookingChat(activeBookingId);
+        if (response.success) {
+          setMessages(response.messages || []);
+          setVendor(response.vendor);
+        }
+        setLoading(false);
+        return;
+      }
+      const response = await chatService.getMessages(convId);
       if (response.success) {
         setMessages(response.messages || []);
-        setVendor(response.vendor);
+        setVendor(response.conversation?.vendor || null);
       }
     } catch (error) {
       console.log('Error fetching messages:', error);
@@ -116,6 +152,52 @@ export default function BookingChatScreen() {
       setLoading(false);
     }
   };
+
+  const switchBooking = (booking) => {
+    if (booking.id === activeBookingId) return;
+    setActiveBookingId(booking.id);
+    setActiveBookingType(booking.rawType || booking.type);
+  };
+
+  const navigateToBookingDetail = () => {
+    const type = (activeBookingType || activeBooking?.rawType || activeBooking?.type || '').toLowerCase();
+    const screenName = BOOKING_DETAIL_SCREENS[type];
+    if (screenName) {
+      const needsCarParam = ['car', 'chauffeur', 'luxury'].includes(type);
+      const params = needsCarParam
+        ? { bookingId: activeBookingId, bookingType: 'car' }
+        : { bookingId: activeBookingId };
+      navigation.navigate(screenName, params);
+    }
+  };
+
+  // Build messages list with date separators injected
+  const messagesWithDates = useMemo(() => {
+    const result = [];
+    let lastDateStr = null;
+    messages.forEach((msg) => {
+      const d = new Date(msg.created_at);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+
+      let label;
+      if (d.toDateString() === today.toDateString()) {
+        label = 'Today';
+      } else if (d.toDateString() === yesterday.toDateString()) {
+        label = 'Yesterday';
+      } else {
+        label = d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+      }
+
+      if (label !== lastDateStr) {
+        result.push({ __type: 'date', label, key: `date-${label}` });
+        lastDateStr = label;
+      }
+      result.push({ ...msg, __type: 'message' });
+    });
+    return result;
+  }, [messages]);
 
   const handleScroll = (event) => {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
@@ -130,31 +212,86 @@ export default function BookingChatScreen() {
 
   const sendMessage = async () => {
     if (!messageText.trim()) return;
-
     setSending(true);
     try {
-      const response = await chatService.sendBookingMessage(
-        bookingId,
-        messageText.trim(),
-        customerName
-      );
+      const convId = activeBooking?.conversationId;
+      let newMsg = null;
 
-      if (response.success) {
-        setMessages([...messages, response]);
+      if (convId) {
+        const response = await chatService.sendMessage(convId, messageText.trim());
+        if (response.success) newMsg = response.message;
+      } else {
+        // Fallback: old booking-chat endpoint
+        const response = await chatService.sendBookingMessage(
+          activeBookingId,
+          messageText.trim(),
+          customerName
+        );
+        if (response.success) newMsg = response;
+      }
+
+      if (newMsg) {
+        setMessages((prev) => [...prev, newMsg]);
         setMessageText('');
         setTimeout(() => {
           flatListRef.current?.scrollToEnd();
           setShowScrollButton(false);
         }, 100);
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to send message. Please try again.');
     } finally {
       setSending(false);
     }
   };
 
+  // ── Booking Switcher ────────────────────────────────────────
+  const renderBookingSwitcher = () => {
+    if (allBookings.length <= 1) return null;
+
+    return (
+      <View style={styles.switcherContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.switcherScroll}
+        >
+          {allBookings.map((b) => {
+            const isActive = b.id === activeBookingId;
+            return (
+              <TouchableOpacity
+                key={b.id}
+                style={[styles.switcherTab, isActive && styles.switcherTabActive]}
+                onPress={() => switchBooking(b)}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.switcherTabLabel, isActive && styles.switcherTabLabelActive]}>
+                  {SERVICE_SHORT[b.type] || b.type?.toUpperCase() || 'Booking'}
+                </Text>
+                <Text
+                  style={[styles.switcherTabNum, isActive && styles.switcherTabNumActive]}
+                  numberOfLines={1}
+                >
+                  #{b.bookingNumber?.slice(-6) || b.id?.slice(-6)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  };
+
   const renderMessage = ({ item }) => {
+    if (item.__type === 'date') {
+      return (
+        <View style={styles.dateSeparatorRow}>
+          <View style={styles.dateSeparatorLine} />
+          <Text style={styles.dateSeparatorLabel}>{item.label}</Text>
+          <View style={styles.dateSeparatorLine} />
+        </View>
+      );
+    }
     const isCustomer = item.sender_type === 'customer';
     return (
       <View style={[styles.messageBubbleOuter, isCustomer ? styles.customerOuter : styles.vendorOuter]}>
@@ -162,20 +299,14 @@ export default function BookingChatScreen() {
           <View style={styles.customerBubble}>
             <Text style={styles.customerText}>{item.message}</Text>
             <Text style={styles.customerTime}>
-              {new Date(item.created_at).toLocaleTimeString('en-IN', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {new Date(item.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
             </Text>
           </View>
         ) : (
           <View style={styles.vendorBubble}>
             <Text style={styles.vendorText}>{item.message}</Text>
             <Text style={styles.vendorTime}>
-              {new Date(item.created_at).toLocaleTimeString('en-IN', {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {new Date(item.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
             </Text>
           </View>
         )}
@@ -193,18 +324,17 @@ export default function BookingChatScreen() {
           </TouchableOpacity>
           <View style={styles.headerInfo}>
             <Text style={styles.headerTitle} numberOfLines={1}>
-              {vendorName || 'Vendor'}
+              {vendor?.name || vendorName || 'Vendor'}
             </Text>
             <Text style={styles.headerSubtitle}>
-              Booking #{bookingNumber || bookingId?.slice(-8)}
+              #{activeBooking?.bookingNumber || activeBookingId?.slice(-8)}
             </Text>
           </View>
-          {bookingType && (
-            <TouchableOpacity onPress={navigateToBookingDetail} style={styles.phoneBtn}>
-              <Ionicons name="document-text-outline" size={wp(5)} color="#FFFFFF" />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={navigateToBookingDetail} style={styles.phoneBtn}>
+            <Ionicons name="document-text-outline" size={wp(5)} color="#FFFFFF" />
+          </TouchableOpacity>
         </LinearGradient>
+        {renderBookingSwitcher()}
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={TEAL} />
           <Text style={styles.loadingText}>Loading messages...</Text>
@@ -225,15 +355,16 @@ export default function BookingChatScreen() {
             {vendor?.name || vendorName || 'Vendor'}
           </Text>
           <Text style={styles.headerSubtitle}>
-            Booking #{bookingNumber || bookingId.slice(-8)}
+            #{activeBooking?.bookingNumber || activeBookingId?.slice(-8)}
           </Text>
         </View>
-        {bookingType && (
-          <TouchableOpacity onPress={navigateToBookingDetail} style={styles.bookingViewBtn}>
-            <Ionicons name="document-text-outline" size={wp(5)} color="#FFFFFF" />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity onPress={navigateToBookingDetail} style={styles.bookingViewBtn}>
+          <Ionicons name="document-text-outline" size={wp(5)} color="#FFFFFF" />
+        </TouchableOpacity>
       </LinearGradient>
+
+      {/* ── Booking Switcher ────────────────────────────────── */}
+      {renderBookingSwitcher()}
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -241,17 +372,24 @@ export default function BookingChatScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
       >
         {/* ── Messages ───────────────────────────────────── */}
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          keyExtractor={(item, index) => item.id || index.toString()}
-          renderItem={renderMessage}
-          contentContainerStyle={styles.messagesList}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-          onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-        />
+        {messages.length === 0 ? (
+          <View style={styles.emptyMsgs}>
+            <MaterialCommunityIcons name="chat-outline" size={wp(12)} color={TEAL_LIGHT} />
+            <Text style={styles.emptyMsgsText}>No messages yet. Say hello!</Text>
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messagesWithDates}
+            keyExtractor={(item, index) => item.key || item.id || index.toString()}
+            renderItem={renderMessage}
+            contentContainerStyle={styles.messagesList}
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+            onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+          />
+        )}
 
         {/* ── Floating Scroll Down Button ────────────────── */}
         {showScrollButton && (
@@ -260,10 +398,7 @@ export default function BookingChatScreen() {
             onPress={scrollToBottom}
             activeOpacity={0.8}
           >
-            <LinearGradient
-              colors={[TEAL_MID, TEAL]}
-              style={styles.scrollDownGradient}
-            >
+            <LinearGradient colors={[TEAL_MID, TEAL]} style={styles.scrollDownGradient}>
               <Ionicons name="arrow-down" size={wp(5.5)} color="#FFFFFF" />
             </LinearGradient>
           </TouchableOpacity>
@@ -279,9 +414,7 @@ export default function BookingChatScreen() {
               value={messageText}
               onChangeText={setMessageText}
               onFocus={() => {
-                setTimeout(() => {
-                  flatListRef.current?.scrollToEnd({ animated: true });
-                }, 100);
+                setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
               }}
               multiline
               maxLength={500}
@@ -293,10 +426,7 @@ export default function BookingChatScreen() {
             disabled={!messageText.trim() || sending}
             activeOpacity={0.7}
           >
-            <LinearGradient
-              colors={[TEAL_MID, TEAL]}
-              style={styles.sendBtnGradient}
-            >
+            <LinearGradient colors={[TEAL_MID, TEAL]} style={styles.sendBtnGradient}>
               {sending ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
@@ -370,6 +500,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
+  // ── Booking Switcher ────────────────────────────────────
+  switcherContainer: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  switcherScroll: {
+    paddingHorizontal: wp(3),
+    paddingVertical: hp(0.9),
+    gap: wp(2),
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  switcherTab: {
+    paddingHorizontal: wp(3.5),
+    paddingVertical: hp(0.7),
+    borderRadius: wp(2.5),
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    minWidth: wp(20),
+  },
+  switcherTabActive: {
+    backgroundColor: TEAL_LIGHT,
+    borderColor: TEAL,
+  },
+  switcherTabLabel: {
+    fontSize: wp(2.7),
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
+  },
+  switcherTabLabelActive: {
+    color: TEAL_DEEP,
+  },
+  switcherTabNum: {
+    fontSize: wp(2.5),
+    color: TEXT_MUTED,
+    marginTop: hp(0.1),
+  },
+  switcherTabNumActive: {
+    color: TEAL,
+    fontWeight: '600',
+  },
+
   // ── Loading ─────────────────────────────────────────────
   loadingContainer: {
     flex: 1,
@@ -384,11 +559,44 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 
+  // ── Empty Messages ──────────────────────────────────────
+  emptyMsgs: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: hp(1.5),
+  },
+  emptyMsgsText: {
+    fontSize: wp(3.5),
+    color: TEXT_MUTED,
+    fontWeight: '500',
+  },
+
   // ── Messages List ───────────────────────────────────────
   messagesList: {
     paddingHorizontal: wp(4),
     paddingTop: hp(1.5),
     paddingBottom: hp(1),
+  },
+
+  // ── Date Separator ──────────────────────────────────────
+  dateSeparatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: hp(1.5),
+    paddingHorizontal: wp(2),
+  },
+  dateSeparatorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  dateSeparatorLabel: {
+    fontSize: wp(2.8),
+    color: TEXT_MUTED,
+    fontWeight: '600',
+    paddingHorizontal: wp(3),
+    backgroundColor: BG,
   },
 
   // ── Message Bubbles ─────────────────────────────────────

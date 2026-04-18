@@ -130,7 +130,8 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    const [requests, total] = await Promise.all([
+    // Separate counts for tab badges (always accurate, irrespective of current filter)
+    const [requests, total, newCount, quotedCount] = await Promise.all([
       prisma.self_drive_quote_requests.findMany({
         where: whereClause,
         include: {
@@ -150,6 +151,23 @@ export async function GET(request: NextRequest) {
         take: limit,
       }),
       prisma.self_drive_quote_requests.count({ where: whereClause }),
+      prisma.self_drive_quote_requests.count({
+        where: {
+          status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
+          quotesOpenTill: { gte: new Date() },
+          locationId: approvedLocationIds.length > 0 ? { in: approvedLocationIds } : undefined,
+          self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
+            none: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } },
+          },
+        },
+      }),
+      prisma.self_drive_quote_requests.count({
+        where: {
+          self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
+            some: { vendorId: vendorId },
+          },
+        },
+      }),
     ]);
 
     return NextResponse.json({
@@ -194,6 +212,11 @@ export async function GET(request: NextRequest) {
         limit,
         total,
         totalPages: Math.ceil(total / limit),
+      },
+      counts: {
+        new: newCount,
+        quoted: quotedCount,
+        all: newCount + quotedCount,
       },
     });
   } catch (error: any) {

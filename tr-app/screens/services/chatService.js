@@ -130,6 +130,19 @@ const chatService = {
   },
 
   /**
+   * Get all conversations for customer (same endpoint as web, supports all booking types)
+   */
+  getCustomerConversations: async () => {
+    const customerData = await AsyncStorage.getItem('customer');
+    const customer = JSON.parse(customerData);
+    const params = { userType: 'customer' };
+    if (customer?.phone) params.phone = customer.phone;
+    else if (customer?.email) params.email = customer.email;
+    const response = await api.get('/chat/conversations', { params });
+    return response.data;
+  },
+
+  /**
    * Get quick reply templates
    */
   getQuickReplies: async () => {

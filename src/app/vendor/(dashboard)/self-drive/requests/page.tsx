@@ -90,6 +90,9 @@ export default function VendorSelfDriveRequestsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
+  // Tab counts (accurate totals from API, not derived from current page)
+  const [tabCounts, setTabCounts] = useState({ new: 0, quoted: 0, all: 0 });
+
   // Date filter state
   const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
     start: null,
@@ -127,6 +130,9 @@ export default function VendorSelfDriveRequestsPage() {
           setTotalPages(data.pagination.totalPages);
           setTotalItems(data.pagination.total);
         }
+        if (data.counts) {
+          setTabCounts(data.counts);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch requests:', error);
@@ -158,8 +164,6 @@ export default function VendorSelfDriveRequestsPage() {
 
   const selected = useMemo(() => filteredRequests.find(r => r.id === selectedId) ?? null, [filteredRequests, selectedId]);
 
-  const newCount = filteredRequests.filter(r => !r.hasQuoted).length;
-  const quotedCount = filteredRequests.filter(r => r.hasQuoted).length;
 
   /* ── Loading skeleton ── */
   if (isLoading) {
@@ -202,7 +206,7 @@ export default function VendorSelfDriveRequestsPage() {
               </div>
               <div>
                 <h1 className="text-base font-bold text-gray-900 leading-tight">Quote Requests</h1>
-                <p className="text-[11px] text-gray-400">{filteredRequests.length} requests</p>
+                <p className="text-[11px] text-gray-400">{totalItems || tabCounts.all} requests</p>
               </div>
             </div>
             <DateFilterDropdown
@@ -244,9 +248,9 @@ export default function VendorSelfDriveRequestsPage() {
           {/* Filter tabs */}
           <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
             {[
-              { value: 'new',    label: 'New',    count: newCount,               activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
-              { value: 'quoted', label: 'Quoted', count: quotedCount,            activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
-              { value: 'all',    label: 'All',    count: filteredRequests.length, activeColor: 'bg-gray-800 text-white shadow-md' },
+              { value: 'new',    label: 'New',    count: tabCounts.new,    activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
+              { value: 'quoted', label: 'Quoted', count: tabCounts.quoted, activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
+              { value: 'all',    label: 'All',    count: tabCounts.all,    activeColor: 'bg-gray-800 text-white shadow-md' },
             ].map((f) => (
               <button
                 key={f.value}
