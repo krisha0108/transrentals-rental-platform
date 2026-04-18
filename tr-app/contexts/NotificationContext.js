@@ -36,6 +36,20 @@ export const NotificationProvider = ({ children, navigation }) => {
     const body = notification.body || '';
     const notifType = (data?.type || notification.type || '').toLowerCase();
 
+    // Check if this is a Wander group notification
+    const GROUP_TYPES = ['group_chat', 'group_respond', 'group_submitted', 'group_join', 'group_quote_received'];
+    if (GROUP_TYPES.includes(notifType)) {
+      const groupCode = data?.groupCode || data?.group_code;
+      if (groupCode) {
+        const initialTab = notifType === 'group_chat' ? 'chat' : 'trips';
+        navigation.navigate('WanderGroupDetail', { groupCode, initialTab });
+      } else {
+        navigation.navigate('WanderGroup');
+      }
+      hideNotification();
+      return;
+    }
+
     // Check if this is a chat notification
     if (notifType === 'chat' || data?.screen === 'BookingChat' || data?.screen === 'Chat') {
       const chatBId = bookingId || data?.bookingId;

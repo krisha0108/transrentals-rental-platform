@@ -664,6 +664,36 @@ const BikeBookingDetailScreen = () => {
           </TouchableOpacity>
         </View>
 
+        {/* ── Rate Your Experience ── */}
+        {booking && booking.status === 'COMPLETED' && (
+          booking.rating ? (
+            <View style={styles.ratedCard}>
+              <View style={styles.ratedHeader}>
+                <Ionicons name="checkmark-circle" size={wp('5%')} color={TEAL_MID} />
+                <Text style={styles.ratedTitle}>Your Rating</Text>
+              </View>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map(s => (
+                  <Ionicons key={s} name={s <= booking.rating ? 'star' : 'star-outline'} size={wp('6%')} color="#FFB800" />
+                ))}
+              </View>
+              {booking.review ? <Text style={styles.ratedReview}>"{booking.review}"</Text> : null}
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.rateBtn}
+              onPress={() => navigation.navigate('ReviewScreen', { booking, bookingType: 'bike' })}
+              activeOpacity={0.85}
+            >
+              <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={styles.rateBtnGrad}>
+                <Ionicons name="star" size={wp('5%')} color="#FFB800" />
+                <Text style={styles.rateBtnText}>Rate Your Experience</Text>
+                <Ionicons name="chevron-forward" size={wp('5%')} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )
+        )}
+
         <View style={{ height: hp('5%') }} />
       </ScrollView>
 
@@ -1976,6 +2006,14 @@ const styles = StyleSheet.create({
     height: hp('25%'),
     borderRadius: wp('3%'),
   },
+  rateBtn: { marginHorizontal: wp('4%'), marginBottom: hp('1.5%'), borderRadius: wp('3%'), overflow: 'hidden' },
+  rateBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: hp('2%'), paddingHorizontal: wp('4%'), gap: wp('2%') },
+  rateBtnText: { color: '#fff', fontSize: wp('4%'), fontWeight: '700', flex: 1, textAlign: 'center' },
+  ratedCard: { marginHorizontal: wp('4%'), marginBottom: hp('1.5%'), borderRadius: wp('3%'), backgroundColor: '#fff', borderWidth: 1, borderColor: '#E2E8F0', padding: wp('4%'), alignItems: 'center' },
+  ratedHeader: { flexDirection: 'row', alignItems: 'center', gap: wp('2%'), marginBottom: hp('1%') },
+  ratedTitle: { fontSize: wp('4%'), fontWeight: '700', color: '#0F172A' },
+  starsRow: { flexDirection: 'row', gap: wp('1%'), marginBottom: hp('0.5%') },
+  ratedReview: { fontSize: wp('3.5%'), color: '#64748B', fontStyle: 'italic', textAlign: 'center', marginTop: hp('0.5%') },
 });
 
 export default BikeBookingDetailScreen;

@@ -342,18 +342,17 @@ const BookingDetails = () => {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [bookingId, bookingType]);
-
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    const autoRefreshInterval = setInterval(() => {
+  useFocusEffect(
+    useCallback(() => {
       fetchData();
-    }, 30000); // 30 seconds
 
-    return () => clearInterval(autoRefreshInterval);
-  }, [bookingId, bookingType]);
+      const autoRefreshInterval = setInterval(() => {
+        fetchData();
+      }, 30000);
+
+      return () => clearInterval(autoRefreshInterval);
+    }, [bookingId, bookingType])
+  );
 
   useEffect(() => {
     setSortedQuotations(quotations);
@@ -1400,6 +1399,36 @@ const BookingDetails = () => {
             </View>
           </View>
         )}
+
+        {/* ── Rate Your Experience ── */}
+        {bookingType === 'car' && booking && booking.status === 'COMPLETED' && (
+          booking.rating ? (
+            <View style={redesignStyles.ratedCard}>
+              <View style={redesignStyles.ratedHeader}>
+                <Ionicons name="checkmark-circle" size={wp('5%')} color={TEAL_MID} />
+                <Text style={redesignStyles.ratedTitle}>Your Rating</Text>
+              </View>
+              <View style={redesignStyles.starsRow}>
+                {[1, 2, 3, 4, 5].map(s => (
+                  <Ionicons key={s} name={s <= booking.rating ? 'star' : 'star-outline'} size={wp('6%')} color="#FFB800" />
+                ))}
+              </View>
+              {booking.review ? <Text style={redesignStyles.ratedReview}>"{booking.review}"</Text> : null}
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={redesignStyles.rateBtn}
+              onPress={() => navigation.navigate('ReviewScreen', { booking, bookingType: bookingType })}
+              activeOpacity={0.85}
+            >
+              <LinearGradient colors={[TEAL_DEEP, TEAL_MID]} style={redesignStyles.rateBtnGrad}>
+                <Ionicons name="star" size={wp('5%')} color="#FFB800" />
+                <Text style={redesignStyles.rateBtnText}>Rate Your Experience</Text>
+                <Ionicons name="chevron-forward" size={wp('5%')} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -2023,6 +2052,14 @@ const redesignStyles = StyleSheet.create({
     alignItems: 'center',
   },
   selectedRibbonText: { color: '#fff', marginLeft: wp('1.5%'), fontSize: wp('2.6%'), fontWeight: '900' },
+  rateBtn: { marginHorizontal: wp('4%'), marginBottom: hp('1.5%'), borderRadius: wp('3%'), overflow: 'hidden' },
+  rateBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: hp('2%'), paddingHorizontal: wp('4%'), gap: wp('2%') },
+  rateBtnText: { color: '#fff', fontSize: wp('4%'), fontWeight: '700', flex: 1, textAlign: 'center' },
+  ratedCard: { marginHorizontal: wp('4%'), marginBottom: hp('1.5%'), borderRadius: wp('3%'), backgroundColor: '#fff', borderWidth: 1, borderColor: '#E2E8F0', padding: wp('4%'), alignItems: 'center' },
+  ratedHeader: { flexDirection: 'row', alignItems: 'center', gap: wp('2%'), marginBottom: hp('1%') },
+  ratedTitle: { fontSize: wp('4%'), fontWeight: '700', color: '#0F172A' },
+  starsRow: { flexDirection: 'row', gap: wp('1%'), marginBottom: hp('0.5%') },
+  ratedReview: { fontSize: wp('3.5%'), color: '#64748B', fontStyle: 'italic', textAlign: 'center', marginTop: hp('0.5%') },
 });
 
 export default BookingDetails;

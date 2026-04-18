@@ -72,9 +72,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             customerId: quoteRequest.customer.id,
             title: notifTitle,
             body: notifBody,
-            type: 'quote',
+            type: 'WANDER_QUOTE',
             serviceType: 'wander',
             quoteId: quote.id,
+            bookingId: params.id,
           },
         });
 
@@ -86,6 +87,62 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       }
     } catch (notifErr) {
       console.error('[Wander Quote Notification]', notifErr);
+    }
+
+    // Notify ALL group members if this is a group quote
+    try {
+      const groupTrip = await (prisma as any).wander_group_trips.findFirst({
+        where: { quoteRequestId: params.id },
+        include: {
+          group: {
+            include: {
+              members: {
+                include: { customer: { select: { id: true, fcmToken: true } } },
+              },
+            },
+          },
+        },
+      });
+
+      if (groupTrip?.group) {
+        const group = groupTrip.group;
+        const vendorName = quoteRequest.listing?.vendor?.businessName || 'A vendor';
+        const tourTitle = quoteRequest.listing?.title || 'your tour';
+        const perPerson = body.perPersonAmount
+          ? `₹${parseFloat(body.perPersonAmount).toLocaleString('en-IN')}/person`
+          : `₹${parseFloat(amount).toLocaleString('en-IN')} total`;
+        const grpTitle = `${group.name} — Quote Received! 📩`;
+        const grpBody = `${vendorName} quoted ${perPerson} for "${tourTitle}". Open the group to view details.`;
+
+        const tokens = group.members
+          .filter((m: any) => m.customer?.fcmToken)
+          .map((m: any) => m.customer.fcmToken);
+
+        if (tokens.length > 0) {
+          const { sendMulticastNotification } = await import('@/lib/services/push-notification-service');
+          await sendMulticastNotification(tokens, { title: grpTitle, body: grpBody }, {
+            type: 'GROUP_QUOTE_RECEIVED',
+            groupCode: group.groupCode,
+          });
+        }
+
+        // Save to notifications DB for all group members
+        const memberCustomers = group.members.filter((m: any) => m.customer?.id);
+        if (memberCustomers.length > 0) {
+          await prisma.notifications.createMany({
+            data: memberCustomers.map((m: any) => ({
+              customerId: m.customer.id,
+              title: grpTitle,
+              body: grpBody,
+              type: 'GROUP_QUOTE_RECEIVED',
+              bookingId: group.groupCode,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+    } catch (grpNotifErr) {
+      console.error('[Group Quote Notification]', grpNotifErr);
     }
 
     return NextResponse.json(quote, { status: 201 });
