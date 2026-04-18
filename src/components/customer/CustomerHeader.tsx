@@ -93,6 +93,7 @@ export default function CustomerHeader({
 
   const navLinks = [
     { href: '/customer/dashboard', label: 'Dashboard', icon: BarChart3 },
+    { href: '/customer/chat', label: 'Messages', icon: MessageCircle },
     { href: '/customer/financials', label: 'Financials', icon: BarChart3 },
     { href: '/customer/helpdesk', label: 'Helpdesk', icon: HelpCircle },
     { href: '/', label: 'Browse Services', icon: Home },
@@ -251,6 +252,9 @@ export default function CustomerHeader({
                     </div>
                     <Link href="/customer/dashboard" onClick={() => setShowUserDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
                       <BarChart3 className="h-4 w-4 text-gray-400" /> Dashboard
+                    </Link>
+                    <Link href="/customer/chat" onClick={() => setShowUserDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                      <MessageCircle className="h-4 w-4 text-gray-400" /> Messages
                     </Link>
                     <Link href="/customer/financials" onClick={() => setShowUserDropdown(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
                       <BarChart3 className="h-4 w-4 text-gray-400" /> Financials

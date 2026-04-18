@@ -183,6 +183,8 @@ export async function GET(
         cancelledAt: booking.cancelledAt,
         cancelledBy: booking.cancelledBy,
         cancellationReason: booking.cancellationReason,
+        rating: booking.rating,
+        review: booking.review,
         isB2B: booking.customers?.isB2B || false,
         createdAt: booking.createdAt,
         updatedAt: booking.updatedAt,
@@ -205,7 +207,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { action, reason, rating, review } = body;
+    const { action, reason, rating, review, driverRating, vehicleRating } = body;
 
     const booking = await prisma.bike_bookings.findUnique({
       where: { id },
@@ -247,7 +249,7 @@ export async function PATCH(
       });
     }
 
-    if (action === 'rate') {
+    if (action === 'rate' || action === 'review') {
       if (booking.status !== 'COMPLETED') {
         return NextResponse.json(
           { error: 'Can only rate completed bookings' },
@@ -255,14 +257,29 @@ export async function PATCH(
         );
       }
 
+      if (!rating || rating < 1 || rating > 5) {
+        return NextResponse.json({ error: 'Valid rating (1-5) is required' }, { status: 400 });
+      }
+
+      const updatedBooking = await prisma.bike_bookings.update({
+        where: { id },
+        data: {
+          rating,
+          review: review || null,
+          driverRating: driverRating || rating,
+          vehicleRating: vehicleRating || rating,
+        },
+      });
+
       updateVendorRating(booking.acceptedVendorId, rating).catch(() => {});
 
       return NextResponse.json({
         success: true,
         message: 'Rating submitted successfully',
         booking: {
-          id: booking.id,
-          bookingNumber: booking.bookingNumber,
+          id: updatedBooking.id,
+          bookingNumber: updatedBooking.bookingNumber,
+          rating: updatedBooking.rating,
         },
       });
     }

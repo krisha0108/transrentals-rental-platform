@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import api from '../../api';
+import chatService from '../../services/chatService';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED } from '../../../theme';
 
 const SHADOW_SM = Platform.select({
@@ -88,7 +89,6 @@ export default function ChatListScreen() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [customerData, setCustomerData] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   useFocusEffect(
@@ -98,10 +98,8 @@ export default function ChatListScreen() {
         StatusBar.setBackgroundColor(TEAL_DEEP, true);
       }
 
-      loadCustomerData();
       fetchBookings();
 
-      // Auto-refresh every 10 seconds
       const interval = setInterval(fetchBookings, 10000);
       return () => {
         clearInterval(interval);
@@ -113,38 +111,44 @@ export default function ChatListScreen() {
     }, [])
   );
 
-  const loadCustomerData = async () => {
-    try {
-      const data = await AsyncStorage.getItem('customer');
-      if (data) {
-        setCustomerData(JSON.parse(data));
-      }
-    } catch (error) {
-      console.log('Error loading customer data:', error);
-    }
+  // Normalize booking type: chauffeur/luxury → 'car' for icon/navigation fallback
+  const normalizeType = (t) => {
+    if (!t) return 'car';
+    const lower = t.toLowerCase();
+    if (lower === 'chauffeur' || lower === 'luxury') return 'car';
+    return lower;
   };
 
   const fetchBookings = async () => {
     try {
-      const customer = await AsyncStorage.getItem('customer');
-      if (!customer) {
-        setLoading(false);
-        return;
-      }
-
-      const customerObj = JSON.parse(customer);
-      const response = await api.get('/customer/all-booking-chats', {
-        params: {
-          email: customerObj.email,
-          customer_id: customerObj.id,
-        },
-      });
-
-      if (response.data.success) {
-        setBookings(response.data.bookings || []);
+      const data = await chatService.getCustomerConversations();
+      if (data.success && Array.isArray(data.conversations)) {
+        // Transform conversations into booking-like objects for the grouping logic
+        const mapped = data.conversations
+          .filter((c) => c.bookingId && c.participant?.id)
+          .map((c) => ({
+            id: c.bookingId,
+            bookingNumber: c.bookingNumber || c.bookingId?.slice(-8),
+            type: normalizeType(c.bookingType),
+            rawType: c.bookingType,  // keep original for navigation
+            vendor: {
+              id: c.participant.id,
+              name: c.participant.name,
+              phone: c.participant.phone,
+            },
+            lastMessage: c.lastMessage?.content || null,
+            lastMessageTime: c.lastMessageAt || null,
+            lastMessageSender: c.lastMessage?.senderType || null,
+            unreadCount: c.unreadCount || 0,
+            conversationId: c.id,
+            pickupCity: '',
+            dropCity: '',
+            status: '',
+          }));
+        setBookings(mapped);
       }
     } catch (error) {
-      console.log('Error fetching bookings:', error);
+      console.log('Error fetching conversations:', error);
       Alert.alert('Error', 'Failed to load chats');
     } finally {
       setLoading(false);
@@ -173,87 +177,166 @@ export default function ChatListScreen() {
     return past.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   };
 
-  const renderBookingItem = ({ item }) => {
-    const serviceIcon = SERVICE_ICONS[item.type] || 'help-circle';
-    const serviceColor = SERVICE_COLORS[item.type] || '#64748B';
-    const statusColor = STATUS_COLORS[item.status] || '#64748B';
+  // Group bookings by vendor, keeping only those with messages
+  const vendorGroups = useMemo(() => {
+    const withMessages = bookings.filter(
+      (b) => b.vendor?.id && b.lastMessage && b.lastMessage.trim() !== ''
+    );
+
+    const map = {};
+    withMessages.forEach((b) => {
+      const vid = b.vendor.id;
+      if (!map[vid]) {
+        map[vid] = {
+          vendorId: vid,
+          vendorName: b.vendor.name,
+          vendorPhone: b.vendor.phone,
+          bookings: [],
+          totalUnread: 0,
+          lastMessageTime: null,
+          lastMessage: null,
+          lastMessageSender: null,
+          serviceTypes: new Set(),
+        };
+      }
+      map[vid].bookings.push(b);
+      map[vid].totalUnread += b.unreadCount || 0;
+      map[vid].serviceTypes.add(b.type);
+
+      const bTime = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+      const curTime = map[vid].lastMessageTime ? new Date(map[vid].lastMessageTime).getTime() : 0;
+      if (bTime > curTime) {
+        map[vid].lastMessage = b.lastMessage;
+        map[vid].lastMessageTime = b.lastMessageTime;
+        map[vid].lastMessageSender = b.lastMessageSender;
+      }
+    });
+
+    // Sort each group's bookings by lastMessageTime desc
+    Object.values(map).forEach((g) => {
+      g.bookings.sort((a, b) => {
+        const aT = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
+        const bT = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+        return bT - aT;
+      });
+    });
+
+    // Apply search filter
+    let groups = Object.values(map);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      groups = groups.filter(
+        (g) =>
+          g.vendorName?.toLowerCase().includes(q) ||
+          g.bookings.some(
+            (b) =>
+              b.bookingNumber?.toLowerCase().includes(q) ||
+              b.pickupCity?.toLowerCase().includes(q) ||
+              b.dropCity?.toLowerCase().includes(q)
+          )
+      );
+    }
+
+    // Sort groups by latest message time
+    groups.sort((a, b) => {
+      const aT = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
+      const bT = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+      return bT - aT;
+    });
+
+    return groups;
+  }, [bookings, searchQuery]);
+
+  const openVendorChat = (group) => {
+    const topBooking = group.bookings[0];
+    navigation.navigate('BookingChat', {
+      bookingId: topBooking.id,
+      bookingNumber: topBooking.bookingNumber,
+      vendorName: group.vendorName,
+      bookingType: topBooking.rawType || topBooking.type,
+      vendorBookings: group.bookings,
+    });
+  };
+
+  const renderVendorItem = ({ item: group }) => {
+    // Determine dominant service type for icon/color
+    const primaryType = group.bookings[0]?.type || 'car';
+    const serviceIcon = SERVICE_ICONS[primaryType] || 'help-circle';
+    const serviceColor = SERVICE_COLORS[primaryType] || '#64748B';
+
+    // If multiple service types exist, show a generic office icon
+    const hasMultipleTypes = group.serviceTypes.size > 1;
 
     return (
       <TouchableOpacity
-        style={styles.bookingCard}
-        onPress={() => navigation.navigate('BookingChat', {
-          bookingId: item.id,
-          bookingNumber: item.bookingNumber,
-          vendorName: item.vendor?.name || 'Vendor',
-          bookingType: item.type,
-        })}
+        style={styles.vendorCard}
+        onPress={() => openVendorChat(group)}
         activeOpacity={0.7}
       >
-        {/* Service Icon */}
-        <View style={[styles.serviceIcon, { backgroundColor: serviceColor + '15' }]}>
-          <MaterialCommunityIcons name={serviceIcon} size={wp('5.5%')} color={serviceColor} />
-        </View>
-
-        {/* Content */}
-        <View style={styles.bookingContent}>
-          {/* Header Row */}
-          <View style={styles.headerRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.vendorName} numberOfLines={1}>
-                {item.vendor?.name || 'Vendor'}
-              </Text>
-              <Text style={styles.bookingNumber} numberOfLines={1}>
-                {item.bookingNumber}
-              </Text>
-            </View>
-            {item.unreadCount > 0 && (
-              <View style={styles.unreadBadge}>
-                <Text style={styles.unreadText}>{item.unreadCount}</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Route Info */}
-          <View style={styles.routeRow}>
-            <Ionicons name="location" size={wp('3%')} color={TEXT_SECONDARY} />
-            <Text style={styles.routeText} numberOfLines={1}>
-              {item.pickupCity}
-              {item.dropCity && ` → ${item.dropCity}`}
-            </Text>
-            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-            <Text style={[styles.statusText, { color: statusColor }]} numberOfLines={1}>
-              {item.status.replace(/_/g, ' ')}
-            </Text>
-          </View>
-
-          {/* Last Message */}
-          {item.lastMessage ? (
-            <View style={styles.messageRow}>
-              <Ionicons
-                name={item.lastMessageSender === 'vendor' ? 'arrow-down' : 'arrow-up'}
-                size={wp('3%')}
-                color={item.lastMessageSender === 'vendor' ? TEAL : TEXT_SECONDARY}
-              />
-              <Text
-                style={[
-                  styles.lastMessage,
-                  item.unreadCount > 0 && styles.unreadMessage,
-                ]}
-                numberOfLines={1}
-              >
-                {item.lastMessage}
-              </Text>
-              <Text style={styles.timeAgo}>{getTimeAgo(item.lastMessageTime)}</Text>
-            </View>
+        {/* Avatar */}
+        <View style={[styles.vendorAvatar, { backgroundColor: serviceColor + '18' }]}>
+          {hasMultipleTypes ? (
+            <MaterialCommunityIcons name="store" size={wp('5.5%')} color={serviceColor} />
           ) : (
-            <View style={styles.messageRow}>
-              <Ionicons name="chatbubble-outline" size={wp('3%')} color={TEXT_MUTED} />
-              <Text style={styles.noMessage}>No messages yet</Text>
-            </View>
+            <MaterialCommunityIcons name={serviceIcon} size={wp('5.5%')} color={serviceColor} />
           )}
         </View>
 
-        {/* Arrow */}
+        {/* Content */}
+        <View style={styles.vendorContent}>
+          {/* Top row */}
+          <View style={styles.topRow}>
+            <Text style={styles.vendorName} numberOfLines={1}>
+              {group.vendorName}
+            </Text>
+            <View style={styles.rightMeta}>
+              {group.totalUnread > 0 && (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadText}>{group.totalUnread}</Text>
+                </View>
+              )}
+              <Text style={styles.timeAgo}>{getTimeAgo(group.lastMessageTime)}</Text>
+            </View>
+          </View>
+
+          {/* Booking count + types */}
+          <View style={styles.bookingMetaRow}>
+            <View style={styles.bookingCountPill}>
+              <Ionicons name="briefcase-outline" size={wp('2.8%')} color={TEAL} />
+              <Text style={styles.bookingCountText}>
+                {group.bookings.length} {group.bookings.length === 1 ? 'booking' : 'bookings'}
+              </Text>
+            </View>
+            {Array.from(group.serviceTypes).map((type) => (
+              <View
+                key={type}
+                style={[styles.typeChip, { backgroundColor: (SERVICE_COLORS[type] || '#64748B') + '18' }]}
+              >
+                <MaterialCommunityIcons
+                  name={SERVICE_ICONS[type] || 'help-circle'}
+                  size={wp('2.8%')}
+                  color={SERVICE_COLORS[type] || '#64748B'}
+                />
+              </View>
+            ))}
+          </View>
+
+          {/* Last message */}
+          <View style={styles.lastMsgRow}>
+            {group.lastMessageSender === 'vendor' ? (
+              <Ionicons name="arrow-down" size={wp('3%')} color={TEAL} />
+            ) : (
+              <Ionicons name="arrow-up" size={wp('3%')} color={TEXT_MUTED} />
+            )}
+            <Text
+              style={[styles.lastMessage, group.totalUnread > 0 && styles.lastMessageUnread]}
+              numberOfLines={1}
+            >
+              {group.lastMessage}
+            </Text>
+          </View>
+        </View>
+
         <Ionicons name="chevron-forward" size={wp('5%')} color="#CBD5E1" />
       </TouchableOpacity>
     );
@@ -294,7 +377,6 @@ export default function ChatListScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
-        {/* Gradient Header */}
         <LinearGradient
           colors={[TEAL_DEEP, TEAL_MID, '#047857']}
           start={{ x: 0, y: 0 }}
@@ -320,27 +402,7 @@ export default function ChatListScreen() {
     );
   }
 
-  // Filter bookings: only show those with messages and match search query
-  const filteredBookings = bookings.filter((booking) => {
-    // Only show bookings with at least one message
-    const hasMessages = booking.lastMessage && booking.lastMessage.trim() !== '';
-    if (!hasMessages) return false;
-
-    // Apply search filter if query exists
-    if (searchQuery.trim() !== '') {
-      const query = searchQuery.toLowerCase();
-      const matchesVendor = booking.vendor?.name?.toLowerCase().includes(query);
-      const matchesBookingNumber = booking.bookingNumber?.toLowerCase().includes(query);
-      const matchesCity = booking.pickupCity?.toLowerCase().includes(query) ||
-                          booking.dropCity?.toLowerCase().includes(query);
-      return matchesVendor || matchesBookingNumber || matchesCity;
-    }
-
-    return true;
-  });
-
-  // Calculate total unread
-  const totalUnread = filteredBookings.reduce((sum, b) => sum + (b.unreadCount || 0), 0);
+  const totalUnread = vendorGroups.reduce((s, g) => s + g.totalUnread, 0);
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
@@ -383,11 +445,11 @@ export default function ChatListScreen() {
         )}
       </View>
 
-      {/* Bookings List */}
+      {/* Vendor Groups List */}
       <FlatList
-        data={filteredBookings}
-        keyExtractor={(item) => item.id}
-        renderItem={renderBookingItem}
+        data={vendorGroups}
+        keyExtractor={(item) => item.vendorId}
+        renderItem={renderVendorItem}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmptyState}
         refreshControl={
@@ -472,9 +534,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.4,
         shadowRadius: 4,
       },
-      android: {
-        elevation: 4,
-      },
+      android: { elevation: 4 },
     }),
   },
   headerBadgeText: {
@@ -538,8 +598,8 @@ const styles = StyleSheet.create({
     paddingBottom: hp('12%'),
   },
 
-  // --- Booking Card ---
-  bookingCard: {
+  // --- Vendor Card ---
+  vendorCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: CARD,
@@ -548,32 +608,35 @@ const styles = StyleSheet.create({
     marginBottom: hp('1.2%'),
     ...SHADOW_SM,
   },
-  serviceIcon: {
-    width: wp('12.5%'),
-    height: wp('12.5%'),
-    borderRadius: wp('6.25%'),
+  vendorAvatar: {
+    width: wp('13%'),
+    height: wp('13%'),
+    borderRadius: wp('6.5%'),
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: wp('3%'),
+    flexShrink: 0,
   },
-  bookingContent: {
+  vendorContent: {
     flex: 1,
-    gap: hp('0.4%'),
+    gap: hp('0.45%'),
   },
-  headerRow: {
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   vendorName: {
-    fontSize: wp('3.8%'),
+    fontSize: wp('3.9%'),
     fontWeight: '700',
     color: TEXT_PRIMARY,
+    flex: 1,
+    marginRight: wp('2%'),
   },
-  bookingNumber: {
-    fontSize: wp('2.8%'),
-    color: TEXT_SECONDARY,
-    marginTop: hp('0.2%'),
+  rightMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('1.5%'),
   },
   unreadBadge: {
     backgroundColor: '#EF4444',
@@ -589,52 +652,51 @@ const styles = StyleSheet.create({
     fontSize: wp('2.8%'),
     fontWeight: '700',
   },
-  routeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: wp('1%'),
-    marginTop: hp('0.2%'),
-  },
-  routeText: {
-    fontSize: wp('2.8%'),
-    color: TEXT_SECONDARY,
-    flex: 1,
-  },
-  statusDot: {
-    width: wp('1.5%'),
-    height: wp('1.5%'),
-    borderRadius: wp('0.75%'),
-    marginLeft: wp('1%'),
-  },
-  statusText: {
+  timeAgo: {
     fontSize: wp('2.6%'),
-    fontWeight: '600',
-    textTransform: 'capitalize',
+    color: TEXT_MUTED,
   },
-  messageRow: {
+  bookingMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: wp('1.5%'),
-    marginTop: hp('0.4%'),
+    flexWrap: 'wrap',
+  },
+  bookingCountPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('1%'),
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('2%'),
+    paddingHorizontal: wp('2%'),
+    paddingVertical: hp('0.2%'),
+  },
+  bookingCountText: {
+    fontSize: wp('2.7%'),
+    color: TEAL,
+    fontWeight: '600',
+  },
+  typeChip: {
+    width: wp('5.5%'),
+    height: wp('5.5%'),
+    borderRadius: wp('2%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lastMsgRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: wp('1.5%'),
+    marginTop: hp('0.2%'),
   },
   lastMessage: {
     flex: 1,
     fontSize: wp('3.1%'),
     color: TEXT_SECONDARY,
   },
-  unreadMessage: {
+  lastMessageUnread: {
     color: TEXT_PRIMARY,
     fontWeight: '600',
-  },
-  timeAgo: {
-    fontSize: wp('2.6%'),
-    color: TEXT_MUTED,
-  },
-  noMessage: {
-    flex: 1,
-    fontSize: wp('3.1%'),
-    color: TEXT_MUTED,
-    fontStyle: 'italic',
   },
 
   // --- Empty State ---
