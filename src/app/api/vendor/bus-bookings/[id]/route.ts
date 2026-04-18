@@ -89,6 +89,9 @@ export async function GET(
       updatedAt: booking.updatedAt,
       droppedAt: booking.droppedAt,
       dropReason: booking.dropReason,
+      cancelledAt: booking.cancelledAt,
+      cancelledBy: booking.cancelledBy,
+      cancellationReason: booking.cancellationReason,
     };
 
     return NextResponse.json({ success: true, booking: response });

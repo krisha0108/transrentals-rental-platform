@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
+import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
 export const dynamic = 'force-dynamic';
 
 // GET - Get single Self-Drive car booking details
@@ -196,6 +197,9 @@ export async function PATCH(
         );
       }
 
+      // Refund amount = whatever the customer has paid so far (admin will process actual refund)
+      const refundEligibleAmount = booking.paidAmount || 0;
+
       const updatedBooking = await prisma.car_bookings.update({
         where: { id },
         data: {
@@ -203,8 +207,25 @@ export async function PATCH(
           cancelledAt: new Date(),
           cancellationReason: reason || 'Cancelled by customer',
           cancelledBy: 'CUSTOMER',
+          refundAmount: refundEligibleAmount > 0 ? refundEligibleAmount : null,
         },
       });
+
+      // Notify vendor if one was assigned
+      if (booking.assignedVendorId || booking.acceptedVendorId) {
+        const vendorId = booking.assignedVendorId || booking.acceptedVendorId;
+        await prisma.notifications.create({
+          data: {
+            userId: vendorId!,
+            userType: 'VENDOR',
+            title: 'Booking Cancelled by Customer',
+            message: `Booking #${booking.bookingNumber} has been cancelled by the customer. Reason: ${reason || 'No reason provided'}.`,
+            type: 'BOOKING_CANCELLED',
+            bookingId: booking.id,
+            bookingType: 'self_drive',
+          },
+        }).catch(() => {}); // non-blocking
+      }
 
       return NextResponse.json({
         success: true,
@@ -212,6 +233,7 @@ export async function PATCH(
         booking: {
           id: updatedBooking.id,
           status: updatedBooking.status,
+          refundAmount: updatedBooking.refundAmount,
         },
       });
     }
@@ -232,6 +254,8 @@ export async function PATCH(
           review,
         },
       });
+
+      updateVendorRating(booking.acceptedVendorId, rating).catch(() => {});
 
       return NextResponse.json({
         success: true,

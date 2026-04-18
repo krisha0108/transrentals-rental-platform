@@ -84,6 +84,13 @@ export async function GET(request: NextRequest) {
           },
         },
       };
+    } else if (type === 'cancelled') {
+      // Requests that were cancelled by customer, where vendor had submitted a quote
+      whereClause = {
+        ...dateFilter,
+        status: 'CANCELLED',
+        truck_quotes: { some: { vendorId: vendorId } },
+      };
     } else {
       // Show all requests (location filter relaxed for development)
       whereClause = {
@@ -122,7 +129,16 @@ export async function GET(request: NextRequest) {
       prisma.truck_quote_requests.findMany({
         where: whereClause,
         include: {
-          truck_quotes: { where: { vendorId: vendorId }, select: { id: true, quoteNumber: true, totalAmount: true, status: true } },
+          truck_quotes: {
+            where: { vendorId: vendorId },
+            select: {
+              id: true,
+              quoteNumber: true,
+              totalAmount: true,
+              status: true,
+              truck_bookings: { select: { id: true, bookingNumber: true, status: true } },
+            },
+          },
           locations: { select: { name: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -146,6 +162,8 @@ export async function GET(request: NextRequest) {
         goodsType: r.goodsType,
         goodsDescription: r.goodsDescription,
         estimatedWeight: r.estimatedWeight,
+        weight: r.estimatedWeight,
+        weightUnit: 'KG',
         estimatedVolume: r.estimatedVolume,
         requiresLabour: r.requiresLabour,
         labourCount: r.labourCount,
@@ -171,7 +189,18 @@ export async function GET(request: NextRequest) {
         totalQuotesReceived: r.totalQuotesReceived,
         quotesOpenTill: r.quotesOpenTill,
         location: r.locations?.name,
-        myQuote: r.truck_quotes[0] || null,
+        myQuote: (() => {
+          const q = r.truck_quotes[0];
+          if (!q) return null;
+          return {
+            id: q.id,
+            quoteNumber: q.quoteNumber,
+            totalAmount: q.totalAmount,
+            status: q.status,
+            bookingId: q.truck_bookings?.id || null,
+            bookingNumber: q.truck_bookings?.bookingNumber || null,
+          };
+        })(),
         hasQuoted: r.truck_quotes.length > 0,
         createdAt: r.createdAt,
         updatedAt: r.updatedAt,

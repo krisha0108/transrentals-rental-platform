@@ -80,7 +80,7 @@ export default function CarRentalBookingsScreen({ navigation, route }) {
   const { data: allBookings, loading, refreshing, hasMore, loadMore, refresh, initialLoad, applyDateFilter, dateFilter } =
     useInfiniteScroll(getBookings, { service: 'car', type: filter });
 
-  useEffect(() => { initialLoad(); }, [initialLoad]);
+  useEffect(() => { initialLoad(); }, []);
 
   const tabFiltered = selectedFilter === 'all'
     ? allBookings

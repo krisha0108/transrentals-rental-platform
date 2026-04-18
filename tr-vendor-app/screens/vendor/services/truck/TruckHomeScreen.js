@@ -9,7 +9,7 @@ import { BarChart } from 'react-native-chart-kit';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getBookingsByService, getVendorQuotes } from '../../../api/client';
+import { getBookingsByService, getVendorQuotes, getQuoteRequests } from '../../../api/client';
 
 const { width: W } = Dimensions.get('window');
 const CARD_W  = (W - 32 - 10) / 2;
@@ -44,6 +44,10 @@ const STATUS_CFG = {
 const SERVICE_TYPE = 'truck';
 const SERVICE_NAME = 'Transporter';
 const SERVICE_ICON = 'truck-delivery';
+
+const Bone = ({ w, h, r = 8, style }) => (
+  <View style={[{ width: w, height: h, borderRadius: r, backgroundColor: '#DDE4EE' }, style]} />
+);
 
 const fmtAmt = (v) => {
   if (!v) return '₹0';
@@ -98,6 +102,7 @@ const computeChart = (bookings, period) => {
 };
 
 export default function TruckHomeScreen({ navigation }) {
+  const [loading,     setLoading]     = useState(true);
   const [refreshing,  setRefreshing]  = useState(false);
   const [period,      setPeriod]      = useState('weekly');
   const [allBookings, setAllBookings] = useState([]);
@@ -109,8 +114,9 @@ export default function TruckHomeScreen({ navigation }) {
 
   const fetchData = async () => {
     try {
-      const [bookingRes, quotesRes] = await Promise.all([
+      const [bookingRes, quoteReqRes, quotesRes] = await Promise.all([
         getBookingsByService(SERVICE_TYPE, { limit: 200 }).catch(() => ({ bookings: [] })),
+        getQuoteRequests(SERVICE_TYPE, { limit: 1 }).catch(() => ({ requests: [], pagination: { total: 0 } })),
         getVendorQuotes(SERVICE_TYPE, { limit: 1 }).catch(() => ({ quotes: [], stats: {}, pagination: { total: 0 } })),
       ]);
       const bookings = bookingRes?.bookings || [];
@@ -122,13 +128,13 @@ export default function TruckHomeScreen({ navigation }) {
       const earnings = bookings
         .filter(b => b.status === 'COMPLETED')
         .reduce((s, b) => s + (b.grandTotal || b.totalAmount || 0), 0);
-      const openRequests  = bookings.filter(b =>
-        ['PENDING','PENDING_VENDOR','BROADCASTED'].includes(b.status)
-      ).length;
+      const openRequests  = quoteReqRes?.pagination?.total ?? quoteReqRes?.requests?.length ?? 0;
       const myQuotesCount = quotesRes?.stats?.total ?? quotesRes?.pagination?.total ?? quotesRes?.quotes?.length ?? 0;
       setStats({ quoteRequests: openRequests, myQuotes: myQuotesCount, bookings: totalBookings, activeTrips, earnings });
     } catch (e) {
       console.error('TruckHome fetchData error:', e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -210,6 +216,67 @@ export default function TruckHomeScreen({ navigation }) {
     propsForBackgroundLines: { stroke: C.border, strokeWidth: 0.6, strokeDasharray: '3,3' },
     fillShadowGradient: C.g600, fillShadowGradientOpacity: 1,
   };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: C.bg }}>
+        <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+        <LinearGradient colors={[C.g900, '#064E3B', C.g700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+          <SafeAreaView>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, marginBottom: 16 }}>
+              <Bone w={34} h={34} r={10} />
+              <View style={{ flex: 1, marginLeft: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Bone w={20} h={20} r={4} />
+                <Bone w={120} h={16} r={5} />
+              </View>
+            </View>
+            <View style={{ marginHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16, padding: 16 }}>
+              <Bone w={120} h={10} r={4} style={{ marginBottom: 8 }} />
+              <Bone w={60} h={32} r={6} style={{ marginBottom: 16 }} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                {[0,1,2,3].map(i => (
+                  <View key={i} style={{ alignItems: 'center', gap: 5 }}>
+                    <Bone w={44} h={13} r={4} />
+                    <Bone w={36} h={9} r={3} />
+                  </View>
+                ))}
+              </View>
+            </View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 16 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            {[0,1,2,3].map(i => (
+              <View key={i} style={{ width: (W - 32 - 30) / 4, backgroundColor: C.card, borderRadius: 14, padding: 12, alignItems: 'center', gap: 6 }}>
+                <Bone w={32} h={32} r={8} />
+                <Bone w={36} h={14} r={4} />
+                <Bone w={28} h={9} r={3} />
+              </View>
+            ))}
+          </View>
+
+          <View style={{ backgroundColor: C.card, borderRadius: 16, padding: 16 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 }}>
+              <Bone w={100} h={13} r={5} />
+              <Bone w={80} h={24} r={12} />
+            </View>
+            <Bone w="100%" h={140} r={8} />
+          </View>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            {[0,1,2,3].map(i => (
+              <View key={i} style={{ width: (W - 32 - 10) / 2, backgroundColor: C.card, borderRadius: 14, padding: 14, gap: 8 }}>
+                <Bone w={40} h={40} r={12} />
+                <Bone w={80} h={13} r={4} />
+                <Bone w={60} h={9} r={3} />
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={s.root}>

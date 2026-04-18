@@ -21,6 +21,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import CustomDropdown from '../../../../components/CustomDropdown';
 import { getQuoteRequestById, getFleetVehicles, submitQuote, getTemplates, getTemplateById } from '../../../api/client';
 import { showConfirm, showError, showInfo, showSuccess } from '../../../../services/alertService';
+import AppEvents, { EVT_QUOTE_SENT } from '../../../../utils/AppEvents';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 const C = {
@@ -291,6 +292,7 @@ export default function BikeSendQuoteScreen({ navigation, route }) {
           return d.toISOString();
         })() : undefined,
       });
+      AppEvents.emit(EVT_QUOTE_SENT, { serviceType: 'bike' });
       showSuccess('Quote sent successfully!', 'Success', { actions: [{ label: 'OK', onPress: () => navigation.goBack(), variant: 'primary' }] });
     } catch (error) {
       console.error('Error submitting quote:', error);

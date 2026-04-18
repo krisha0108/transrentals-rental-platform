@@ -10,6 +10,7 @@ import {
   ChevronDown, ChevronUp, Bus, Truck, Bike, Wrench, Package, Star,
   XCircle, Edit3, X, Settings2, Fuel, Navigation, Lightbulb, Clock,
 } from 'lucide-react';
+import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 
 // ============ INTERFACES ============
 
@@ -201,6 +202,7 @@ function parseSelfDrivePref(notes: string | null): any {
 
 export default function B2BQuoteSubmitPage({ params }: { params: { id: string } }) {
   const bookingId = params.id;
+  const { isApproved, openVerificationModal } = useVendorVerification();
   const router = useRouter();
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [fleet, setFleet] = useState<any[]>([]);
@@ -1196,7 +1198,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
               Cancel
             </button>
             <button
-              onClick={handleSubmit}
+              onClick={isApproved ? handleSubmit : openVerificationModal}
               disabled={isSubmitting || !sdTotalPrice || !sdSecurityDeposit || sdValidVehicles.length === 0}
               className="flex-1 flex items-center justify-center gap-3 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-bold text-lg rounded-xl transition disabled:opacity-50 shadow-lg"
             >
@@ -1536,7 +1538,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
             )}
 
             <button
-              onClick={handleSubmit}
+              onClick={isApproved ? handleSubmit : openVerificationModal}
               disabled={isSubmitting}
               className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-bold text-lg rounded-xl transition disabled:opacity-50 shadow-lg"
             >

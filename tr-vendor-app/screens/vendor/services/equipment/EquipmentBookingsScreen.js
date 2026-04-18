@@ -67,7 +67,7 @@ export default function EquipmentBookingsScreen({ navigation, route }) {
     loadMore, refresh, initialLoad, applyDateFilter, dateFilter,
   } = useInfiniteScroll(getBookings, { service: 'equipment', type: filter });
 
-  useEffect(() => { initialLoad(); }, [initialLoad]);
+  useEffect(() => { initialLoad(); }, []);
 
   const tabFiltered = selectedFilter === 'completed'
     ? allBookings.filter(b => b.status === 'COMPLETED')

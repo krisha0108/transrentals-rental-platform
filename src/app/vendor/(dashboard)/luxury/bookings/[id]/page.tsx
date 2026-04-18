@@ -73,6 +73,9 @@ interface LuxuryBooking {
   tripStartedAt?: string;
   tripEndedAt?: string;
   customerNotes?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
   createdAt: string;
   quoteRequest?: {
     id: string;
@@ -703,6 +706,37 @@ export default function VendorLuxuryBookingDetailPage() {
             {(booking as any).droppedAt && (
               <p className="text-xs text-red-500 mt-1">
                 Dropped on: {new Date((booking as any).droppedAt).toLocaleString('en-IN')}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Cancellation Banner */}
+      {booking.status === 'CANCELLED' && (
+        <div className="rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-rose-50 overflow-hidden">
+          <div className="flex items-center gap-2.5 px-4 py-2.5 bg-red-100/60 border-b border-red-200">
+            <XCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <p className="text-sm font-bold text-red-800">Booking Cancelled</p>
+            {booking.cancelledBy && (
+              <span className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-200/70 text-red-700">
+                by {booking.cancelledBy === 'CUSTOMER' ? 'Customer' : booking.cancelledBy === 'VENDOR' ? 'You' : 'Admin'}
+              </span>
+            )}
+          </div>
+          <div className="px-4 py-3 space-y-2">
+            {booking.cancellationReason ? (
+              <div>
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-wider mb-1">Reason</p>
+                <p className="text-sm text-red-900 leading-relaxed">{booking.cancellationReason}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-red-600 italic">No reason provided</p>
+            )}
+            {booking.cancelledAt && (
+              <p className="text-[11px] text-red-500 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                Cancelled on {new Date(booking.cancelledAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
               </p>
             )}
           </div>

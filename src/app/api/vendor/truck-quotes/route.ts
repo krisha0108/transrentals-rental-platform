@@ -54,18 +54,24 @@ export async function GET(request: NextRequest) {
     // SEARCH FILTER
     const search = searchParams.get('search')?.trim();
     if (search) {
-      whereClause.OR = [
-        { quoteNumber: { contains: search } },
-        { vehicleName: { contains: search } },
+      whereClause.AND = [
+        ...(whereClause.AND || []),
         {
-          truck_quote_requests: {
-            OR: [
-              { requestNumber: { contains: search } },
-              { customerName: { contains: search } },
-              { pickupCity: { contains: search } },
-              { dropCity: { contains: search } },
-            ],
-          },
+          OR: [
+            { quoteNumber: { contains: search } },
+            { vehicleName: { contains: search } },
+            { truck_bookings: { bookingNumber: { contains: search } } },
+            {
+              truck_quote_requests: {
+                OR: [
+                  { requestNumber: { contains: search } },
+                  { customerName: { contains: search } },
+                  { pickupCity: { contains: search } },
+                  { dropCity: { contains: search } },
+                ],
+              },
+            },
+          ],
         },
       ];
     }
@@ -82,9 +88,10 @@ export async function GET(request: NextRequest) {
               pickupCity: true,
               dropCity: true,
               pickupDate: true,
-              status: true
-            }
+              status: true,
+            },
           },
+          truck_bookings: { select: { id: true, bookingNumber: true, status: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -125,6 +132,9 @@ export async function GET(request: NextRequest) {
         validTill: q.validTill,
         viewCount: q.viewCount || 0,
         request: q.truck_quote_requests || null,
+        bookingId: q.truck_bookings?.id || null,
+        bookingNumber: q.truck_bookings?.bookingNumber || null,
+        bookingStatus: q.truck_bookings?.status || null,
         createdAt: q.createdAt,
         updatedAt: q.updatedAt,
       })),

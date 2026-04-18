@@ -125,6 +125,7 @@ const STATUS_CONFIG = {
 export default function VendorBikeBookingsPage() {
   const { data: session } = useSession();
   const [filter, setFilter] = useState('all');
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -397,9 +398,33 @@ export default function VendorBikeBookingsPage() {
             ))}
           </div>
 
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder="Search booking, customer, vehicle..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all placeholder:text-gray-400" />
+          <div className="flex gap-2 flex-1 min-w-[200px] max-w-sm">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search booking, customer, vehicle..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { setSearchQuery(searchInput); setCurrentPage(1); } }}
+                className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all placeholder:text-gray-400"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => { setSearchInput(''); setSearchQuery(''); setCurrentPage(1); }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition"
+                >
+                  <XCircle className="w-3 h-3 text-gray-500" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => { setSearchQuery(searchInput); setCurrentPage(1); }}
+              className="px-4 py-2 text-sm font-medium bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition flex items-center gap-1.5 shrink-0"
+            >
+              <Search className="w-3.5 h-3.5" />
+              Search
+            </button>
           </div>
 
           <DateFilterDropdown

@@ -217,6 +217,7 @@ import B2BBookingDetailScreen from './screens/vendor/b2b/B2BBookingDetailScreen'
 import B2BQuoteDetailScreen from './screens/vendor/b2b/B2BQuoteDetailScreen';
 import B2BTripsScreen from './screens/vendor/b2b/B2BTripsScreen';
 import B2BTripDetailScreen from './screens/vendor/b2b/B2BTripDetailScreen';
+import AppEvents, { EVT_NEW_QUOTE } from './utils/AppEvents';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -575,7 +576,21 @@ export default function App() {
     // Handle foreground notifications
     const unsubscribeOnMessage = messaging().onMessage(async (remoteMessage) => {
       console.log('Foreground Message:', remoteMessage);
-      refreshBadge();
+      // Increment badge locally — no server call
+      setUnreadCount(prev => prev + 1);
+      // If it's a new quote request, tell the dashboard to increment that service count
+      if (remoteMessage?.data?.incrementQuote === 'true' && remoteMessage?.data?.serviceType) {
+        // Normalize backend serviceType variants → dashboard keys
+        const SERVICE_NORMALIZE = {
+          'chauffeur': 'car', 'car-rental': 'car',
+          'bus-rental': 'bus',
+          'home-intercity': 'packers', 'full-service': 'packers',
+          'intercity': 'truck', 'local-shifting': 'truck', 'commercial': 'truck',
+        };
+        const raw = remoteMessage.data.serviceType;
+        const normalized = SERVICE_NORMALIZE[raw] || raw;
+        AppEvents.emit(EVT_NEW_QUOTE, { serviceType: normalized });
+      }
       const image =
         remoteMessage?.data?.image ||
         remoteMessage?.notification?.android?.imageUrl ||

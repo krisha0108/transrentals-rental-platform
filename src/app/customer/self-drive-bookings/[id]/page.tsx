@@ -81,13 +81,18 @@ interface Booking {
   grandTotal: number;
   advanceAmount?: number;
   advancePercentage?: number;
+  paidAmount?: number;
+  refundAmount?: number;
+  refundTransactionId?: string;
   kmLimitPerDay: number;
   extraKmRate: number;
   status: string;
   paymentStatus: string;
+  paymentMethod?: string;
   tripStartOtp?: string;
   customerNotes?: string;
   vendorNotes?: string;
+  isB2B?: boolean;
   vendor?: {
     businessName: string;
     phone?: string;
@@ -95,6 +100,13 @@ interface Booking {
   cancelledAt?: string;
   cancelledBy?: string;
   cancellationReason?: string;
+  acceptedQuote?: {
+    id: string;
+    termsConditions?: string;
+    inclusions?: string;
+    exclusions?: string;
+    vendorMessage?: string;
+  } | null;
   createdAt: string;
 }
 
@@ -110,6 +122,17 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
   COMPLETED:        { label: 'Completed', color: 'text-green-700', bgColor: 'bg-green-100' },
   CANCELLED:        { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
 };
+
+const CANCEL_REASONS = [
+  'Plans changed / Trip cancelled',
+  'Found a better vehicle or deal',
+  'Booked by mistake',
+  'Emergency or urgent situation',
+  'Pickup date or time needs to change',
+  'Vehicle does not meet my requirements',
+  'Payment issue',
+  'Other',
+];
 
 export default function CustomerSelfDriveBookingPage() {
   const params = useParams();
@@ -131,6 +154,14 @@ export default function CustomerSelfDriveBookingPage() {
 
   // Chat state
   const [showChat, setShowChat] = useState(false);
+
+  // Cancel booking state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [selectedCancelReason, setSelectedCancelReason] = useState('');
+  const [otherCancelReason, setOtherCancelReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchBooking = async () => {
@@ -167,6 +198,16 @@ export default function CustomerSelfDriveBookingPage() {
       setCopiedText(label);
       setTimeout(() => setCopiedText(null), 2000);
     }
+  };
+
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    const [hourStr, minuteStr] = timeString.split(':');
+    const hour = parseInt(hourStr, 10);
+    const minute = minuteStr || '00';
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minute} ${ampm}`;
   };
 
   // Fetch bank details for payment
@@ -247,6 +288,40 @@ export default function CustomerSelfDriveBookingPage() {
     }
   };
 
+  // Cancel booking
+  const handleCancelBooking = async () => {
+    const finalReason = selectedCancelReason === 'Other'
+      ? otherCancelReason.trim()
+      : selectedCancelReason;
+
+    if (!finalReason) {
+      setCancelError(selectedCancelReason === 'Other'
+        ? 'Please describe your reason'
+        : 'Please select a reason for cancellation');
+      return;
+    }
+    setIsCancelling(true);
+    setCancelError(null);
+    try {
+      const res = await fetch(`/api/self-drive-bookings/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel', reason: finalReason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowCancelModal(false);
+        window.location.reload();
+      } else {
+        setCancelError(data.error || 'Failed to cancel booking');
+      }
+    } catch {
+      setCancelError('Something went wrong. Please try again.');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -313,9 +388,9 @@ export default function CustomerSelfDriveBookingPage() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Vehicle Details */}
-            <div className="bg-white rounded-xl border p-6">
-              <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Car className="w-5 h-5 text-blue-500" />
+            <div className="bg-white rounded-xl border p-4">
+              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <Car className="w-3.5 h-3.5 text-blue-400" />
                 Vehicle Details
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -377,9 +452,9 @@ export default function CustomerSelfDriveBookingPage() {
             </div>
 
             {/* Trip Details */}
-            <div className="bg-white rounded-xl border p-6">
-              <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-blue-500" />
+            <div className="bg-white rounded-xl border p-4">
+              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-blue-400" />
                 Trip Details
               </h2>
               <div className="space-y-4">
@@ -403,7 +478,7 @@ export default function CustomerSelfDriveBookingPage() {
                           year: 'numeric',
                         })}
                       </p>
-                      <p className="text-sm text-gray-600">{booking.pickupTime}</p>
+                      <p className="text-sm text-gray-600">{formatTime(booking.pickupTime)}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -418,7 +493,7 @@ export default function CustomerSelfDriveBookingPage() {
                           year: 'numeric',
                         })}
                       </p>
-                      <p className="text-sm text-gray-600">{booking.dropTime}</p>
+                      <p className="text-sm text-gray-600">{formatTime(booking.dropTime)}</p>
                     </div>
                   </div>
                 </div>
@@ -439,53 +514,66 @@ export default function CustomerSelfDriveBookingPage() {
             </div>
 
             {/* Pricing */}
-            <div className="bg-white rounded-xl border p-6">
-              <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <IndianRupee className="w-5 h-5 text-blue-500" />
+            <div className="bg-white rounded-xl border p-4">
+              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <IndianRupee className="w-3.5 h-3.5 text-blue-400" />
                 Pricing Details
               </h2>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Daily Rate</span>
-                  <span className="font-medium">₹{booking.dailyRate?.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Base Amount ({booking.totalDays} days)</span>
-                  <span className="font-medium">₹{booking.baseAmount?.toLocaleString()}</span>
-                </div>
-                {booking.gstAmount > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">GST (18%)</span>
-                    <span className="font-medium">₹{booking.gstAmount?.toLocaleString()}</span>
+              {(() => {
+                const advPct = booking.advancePercentage || (booking.grandTotal > 0 && booking.advanceAmount ? Math.round((booking.advanceAmount / booking.grandTotal) * 100) : 30);
+                const totalPayable = (booking.grandTotal || 0) + (booking.securityDeposit || 0);
+                const balance = totalPayable - (booking.advanceAmount || 0);
+                return (
+                  <div className="space-y-2.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Daily Rate</span>
+                      <span className="font-medium">₹{booking.dailyRate?.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Base Amount ({booking.totalDays} day{booking.totalDays > 1 ? 's' : ''})</span>
+                      <span className="font-medium">₹{booking.baseAmount?.toLocaleString()}</span>
+                    </div>
+                    {booking.gstAmount > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">GST</span>
+                        <span className="font-medium">₹{booking.gstAmount?.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {booking.platformFee > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Platform Fee</span>
+                        <span className="font-medium">₹{booking.platformFee?.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-semibold border-t pt-2.5">
+                      <span>Rental Total</span>
+                      <span className="text-blue-600">₹{booking.grandTotal?.toLocaleString()}</span>
+                    </div>
+                    {booking.securityDeposit > 0 && (
+                      <div className="flex justify-between text-gray-500">
+                        <span>Security Deposit <span className="text-xs text-green-600">(Refundable)</span></span>
+                        <span className="font-medium">₹{booking.securityDeposit?.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-bold text-base border-t pt-2.5">
+                      <span>Total to Pay</span>
+                      <span className="text-blue-700">₹{totalPayable.toLocaleString()}</span>
+                    </div>
+                    {booking.advanceAmount > 0 && (
+                      <>
+                        <div className="flex justify-between text-green-700 font-medium">
+                          <span>Advance ({advPct}%)</span>
+                          <span>₹{booking.advanceAmount?.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-gray-500">
+                          <span>Remaining at Pickup</span>
+                          <span className="font-medium">₹{balance.toLocaleString()}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
-                )}
-                {booking.platformFee > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Platform Fee</span>
-                    <span className="font-medium">₹{booking.platformFee?.toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Security Deposit (Refundable)</span>
-                  <span className="font-medium">₹{booking.securityDeposit?.toLocaleString()}</span>
-                </div>
-                <div className="border-t pt-3 flex justify-between">
-                  <span className="font-semibold">Grand Total</span>
-                  <span className="font-bold text-blue-600 text-lg">
-                    ₹{booking.grandTotal?.toLocaleString()}
-                  </span>
-                </div>
-                {booking.advanceAmount && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">
-                      Advance Payment ({booking.advancePercentage || 30}%)
-                    </span>
-                    <span className="font-medium text-green-600">
-                      ₹{booking.advanceAmount?.toLocaleString()}
-                    </span>
-                  </div>
-                )}
-              </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -507,7 +595,7 @@ export default function CustomerSelfDriveBookingPage() {
             {/* Payment Action */}
             {booking.status === 'PENDING_PAYMENT' && !booking.isB2B && (
               <div className="bg-white rounded-xl border p-4">
-                <h3 className="font-semibold text-gray-900 mb-3">Complete Your Booking</h3>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Complete Your Booking</h3>
                 <BookingPayment
                   bookingId={booking.id}
                   bookingType="self-drive"
@@ -522,8 +610,8 @@ export default function CustomerSelfDriveBookingPage() {
             {/* Trip OTP - Show when waiting for pickup */}
             {booking.tripStartOtp && ['READY_FOR_PICKUP', 'ACCEPTED'].includes(booking.status) && (
               <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl p-6 text-white">
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <Shield className="w-5 h-5" />
+                <h3 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5 opacity-80">
+                  <Shield className="w-3.5 h-3.5" />
                   Trip Start OTP
                 </h3>
                 <p className="text-cyan-100 text-sm mb-4">
@@ -556,8 +644,8 @@ export default function CustomerSelfDriveBookingPage() {
             {/* Trip In Progress */}
             {booking.status === 'IN_PROGRESS' && (
               <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white">
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <Car className="w-5 h-5" />
+                <h3 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5 opacity-80">
+                  <Car className="w-3.5 h-3.5" />
                   Trip In Progress
                 </h3>
                 <p className="text-purple-100 text-sm mb-4">
@@ -575,7 +663,7 @@ export default function CustomerSelfDriveBookingPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-purple-200">Return By</span>
                     <span className="font-medium">
-                      {new Date(booking.dropDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} at {booking.dropTime}
+                      {new Date(booking.dropDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} at {formatTime(booking.dropTime)}
                     </span>
                   </div>
                 </div>
@@ -585,8 +673,8 @@ export default function CustomerSelfDriveBookingPage() {
             {/* Trip Completed */}
             {booking.status === 'COMPLETED' && (
               <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-6 text-white">
-                <h3 className="font-semibold mb-2 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5" />
+                <h3 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5 opacity-80">
+                  <CheckCircle className="w-3.5 h-3.5" />
                   Trip Completed
                 </h3>
                 <p className="text-green-100 text-sm mb-4">
@@ -599,10 +687,53 @@ export default function CustomerSelfDriveBookingPage() {
               </div>
             )}
 
+            {/* Cancel Booking Button */}
+            {['PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'READY_FOR_PICKUP', 'PENDING_PAYMENT', 'PAYMENT_SUBMITTED'].includes(booking.status) && (
+              <div className="bg-white rounded-xl border border-red-100 p-4">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Cancel Booking</h3>
+                <p className="text-sm text-gray-500 mb-3">
+                  Once cancelled, refund will be processed as per vendor's cancellation policy.
+                </p>
+                <button
+                  onClick={() => { setShowCancelModal(true); setCancelError(null); setCancelReason(''); setSelectedCancelReason(''); setOtherCancelReason(''); }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition text-sm font-medium"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Cancel This Booking
+                </button>
+              </div>
+            )}
+
+            {/* Refund Info - after cancellation */}
+            {booking.status === 'CANCELLED' && booking.refundAmount != null && booking.refundAmount > 0 && (
+              <div className="bg-orange-50 rounded-xl border border-orange-200 p-4">
+                <p className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <IndianRupee className="w-3.5 h-3.5" />
+                  Refund Information
+                </p>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">Eligible Refund</span>
+                    <span className="text-sm font-bold text-orange-700">₹{booking.refundAmount.toLocaleString('en-IN')}</span>
+                  </div>
+                  {booking.refundTransactionId ? (
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">Refund ID</span>
+                      <span className="text-xs font-mono text-gray-700">{booking.refundTransactionId}</span>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-orange-600 bg-orange-100 rounded-lg px-3 py-2 mt-1">
+                      Refund will be processed within 5-7 business days after admin review.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Vendor Details */}
             {booking.vendor && (
-              <div className="bg-white rounded-xl border p-6">
-                <h3 className="font-semibold text-gray-900 mb-4">Vendor Details</h3>
+              <div className="bg-white rounded-xl border p-4">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Vendor Details</h3>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <Building2 className="w-5 h-5 text-blue-500" />
@@ -645,9 +776,9 @@ export default function CustomerSelfDriveBookingPage() {
 
             {/* Customer Notes */}
             {booking.customerNotes && (
-              <div className="bg-blue-50 rounded-xl border border-blue-100 p-6">
-                <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-blue-500" />
+              <div className="bg-blue-50 rounded-xl border border-blue-100 p-4">
+                <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5" />
                   Your Notes
                 </h3>
                 <p className="text-sm text-gray-600">{booking.customerNotes}</p>
@@ -656,9 +787,9 @@ export default function CustomerSelfDriveBookingPage() {
 
             {/* Vendor Notes */}
             {booking.vendorNotes && (
-              <div className="bg-green-50 rounded-xl border border-green-100 p-6">
-                <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-green-500" />
+              <div className="bg-green-50 rounded-xl border border-green-100 p-4">
+                <h3 className="text-xs font-bold text-green-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5" />
                   Vendor Notes
                 </h3>
                 <p className="text-sm text-gray-600">{booking.vendorNotes}</p>
@@ -696,8 +827,8 @@ export default function CustomerSelfDriveBookingPage() {
             )}
 
             {/* Help */}
-            <div className="bg-white rounded-xl border p-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Need Help?</h3>
+            <div className="bg-white rounded-xl border p-4">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Need Help?</h3>
               <p className="text-sm text-gray-600 mb-4">
                 Contact our support team for any queries
               </p>
@@ -919,6 +1050,138 @@ export default function CustomerSelfDriveBookingPage() {
                   </p>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Booking Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b">
+              <div className="flex items-center gap-2">
+                <XCircle className="w-5 h-5 text-red-500" />
+                <h2 className="font-bold text-gray-900">Cancel Booking</h2>
+              </div>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Booking summary */}
+              <div className="bg-gray-50 rounded-xl p-4 text-sm space-y-1">
+                <p className="font-semibold text-gray-800">Booking #{booking.bookingNumber}</p>
+                <p className="text-gray-600">{booking.requestedVehicleName} · {booking.totalDays} day{booking.totalDays > 1 ? 's' : ''}</p>
+                {booking.paidAmount != null && booking.paidAmount > 0 && (
+                  <p className="text-orange-600 font-medium">
+                    Paid: ₹{booking.paidAmount.toLocaleString('en-IN')} — refund subject to cancellation policy
+                  </p>
+                )}
+              </div>
+
+              {/* Vendor T&C from accepted quote */}
+              {booking.acceptedQuote?.termsConditions && (
+                <div className="border border-amber-200 bg-amber-50 rounded-xl p-4">
+                  <p className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" />
+                    Vendor Cancellation Policy
+                  </p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                    {booking.acceptedQuote.termsConditions}
+                  </p>
+                </div>
+              )}
+
+              {/* Reason — predefined options */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reason for Cancellation <span className="text-red-500">*</span>
+                </label>
+                <div className="space-y-2">
+                  {CANCEL_REASONS.map((reason) => (
+                    <label
+                      key={reason}
+                      onClick={() => { setSelectedCancelReason(reason); setCancelError(null); if (reason !== 'Other') setOtherCancelReason(''); }}
+                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                        selectedCancelReason === reason
+                          ? 'border-red-400 bg-red-50'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+                        selectedCancelReason === reason
+                          ? 'border-red-500 bg-red-500'
+                          : 'border-gray-300'
+                      }`}>
+                        {selectedCancelReason === reason && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                        )}
+                      </div>
+                      <span className={`text-sm ${selectedCancelReason === reason ? 'text-red-700 font-medium' : 'text-gray-700'}`}>
+                        {reason}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Other — freetext */}
+                {selectedCancelReason === 'Other' && (
+                  <textarea
+                    value={otherCancelReason}
+                    onChange={(e) => setOtherCancelReason(e.target.value)}
+                    placeholder="Please describe your reason..."
+                    rows={3}
+                    autoFocus
+                    className="w-full mt-3 px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-red-400 focus:border-transparent resize-none"
+                  />
+                )}
+              </div>
+
+
+              {cancelError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {cancelError}
+                </div>
+              )}
+
+              {/* Warning */}
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
+                <strong>Note:</strong> This action cannot be undone. The vendor will be notified immediately.
+              </div>
+            </div>
+
+            {/* Footer buttons */}
+            <div className="p-5 pt-0 flex gap-3">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 py-3 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition text-sm"
+              >
+                Keep Booking
+              </button>
+              <button
+                onClick={handleCancelBooking}
+                disabled={isCancelling || !selectedCancelReason || (selectedCancelReason === 'Other' && !otherCancelReason.trim())}
+                className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-4 h-4" />
+                    Yes, Cancel
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

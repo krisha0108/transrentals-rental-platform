@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Truck,
@@ -78,7 +78,6 @@ export default function VendorTransporterBookingsPage() {
   const [filter, setFilter] = useState('upcoming');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -139,14 +138,8 @@ export default function VendorTransporterBookingsPage() {
     }
   };
 
-  const handleSearchChange = (value: string) => {
-    setSearchInput(value);
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    searchDebounceRef.current = setTimeout(() => {
-      setSearch(value);
-      setCurrentPage(1);
-    }, 400);
-  };
+  const handleSearch = () => { setSearch(searchInput); setCurrentPage(1); };
+  const handleClearSearch = () => { setSearchInput(''); setSearch(''); setCurrentPage(1); };
 
   // Filtering is done server-side now
   const filteredBookings = bookings;
@@ -221,10 +214,29 @@ export default function VendorTransporterBookingsPage() {
             </button>
           ))}
           </div>
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder="Search booking, customer..." value={searchInput} onChange={(e) => handleSearchChange(e.target.value)} className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all placeholder:text-gray-400" />
-            {searchInput && (<button onClick={() => handleSearchChange('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center"><X className="w-3 h-3 text-gray-500" /></button>)}
+          <div className="flex gap-1.5 flex-1 min-w-[200px] max-w-sm">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search booking #, customer, phone..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                className="w-full pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all placeholder:text-gray-400"
+              />
+              {searchInput && (
+                <button onClick={handleClearSearch} className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center">
+                  <X className="w-3 h-3 text-gray-500" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={handleSearch}
+              className="shrink-0 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-colors"
+            >
+              Search
+            </button>
           </div>
           <DateFilterDropdown onFilterChange={(start, end) => { setDateFilter({ start, end }); setCurrentPage(1); }} initialStartDate={dateFilter.start || undefined} initialEndDate={dateFilter.end || undefined} />
         </div>

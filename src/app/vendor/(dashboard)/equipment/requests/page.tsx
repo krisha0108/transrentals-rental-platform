@@ -373,13 +373,14 @@ export default function VendorEquipmentRequestsPage() {
 
         {/* Pagination */}
         {filteredRequests.length > 0 && (
-          <div className="p-3 border-t border-gray-100 bg-white">
+          <div className="px-3 py-2 border-t border-gray-100 bg-white">
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
               totalItems={totalItems}
               itemsPerPage={20}
               onPageChange={(page) => setCurrentPage(page)}
+              compact
             />
           </div>
         )}
@@ -428,6 +429,8 @@ export default function VendorEquipmentRequestsPage() {
                       })()}
                     </div>
                     <p className="text-[11px] text-gray-400 flex items-center gap-2 mt-0.5">
+                      <span className="font-mono font-semibold text-gray-500">#{selected.requestNumber}</span>
+                      <span className="text-gray-300">·</span>
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{selected.deliveryCity || selected.city}</span>
                       <span className="text-gray-300">·</span>
                       <span>{getTimeAgo(selected.createdAt)}</span>

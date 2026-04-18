@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useVendorVerification } from "@/contexts/VendorVerificationContext";
 
 interface VehicleModel {
   id: string;
@@ -110,6 +111,7 @@ type ServiceType = "bike-rental" | "car-rental" | "self-drive" | "with-driver" |
 
 export default function AddFleetVehiclePage() {
   const router = useRouter();
+  const { isApproved, openVerificationModal } = useVendorVerification();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -1633,7 +1635,7 @@ export default function AddFleetVehiclePage() {
                 Next: Set Pricing
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={submitting || selectedLocations.length === 0}>
+              <Button onClick={isApproved ? handleSubmit : openVerificationModal} disabled={submitting || selectedLocations.length === 0}>
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1762,7 +1764,7 @@ export default function AddFleetVehiclePage() {
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit} disabled={submitting || !perDayRate || Number(perDayRate) <= 0}>
+              <Button onClick={isApproved ? handleSubmit : openVerificationModal} disabled={submitting || !perDayRate || Number(perDayRate) <= 0}>
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1890,7 +1892,7 @@ export default function AddFleetVehiclePage() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <Button onClick={handleSubmit} disabled={submitting}>
+            <Button onClick={isApproved ? handleSubmit : openVerificationModal} disabled={submitting}>
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

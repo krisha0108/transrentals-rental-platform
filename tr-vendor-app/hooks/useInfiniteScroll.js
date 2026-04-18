@@ -23,8 +23,11 @@ export const useInfiniteScroll = (fetchFunction, options = {}) => {
   const [error, setError] = useState(null);
   const [dateFilter, setDateFilter] = useState({ start: null, end: null, type: null });
 
-  // Use ref to track if we're currently fetching to prevent duplicate calls
+  // Use refs to track mutable values without causing fetchData to be recreated
   const isFetchingRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const pageRef = useRef(initialPage);
+  const dateFilterRef = useRef({ start: null, end: null, type: null });
 
   /**
    * Fetch data from API with pagination and filters
@@ -41,8 +44,8 @@ export const useInfiniteScroll = (fetchFunction, options = {}) => {
       return;
     }
 
-    // Don't fetch if no more data (unless refreshing)
-    if (!isRefresh && !hasMore && pageNum > 1) {
+    // Don't fetch if no more data (unless refreshing) — use ref to avoid stale closure
+    if (!isRefresh && !hasMoreRef.current && pageNum > 1) {
       console.log('🛑 [useInfiniteScroll] No more data to fetch');
       return;
     }
@@ -64,8 +67,8 @@ export const useInfiniteScroll = (fetchFunction, options = {}) => {
         limit: pageSize,
       };
 
-      // Use override dates if provided, otherwise use state
-      const effectiveDates = overrideDates || dateFilter;
+      // Use override dates if provided, otherwise use ref (avoids stale closure)
+      const effectiveDates = overrideDates || dateFilterRef.current;
 
       // Add date filters if present
       if (effectiveDates.start) {
@@ -113,10 +116,13 @@ export const useInfiniteScroll = (fetchFunction, options = {}) => {
         });
       }
 
-      // Update pagination state
+      // Update pagination state — update refs first so loadMore sees fresh values immediately
+      const newHasMore = currentPage < totalPages;
+      hasMoreRef.current = newHasMore;
+      pageRef.current = currentPage;
       setPage(currentPage);
-      setHasMore(currentPage < totalPages);
-      console.log(`📄 [useInfiniteScroll] Updated state: page=${currentPage}, hasMore=${currentPage < totalPages}`);
+      setHasMore(newHasMore);
+      console.log(`📄 [useInfiniteScroll] Updated state: page=${currentPage}, hasMore=${newHasMore}`);
 
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -131,26 +137,30 @@ export const useInfiniteScroll = (fetchFunction, options = {}) => {
       setRefreshing(false);
       isFetchingRef.current = false;
     }
-  }, [fetchFunction, service, type, filterKey, pageSize, dateFilter, hasMore]);
+  }, [fetchFunction, service, type, filterKey, pageSize]); // removed hasMore, dateFilter from deps — use refs instead
 
   /**
    * Load more data (called when user scrolls to end)
    */
   const loadMore = useCallback(() => {
-    console.log('📜 [useInfiniteScroll] loadMore triggered:', { loading, refreshing, hasMore, currentPage: page, nextPage: page + 1 });
+    const curPage = pageRef.current;
+    const curHasMore = hasMoreRef.current;
+    console.log('📜 [useInfiniteScroll] loadMore triggered:', { currentPage: curPage, nextPage: curPage + 1, hasMore: curHasMore });
 
-    if (!loading && !refreshing && hasMore) {
-      console.log(`➡️ [useInfiniteScroll] Loading page ${page + 1}...`);
-      fetchData(page + 1, false);
+    if (!isFetchingRef.current && curHasMore) {
+      console.log(`➡️ [useInfiniteScroll] Loading page ${curPage + 1}...`);
+      fetchData(curPage + 1, false);
     } else {
-      console.log('⏸️ [useInfiniteScroll] Skipping loadMore:', { loading, refreshing, hasMore });
+      console.log('⏸️ [useInfiniteScroll] Skipping loadMore:', { isFetching: isFetchingRef.current, hasMore: curHasMore });
     }
-  }, [loading, refreshing, hasMore, page, fetchData]);
+  }, [fetchData]);
 
   /**
    * Refresh data (pull to refresh)
    */
   const refresh = useCallback(() => {
+    pageRef.current = initialPage;
+    hasMoreRef.current = true;
     setPage(initialPage);
     setHasMore(true);
     fetchData(initialPage, true);
@@ -165,17 +175,14 @@ export const useInfiniteScroll = (fetchFunction, options = {}) => {
   const applyDateFilter = useCallback((startDate, endDate, filterType = 'custom') => {
     console.log('📅 [useInfiniteScroll] Applying date filter:', { startDate, endDate, filterType });
     const newDateFilter = { start: startDate, end: endDate, type: filterType };
+    dateFilterRef.current = newDateFilter;
+    pageRef.current = initialPage;
+    hasMoreRef.current = true;
     setDateFilter(newDateFilter);
     setPage(initialPage);
     setHasMore(true);
-    setData([]); // Clear existing data
-
-    // Manually trigger fetch with new filter
-    // Pass dates directly to avoid stale state closure issue
-    setTimeout(() => {
-      console.log('🔄 [useInfiniteScroll] Fetching data with new date filter...');
-      fetchData(initialPage, true, newDateFilter);
-    }, 0);
+    setData([]);
+    fetchData(initialPage, true, newDateFilter);
   }, [initialPage, fetchData]);
 
   /**
@@ -184,17 +191,14 @@ export const useInfiniteScroll = (fetchFunction, options = {}) => {
   const clearDateFilter = useCallback(() => {
     console.log('🗑️ [useInfiniteScroll] Clearing date filter');
     const emptyFilter = { start: null, end: null, type: null };
+    dateFilterRef.current = emptyFilter;
+    pageRef.current = initialPage;
+    hasMoreRef.current = true;
     setDateFilter(emptyFilter);
     setPage(initialPage);
     setHasMore(true);
-    setData([]); // Clear existing data
-
-    // Manually trigger fetch without filter
-    // Pass empty dates directly to avoid stale state closure issue
-    setTimeout(() => {
-      console.log('🔄 [useInfiniteScroll] Fetching data without filter...');
-      fetchData(initialPage, true, emptyFilter);
-    }, 0);
+    setData([]);
+    fetchData(initialPage, true, emptyFilter);
   }, [initialPage, fetchData]);
 
   /**

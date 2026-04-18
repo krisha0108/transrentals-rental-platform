@@ -160,6 +160,7 @@ export async function GET(request: NextRequest) {
               quoteNumber: true,
               totalAmount: true,
               status: true,
+              bus_bookings: { select: { id: true, bookingNumber: true, status: true } },
             },
           },
           locations: { select: { name: true } },
@@ -199,7 +200,18 @@ export async function GET(request: NextRequest) {
         totalQuotesReceived: r.totalQuotesReceived,
         quotesOpenTill: r.quotesOpenTill,
         location: r.locations?.name,
-        myQuote: r.bus_quotes_bus_quotes_requestIdTobus_quote_requests[0] || null, // Vendor's quote if exists
+        myQuote: (() => {
+          const q = r.bus_quotes_bus_quotes_requestIdTobus_quote_requests[0];
+          if (!q) return null;
+          return {
+            id: q.id,
+            quoteNumber: q.quoteNumber,
+            totalAmount: q.totalAmount,
+            status: q.status,
+            bookingId: q.bus_bookings?.id || null,
+            bookingNumber: q.bus_bookings?.bookingNumber || null,
+          };
+        })(),
         hasQuoted: r.bus_quotes_bus_quotes_requestIdTobus_quote_requests.length > 0,
         createdAt: r.createdAt,
       })),

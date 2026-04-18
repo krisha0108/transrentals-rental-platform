@@ -87,6 +87,7 @@ export async function GET(request: NextRequest) {
         { quoteNumber: { contains: search } },
         { vehicleName: { contains: search } },
         { vehicleBrand: { contains: search } },
+        { car_bookings: { bookingNumber: { contains: search } } },
         {
           self_drive_quote_requests_self_drive_quotes_requestIdToself_drive_quote_requests: {
             OR: [
@@ -120,6 +121,7 @@ export async function GET(request: NextRequest) {
               status: true,
             },
           },
+          car_bookings: { select: { id: true, bookingNumber: true, status: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -173,6 +175,9 @@ export async function GET(request: NextRequest) {
         validityDays: q.validityDays,
         viewCount: q.viewCount,
         request: q.self_drive_quote_requests_self_drive_quotes_requestIdToself_drive_quote_requests,
+        bookingId: q.car_bookings?.id || null,
+        bookingNumber: q.car_bookings?.bookingNumber || null,
+        bookingStatus: q.car_bookings?.status || null,
         createdAt: q.createdAt,
         updatedAt: q.updatedAt,
       })),
@@ -374,6 +379,9 @@ export async function POST(request: NextRequest) {
     const advanceAmount = customAdvanceAmount > 0
       ? Math.round(customAdvanceAmount)
       : Math.round(grandTotal * advancePercent / 100);
+    const finalAdvancePercent = customAdvanceAmount > 0 && grandTotal > 0
+      ? Math.round((advanceAmount / grandTotal) * 100)
+      : advancePercent;
 
     // Set validity
     let validTill: Date;
@@ -467,7 +475,7 @@ export async function POST(request: NextRequest) {
       extraKmRate,
       deliveryCharges,
       pickupCharges,
-      advancePercent,
+      advancePercent: finalAdvancePercent,
       advanceAmount,
       inclusions: inclusions ? JSON.stringify(inclusions) : null,
       exclusions: exclusions ? JSON.stringify(exclusions) : null,

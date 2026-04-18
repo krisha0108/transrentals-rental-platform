@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Car,
@@ -47,6 +47,9 @@ interface Quote {
   status: string;
   validTill: string;
   viewCount: number;
+  bookingId?: string | null;
+  bookingNumber?: string | null;
+  bookingStatus?: string | null;
   request: {
     id: string;
     requestNumber: string;
@@ -94,6 +97,7 @@ export default function VendorSelfDriveQuotesPage() {
     start: null,
     end: null,
   });
+  const [committedSearch, setCommittedSearch] = useState('');
 
   const fetchQuotes = useCallback(async () => {
     setIsLoading(true);
@@ -109,7 +113,7 @@ export default function VendorSelfDriveQuotesPage() {
       params.set('limit', '20');
       if (dateFilter.start) params.set('startDate', dateFilter.start);
       if (dateFilter.end) params.set('endDate', dateFilter.end);
-      if (searchQuery) params.set('search', searchQuery);
+      if (committedSearch) params.set('search', committedSearch);
 
       const response = await fetch(`/api/vendor/self-drive-quotes?${params}`);
       const data = await response.json();
@@ -127,22 +131,22 @@ export default function VendorSelfDriveQuotesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [filter, currentPage, dateFilter, searchQuery]);
+  }, [filter, currentPage, dateFilter, committedSearch]);
 
   useEffect(() => { fetchQuotes(); }, [fetchQuotes]);
 
-  const filteredQuotes = useMemo(() => {
-    if (!searchQuery.trim()) return quotes;
-    const q = searchQuery.toLowerCase();
-    return quotes.filter(
-      (qt) =>
-        qt.quoteNumber.toLowerCase().includes(q) ||
-        qt.vehicleName.toLowerCase().includes(q) ||
-        qt.request?.customerName?.toLowerCase().includes(q) ||
-        qt.request?.locationName?.toLowerCase().includes(q) ||
-        qt.request?.requestNumber?.toLowerCase().includes(q)
-    );
-  }, [quotes, searchQuery]);
+  const handleSearch = () => {
+    setCommittedSearch(searchQuery);
+    setCurrentPage(1);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setCommittedSearch('');
+    setCurrentPage(1);
+  };
+
+  const filteredQuotes = quotes;
 
   const isExpiringSoon = (validTill: string) => {
     if (!validTill) return false;
@@ -402,20 +406,30 @@ export default function VendorSelfDriveQuotesPage() {
             })}
           </div>
 
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name, vehicle, location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all placeholder:text-gray-400"
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition">
-                <X className="w-3 h-3 text-gray-500" />
-              </button>
-            )}
+          <div className="flex gap-2 flex-1 min-w-[200px] max-w-sm">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name, vehicle, location, booking number..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                className="w-full pl-9 pr-8 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all placeholder:text-gray-400"
+              />
+              {searchQuery && (
+                <button onClick={handleClearSearch} className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition">
+                  <X className="w-3 h-3 text-gray-500" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={handleSearch}
+              className="px-4 py-2 text-sm font-medium bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition flex items-center gap-1.5 shrink-0"
+            >
+              <Search className="w-3.5 h-3.5" />
+              Search
+            </button>
           </div>
 
           <DateFilterDropdown
@@ -475,8 +489,13 @@ export default function VendorSelfDriveQuotesPage() {
 
                 {/* Card Header */}
                 <div className="px-4 py-2.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
                     <span className="font-mono text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">#{quote.quoteNumber}</span>
+                    {isWon && quote.bookingNumber && (
+                      <span className="font-mono text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                        Bkg #{quote.bookingNumber}
+                      </span>
+                    )}
                     <span className="text-[10px] text-gray-400">{getTimeAgo(quote.createdAt)}</span>
                   </div>
                   <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
@@ -609,11 +628,11 @@ export default function VendorSelfDriveQuotesPage() {
                     )}
                     {isWon && (
                       <Link
-                        href={`/vendor/self-drive/bookings?quote=${quote.id}`}
+                        href={quote.bookingId ? `/vendor/self-drive/bookings/${quote.bookingId}` : `/vendor/self-drive/bookings`}
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-emerald-500/20 active:scale-95"
                       >
-                        <CheckCircle className="w-3.5 h-3.5" /> Booking
+                        <CheckCircle className="w-3.5 h-3.5" /> View Booking
                       </Link>
                     )}
                   </div>

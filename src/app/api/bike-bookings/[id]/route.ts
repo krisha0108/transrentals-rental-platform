@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
+import { updateVendorRating } from '@/lib/utils/update-vendor-rating';
 export const dynamic = 'force-dynamic';
 
 // GET - Get single booking details
@@ -231,8 +232,6 @@ export async function PATCH(
         where: { id },
         data: {
           status: 'CANCELLED',
-          cancelledAt: new Date(),
-          cancelledBy: 'CUSTOMER',
           cancellationReason: reason || 'Cancelled by customer',
         },
       });
@@ -256,28 +255,7 @@ export async function PATCH(
         );
       }
 
-      // Update vendor rating if there's an accepted vendor
-      if (booking.acceptedVendorId && rating) {
-        // Get current vendor stats
-        const vendor = await prisma.vendors.findUnique({
-          where: { id: booking.acceptedVendorId },
-          select: { rating: true, reviewCount: true },
-        });
-
-        if (vendor) {
-          const currentRating = vendor.rating || 0;
-          const reviewCount = vendor.reviewCount || 0;
-          const newRating = ((currentRating * reviewCount) + rating) / (reviewCount + 1);
-
-          await prisma.vendors.update({
-            where: { id: booking.acceptedVendorId },
-            data: {
-              rating: newRating,
-              reviewCount: reviewCount + 1,
-            },
-          });
-        }
-      }
+      updateVendorRating(booking.acceptedVendorId, rating).catch(() => {});
 
       return NextResponse.json({
         success: true,

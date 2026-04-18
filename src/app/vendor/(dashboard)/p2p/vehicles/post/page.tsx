@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 import {
   ArrowLeft,
   Truck,
@@ -157,6 +158,7 @@ const INITIAL_FORM_DATA: FormData = {
 
 export default function PostVehiclePage() {
   const router = useRouter();
+  const { isApproved, openVerificationModal } = useVendorVerification();
 
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const [fleet, setFleet] = useState<FleetVehicle[]>([]);
@@ -420,7 +422,7 @@ export default function PostVehiclePage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={isApproved ? handleSubmit : (e) => { e.preventDefault(); openVerificationModal(); }}>
         <div className="flex flex-col lg:flex-row gap-8">
           {/* ================================================================ */}
           {/* LEFT COLUMN — Form Fields                                        */}

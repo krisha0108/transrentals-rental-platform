@@ -54,7 +54,7 @@ export default function SelfDriveBookingsScreen({ navigation, route }) {
   const { data: allBookings, loading, refreshing, hasMore, loadMore, refresh, initialLoad, applyDateFilter, dateFilter } =
     useInfiniteScroll(getBookings, { service: 'self-drive', type: filter });
 
-  useEffect(() => { initialLoad(); }, [initialLoad]);
+  useEffect(() => { initialLoad(); }, []);
 
   const tabFiltered = selectedFilter === 'completed'
     ? allBookings.filter(b => b.status === 'COMPLETED')

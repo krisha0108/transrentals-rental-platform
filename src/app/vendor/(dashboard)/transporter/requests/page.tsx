@@ -47,7 +47,7 @@ interface QuoteRequest {
   totalQuotesReceived: number;
   createdAt: string;
   hasQuoted: boolean;
-  myQuote?: { id: string; quoteNumber: string; totalAmount: number; status: string };
+  myQuote?: { id: string; quoteNumber: string; totalAmount: number; status: string; bookingId?: string | null; bookingNumber?: string | null };
 }
 
 /* ── Urgency helper ── */
@@ -80,27 +80,25 @@ export default function VendorTransporterRequestsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('new');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [committedSearch, setCommittedSearch] = useState('');
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 400);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  const handleSearch = () => { setCommittedSearch(searchInput); };
+  const handleClearSearch = () => { setSearchInput(''); setCommittedSearch(''); };
 
   useEffect(() => {
     if (sessionStatus === 'loading') return;
     if (sessionStatus === 'unauthenticated') return;
     fetchRequests();
-  }, [sessionStatus, filter, debouncedSearch]);
+  }, [sessionStatus, filter, committedSearch]);
 
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      const type = filter === 'new' ? 'open' : filter === 'quoted' ? 'quoted' : '';
+      const type = filter === 'new' ? 'open' : filter === 'quoted' ? 'quoted' : filter === 'cancelled' ? 'cancelled' : '';
       const params = new URLSearchParams();
       if (type) params.set('type', type);
-      if (debouncedSearch) params.set('search', debouncedSearch);
+      if (committedSearch) params.set('search', committedSearch);
       const response = await fetch(`/api/vendor/truck-quote-requests?${params}`);
       const data = await response.json();
       if (data.success) {
@@ -128,6 +126,7 @@ export default function VendorTransporterRequestsPage() {
 
   const newCount = filteredRequests.filter(r => !r.hasQuoted).length;
   const quotedCount = filteredRequests.filter(r => r.hasQuoted).length;
+  const cancelledCount = filteredRequests.filter(r => r.status === 'CANCELLED').length;
 
   /* ── Loading skeleton ── */
   if (isLoading) {
@@ -174,34 +173,42 @@ export default function VendorTransporterRequestsPage() {
           </div>
 
           {/* Search bar */}
-          <div className="mb-3">
-            <div className="relative">
+          <div className="mb-3 flex gap-1.5">
+            <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search requests..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                placeholder="Search by name, city, request #..."
                 className="w-full pl-8 pr-8 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-300"
               />
-              {searchQuery && (
+              {searchInput && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
+                  onClick={handleClearSearch}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
+            <button
+              onClick={handleSearch}
+              className="shrink-0 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-colors"
+            >
+              Search
+            </button>
           </div>
 
           {/* Filter tabs */}
           <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
             {[
-              { value: 'new',    label: 'New',    count: newCount,                  activeColor: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/25' },
-              { value: 'quoted', label: 'Quoted', count: quotedCount,               activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
-              { value: 'all',    label: 'All',    count: filteredRequests.length,    activeColor: 'bg-gray-800 text-white shadow-md' },
+              { value: 'new',       label: 'New',       count: newCount,                   activeColor: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/25' },
+              { value: 'quoted',    label: 'Quoted',    count: quotedCount,                activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
+              { value: 'all',       label: 'All',       count: filteredRequests.length,    activeColor: 'bg-gray-800 text-white shadow-md' },
+              { value: 'cancelled', label: 'Cancelled', count: filter === 'cancelled' ? filteredRequests.length : 0, activeColor: 'bg-red-600 text-white shadow-md shadow-red-500/25' },
             ].map((f) => (
               <button
                 key={f.value}
@@ -248,7 +255,7 @@ export default function VendorTransporterRequestsPage() {
                   }`}
                 >
                   <div className="flex">
-                    <div className={`w-1 shrink-0 rounded-l-xl ${isSelected ? 'bg-emerald-600' : req.hasQuoted ? 'bg-emerald-400' : 'bg-emerald-300'}`} />
+                    <div className={`w-1 shrink-0 rounded-l-xl ${req.status === 'CANCELLED' ? 'bg-red-400' : isSelected ? 'bg-emerald-600' : req.hasQuoted ? 'bg-emerald-400' : 'bg-emerald-300'}`} />
 
                     <div className="flex-1 p-3 min-w-0">
                       <div className="flex items-start justify-between gap-2">
@@ -304,7 +311,11 @@ export default function VendorTransporterRequestsPage() {
                         {/* Right meta */}
                         <div className="flex flex-col items-end gap-1.5 shrink-0">
                           <span className="text-[10px] text-gray-400">{getTimeAgo(req.createdAt)}</span>
-                          {req.hasQuoted && req.myQuote?.status === 'EXPIRED' ? (
+                          {req.status === 'CANCELLED' ? (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 font-bold border border-red-200 flex items-center gap-0.5">
+                              <XCircle className="w-2.5 h-2.5" />CANCELLED
+                            </span>
+                          ) : req.hasQuoted && req.myQuote?.status === 'EXPIRED' ? (
                             <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 font-bold border border-red-200 flex items-center gap-0.5">
                               <XCircle className="w-2.5 h-2.5" />EXPIRED
                             </span>
@@ -351,7 +362,11 @@ export default function VendorTransporterRequestsPage() {
                       {selected.truckMode && (
                         <span className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full font-medium capitalize">{selected.truckMode}</span>
                       )}
-                      {selected.hasQuoted && selected.myQuote?.status === 'EXPIRED' ? (
+                      {selected.status === 'CANCELLED' ? (
+                        <span className="text-[10px] px-2 py-0.5 bg-red-50 text-red-600 rounded-full font-bold flex items-center gap-1 border border-red-200">
+                          <XCircle className="w-3 h-3" /> Cancelled
+                        </span>
+                      ) : selected.hasQuoted && selected.myQuote?.status === 'EXPIRED' ? (
                         <span className="text-[10px] px-2 py-0.5 bg-red-50 text-red-600 rounded-full font-bold flex items-center gap-1 border border-red-200">
                           <XCircle className="w-3 h-3" /> Expired
                         </span>
@@ -374,6 +389,8 @@ export default function VendorTransporterRequestsPage() {
                       })()}
                     </div>
                     <p className="text-[11px] text-gray-400 flex items-center gap-2 mt-0.5">
+                      <span className="font-mono font-semibold text-gray-500">#{selected.requestNumber}</span>
+                      <span className="text-gray-300">·</span>
                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{selected.pickupCity} → {selected.dropCity}</span>
                       <span className="text-gray-300">·</span>
                       <span>{getTimeAgo(selected.createdAt)}</span>
@@ -385,7 +402,11 @@ export default function VendorTransporterRequestsPage() {
                 </div>
 
                 {/* CTA */}
-                {!selected.hasQuoted ? (
+                {selected.status === 'CANCELLED' ? (
+                  <span className="hidden sm:flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold bg-red-50 text-red-500 border border-red-200">
+                    <XCircle className="w-4 h-4" /> Cancelled
+                  </span>
+                ) : !selected.hasQuoted ? (
                   <Link
                     href={`/vendor/transporter/requests/${selected.id}/quote`}
                     className="hidden sm:flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-sm shadow-md shadow-emerald-500/20 transition-all duration-200 active:scale-95"
@@ -415,8 +436,21 @@ export default function VendorTransporterRequestsPage() {
             {/* ── Detail Content ── */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
 
+              {/* Cancellation banner */}
+              {selected.status === 'CANCELLED' && (
+                <div className="rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-rose-50 overflow-hidden">
+                  <div className="flex items-center gap-2.5 px-4 py-2.5 bg-red-100/60 border-b border-red-200">
+                    <XCircle className="w-4 h-4 text-red-600 shrink-0" />
+                    <p className="text-sm font-bold text-red-800">Request Cancelled by Customer</p>
+                  </div>
+                  <div className="px-4 py-3">
+                    <p className="text-sm text-red-700">The customer cancelled this quote request. Your submitted quote is no longer active.</p>
+                  </div>
+                </div>
+              )}
+
               {/* Urgency banner */}
-              {(() => {
+              {selected.status !== 'CANCELLED' && (() => {
                 const urgency = getUrgency(selected.pickupDate);
                 if (urgency.urgent) {
                   return (
@@ -545,27 +579,44 @@ export default function VendorTransporterRequestsPage() {
                 <div>
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Your Quote</h3>
                   <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-xs text-emerald-600 font-medium">{selected.myQuote.quoteNumber}</p>
+                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                          <p className="text-xs text-emerald-600 font-medium">{selected.myQuote.quoteNumber}</p>
+                          {selected.myQuote.bookingNumber && (
+                            <span className="font-mono text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md">
+                              Bkg #{selected.myQuote.bookingNumber}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-2xl font-extrabold text-emerald-800 mt-0.5">₹{selected.myQuote.totalAmount.toLocaleString()}</p>
-                        <p className="text-xs mt-1.5 flex items-center gap-1.5">
+                        <p className="text-xs mt-1.5">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            selected.myQuote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' :
-                            selected.myQuote.status === 'rejected' ? 'bg-red-100 text-red-600' :
+                            selected.myQuote.status === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-700' :
+                            selected.myQuote.status === 'REJECTED' ? 'bg-red-100 text-red-600' :
                             'bg-amber-100 text-amber-700'
                           }`}>
-                            {selected.myQuote.status === 'accepted' ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                            {selected.myQuote.status === 'ACCEPTED' ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
                             {selected.myQuote.status}
                           </span>
                         </p>
                       </div>
-                      <Link
-                        href={`/vendor/transporter/quotes/${selected.myQuote.id}`}
-                        className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95"
-                      >
-                        <Eye className="w-3.5 h-3.5" /> View Details
-                      </Link>
+                      <div className="flex flex-col gap-2 shrink-0">
+                        <Link
+                          href={`/vendor/transporter/quotes/${selected.myQuote.id}`}
+                          className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-all active:scale-95"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> View Quote
+                        </Link>
+                        {selected.myQuote.bookingId && (
+                          <Link
+                            href={`/vendor/transporter/bookings/${selected.myQuote.bookingId}`}
+                            className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl bg-white border border-emerald-200 hover:bg-emerald-50 text-emerald-700 transition-all active:scale-95"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" /> View Booking
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

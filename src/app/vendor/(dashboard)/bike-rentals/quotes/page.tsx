@@ -42,6 +42,9 @@ interface Quote {
   status: string;
   validTill: string;
   viewCount: number;
+  bookingId?: string | null;
+  bookingNumber?: string | null;
+  bookingStatus?: string | null;
   request: {
     id: string;
     requestNumber: string;
@@ -78,8 +81,8 @@ export default function VendorBikeQuotesPage() {
   const [stats, setStats] = useState<Stats>({ total: 0, pending: 0, accepted: 0, wonValue: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [committedSearch, setCommittedSearch] = useState('');
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -90,14 +93,8 @@ export default function VendorBikeQuotesPage() {
     end: null,
   });
 
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-      setCurrentPage(1);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  const handleSearch = () => { setCommittedSearch(searchInput); setCurrentPage(1); };
+  const handleClearSearch = () => { setSearchInput(''); setCommittedSearch(''); setCurrentPage(1); };
 
   const fetchQuotes = useCallback(async () => {
     setIsLoading(true);
@@ -114,8 +111,7 @@ export default function VendorBikeQuotesPage() {
       if (dateFilter.start) params.set('startDate', dateFilter.start);
       if (dateFilter.end) params.set('endDate', dateFilter.end);
 
-      // SEARCH PARAM
-      if (debouncedSearch) params.set('search', debouncedSearch);
+      if (committedSearch) params.set('search', committedSearch);
 
       const response = await fetch(`/api/vendor/bike-quotes?${params}`);
       const data = await response.json();
@@ -143,34 +139,20 @@ export default function VendorBikeQuotesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [filter, currentPage, dateFilter, debouncedSearch]);
+  }, [filter, currentPage, dateFilter, committedSearch]);
 
   useEffect(() => {
     fetchQuotes();
   }, [fetchQuotes]);
 
   const filteredQuotes = useMemo(() => {
-    let result = quotes.filter((q) => {
+    return quotes.filter((q) => {
       if (filter === 'active') return ['SENT', 'VIEWED'].includes(q.status);
       if (filter === 'accepted') return q.status === 'ACCEPTED';
       if (filter === 'expired') return ['EXPIRED', 'REJECTED', 'WITHDRAWN'].includes(q.status);
       return true;
     });
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(
-        (q) =>
-          q.quoteNumber.toLowerCase().includes(query) ||
-          q.vehicleName.toLowerCase().includes(query) ||
-          q.request?.customerName?.toLowerCase().includes(query) ||
-          q.request?.locationName?.toLowerCase().includes(query) ||
-          q.request?.requestNumber?.toLowerCase().includes(query)
-      );
-    }
-
-    return result;
-  }, [quotes, filter, searchQuery]);
+  }, [quotes, filter]);
 
   const isExpiringSoon = (validTill: string) => {
     if (!validTill) return false;
@@ -466,20 +448,30 @@ export default function VendorBikeQuotesPage() {
           </div>
 
           {/* Search */}
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name, vehicle, location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all placeholder:text-gray-400"
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition">
-                <X className="w-3 h-3 text-gray-500" />
-              </button>
-            )}
+          <div className="flex gap-2 flex-1 min-w-[200px] max-w-sm">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by name, vehicle, booking number..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
+                className="w-full pl-9 pr-8 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 focus:bg-white transition-all placeholder:text-gray-400"
+              />
+              {searchInput && (
+                <button onClick={handleClearSearch} className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition">
+                  <X className="w-3 h-3 text-gray-500" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={handleSearch}
+              className="px-4 py-2 text-sm font-medium bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition flex items-center gap-1.5 shrink-0"
+            >
+              <Search className="w-3.5 h-3.5" />
+              Search
+            </button>
           </div>
 
           <DateFilterDropdown
@@ -505,7 +497,7 @@ export default function VendorBikeQuotesPage() {
           </div>
           <h3 className="text-lg font-bold text-gray-900 mb-1.5">No quotes found</h3>
           <p className="text-sm text-gray-400 mb-6 max-w-xs mx-auto">
-            {searchQuery ? 'No quotes match your search. Try different keywords.' : filter !== 'all' ? 'No quotes match this filter.' : 'Start sending quotes to bike rental requests and track them here.'}
+            {committedSearch ? 'No quotes match your search. Try different keywords.' : filter !== 'all' ? 'No quotes match this filter.' : 'Start sending quotes to bike rental requests and track them here.'}
           </p>
           <Link
             href="/vendor/bike-rentals/requests"
@@ -547,8 +539,13 @@ export default function VendorBikeQuotesPage() {
 
                 {/* Card Header */}
                 <div className="px-4 py-2.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-[11px] font-bold text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">#{quote.quoteNumber}</span>
+                    {isWon && quote.bookingNumber && (
+                      <span className="font-mono text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                        Bkg #{quote.bookingNumber}
+                      </span>
+                    )}
                     <span className="text-[10px] text-gray-400">{getTimeAgo(quote.createdAt)}</span>
                   </div>
                   <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 border ${statusConfig.bg} ${statusConfig.color} ${statusConfig.border}`}>
@@ -652,7 +649,7 @@ export default function VendorBikeQuotesPage() {
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-all active:scale-95"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      View Details
+                      View Quote Details
                       <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
                     </Link>
                     {['SENT', 'VIEWED'].includes(quote.status) && (
@@ -696,12 +693,12 @@ export default function VendorBikeQuotesPage() {
                     )}
                     {isWon && (
                       <Link
-                        href={`/vendor/bike-rentals/bookings?quote=${quote.id}`}
+                        href={quote.bookingId ? `/vendor/bike-rentals/bookings/${quote.bookingId}` : `/vendor/bike-rentals/bookings`}
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm shadow-emerald-500/20 active:scale-95"
                       >
                         <CheckCircle className="w-3.5 h-3.5" />
-                        Booking
+                        View Booking
                       </Link>
                     )}
                   </div>

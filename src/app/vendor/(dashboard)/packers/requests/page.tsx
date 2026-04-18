@@ -193,17 +193,15 @@ export default function VendorPackersRequestsPage() {
           </div>
 
           {/* Search bar */}
-          <form
-            onSubmit={(e) => { e.preventDefault(); setSearchQuery(searchInput); setCurrentPage(1); }}
-            className="mb-3"
-          >
-            <div className="relative">
+          <div className="mb-3 flex gap-1.5">
+            <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search requests..."
+                onKeyDown={(e) => { if (e.key === 'Enter') { setSearchQuery(searchInput); setCurrentPage(1); } }}
+                placeholder="Search by name, city, request #..."
                 className="w-full pl-8 pr-8 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-300"
               />
               {searchInput && (
@@ -216,7 +214,13 @@ export default function VendorPackersRequestsPage() {
                 </button>
               )}
             </div>
-          </form>
+            <button
+              onClick={() => { setSearchQuery(searchInput); setCurrentPage(1); }}
+              className="shrink-0 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-colors"
+            >
+              Search
+            </button>
+          </div>
 
           {/* Filter tabs */}
           <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
@@ -344,13 +348,14 @@ export default function VendorPackersRequestsPage() {
 
         {/* Pagination */}
         {filteredRequests.length > 0 && (
-          <div className="p-3 border-t border-gray-100 bg-white">
+          <div className="px-3 py-2 border-t border-gray-100 bg-white">
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
               totalItems={totalItems}
               itemsPerPage={20}
               onPageChange={(page) => setCurrentPage(page)}
+              compact
             />
           </div>
         )}
@@ -405,6 +410,8 @@ export default function VendorPackersRequestsPage() {
                       })()}
                     </div>
                     <p className="text-[11px] text-gray-400 flex items-center gap-2 mt-0.5">
+                      <span className="font-mono font-semibold text-gray-500">#{selected.requestNumber}</span>
+                      <span className="text-gray-300">·</span>
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
                         {selected.pickupCity}
