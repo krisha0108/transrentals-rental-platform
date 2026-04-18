@@ -239,7 +239,7 @@ export async function PATCH(
     }
 
     // Rate booking
-    if (action === 'rate') {
+    if (action === 'rate' || action === 'review') {
       if (booking.status !== 'COMPLETED') {
         return NextResponse.json(
           { error: 'Can only rate completed bookings' },

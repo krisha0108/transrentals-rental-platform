@@ -233,6 +233,10 @@ model bike_bookings {
   quoteRequestId                                  String?                     @unique
   droppedAt                                       DateTime?
   dropReason                                      String?                     @db.Text
+  rating                                          Int?
+  review                                          String?                     @db.Text
+  driverRating                                    Int?
+  vehicleRating                                   Int?
   bike_quotes                                     bike_quotes?                @relation(fields: [acceptedQuoteId], references: [id])
   vendors_bike_bookings_acceptedVendorIdTovendors vendors?                    @relation("bike_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
   vendors_bike_bookings_assignedVendorIdTovendors vendors?                    @relation("bike_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])

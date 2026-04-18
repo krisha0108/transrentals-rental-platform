@@ -306,6 +306,7 @@ export async function PATCH(
         });
       }
 
+      case 'review':
       case 'rate': {
         if (booking.status !== 'COMPLETED') {
           return NextResponse.json(
