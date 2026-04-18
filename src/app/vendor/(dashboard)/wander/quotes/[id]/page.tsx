@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Inbox, Loader2, AlertCircle, Calendar, Users, MapPin, Clock,
-  CheckCircle, ChevronLeft, Send, Plus, X, Info, Zap,
+  CheckCircle, ChevronLeft, Send, Plus, X, Info, Zap, UserPlus,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -257,7 +257,50 @@ export default function VendorWanderQuoteDetailPage() {
           </div>
         )}
 
-        {req?.requirements && (
+        {/* GROUP BOOKING badge */}
+        {req?.requirements?.startsWith('GROUP BOOKING') && (() => {
+          // Format: "GROUP BOOKING — [Name] ([N] members going)\nGroup Code: GANG-XXXXXX\n\nMember Requirements:\n..."
+          const lines = req.requirements.split('\n');
+          const firstLine = lines[0] || '';
+          // Extract group name and member count from: "GROUP BOOKING — Summer Trip (4 members going)"
+          const afterDash = firstLine.replace('GROUP BOOKING — ', '');
+          const parenIdx = afterDash.lastIndexOf('(');
+          const groupName = parenIdx > 0 ? afterDash.slice(0, parenIdx).trim() : afterDash;
+          const memberInfo = parenIdx > 0 ? afterDash.slice(parenIdx + 1).replace(')', '').trim() : '';
+          // Extract group code from line 2: "Group Code: GANG-XXXXXX"
+          const codeLine = lines.find(l => l.startsWith('Group Code:')) || '';
+          const groupCode = codeLine.replace('Group Code:', '').trim();
+          // Member requirements section (after blank line)
+          const memberReqSection = req.requirements.split('\n\n').slice(1).join('\n\n').trim();
+
+          return (<>
+            <div className="mt-3 p-3 bg-violet-50 border border-violet-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 bg-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <UserPlus className="w-3.5 h-3.5 text-white" />
+                </div>
+                <span className="text-xs font-bold text-violet-700 uppercase tracking-wider">Group Booking</span>
+              </div>
+              {groupName && <p className="text-sm font-bold text-violet-900">{groupName}</p>}
+              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                {groupCode && (
+                  <span className="text-xs font-mono bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{groupCode}</span>
+                )}
+                {memberInfo && (
+                  <span className="text-xs text-violet-600 font-semibold">👥 {memberInfo}</span>
+                )}
+              </div>
+            </div>
+            {memberReqSection && (
+              <div className="mt-2 p-3 bg-emerald-50 rounded-lg">
+                <p className="text-xs text-emerald-600 font-medium mb-1">Member Requirements</p>
+                <p className="text-sm text-emerald-800 whitespace-pre-line">{memberReqSection}</p>
+              </div>
+            )}
+          </>);
+        })()}
+
+        {req?.requirements && !req.requirements.startsWith('GROUP BOOKING') && (
           <div className="mt-3 p-3 bg-emerald-50 rounded-lg">
             <p className="text-xs text-emerald-600 font-medium mb-1">Special Requirements</p>
             <p className="text-sm text-emerald-800">{req.requirements}</p>
