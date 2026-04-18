@@ -437,10 +437,24 @@ export default function BikeBookingDetailPage() {
     }
   };
 
-  const handleSubmitRating = () => {
-    // API call to submit rating
-    alert('Thank you for your feedback!');
-    setShowRatingModal(false);
+  const handleSubmitRating = async () => {
+    if (!rating || rating < 1) return;
+    try {
+      const res = await fetch(`/api/bike-bookings/${booking?.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'rate', rating, review }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowRatingModal(false);
+        setBooking((prev: any) => prev ? { ...prev, rating } : prev);
+      } else {
+        alert(data.error || 'Failed to submit rating');
+      }
+    } catch {
+      alert('Failed to submit rating. Please try again.');
+    }
   };
 
   if (isLoading) {

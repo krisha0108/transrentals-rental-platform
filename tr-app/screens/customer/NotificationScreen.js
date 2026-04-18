@@ -235,11 +235,41 @@ const handlePress = async () => {
 
     const title = (item.title || '').toLowerCase();
     const body = (item.body || '').toLowerCase();
-    const notifType = (item.type || '').toLowerCase();
+    const notifType = (item.type || '').toUpperCase();
     let serviceType = item.service_type;
 
-    // Check if this is a chat notification
-    if (notifType === 'chat' || title.includes('new message')) {
+    // ── Wander Group notifications ──────────────────────────────────
+    if (['GROUP_CHAT', 'GROUP_JOIN', 'GROUP_SUBMITTED', 'GROUP_RESPOND'].includes(notifType)) {
+      const groupCode = item.booking_id;
+      if (groupCode) {
+        navigation.navigate('WanderGroupDetail', {
+          groupCode,
+          initialTab: notifType === 'GROUP_CHAT' ? 'chat' : 'trips',
+        });
+      } else {
+        // Old notification without groupCode — go to group list
+        navigation.navigate('WanderGroup');
+      }
+      return;
+    }
+
+    // ── Wander quote notification (vendor responded) ─────────────────
+    if (notifType === 'WANDER_QUOTE' || (notifType === 'QUOTE' && item.service_type === 'wander') ||
+        title.includes('quote received') || title.includes('new quote')) {
+      // booking_id holds wander_quote_requests.id (set in new notifications)
+      // quote_id holds wander_quotes.id — wrong for navigation, skip it
+      const requestId = item.booking_id;
+      if (requestId) {
+        navigation.navigate('WanderQuoteDetail', { requestId });
+      } else {
+        // Old notification without requestId — go to quotes list
+        navigation.navigate('MyWanderBookings');
+      }
+      return;
+    }
+
+    // ── Regular chat notification ────────────────────────────────────
+    if (notifType === 'CHAT' || title.includes('new message')) {
       const chatBookingId = item.booking_id;
       if (chatBookingId && chatBookingId !== 'null' && chatBookingId.length >= 10) {
         navigation.navigate('BookingChat', {
@@ -252,8 +282,8 @@ const handlePress = async () => {
       return;
     }
 
-    // Check if this is a B2B notification
-    const isB2BNotif = notifType.startsWith('b2b_')
+    // ── B2B notification ─────────────────────────────────────────────
+    const isB2BNotif = notifType.startsWith('B2B_')
       || title.includes('b2b') || body.includes('b2b');
 
     if (isB2BNotif) {

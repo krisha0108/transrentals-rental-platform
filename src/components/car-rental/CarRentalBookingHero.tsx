@@ -2028,6 +2028,10 @@ export function CarRentalBookingHero({
                                         <span>Extra (as applicable)</span>
                                       </div>
                                     )}
+                                    <div className="flex justify-between pt-2 border-t border-gray-200 mt-1">
+                                      <span className="font-semibold text-gray-900">Total (incl. GST)</span>
+                                      <span className="font-bold text-blue-700">₹{priceData.pricing.grandTotal.toLocaleString()}</span>
+                                    </div>
                                   </div>
 
                                   <button

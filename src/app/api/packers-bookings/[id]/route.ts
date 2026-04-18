@@ -119,6 +119,7 @@ export async function PATCH(
         return NextResponse.json({ success: true, message: 'Booking cancelled', booking: { id: updatedBooking.id, bookingNumber: updatedBooking.bookingNumber, status: updatedBooking.status, refundAmount } });
       }
 
+      case 'review':
       case 'rate': {
         if (booking.status !== 'COMPLETED') {
           return NextResponse.json({ error: 'Can only rate completed bookings' }, { status: 400 });

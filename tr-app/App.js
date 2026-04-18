@@ -89,6 +89,8 @@ import WanderScreen from './screens/customer/HomePage/WanderScreen';
 import WanderListingDetailScreen from './screens/customer/wander/WanderListingDetailScreen';
 import MyWanderBookingsScreen from './screens/customer/wander/MyWanderBookingsScreen';
 import WanderQuoteDetailScreen from './screens/customer/wander/WanderQuoteDetailScreen';
+import WanderGroupScreen from './screens/customer/wander/WanderGroupScreen';
+import WanderGroupDetailScreen from './screens/customer/wander/WanderGroupDetailScreen';
 // B2B Screens
 import B2BRegisterScreen from './screens/b2b/B2BRegisterScreen';
 import B2BDashboardScreen from './screens/b2b/B2BDashboardScreen';
@@ -474,6 +476,19 @@ function AppContent() {
         const notifType = (data.type || '').toLowerCase();
         let serviceType = data.serviceType || data.service_type;
 
+        // Check if this is a Wander group notification
+        if (notifType === 'group_chat' || notifType === 'group_respond' || notifType === 'group_submitted'
+            || notifType === 'group_join' || notifType === 'group_quote_received') {
+          const groupCode = data.groupCode || data.group_code;
+          if (groupCode) {
+            const initialTab = notifType === 'group_chat' ? 'chat' : 'trips';
+            navigation.navigate('WanderGroupDetail', { groupCode, initialTab });
+          } else {
+            navigation.navigate('WanderGroup');
+          }
+          return;
+        }
+
         // Check if this is a chat notification
         if (notifType === 'chat' || data.screen === 'BookingChat' || data.screen === 'Chat') {
           const chatBookingId = data.bookingId || data.booking_id;
@@ -712,6 +727,8 @@ function AppContent() {
         <Stack.Screen name="WanderListingDetail" component={WanderListingDetailScreen} />
         <Stack.Screen name="MyWanderBookings" component={MyWanderBookingsScreen} />
         <Stack.Screen name="WanderQuoteDetail" component={WanderQuoteDetailScreen} />
+        <Stack.Screen name="WanderGroup" component={WanderGroupScreen} />
+        <Stack.Screen name="WanderGroupDetail" component={WanderGroupDetailScreen} />
 
       </Stack.Navigator>
   );
@@ -728,10 +745,20 @@ function AppWithNotifications() {
   );
 }
 
+// Deep link config: transrentals://wander/group/GANG-XXXX → WanderGroupDetail
+const linking = {
+  prefixes: ['transrentals://'],
+  config: {
+    screens: {
+      WanderGroupDetail: 'wander/group/:groupCode',
+    },
+  },
+};
+
 // Main App wrapper
 export default function App() {
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <AppWithNotifications />
     </NavigationContainer>
   );

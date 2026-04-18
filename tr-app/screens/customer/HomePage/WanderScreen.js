@@ -433,6 +433,28 @@ export default function WanderScreen() {
           </View>
         </LinearGradient>
 
+        {/* ── MY GROUPS SHORTCUT ── */}
+        <TouchableOpacity
+          style={styles.myGroupsBanner}
+          onPress={() => navigation.navigate('WanderGroup')}
+          activeOpacity={0.85}
+        >
+          <LinearGradient
+            colors={['#064E3B', '#059669']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={styles.myGroupsBannerGrad}
+          >
+            <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="people" size={20} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '800', color: '#fff' }}>My Group Trips</Text>
+              <Text style={{ fontSize: 11, color: '#A7F3D0', marginTop: 1 }}>Plan trips with your friends & family</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.7)" />
+          </LinearGradient>
+        </TouchableOpacity>
+
         {/* ── CATEGORY PILLS ── */}
         <View style={styles.groupCard}>
           <Text style={styles.sectionTitle}>Browse by Category</Text>
@@ -730,6 +752,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 7,
   },
   searchGoBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+
+  myGroupsBanner: { marginHorizontal: 14, marginTop: 14, marginBottom: 2, borderRadius: 16, overflow: 'hidden', elevation: 3, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
+  myGroupsBannerGrad: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
 
   // Group card (white section block)
   groupCard: {

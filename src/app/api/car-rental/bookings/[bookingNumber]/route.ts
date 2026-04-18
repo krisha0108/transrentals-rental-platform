@@ -77,6 +77,8 @@ export async function GET(
         localPackageKm:   booking.localPackageKm,
         cancelledAt:     booking.cancelledAt,
         cancellationReason: booking.cancellationReason,
+        rating:          booking.rating,
+        review:          booking.review,
         location:        booking.locations,
         vendor:          acceptedVendor ? {
           id: acceptedVendor.id,
@@ -125,6 +127,7 @@ export async function PATCH(
         });
         return NextResponse.json({ success: true, message: 'Booking cancelled successfully', booking: { id: updated.id, status: updated.status } });
       }
+      case 'review':
       case 'rate': {
         if (booking.status !== 'COMPLETED') {
           return NextResponse.json({ success: false, error: 'Only completed bookings can be rated' }, { status: 400 });

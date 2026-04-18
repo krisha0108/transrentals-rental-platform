@@ -307,6 +307,7 @@ export async function PATCH(
         });
       }
 
+      case 'review':
       case 'rate': {
         if (booking.status !== 'COMPLETED') {
           return NextResponse.json({ error: 'Can only rate completed bookings' }, { status: 400 });

@@ -653,6 +653,29 @@ export default function WanderHomePage() {
       </section>
 
       {/* ══════════════════════════════════════════════════
+          MY GROUP TRIPS BANNER (logged-in customers only)
+      ══════════════════════════════════════════════════ */}
+      {customerId && (
+        <div className="bg-white border-b border-gray-100">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
+            <Link
+              href="/customer/wander-groups"
+              className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 rounded-2xl text-white transition-all duration-200 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:scale-[1.01] group"
+            >
+              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold leading-tight">My Group Trips</p>
+                <p className="text-xs text-emerald-100 leading-tight">Plan trips with your friends &amp; family</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-white/70 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════
           STICKY FILTER BAR
       ══════════════════════════════════════════════════ */}
       <div ref={filterBarRef} className="sticky top-0 z-30 bg-white/[0.97] backdrop-blur-xl border-b border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">

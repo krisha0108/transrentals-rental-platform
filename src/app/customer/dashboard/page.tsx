@@ -276,6 +276,13 @@ export default function CustomerDashboardPage() {
         setDashboardView('b2b');
       }
 
+      // Auto-switch tab from URL param ?tab=tour
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam === 'tour') {
+        setDashboardView('tour');
+      }
+
       // Refresh customer data from API to get latest b2bStatus etc.
       const refreshId = parsed?.id ?? parsed?.customer_id ?? parsed?.customerId;
       if (refreshId) {
@@ -1576,6 +1583,22 @@ export default function CustomerDashboardPage() {
                 </div>
                 <p className="text-2xl font-bold leading-none">{formatCurrency(financials.totalExpense)}</p>
                 <p className="text-white/60 text-[10px] mt-1.5">View full expense report →</p>
+              </Link>
+
+              {/* Messages */}
+              <Link href="/customer/chat"
+                className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl p-3.5 hover:border-teal-400/40 hover:shadow-sm transition group shadow-sm">
+                <div className="w-9 h-9 bg-teal-50 rounded-xl flex items-center justify-center flex-shrink-0 relative">
+                  <MessageCircle className="w-4 h-4 text-teal-500" />
+                  {totalUnreadChats > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-teal-600 text-white text-[9px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">{totalUnreadChats}</span>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Messages</p>
+                  <p className="text-xs text-gray-400">Chat with your vendors</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-teal-500 ml-auto transition" />
               </Link>
 
               {/* Help */}
