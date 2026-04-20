@@ -1030,6 +1030,24 @@ export function CarRentalBookingHero({
     locations,
   ]);
 
+  // Form validation — button is enabled only when all required fields are filled
+  const isFormValid = (() => {
+    if (!pickupDate || !pickupLocationId) return false;
+    if (tripType === 'local') {
+      return !!selectedPackageId;
+    }
+    if (tripType === 'outstation') {
+      const hasDestination = !!dropLocationId || !!dropCityText.trim();
+      if (!hasDestination) return false;
+      if (outstationMode === 'round-trip' && !returnDate) return false;
+      return true;
+    }
+    if (tripType === 'airport') {
+      return !!selectedAirportId;
+    }
+    return true;
+  })();
+
   // Handle search/proceed
   const handleSearch = () => {
     if (!pickupDate) {
@@ -1724,11 +1742,34 @@ export function CarRentalBookingHero({
                     {/* Search Button */}
                     <button
                       onClick={handleSearch}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-lg transition flex items-center justify-center gap-2"
+                      disabled={!isFormValid}
+                      title={!isFormValid ? 'Please fill all required fields' : ''}
+                      className={`w-full font-semibold py-4 rounded-lg transition flex items-center justify-center gap-2 ${
+                        isFormValid
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
                     >
                       Explore Cabs
                       <ChevronRight className="w-5 h-5" />
                     </button>
+
+                    {/* Missing fields hint */}
+                    {!isFormValid && (
+                      <p className="text-xs text-center text-gray-400">
+                        {!pickupDate
+                          ? 'Select a pickup date to continue'
+                          : tripType === 'outstation' && !dropLocationId && !dropCityText.trim()
+                          ? 'Enter your destination city to continue'
+                          : tripType === 'outstation' && outstationMode === 'round-trip' && !returnDate
+                          ? 'Select a return date to continue'
+                          : tripType === 'airport' && !selectedAirportId
+                          ? 'Select an airport to continue'
+                          : tripType === 'local' && !selectedPackageId
+                          ? 'Select a package to continue'
+                          : 'Fill all required fields to continue'}
+                      </p>
+                    )}
 
                     {/* Info */}
                     <div className="flex items-start gap-2 text-xs text-gray-500">

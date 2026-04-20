@@ -34,10 +34,13 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   );
 
   if (hideDefaultLayout) {
-    // Customer pages - no default header/footer, no SmartShivi, no bottom nav
+    // Customer/admin pages - no default header/footer, no bottom nav
+    // SmartShivi shown on customer pages only (not admin/vendor/manager)
+    const showShivi = pathname?.startsWith('/customer/');
     return (
       <div className="flex flex-col min-h-screen">
         <main className="flex-1">{children}</main>
+        {showShivi && <SmartShivi />}
       </div>
     );
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   Keyboard,
   StatusBar,
   Image,
+  ScrollView,
+  Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -56,9 +58,37 @@ const BOOKING_DETAIL_SCREEN_MAP = {
   equipment:   'EquipmentBookingDetail',
 };
 
+const SERVICE_ICONS = {
+  bike: 'motorbike', car: 'car', 'self-drive': 'car',
+  bus: 'bus', truck: 'truck-delivery', luxury: 'car-sports',
+  chauffeur: 'car-side', packers: 'package-variant', equipment: 'crane',
+};
+
+const SERVICE_SHORT = {
+  bike: 'Bike', car: 'Self Drive', 'self-drive': 'Self Drive',
+  bus: 'Bus', truck: 'Truck', luxury: 'Luxury',
+  chauffeur: 'Car', packers: 'Packers', equipment: 'Equip.',
+};
+
 export default function ChatScreen({ route, navigation }) {
-  const { bookingId, customerName, bookingNumber, serviceType, customerAvatar } = route.params || {};
-  const svc = SERVICE_MAP[serviceType] || { label: serviceType || 'Booking', color: C.g700, bg: C.g50, icon: 'car' };
+  const {
+    bookingId: initialBookingId,
+    customerName,
+    bookingNumber: initialBookingNumber,
+    serviceType: initialServiceType,
+    customerAvatar,
+    customerBookings,  // array of all bookings for this customer
+  } = route.params || {};
+
+  const allBookings = customerBookings && customerBookings.length > 0
+    ? customerBookings
+    : [{ bookingId: initialBookingId, bookingNumber: initialBookingNumber, bookingType: initialServiceType }];
+
+  const [activeBookingId, setActiveBookingId] = useState(initialBookingId);
+  const activeBooking = allBookings.find((b) => b.bookingId === activeBookingId) || allBookings[0];
+  const activeServiceType = activeBooking?.bookingType || initialServiceType;
+
+  const svc = SERVICE_MAP[activeServiceType] || { label: activeServiceType || 'Booking', color: C.g700, bg: C.g50, icon: 'car' };
   const customerInitial = (customerName || 'C').charAt(0).toUpperCase();
   const insets = useSafeAreaInsets();
 
@@ -67,6 +97,7 @@ export default function ChatScreen({ route, navigation }) {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef(null);
+  const pollingRef = useRef(null);
 
   useFocusEffect(useCallback(() => {
     StatusBar.setBarStyle('light-content');
@@ -74,27 +105,31 @@ export default function ChatScreen({ route, navigation }) {
   }, []));
 
   const handleViewBooking = () => {
-    if (!bookingId || !serviceType) return;
-    const screen = BOOKING_DETAIL_SCREEN_MAP[serviceType];
-    if (screen) navigation.navigate(screen, { bookingId, serviceType });
+    if (!activeBookingId || !activeServiceType) return;
+    const screen = BOOKING_DETAIL_SCREEN_MAP[activeServiceType];
+    if (screen) navigation.navigate(screen, { bookingId: activeBookingId, serviceType: activeServiceType });
   };
 
   const fetchMessages = useCallback(async () => {
-    if (!bookingId) return;
+    if (!activeBookingId) return;
     try {
-      const response = await getChatMessages(bookingId);
+      const response = await getChatMessages(activeBookingId);
       setMessages(response?.messages || []);
     } catch (error) {
       console.log('Error fetching messages:', error);
     } finally {
       setLoading(false);
     }
-  }, [bookingId]);
+  }, [activeBookingId]);
 
+  // Reset and reload when active booking changes
   useEffect(() => {
+    setLoading(true);
+    setMessages([]);
     fetchMessages();
-    const interval = setInterval(fetchMessages, 10000);
-    return () => clearInterval(interval);
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(fetchMessages, 10000);
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
   }, [fetchMessages]);
 
   useEffect(() => {
@@ -118,7 +153,7 @@ export default function ChatScreen({ route, navigation }) {
     };
     setMessages((prev) => [...prev, tempMessage]);
     try {
-      await sendChatMessage(bookingId, messageText);
+      await sendChatMessage(activeBookingId, messageText);
       await fetchMessages();
     } catch (error) {
       console.log('Error sending message:', error);
@@ -127,6 +162,127 @@ export default function ChatScreen({ route, navigation }) {
     } finally {
       setSending(false);
     }
+  };
+
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // Booking switcher — tabs for ≤3, dropdown for >3
+  const renderBookingSwitcher = () => {
+    if (allBookings.length <= 1) return null;
+    const useDropdown = allBookings.length > 3;
+    const activeLabel = (() => {
+      const b = activeBooking;
+      const typeLabel = SERVICE_SHORT[(b?.bookingType || '').toLowerCase()] || (b?.bookingType || 'Booking');
+      return `${typeLabel} · #${(b?.bookingNumber || b?.bookingId || '').slice(-6)}`;
+    })();
+
+    if (useDropdown) {
+      const activeSvc = SERVICE_MAP[activeServiceType?.toLowerCase()] || { color: C.g700, bg: C.g50, icon: 'car-side' };
+      return (
+        <View style={st.switcherWrap}>
+          {/* Trigger button */}
+          <TouchableOpacity style={st.dropdownBtn} onPress={() => setShowDropdown(true)} activeOpacity={0.8}>
+            <View style={[st.dropdownBtnIcon, { backgroundColor: activeSvc.bg }]}>
+              <MaterialCommunityIcons name={activeSvc.icon || 'car-side'} size={13} color={activeSvc.color} />
+            </View>
+            <View style={st.dropdownBtnMid}>
+              <Text style={st.dropdownBtnLabel} numberOfLines={1}>
+                {SERVICE_SHORT[activeServiceType?.toLowerCase()] || activeServiceType || 'Booking'}
+              </Text>
+              <Text style={st.dropdownBtnNum} numberOfLines={1}>
+                #{activeBooking?.bookingNumber || activeBookingId?.slice(-8)}
+              </Text>
+            </View>
+            <View style={st.dropdownBtnRight}>
+              <Text style={st.dropdownBtnCount}>{allBookings.length} bookings</Text>
+              <MaterialCommunityIcons name="chevron-down" size={15} color={C.g700} />
+            </View>
+          </TouchableOpacity>
+
+          {/* Bottom sheet */}
+          <Modal visible={showDropdown} transparent animationType="slide" onRequestClose={() => setShowDropdown(false)}>
+            <TouchableOpacity style={st.bsOverlay} activeOpacity={1} onPress={() => setShowDropdown(false)}>
+              <TouchableOpacity activeOpacity={1} style={st.bsSheet} onPress={() => {}}>
+                {/* Handle */}
+                <View style={st.bsHandle} />
+                {/* Title row */}
+                <View style={st.bsTitleRow}>
+                  <View>
+                    <Text style={st.bsTitle}>Switch Booking</Text>
+                    <Text style={st.bsSub}>{customerName} · {allBookings.length} bookings</Text>
+                  </View>
+                  <TouchableOpacity style={st.bsClose} onPress={() => setShowDropdown(false)}>
+                    <MaterialCommunityIcons name="close" size={18} color={C.sub} />
+                  </TouchableOpacity>
+                </View>
+                {/* Booking list */}
+                <ScrollView style={st.bsScroll} showsVerticalScrollIndicator={false}>
+                  {allBookings.map((b, idx) => {
+                    const isActive = b.bookingId === activeBookingId;
+                    const bType = (b.bookingType || '').toLowerCase();
+                    const svcInfo = SERVICE_MAP[bType] || { label: b.bookingType || 'Booking', color: C.muted, bg: C.bg, icon: 'car-side' };
+                    const iconName = SERVICE_ICONS[bType] || 'car-side';
+                    return (
+                      <TouchableOpacity
+                        key={b.bookingId}
+                        style={[st.bsItem, isActive && st.bsItemActive, idx < allBookings.length - 1 && st.bsItemBorder]}
+                        onPress={() => { setActiveBookingId(b.bookingId); setShowDropdown(false); }}
+                        activeOpacity={0.72}
+                      >
+                        {/* Icon */}
+                        <View style={[st.bsItemIcon, { backgroundColor: isActive ? svcInfo.color + '20' : svcInfo.bg }]}>
+                          <MaterialCommunityIcons name={iconName} size={20} color={svcInfo.color} />
+                        </View>
+                        {/* Info */}
+                        <View style={st.bsItemInfo}>
+                          <Text style={[st.bsItemType, isActive && { color: C.g700 }]}>{svcInfo.label}</Text>
+                          <Text style={st.bsItemNum}>#{b.bookingNumber || b.bookingId?.slice(-10)}</Text>
+                        </View>
+                        {/* Badge + check */}
+                        {(b.unreadCount > 0) && (
+                          <View style={st.bsUnreadBadge}>
+                            <Text style={st.bsUnreadTxt}>{b.unreadCount}</Text>
+                          </View>
+                        )}
+                        {isActive
+                          ? <MaterialCommunityIcons name="check-circle" size={22} color={C.g600} />
+                          : <MaterialCommunityIcons name="chevron-right" size={20} color={C.border} />
+                        }
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </Modal>
+        </View>
+      );
+    }
+
+    // ≤3 bookings — tab row
+    return (
+      <View style={st.switcherWrap}>
+        <View style={st.tabRow}>
+          {allBookings.map((b) => {
+            const isActive = b.bookingId === activeBookingId;
+            const typeLabel = SERVICE_SHORT[(b.bookingType || '').toLowerCase()] || (b.bookingType || 'Booking');
+            return (
+              <TouchableOpacity
+                key={b.bookingId}
+                style={[st.switcherTab, isActive && st.switcherTabActive]}
+                onPress={() => { if (!isActive) setActiveBookingId(b.bookingId); }}
+                activeOpacity={0.75}
+              >
+                <Text style={[st.switcherTabType, isActive && st.switcherTabTypeActive]}>{typeLabel}</Text>
+                <Text style={[st.switcherTabNum, isActive && st.switcherTabNumActive]} numberOfLines={1}>
+                  #{(b.bookingNumber || b.bookingId || '').slice(-6)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    );
   };
 
   const formatTime = (dateStr) => {
@@ -236,7 +392,7 @@ export default function ChatScreen({ route, navigation }) {
             <MaterialCommunityIcons name={svc.icon} size={10} color="#fff" style={{ marginRight: 3 }} />
             <Text style={st.svcChipTxt}>{svc.label}</Text>
           </View>
-          <Text style={st.headerBkNum}>#{bookingNumber}</Text>
+          <Text style={st.headerBkNum}>#{activeBooking?.bookingNumber || initialBookingNumber}</Text>
         </View>
       </View>
 
@@ -251,6 +407,7 @@ export default function ChatScreen({ route, navigation }) {
     return (
       <View style={st.root}>
         <Header />
+        {renderBookingSwitcher()}
         <View style={st.loaderWrap}>
           <ActivityIndicator size="large" color={C.g600} />
           <Text style={st.loaderTxt}>Loading messages...</Text>
@@ -262,6 +419,7 @@ export default function ChatScreen({ route, navigation }) {
   return (
     <View style={st.root}>
       <Header />
+      {renderBookingSwitcher()}
 
       <KeyboardAvoidingView
         style={st.flex}
@@ -385,6 +543,130 @@ const st = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center', justifyContent: 'center',
   },
+
+  /* ── Booking Switcher ── */
+  switcherWrap: {
+    backgroundColor: C.card,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  // ≤3: tab row
+  tabRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  switcherTab: {
+    flex: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: C.border,
+    backgroundColor: C.bg,
+    alignItems: 'center',
+  },
+  switcherTabActive: {
+    backgroundColor: C.g50,
+    borderColor: C.g500,
+  },
+  switcherTabType: { fontSize: 11, fontWeight: '700', color: C.muted },
+  switcherTabTypeActive: { color: C.g700 },
+  switcherTabNum: { fontSize: 10, color: C.muted, marginTop: 1 },
+  switcherTabNumActive: { color: C.g600, fontWeight: '600' },
+
+  // >3: dropdown trigger button
+  dropdownBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: C.g50,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: C.g100,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  dropdownBtnIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dropdownBtnMid: { flex: 1 },
+  dropdownBtnLabel: { fontSize: 13, fontWeight: '700', color: C.g800 },
+  dropdownBtnNum: { fontSize: 11, color: C.g600, marginTop: 1 },
+  dropdownBtnRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  dropdownBtnCount: { fontSize: 11, color: C.muted, fontWeight: '500' },
+
+  // Bottom sheet
+  bsOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(2,44,34,0.45)',
+    justifyContent: 'flex-end',
+  },
+  bsSheet: {
+    backgroundColor: C.card,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 30,
+    maxHeight: '70%',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  bsHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: C.border,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  bsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  bsTitle: { fontSize: 17, fontWeight: '800', color: C.text },
+  bsSub: { fontSize: 12, color: C.muted, marginTop: 2 },
+  bsClose: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: C.bg,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  bsScroll: { maxHeight: 400 },
+  bsItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+  },
+  bsItemActive: { backgroundColor: C.g50 },
+  bsItemBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
+  bsItemIcon: {
+    width: 44, height: 44, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  bsItemInfo: { flex: 1 },
+  bsItemType: { fontSize: 15, fontWeight: '700', color: C.text },
+  bsItemNum: { fontSize: 12, color: C.muted, marginTop: 2 },
+  bsUnreadBadge: {
+    minWidth: 20, height: 20, borderRadius: 10,
+    backgroundColor: C.red,
+    justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 5,
+  },
+  bsUnreadTxt: { fontSize: 10, fontWeight: '800', color: '#fff' },
 
   /* ── Loader ── */
   loaderWrap: {
