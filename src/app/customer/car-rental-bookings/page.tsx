@@ -191,7 +191,7 @@ export default function CustomerCarRentalBookingsPage() {
                         </p>
                         <p className="text-xs text-gray-500 flex items-center gap-1 justify-end">
                           <TripIcon className="w-3 h-3" />
-                          {booking.tripType.replace(/_/g, ' ')}
+                          {booking.tripType?.replace(/_/g, ' ') ?? 'Car Rental'}
                         </p>
                       </div>
                     </div>

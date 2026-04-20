@@ -168,6 +168,13 @@ export function BikeBookingChat({
     }
   }, [messages, isOpen]);
 
+  // Refocus input after message is sent
+  useEffect(() => {
+    if (!isSending && isOpen) {
+      inputRef.current?.focus();
+    }
+  }, [isSending, isOpen]);
+
   // Format time
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);

@@ -798,6 +798,17 @@ export default function CarRentalBookingDetailPage() {
                 <HelpCircle className="w-4 h-4" />
                 Need Help?
               </button>
+
+              {/* Chat — rendered inline, has its own button+modal */}
+              {booking.acceptedVendorId && ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) && customer && (
+                <BikeBookingChat
+                  bookingId={booking.id}
+                  vendorId={booking.acceptedVendorId}
+                  vendorName={booking.vendor?.businessName || 'Vendor'}
+                  customerId={String(customer.id)}
+                  customerName={customer.name || customer.phone || 'Customer'}
+                />
+              )}
             </div>
           </div>
         </div>

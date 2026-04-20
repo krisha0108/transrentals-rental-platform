@@ -193,6 +193,13 @@ export default function VendorBookingChat({
     }
   }, [isOpen]);
 
+  // Refocus input after message is sent (once isSending becomes false)
+  useEffect(() => {
+    if (!isSending && isOpen) {
+      inputRef.current?.focus();
+    }
+  }, [isSending, isOpen]);
+
   if (!isOpen) return null;
 
   return (
