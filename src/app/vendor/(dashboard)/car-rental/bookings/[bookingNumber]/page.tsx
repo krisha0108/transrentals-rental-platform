@@ -60,6 +60,10 @@ interface BookingDetails {
   isDeliveryRequested?: boolean;
   assignedVehicleId?: string;
   assignedVehicleName?: string;
+  driverName?: string;
+  driverPhone?: string;
+  vehicleNumber?: string;
+  vehicleModel?: string;
   dailyRate: number;
   baseAmount: number;
   gstAmount: number;
@@ -171,7 +175,7 @@ export default function VendorBookingDetailPage() {
     driverName: '',
     driverPhone: '',
     vehicleNumber: '',
-    vehicle_models: '',
+    vehicleModel: '',
   });
 
   // Staff drivers
@@ -226,8 +230,8 @@ export default function VendorBookingDetailPage() {
           setDriverForm({
             driverName: '',
             driverPhone: '',
-            vehicleNumber: data.booking.assignedVehicleName || '',
-            vehicle_models: '',
+            vehicleNumber: data.booking.vehicleNumber || '',
+            vehicleModel: data.booking.vehicleModel || '',
           });
         }
       }
@@ -308,7 +312,7 @@ export default function VendorBookingDetailPage() {
         driverName: '',
         driverPhone: '',
         vehicleNumber: driverForm.vehicleNumber,
-        vehicle_models: driverForm.vehicle_models,
+        vehicleModel: driverForm.vehicleModel,
       });
       return;
     }
@@ -331,20 +335,20 @@ export default function VendorBookingDetailPage() {
       setDriverForm({
         ...driverForm,
         vehicleNumber: '',
-        vehicle_models: '',
+        vehicleModel: '',
       });
       return;
     }
 
     const vehicle = fleetVehicles.find(v => v.id === vehicleId);
     if (vehicle) {
-      const vehicle_model = vehicle.brands?.name
+      const vehicleModel = vehicle.brands?.name
         ? `${vehicle.brands.name} ${vehicle.chauffeur_vehicle_categories?.name || ''}`
         : vehicle.chauffeur_vehicle_categories?.name || '';
       setDriverForm({
         ...driverForm,
         vehicleNumber: vehicle.registrationNumber || '',
-        vehicle_models: vehicle_model.trim(),
+        vehicleModel: vehicleModel.trim(),
       });
     }
   };
@@ -590,7 +594,7 @@ export default function VendorBookingDetailPage() {
               <div className="flex flex-wrap gap-2 pt-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200/60 shadow-sm">
                   <Car className="w-3 h-3" />
-                  Self Drive
+                  {TRIP_TYPE_LABELS[(booking as any).tripType] || (booking as any).carCategoryName || 'Car Rental'}
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-emerald-100/50 text-emerald-700 rounded-full text-xs font-semibold border border-emerald-200/60 shadow-sm">
                   <Navigation className="w-3 h-3" />
@@ -792,7 +796,7 @@ export default function VendorBookingDetailPage() {
                   </div>
                   Assigned Vehicle
                 </CardTitle>
-                {booking.assignedVehicleName && ['CONFIRMED', 'ACCEPTED', 'IN_PROGRESS'].includes(booking.status) && (
+                {(booking.driverName || booking.vehicleNumber) && ['DRIVER_ASSIGNED', 'ACCEPTED', 'IN_PROGRESS'].includes(booking.status) && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -806,44 +810,50 @@ export default function VendorBookingDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {booking.assignedVehicleName && !showDriverForm ? (
+              {(booking.driverName || booking.vehicleNumber) && !showDriverForm ? (
                 <div className="grid sm:grid-cols-2 gap-3">
-                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/30 rounded-xl p-4 border border-emerald-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <User className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-emerald-500 font-medium uppercase tracking-wider">Driver</p>
-                        <p className="font-semibold text-gray-900">{booking.assignedVehicleName}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/30 rounded-xl p-4 border border-emerald-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <Phone className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-emerald-500 font-medium uppercase tracking-wider">Phone</p>
-                        <a href={`tel:${booking.customerPhone}`} className="font-semibold text-emerald-600 hover:underline">
-                          {booking.customerPhone}
-                        </a>
+                  {booking.driverName && (
+                    <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/30 rounded-xl p-4 border border-emerald-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-emerald-500 font-medium uppercase tracking-wider">Driver</p>
+                          <p className="font-semibold text-gray-900">{booking.driverName}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/30 rounded-xl p-4 border border-emerald-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                        <Car className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-[11px] text-emerald-500 font-medium uppercase tracking-wider">Vehicle No.</p>
-                        <p className="font-semibold text-gray-900">{booking.assignedVehicleName}</p>
+                  )}
+                  {booking.driverPhone && (
+                    <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/30 rounded-xl p-4 border border-emerald-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <Phone className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-emerald-500 font-medium uppercase tracking-wider">Driver Phone</p>
+                          <a href={`tel:${booking.driverPhone}`} className="font-semibold text-emerald-600 hover:underline">
+                            {booking.driverPhone}
+                          </a>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  {booking.requestedCategory && (
+                  )}
+                  {booking.vehicleNumber && (
+                    <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/30 rounded-xl p-4 border border-emerald-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <Car className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-emerald-500 font-medium uppercase tracking-wider">Vehicle No.</p>
+                          <p className="font-semibold text-gray-900">{booking.vehicleNumber}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {booking.vehicleModel && (
                     <div className="bg-gradient-to-br from-amber-50 to-amber-100/30 rounded-xl p-4 border border-amber-100">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0 shadow-sm">
@@ -851,7 +861,7 @@ export default function VendorBookingDetailPage() {
                         </div>
                         <div>
                           <p className="text-[11px] text-amber-500 font-medium uppercase tracking-wider">Model</p>
-                          <p className="font-semibold text-gray-900">{booking.requestedCategory}</p>
+                          <p className="font-semibold text-gray-900">{booking.vehicleModel}</p>
                         </div>
                       </div>
                     </div>
@@ -978,8 +988,8 @@ export default function VendorBookingDetailPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Vehicle Model</label>
                       <input
                         type="text"
-                        value={driverForm.vehicle_models}
-                        onChange={(e) => setDriverForm({ ...driverForm, vehicle_models: e.target.value })}
+                        value={driverForm.vehicleModel}
+                        onChange={(e) => setDriverForm({ ...driverForm, vehicleModel: e.target.value })}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
                         placeholder="e.g., Maruti Dzire"
                         readOnly={selectedVehicleId !== '' && selectedVehicleId !== 'manual'}
@@ -1003,7 +1013,7 @@ export default function VendorBookingDetailPage() {
                       className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all font-semibold text-sm shadow-md shadow-emerald-200/50 disabled:opacity-50"
                     >
                       {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                      {booking.assignedVehicleName ? 'Update Vehicle' : 'Assign Vehicle'}
+                      {(booking.driverName || booking.vehicleNumber) ? 'Update Vehicle' : 'Assign Vehicle'}
                     </button>
                   </div>
                 </div>

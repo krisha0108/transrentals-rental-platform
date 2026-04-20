@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Sparkles, Calendar } from 'lucide-react';
+import { MessageCircle, X, Send, Sparkles, Calendar, Mic, MicOff, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocations } from '@/components/booking/useLocations';
 import { bookingService } from '@/lib/api/services/bookingService';
@@ -190,6 +190,10 @@ export function SmartShivi() {
   const [carPricingList, setCarPricingList] = useState<CarPricing[]>([]);
   const [isLoadingCarPricing, setIsLoadingCarPricing] = useState(false);
   const [airports, setAirports] = useState<Airport[]>([]);
+  const [showSlashSuggestions, setShowSlashSuggestions] = useState(false);
+  const [language, setLanguage] = useState<'en' | 'hi'>('en');
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [tempDate, setTempDate] = useState('');
   const [tempTime, setTempTime] = useState('09:00');
@@ -224,27 +228,89 @@ export function SmartShivi() {
   // Extract city and service from current URL
   const getPageContext = () => {
     const pathParts = pathname.split('/').filter(Boolean);
+    const slug = pathParts[0] || '';
+
+    type ServiceMapping = { service: string; bookingValue: string };
+    const SERVICE_MAP: Record<string, ServiceMapping> = {
+      // Car rental variants
+      'car-rental':           { service: 'outstation-car-rental',   bookingValue: 'car' },
+      'outstation-car-rental':{ service: 'outstation-car-rental',   bookingValue: 'car' },
+      'one-way-car-rental':   { service: 'one-way-car-rental',      bookingValue: 'car' },
+      'outstation-cab':       { service: 'outstation-car-rental',   bookingValue: 'car' },
+      'one-way-cab':          { service: 'one-way-car-rental',      bookingValue: 'car' },
+      'chauffeur-service':    { service: 'outstation-car-rental',   bookingValue: 'car' },
+      'corporate-car-rental': { service: 'outstation-car-rental',   bookingValue: 'car' },
+      'hourly-car-rental':    { service: 'local-taxi',              bookingValue: 'car' },
+      'local-taxi':           { service: 'local-taxi',              bookingValue: 'car' },
+      'round-trip':           { service: 'outstation-car-rental',   bookingValue: 'car' },
+      'airport-transfer':     { service: 'airport-transfer',        bookingValue: 'car' },
+      'innova-on-rent':       { service: 'outstation-car-rental',   bookingValue: 'car' },
+      'fortuner-on-rent':     { service: 'outstation-car-rental',   bookingValue: 'car' },
+      'scorpio-on-rent':      { service: 'outstation-car-rental',   bookingValue: 'car' },
+      'xuv700-on-rent':       { service: 'outstation-car-rental',   bookingValue: 'car' },
+      'wedding-car-rental':   { service: 'outstation-car-rental',   bookingValue: 'car' },
+      // Self-drive
+      'self-drive-car-rentals':      { service: 'self-drive-car-rentals', bookingValue: 'selfdrive' },
+      'self-drive-hatchback-rental': { service: 'self-drive-car-rentals', bookingValue: 'selfdrive' },
+      'self-drive-sedan-rental':     { service: 'self-drive-car-rentals', bookingValue: 'selfdrive' },
+      'self-drive-suv-rental':       { service: 'self-drive-car-rentals', bookingValue: 'selfdrive' },
+      'creta-on-rent':               { service: 'self-drive-car-rentals', bookingValue: 'selfdrive' },
+      'swift-on-rent':               { service: 'self-drive-car-rentals', bookingValue: 'selfdrive' },
+      'seltos-on-rent':              { service: 'self-drive-car-rentals', bookingValue: 'selfdrive' },
+      'monthly-car-rental':          { service: 'self-drive-car-rentals', bookingValue: 'selfdrive' },
+      // Luxury
+      'luxury-car-rental':  { service: 'luxury-car-rental', bookingValue: 'luxury' },
+      'sports-car-rental':  { service: 'luxury-car-rental', bookingValue: 'luxury' },
+      'vintage-car-rental': { service: 'luxury-car-rental', bookingValue: 'luxury' },
+      // Bikes
+      'bike-on-rent':           { service: 'bike-on-rent',         bookingValue: 'bike' },
+      'activa-on-rent':         { service: 'activa-on-rent',       bookingValue: 'bike' },
+      'royal-enfield-on-rent':  { service: 'royal-enfield-on-rent',bookingValue: 'bike' },
+      'apache-on-rent':         { service: 'bike-on-rent',         bookingValue: 'bike' },
+      'himalayan-on-rent':      { service: 'bike-on-rent',         bookingValue: 'bike' },
+      'ktm-on-rent':            { service: 'bike-on-rent',         bookingValue: 'bike' },
+      'pulsar-on-rent':         { service: 'bike-on-rent',         bookingValue: 'bike' },
+      'splendor-on-rent':       { service: 'bike-on-rent',         bookingValue: 'bike' },
+      'monthly-bike-rental':    { service: 'bike-on-rent',         bookingValue: 'bike' },
+      'electric-scooter-rental':{ service: 'activa-on-rent',       bookingValue: 'bike' },
+      // Bus
+      'bus-rental':                  { service: 'bus-rental',           bookingValue: 'bus' },
+      'tempo-traveller':             { service: 'tempo-traveller',      bookingValue: 'bus' },
+      'corporate-bus-rental':        { service: 'corporate-bus-rental', bookingValue: 'bus' },
+      'wedding-bus-rental':          { service: 'wedding-bus-rental',   bookingValue: 'bus' },
+      '12-seater-tempo-traveller':   { service: 'tempo-traveller',      bookingValue: 'bus' },
+      '17-seater-tempo-traveller':   { service: 'tempo-traveller',      bookingValue: 'bus' },
+      '20-seater-tempo-traveller':   { service: 'tempo-traveller',      bookingValue: 'bus' },
+      '26-seater-bus':               { service: 'bus-rental',           bookingValue: 'bus' },
+      // Truck
+      'mini-truck-rental': { service: 'mini-truck-rental', bookingValue: 'truck' },
+      'transporter':        { service: 'transporter',       bookingValue: 'truck' },
+      'trailer-on-rent':    { service: 'trailer-on-rent',   bookingValue: 'truck' },
+      // Packers
+      'packers-and-movers': { service: 'packers-and-movers', bookingValue: 'packers' },
+      // Equipment
+      'equipment-rental':   { service: 'equipment-rental', bookingValue: 'equipment' },
+      'jcb-on-rent':        { service: 'jcb-on-rent',      bookingValue: 'equipment' },
+      'crane-on-rent':      { service: 'equipment-rental', bookingValue: 'equipment' },
+      'excavator-on-rent':  { service: 'jcb-on-rent',      bookingValue: 'equipment' },
+      'hydra-on-rent':      { service: 'equipment-rental', bookingValue: 'equipment' },
+      'generator-on-rent':  { service: 'equipment-rental', bookingValue: 'equipment' },
+    };
+
+    const mapped = SERVICE_MAP[slug];
+    if (!mapped) return { detectedCity: '', detectedService: '', startBookingValue: '' };
+
+    const NON_CITY_SEGMENTS = new Set(['cars', 'bikes', 'book', 'page', 'list', 'search']);
     let detectedCity = '';
-    let detectedService = '';
-
-    // Check for service pages with city: /self-drive-car-rentals/mumbai or /bike-on-rent/mumbai/bikes
-    if (pathParts[0] === 'self-drive-car-rentals' && pathParts[1] && pathParts[1] !== 'cars') {
-      detectedService = 'self-drive-car-rentals';
-      detectedCity = pathParts[1].replace(/-/g, ' ');
-    } else if (pathParts[0] === 'bike-on-rent' && pathParts[1] && pathParts[1] !== 'bikes') {
-      detectedService = 'bike-on-rent';
-      detectedCity = pathParts[1].replace(/-/g, ' ');
-    } else if (pathParts[0] === 'car-rental' && pathParts[1]) {
-      detectedService = 'outstation-car-rental';
-      detectedCity = pathParts[1].replace(/-/g, ' ');
+    if (pathParts[1] && !NON_CITY_SEGMENTS.has(pathParts[1])) {
+      detectedCity = pathParts[1]
+        .replace(/-/g, ' ')
+        .split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
     }
 
-    // Capitalize city name
-    if (detectedCity) {
-      detectedCity = detectedCity.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    }
-
-    return { detectedCity, detectedService };
+    return { detectedCity, detectedService: mapped.service, startBookingValue: mapped.bookingValue };
   };
 
   const pageContext = getPageContext();
@@ -256,14 +322,17 @@ export function SmartShivi() {
     if (customer.id) params.set('customer_id', customer.id);
     if (customer.phone) params.set('phone', customer.phone);
     fetch(`/api/customer/b2b-status?${params.toString()}`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`B2B status check failed: ${r.status}`);
+        return r.json();
+      })
       .then(d => {
-        if (d.isB2B) {
+        if (d && d.isB2B === true) {
           setIsB2B(true);
           setBookingData(prev => ({ ...prev, b2bCustomerId: customer.id }));
         }
       })
-      .catch(() => {});
+      .catch(err => console.warn('[Shivi] Could not determine B2B status:', err));
   }, [customer?.id, customer?.phone]);
 
   // Track chat opened
@@ -360,22 +429,78 @@ export function SmartShivi() {
     return 'Good evening';
   };
 
-  // God-level: Detect if user is returning visitor
+  // Returning visitor = visited within the last 30 days
   const isReturningUser = () => {
-    return localStorage.getItem('shivi_last_visit') !== null;
+    const lastVisit = localStorage.getItem('shivi_last_visit');
+    if (!lastVisit) return false;
+    const daysSince = (Date.now() - new Date(lastVisit).getTime()) / (1000 * 60 * 60 * 24);
+    return daysSince <= 30;
   };
 
-  // God-level: Smart greeting based on context - Professional version
+  // Detect Hindi from Devanagari Unicode range
+  const detectLanguage = (text: string): 'en' | 'hi' => {
+    return /[\u0900-\u097F]/.test(text) ? 'hi' : 'en';
+  };
+
+  // Translation helper — returns Hindi or English based on current language state
+  const t = (en: string, hi: string) => language === 'hi' ? hi : en;
+
+  // Voice input via Web Speech API (free, browser built-in)
+  const startVoiceInput = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      addShiviMessage(
+        t(
+          'Voice input is not supported in your browser. Please use Chrome or Edge.',
+          'Voice input aapke browser mein support nahi hai. Chrome ya Edge use karein.'
+        )
+      );
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = language === 'hi' ? 'hi-IN' : 'en-IN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInputValue(transcript);
+      // Auto-switch language if Hindi detected in speech
+      const detected = detectLanguage(transcript);
+      if (detected !== language) setLanguage(detected);
+    };
+
+    recognition.start();
+  };
+
+  // Smart greeting based on context - language aware
   const getSmartGreeting = () => {
     const greeting = getTimeBasedGreeting();
     const isReturning = isReturningUser();
     const firstName = customer?.name?.split(' ')[0]?.trim();
     const nameSuffix = firstName ? `, ${firstName}` : '';
 
+    if (language === 'hi') {
+      if (isReturning) {
+        return `${greeting}${nameSuffix}! TransRentals mein wapas aaye!\n\nMain Shivi hoon, aapki personal booking assistant. Aaj kya book karna hai?\n\nHar booking pe Backr Tokens kamaiye!`;
+      }
+      return `${greeting}${nameSuffix}! Main Shivi hoon, aapki smart vehicle rental assistant.\n\n2 minute mein booking karein aur Backr Tokens kamaiye.\n\nAaj kya karna hai?`;
+    }
+
     if (isReturning) {
       return `${greeting}${nameSuffix}! Welcome back to TransRentals.\n\nI'm Shivi, your personal booking assistant. Ready to book and earn more Backr Tokens?\n\nDownload our app for instant bookings and exclusive rewards.`;
     }
-
     return `${greeting}${nameSuffix}! I'm Shivi, your smart vehicle rental assistant.\n\nBook in under 2 minutes and earn Backr Tokens with every ride.\n\nDownload our app for exclusive deals and faster bookings.\n\nWhat brings you here today?`;
   };
 
@@ -532,9 +657,10 @@ export function SmartShivi() {
   };
 
   // Fetch available fleet for Bike/Self-Drive services
+  // Returns vehicles array on success, throws on API/network error (so caller can show appropriate message)
   const fetchFleetForLocation = async (locationName: string, serviceType: string): Promise<FleetVehicle[]> => {
+    setIsLoadingFleet(true);
     try {
-      setIsLoadingFleet(true);
       const locationSlug = locationName.toLowerCase().replace(/\s+/g, '-');
 
       let apiUrl = '';
@@ -544,16 +670,17 @@ export function SmartShivi() {
         apiUrl = `/api/self-drive-cars/${locationSlug}`;
       }
 
-      if (!apiUrl) return [];
+      if (!apiUrl) {
+        // Service type not yet supported for live fleet — return empty so quote flow kicks in
+        return [];
+      }
 
       const response = await fetch(apiUrl);
-      if (!response.ok) return [];
+      if (!response.ok) throw new Error(`Fleet API error: ${response.status}`);
 
       const data = await response.json();
-
-      // Map bikes or cars to FleetVehicle format
       const vehicles = data.bikes || data.cars || [];
-      return vehicles.map((v: any) => ({
+      return vehicles.map((v: any): FleetVehicle => ({
         id: v.id,
         name: v.name,
         slug: v.slug,
@@ -567,9 +694,6 @@ export function SmartShivi() {
         vendorCount: v.vendorCount,
         vendorPrices: v.vendorPrices || [],
       }));
-    } catch (error) {
-      console.error('Failed to fetch fleet:', error);
-      return [];
     } finally {
       setIsLoadingFleet(false);
     }
@@ -1583,30 +1707,56 @@ export function SmartShivi() {
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      // Track chat opened
       trackChatOpened();
-
-      // Save visit timestamp
       localStorage.setItem('shivi_last_visit', new Date().toISOString());
 
-      // God-level: Smart greeting with context - Professional buttons
-      addShiviMessage(
-        getSmartGreeting(),
-        [
-          { label: 'Car Rental', action: 'start-booking', value: 'car' },
-          { label: 'Self-Drive Car', action: 'start-booking', value: 'selfdrive' },
-          { label: 'Luxury Car', action: 'start-booking', value: 'luxury' },
-          { label: 'Bike Rental', action: 'start-booking', value: 'bike' },
-          { label: 'Bus Rental', action: 'start-booking', value: 'bus' },
-          { label: 'Truck Rental', action: 'start-booking', value: 'truck' },
-          { label: 'Packers & Movers', action: 'start-booking', value: 'packers' },
-          { label: 'Equipment Rental', action: 'start-booking', value: 'equipment' },
-          { label: 'Download App', action: 'download-app' },
-          { label: 'About Backr Tokens', action: 'about-backr' },
-        ]
-      );
+      const { detectedCity, startBookingValue } = pageContext;
 
-      // Auto-focus input for better UX
+      if (startBookingValue) {
+        const serviceLabels: Record<string, string> = {
+          car: 'Car Rental', selfdrive: 'Self-Drive Car', luxury: 'Luxury Car',
+          bike: 'Bike Rental', bus: 'Bus Rental', truck: 'Truck Rental',
+          packers: 'Packers & Movers', equipment: 'Equipment Rental',
+        };
+        const serviceLabel = serviceLabels[startBookingValue] || 'vehicle rental';
+        const cityText = detectedCity ? ` in ${detectedCity}` : '';
+
+        addShiviMessage(
+          `${getSmartGreeting()}\n\nI see you're looking for ${serviceLabel}${cityText}. Let me help you book right away!`,
+          [
+            { label: `Book ${serviceLabel}`, action: 'start-booking', value: startBookingValue },
+            { label: 'Other Services', action: 'show-booking-options' },
+          ]
+        );
+
+        if (detectedCity) {
+          const matchedLocation = locations.find(
+            loc => loc.name.toLowerCase() === detectedCity.toLowerCase()
+          );
+          setBookingData(prev => ({
+            ...prev,
+            pickupLocation: detectedCity,
+            pickupLocationId: matchedLocation?.id?.toString() || '',
+          }));
+        }
+      } else {
+        addShiviMessage(
+          getSmartGreeting(),
+          [
+            { label: 'Car Rental', action: 'start-booking', value: 'car' },
+            { label: 'Self-Drive Car', action: 'start-booking', value: 'selfdrive' },
+            { label: 'Luxury Car', action: 'start-booking', value: 'luxury' },
+            { label: 'Bike Rental', action: 'start-booking', value: 'bike' },
+            { label: 'Bus Rental', action: 'start-booking', value: 'bus' },
+            { label: 'Truck Rental', action: 'start-booking', value: 'truck' },
+            { label: 'Packers & Movers', action: 'start-booking', value: 'packers' },
+            { label: 'Equipment Rental', action: 'start-booking', value: 'equipment' },
+            { label: 'Download App', action: 'download-app' },
+            { label: 'About Backr Tokens', action: 'about-backr' },
+          ]
+        );
+      }
+
       setTimeout(() => inputRef.current?.focus(), 1000);
     }
   }, [isOpen]);
@@ -1674,8 +1824,248 @@ export function SmartShivi() {
     }, 800);
   };
 
+  const SLASH_COMMANDS = [
+    { cmd: '/help',     icon: '❓', label: 'Help',            desc: 'Show all available commands' },
+    { cmd: '/bookings', icon: '📋', label: 'My Bookings',     desc: 'View your recent bookings' },
+    { cmd: '/upcoming', icon: '📅', label: 'Upcoming',        desc: 'See upcoming confirmed trips' },
+    { cmd: '/payments', icon: '💰', label: 'Payments',        desc: 'View spending & financials' },
+    { cmd: '/profile',  icon: '👤', label: 'My Profile',      desc: 'View your account details' },
+    { cmd: '/stats',    icon: '📊', label: 'Booking Stats',   desc: 'Summary of all your bookings' },
+    { cmd: '/support',  icon: '🆘', label: 'Support',         desc: 'Get help or raise a ticket' },
+    { cmd: '/new',      icon: '🚗', label: 'New Booking',     desc: 'Start a fresh booking' },
+  ];
+
+  const handleSlashCommand = async (cmd: string) => {
+    // Normalize: lowercase + handle common aliases (singular/plural, typos)
+    const raw = cmd.trim().toLowerCase();
+    const ALIASES: Record<string, string> = {
+      '/booking': '/bookings',
+      '/mybookings': '/bookings',
+      '/myprofile': '/profile',
+      '/payment': '/payments',
+      '/stat': '/stats',
+      '/upcoming trips': '/upcoming',
+    };
+    const command = ALIASES[raw] ?? raw;
+
+    if (command === '/help') {
+      const lines = SLASH_COMMANDS.map(c => `${c.icon} ${c.cmd} — ${c.desc}`).join('\n');
+      addShiviMessage(
+        `Available commands:\n\n${lines}\n\nTip: Type / to see commands anytime.`,
+        [{ label: '🚗 New Booking', action: 'show-booking-options' }]
+      );
+      return;
+    }
+
+    if (command === '/new') {
+      addShiviMessage('What would you like to book?', [
+        { label: 'Car Rental',       action: 'start-booking', value: 'car' },
+        { label: 'Self-Drive Car',   action: 'start-booking', value: 'selfdrive' },
+        { label: 'Luxury Car',       action: 'start-booking', value: 'luxury' },
+        { label: 'Bike Rental',      action: 'start-booking', value: 'bike' },
+        { label: 'Bus Rental',       action: 'start-booking', value: 'bus' },
+        { label: 'Truck Rental',     action: 'start-booking', value: 'truck' },
+        { label: 'Packers & Movers', action: 'start-booking', value: 'packers' },
+        { label: 'Equipment Rental', action: 'start-booking', value: 'equipment' },
+      ]);
+      return;
+    }
+
+    if (command === '/support') {
+      addShiviMessage(
+        'Support Options:\n\n📞 Call: +91 97379 65551\n📧 Email: book@TransRentals.in\n\nOr raise a support ticket from your dashboard.',
+        [
+          { label: '📊 Go to Dashboard', action: 'go-to-dashboard' },
+          { label: '🚗 Book Vehicle',    action: 'show-booking-options' },
+        ]
+      );
+      return;
+    }
+
+    // Commands below require login
+    if (!customer) {
+      addShiviMessage(
+        'Please log in to use this command.',
+        [{ label: '👤 Login / Register', action: 'go-home' }]
+      );
+      return;
+    }
+
+    const identifier = customer.phone || customer.email || customer.id;
+
+    if (command === '/profile') {
+      addShiviMessage('Fetching your profile...');
+      try {
+        const [profileRes, statsRes] = await Promise.all([
+          fetch(`/api/customer/profile?identifier=${encodeURIComponent(identifier)}`),
+          fetch(`/api/customer/stats?identifier=${encodeURIComponent(identifier)}`),
+        ]);
+        const [profileData, statsData] = await Promise.all([profileRes.json(), statsRes.json()]);
+        const c = profileData.customers || profileData.customer || profileData;
+        const s = statsData.stats || {};
+        const totalBookings = s.total ?? 0;
+        const totalSpent = c.totalSpent ? `₹${Number(c.totalSpent).toLocaleString('en-IN')}` : '—';
+        addShiviMessage(
+          `Your Profile:\n\n👤 Name: ${c.name || '—'}\n📧 Email: ${c.email || '—'}\n📞 Phone: ${c.phone || '—'}\n🎯 Total Bookings: ${totalBookings}\n💰 Total Spent: ${totalSpent}`,
+          [
+            { label: '📋 My Bookings', action: 'slash-command', value: '/bookings' },
+            { label: '📊 Go to Dashboard', action: 'go-to-dashboard' },
+          ]
+        );
+      } catch {
+        addShiviMessage('Could not load profile. Please try again.');
+      }
+      return;
+    }
+
+    if (command === '/stats') {
+      addShiviMessage('Fetching your stats...');
+      try {
+        const res = await fetch(`/api/customer/stats?identifier=${encodeURIComponent(identifier)}`);
+        const data = await res.json();
+        const s = data.stats || data;
+        addShiviMessage(
+          `Your Booking Summary:\n\n📋 Total: ${s.total ?? 0}\n🟡 Open / Pending: ${s.open ?? 0}\n✅ Confirmed: ${s.confirmed ?? 0}\n🚗 Ongoing: ${s.ongoing ?? 0}\n🏁 Completed: ${s.completed ?? 0}\n❌ Dropped: ${s.dropped ?? 0}`,
+          [
+            { label: '📋 View Bookings',  action: 'slash-command', value: '/bookings' },
+            { label: '📅 View Upcoming', action: 'slash-command', value: '/upcoming' },
+          ]
+        );
+      } catch {
+        addShiviMessage('Could not load stats. Please try again.');
+      }
+      return;
+    }
+
+    if (command === '/bookings') {
+      addShiviMessage('Fetching your bookings...');
+      try {
+        const res = await fetch(`/api/customer/bookings?identifier=${encodeURIComponent(identifier)}&status=All`);
+        const data = await res.json();
+        const bookings: any[] = data.bookings || [];
+        if (bookings.length === 0) {
+          addShiviMessage(
+            'You have no bookings yet.',
+            [{ label: '🚗 Book Now', action: 'show-booking-options' }]
+          );
+          return;
+        }
+        const recent = bookings.slice(0, 5);
+        const STATUS_EMOJI: Record<string, string> = {
+          Confirmed: '✅', Ongoing: '🚗', Completed: '🏁', Open: '🟡',
+          Pending: '🟡', Dropped: '❌', Cancelled: '❌',
+        };
+        const lines = recent.map((b: any) => {
+          const emoji = STATUS_EMOJI[b.status] ?? '📋';
+          const date = b.journey_datetime
+            ? new Date(b.journey_datetime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+            : '—';
+          const amt = b.total_amount ? ` • ₹${Number(b.total_amount).toLocaleString('en-IN')}` : '';
+          return `${emoji} ${b.service_name || b.service_type} — ${b.location_name || ''}${b.destination ? ' → ' + b.destination : ''}\n   📅 ${date} • ${b.status}${amt}`;
+        }).join('\n\n');
+        addShiviMessage(
+          `Your Recent Bookings (${bookings.length} total):\n\n${lines}`,
+          [
+            { label: '📅 Upcoming',      action: 'slash-command', value: '/upcoming' },
+            { label: '📊 Dashboard',     action: 'go-to-dashboard' },
+            { label: '🚗 New Booking',   action: 'show-booking-options' },
+          ]
+        );
+      } catch {
+        addShiviMessage('Could not load bookings. Please try again.');
+      }
+      return;
+    }
+
+    if (command === '/upcoming') {
+      addShiviMessage('Fetching upcoming trips...');
+      try {
+        const res = await fetch(`/api/customer/bookings?identifier=${encodeURIComponent(identifier)}&status=All`);
+        const data = await res.json();
+        const now = new Date();
+        const upcoming = (data.bookings || []).filter((b: any) => {
+          const isFuture = b.journey_datetime && new Date(b.journey_datetime) > now;
+          const isActive = ['Open', 'Confirmed', 'Pending'].includes(b.status);
+          return isFuture && isActive;
+        });
+        if (upcoming.length === 0) {
+          addShiviMessage(
+            'No upcoming trips found.',
+            [{ label: '🚗 Book a Trip', action: 'show-booking-options' }]
+          );
+          return;
+        }
+        const lines = upcoming.slice(0, 5).map((b: any) => {
+          const date = new Date(b.journey_datetime).toLocaleDateString('en-IN', {
+            weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+          });
+          const time = new Date(b.journey_datetime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+          const amt = b.total_amount ? ` • ₹${Number(b.total_amount).toLocaleString('en-IN')}` : '';
+          return `📅 ${b.service_name || b.service_type}\n   ${b.location_name || ''}${b.destination ? ' → ' + b.destination : ''}\n   ${date} at ${time} • ${b.status}${amt}`;
+        }).join('\n\n');
+        addShiviMessage(
+          `Upcoming Trips (${upcoming.length}):\n\n${lines}`,
+          [
+            { label: '📋 All Bookings', action: 'slash-command', value: '/bookings' },
+            { label: '📊 Dashboard',    action: 'go-to-dashboard' },
+          ]
+        );
+      } catch {
+        addShiviMessage('Could not load upcoming trips. Please try again.');
+      }
+      return;
+    }
+
+    if (command === '/payments') {
+      addShiviMessage('Fetching your financials...');
+      try {
+        const res = await fetch(`/api/customer/financials?identifier=${encodeURIComponent(identifier)}`);
+        const data = await res.json();
+        const totalSpent = data.total_expense ?? 0;
+        const expenses: any[] = (data.expenses || []).slice(0, 5);
+        const expLines = expenses.map((e: any) => {
+          const date = e.date
+            ? new Date(e.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+            : '';
+          return `• ₹${Number(e.amount).toLocaleString('en-IN')} — ${e.source || 'Booking'}${date ? ' (' + date + ')' : ''}`;
+        }).join('\n');
+        addShiviMessage(
+          `Your Financials:\n\n💰 Total Spent: ₹${Number(totalSpent).toLocaleString('en-IN')}\n\nRecent Transactions:\n${expLines || 'No transactions yet.'}`,
+          [
+            { label: '📋 My Bookings', action: 'slash-command', value: '/bookings' },
+            { label: '📊 Dashboard',   action: 'go-to-dashboard' },
+          ]
+        );
+      } catch {
+        addShiviMessage('Could not load financials. Please try again.');
+      }
+      return;
+    }
+
+    // Unknown command
+    addShiviMessage(
+      `Unknown command "${cmd}". Type /help to see all available commands.`,
+      [{ label: '❓ Show Help', action: 'slash-command', value: '/help' }]
+    );
+  };
+
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
+
+    setShowSlashSuggestions(false);
+
+    // Auto-detect language from user input
+    const detectedLang = detectLanguage(inputValue);
+    if (detectedLang !== language) setLanguage(detectedLang);
+
+    // Slash command — intercept before booking step routing
+    if (inputValue.trim().startsWith('/')) {
+      const cmd = inputValue.trim().split(' ')[0];
+      addUserMessage(inputValue);
+      setInputValue('');
+      await handleSlashCommand(cmd);
+      return;
+    }
 
     addUserMessage(inputValue);
 
@@ -2039,6 +2429,9 @@ export function SmartShivi() {
         `All ${availableFleet.length} vehicles available:`,
         allVehicleOptions
       );
+    } else if (action === 'slash-command') {
+      addUserMessage(value || '');
+      await handleSlashCommand(value || '');
     } else if (action === 'go-to-dashboard') {
       // Redirect to customer dashboard
       router.push('/customer/dashboard');
@@ -2213,10 +2606,14 @@ export function SmartShivi() {
     if (pageContext.detectedCity && isBrowseFirst) {
       // Pre-fill city and skip to dates
       const city = pageContext.detectedCity;
+      const matchedLocation = locations.find(
+        loc => loc.name.toLowerCase() === city.toLowerCase()
+      );
       setBookingData((prev) => ({
         ...prev,
         pickupLocation: city,
-        dropLocation: city
+        pickupLocationId: matchedLocation?.id?.toString() || '',
+        dropLocation: city,
       }));
 
       addShiviMessage(
@@ -2237,7 +2634,14 @@ export function SmartShivi() {
     // Truck services with detected city: pre-fill pickup, ask for drop city
     if (pageContext.detectedCity && isTruckService) {
       const city = pageContext.detectedCity;
-      setBookingData((prev) => ({ ...prev, pickupLocation: city, pickupLocationId: '' }));
+      const matchedLocation = locations.find(
+        loc => loc.name.toLowerCase() === city.toLowerCase()
+      );
+      setBookingData((prev) => ({
+        ...prev,
+        pickupLocation: city,
+        pickupLocationId: matchedLocation?.id?.toString() || '',
+      }));
       const smartSuggestions = getSmartLocationSuggestions(city);
       addShiviMessage(
         `Pickup: ${city} ✓\n\n📍 Where do you want to deliver?\n\n💡 Type to search or select below`,
@@ -2706,8 +3110,18 @@ export function SmartShivi() {
 
       // Fetch fleet from API and show in chat
       const locationName = bookingData.pickupLocation || '';
-      const fleet = await fetchFleetForLocation(locationName, currentServiceType);
-      showFleetOptions(fleet);
+      try {
+        const fleet = await fetchFleetForLocation(locationName, currentServiceType);
+        showFleetOptions(fleet);
+      } catch {
+        addShiviMessage(
+          `Couldn't load vehicles for ${locationName} right now. Please try again or submit a quote request and vendors will reach out.`,
+          [
+            { label: 'Submit Quote Request', action: 'confirm-booking' },
+            { label: 'Try Again', action: 'open-calendar', value: 'pickup-date' },
+          ]
+        );
+      }
     } else if (['outstation-car-rental', 'one-way-car-rental', 'airport-transfer'].includes(currentServiceType)) {
       // Car rental with driver - fetch pricing and show categories
       addShiviMessage(
@@ -2859,10 +3273,13 @@ export function SmartShivi() {
       }));
 
       addShiviMessage(
-        `Great news! I have your details:\n\n👤 ${prefilledName}\n📱 ${prefilledPhone}\n📧 ${prefilledEmail}\n\nAny special requirements? (child seat, GPS, diesel, etc.)`,
+        t(
+          `Great news! I have your details:\n\n👤 ${prefilledName}\n📱 ${prefilledPhone}\n📧 ${prefilledEmail}\n\nAny special requirements? (child seat, GPS, diesel, etc.)`,
+          `Aapki details mil gayi:\n\n👤 ${prefilledName}\n📱 ${prefilledPhone}\n📧 ${prefilledEmail}\n\nKoi special requirement hai? (child seat, GPS, diesel, etc.)`
+        ),
         [
-          { label: '✅ No requirements, proceed', action: 'skip-requirements' },
-          { label: '📝 Yes, add requirements', action: 'add-requirements' },
+          { label: t('✅ No requirements, proceed', '✅ Nahi, aage badhein'), action: 'skip-requirements' },
+          { label: t('📝 Yes, add requirements', '📝 Haan, add karein'), action: 'add-requirements' },
         ]
       );
       return;
@@ -2870,11 +3287,12 @@ export function SmartShivi() {
 
     const firstName = prefilledName?.split(' ')[0];
     if (prefilledName) {
-      // Set name in bookingData
       setBookingData((prev) => ({ ...prev, name: prefilledName }));
-
       addShiviMessage(
-        `Almost done${firstName ? `, ${firstName}` : ''}! I have your name. Now confirm your phone number.\n\n🪙 FYI: You can earn up to 100 Backr Tokens on trip completion!`,
+        t(
+          `Almost done${firstName ? `, ${firstName}` : ''}! I have your name. Now confirm your phone number.\n\n🪙 FYI: You can earn up to 100 Backr Tokens on trip completion!`,
+          `Bas thoda aur${firstName ? `, ${firstName}` : ''}! Apna phone number confirm karein.\n\n🪙 Har trip pe 100 Backr Tokens kama sakte ho!`
+        ),
         undefined,
         'tel',
         '+91 9737965551',
@@ -2885,10 +3303,13 @@ export function SmartShivi() {
     }
 
     addShiviMessage(
-      "Almost done! 👤 What's your name?\n\n🪙 FYI: You can earn up to 100 Backr Tokens on trip completion!",
+      t(
+        "Almost done! 👤 What's your name?\n\n🪙 FYI: You can earn up to 100 Backr Tokens on trip completion!",
+        "Bas thoda aur! 👤 Aapka naam kya hai?\n\n🪙 Har trip pe 100 Backr Tokens kama sakte ho!"
+      ),
       undefined,
       'text',
-      'Your full name',
+      t('Your full name', 'Aapka poora naam'),
       'name'
     );
     setBookingStep('name');
@@ -2907,65 +3328,51 @@ export function SmartShivi() {
 
   const handleName = async (name: string) => {
     setBookingData((prev) => ({ ...prev, name }));
-
     addShiviMessage(
-      "📱 Your phone number?",
-      undefined,
-      'tel',
-      '+91 9737965551',
-      'phone'
+      t('📱 Your phone number?', '📱 Aapka phone number?'),
+      undefined, 'tel', '+91 9737965551', 'phone'
     );
     setBookingStep('phone');
   };
 
   const handlePhone = async (phone: string) => {
-    // God-level: Intelligent phone validation
     const validation = validatePhone(phone);
-
     if (!validation.valid) {
       addShiviMessage(
-        validation.message!,
-        undefined,
-        'tel',
-        '+91 9737965551'
+        t(validation.message!, `${validation.message!}\n(Sahi 10-digit Indian number daaalein)`),
+        undefined, 'tel', '+91 9737965551'
       );
       return;
     }
-
     setBookingData((prev) => ({ ...prev, phone }));
-
     addShiviMessage(
-      "Great! 📧 What's your email address?\n\n💡 We'll send booking confirmation here",
-      undefined,
-      'email',
-      'your@email.com',
-      'email'
+      t(
+        "Great! 📧 What's your email address?\n\n💡 We'll send booking confirmation here",
+        "Badiya! 📧 Aapka email address?\n\n💡 Booking confirmation yahan bheja jaayega"
+      ),
+      undefined, 'email', 'your@email.com', 'email'
     );
     setBookingStep('email');
   };
 
   const handleEmail = async (email: string) => {
-    // God-level: Intelligent email validation
     const validation = validateEmail(email);
-
     if (!validation.valid) {
       addShiviMessage(
-        validation.message!,
-        undefined,
-        'email',
-        'your@email.com'
+        t(validation.message!, `${validation.message!}\n(Sahi email format: aap@example.com)`),
+        undefined, 'email', 'your@email.com'
       );
       return;
     }
-
     setBookingData((prev) => ({ ...prev, email }));
-
-    // God-level: Personalized closing with booking incentive
     addShiviMessage(
-      "Perfect! 🎉 You're almost there!\n\nAny special requirements? (child seat, GPS, diesel, etc.)\n\n💡 Mentioning details helps vendors serve you better!",
+      t(
+        "Perfect! 🎉 You're almost there!\n\nAny special requirements? (child seat, GPS, diesel, etc.)\n\n💡 Mentioning details helps vendors serve you better!",
+        "Bahut badiya! 🎉 Bas thoda aur!\n\nKoi special requirement hai? (child seat, GPS, diesel, etc.)\n\n💡 Yeh vendors ko aapki zaroorat samajhne mein madad karta hai!"
+      ),
       [
-        { label: '✅ No requirements, proceed', action: 'skip-requirements' },
-        { label: '📝 Yes, add requirements', action: 'add-requirements' },
+        { label: t('✅ No requirements, proceed', '✅ Nahi, aage badhein'), action: 'skip-requirements' },
+        { label: t('📝 Yes, add requirements', '📝 Haan, add karein'), action: 'add-requirements' },
       ]
     );
   };
@@ -3273,7 +3680,7 @@ Ready to confirm?
           vehicleBrand: bookingData.selectedVehicleBrand || null,
           vehicle_category: bikeCategory,
           vehicleCategoryName: bikeCategory,
-          locationId: bookingData.pickupLocationId || null,
+          locationId: bookingData.pickupLocationId || bookingData.pickupLocation || null,
           locationName: bookingData.pickupLocation || '',
           pickupDate: bookingData.pickupDate,
           pickupTime: pickupTime24,
@@ -3303,7 +3710,7 @@ Ready to confirm?
           vehicleBrand: bookingData.selectedVehicleBrand || null,
           vehicle_category: bookingData.selectedVehicleCategory || null,
           vehicleCategoryName: bookingData.selectedVehicleCategoryName || null,
-          locationId: bookingData.pickupLocationId || null,
+          locationId: bookingData.pickupLocationId || bookingData.pickupLocation || null,
           locationName: bookingData.pickupLocation || '',
           pickupDate: bookingData.pickupDate,
           pickupTime: pickupTime24,
@@ -3705,8 +4112,9 @@ Ready to confirm?
 
       const data = await response.json();
 
-      if (data.results && data.results.length > 0) {
-        // Found a match! Use the top result
+      const MIN_KB_SCORE = 20;
+      if (data.results && data.results.length > 0 && data.results[0].score >= MIN_KB_SCORE) {
+        // Found a confident match — use the top result
         const topResult = data.results[0];
 
         // Track KB query with match
@@ -3887,6 +4295,52 @@ Ready to confirm?
 
             {/* Input */}
             <div className="p-4 bg-white border-t border-gray-200 relative">
+              {/* Slash command suggestions */}
+              {showSlashSuggestions && (
+                <div className="absolute bottom-16 left-0 right-0 mx-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <p className="text-xs text-gray-400 px-3 pt-2 pb-1 font-medium uppercase tracking-wide">Commands</p>
+                  {SLASH_COMMANDS.filter(c =>
+                    inputValue === '/' || c.cmd.startsWith(inputValue.toLowerCase())
+                  ).map(c => (
+                    <button
+                      key={c.cmd}
+                      type="button"
+                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-blue-50 text-left transition-colors"
+                      onClick={() => {
+                        setInputValue(c.cmd);
+                        setShowSlashSuggestions(false);
+                        inputRef.current?.focus();
+                      }}
+                    >
+                      <span className="text-lg w-6 text-center">{c.icon}</span>
+                      <div>
+                        <span className="text-sm font-semibold text-gray-800">{c.cmd}</span>
+                        <span className="text-xs text-gray-500 ml-2">{c.desc}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Language toggle */}
+              <div className="flex items-center justify-between px-1 mb-1">
+                <button
+                  type="button"
+                  onClick={() => setLanguage(l => l === 'en' ? 'hi' : 'en')}
+                  className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 transition-colors"
+                  title="Switch language"
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>{language === 'en' ? 'हिंदी में बात करें' : 'Switch to English'}</span>
+                </button>
+                {isListening && (
+                  <span className="text-xs text-red-500 animate-pulse flex items-center gap-1">
+                    <span className="w-2 h-2 bg-red-500 rounded-full inline-block"></span>
+                    {language === 'hi' ? 'सुन रहा हूं...' : 'Listening...'}
+                  </span>
+                )}
+              </div>
+
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -3901,20 +4355,35 @@ Ready to confirm?
                   type="text"
                   value={inputValue}
                   onChange={(e) => {
-                    setInputValue(e.target.value);
-                    // Update location options as user types
+                    const val = e.target.value;
+                    setInputValue(val);
+                    setShowSlashSuggestions(val === '/' || (val.startsWith('/') && !val.includes(' ')));
                     if (bookingStep === 'pickup-location' || bookingStep === 'drop-location') {
-                      updateLocationOptions(e.target.value);
+                      updateLocationOptions(val);
                     }
                   }}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                   placeholder={
                     messages[messages.length - 1]?.placeholder ||
-                    "Type your message..."
+                    (language === 'hi' ? 'यहाँ लिखें या / commands के लिए...' : 'Type your message or / for commands...')
                   }
                   className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
                   disabled={isSubmitting}
                 />
+                {/* Mic button */}
+                <button
+                  type="button"
+                  onClick={startVoiceInput}
+                  disabled={isSubmitting}
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                    isListening
+                      ? 'bg-red-500 text-white animate-pulse'
+                      : 'border border-gray-200 text-gray-500 hover:bg-gray-50'
+                  }`}
+                  title={language === 'hi' ? 'बोलकर बात करें' : 'Voice input'}
+                >
+                  {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                </button>
                 <button
                   onClick={handleSendMessage}
                   disabled={isSubmitting}
