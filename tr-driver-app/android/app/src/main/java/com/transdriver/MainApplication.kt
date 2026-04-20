@@ -1,4 +1,4 @@
-package com.trdriverapp
+package com.transdriver
 
 import android.app.Application
 import com.facebook.react.PackageList
