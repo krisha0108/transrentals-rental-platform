@@ -28,7 +28,6 @@ import {
 } from 'lucide-react';
 import { BUS_CATEGORIES, BUS_TRIP_TYPES } from '@/lib/bus-categories';
 import Pagination from '@/components/vendor/Pagination';
-import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface QuoteRequest {
   id: string;
@@ -83,11 +82,6 @@ export default function VendorBusRequestsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
-  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
-    start: null,
-    end: null,
-  });
-
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
 
@@ -95,7 +89,7 @@ export default function VendorBusRequestsPage() {
     if (sessionStatus === 'loading') return;
     if (sessionStatus === 'unauthenticated') return;
     fetchRequests();
-  }, [sessionStatus, filter, currentPage, dateFilter, searchQuery]);
+  }, [sessionStatus, filter, currentPage, searchQuery]);
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -105,8 +99,6 @@ export default function VendorBusRequestsPage() {
       if (type) params.set('type', type);
       params.set('page', currentPage.toString());
       params.set('limit', '20');
-      if (dateFilter.start) params.set('startDate', dateFilter.start);
-      if (dateFilter.end) params.set('endDate', dateFilter.end);
       if (searchQuery) params.set('search', searchQuery);
 
       const response = await fetch(`/api/vendor/bus-quote-requests?${params}`);
@@ -194,14 +186,6 @@ export default function VendorBusRequestsPage() {
                 <p className="text-[11px] text-gray-400">{filteredRequests.length} requests</p>
               </div>
             </div>
-            <DateFilterDropdown
-              onFilterChange={(start, end) => {
-                setDateFilter({ start, end });
-                setCurrentPage(1);
-              }}
-              initialStartDate={dateFilter.start || undefined}
-              initialEndDate={dateFilter.end || undefined}
-            />
           </div>
 
           {/* Search bar */}
@@ -238,7 +222,7 @@ export default function VendorBusRequestsPage() {
           {/* Filter tabs */}
           <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
             {[
-              { value: 'new',    label: 'New',    activeColor: 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25' },
+              { value: 'new',    label: 'Open',   activeColor: 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25' },
               { value: 'quoted', label: 'Quoted', activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
               { value: 'all',    label: 'All',    activeColor: 'bg-gray-800 text-white shadow-md' },
             ].map((f) => (

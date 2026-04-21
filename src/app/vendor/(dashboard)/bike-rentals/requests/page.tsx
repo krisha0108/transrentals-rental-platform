@@ -25,7 +25,6 @@ import {
   Zap,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
-import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 import { formatBookingDuration } from '@/lib/utils/duration';
 
 interface QuoteRequest {
@@ -81,12 +80,6 @@ export default function VendorBikeRequestsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
-  // Date filter state
-  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
-    start: null,
-    end: null,
-  });
-
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -95,7 +88,7 @@ export default function VendorBikeRequestsPage() {
     if (sessionStatus === 'loading') return;
     if (sessionStatus === 'unauthenticated') return;
     fetchRequests();
-  }, [sessionStatus, filter, currentPage, dateFilter, searchQuery]);
+  }, [sessionStatus, filter, currentPage, searchQuery]);
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -105,9 +98,6 @@ export default function VendorBikeRequestsPage() {
       if (type) params.set('type', type);
       params.set('page', currentPage.toString());
       params.set('limit', '20');
-      if (dateFilter.start) params.set('startDate', dateFilter.start);
-      if (dateFilter.end) params.set('endDate', dateFilter.end);
-
       // SEARCH PARAM
       if (searchQuery) params.set('search', searchQuery);
 
@@ -188,14 +178,6 @@ export default function VendorBikeRequestsPage() {
                 <p className="text-[11px] text-gray-400">{filteredRequests.length} requests</p>
               </div>
             </div>
-            <DateFilterDropdown
-              onFilterChange={(start, end) => {
-                setDateFilter({ start, end });
-                setCurrentPage(1);
-              }}
-              initialStartDate={dateFilter.start || undefined}
-              initialEndDate={dateFilter.end || undefined}
-            />
           </div>
 
           {/* Search bar */}
@@ -232,7 +214,7 @@ export default function VendorBikeRequestsPage() {
           {/* Filter tabs — stronger active state */}
           <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
             {[
-              { value: 'new',    label: 'New',    count: newCount,                  activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
+              { value: 'new',    label: 'Open',   count: newCount,                  activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
               { value: 'quoted', label: 'Quoted', count: quotedCount,               activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
               { value: 'all',    label: 'All',    count: filteredRequests.length,    activeColor: 'bg-gray-800 text-white shadow-md' },
             ].map((f) => (
