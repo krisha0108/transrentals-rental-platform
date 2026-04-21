@@ -82,12 +82,16 @@ export async function GET(request: NextRequest) {
     let whereClause: any = {};
 
     // Handle status parameter from mobile app (priority over type parameter)
+    // Only quote-based self-drive bookings (direct car bookings go to car-rental section)
+    const quoteBased = { quoteRequestId: { not: null } };
+
     if (status && status !== 'all' && mobileStatusMappings[status]) {
       const dbStatuses = mobileStatusMappings[status];
 
       whereClause = {
         ...dateFilter,
         AND: [
+          quoteBased,
           ...searchAnd,
           { OR: [
             { acceptedVendorId: vendor.id, status: { in: dbStatuses } },
@@ -103,29 +107,20 @@ export async function GET(request: NextRequest) {
           ]},
         ],
       };
-    } else if (type === 'direct') {
-      // Direct requests - booking was assigned to this vendor
-      whereClause = {
-        ...dateFilter,
-        AND: [
-          ...searchAnd,
-          { assignedVendorId: vendor.id, status: 'PENDING_VENDOR' },
-        ],
-      };
     } else if (type === 'open') {
-      // Open/Broadcasted requests - available to all vendors in approved locations
       whereClause = {
         ...dateFilter,
         AND: [
+          quoteBased,
           ...searchAnd,
           { status: 'BROADCASTED', locationId: { in: approvedLocationIds } },
         ],
       };
     } else if (type === 'accepted') {
-      // Accepted by this vendor
       whereClause = {
         ...dateFilter,
         AND: [
+          quoteBased,
           ...searchAnd,
           { acceptedVendorId: vendor.id, status: { in: ['ACCEPTED', 'IN_PROGRESS'] } },
         ],
@@ -134,26 +129,23 @@ export async function GET(request: NextRequest) {
       whereClause = {
         ...dateFilter,
         AND: [
+          quoteBased,
           ...searchAnd,
           { acceptedVendorId: vendor.id, status: 'COMPLETED' },
         ],
       };
     } else {
-      // All bookings related to this vendor (default for 'all' or no filter)
       whereClause = {
         ...dateFilter,
         AND: [
+          quoteBased,
           ...searchAnd,
           { OR: [
             { acceptedVendorId: vendor.id },
             { assignedVendorId: vendor.id },
             {
-              status: { in: ['BROADCASTED', 'PENDING_VENDOR', 'PENDING_PAYMENT', 'PAYMENT_SUBMITTED'] },
+              status: { in: ['PENDING_PAYMENT', 'PAYMENT_SUBMITTED'] },
               locationId: { in: approvedLocationIds },
-              OR: [
-                { assignedVendorId: null },
-                { assignedVendorId: vendor.id },
-              ],
             },
           ]},
         ],
