@@ -28,7 +28,6 @@ import {
   Users,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
-import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 import { formatBookingDuration } from '@/lib/utils/duration';
 
 interface QuoteRequest {
@@ -93,12 +92,6 @@ export default function VendorSelfDriveRequestsPage() {
   // Tab counts (accurate totals from API, not derived from current page)
   const [tabCounts, setTabCounts] = useState({ new: 0, quoted: 0, all: 0 });
 
-  // Date filter state
-  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
-    start: null,
-    end: null,
-  });
-
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -107,7 +100,7 @@ export default function VendorSelfDriveRequestsPage() {
     if (sessionStatus === 'loading') return;
     if (sessionStatus === 'unauthenticated') return;
     fetchRequests();
-  }, [sessionStatus, filter, currentPage, dateFilter, searchQuery]);
+  }, [sessionStatus, filter, currentPage, searchQuery]);
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -117,8 +110,6 @@ export default function VendorSelfDriveRequestsPage() {
       if (type) params.set('type', type);
       params.set('page', currentPage.toString());
       params.set('limit', '20');
-      if (dateFilter.start) params.set('startDate', dateFilter.start);
-      if (dateFilter.end) params.set('endDate', dateFilter.end);
       if (searchQuery) params.set('search', searchQuery);
 
       const response = await fetch(`/api/vendor/self-drive-quote-requests?${params}`);
@@ -209,14 +200,6 @@ export default function VendorSelfDriveRequestsPage() {
                 <p className="text-[11px] text-gray-400">{totalItems || tabCounts.all} requests</p>
               </div>
             </div>
-            <DateFilterDropdown
-              onFilterChange={(start, end) => {
-                setDateFilter({ start, end });
-                setCurrentPage(1);
-              }}
-              initialStartDate={dateFilter.start || undefined}
-              initialEndDate={dateFilter.end || undefined}
-            />
           </div>
 
           {/* Search bar */}
@@ -248,7 +231,7 @@ export default function VendorSelfDriveRequestsPage() {
           {/* Filter tabs */}
           <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
             {[
-              { value: 'new',    label: 'New',    count: tabCounts.new,    activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
+              { value: 'new',    label: 'Open',   count: tabCounts.new,    activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
               { value: 'quoted', label: 'Quoted', count: tabCounts.quoted, activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
               { value: 'all',    label: 'All',    count: tabCounts.all,    activeColor: 'bg-gray-800 text-white shadow-md' },
             ].map((f) => (

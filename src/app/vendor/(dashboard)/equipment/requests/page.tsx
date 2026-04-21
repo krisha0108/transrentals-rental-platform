@@ -32,7 +32,6 @@ import {
 } from 'lucide-react';
 import { EQUIPMENT_CONFIG } from '@/lib/quote-services';
 import Pagination from '@/components/vendor/Pagination';
-import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 const EQUIPMENT_TYPE_NAMES: Record<string, string> = {
   '1': 'Grove Crane',
@@ -111,11 +110,6 @@ export default function VendorEquipmentRequestsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
-  const [dateFilter, setDateFilter] = useState<{ start: string | null; end: string | null }>({
-    start: null,
-    end: null,
-  });
-
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
@@ -128,7 +122,7 @@ export default function VendorEquipmentRequestsPage() {
     if (sessionStatus === 'loading') return;
     if (sessionStatus === 'unauthenticated') return;
     fetchRequests();
-  }, [sessionStatus, filter, currentPage, dateFilter, debouncedSearch]);
+  }, [sessionStatus, filter, currentPage, debouncedSearch]);
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -138,8 +132,6 @@ export default function VendorEquipmentRequestsPage() {
       if (type) params.set('type', type);
       params.set('page', currentPage.toString());
       params.set('limit', '20');
-      if (dateFilter.start) params.set('startDate', dateFilter.start);
-      if (dateFilter.end) params.set('endDate', dateFilter.end);
       if (debouncedSearch) params.set('search', debouncedSearch);
 
       const response = await fetch(`/api/vendor/equipment-quote-requests?${params}`);
@@ -214,14 +206,6 @@ export default function VendorEquipmentRequestsPage() {
                 <p className="text-[11px] text-gray-400">{filteredRequests.length} requests</p>
               </div>
             </div>
-            <DateFilterDropdown
-              onFilterChange={(start, end) => {
-                setDateFilter({ start, end });
-                setCurrentPage(1);
-              }}
-              initialStartDate={dateFilter.start || undefined}
-              initialEndDate={dateFilter.end || undefined}
-            />
           </div>
 
           {/* Search */}
@@ -250,7 +234,7 @@ export default function VendorEquipmentRequestsPage() {
           {/* Filter tabs */}
           <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
             {[
-              { value: 'new',    label: 'New',    count: newCount,                  activeColor: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/25' },
+              { value: 'new',    label: 'Open',   count: newCount,                  activeColor: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/25' },
               { value: 'quoted', label: 'Quoted', count: quotedCount,               activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
               { value: 'all',    label: 'All',    count: filteredRequests.length,   activeColor: 'bg-gray-800 text-white shadow-md' },
             ].map((f) => (
