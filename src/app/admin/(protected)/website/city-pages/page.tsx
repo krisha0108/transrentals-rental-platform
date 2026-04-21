@@ -871,7 +871,7 @@ function CityRowItem({ row, onSave, onReset }: {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {saved && <Check className="w-4 h-4 text-green-500" />}
-          <a href={`http://localhost:3000${row.url}`} target="_blank" rel="noopener noreferrer"
+          <a href={row.url} target="_blank" rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="p-1 text-gray-400 hover:text-blue-600 transition" title="Open page">
             <ExternalLink className="w-3.5 h-3.5" />
