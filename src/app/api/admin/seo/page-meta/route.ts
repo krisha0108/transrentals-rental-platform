@@ -29,6 +29,10 @@ function pageIdToPath(pageId: string): string | null {
     return page?.url ?? null;
   }
 
+  if (prefix === 'city') {
+    return `/${slug}`;
+  }
+
   return `/${prefix}/${slug}`;
 }
 
@@ -36,7 +40,7 @@ function pageIdToPath(pageId: string): string | null {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { pageId, metaTitle, metaDescription, metaKeywords, pageHeading, pageDescription } = body;
+    const { pageId, metaTitle, metaDescription, metaKeywords, pageHeading, pageDescription, sectionsConfig } = body;
 
     if (!pageId) {
       return NextResponse.json({ error: 'pageId is required' }, { status: 400 });
@@ -48,7 +52,7 @@ export async function PATCH(request: NextRequest) {
     if (existing) {
       result = await prisma.seo_meta.update({
         where: { servicePageId: pageId },
-        data: { metaTitle, metaDescription, metaKeywords, pageHeading, pageDescription },
+        data: { metaTitle, metaDescription, metaKeywords, pageHeading, pageDescription, sectionsConfig },
       });
     } else {
       result = await prisma.seo_meta.create({
@@ -60,6 +64,7 @@ export async function PATCH(request: NextRequest) {
           metaKeywords,
           pageHeading,
           pageDescription,
+          sectionsConfig,
         },
       });
     }

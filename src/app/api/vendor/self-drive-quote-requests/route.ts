@@ -42,83 +42,81 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    // Build date filter
+    // Build date filter — parse as local midnight so IST dates are correct
     const dateFilter: any = {};
     if (startDate || endDate) {
       dateFilter.createdAt = {};
       if (startDate) {
-        dateFilter.createdAt.gte = new Date(startDate);
+        const [sy, sm, sd] = startDate.split('-').map(Number);
+        dateFilter.createdAt.gte = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
       }
       if (endDate) {
-        // Set to end of day (23:59:59)
-        const endDateTime = new Date(endDate);
-        endDateTime.setHours(23, 59, 59, 999);
-        dateFilter.createdAt.lte = endDateTime;
+        const [ey, em, ed] = endDate.split('-').map(Number);
+        dateFilter.createdAt.lte = new Date(ey, em - 1, ed, 23, 59, 59, 999);
       }
     }
 
-    // SEARCH FILTER
-    const searchFilter: any = search
-      ? {
-          OR: [
-            { customerName: { contains: search } },
-            { customerPhone: { contains: search } },
-            { customerEmail: { contains: search } },
-            { requestNumber: { contains: search } },
-            { locationName: { contains: search } },
-            { vehicleModelName: { contains: search } },
-            { vehicleBrand: { contains: search } },
-          ],
-        }
-      : {};
+    // SEARCH conditions (array so we can safely combine with AND later)
+    const searchOR: any[] = search
+      ? [
+          { customerName: { contains: search } },
+          { customerPhone: { contains: search } },
+          { customerEmail: { contains: search } },
+          { requestNumber: { contains: search } },
+          { locationName: { contains: search } },
+          { vehicleModelName: { contains: search } },
+          { vehicleBrand: { contains: search } },
+        ]
+      : [];
+
+    // Helper: wraps a where-clause with optional search AND
+    const withSearch = (clause: any): any =>
+      searchOR.length > 0 ? { AND: [{ OR: searchOR }, clause] } : clause;
 
     let whereClause: any = {};
 
     if (type === 'open') {
-      whereClause = {
+      whereClause = withSearch({
         ...dateFilter,
-        ...searchFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
         locationId: approvedLocationIds.length > 0 ? { in: approvedLocationIds } : undefined,
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
           none: { vendorId: vendorId, status: { notIn: ['EXPIRED', 'WITHDRAWN'] } },
         },
-      };
+      });
     } else if (type === 'quoted') {
-      whereClause = {
+      whereClause = withSearch({
         ...dateFilter,
-        ...searchFilter,
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
           some: { vendorId: vendorId },
         },
-      };
+      });
     } else if (type === 'won') {
-      whereClause = {
+      whereClause = withSearch({
         ...dateFilter,
-        ...searchFilter,
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
           some: { vendorId: vendorId, status: 'ACCEPTED' },
         },
-      };
+      });
     } else if (type === 'lost') {
-      whereClause = {
+      whereClause = withSearch({
         ...dateFilter,
-        ...searchFilter,
         status: 'QUOTE_ACCEPTED',
         self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
           some: { vendorId: vendorId, status: 'REJECTED' },
         },
-      };
+      });
     } else {
-      whereClause = {
-        ...searchFilter,
+      // "All" tab — open requests OR requests this vendor quoted on
+      // Must use AND to safely combine search OR with the main OR (spreading two ORs loses one)
+      whereClause = withSearch({
         OR: [
           {
+            ...dateFilter,
             status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
             quotesOpenTill: { gte: new Date() },
             locationId: approvedLocationIds.length > 0 ? { in: approvedLocationIds } : undefined,
-            ...dateFilter,
           },
           {
             ...dateFilter,
@@ -127,7 +125,7 @@ export async function GET(request: NextRequest) {
             },
           },
         ],
-      };
+      });
     }
 
     // Separate counts for tab badges (always accurate, irrespective of current filter)
@@ -153,6 +151,7 @@ export async function GET(request: NextRequest) {
       prisma.self_drive_quote_requests.count({ where: whereClause }),
       prisma.self_drive_quote_requests.count({
         where: {
+          ...dateFilter,
           status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
           quotesOpenTill: { gte: new Date() },
           locationId: approvedLocationIds.length > 0 ? { in: approvedLocationIds } : undefined,
@@ -163,6 +162,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.self_drive_quote_requests.count({
         where: {
+          ...dateFilter,
           self_drive_quotes_self_drive_quotes_requestIdToself_drive_quote_requests: {
             some: { vendorId: vendorId },
           },

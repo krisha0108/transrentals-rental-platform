@@ -1,11 +1,12 @@
 import { prisma } from '@/lib/db/prisma';
 
-interface SeoOverride {
+export interface SeoOverride {
   metaTitle: string | null;
   metaDescription: string | null;
   metaKeywords: string | null;
   pageHeading: string | null;
   pageDescription: string | null;
+  sectionsConfig: string | null;
 }
 
 /**
@@ -19,7 +20,7 @@ export async function resolvePageMeta(pageId: string): Promise<SeoOverride | nul
   try {
     const override = await prisma.seo_meta.findUnique({
       where: { servicePageId: pageId },
-      select: { metaTitle: true, metaDescription: true, metaKeywords: true, pageHeading: true, pageDescription: true },
+      select: { metaTitle: true, metaDescription: true, metaKeywords: true, pageHeading: true, pageDescription: true, sectionsConfig: true },
     });
     return override ?? null;
   } catch {
