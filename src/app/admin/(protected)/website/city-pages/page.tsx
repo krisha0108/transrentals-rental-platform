@@ -818,6 +818,21 @@ function CityRowItem({ row, onSave, onReset }: {
     sections: parseSectionsConfig(row.override?.sectionsConfig),
   });
 
+  // Sync edit state whenever the DB data changes (e.g. after save + fetchOverrides)
+  useEffect(() => {
+    if (!open) {
+      setEdit({
+        metaTitle: row.override?.metaTitle || row.templateTitle,
+        metaDescription: row.override?.metaDescription || row.templateDescription,
+        metaKeywords: row.override?.metaKeywords || row.templateKeywords,
+        pageHeading: row.override?.pageHeading || row.templateHeading,
+        pageDescription: row.override?.pageDescription || row.templatePageDescription,
+        sections: parseSectionsConfig(row.override?.sectionsConfig),
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row.override]);
+
   const hasOverride = !!row.override;
   const hasCustomSections = row.override?.sectionsConfig != null;
   const displayTitle = row.override?.metaTitle || row.templateTitle;

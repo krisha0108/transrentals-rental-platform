@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 
+export const dynamic = 'force-dynamic';
+
 /** GET /api/admin/seo/city-page-overrides
  *  Returns all seo_meta rows whose servicePageId starts with "city:"
  *  as a map: { [pageId]: SeoOverride }
