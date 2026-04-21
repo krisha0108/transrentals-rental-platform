@@ -45,17 +45,16 @@ export async function GET(request: NextRequest) {
       expiresAt: { gte: new Date() },
     };
 
-    // DATE FILTERING - Add to where clause
+    // DATE FILTERING — parse as local midnight to avoid UTC/IST shift
     if (startDate || endDate) {
       whereClause.createdAt = {};
       if (startDate) {
-        whereClause.createdAt.gte = new Date(startDate);
+        const [sy, sm, sd] = startDate.split('-').map(Number);
+        whereClause.createdAt.gte = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
       }
       if (endDate) {
-        // Set to end of day (23:59:59)
-        const endDateTime = new Date(endDate);
-        endDateTime.setHours(23, 59, 59, 999);
-        whereClause.createdAt.lte = endDateTime;
+        const [ey, em, ed] = endDate.split('-').map(Number);
+        whereClause.createdAt.lte = new Date(ey, em - 1, ed, 23, 59, 59, 999);
       }
     }
 

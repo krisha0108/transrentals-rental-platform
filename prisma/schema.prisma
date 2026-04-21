@@ -2755,6 +2755,7 @@ model seo_meta {
   pageDescription    String?     @db.Text
   pageHeading        String?
   servicePageId      String?     @unique
+  sectionsConfig     String?     @db.Text
   blog_posts         blog_posts? @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
 }
 
