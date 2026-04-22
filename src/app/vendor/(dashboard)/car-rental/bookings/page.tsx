@@ -62,6 +62,8 @@ interface CarRentalBooking {
     id: string;
     name: string;
   };
+  _isDirectCar?: boolean;
+  _detailPath?: string;
 }
 
 interface Stats {
@@ -708,7 +710,7 @@ export default function VendorCarRentalBookingsPage() {
                         )}
                       </div>
                       <Link
-                        href={`/vendor/car-rental/bookings/${booking.bookingNumber}`}
+                        href={booking._detailPath || `/vendor/car-rental/bookings/${booking.bookingNumber}`}
                         className="w-8 h-8 rounded-lg bg-gray-50 group-hover:bg-emerald-50 flex items-center justify-center transition-colors"
                       >
                         <Eye className="w-4 h-4 text-gray-400 group-hover:text-emerald-500 transition-colors" />
@@ -766,7 +768,7 @@ export default function VendorCarRentalBookingsPage() {
                       </button>
                     )}
                     <Link
-                      href={`/vendor/car-rental/bookings/${booking.bookingNumber}`}
+                      href={booking._detailPath || `/vendor/car-rental/bookings/${booking.bookingNumber}`}
                       className="px-4 py-1.5 bg-gray-50 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-100 flex items-center gap-1 transition-all border border-gray-200"
                     >
                       <Eye className="w-3 h-3" />

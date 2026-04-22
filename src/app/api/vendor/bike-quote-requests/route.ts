@@ -42,42 +42,25 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
     const search = searchParams.get('search')?.trim() || '';
 
-    // SEARCH FILTER
-    const searchFilter: any = search
-      ? {
-          OR: [
-            { customerName: { contains: search } },
-            { customerPhone: { contains: search } },
-            { customerEmail: { contains: search } },
-            { requestNumber: { contains: search } },
-            { locationName: { contains: search } },
-            { vehicleModelName: { contains: search } },
-            { vehicleBrand: { contains: search } },
-          ],
-        }
-      : {};
-
     let whereClause: any = {};
 
-    // DATE FILTERING
+    // DATE FILTERING — parse as local midnight to avoid UTC/IST shift
     const dateFilter: any = {};
     if (startDate || endDate) {
       dateFilter.createdAt = {};
       if (startDate) {
-        dateFilter.createdAt.gte = new Date(startDate);
+        const [sy, sm, sd] = startDate.split('-').map(Number);
+        dateFilter.createdAt.gte = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
       }
       if (endDate) {
-        // Set to end of day (23:59:59)
-        const endDateTime = new Date(endDate);
-        endDateTime.setHours(23, 59, 59, 999);
-        dateFilter.createdAt.lte = endDateTime;
+        const [ey, em, ed] = endDate.split('-').map(Number);
+        dateFilter.createdAt.lte = new Date(ey, em - 1, ed, 23, 59, 59, 999);
       }
     }
 
     if (type === 'open') {
       whereClause = {
         ...dateFilter,
-        ...searchFilter,
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
         quotesOpenTill: { gte: new Date() },
         locationId: { in: approvedLocationIds },
@@ -88,7 +71,6 @@ export async function GET(request: NextRequest) {
     } else if (type === 'quoted') {
       whereClause = {
         ...dateFilter,
-        ...searchFilter,
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
           some: { vendorId: vendorId, status: { in: ['SENT', 'VIEWED'] } },
         },
@@ -96,7 +78,6 @@ export async function GET(request: NextRequest) {
     } else if (type === 'won') {
       whereClause = {
         ...dateFilter,
-        ...searchFilter,
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
           some: { vendorId: vendorId, status: 'ACCEPTED' },
         },
@@ -104,7 +85,6 @@ export async function GET(request: NextRequest) {
     } else if (type === 'lost') {
       whereClause = {
         ...dateFilter,
-        ...searchFilter,
         status: 'QUOTE_ACCEPTED',
         bike_quotes_bike_quotes_requestIdTobike_quote_requests: {
           some: { vendorId: vendorId, status: 'REJECTED' },
@@ -112,13 +92,12 @@ export async function GET(request: NextRequest) {
       };
     } else {
       whereClause = {
-        ...searchFilter,
         OR: [
           {
+            ...dateFilter,
             status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
             quotesOpenTill: { gte: new Date() },
             locationId: { in: approvedLocationIds },
-            ...dateFilter,
           },
           {
             ...dateFilter,
@@ -130,19 +109,23 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    // SEARCH — applied via AND so it works for all tabs including "All"
     if (search) {
-      whereClause.AND = [
-        ...(whereClause.AND || []),
-        {
-          OR: [
-            { customerName: { contains: search } },
-            { requestNumber: { contains: search } },
-            { locationName: { contains: search } },
-            { vehicleModelName: { contains: search } },
-            { vehicleBrand: { contains: search } },
-          ],
-        },
-      ];
+      whereClause = {
+        AND: [
+          whereClause,
+          {
+            OR: [
+              { customerName: { contains: search } },
+              { customerPhone: { contains: search } },
+              { requestNumber: { contains: search } },
+              { locationName: { contains: search } },
+              { vehicleModelName: { contains: search } },
+              { vehicleBrand: { contains: search } },
+            ],
+          },
+        ],
+      };
     }
 
     const [requests, total] = await Promise.all([

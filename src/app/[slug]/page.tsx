@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { resolveAssetUrl } from '@/lib/utils';
 import { INDIAN_CITIES, STATIC_CITIES, getCityBySlug, City } from '@/data/indian-cities';
 import { CityHomePage } from '@/components/city';
+import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
   params: {
@@ -76,23 +77,30 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // Check if it's a city first
   const city = getCity(slug);
   if (city) {
+    const cmsData = await resolvePageMeta(`city:${slug}`);
+    const title = cmsData?.metaTitle || `Vehicle Rentals in ${city.name} | Car, Bike, Bus, Cab & More — TransRentals`;
+    const description = cmsData?.metaDescription || `Rent cars, bikes, buses, luxury vehicles & more in ${city.name}, ${city.state}. Self-drive & chauffeur-driven options. Compare quotes from 500+ verified vendors. Best prices guaranteed!`;
     return {
-      title: `Vehicle Rental Services in ${city.name} | Car, Bike, Bus Rental - TransRentals`,
-      description: `Book car rental, bike rental, bus rental, luxury cars, wedding cars & more in ${city.name}, ${city.state}. Compare quotes from verified vendors. Best prices guaranteed!`,
-      keywords: [
-        `car rental ${city.name}`,
-        `bike rental ${city.name}`,
-        `bus rental ${city.name}`,
-        `self drive car ${city.name}`,
-        `luxury car rental ${city.name}`,
-        `wedding car ${city.name}`,
-        `tempo traveller ${city.name}`,
-        `airport transfer ${city.name}`,
-        ...city.keywords,
-      ],
+      title,
+      description,
+      keywords: cmsData?.metaKeywords
+        ? cmsData.metaKeywords.split(',').map((k) => k.trim())
+        : [
+            `vehicle rental ${city.name}`,
+            `car rental ${city.name}`,
+            `bike rental ${city.name}`,
+            `bus rental ${city.name}`,
+            `self drive car ${city.name}`,
+            `luxury car rental ${city.name}`,
+            `airport transfer ${city.name}`,
+            `outstation cab ${city.name}`,
+            `tempo traveller ${city.name}`,
+            `packers movers ${city.name}`,
+            ...city.keywords,
+          ],
       openGraph: {
-        title: `Vehicle Rental Services in ${city.name} | TransRentals`,
-        description: `Book car, bike, bus & more in ${city.name}. Compare quotes from 500+ verified vendors.`,
+        title,
+        description,
         type: 'website',
         locale: 'en_IN',
         siteName: 'TransRentals',
@@ -100,8 +108,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       },
       twitter: {
         card: 'summary_large_image',
-        title: `Vehicle Rental Services in ${city.name} | TransRentals`,
-        description: `Book car, bike, bus & more in ${city.name}. Compare quotes from verified vendors.`,
+        title,
+        description,
       },
       alternates: {
         canonical: `https://transrentals.in/${city.slug}`,
@@ -132,7 +140,8 @@ export default async function DynamicPage({ params }: PageProps) {
   // Check if it's a city first
   const city = getCity(slug);
   if (city) {
-    return <CityHomePage city={city} />;
+    const cmsData = await resolvePageMeta(`city:${slug}`);
+    return <CityHomePage city={city} cmsData={cmsData} />;
   }
 
   // Check for CMS page
@@ -181,7 +190,7 @@ export default async function DynamicPage({ params }: PageProps) {
 
           {/* Page Content */}
           <div
-            className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8 md:p-12 prose prose-lg prose-blue max-w-none"
+            className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8 md:p-12 prose prose-lg prose-blue"
             dangerouslySetInnerHTML={{ __html: page.content }}
           />
         </article>

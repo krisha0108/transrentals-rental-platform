@@ -437,6 +437,7 @@ const adminItems: NavItem[] = [
 // Website Controls (Global site management)
 const websiteItems: NavItem[] = [
   { name: 'Homepage', href: '/admin/website/homepage', icon: LayoutDashboard },
+  { name: 'City Pages', href: '/admin/website/city-pages', icon: MapPin },
   {
     name: 'Static Pages',
     href: '/admin/website/static-pages',
