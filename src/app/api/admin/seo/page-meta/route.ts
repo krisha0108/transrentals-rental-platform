@@ -33,6 +33,10 @@ function pageIdToPath(pageId: string): string | null {
     return `/${slug}`;
   }
 
+  if (prefix === 'state') {
+    return `/${slug}`;
+  }
+
   return `/${prefix}/${slug}`;
 }
 

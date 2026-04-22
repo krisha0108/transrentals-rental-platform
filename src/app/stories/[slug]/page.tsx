@@ -84,6 +84,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description: story.metaDescription || story.description || `Read ${story.title} on TransRentals Web Stories`,
     alternates: {
       canonical: canonicalUrl,
+      types: { 'application/amphtml+xml': `${SITE_URL}/stories/${slug}/amp` },
     },
     openGraph: {
       title: story.title,
@@ -107,5 +108,12 @@ export default async function StoryPage({ params }: { params: Promise<{ slug: st
 
   if (!story || !story.slides.length) notFound();
 
-  return <StoryViewer story={story} />;
+  // Required for Google Web Stories AMP pairing — tells Google the AMP version exists.
+  // Without this, Google crawls this page, finds no AMP boilerplate, and logs AMP errors for ALL stories.
+  return (
+    <>
+      <link rel="amphtml" href={`${SITE_URL}/stories/${slug}/amp`} />
+      <StoryViewer story={story} />
+    </>
+  );
 }
