@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -32,14 +32,7 @@ export default function SportsCarRentalPage() {
 
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Sports Car Rental in Major Cities"
-        title="Sports Car Rental | Luxury Performance Cars"
-        titleHighlight="Starting @₹12,999/Day"
-        description="Rent sports cars for special occasions, photoshoots, or thrilling experiences. Ferrari, Lamborghini, Porsche available."
-        gradientFrom="red-50"
-        gradientTo="rose-50"
-      />
+      <SpecialtyCarBookingHero service="sports" />
 
 
       {/* Hero Section */}

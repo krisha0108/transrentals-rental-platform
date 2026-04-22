@@ -92,8 +92,6 @@ export function VehicleCard({ vehicle, bgColor, location }: VehicleCardProps) {
           {vehicle.name}
         </h3>
         <p className="text-sm text-gray-600 mb-2">{vehicle.brand}</p>
-        <p className="text-sm text-gray-500 font-medium">Starting from</p>
-        <p className="text-xl font-bold text-primary-600">₹{displayPrice}</p>
         {specsText && (
           <p className="text-sm text-gray-500 mt-2">{specsText}</p>
         )}

@@ -149,12 +149,8 @@ export function VehicleGrid({
                       </div>
                     )}
 
-                    {/* Price */}
-                    <div className="flex items-baseline justify-between pt-3 border-t border-gray-100 mt-auto">
-                      <div>
-                        <p className="text-xs text-gray-500 font-medium mb-0.5">Starting from</p>
-                        <span className="text-2xl font-bold text-gray-900">₹{vehicle.price}</span>
-                      </div>
+                    {/* Actions */}
+                    <div className="flex items-baseline justify-end pt-3 border-t border-gray-100 mt-auto">
                       {showViewDetails && (
                         <span className={`text-xs font-medium text-orange-600 ${isClickable ? 'group-hover:text-orange-700' : ''}`}>
                           View Details →

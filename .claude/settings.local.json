@@ -251,7 +251,9 @@
       "Read(//^model / {model=$2; print \"===MODEL===\" model; next} /^}/ && model {model=\"\"; next} model && /^ /**)",
       "Read(//tmp/**)",
       "Bash(?\\\\K[a-zA-Z_]+\" | sort | uniq)",
-      "Bash(']?\\\\K[a-zA-Z0-9_]+\" \\\\:*)"
+      "Bash(']?\\\\K[a-zA-Z0-9_]+\" \\\\:*)",
+      "Bash(mkdir -p android/app/src/main/assets)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res)"
     ],
     "deny": [],
     "ask": [],

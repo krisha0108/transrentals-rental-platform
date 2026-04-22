@@ -179,10 +179,17 @@ interface PricingResult {
 }
 
 interface CarRentalBookingHeroProps {
-  city: string;
-  citySlug: string;
+  city?: string;
+  citySlug?: string;
   serviceSlug: 'car-rental' | 'luxury-car-rental';
   serviceTitle: string;
+  // Optional overrides for specialty services (wedding, sports, vintage, etc.)
+  headingLine1?: string;
+  headingLine2?: string;
+  subheading?: string;
+  gradientOverride?: string;
+  accentOverride?: string;
+  trustBadges?: { icon: React.ComponentType<{ className?: string }>; text: string }[];
 }
 
 // Combo Input - allows both typing custom value and selecting from list
@@ -636,10 +643,16 @@ function SearchableLocationSelect({
 }
 
 export function CarRentalBookingHero({
-  city,
-  citySlug,
+  city = '',
+  citySlug = '',
   serviceSlug,
   serviceTitle,
+  headingLine1,
+  headingLine2,
+  subheading,
+  gradientOverride,
+  accentOverride,
+  trustBadges,
 }: CarRentalBookingHeroProps) {
   // Trip type state
   const [tripType, setTripType] = useState<TripType>('local');
@@ -1135,19 +1148,22 @@ export function CarRentalBookingHero({
   // Get selected package details
   const selectedPackage = localPackages.find((p) => p.id === selectedPackageId);
 
-  // Theme colors based on service
-  const themeColors =
+  // Theme colors based on service (overrides take priority)
+  const baseTheme =
     serviceSlug === 'luxury-car-rental'
-      ? {
-          primary: 'amber',
-          gradient: 'from-gray-900 via-gray-800 to-gray-900',
-          accent: 'amber-400',
-        }
-      : {
-          primary: 'blue',
-          gradient: 'from-blue-900 via-blue-800 to-indigo-900',
-          accent: 'blue-400',
-        };
+      ? { primary: 'amber', gradient: 'from-gray-900 via-gray-800 to-gray-900', accent: 'amber-400' }
+      : { primary: 'blue', gradient: 'from-blue-900 via-blue-800 to-indigo-900', accent: 'blue-400' };
+  const themeColors = {
+    ...baseTheme,
+    gradient: gradientOverride ?? baseTheme.gradient,
+    accent: accentOverride ?? baseTheme.accent,
+  };
+  const defaultTrustBadges = [
+    { icon: Shield, text: 'Verified Drivers' },
+    { icon: Fuel, text: 'Fuel Included' },
+    { icon: Star, text: '4.8 Rating' },
+  ];
+  const resolvedTrustBadges = trustBadges ?? defaultTrustBadges;
 
   if (loadingData) {
     return (
@@ -1196,8 +1212,8 @@ export function CarRentalBookingHero({
               transition={{ delay: 0.1 }}
               className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
             >
-              Book Outstation, Local &{' '}
-              <span className={`text-${themeColors.accent}`}>Airport Cabs</span>
+              {headingLine1 ?? 'Book Outstation, Local &'}{' '}
+              <span className={`text-${themeColors.accent}`}>{headingLine2 ?? 'Airport Cabs'}</span>
             </motion.h1>
 
             <motion.p
@@ -1206,7 +1222,7 @@ export function CarRentalBookingHero({
               transition={{ delay: 0.2 }}
               className="text-lg text-blue-100 mb-8 max-w-xl mx-auto lg:mx-0"
             >
-              All-inclusive fares with fuel & driver. Transparent pricing, no hidden charges.
+              {subheading ?? 'All-inclusive fares with fuel & driver. Transparent pricing, no hidden charges.'}
             </motion.p>
 
             {/* Trust badges */}
@@ -1216,11 +1232,7 @@ export function CarRentalBookingHero({
               transition={{ delay: 0.3 }}
               className="flex flex-wrap justify-center lg:justify-start gap-4 mb-8"
             >
-              {[
-                { icon: Shield, text: 'Verified Drivers' },
-                { icon: Fuel, text: 'Fuel Included' },
-                { icon: Star, text: '4.8 Rating' },
-              ].map((item) => (
+              {resolvedTrustBadges.map((item) => (
                 <div
                   key={item.text}
                   className={`flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2`}

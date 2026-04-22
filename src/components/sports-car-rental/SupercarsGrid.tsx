@@ -168,16 +168,7 @@ export function SupercarsGrid({ cars, locationName }: Props) {
                 )}
 
                 <div className="text-center mt-auto">
-                  {car.price ? (
-                    <>
-                      <p className="text-xs text-gray-400 mb-0.5">Starting from</p>
-                      <p className="text-3xl font-bold text-red-800">
-                        ₹{car.price.toLocaleString('en-IN')}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-sm font-semibold text-red-700">Get Quote</p>
-                  )}
+                  <p className="text-sm font-semibold text-red-700">Get Quote</p>
                 </div>
               </div>
             </div>

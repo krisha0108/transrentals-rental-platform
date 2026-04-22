@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -113,21 +113,7 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
 
   return (
     <>
-      <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
-        badge={`Wedding Car in ${locationName}`}
-        title="Wedding Car Rental"
-        titleHighlight="Make It Memorable @₹2999"
-        description={`Your ${locationName} wedding deserves the perfect car. Decorated baraat cars, bride & groom vehicles, vintage classics — professional chauffeur, floral decoration included.`}
-        features={[
-          { icon: 'star', text: 'Floral Decoration Included', color: 'text-pink-500' },
-          { icon: 'shield', text: 'Professional Chauffeur', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'On-Time Guaranteed', color: 'text-rose-500' },
-        ]}
-        gradientFrom="pink-50"
-        gradientTo="rose-50"
-      />
+      <SpecialtyCarBookingHero service="wedding" city={locationName} citySlug={params.location} />
 
       {/* Why Wedding Cars in This City */}
       <section className="py-16 bg-white">

@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -143,12 +143,7 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
         </div>
       </div>
 
-      <CarRentalBookingHero
-        city={locationName}
-        citySlug={params.location}
-        serviceSlug="car-rental"
-        serviceTitle="Corporate Car Rental"
-      />
+      <SpecialtyCarBookingHero service="corporate" city={locationName} citySlug={params.location} />
 
       {/* Why Corporate Car */}
       <section className="py-16 bg-white">

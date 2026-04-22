@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -116,21 +116,7 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
 
   return (
     <>
-      <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
-        badge={`Sports Car in ${locationName}`}
-        title="Sports Car Rental"
-        titleHighlight="Feel the Thrill @₹4999/day"
-        description={`Live the dream for a day in ${locationName}. Rent a sports car — feel the roar, the speed, the stares. Perfect for weekend drives, special occasions, and bucket list moments.`}
-        features={[
-          { icon: 'zap', text: 'Pure Adrenaline', color: 'text-red-600' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="red-50"
-        gradientTo="rose-50"
-      />
+      <SpecialtyCarBookingHero service="sports" city={locationName} citySlug={params.location} />
 
       {/* Why Sports Car */}
       <section className="py-16 bg-white">
