@@ -5,8 +5,9 @@ import { prisma } from '@/lib/db/prisma';
 import { generatePageMetadata } from '@/components/seo/DynamicSEO';
 import { format } from 'date-fns';
 import { resolveAssetUrl } from '@/lib/utils';
-import { INDIAN_CITIES, STATIC_CITIES, getCityBySlug, City } from '@/data/indian-cities';
+import { INDIAN_CITIES, INDIAN_STATES, STATIC_CITIES, getCityBySlug, getStateBySlug, City, IndianState } from '@/data/indian-cities';
 import { CityHomePage } from '@/components/city';
+import { StateHomePage } from '@/components/state/StateHomePage';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 interface PageProps {
@@ -18,6 +19,11 @@ interface PageProps {
 // Check if slug is a city
 function getCity(slug: string): City | undefined {
   return getCityBySlug(slug);
+}
+
+// Check if slug is a state
+function getState(slug: string): IndianState | undefined {
+  return getStateBySlug(slug);
 }
 
 // Get CMS page from database
@@ -43,12 +49,15 @@ async function getCMSPage(slug: string) {
   }
 }
 
-// Generate static params for all cities + CMS pages
+// Generate static params for all cities + states + CMS pages
 export async function generateStaticParams() {
   // Get all city slugs (Optimized for build time)
   const citySlugs = STATIC_CITIES.map((city) => ({
     slug: city.slug,
   }));
+
+  // All state slugs
+  const stateSlugs = INDIAN_STATES.map((state) => ({ slug: state.slug }));
 
   // Skip database calls during CI build
   if (process.env.SKIP_DATABASE_CALLS === '1') {
@@ -67,7 +76,7 @@ export async function generateStaticParams() {
     // Could not fetch CMS pages for static generation
   }
 
-  return [...citySlugs, ...cmsSlugs];
+  return [...citySlugs, ...stateSlugs, ...cmsSlugs];
 }
 
 // Generate metadata
@@ -117,6 +126,24 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
+  // Check if it's a state
+  const state = getState(slug);
+  if (state) {
+    const cmsData = await resolvePageMeta(`state:${slug}`);
+    const title = cmsData?.metaTitle || `Vehicle Rentals in ${state.name} | Car, Bike, Bus, Cab & More — TransRentals`;
+    const description = cmsData?.metaDescription || `Rent cars, bikes, buses, luxury vehicles & more across ${state.name}. Self-drive & chauffeur-driven options. Compare quotes from 500+ verified vendors. Best prices guaranteed!`;
+    return {
+      title,
+      description,
+      keywords: cmsData?.metaKeywords
+        ? cmsData.metaKeywords.split(',').map((k) => k.trim())
+        : [`vehicle rental ${state.name}`, `car rental ${state.name}`, `bike rental ${state.name}`, `bus rental ${state.name}`, `self drive ${state.name}`, `outstation cab ${state.name}`],
+      openGraph: { title, description, type: 'website', locale: 'en_IN', siteName: 'TransRentals', url: `https://transrentals.in/${state.slug}` },
+      twitter: { card: 'summary_large_image', title, description },
+      alternates: { canonical: `https://transrentals.in/${state.slug}` },
+    };
+  }
+
   // Check for CMS page
   const page = await getCMSPage(slug);
   if (!page) {
@@ -142,6 +169,13 @@ export default async function DynamicPage({ params }: PageProps) {
   if (city) {
     const cmsData = await resolvePageMeta(`city:${slug}`);
     return <CityHomePage city={city} cmsData={cmsData} />;
+  }
+
+  // Check if it's a state
+  const state = getState(slug);
+  if (state) {
+    const cmsData = await resolvePageMeta(`state:${slug}`);
+    return <StateHomePage state={state} cmsData={cmsData} />;
   }
 
   // Check for CMS page
