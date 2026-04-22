@@ -139,14 +139,8 @@ export function LuxuryVehicleCard({
             ))}
           </div>
 
-          {/* Price & CTA */}
-          <div className="flex items-end justify-between pt-4 border-t border-white/10">
-            <div>
-              <p className="text-gray-400 text-xs mb-1">Starting from</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-white">₹{vehicle.basePrice.toLocaleString()}</span>
-              </div>
-            </div>
+          {/* CTA */}
+          <div className="flex items-end justify-end pt-4 border-t border-white/10">
             <button
               onClick={handleBookClick}
               className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-gray-900 px-6 py-3 rounded-xl font-bold transition-all duration-300 flex items-center gap-2 group-hover:shadow-lg group-hover:shadow-amber-500/25"
@@ -262,14 +256,8 @@ export function LuxuryVehicleCard({
         {/* Divider */}
         <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-4" />
 
-        {/* Price & Action */}
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-xs text-gray-500 mb-0.5">Starting from</p>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-gray-900">₹{vehicle.basePrice.toLocaleString()}</span>
-            </div>
-          </div>
+        {/* Action */}
+        <div className="flex items-end justify-end">
           <button
             onClick={handleBookClick}
             className="bg-gradient-to-r from-purple-900 to-purple-700 hover:from-purple-800 hover:to-purple-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 flex items-center gap-1.5 shadow-md hover:shadow-lg"

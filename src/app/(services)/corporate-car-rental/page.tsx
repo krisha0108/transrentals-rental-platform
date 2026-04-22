@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
 
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 export const metadata: Metadata = {
   title: 'Corporate Car Rental | Employee Transport @₹15000/Month | Business Taxi',
   description: 'Corporate car rental for employee transport, business meetings. Monthly car lease for companies. Professional chauffeur. Fleet management @₹15000/month.',
@@ -31,60 +31,7 @@ export default function CorporateCarRentalPage() {
 
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Corporate Car Services in 250+ Cities"
-        title="Corporate Car Rental | Business Travel"
-        titleHighlight="Starting @₹2499/Day"
-        description="Premium cars for business travel, client meetings, and corporate events. Professional service with experienced drivers."
-        gradientFrom="slate-50"
-        gradientTo="zinc-50"
-      />
-
-
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-slate-700 to-gray-800 text-white py-20">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Corporate Car Rental | Business Transport
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 opacity-90">
-              Employee Transport & Business Fleet | Starting @₹15,000/Month
-            </p>
-            <div className="grid md:grid-cols-3 gap-6 mb-8 text-left">
-              <div className="bg-white/10 backdrop-blur p-4 rounded-lg">
-                <div className="text-3xl mb-2">🏢</div>
-                <h3 className="font-semibold mb-1">For Businesses</h3>
-                <p className="text-sm opacity-90">Dedicated corporate fleet</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur p-4 rounded-lg">
-                <div className="text-3xl mb-2">👔</div>
-                <h3 className="font-semibold mb-1">Professional Service</h3>
-                <p className="text-sm opacity-90">Executive chauffeurs</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur p-4 rounded-lg">
-                <div className="text-3xl mb-2">📊</div>
-                <h3 className="font-semibold mb-1">Fleet Management</h3>
-                <p className="text-sm opacity-90">Reports & billing support</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <Link
-                href="#locations"
-                className="bg-white text-gray-800 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
-              >
-                Browse Locations
-              </Link>
-              <Link
-                href="#solutions"
-                className="border-2 border-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-gray-800 transition"
-              >
-                View Solutions
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <SpecialtyCarBookingHero service="corporate" />
 
       {/* Why Corporate Car Rental */}
       <section className="py-16">
@@ -232,34 +179,6 @@ export default function CorporateCarRentalPage() {
         </div>
       </section>
 
-      {/* How it Works */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            How Corporate Car Rental Works
-          </h2>
-          <div className="space-y-4">
-            {[
-              { step: '1', title: 'Understand Requirements', desc: 'Discuss your corporate transport needs' },
-              { step: '2', title: 'Custom Proposal', desc: 'We create tailored solution & pricing' },
-              { step: '3', title: 'Agreement', desc: 'Sign corporate agreement & terms' },
-              { step: '4', title: 'Fleet Deployment', desc: 'Vehicles & drivers assigned' },
-              { step: '5', title: 'Ongoing Service', desc: 'Regular service with reports' },
-              { step: '6', title: 'Monthly Billing', desc: 'Consolidated invoice & payment' },
-            ].map((item) => (
-              <div key={item.step} className="flex gap-4 bg-white p-4 rounded-lg shadow-md">
-                <div className="flex-shrink-0 w-10 h-10 bg-gray-800 text-white rounded-full flex items-center justify-center font-bold">
-                  {item.step}
-                </div>
-                <div>
-                  <h3 className="font-bold mb-1">{item.title}</h3>
-                  <p className="text-sm text-gray-600">{item.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* FAQs */}
       <section className="py-16">

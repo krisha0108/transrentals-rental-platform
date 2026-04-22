@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -32,14 +32,7 @@ export default function VintageCarRentalPage() {
 
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Vintage Car Rental in Major Cities"
-        title="Vintage Car Rental | Classic Cars for Wedding"
-        titleHighlight="Starting @₹8999/Day"
-        description="Rent vintage and classic cars for weddings, photoshoots, and special events. Ambassador, Impala, Rolls Royce available."
-        gradientFrom="amber-50"
-        gradientTo="orange-50"
-      />
+      <SpecialtyCarBookingHero service="vintage" />
 
 
       {/* Hero Section */}

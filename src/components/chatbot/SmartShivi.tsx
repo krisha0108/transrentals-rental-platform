@@ -192,8 +192,10 @@ export function SmartShivi() {
   const [airports, setAirports] = useState<Airport[]>([]);
   const [showSlashSuggestions, setShowSlashSuggestions] = useState(false);
   const [language, setLanguage] = useState<'en' | 'hi'>('en');
+  const languageRef = useRef<'en' | 'hi'>('en');
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const pendingVoiceRef = useRef<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [tempDate, setTempDate] = useState('');
   const [tempTime, setTempTime] = useState('09:00');
@@ -437,13 +439,43 @@ export function SmartShivi() {
     return daysSince <= 30;
   };
 
-  // Detect Hindi from Devanagari Unicode range
+  // Detect Hindi from Devanagari Unicode OR explicit language-switch phrases
   const detectLanguage = (text: string): 'en' | 'hi' => {
-    return /[\u0900-\u097F]/.test(text) ? 'hi' : 'en';
+    if (/[\u0900-\u097F]/.test(text)) return 'hi';
+    const lower = text.toLowerCase();
+    const hindiPhrases = [
+      'in hindi', 'chat hindi', 'speak hindi', 'reply hindi', 'respond hindi',
+      'hindi me', 'hindi mein', 'hindi mai', 'hindi m ', 'hindi bolo', 'hindi bol',
+      'hindi me baat', 'hindi mein baat', 'talk hindi', 'write hindi',
+    ];
+    const englishPhrases = [
+      'in english', 'speak english', 'reply english', 'respond english',
+      'english me', 'english mein', 'switch to english', 'english please',
+    ];
+    if (englishPhrases.some(p => lower.includes(p))) return 'en';
+    if (hindiPhrases.some(p => lower.includes(p))) return 'hi';
+    return 'en';
   };
 
-  // Translation helper — returns Hindi or English based on current language state
-  const t = (en: string, hi: string) => language === 'hi' ? hi : en;
+  // Check if message is purely a language switch request (so we respond with ack + don't process booking)
+  const isLanguageSwitchRequest = (text: string): boolean => {
+    const lower = text.toLowerCase().trim();
+    const patterns = [
+      /^(please\s+)?(speak|chat|talk|reply|respond|write|answer)\s+(in\s+)?(hindi|english)$/,
+      /^(switch\s+to\s+|use\s+)?(hindi|english)(\s+(please|only|mode))?$/,
+      /^hindi\s*(me|mein|mai|m)\s*(baat\s*)?(karo|kro|bolna|bolo|likhna|likho)?$/i,
+      /^english\s*(me|mein|mai)?\s*(baat\s*)?(karo|kro)?$/i,
+    ];
+    return patterns.some(p => p.test(lower));
+  };
+
+  // Translation helper — reads from ref (sync) so stale closure never returns wrong lang
+  const t = (en: string, hi: string) => languageRef.current === 'hi' ? hi : en;
+
+  const switchLanguage = (lang: 'en' | 'hi') => {
+    languageRef.current = lang;
+    setLanguage(lang);
+  };
 
   // Voice input via Web Speech API (free, browser built-in)
   const startVoiceInput = () => {
@@ -453,7 +485,7 @@ export function SmartShivi() {
       addShiviMessage(
         t(
           'Voice input is not supported in your browser. Please use Chrome or Edge.',
-          'Voice input aapke browser mein support nahi hai. Chrome ya Edge use karein.'
+          'Voice input आपके browser में support नहीं है। Chrome या Edge use करें।'
         )
       );
       return;
@@ -475,10 +507,12 @@ export function SmartShivi() {
     recognition.onerror = () => setIsListening(false);
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
-      setInputValue(transcript);
       // Auto-switch language if Hindi detected in speech
       const detected = detectLanguage(transcript);
-      if (detected !== language) setLanguage(detected);
+      if (detected !== language) switchLanguage(detected);
+      setInputValue(transcript);
+      // Auto-submit: pass transcript directly to avoid stale state
+      pendingVoiceRef.current = transcript;
     };
 
     recognition.start();
@@ -491,11 +525,11 @@ export function SmartShivi() {
     const firstName = customer?.name?.split(' ')[0]?.trim();
     const nameSuffix = firstName ? `, ${firstName}` : '';
 
-    if (language === 'hi') {
+    if (languageRef.current === 'hi') {
       if (isReturning) {
-        return `${greeting}${nameSuffix}! TransRentals mein wapas aaye!\n\nMain Shivi hoon, aapki personal booking assistant. Aaj kya book karna hai?\n\nHar booking pe Backr Tokens kamaiye!`;
+        return `${greeting}${nameSuffix}! TransRentals में वापस आए!\n\nमैं Shivi हूं, आपकी पर्सनल बुकिंग असिस्टेंट। आज क्या बुक करना है?\n\nहर बुकिंग पर Backr Tokens कमाइए!`;
       }
-      return `${greeting}${nameSuffix}! Main Shivi hoon, aapki smart vehicle rental assistant.\n\n2 minute mein booking karein aur Backr Tokens kamaiye.\n\nAaj kya karna hai?`;
+      return `${greeting}${nameSuffix}! मैं Shivi हूं, आपकी स्मार्ट व्हीकल रेंटल असिस्टेंट।\n\n2 मिनट में बुकिंग करें और Backr Tokens कमाएं।\n\nआज क्या करना है?`;
     }
 
     if (isReturning) {
@@ -853,10 +887,13 @@ export function SmartShivi() {
     if (categoryOptions.length === 0) {
       // No pricing configured for this route
       addShiviMessage(
-        "😔 Pricing is not yet configured for this route.\n\nOur team is working on it. Please try a different route or contact us.",
+        t(
+          "😔 Pricing is not yet configured for this route.\n\nOur team is working on it. Please try a different route or contact us.",
+          "😔 इस रूट के लिए अभी किराया तय नहीं है।\n\nहमारी टीम इस पर काम कर रही है। कोई और रूट आज़माएं या हमसे संपर्क करें।"
+        ),
         [
-          { label: '📍 Try Different Route', action: 'new-booking' },
-          { label: '📞 Call +91 97379 65551', action: 'ask-question' },
+          { label: t('📍 Try Different Route', '📍 अलग रूट आज़माएं'), action: 'new-booking' },
+          { label: t('📞 Call +91 97379 65551', '📞 कॉल करें +91 97379 65551'), action: 'ask-question' },
         ]
       );
       return;
@@ -868,7 +905,10 @@ export function SmartShivi() {
     const packageInfo = bookingData.selectedPackageName ? ` (${bookingData.selectedPackageName})` : '';
 
     addShiviMessage(
-      `🚗 ${tripTypeLabel}${packageInfo}\n\n📍 ${bookingData.pickupLocation}${bookingData.dropLocation && bookingData.dropLocation !== bookingData.pickupLocation ? ` → ${bookingData.dropLocation}` : ''}\n📅 ${bookingData.pickupDate} at ${bookingData.pickupTime}\n\nSelect your car (prices include driver & fuel):`,
+      t(
+        `🚗 ${tripTypeLabel}${packageInfo}\n\n📍 ${bookingData.pickupLocation}${bookingData.dropLocation && bookingData.dropLocation !== bookingData.pickupLocation ? ` → ${bookingData.dropLocation}` : ''}\n📅 ${bookingData.pickupDate} at ${bookingData.pickupTime}\n\nSelect your car (prices include driver & fuel):`,
+        `🚗 ${tripTypeLabel}${packageInfo}\n\n📍 ${bookingData.pickupLocation}${bookingData.dropLocation && bookingData.dropLocation !== bookingData.pickupLocation ? ` → ${bookingData.dropLocation}` : ''}\n📅 ${bookingData.pickupDate} को ${bookingData.pickupTime} बजे\n\nअपनी कार चुनें (कीमत में ड्राइवर और ईंधन शामिल है):`
+      ),
       categoryOptions
     );
   };
@@ -893,7 +933,10 @@ export function SmartShivi() {
         bookingData.carTripType === 'airport' ? 'Airport Transfer' : 'Outstation Trip';
 
       addShiviMessage(
-        `Excellent choice! 🎉\n\n🚗 ${selection.categoryName}\n📍 ${tripTypeLabel}\n💰 Estimated: ₹${selection.grandTotal.toLocaleString()}\n\nNow let me get your contact details to confirm the booking.`,
+        t(
+          `Excellent choice! 🎉\n\n🚗 ${selection.categoryName}\n📍 ${tripTypeLabel}\n💰 Estimated: ₹${selection.grandTotal.toLocaleString()}\n\nNow let me get your contact details to confirm the booking.`,
+          `बेहतरीन चुनाव! 🎉\n\n🚗 ${selection.categoryName}\n📍 ${tripTypeLabel}\n💰 अनुमानित: ₹${selection.grandTotal.toLocaleString()}\n\nअब बुकिंग कन्फर्म करने के लिए आपकी संपर्क जानकारी चाहिए।`
+        ),
         undefined
       );
 
@@ -901,8 +944,8 @@ export function SmartShivi() {
       await askForContactDetails();
     } catch (error) {
       console.error('Failed to parse car category selection:', error);
-      addShiviMessage("Something went wrong. Please try again.", [
-        { label: 'Try Again', action: 'new-booking' },
+      addShiviMessage(t("Something went wrong. Please try again.", "कुछ गड़बड़ हो गई। कृपया दोबारा कोशिश करें।"), [
+        { label: t('Try Again', 'दोबारा कोशिश करें'), action: 'new-booking' },
       ]);
     }
   };
@@ -928,26 +971,26 @@ export function SmartShivi() {
     if (tripType === 'outstation') {
       // Ask for one-way or round-trip
       addShiviMessage(
-        "How would you like to travel?",
+        t("How would you like to travel?", "आप कैसे यात्रा करना चाहेंगे?"),
         [
-          { label: '🔄 Round Trip', action: 'select-car-mode', value: 'round-trip' },
-          { label: '➡️ One Way', action: 'select-car-mode', value: 'one-way' },
+          { label: t('🔄 Round Trip', '🔄 राउंड ट्रिप'), action: 'select-car-mode', value: 'round-trip' },
+          { label: t('➡️ One Way', '➡️ एकतरफा'), action: 'select-car-mode', value: 'one-way' },
         ]
       );
     } else if (tripType === 'airport') {
       // Ask for pickup or drop
       addShiviMessage(
-        "What type of airport transfer do you need?",
+        t("What type of airport transfer do you need?", "आपको किस तरह का एयरपोर्ट ट्रांसफर चाहिए?"),
         [
-          { label: '🛬 Airport Pickup (Airport → City)', action: 'select-car-mode', value: 'pickup' },
-          { label: '🛫 Airport Drop (City → Airport)', action: 'select-car-mode', value: 'drop' },
+          { label: t('🛬 Airport Pickup (Airport → City)', '🛬 एयरपोर्ट पिकअप (एयरपोर्ट → शहर)'), action: 'select-car-mode', value: 'pickup' },
+          { label: t('🛫 Airport Drop (City → Airport)', '🛫 एयरपोर्ट ड्रॉप (शहर → एयरपोर्ट)'), action: 'select-car-mode', value: 'drop' },
         ]
       );
     } else {
       // Local - ask for city directly
       setBookingData(prev => ({ ...prev, carMode: 'round-trip' }));
       addShiviMessage(
-        "📍 Which city do you need a car?\n\n💡 Type to search or select below",
+        t("📍 Which city do you need a car?\n\n💡 Type to search or select below", "📍 आपको किस शहर में कार चाहिए?\n\n💡 खोजने के लिए टाइप करें या नीचे से चुनें"),
         locations.slice(0, 8).map(loc => ({
           label: loc.name,
           action: 'select-location',
@@ -975,7 +1018,7 @@ export function SmartShivi() {
     if (bookingData.carTripType === 'airport') {
       // For airport, first ask to select airport
       addShiviMessage(
-        "🔍 Loading airports...",
+        t("🔍 Loading airports...", "🔍 एयरपोर्ट लोड हो रहे हैं..."),
         undefined
       );
 
@@ -984,10 +1027,13 @@ export function SmartShivi() {
 
       if (airportList.length === 0) {
         addShiviMessage(
-          "😔 No airports available. Please contact us for airport transfers.",
+          t(
+            "😔 No airports available. Please contact us for airport transfers.",
+            "😔 कोई एयरपोर्ट उपलब्ध नहीं है। एयरपोर्ट ट्रांसफर के लिए हमसे संपर्क करें।"
+          ),
           [
-            { label: '📞 Call +91 97379 65551', action: 'ask-question' },
-            { label: '🔄 Try Again', action: 'new-booking' },
+            { label: t('📞 Call +91 97379 65551', '📞 कॉल करें +91 97379 65551'), action: 'ask-question' },
+            { label: t('🔄 Try Again', '🔄 दोबारा कोशिश करें'), action: 'new-booking' },
           ]
         );
         return;
@@ -1008,14 +1054,14 @@ export function SmartShivi() {
       }));
 
       addShiviMessage(
-        `✈️ Select the airport:`,
+        t(`✈️ Select the airport:`, `✈️ एयरपोर्ट चुनें:`),
         airportOptions
       );
       setBookingStep('select-airport');
     } else {
       // For outstation, ask for pickup city
       addShiviMessage(
-        "📍 Which city are you travelling from?\n\n💡 Type to search or select below",
+        t("📍 Which city are you travelling from?\n\n💡 Type to search or select below", "📍 आप किस शहर से यात्रा कर रहे हैं?\n\n💡 खोजने के लिए टाइप करें या नीचे से चुनें"),
         locations.slice(0, 8).map(loc => ({
           label: loc.name,
           action: 'select-location',
@@ -1048,14 +1094,14 @@ export function SmartShivi() {
         // Airport Pickup: Airport → City
         // Don't set pickupLocation to airport - we'll set it to city in handleAirportDestination
         addShiviMessage(
-          `📍 Where do you want to go?\n\n💡 Select your destination city`,
+          t("📍 Where do you want to go?\n\n💡 Select your destination city", "📍 आप कहाँ जाना चाहते हैं?\n\n💡 अपना गंतव्य शहर चुनें"),
           locations.slice(0, 8).map(loc => ({
             label: loc.name,
             action: 'select-airport-destination',
             value: loc.name,
           })),
           'text',
-          '🔍 Search destination...'
+          t('🔍 Search destination...', '🔍 गंतव्य खोजें...')
         );
         setBookingStep('airport-destination');
       } else {
@@ -1068,21 +1114,21 @@ export function SmartShivi() {
         }));
 
         addShiviMessage(
-          `📍 Where should we pick you up?\n\n💡 Select your pickup city`,
+          t("📍 Where should we pick you up?\n\n💡 Select your pickup city", "📍 हम आपको कहाँ से पिकअप करें?\n\n💡 अपना पिकअप शहर चुनें"),
           locations.slice(0, 8).map(loc => ({
             label: loc.name,
             action: 'select-airport-pickup',
             value: loc.name,
           })),
           'text',
-          '🔍 Search pickup location...'
+          t('🔍 Search pickup location...', '🔍 पिकअप स्थान खोजें...')
         );
         setBookingStep('airport-pickup');
       }
     } catch (error) {
       console.error('Failed to parse airport selection:', error);
-      addShiviMessage("Something went wrong. Please try again.", [
-        { label: '🔄 Try Again', action: 'new-booking' },
+      addShiviMessage(t("Something went wrong. Please try again.", "कुछ गड़बड़ हो गई। कृपया दोबारा कोशिश करें।"), [
+        { label: t('🔄 Try Again', '🔄 दोबारा कोशिश करें'), action: 'new-booking' },
       ]);
     }
   };
@@ -1114,12 +1160,15 @@ export function SmartShivi() {
 
     // Now ask for date/time
     addShiviMessage(
-      `✈️ ${airportName} → ${cityName} ✓\n\n📅 When is your flight arriving?`,
+      t(
+        `✈️ ${airportName} → ${cityName} ✓\n\n📅 When is your flight arriving?`,
+        `✈️ ${airportName} → ${cityName} ✓\n\n📅 आपकी फ्लाइट कब आ रही है?`
+      ),
       [
-        { label: '📅 Select Date & Time', action: 'open-calendar', value: 'pickup-date' },
+        { label: t('📅 Select Date & Time', '📅 तारीख और समय चुनें'), action: 'open-calendar', value: 'pickup-date' },
       ],
       'text',
-      'Click above to select date & time',
+      t('Click above to select date & time', 'तारीख और समय चुनने के लिए ऊपर क्लिक करें'),
       'pickup-date'
     );
     setCalendarMode('datetime');
@@ -1143,9 +1192,12 @@ export function SmartShivi() {
 
     // Now ask for date/time
     addShiviMessage(
-      `${cityName} → ✈️ ${bookingData.airportName} ✓\n\n📅 When do you need the cab?`,
+      t(
+        `${cityName} → ✈️ ${bookingData.airportName} ✓\n\n📅 When do you need the cab?`,
+        `${cityName} → ✈️ ${bookingData.airportName} ✓\n\n📅 आपको कैब कब चाहिए?`
+      ),
       [
-        { label: '📅 Select Date & Time', action: 'open-calendar', value: 'pickup-date' },
+        { label: t('📅 Select Date & Time', '📅 तारीख और समय चुनें'), action: 'open-calendar', value: 'pickup-date' },
       ],
       'text',
       'Click above to select date & time',
@@ -1171,17 +1223,20 @@ export function SmartShivi() {
 
       // Now fetch pricing for all categories with this package
       addShiviMessage(
-        "🔍 Finding best prices for you...",
+        t("🔍 Finding best prices for you...", "🔍 आपके लिए बेहतरीन कीमत खोज रहे हैं..."),
         undefined
       );
 
       const categories = await fetchCarCategories();
       if (categories.length === 0) {
         addShiviMessage(
-          "😔 No cars available. Please try again later or contact us.",
+          t(
+            "😔 No cars available. Please try again later or contact us.",
+            "😔 कोई कार उपलब्ध नहीं है। बाद में कोशिश करें या हमसे संपर्क करें।"
+          ),
           [
-            { label: '📞 Call +91 97379 65551', action: 'ask-question' },
-            { label: '🔄 Try Again', action: 'new-booking' },
+            { label: t('📞 Call +91 97379 65551', '📞 कॉल करें +91 97379 65551'), action: 'ask-question' },
+            { label: t('🔄 Try Again', '🔄 दोबारा कोशिश करें'), action: 'new-booking' },
           ]
         );
         return;
@@ -1199,8 +1254,8 @@ export function SmartShivi() {
       showCarCategoryOptions(categories, pricing);
     } catch (error) {
       console.error('Failed to parse package selection:', error);
-      addShiviMessage("Something went wrong. Please try again.", [
-        { label: '🔄 Try Again', action: 'new-booking' },
+      addShiviMessage(t("Something went wrong. Please try again.", "कुछ गड़बड़ हो गई। कृपया दोबारा कोशिश करें।"), [
+        { label: t('🔄 Try Again', '🔄 दोबारा कोशिश करें'), action: 'new-booking' },
       ]);
     }
   };
@@ -1220,14 +1275,14 @@ export function SmartShivi() {
 
     // Ask for pickup city
     addShiviMessage(
-      "📍 Where are you shifting from?\n\nSelect your current city:",
+      t("📍 Where are you shifting from?\n\nSelect your current city:", "📍 आप कहाँ से शिफ्ट कर रहे हैं?\n\nअपना वर्तमान शहर चुनें:"),
       locations.slice(0, 8).map(loc => ({
         label: loc.name,
         action: 'select-location',
         value: loc.name,
       })),
       'text',
-      '🔍 Search city...'
+      t('🔍 Search city...', '🔍 शहर खोजें...')
     );
     setBookingStep('pickup-location');
   };
@@ -1239,12 +1294,12 @@ export function SmartShivi() {
 
     // Ask for date
     addShiviMessage(
-      "📅 When do you want to shift?",
+      t("📅 When do you want to shift?", "📅 आप कब शिफ्ट करना चाहते हैं?"),
       [
-        { label: '📅 Select Date', action: 'open-calendar', value: 'pickup-date' },
+        { label: t('📅 Select Date', '📅 तारीख चुनें'), action: 'open-calendar', value: 'pickup-date' },
       ],
       'text',
-      'Click above to select date',
+      t('Click above to select date', 'तारीख चुनने के लिए ऊपर क्लिक करें'),
       'pickup-date'
     );
     setCalendarMode('date');
@@ -1275,26 +1330,26 @@ export function SmartShivi() {
     if (tripType === 'outstation') {
       // Ask for one-way or round-trip
       addShiviMessage(
-        "How would you like to travel?",
+        t("How would you like to travel?", "आप कैसे यात्रा करना चाहेंगे?"),
         [
-          { label: '🔄 Round Trip', action: 'select-luxury-mode', value: 'round-trip' },
-          { label: '➡️ One Way', action: 'select-luxury-mode', value: 'one-way' },
+          { label: t('🔄 Round Trip', '🔄 राउंड ट्रिप'), action: 'select-luxury-mode', value: 'round-trip' },
+          { label: t('➡️ One Way', '➡️ एकतरफा'), action: 'select-luxury-mode', value: 'one-way' },
         ]
       );
     } else if (tripType === 'airport') {
       // Ask for pickup or drop
       addShiviMessage(
-        "What type of airport transfer?",
+        t("What type of airport transfer?", "किस तरह का एयरपोर्ट ट्रांसफर चाहिए?"),
         [
-          { label: '🛬 Airport Pickup', action: 'select-luxury-mode', value: 'pickup' },
-          { label: '🛫 Airport Drop', action: 'select-luxury-mode', value: 'drop' },
+          { label: t('🛬 Airport Pickup', '🛬 एयरपोर्ट पिकअप'), action: 'select-luxury-mode', value: 'pickup' },
+          { label: t('🛫 Airport Drop', '🛫 एयरपोर्ट ड्रॉप'), action: 'select-luxury-mode', value: 'drop' },
         ]
       );
     } else {
       // Local - ask for city directly
       setBookingData(prev => ({ ...prev, luxuryMode: 'round-trip' }));
       addShiviMessage(
-        "📍 Which city do you need a luxury car?",
+        t("📍 Which city do you need a luxury car?", "📍 आपको किस शहर में लग्जरी कार चाहिए?"),
         locations.slice(0, 8).map(loc => ({
           label: loc.name,
           action: 'select-location',
@@ -1321,16 +1376,16 @@ export function SmartShivi() {
 
     if (bookingData.luxuryTripType === 'airport') {
       // Fetch airports for airport transfer
-      addShiviMessage("🔍 Loading airports...", undefined);
+      addShiviMessage(t("🔍 Loading airports...", "🔍 एयरपोर्ट लोड हो रहे हैं..."), undefined);
 
       const airportList = airports.length > 0 ? airports : await fetchAirports();
 
       if (airportList.length === 0) {
         addShiviMessage(
-          "😔 No airports available. Please contact us.",
+          t("😔 No airports available. Please contact us.", "😔 कोई एयरपोर्ट उपलब्ध नहीं है। कृपया हमसे संपर्क करें।"),
           [
-            { label: '📞 Call +91 97379 65551', action: 'ask-question' },
-            { label: '🔄 Try Again', action: 'new-booking' },
+            { label: t('📞 Call +91 97379 65551', '📞 कॉल करें +91 97379 65551'), action: 'ask-question' },
+            { label: t('🔄 Try Again', '🔄 दोबारा कोशिश करें'), action: 'new-booking' },
           ]
         );
         return;
@@ -1350,12 +1405,12 @@ export function SmartShivi() {
         }),
       }));
 
-      addShiviMessage(`✈️ Select the airport:`, airportOptions);
+      addShiviMessage(t(`✈️ Select the airport:`, `✈️ एयरपोर्ट चुनें:`), airportOptions);
       setBookingStep('select-airport');
     } else {
       // Outstation - ask for pickup city
       addShiviMessage(
-        "📍 Which city are you travelling from?",
+        t("📍 Which city are you travelling from?", "📍 आप किस शहर से यात्रा कर रहे हैं?"),
         locations.slice(0, 8).map(loc => ({
           label: loc.name,
           action: 'select-location',
@@ -1386,8 +1441,8 @@ export function SmartShivi() {
       await askForLuxuryVehiclePreference();
     } catch (error) {
       console.error('Failed to parse luxury category:', error);
-      addShiviMessage("Something went wrong. Please try again.", [
-        { label: '🔄 Try Again', action: 'new-booking' },
+      addShiviMessage(t("Something went wrong. Please try again.", "कुछ गड़बड़ हो गई। कृपया दोबारा कोशिश करें।"), [
+        { label: t('🔄 Try Again', '🔄 दोबारा कोशिश करें'), action: 'new-booking' },
       ]);
     }
   };
@@ -1395,12 +1450,12 @@ export function SmartShivi() {
   // Ask for luxury vehicle category
   const askForLuxuryVehicleCategory = async () => {
     addShiviMessage(
-      "👑 What type of luxury vehicle do you prefer?",
+      t("👑 What type of luxury vehicle do you prefer?", "👑 आप किस तरह की लग्जरी गाड़ी चाहते हैं?"),
       [
-        { label: '🚗 Premium Sedan', action: 'select-luxury-category', value: JSON.stringify({ id: 'premium-sedan', name: 'Premium Sedan' }) },
-        { label: '🚙 Luxury SUV', action: 'select-luxury-category', value: JSON.stringify({ id: 'luxury-suv', name: 'Luxury SUV' }) },
-        { label: '🏎️ Sports Car', action: 'select-luxury-category', value: JSON.stringify({ id: 'sports-car', name: 'Sports Car' }) },
-        { label: '🚐 Luxury Van', action: 'select-luxury-category', value: JSON.stringify({ id: 'luxury-van', name: 'Luxury Van' }) },
+        { label: t('🚗 Premium Sedan', '🚗 प्रीमियम सेडान'), action: 'select-luxury-category', value: JSON.stringify({ id: 'premium-sedan', name: 'Premium Sedan' }) },
+        { label: t('🚙 Luxury SUV', '🚙 लग्जरी SUV'), action: 'select-luxury-category', value: JSON.stringify({ id: 'luxury-suv', name: 'Luxury SUV' }) },
+        { label: t('🏎️ Sports Car', '🏎️ स्पोर्ट्स कार'), action: 'select-luxury-category', value: JSON.stringify({ id: 'sports-car', name: 'Sports Car' }) },
+        { label: t('🚐 Luxury Van', '🚐 लग्जरी वैन'), action: 'select-luxury-category', value: JSON.stringify({ id: 'luxury-van', name: 'Luxury Van' }) },
       ]
     );
     setBookingStep('luxury-category');
@@ -1440,14 +1495,17 @@ export function SmartShivi() {
     const models = modelOptions[category] || modelOptions['Premium Sedan'];
 
     addShiviMessage(
-      `🚗 Preferred ${category} model?\n\n(Optional - Skip if you don't have a preference)`,
+      t(
+        `🚗 Preferred ${category} model?\n\n(Optional - Skip if you don't have a preference)`,
+        `🚗 पसंदीदा ${category} मॉडल?\n\n(वैकल्पिक — अगर कोई पसंद नहीं है तो छोड़ें)`
+      ),
       [
         ...models.map(m => ({
           label: m.label,
           action: 'select-luxury-preference',
           value: m.value,
         })),
-        { label: '⏭️ Skip - Any Available', action: 'select-luxury-preference', value: 'any' },
+        { label: t('⏭️ Skip - Any Available', '⏭️ कोई भी चलेगा'), action: 'select-luxury-preference', value: 'any' },
       ]
     );
     setBookingStep('luxury-preference');
@@ -1469,15 +1527,15 @@ export function SmartShivi() {
   // Ask for luxury occasion
   const askForLuxuryOccasion = async () => {
     addShiviMessage(
-      "🎉 What's the occasion?\n\n(Optional - Helps us serve you better)",
+      t("🎉 What's the occasion?\n\n(Optional - Helps us serve you better)", "🎉 किस अवसर के लिए?\n\n(वैकल्पिक — बेहतर सेवा देने में मदद करता है)"),
       [
-        { label: '💒 Wedding', action: 'select-luxury-occasion', value: 'Wedding' },
-        { label: '💼 Corporate', action: 'select-luxury-occasion', value: 'Corporate' },
-        { label: '✈️ Airport Transfer', action: 'select-luxury-occasion', value: 'Airport Transfer' },
-        { label: '🎉 Party/Event', action: 'select-luxury-occasion', value: 'Party/Event' },
-        { label: '💝 Romantic Date', action: 'select-luxury-occasion', value: 'Romantic Date' },
-        { label: '📸 Photoshoot', action: 'select-luxury-occasion', value: 'Photoshoot' },
-        { label: '⏭️ Skip', action: 'select-luxury-occasion', value: 'skip' },
+        { label: t('💒 Wedding', '💒 शादी'), action: 'select-luxury-occasion', value: 'Wedding' },
+        { label: t('💼 Corporate', '💼 कॉर्पोरेट'), action: 'select-luxury-occasion', value: 'Corporate' },
+        { label: t('✈️ Airport Transfer', '✈️ एयरपोर्ट ट्रांसफर'), action: 'select-luxury-occasion', value: 'Airport Transfer' },
+        { label: t('🎉 Party/Event', '🎉 पार्टी/इवेंट'), action: 'select-luxury-occasion', value: 'Party/Event' },
+        { label: t('💝 Romantic Date', '💝 रोमांटिक डेट'), action: 'select-luxury-occasion', value: 'Romantic Date' },
+        { label: t('📸 Photoshoot', '📸 फोटोशूट'), action: 'select-luxury-occasion', value: 'Photoshoot' },
+        { label: t('⏭️ Skip', '⏭️ छोड़ें'), action: 'select-luxury-occasion', value: 'skip' },
       ]
     );
     setBookingStep('luxury-occasion');
@@ -1499,10 +1557,10 @@ export function SmartShivi() {
   // Ask for car decoration
   const askForLuxuryDecoration = async () => {
     addShiviMessage(
-      "🎀 Do you need car decoration?",
+      t("🎀 Do you need car decoration?", "🎀 क्या आपको कार डेकोरेशन चाहिए?"),
       [
-        { label: '✅ Yes, I need decoration', action: 'select-luxury-decoration', value: 'yes' },
-        { label: '❌ No decoration needed', action: 'select-luxury-decoration', value: 'no' },
+        { label: t('✅ Yes, I need decoration', '✅ हाँ, डेकोरेशन चाहिए'), action: 'select-luxury-decoration', value: 'yes' },
+        { label: t('❌ No decoration needed', '❌ डेकोरेशन नहीं चाहिए'), action: 'select-luxury-decoration', value: 'no' },
       ]
     );
     setBookingStep('luxury-decoration');
@@ -1521,10 +1579,10 @@ export function SmartShivi() {
   // Ask for pickup address
   const askForLuxuryPickupAddress = async () => {
     addShiviMessage(
-      "📍 Please enter the complete pickup address with landmark:",
+      t("📍 Please enter the complete pickup address with landmark:", "📍 पूरा पिकअप पता और लैंडमार्क बताएं:"),
       undefined,
       'text',
-      'Enter pickup address (e.g., 123 Main Street, Near City Mall)'
+      t('Enter pickup address (e.g., 123 Main Street, Near City Mall)', 'पिकअप पता दर्ज करें (जैसे: 123 मेन स्ट्रीट, सिटी मॉल के पास)')
     );
     setBookingStep('luxury-pickup-address');
   };
@@ -1542,10 +1600,13 @@ export function SmartShivi() {
   const showFleetOptions = (vehicles: FleetVehicle[]) => {
     if (vehicles.length === 0) {
       addShiviMessage(
-        "Sorry, no vehicles available at this location for the selected dates. 😔\n\nWould you like to try a different location or dates?",
+        t(
+          "Sorry, no vehicles available at this location for the selected dates. 😔\n\nWould you like to try a different location or dates?",
+          "माफ़ करें, चुनी गई तारीखों में इस स्थान पर कोई वाहन उपलब्ध नहीं है। 😔\n\nक्या आप कोई अलग स्थान या तारीख आज़माना चाहेंगे?"
+        ),
         [
-          { label: '📍 Change Location', action: 'new-booking' },
-          { label: '📅 Change Dates', action: 'open-calendar', value: 'pickup-date' },
+          { label: t('📍 Change Location', '📍 स्थान बदलें'), action: 'new-booking' },
+          { label: t('📅 Change Dates', '📅 तारीख बदलें'), action: 'open-calendar', value: 'pickup-date' },
         ]
       );
       return;
@@ -1574,10 +1635,13 @@ export function SmartShivi() {
       currentServiceTypeRef.current.includes('bike') ? 'bikes' : 'cars';
 
     addShiviMessage(
-      `🚗 Found ${vehicles.length} ${serviceLabel} available!\n\n📅 Duration: ${totalDays} day${totalDays > 1 ? 's' : ''}\n\nSelect a vehicle to see vendor prices:`,
+      t(
+        `🚗 Found ${vehicles.length} ${serviceLabel} available!\n\n📅 Duration: ${totalDays} day${totalDays > 1 ? 's' : ''}\n\nSelect a vehicle to see vendor prices:`,
+        `🚗 ${vehicles.length} ${serviceLabel} उपलब्ध हैं!\n\n📅 अवधि: ${totalDays} दिन\n\nवेंडर की कीमतें देखने के लिए वाहन चुनें:`
+      ),
       [
         ...vehicleOptions,
-        ...(vehicles.length > 5 ? [{ label: `View all ${vehicles.length} options...`, action: 'show-all-vehicles' }] : []),
+        ...(vehicles.length > 5 ? [{ label: t(`View all ${vehicles.length} options...`, `सभी ${vehicles.length} विकल्प देखें...`), action: 'show-all-vehicles' }] : []),
       ]
     );
   };
@@ -1599,7 +1663,7 @@ export function SmartShivi() {
 
     if (vehicle.vendorPrices.length === 0) {
       addShiviMessage(
-        "No vendors available for this vehicle. Please select another.",
+        t("No vendors available for this vehicle. Please select another.", "इस वाहन के लिए कोई वेंडर उपलब्ध नहीं है। कृपया कोई और चुनें।"),
         availableFleet.slice(0, 5).map(v => ({
           label: `${v.brandName} ${v.name} - ₹${v.lowestPrice}/day`,
           action: 'select-vehicle',
@@ -1645,10 +1709,13 @@ export function SmartShivi() {
     });
 
     addShiviMessage(
-      `${vehicle.brandName} ${vehicle.name}\n\n📅 ${totalDays} day${totalDays > 1 ? 's' : ''}\n\nSelect a vendor:`,
+      t(
+        `${vehicle.brandName} ${vehicle.name}\n\n📅 ${totalDays} day${totalDays > 1 ? 's' : ''}\n\nSelect a vendor:`,
+        `${vehicle.brandName} ${vehicle.name}\n\n📅 ${totalDays} दिन\n\nवेंडर चुनें:`
+      ),
       [
         ...vendorOptions,
-        { label: '← Back to vehicles', action: 'back-to-vehicles' },
+        { label: t('← Back to vehicles', '← वापस वाहनों पर जाएं'), action: 'back-to-vehicles' },
       ]
     );
   };
@@ -1683,7 +1750,10 @@ export function SmartShivi() {
       const advanceAmount = Math.round(totalAmount * 0.3);
 
       addShiviMessage(
-        `Excellent choice! 🎉\n\n🚗 ${selection.vehicleName}\n📅 ${totalDays} day${totalDays > 1 ? 's' : ''}\n\n💰 Price Breakdown:\n• Daily Rate: ₹${selection.dailyRate}\n• Rental Amount: ₹${totalAmount}\n• Security Deposit: ₹${selection.deposit || 0}\n• Grand Total: ₹${grandTotal}\n\n💳 Advance Payment: ₹${advanceAmount} (30%)\n\nNow let me get your contact details to confirm the booking.`,
+        t(
+          `Excellent choice! 🎉\n\n🚗 ${selection.vehicleName}\n📅 ${totalDays} day${totalDays > 1 ? 's' : ''}\n\n💰 Price Breakdown:\n• Daily Rate: ₹${selection.dailyRate}\n• Rental Amount: ₹${totalAmount}\n• Security Deposit: ₹${selection.deposit || 0}\n• Grand Total: ₹${grandTotal}\n\n💳 Advance Payment: ₹${advanceAmount} (30%)\n\nNow let me get your contact details to confirm the booking.`,
+          `बेहतरीन चुनाव! 🎉\n\n🚗 ${selection.vehicleName}\n📅 ${totalDays} दिन\n\n💰 मूल्य विवरण:\n• दैनिक दर: ₹${selection.dailyRate}\n• किराया: ₹${totalAmount}\n• सुरक्षा जमा: ₹${selection.deposit || 0}\n• कुल राशि: ₹${grandTotal}\n\n💳 अग्रिम भुगतान: ₹${advanceAmount} (30%)\n\nअब बुकिंग कन्फर्म करने के लिए आपकी संपर्क जानकारी चाहिए।`
+        ),
         undefined
       );
 
@@ -1691,8 +1761,8 @@ export function SmartShivi() {
       await askForContactDetails();
     } catch (error) {
       console.error('Failed to parse vendor selection:', error);
-      addShiviMessage("Something went wrong. Please try again.", [
-        { label: 'Try Again', action: 'back-to-vehicles' },
+      addShiviMessage(t("Something went wrong. Please try again.", "कुछ गड़बड़ हो गई। कृपया दोबारा कोशिश करें।"), [
+        { label: t('Try Again', 'दोबारा कोशिश करें'), action: 'back-to-vehicles' },
       ]);
     }
   };
@@ -1722,10 +1792,13 @@ export function SmartShivi() {
         const cityText = detectedCity ? ` in ${detectedCity}` : '';
 
         addShiviMessage(
-          `${getSmartGreeting()}\n\nI see you're looking for ${serviceLabel}${cityText}. Let me help you book right away!`,
+          t(
+            `${getSmartGreeting()}\n\nI see you're looking for ${serviceLabel}${cityText}. Let me help you book right away!`,
+            `${getSmartGreeting()}\n\nलगता है आप ${serviceLabel}${cityText ? ` ${cityText} में` : ''} ढूंढ रहे हैं। मैं अभी बुक करने में मदद करता हूं!`
+          ),
           [
-            { label: `Book ${serviceLabel}`, action: 'start-booking', value: startBookingValue },
-            { label: 'Other Services', action: 'show-booking-options' },
+            { label: t(`Book ${serviceLabel}`, `${serviceLabel} बुक करें`), action: 'start-booking', value: startBookingValue },
+            { label: t('Other Services', 'अन्य सेवाएं'), action: 'show-booking-options' },
           ]
         );
 
@@ -1743,16 +1816,16 @@ export function SmartShivi() {
         addShiviMessage(
           getSmartGreeting(),
           [
-            { label: 'Car Rental', action: 'start-booking', value: 'car' },
-            { label: 'Self-Drive Car', action: 'start-booking', value: 'selfdrive' },
-            { label: 'Luxury Car', action: 'start-booking', value: 'luxury' },
-            { label: 'Bike Rental', action: 'start-booking', value: 'bike' },
-            { label: 'Bus Rental', action: 'start-booking', value: 'bus' },
-            { label: 'Truck Rental', action: 'start-booking', value: 'truck' },
-            { label: 'Packers & Movers', action: 'start-booking', value: 'packers' },
-            { label: 'Equipment Rental', action: 'start-booking', value: 'equipment' },
-            { label: 'Download App', action: 'download-app' },
-            { label: 'About Backr Tokens', action: 'about-backr' },
+            { label: t('🚗 Car Rental', '🚗 कार किराया'), action: 'start-booking', value: 'car' },
+            { label: t('🚙 Self-Drive Car', '🚙 सेल्फ ड्राइव कार'), action: 'start-booking', value: 'selfdrive' },
+            { label: t('👑 Luxury Car', '👑 लग्जरी कार'), action: 'start-booking', value: 'luxury' },
+            { label: t('🏍️ Bike Rental', '🏍️ बाइक किराया'), action: 'start-booking', value: 'bike' },
+            { label: t('🚌 Bus Rental', '🚌 बस किराया'), action: 'start-booking', value: 'bus' },
+            { label: t('🚚 Truck Rental', '🚚 ट्रक किराया'), action: 'start-booking', value: 'truck' },
+            { label: t('📦 Packers & Movers', '📦 पैकर्स & मूवर्स'), action: 'start-booking', value: 'packers' },
+            { label: t('🏗️ Equipment Rental', '🏗️ उपकरण किराया'), action: 'start-booking', value: 'equipment' },
+            { label: t('📱 Download App', '📱 ऐप डाउनलोड करें'), action: 'download-app' },
+            { label: t('🪙 About Backr Tokens', '🪙 Backr Tokens क्या हैं?'), action: 'about-backr' },
           ]
         );
       }
@@ -1787,6 +1860,19 @@ export function SmartShivi() {
       return { ...prev, ...updates };
     });
   }, [customer]);
+
+  // Auto-submit voice transcript once inputValue state has settled
+  useEffect(() => {
+    if (pendingVoiceRef.current && inputValue === pendingVoiceRef.current) {
+      const val = pendingVoiceRef.current;
+      pendingVoiceRef.current = null;
+      // Small delay to let UI update, then submit
+      setTimeout(() => {
+        if (val.trim()) handleSendMessage();
+      }, 150);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputValue]);
 
   const generateMessageId = () => `${Date.now()}-${++messageIdRef.current}`;
 
@@ -1858,15 +1944,15 @@ export function SmartShivi() {
     }
 
     if (command === '/new') {
-      addShiviMessage('What would you like to book?', [
-        { label: 'Car Rental',       action: 'start-booking', value: 'car' },
-        { label: 'Self-Drive Car',   action: 'start-booking', value: 'selfdrive' },
-        { label: 'Luxury Car',       action: 'start-booking', value: 'luxury' },
-        { label: 'Bike Rental',      action: 'start-booking', value: 'bike' },
-        { label: 'Bus Rental',       action: 'start-booking', value: 'bus' },
-        { label: 'Truck Rental',     action: 'start-booking', value: 'truck' },
-        { label: 'Packers & Movers', action: 'start-booking', value: 'packers' },
-        { label: 'Equipment Rental', action: 'start-booking', value: 'equipment' },
+      addShiviMessage(t('What would you like to book?', 'आप क्या बुक करना चाहेंगे?'), [
+        { label: t('Car Rental', 'कार किराया'),             action: 'start-booking', value: 'car' },
+        { label: t('Self-Drive Car', 'सेल्फ ड्राइव कार'),   action: 'start-booking', value: 'selfdrive' },
+        { label: t('Luxury Car', 'लग्जरी कार'),             action: 'start-booking', value: 'luxury' },
+        { label: t('Bike Rental', 'बाइक किराया'),           action: 'start-booking', value: 'bike' },
+        { label: t('Bus Rental', 'बस किराया'),              action: 'start-booking', value: 'bus' },
+        { label: t('Truck Rental', 'ट्रक किराया'),          action: 'start-booking', value: 'truck' },
+        { label: t('Packers & Movers', 'पैकर्स & मूवर्स'),  action: 'start-booking', value: 'packers' },
+        { label: t('Equipment Rental', 'उपकरण किराया'),     action: 'start-booking', value: 'equipment' },
       ]);
       return;
     }
@@ -1885,8 +1971,8 @@ export function SmartShivi() {
     // Commands below require login
     if (!customer) {
       addShiviMessage(
-        'Please log in to use this command.',
-        [{ label: '👤 Login / Register', action: 'go-home' }]
+        t('Please log in to use this command.', 'यह कमांड इस्तेमाल करने के लिए कृपया लॉगिन करें।'),
+        [{ label: t('👤 Login / Register', '👤 लॉगिन / रजिस्टर'), action: 'go-home' }]
       );
       return;
     }
@@ -1894,7 +1980,7 @@ export function SmartShivi() {
     const identifier = customer.phone || customer.email || customer.id;
 
     if (command === '/profile') {
-      addShiviMessage('Fetching your profile...');
+      addShiviMessage(t('Fetching your profile...', 'आपकी प्रोफ़ाइल लोड हो रही है...'));
       try {
         const [profileRes, statsRes] = await Promise.all([
           fetch(`/api/customer/profile?identifier=${encodeURIComponent(identifier)}`),
@@ -1913,13 +1999,13 @@ export function SmartShivi() {
           ]
         );
       } catch {
-        addShiviMessage('Could not load profile. Please try again.');
+        addShiviMessage(t('Could not load profile. Please try again.', 'प्रोफ़ाइल लोड नहीं हो सकी। कृपया दोबारा कोशिश करें।'));
       }
       return;
     }
 
     if (command === '/stats') {
-      addShiviMessage('Fetching your stats...');
+      addShiviMessage(t('Fetching your stats...', 'आपके आँकड़े लोड हो रहे हैं...'));
       try {
         const res = await fetch(`/api/customer/stats?identifier=${encodeURIComponent(identifier)}`);
         const data = await res.json();
@@ -1932,13 +2018,13 @@ export function SmartShivi() {
           ]
         );
       } catch {
-        addShiviMessage('Could not load stats. Please try again.');
+        addShiviMessage(t('Could not load stats. Please try again.', 'आँकड़े लोड नहीं हो सके। कृपया दोबारा कोशिश करें।'));
       }
       return;
     }
 
     if (command === '/bookings') {
-      addShiviMessage('Fetching your bookings...');
+      addShiviMessage(t('Fetching your bookings...', 'आपकी बुकिंग लोड हो रही हैं...'));
       try {
         const res = await fetch(`/api/customer/bookings?identifier=${encodeURIComponent(identifier)}&status=All`);
         const data = await res.json();
@@ -1972,13 +2058,13 @@ export function SmartShivi() {
           ]
         );
       } catch {
-        addShiviMessage('Could not load bookings. Please try again.');
+        addShiviMessage(t('Could not load bookings. Please try again.', 'बुकिंग लोड नहीं हो सकीं। कृपया दोबारा कोशिश करें।'));
       }
       return;
     }
 
     if (command === '/upcoming') {
-      addShiviMessage('Fetching upcoming trips...');
+      addShiviMessage(t('Fetching upcoming trips...', 'आगामी यात्राएं लोड हो रही हैं...'));
       try {
         const res = await fetch(`/api/customer/bookings?identifier=${encodeURIComponent(identifier)}&status=All`);
         const data = await res.json();
@@ -2011,13 +2097,13 @@ export function SmartShivi() {
           ]
         );
       } catch {
-        addShiviMessage('Could not load upcoming trips. Please try again.');
+        addShiviMessage(t('Could not load upcoming trips. Please try again.', 'आगामी यात्राएं लोड नहीं हो सकीं। कृपया दोबारा कोशिश करें।'));
       }
       return;
     }
 
     if (command === '/payments') {
-      addShiviMessage('Fetching your financials...');
+      addShiviMessage(t('Fetching your financials...', 'आपकी वित्तीय जानकारी लोड हो रही है...'));
       try {
         const res = await fetch(`/api/customer/financials?identifier=${encodeURIComponent(identifier)}`);
         const data = await res.json();
@@ -2037,7 +2123,7 @@ export function SmartShivi() {
           ]
         );
       } catch {
-        addShiviMessage('Could not load financials. Please try again.');
+        addShiviMessage(t('Could not load financials. Please try again.', 'वित्तीय जानकारी लोड नहीं हो सकी। कृपया दोबारा कोशिश करें।'));
       }
       return;
     }
@@ -2056,7 +2142,29 @@ export function SmartShivi() {
 
     // Auto-detect language from user input
     const detectedLang = detectLanguage(inputValue);
-    if (detectedLang !== language) setLanguage(detectedLang);
+    if (detectedLang !== language) switchLanguage(detectedLang);
+
+    // If it's purely a language switch request, acknowledge and stop
+    if (isLanguageSwitchRequest(inputValue)) {
+      addUserMessage(inputValue);
+      setInputValue('');
+      if (detectedLang === 'hi') {
+        addShiviMessage('बिल्कुल! 😊 अब मैं हिंदी में बात करूंगी। बताइए, क्या बुक करना है?', [
+          { label: '🚗 कार किराया', action: 'start-booking', value: 'car' },
+          { label: '🚙 सेल्फ ड्राइव', action: 'start-booking', value: 'selfdrive' },
+          { label: '🏍️ बाइक', action: 'start-booking', value: 'bike' },
+          { label: '🚌 बस', action: 'start-booking', value: 'bus' },
+        ]);
+      } else {
+        addShiviMessage('Sure! 😊 Switching to English. How can I help you with your booking?', [
+          { label: '🚗 Car Rental', action: 'start-booking', value: 'car' },
+          { label: '🚙 Self-Drive', action: 'start-booking', value: 'selfdrive' },
+          { label: '🏍️ Bike', action: 'start-booking', value: 'bike' },
+          { label: '🚌 Bus', action: 'start-booking', value: 'bus' },
+        ]);
+      }
+      return;
+    }
 
     // Slash command — intercept before booking step routing
     if (inputValue.trim().startsWith('/')) {
@@ -2098,10 +2206,10 @@ export function SmartShivi() {
       addUserMessage(inputValue);
       setBookingData(prev => ({ ...prev, b2bVehiclesRequired: count }));
       addShiviMessage(
-        "👥 Total number of passengers?",
+        t("👥 Total number of passengers?", "👥 कुल कितने यात्री होंगे?"),
         undefined,
         'text',
-        'e.g., 10',
+        t('e.g., 10', 'जैसे: 10'),
         'b2b-passengers'
       );
       setBookingStep('b2b-passengers');
@@ -2181,11 +2289,11 @@ export function SmartShivi() {
       setBookingStep(nextStep);
       addShiviMessage(
         nextStep === 'pickup-time'
-          ? 'Great! Now pick your pickup time.'
-          : 'Perfect! Please choose the return time.',
+          ? t('Great! Now pick your pickup time.', 'बढ़िया! अब पिकअप का समय चुनें।')
+          : t('Perfect! Please choose the return time.', 'बढ़िया! अब वापसी का समय चुनें।'),
         undefined,
         'text',
-        'Select a time',
+        t('Select a time', 'समय चुनें'),
         nextStep
       );
       setShowDatePicker(true);
@@ -2311,27 +2419,27 @@ export function SmartShivi() {
     } else if (action === 'new-booking') {
       resetBooking();
     } else if (action === 'show-booking-options') {
-      addUserMessage('I want to book a vehicle');
+      addUserMessage(t('I want to book a vehicle', 'मुझे वाहन बुक करना है'));
       addShiviMessage(
-        "Great! What would you like to rent?",
+        t('Great! What would you like to rent?', 'बढ़िया! आप क्या किराए पर लेना चाहते हैं?'),
         [
-          { label: '🚗 Car Rental', action: 'start-booking', value: 'car' },
-          { label: '🚙 Self-Drive Car', action: 'start-booking', value: 'selfdrive' },
-          { label: '👑 Luxury Car', action: 'start-booking', value: 'luxury' },
-          { label: '🏍️ Bike Rental', action: 'start-booking', value: 'bike' },
-          { label: '🚌 Bus Rental', action: 'start-booking', value: 'bus' },
-          { label: '🚚 Truck Rental', action: 'start-booking', value: 'truck' },
-          { label: '📦 Packers & Movers', action: 'start-booking', value: 'packers' },
-          { label: '🏗️ Equipment Rental', action: 'start-booking', value: 'equipment' },
+          { label: t('🚗 Car Rental', '🚗 कार किराया'), action: 'start-booking', value: 'car' },
+          { label: t('🚙 Self-Drive Car', '🚙 सेल्फ ड्राइव कार'), action: 'start-booking', value: 'selfdrive' },
+          { label: t('👑 Luxury Car', '👑 लग्जरी कार'), action: 'start-booking', value: 'luxury' },
+          { label: t('🏍️ Bike Rental', '🏍️ बाइक किराया'), action: 'start-booking', value: 'bike' },
+          { label: t('🚌 Bus Rental', '🚌 बस किराया'), action: 'start-booking', value: 'bus' },
+          { label: t('🚚 Truck Rental', '🚚 ट्रक किराया'), action: 'start-booking', value: 'truck' },
+          { label: t('📦 Packers & Movers', '📦 पैकर्स और मूवर्स'), action: 'start-booking', value: 'packers' },
+          { label: t('🏗️ Equipment Rental', '🏗️ उपकरण किराया'), action: 'start-booking', value: 'equipment' },
         ]
       );
     } else if (action === 'ask-question') {
-      addUserMessage('I have another question');
+      addUserMessage(t('I have another question', 'मेरा एक और सवाल है'));
       addShiviMessage(
-        "Sure! What would you like to know? Just type your question below.",
+        t('Sure! What would you like to know? Just type your question below.', 'ज़रूर! आप क्या जानना चाहते हैं? नीचे टाइप करें।'),
         undefined,
         'text',
-        'Type your question...'
+        t('Type your question...', 'अपना सवाल लिखें...')
       );
     } else if (action === 'ask-pricing') {
       addUserMessage('Tell me about pricing');
@@ -2486,35 +2594,26 @@ export function SmartShivi() {
 
   const startBooking = async (serviceType: string) => {
     const serviceNames: Record<string, string> = {
-      car: 'Car',
-      bike: 'Bike',
-      bus: 'Bus',
-      truck: 'Truck',
-      equipment: 'Equipment',
-      selfdrive: 'Self-Drive Car',
-      luxury: 'Luxury Car',
-      packers: 'Packers & Movers',
+      car: 'Car', bike: 'Bike', bus: 'Bus', truck: 'Truck',
+      equipment: 'Equipment', selfdrive: 'Self-Drive Car',
+      luxury: 'Luxury Car', packers: 'Packers & Movers',
+    };
+    const serviceNamesHi: Record<string, string> = {
+      car: 'कार', bike: 'बाइक', bus: 'बस', truck: 'ट्रक',
+      equipment: 'उपकरण', selfdrive: 'सेल्फ ड्राइव कार',
+      luxury: 'लग्जरी कार', packers: 'पैकर्स & मूवर्स',
     };
 
-    addUserMessage(`${serviceNames[serviceType] || serviceType}`);
-
-    // Track booking started
+    addUserMessage(t(`${serviceNames[serviceType] || serviceType}`, `${serviceNamesHi[serviceType] || serviceType}`));
     trackBookingStarted(serviceType);
-
     setBookingData({ serviceType, serviceName: serviceNames[serviceType] });
 
-    // Special handling for services that go directly to city selection
     if (serviceType === 'selfdrive') {
-      // Self-Drive: City → Fleet Selection → Dates → Contact
       addShiviMessage(
-        "🚙 Self-Drive Car - Drive Yourself!\n\n📍 Which city do you need the car?",
-        locations.slice(0, 8).map((loc) => ({
-          label: `${loc.name}`,
-          action: 'select-location',
-          value: loc.name,
-        })),
+        t('🚙 Self-Drive Car - Drive Yourself!\n\n📍 Which city do you need the car?', '🚙 सेल्फ ड्राइव कार - खुद चलाएं!\n\n📍 किस शहर में कार चाहिए?'),
+        locations.slice(0, 8).map((loc) => ({ label: loc.name, action: 'select-location', value: loc.name })),
         'text',
-        '🔍 Search city...'
+        t('🔍 Search city...', '🔍 शहर खोजें...')
       );
       currentServiceTypeRef.current = 'self-drive-rental';
       setBookingStep('pickup-location');
@@ -2522,13 +2621,12 @@ export function SmartShivi() {
     }
 
     if (serviceType === 'packers') {
-      // Packers: Shifting Type → From/To → Size → Date → Contact
       addShiviMessage(
-        "📦 Packers & Movers\n\nWhat are you shifting?",
+        t('📦 Packers & Movers\n\nWhat are you shifting?', '📦 पैकर्स & मूवर्स\n\nआप क्या शिफ्ट करना चाहते हैं?'),
         [
-          { label: '🏠 Home Shifting', action: 'select-packers-type', value: 'home' },
-          { label: '🏢 Office Shifting', action: 'select-packers-type', value: 'office' },
-          { label: '🚗 Vehicle Transport', action: 'select-packers-type', value: 'vehicle' },
+          { label: t('🏠 Home Shifting', '🏠 घर शिफ्टिंग'), action: 'select-packers-type', value: 'home' },
+          { label: t('🏢 Office Shifting', '🏢 ऑफिस शिफ्टिंग'), action: 'select-packers-type', value: 'office' },
+          { label: t('🚗 Vehicle Transport', '🚗 वाहन ट्रांसपोर्ट'), action: 'select-packers-type', value: 'vehicle' },
         ]
       );
       currentServiceTypeRef.current = 'packers-and-movers';
@@ -2537,13 +2635,12 @@ export function SmartShivi() {
     }
 
     if (serviceType === 'luxury') {
-      // Luxury: Same as car but goes to luxury booking
       addShiviMessage(
-        "👑 Luxury Car Rental\n\nWhat type of trip?",
+        t('👑 Luxury Car Rental\n\nWhat type of trip?', '👑 लग्जरी कार किराया\n\nकिस तरह की यात्रा?'),
         [
-          { label: '🏙️ Local (Hourly Package)', action: 'select-luxury-trip-type', value: 'local' },
-          { label: '🛣️ Outstation Trip', action: 'select-luxury-trip-type', value: 'outstation' },
-          { label: '✈️ Airport Transfer', action: 'select-luxury-trip-type', value: 'airport' },
+          { label: t('🏙️ Local (Hourly Package)', '🏙️ लोकल (घंटे का पैकेज)'), action: 'select-luxury-trip-type', value: 'local' },
+          { label: t('🛣️ Outstation Trip', '🛣️ आउटस्टेशन यात्रा'), action: 'select-luxury-trip-type', value: 'outstation' },
+          { label: t('✈️ Airport Transfer', '✈️ एयरपोर्ट ट्रांसफर'), action: 'select-luxury-trip-type', value: 'airport' },
         ]
       );
       currentServiceTypeRef.current = 'luxury-car-rental';
@@ -2551,9 +2648,13 @@ export function SmartShivi() {
       return;
     }
 
-    const article = serviceType === 'equipment' ? '' : 'a ';
+    const nameEn = serviceNames[serviceType]?.toLowerCase() || serviceType;
+    const nameHi = serviceNamesHi[serviceType] || serviceType;
     addShiviMessage(
-      `Great choice! Let me help you book ${article}${serviceNames[serviceType].toLowerCase()}. 🎯\n\nWhat type of ${serviceNames[serviceType].toLowerCase()} do you need?`,
+      t(
+        `Great choice! Let me help you book a ${nameEn}. 🎯\n\nWhat type of ${nameEn} do you need?`,
+        `बढ़िया चुनाव! मैं आपको ${nameHi} बुक करने में मदद करता हूं। 🎯\n\nआपको किस तरह की ${nameHi} चाहिए?`
+      ),
       getServiceTypeOptions(serviceType)
     );
   };
@@ -2561,30 +2662,30 @@ export function SmartShivi() {
   const getServiceTypeOptions = (serviceType: string) => {
     const options: Record<string, any[]> = {
       car: [
-        { label: '🏙️ Local (Hourly Package)', action: 'select-car-trip-type', value: 'local' },
-        { label: '🛣️ Outstation (One-Way/Round Trip)', action: 'select-car-trip-type', value: 'outstation' },
-        { label: '✈️ Airport Transfer', action: 'select-car-trip-type', value: 'airport' },
+        { label: t('🏙️ Local (Hourly Package)', '🏙️ लोकल (घंटे का पैकेज)'), action: 'select-car-trip-type', value: 'local' },
+        { label: t('🛣️ Outstation (One-Way/Round Trip)', '🛣️ आउटस्टेशन (वन-वे/राउंड ट्रिप)'), action: 'select-car-trip-type', value: 'outstation' },
+        { label: t('✈️ Airport Transfer', '✈️ एयरपोर्ट ट्रांसफर'), action: 'select-car-trip-type', value: 'airport' },
       ],
       bike: [
-        { label: '🏍️ Regular Bike', action: 'select-service-type', value: 'bike-on-rent' },
-        { label: '🛵 Activa / Scooter', action: 'select-service-type', value: 'activa-on-rent' },
-        { label: '👑 Royal Enfield', action: 'select-service-type', value: 'royal-enfield-on-rent' },
+        { label: t('🏍️ Regular Bike', '🏍️ सामान्य बाइक'), action: 'select-service-type', value: 'bike-on-rent' },
+        { label: t('🛵 Activa / Scooter', '🛵 Activa / स्कूटर'), action: 'select-service-type', value: 'activa-on-rent' },
+        { label: t('👑 Royal Enfield', '👑 Royal Enfield'), action: 'select-service-type', value: 'royal-enfield-on-rent' },
       ],
       bus: [
-        { label: '🚌 Bus Rental', action: 'select-service-type', value: 'bus-rental' },
-        { label: '🚐 Tempo Traveller', action: 'select-service-type', value: 'tempo-traveller' },
-        { label: '💼 Corporate Bus Rental', action: 'select-service-type', value: 'corporate-bus-rental' },
-        { label: '💒 Wedding Bus Rental', action: 'select-service-type', value: 'wedding-bus-rental' },
+        { label: t('🚌 Bus Rental', '🚌 बस किराया'), action: 'select-service-type', value: 'bus-rental' },
+        { label: t('🚐 Tempo Traveller', '🚐 टेम्पो ट्रैवेलर'), action: 'select-service-type', value: 'tempo-traveller' },
+        { label: t('💼 Corporate Bus Rental', '💼 कॉर्पोरेट बस किराया'), action: 'select-service-type', value: 'corporate-bus-rental' },
+        { label: t('💒 Wedding Bus Rental', '💒 वेडिंग बस किराया'), action: 'select-service-type', value: 'wedding-bus-rental' },
       ],
       truck: [
-        { label: '🚚 Mini Truck Rental', action: 'select-service-type', value: 'mini-truck-rental' },
-        { label: '📦 Packers and Movers', action: 'select-service-type', value: 'packers-and-movers' },
-        { label: '🚛 Transporter', action: 'select-service-type', value: 'transporter' },
-        { label: '🚛 Trailer Rental', action: 'select-service-type', value: 'trailer-on-rent' },
+        { label: t('🚚 Mini Truck Rental', '🚚 मिनी ट्रक किराया'), action: 'select-service-type', value: 'mini-truck-rental' },
+        { label: t('📦 Packers and Movers', '📦 पैकर्स और मूवर्स'), action: 'select-service-type', value: 'packers-and-movers' },
+        { label: t('🚛 Transporter', '🚛 ट्रांसपोर्टर'), action: 'select-service-type', value: 'transporter' },
+        { label: t('🚛 Trailer Rental', '🚛 ट्रेलर किराया'), action: 'select-service-type', value: 'trailer-on-rent' },
       ],
       equipment: [
-        { label: '🏗️ Equipment Rental', action: 'select-service-type', value: 'equipment-rental' },
-        { label: '🚜 JCB / Excavator', action: 'select-service-type', value: 'jcb-on-rent' },
+        { label: t('🏗️ Equipment Rental', '🏗️ उपकरण किराया'), action: 'select-service-type', value: 'equipment-rental' },
+        { label: t('🚜 JCB / Excavator', '🚜 JCB / एक्सकेवेटर'), action: 'select-service-type', value: 'jcb-on-rent' },
       ],
     };
 
@@ -2617,12 +2718,12 @@ export function SmartShivi() {
       }));
 
       addShiviMessage(
-        `${city} ✓\n\n📅 When do you need it?`,
+        t(`${city} ✓\n\n📅 When do you need it?`, `${city} ✓\n\n📅 आपको यह कब चाहिए?`),
         [
-          { label: 'Select Pickup Date', action: 'open-calendar', value: 'pickup-date' },
+          { label: t('Select Pickup Date', 'पिकअप तारीख चुनें'), action: 'open-calendar', value: 'pickup-date' },
         ],
         'text',
-        'Click above to select pickup date',
+        t('Click above to select pickup date', 'ऊपर क्लिक करके तारीख चुनें'),
         'pickup-date'
       );
       setCalendarMode('date');
@@ -2644,13 +2745,13 @@ export function SmartShivi() {
       }));
       const smartSuggestions = getSmartLocationSuggestions(city);
       addShiviMessage(
-        `Pickup: ${city} ✓\n\n📍 Where do you want to deliver?\n\n💡 Type to search or select below`,
+        t(`Pickup: ${city} ✓\n\n📍 Where do you want to deliver?\n\n💡 Type to search or select below`, `पिकअप: ${city} ✓\n\n📍 डिलीवरी कहाँ चाहिए?\n\n💡 नीचे से शहर चुनें या टाइप करें`),
         [
           ...smartSuggestions,
-          { label: '📍 Same city', action: 'skip-drop' },
+          { label: t('📍 Same city', '📍 उसी शहर में'), action: 'skip-drop' },
         ],
         'text',
-        '🔍 Search destination city...'
+        t('🔍 Search destination city...', '🔍 गंतव्य शहर खोजें...')
       );
       setBookingStep('drop-location');
       setTimeout(() => inputRef.current?.focus(), 900);
@@ -2659,25 +2760,25 @@ export function SmartShivi() {
 
     if (isBrowseFirst) {
       addShiviMessage(
-        "Great! 📍 Which city?\n\n💡 Type to search or select below. I'll show vehicles after you pick dates!",
+        t('Great! 📍 Which city?\n\n💡 Type to search or select below. I\'ll show vehicles after you pick dates!', 'बढ़िया! 📍 कौन सा शहर?\n\n💡 नीचे से चुनें या टाइप करें। तारीख चुनने के बाद वाहन दिखाऊंगा!'),
         locations.slice(0, 8).map((loc) => ({
           label: `${loc.name}`,
           action: 'select-location',
           value: loc.name,
         })),
         'text',
-        '🔍 Search city... (e.g., Delhi, Mumbai)'
+        t('🔍 Search city... (e.g., Delhi, Mumbai)', '🔍 शहर खोजें... (जैसे दिल्ली, मुंबई)')
       );
     } else {
       addShiviMessage(
-        "Perfect choice! 🎯\n\n📍 Which city would you like to pick up from?\n\n💡 Type to search from 250+ cities!",
+        t('Perfect choice! 🎯\n\n📍 Which city would you like to pick up from?\n\n💡 Type to search from 250+ cities!', 'बढ़िया चुनाव! 🎯\n\n📍 पिकअप के लिए कौन सा शहर?\n\n💡 250+ शहरों में से खोजें!'),
         locations.slice(0, 8).map((loc) => ({
           label: `${loc.name}`,
           action: 'select-location',
           value: loc.name,
         })),
         'text',
-        '🔍 Search city... (e.g., Delhi, Mumbai)'
+        t('🔍 Search city... (e.g., Delhi, Mumbai)', '🔍 शहर खोजें... (जैसे दिल्ली, मुंबई)')
       );
     }
 
@@ -2724,12 +2825,12 @@ export function SmartShivi() {
       // Same pickup and drop for self-drive/bike/local
       setBookingData((prev) => ({ ...prev, dropLocation: location }));
       addShiviMessage(
-        `${location} ✓\n\n📅 When do you need the car?`,
+        t(`${location} ✓\n\n📅 When do you need the car?`, `${location} ✓\n\n📅 आपको कार कब चाहिए?`),
         [
-          { label: '📅 Select Date & Time', action: 'open-calendar', value: 'pickup-date' },
+          { label: t('📅 Select Date & Time', '📅 तारीख और समय चुनें'), action: 'open-calendar', value: 'pickup-date' },
         ],
         'text',
-        'Click above to select date & time',
+        t('Click above to select date & time', 'ऊपर क्लिक करके तारीख और समय चुनें'),
         'pickup-date'
       );
       setCalendarMode('datetime');
@@ -2740,7 +2841,7 @@ export function SmartShivi() {
       const smartSuggestions = getSmartLocationSuggestions(location);
 
       addShiviMessage(
-        `Great! Pickup from ${location}. 🚗\n\n📍 Where is your destination city?\n\n💡 Type to search or select below`,
+        t(`Great! Pickup from ${location}. 🚗\n\n📍 Where is your destination city?\n\n💡 Type to search or select below`, `बढ़िया! ${location} से पिकअप। 🚗\n\n📍 गंतव्य शहर कौन सा है?\n\n💡 नीचे से चुनें या टाइप करें`),
         [
           ...smartSuggestions,
           { label: '📍 Same as pickup', action: 'skip-drop' },
@@ -2829,19 +2930,19 @@ export function SmartShivi() {
   };
 
   const skipDropLocation = async () => {
-    addUserMessage('Same as pickup location');
+    addUserMessage(t('Same as pickup location', 'पिकअप जैसा ही'));
     setBookingData((prev) => ({ ...prev, dropLocation: prev.pickupLocation }));
     await askForPickupDate();
   };
 
   const askForPickupDate = async () => {
     addShiviMessage(
-      "📅 When do you need the vehicle?\n\nSelect your pickup date:",
+      t('📅 When do you need the vehicle?\n\nSelect your pickup date:', '📅 आपको वाहन कब चाहिए?\n\nपिकअप तारीख चुनें:'),
       [
-        { label: 'Select Pickup Date', action: 'open-calendar', value: 'pickup-date' },
+        { label: t('Select Pickup Date', 'पिकअप तारीख चुनें'), action: 'open-calendar', value: 'pickup-date' },
       ],
       'text',
-      'Click above to select pickup date',
+      t('Click above to select pickup date', 'ऊपर क्लिक करके तारीख चुनें'),
       'pickup-date'
     );
     setCalendarMode('date');
@@ -2851,12 +2952,12 @@ export function SmartShivi() {
 
   const askForReturnDate = async () => {
     addShiviMessage(
-      "📅 When would you like to return the vehicle?\n\nSelect your return date:",
+      t('📅 When would you like to return the vehicle?\n\nSelect your return date:', '📅 आप वाहन कब वापस करेंगे?\n\nवापसी की तारीख चुनें:'),
       [
-        { label: 'Select Return Date', action: 'open-calendar', value: 'return-date' },
+        { label: t('Select Return Date', 'वापसी तारीख चुनें'), action: 'open-calendar', value: 'return-date' },
       ],
       'text',
-      'Click above to select return date',
+      t('Click above to select return date', 'ऊपर क्लिक करके वापसी तारीख चुनें'),
       'return-date'
     );
     setCalendarMode('date');
@@ -2892,7 +2993,10 @@ export function SmartShivi() {
       const earliest = new Date(now.getTime() + MIN_ADVANCE_HOURS * 60 * 60 * 1000);
       const fDate = earliest.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
       const fTime = earliest.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-      addShiviMessage(`⚠️ Booking requires at least ${MIN_ADVANCE_HOURS} hours advance notice. Earliest pickup: ${fDate}, ${fTime}. Please select a later date or time.`);
+      addShiviMessage(t(
+        `⚠️ Booking requires at least ${MIN_ADVANCE_HOURS} hours advance notice. Earliest pickup: ${fDate}, ${fTime}. Please select a later date or time.`,
+        `⚠️ बुकिंग के लिए कम से कम ${MIN_ADVANCE_HOURS} घंटे पहले नोटिस देना जरूरी है। सबसे जल्दी पिकअप: ${fDate}, ${fTime}। कृपया बाद की तारीख या समय चुनें।`
+      ));
       await askForPickupDate();
       return;
     }
@@ -3002,7 +3106,7 @@ export function SmartShivi() {
     // Check if this is a quote-based service
     if (quoteBased.includes(currentServiceType)) {
       addShiviMessage(
-        `📅 ${dayName}, ${formattedDate} at ${time} ✓`,
+        t(`📅 ${dayName}, ${formattedDate} at ${time} ✓`, `📅 ${dayName}, ${formattedDate} को ${time} बजे ✓`),
         undefined
       );
 
@@ -3023,14 +3127,14 @@ export function SmartShivi() {
 
     if (needsReturnDate) {
       addShiviMessage(
-        `Pickup: ${dayName}, ${formattedDate} at ${time} ✓`,
+        t(`Pickup: ${dayName}, ${formattedDate} at ${time} ✓`, `पिकअप: ${dayName}, ${formattedDate} को ${time} बजे ✓`),
         undefined
       );
       await askForReturnDate();
     } else {
       // One-way/Airport: Show car categories with pricing directly
       addShiviMessage(
-        `📅 ${dayName}, ${formattedDate} at ${time} ✓\n\n🔍 Finding best prices...`,
+        t(`📅 ${dayName}, ${formattedDate} at ${time} ✓\n\n🔍 Finding best prices...`, `📅 ${dayName}, ${formattedDate} को ${time} बजे ✓\n\n🔍 सबसे अच्छी कीमत ढूंढ रहे हैं...`),
         undefined
       );
 
@@ -3095,7 +3199,7 @@ export function SmartShivi() {
     const luxuryQuoteBased = ['luxury-outstation'];
     if (luxuryQuoteBased.includes(currentServiceType)) {
       addShiviMessage(
-        `Return: ${dayName}, ${formattedDate} at ${time} ✓`,
+        t(`Return: ${dayName}, ${formattedDate} at ${time} ✓`, `वापसी: ${dayName}, ${formattedDate} को ${time} बजे ✓`),
         undefined
       );
       await askForLuxuryVehicleCategory();
@@ -3104,7 +3208,7 @@ export function SmartShivi() {
 
     if (isBrowseFirst) {
       addShiviMessage(
-        `${dayName}, ${formattedDate} at ${time} ✓\n\n🔍 Searching for available vehicles...`,
+        t(`${dayName}, ${formattedDate} at ${time} ✓\n\n🔍 Searching for available vehicles...`, `${dayName}, ${formattedDate} को ${time} बजे ✓\n\n🔍 उपलब्ध वाहन खोज रहे हैं...`),
         undefined
       );
 
@@ -3115,17 +3219,20 @@ export function SmartShivi() {
         showFleetOptions(fleet);
       } catch {
         addShiviMessage(
-          `Couldn't load vehicles for ${locationName} right now. Please try again or submit a quote request and vendors will reach out.`,
+          t(
+            `Couldn't load vehicles for ${locationName} right now. Please try again or submit a quote request and vendors will reach out.`,
+            `${locationName} के लिए अभी वाहन लोड नहीं हो पाए। दोबारा कोशिश करें या कोटेशन रिक्वेस्ट भेजें — वेंडर आपसे संपर्क करेंगे।`
+          ),
           [
-            { label: 'Submit Quote Request', action: 'confirm-booking' },
-            { label: 'Try Again', action: 'open-calendar', value: 'pickup-date' },
+            { label: t('Submit Quote Request', 'कोटेशन रिक्वेस्ट भेजें'), action: 'confirm-booking' },
+            { label: t('Try Again', 'दोबारा कोशिश करें'), action: 'open-calendar', value: 'pickup-date' },
           ]
         );
       }
     } else if (['outstation-car-rental', 'one-way-car-rental', 'airport-transfer'].includes(currentServiceType)) {
       // Car rental with driver - fetch pricing and show categories
       addShiviMessage(
-        `${dayName}, ${formattedDate} at ${time} ✓\n\n🔍 Finding best prices for you...`,
+        t(`${dayName}, ${formattedDate} at ${time} ✓\n\n🔍 Finding best prices for you...`, `${dayName}, ${formattedDate} को ${time} बजे ✓\n\n🔍 आपके लिए सबसे अच्छी कीमत ढूंढ रहे हैं...`),
         undefined
       );
 
@@ -3163,7 +3270,7 @@ export function SmartShivi() {
     } else if (currentServiceType === 'local-taxi') {
       // Local trip - show packages first, then car categories with pricing
       addShiviMessage(
-        `${dayName}, ${formattedDate} at ${time} ✓\n\n🔍 Loading hourly packages...`,
+        t(`${dayName}, ${formattedDate} at ${time} ✓\n\n🔍 Loading hourly packages...`, `${dayName}, ${formattedDate} को ${time} बजे ✓\n\n🔍 घंटे के पैकेज लोड हो रहे हैं...`),
         undefined
       );
 
@@ -3229,7 +3336,7 @@ export function SmartShivi() {
       }
     } else {
       addShiviMessage(
-        `Return: ${dayName}, ${formattedDate} at ${time} ✅`,
+        t(`Return: ${dayName}, ${formattedDate} at ${time} ✅`, `वापसी: ${dayName}, ${formattedDate} को ${time} बजे ✅`),
         undefined
       );
       await askForContactDetails();
@@ -3275,11 +3382,11 @@ export function SmartShivi() {
       addShiviMessage(
         t(
           `Great news! I have your details:\n\n👤 ${prefilledName}\n📱 ${prefilledPhone}\n📧 ${prefilledEmail}\n\nAny special requirements? (child seat, GPS, diesel, etc.)`,
-          `Aapki details mil gayi:\n\n👤 ${prefilledName}\n📱 ${prefilledPhone}\n📧 ${prefilledEmail}\n\nKoi special requirement hai? (child seat, GPS, diesel, etc.)`
+          `आपकी डिटेल मिल गई:\n\n👤 ${prefilledName}\n📱 ${prefilledPhone}\n📧 ${prefilledEmail}\n\nकोई खास ज़रूरत है? (चाइल्ड सीट, GPS, डीज़ल, आदि)`
         ),
         [
-          { label: t('✅ No requirements, proceed', '✅ Nahi, aage badhein'), action: 'skip-requirements' },
-          { label: t('📝 Yes, add requirements', '📝 Haan, add karein'), action: 'add-requirements' },
+          { label: t('✅ No requirements, proceed', '✅ नहीं, आगे बढ़ें'), action: 'skip-requirements' },
+          { label: t('📝 Yes, add requirements', '📝 हाँ, जोड़ें'), action: 'add-requirements' },
         ]
       );
       return;
@@ -3291,7 +3398,7 @@ export function SmartShivi() {
       addShiviMessage(
         t(
           `Almost done${firstName ? `, ${firstName}` : ''}! I have your name. Now confirm your phone number.\n\n🪙 FYI: You can earn up to 100 Backr Tokens on trip completion!`,
-          `Bas thoda aur${firstName ? `, ${firstName}` : ''}! Apna phone number confirm karein.\n\n🪙 Har trip pe 100 Backr Tokens kama sakte ho!`
+          `बस थोड़ा और${firstName ? `, ${firstName}` : ''}! अपना फोन नंबर कन्फर्म करें।\n\n🪙 हर ट्रिप पर 100 Backr Tokens कमा सकते हैं!`
         ),
         undefined,
         'tel',
@@ -3305,11 +3412,11 @@ export function SmartShivi() {
     addShiviMessage(
       t(
         "Almost done! 👤 What's your name?\n\n🪙 FYI: You can earn up to 100 Backr Tokens on trip completion!",
-        "Bas thoda aur! 👤 Aapka naam kya hai?\n\n🪙 Har trip pe 100 Backr Tokens kama sakte ho!"
+        "बस थोड़ा और! 👤 आपका नाम क्या है?\n\n🪙 हर ट्रिप पर 100 Backr Tokens कमा सकते हैं!"
       ),
       undefined,
       'text',
-      t('Your full name', 'Aapka poora naam'),
+      t('Your full name', 'आपका पूरा नाम'),
       'name'
     );
     setBookingStep('name');
@@ -3318,10 +3425,13 @@ export function SmartShivi() {
   // B2B: Ask Personal or Company booking purpose
   const askB2BBookingPurpose = async () => {
     addShiviMessage(
-      "🏢 Since you're a B2B corporate customer, is this booking for:\n\n• **Personal** – Regular booking (advance payment required)\n• **Company** – B2B booking (no advance, added to company account)",
+      t(
+        "🏢 Since you're a B2B corporate customer, is this booking for:\n\n• **Personal** – Regular booking (advance payment required)\n• **Company** – B2B booking (no advance, added to company account)",
+        "🏢 आप B2B कॉर्पोरेट ग्राहक हैं, यह बुकिंग किसके लिए है:\n\n• **पर्सनल** – सामान्य बुकिंग (एडवांस पेमेंट ज़रूरी)\n• **कंपनी** – B2B बुकिंग (कोई एडवांस नहीं)"
+      ),
       [
-        { label: '👤 Personal Booking', action: 'b2b-purpose', value: 'personal' },
-        { label: '🏢 Company (B2B) Booking', action: 'b2b-purpose', value: 'company' },
+        { label: t('👤 Personal Booking', '👤 पर्सनल बुकिंग'), action: 'b2b-purpose', value: 'personal' },
+        { label: t('🏢 Company (B2B) Booking', '🏢 कंपनी (B2B) बुकिंग'), action: 'b2b-purpose', value: 'company' },
       ]
     );
   };
@@ -3329,7 +3439,7 @@ export function SmartShivi() {
   const handleName = async (name: string) => {
     setBookingData((prev) => ({ ...prev, name }));
     addShiviMessage(
-      t('📱 Your phone number?', '📱 Aapka phone number?'),
+      t('📱 Your phone number?', '📱 आपका फोन नंबर?'),
       undefined, 'tel', '+91 9737965551', 'phone'
     );
     setBookingStep('phone');
@@ -3339,7 +3449,7 @@ export function SmartShivi() {
     const validation = validatePhone(phone);
     if (!validation.valid) {
       addShiviMessage(
-        t(validation.message!, `${validation.message!}\n(Sahi 10-digit Indian number daaalein)`),
+        t(validation.message!, `${validation.message!}\n(सही 10-अंकीय भारतीय नंबर डालें)`),
         undefined, 'tel', '+91 9737965551'
       );
       return;
@@ -3348,7 +3458,7 @@ export function SmartShivi() {
     addShiviMessage(
       t(
         "Great! 📧 What's your email address?\n\n💡 We'll send booking confirmation here",
-        "Badiya! 📧 Aapka email address?\n\n💡 Booking confirmation yahan bheja jaayega"
+        "बढ़िया! 📧 आपका ईमेल एड्रेस?\n\n💡 बुकिंग कन्फर्मेशन यहाँ भेजा जाएगा"
       ),
       undefined, 'email', 'your@email.com', 'email'
     );
@@ -3359,7 +3469,7 @@ export function SmartShivi() {
     const validation = validateEmail(email);
     if (!validation.valid) {
       addShiviMessage(
-        t(validation.message!, `${validation.message!}\n(Sahi email format: aap@example.com)`),
+        t(validation.message!, `${validation.message!}\n(सही ईमेल फॉर्मेट: aap@example.com)`),
         undefined, 'email', 'your@email.com'
       );
       return;
@@ -3368,22 +3478,22 @@ export function SmartShivi() {
     addShiviMessage(
       t(
         "Perfect! 🎉 You're almost there!\n\nAny special requirements? (child seat, GPS, diesel, etc.)\n\n💡 Mentioning details helps vendors serve you better!",
-        "Bahut badiya! 🎉 Bas thoda aur!\n\nKoi special requirement hai? (child seat, GPS, diesel, etc.)\n\n💡 Yeh vendors ko aapki zaroorat samajhne mein madad karta hai!"
+        "बहुत बढ़िया! 🎉 बस थोड़ा और!\n\nकोई खास ज़रूरत है? (चाइल्ड सीट, GPS, डीज़ल, आदि)\n\n💡 इससे वेंडर आपकी ज़रूरत बेहतर समझ सकते हैं!"
       ),
       [
-        { label: t('✅ No requirements, proceed', '✅ Nahi, aage badhein'), action: 'skip-requirements' },
-        { label: t('📝 Yes, add requirements', '📝 Haan, add karein'), action: 'add-requirements' },
+        { label: t('✅ No requirements, proceed', '✅ नहीं, आगे बढ़ें'), action: 'skip-requirements' },
+        { label: t('📝 Yes, add requirements', '📝 हाँ, जोड़ें'), action: 'add-requirements' },
       ]
     );
   };
 
   const askForRequirements = async () => {
-    addUserMessage('I have some requirements');
+    addUserMessage(t('I have some requirements', 'मेरी कुछ ज़रूरतें हैं'));
     addShiviMessage(
-      "Sure! Please tell me your requirements:",
+      t('Sure! Please tell me your requirements:', 'ज़रूर! अपनी ज़रूरतें बताएं:'),
       undefined,
       'text',
-      'Type your requirements...',
+      t('Type your requirements...', 'ज़रूरतें लिखें...'),
       'requirements'
     );
     setBookingStep('requirements');
@@ -3435,27 +3545,30 @@ export function SmartShivi() {
       const pickup = new Date(bookingData.pickupDate);
       const returnDate = new Date(bookingData.returnDate);
       const days = Math.ceil((returnDate.getTime() - pickup.getTime()) / (1000 * 60 * 60 * 24));
-      tripDuration = `\n⏱️ Duration: ${days} day${days > 1 ? 's' : ''}`;
+      tripDuration = t(
+        `\n⏱️ Duration: ${days} day${days > 1 ? 's' : ''}`,
+        `\n⏱️ अवधि: ${days} दिन`
+      );
     }
 
     // Car rental specific details
     let carDetails = '';
     if (bookingData.selectedCarCategoryName) {
-      carDetails = `\n🚗 Car: ${bookingData.selectedCarCategoryName}`;
+      carDetails = `\n🚗 ${t('Car', 'कार')}: ${bookingData.selectedCarCategoryName}`;
       if (bookingData.selectedPackageName) {
         carDetails += ` (${bookingData.selectedPackageName})`;
       }
       if (bookingData.carEstimatedPrice) {
-        carDetails += `\n💰 Estimated Price: ₹${bookingData.carEstimatedPrice.toLocaleString()}`;
+        carDetails += `\n💰 ${t('Estimated Price', 'अनुमानित कीमत')}: ₹${bookingData.carEstimatedPrice.toLocaleString()}`;
       }
     }
 
     // Bike/Self-Drive details
     let vehicleDetails = '';
     if (bookingData.selectedVehicleName && !bookingData.selectedCarCategoryName) {
-      vehicleDetails = `\n🏍️ Vehicle: ${bookingData.selectedVehicleName}`;
+      vehicleDetails = `\n🏍️ ${t('Vehicle', 'वाहन')}: ${bookingData.selectedVehicleName}`;
       if (bookingData.selectedDailyRate) {
-        vehicleDetails += ` @ ₹${bookingData.selectedDailyRate}/day`;
+        vehicleDetails += ` @ ₹${bookingData.selectedDailyRate}/${t('day', 'दिन')}`;
       }
     }
 
@@ -3465,16 +3578,34 @@ export function SmartShivi() {
     const hasPrice = bookingData.carEstimatedPrice || bookingData.selectedDailyRate;
     const isB2BCompany = isB2B && bookingData.b2bPurpose === 'company';
     const vendorMsg = isB2BCompany
-      ? '🏢 This will be added to your company\'s B2B account. No advance payment required!'
+      ? t('🏢 This will be added to your company\'s B2B account. No advance payment required!', '🏢 यह आपके कंपनी के B2B अकाउंट में जोड़ा जाएगा। कोई एडवांस पेमेंट नहीं!')
       : hasPrice
-      ? '✨ Your booking will be confirmed shortly!'
-      : '✨ You\'ll receive quotations from multiple verified vendors!';
+      ? t('✨ Your booking will be confirmed shortly!', '✨ आपकी बुकिंग जल्द ही कन्फर्म होगी!')
+      : t('✨ You\'ll receive quotations from multiple verified vendors!', '✨ कई वेरिफाइड वेंडर्स से आपको कोटेशन मिलेगी!');
 
     const b2bDetails = isB2BCompany
-      ? `\n\n🏢 B2B Company Booking:\n• Vehicles Required: ${bookingData.b2bVehiclesRequired || 1}${bookingData.b2bPassengerCount ? `\n• Passengers: ${bookingData.b2bPassengerCount}` : ''}`
+      ? t(
+          `\n\n🏢 B2B Company Booking:\n• Vehicles Required: ${bookingData.b2bVehiclesRequired || 1}${bookingData.b2bPassengerCount ? `\n• Passengers: ${bookingData.b2bPassengerCount}` : ''}`,
+          `\n\n🏢 B2B कंपनी बुकिंग:\n• वाहन चाहिए: ${bookingData.b2bVehiclesRequired || 1}${bookingData.b2bPassengerCount ? `\n• यात्री: ${bookingData.b2bPassengerCount}` : ''}`
+        )
       : '';
 
-    const summary = `
+    const summary = languageRef.current === 'hi' ? `
+🎯 बस हो गया${resolvedSummaryName ? `, ${summaryFirstName}` : ''}! यहाँ आपकी बुकिंग की जानकारी है:
+
+🚗 सेवा: ${serviceTypeName}${carDetails}${vehicleDetails}
+📍 से: ${bookingData.pickupLocation}${bookingData.dropLocation && bookingData.dropLocation !== bookingData.pickupLocation ? `\n📍 तक: ${bookingData.dropLocation}` : ''}
+📅 पिकअप: ${bookingData.pickupDate} को ${bookingData.pickupTime}${bookingData.returnDate ? `\n📅 वापसी: ${bookingData.returnDate} को ${bookingData.returnTime}` : ''}${tripDuration}${b2bDetails}
+
+👤 संपर्क विवरण:
+• नाम: ${bookingData.name || customer?.name || 'N/A'}
+• फोन: ${bookingData.phone}
+• ईमेल: ${bookingData.email}${bookingData.requirements ? `\n\n📝 खास ज़रूरतें:\n${bookingData.requirements}` : ''}
+
+${vendorMsg}
+
+क्या आप कन्फर्म करना चाहते हैं?
+    `.trim() : `
 🎯 Almost Done${resolvedSummaryName ? `, ${summaryFirstName}` : ''}! Here's your booking summary:
 
 🚗 Service: ${serviceTypeName}${carDetails}${vehicleDetails}
@@ -3494,8 +3625,8 @@ Ready to confirm?
     addShiviMessage(
       summary,
       [
-        { label: '✅ Confirm & Book Now', action: 'confirm-booking' },
-        { label: '✏️ Edit Details', action: 'new-booking' },
+        { label: t('✅ Confirm & Book Now', '✅ कन्फर्म करें और बुक करें'), action: 'confirm-booking' },
+        { label: t('✏️ Edit Details', '✏️ बदलाव करें'), action: 'new-booking' },
       ]
     );
   };
@@ -4129,10 +4260,10 @@ Ready to confirm?
 
         // Show the answer with booking options
         addShiviMessage(
-          `${topResult.answer}\n\n💡 Can I help you with anything else?`,
+          `${topResult.answer}\n\n💡 ${t('Can I help you with anything else?', 'क्या मैं और कुछ मदद कर सकता हूं?')}`,
           [
-            { label: '🚗 Book Vehicle', action: 'show-booking-options' },
-            { label: '❓ Ask Another Question', action: 'ask-question' },
+            { label: t('🚗 Book Vehicle', '🚗 वाहन बुक करें'), action: 'show-booking-options' },
+            { label: t('❓ Ask Another Question', '❓ और पूछें'), action: 'ask-question' },
           ]
         );
       } else {
@@ -4141,18 +4272,21 @@ Ready to confirm?
 
         // No match found, show general help
         addShiviMessage(
-          "I'm not sure about that, but I can help you:\n\n• Book vehicles (Car, Bike, Bus, Truck, Equipment, Trailer)\n• Answer questions about our services\n• Provide pricing information\n• Help with locations and policies\n\nWhat would you like to know?",
+          t(
+            "I'm not sure about that, but I can help you:\n\n• Book vehicles (Car, Bike, Bus, Truck, Equipment, Trailer)\n• Answer questions about our services\n• Provide pricing information\n• Help with locations and policies\n\nWhat would you like to know?",
+            "यह मुझे पता नहीं, लेकिन मैं आपकी मदद कर सकता हूं:\n\n• वाहन बुक करें (कार, बाइक, बस, ट्रक, उपकरण)\n• हमारी सेवाओं की जानकारी\n• किराये की जानकारी\n• लोकेशन और नीतियां\n\nआप क्या जानना चाहते हैं?"
+          ),
           [
-            { label: '🚗 Book Now', action: 'show-booking-options' },
-            { label: '💰 Pricing Info', action: 'ask-pricing' },
-            { label: '📍 Locations', action: 'ask-locations' },
+            { label: t('🚗 Book Now', '🚗 बुक करें'), action: 'show-booking-options' },
+            { label: t('💰 Pricing Info', '💰 किराया जानकारी'), action: 'ask-pricing' },
+            { label: t('📍 Locations', '📍 लोकेशन'), action: 'ask-locations' },
           ]
         );
       }
     } catch (error) {
       // On error, fall back to booking options
       addShiviMessage(
-        "I can help you book a vehicle! What would you like to rent?",
+        t('I can help you book a vehicle! What would you like to rent?', 'Main aapko vehicle book karne mein madad kar sakta hoon! Kya book karna hai?'),
         [
           { label: '🚗 Car Rental', action: 'start-booking', value: 'car' },
           { label: '🚙 Self-Drive Car', action: 'start-booking', value: 'selfdrive' },
@@ -4326,7 +4460,7 @@ Ready to confirm?
               <div className="flex items-center justify-between px-1 mb-1">
                 <button
                   type="button"
-                  onClick={() => setLanguage(l => l === 'en' ? 'hi' : 'en')}
+                  onClick={() => switchLanguage(languageRef.current === 'en' ? 'hi' : 'en')}
                   className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 transition-colors"
                   title="Switch language"
                 >
@@ -4345,7 +4479,7 @@ Ready to confirm?
                 <button
                   type="button"
                   onClick={handleCalendarToggle}
-                  className="w-11 h-11 border border-gray-200 rounded-full flex items-center justify-center text-blue-600 hover:bg-blue-50 transition"
+                  className="w-11 h-11 shrink-0 border border-gray-200 rounded-full flex items-center justify-center text-blue-600 hover:bg-blue-50 transition touch-manipulation"
                   aria-label="Open calendar picker"
                 >
                   <Calendar className="w-5 h-5" />
@@ -4375,7 +4509,7 @@ Ready to confirm?
                   type="button"
                   onClick={startVoiceInput}
                   disabled={isSubmitting}
-                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                  className={`w-11 h-11 shrink-0 rounded-full flex items-center justify-center transition-all touch-manipulation ${
                     isListening
                       ? 'bg-red-500 text-white animate-pulse'
                       : 'border border-gray-200 text-gray-500 hover:bg-gray-50'
@@ -4387,7 +4521,7 @@ Ready to confirm?
                 <button
                   onClick={handleSendMessage}
                   disabled={isSubmitting}
-                  className="w-11 h-11 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+                  className="w-11 h-11 shrink-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform disabled:opacity-50 disabled:hover:scale-100 touch-manipulation"
                 >
                   <Send className="w-5 h-5" />
                 </button>
