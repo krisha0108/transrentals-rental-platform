@@ -799,6 +799,386 @@ function SectionsPanel({ sections, onChange, cityName, cityState, seoData }: {
   );
 }
 
+// ── SEO Score ─────────────────────────────────────────────────────────────────
+interface SeoScoreCheck {
+  label: string;
+  points: number;
+  passed: boolean;
+}
+
+function calcSeoScore(override: SeoOverride | null, templateTitle: string, templateDescription: string): {
+  score: number;
+  total: number;
+  checks: SeoScoreCheck[];
+} {
+  // Use override value if set, otherwise fall back to template
+  const title = override?.metaTitle || templateTitle || '';
+  const desc = override?.metaDescription || templateDescription || '';
+  const keywords = override?.metaKeywords || '';
+  const heading = override?.pageHeading || '';
+  const pageDesc = override?.pageDescription || '';
+  const hasOverride = !!override;
+
+  let sectionContent = false;
+  let faqContent = false;
+  if (override?.sectionsConfig) {
+    try {
+      const sections: SectionConfig[] = JSON.parse(override.sectionsConfig);
+      sectionContent = sections.some(s =>
+        s.id !== 'faq' && s.content && s.content.trim() && s.content !== '<p></p>'
+      );
+      const faqSec = sections.find(s => s.id === 'faq');
+      if (faqSec?.content) {
+        try {
+          const faqs = JSON.parse(faqSec.content);
+          faqContent = Array.isArray(faqs) && faqs.length > 0 && !!faqs[0]?.q;
+        } catch { faqContent = false; }
+      }
+    } catch {}
+  }
+
+  const checks: SeoScoreCheck[] = [
+    {
+      label: 'Meta Title (30–80 chars)',
+      points: 15,
+      passed: title.length >= 30 && title.length <= 80,
+    },
+    {
+      label: 'Custom Meta Title set',
+      points: 10,
+      passed: hasOverride && !!override?.metaTitle && override.metaTitle.trim().length > 0,
+    },
+    {
+      label: 'Meta Description (100–170 chars)',
+      points: 15,
+      passed: desc.length >= 100 && desc.length <= 170,
+    },
+    {
+      label: 'Custom Meta Description set',
+      points: 10,
+      passed: hasOverride && !!override?.metaDescription && override.metaDescription.trim().length > 0,
+    },
+    {
+      label: 'Keywords (3+ terms)',
+      points: 10,
+      passed: !!keywords && keywords.split(',').filter(k => k.trim()).length >= 3,
+    },
+    {
+      label: 'Custom Page Heading (H1)',
+      points: 10,
+      passed: hasOverride && heading.trim().length > 0,
+    },
+    {
+      label: 'Hero Description (80+ chars)',
+      points: 10,
+      passed: hasOverride && pageDesc.trim().length >= 80,
+    },
+    {
+      label: 'Section Custom Content',
+      points: 10,
+      passed: sectionContent,
+    },
+    {
+      label: 'FAQ Content set',
+      points: 10,
+      passed: faqContent,
+    },
+  ];
+
+  const total = checks.reduce((s, c) => s + c.points, 0);
+  const score = checks.filter(c => c.passed).reduce((s, c) => s + c.points, 0);
+  return { score, total, checks };
+}
+
+function SeoScoreBadge({ override, templateTitle, templateDescription }: {
+  override: SeoOverride | null;
+  templateTitle: string;
+  templateDescription: string;
+}) {
+  const { score, total, checks } = calcSeoScore(override, templateTitle, templateDescription);
+  const pct = Math.round((score / total) * 100);
+
+  const color =
+    pct >= 80 ? { ring: 'ring-emerald-400', bg: 'bg-emerald-500', text: 'text-emerald-700', bar: 'bg-emerald-500', light: 'bg-emerald-50' }
+    : pct >= 50 ? { ring: 'ring-amber-400', bg: 'bg-amber-500', text: 'text-amber-700', bar: 'bg-amber-400', light: 'bg-amber-50' }
+    : { ring: 'ring-red-300', bg: 'bg-red-500', text: 'text-red-600', bar: 'bg-red-400', light: 'bg-red-50' };
+
+  const [showTip, setShowTip] = useState(false);
+
+  return (
+    <div className="relative shrink-0" onMouseEnter={() => setShowTip(true)} onMouseLeave={() => setShowTip(false)}>
+      {/* Badge */}
+      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg ring-1 ${color.ring} ${color.light} cursor-default`}>
+        <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full ${color.bar} transition-all`} style={{ width: `${pct}%` }} />
+        </div>
+        <span className={`text-xs font-bold ${color.text} tabular-nums`}>{pct}%</span>
+      </div>
+
+      {/* Tooltip */}
+      {showTip && (
+        <div className="absolute right-0 top-full mt-2 z-50 w-64 bg-white border border-gray-200 rounded-xl shadow-xl p-3 pointer-events-none">
+          <p className="text-xs font-bold text-gray-700 mb-2">SEO Score — {pct}%</p>
+          <div className="space-y-1.5">
+            {checks.map((c) => (
+              <div key={c.label} className="flex items-center gap-2">
+                <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${c.passed ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                  {c.passed ? '✓' : '✗'}
+                </span>
+                <span className={`text-xs flex-1 ${c.passed ? 'text-gray-700' : 'text-gray-400'}`}>{c.label}</span>
+                <span className={`text-xs font-semibold shrink-0 ${c.passed ? 'text-emerald-600' : 'text-gray-300'}`}>+{c.points}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── State row type ─────────────────────────────────────────────────────────────
+interface StateRow {
+  stateName: string;
+  stateCode: string;
+  stateSlug: string;
+  pageId: string;
+  url: string;
+  templateTitle: string;
+  templateDescription: string;
+  templateKeywords: string;
+  templateHeading: string;
+  templatePageDescription: string;
+  override: SeoOverride | null;
+}
+
+// ── Single state row ───────────────────────────────────────────────────────────
+function StateRowItem({ row, onSave, onReset }: {
+  row: StateRow;
+  onSave: (pageId: string, data: EditState) => Promise<void>;
+  onReset: (pageId: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState<'content' | 'seo' | 'sections'>('content');
+  const [edit, setEdit] = useState<EditState>({
+    metaTitle: row.override?.metaTitle || row.templateTitle,
+    metaDescription: row.override?.metaDescription || row.templateDescription,
+    metaKeywords: row.override?.metaKeywords || row.templateKeywords,
+    pageHeading: row.override?.pageHeading || row.templateHeading,
+    pageDescription: row.override?.pageDescription || row.templatePageDescription,
+    sections: parseSectionsConfig(row.override?.sectionsConfig),
+  });
+
+  useEffect(() => {
+    if (!open) {
+      setEdit({
+        metaTitle: row.override?.metaTitle || row.templateTitle,
+        metaDescription: row.override?.metaDescription || row.templateDescription,
+        metaKeywords: row.override?.metaKeywords || row.templateKeywords,
+        pageHeading: row.override?.pageHeading || row.templateHeading,
+        pageDescription: row.override?.pageDescription || row.templatePageDescription,
+        sections: parseSectionsConfig(row.override?.sectionsConfig),
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row.override]);
+
+  const hasOverride = !!row.override;
+  const hasCustomSections = row.override?.sectionsConfig != null;
+  const displayTitle = row.override?.metaTitle || row.templateTitle;
+
+  const handleOpen = () => {
+    setEdit({
+      metaTitle: row.override?.metaTitle || row.templateTitle,
+      metaDescription: row.override?.metaDescription || row.templateDescription,
+      metaKeywords: row.override?.metaKeywords || row.templateKeywords,
+      pageHeading: row.override?.pageHeading || row.templateHeading,
+      pageDescription: row.override?.pageDescription || row.templatePageDescription,
+      sections: parseSectionsConfig(row.override?.sectionsConfig),
+    });
+    setOpen(!open);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(row.pageId, edit);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    setOpen(false);
+  };
+
+  const handleReset = async () => {
+    if (!confirm('Remove all custom content and revert to defaults?')) return;
+    setSaving(true);
+    await onReset(row.pageId);
+    setSaving(false);
+    setOpen(false);
+  };
+
+  return (
+    <div className={`border rounded-lg mb-2 transition-colors ${hasOverride ? 'border-emerald-300 bg-emerald-50/30' : 'border-gray-200 bg-white'}`}>
+      {/* Row header */}
+      <div className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50/80 transition" onClick={handleOpen}>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            {hasOverride && <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded shrink-0">Custom</span>}
+            {hasCustomSections && <span className="px-1.5 py-0.5 bg-violet-100 text-violet-700 text-xs font-semibold rounded shrink-0">Sections</span>}
+            <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs font-semibold rounded shrink-0">{row.stateCode}</span>
+            <span className="font-semibold text-gray-900 text-sm truncate">{row.stateName}</span>
+          </div>
+          <p className="text-xs text-gray-400 mt-0.5 truncate">{displayTitle}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {saved && <Check className="w-4 h-4 text-green-500" />}
+          <SeoScoreBadge override={row.override} templateTitle={row.templateTitle} templateDescription={row.templateDescription} />
+          <a href={row.url} target="_blank" rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="p-1 text-gray-400 hover:text-blue-600 transition" title="Open page">
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+          {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+        </div>
+      </div>
+
+      {/* Edit panel */}
+      {open && (
+        <div className="px-4 pb-4 border-t border-gray-100 pt-4">
+          {/* Tabs */}
+          <div className="flex gap-1 mb-5 bg-gray-100 p-1 rounded-lg w-fit">
+            {([
+              { id: 'content', label: '✏️ Content' },
+              { id: 'seo',     label: '🔍 SEO' },
+              { id: 'sections',label: '⚡ Sections' },
+            ] as const).map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-1.5 text-xs font-semibold rounded-md transition ${
+                  activeTab === tab.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Content tab ── */}
+          {activeTab === 'content' && (
+            <div className="space-y-4">
+              {hasOverride && (
+                <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-3 space-y-1">
+                  <p className="font-semibold text-gray-600 mb-1">Auto-generated defaults:</p>
+                  <p><span className="text-gray-400">Heading:</span> {row.templateHeading}</p>
+                  <p><span className="text-gray-400">Desc:</span> {row.templatePageDescription.slice(0, 100)}...</p>
+                </div>
+              )}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                <p className="text-xs font-bold text-green-700 uppercase tracking-wide">Hero Section Content</p>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Page Heading (H1)</label>
+                  <input
+                    value={edit.pageHeading}
+                    onChange={(e) => setEdit({ ...edit, pageHeading: e.target.value })}
+                    placeholder={`e.g. Vehicle Rentals in ${row.stateName}`}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Hero Description</label>
+                  <textarea
+                    value={edit.pageDescription}
+                    onChange={(e) => setEdit({ ...edit, pageDescription: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── SEO tab ── */}
+          {activeTab === 'seo' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Meta Title <span className={`font-normal ${edit.metaTitle.length > 70 ? 'text-red-500' : 'text-gray-400'}`}>({edit.metaTitle.length}/70)</span>
+                </label>
+                <input
+                  value={edit.metaTitle}
+                  onChange={(e) => setEdit({ ...edit, metaTitle: e.target.value })}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${edit.metaTitle.length > 70 ? 'border-red-300' : 'border-gray-300'}`}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Meta Description <span className={`font-normal ${edit.metaDescription.length > 160 ? 'text-red-500' : 'text-gray-400'}`}>({edit.metaDescription.length}/160)</span>
+                </label>
+                <textarea
+                  value={edit.metaDescription}
+                  onChange={(e) => setEdit({ ...edit, metaDescription: e.target.value })}
+                  rows={3}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${edit.metaDescription.length > 160 ? 'border-red-300' : 'border-gray-300'}`}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Keywords <span className="font-normal text-gray-400">(comma separated)</span></label>
+                <input
+                  value={edit.metaKeywords}
+                  onChange={(e) => setEdit({ ...edit, metaKeywords: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="bg-white border border-gray-200 rounded-lg p-3">
+                <p className="text-xs text-gray-500 mb-2 font-medium">Google Preview</p>
+                <p className="text-[#1a0dab] text-base font-medium leading-tight truncate">{edit.metaTitle}</p>
+                <p className="text-[#006621] text-xs mt-0.5">transrentals.in{row.url}</p>
+                <p className="text-[#545454] text-sm mt-1 line-clamp-2">{edit.metaDescription}</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Sections tab ── */}
+          {activeTab === 'sections' && (
+            <SectionsPanel
+              sections={edit.sections}
+              onChange={(s) => setEdit({ ...edit, sections: s })}
+              cityName={row.stateName}
+              cityState={row.stateName}
+              seoData={null}
+            />
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 pt-4 border-t border-gray-100 mt-4">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+            >
+              {saving ? 'Saving...' : saved ? <><Check className="w-4 h-4" />Saved</> : 'Save Changes'}
+            </button>
+            {hasOverride && (
+              <button
+                onClick={handleReset}
+                disabled={saving}
+                className="flex items-center gap-2 px-3 py-2 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-100 disabled:opacity-50 transition"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset to Default
+              </button>
+            )}
+            <button onClick={() => setOpen(false)} className="ml-auto text-sm text-gray-400 hover:text-gray-600 transition">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Single city row ────────────────────────────────────────────────────────────
 function CityRowItem({ row, onSave, onReset }: {
   row: CityRow;
@@ -886,6 +1266,7 @@ function CityRowItem({ row, onSave, onReset }: {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {saved && <Check className="w-4 h-4 text-green-500" />}
+          <SeoScoreBadge override={row.override} templateTitle={row.templateTitle} templateDescription={row.templateDescription} />
           <a href={row.url} target="_blank" rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="p-1 text-gray-400 hover:text-blue-600 transition" title="Open page">
@@ -1034,14 +1415,24 @@ function CityRowItem({ row, onSave, onReset }: {
 
 // ── Main admin page ────────────────────────────────────────────────────────────
 export default function CityPagesAdmin() {
+  const [activeView, setActiveView] = useState<'cities' | 'states'>('cities');
+
+  // ── City state ───────────────────────────────────────────────────────────────
   const [rows, setRows] = useState<CityRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [cityLoading, setCityLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterState, setFilterState] = useState('');
   const [filterTier, setFilterTier] = useState('');
   const [filterOverride, setFilterOverride] = useState(false);
 
-  const buildRows = useCallback((overrides: Record<string, SeoOverride>) => {
+  // ── State state ──────────────────────────────────────────────────────────────
+  const [stateRows, setStateRows] = useState<StateRow[]>([]);
+  const [stateLoading, setStateLoading] = useState(true);
+  const [stateSearch, setStateSearch] = useState('');
+  const [stateFilterOverride, setStateFilterOverride] = useState(false);
+
+  // ── City helpers ─────────────────────────────────────────────────────────────
+  const buildCityRows = useCallback((overrides: Record<string, SeoOverride>) => {
     return ALL_CITIES.map((city): CityRow => {
       const pageId = `city:${city.slug}`;
       const seo = CITY_SEO[city.slug];
@@ -1062,44 +1453,91 @@ export default function CityPagesAdmin() {
     });
   }, []);
 
-  const fetchOverrides = useCallback(async () => {
-    setLoading(true);
+  const fetchCityOverrides = useCallback(async () => {
+    setCityLoading(true);
     try {
       const res = await fetch('/api/admin/seo/city-page-overrides');
       const data = res.ok ? await res.json() : { overrides: {} };
-      setRows(buildRows(data.overrides || {}));
+      setRows(buildCityRows(data.overrides || {}));
     } catch {
-      setRows(buildRows({}));
+      setRows(buildCityRows({}));
     } finally {
-      setLoading(false);
+      setCityLoading(false);
     }
-  }, [buildRows]);
+  }, [buildCityRows]);
 
-  useEffect(() => { fetchOverrides(); }, [fetchOverrides]);
-
-  const handleSave = async (pageId: string, edit: EditState) => {
-    await fetch('/api/admin/seo/page-meta', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+  // ── State helpers ────────────────────────────────────────────────────────────
+  const buildStateRows = useCallback((overrides: Record<string, SeoOverride>) => {
+    return INDIAN_STATES.map((state): StateRow => {
+      const pageId = `state:${state.slug}`;
+      return {
+        stateName: state.name,
+        stateCode: state.code,
+        stateSlug: state.slug,
         pageId,
-        metaTitle: edit.metaTitle,
-        metaDescription: edit.metaDescription,
-        metaKeywords: edit.metaKeywords,
-        pageHeading: edit.pageHeading,
-        pageDescription: edit.pageDescription,
-        sectionsConfig: JSON.stringify(edit.sections),
-      }),
+        url: `/${state.slug}`,
+        templateTitle: `Vehicle Rentals in ${state.name} | Car, Bike, Bus, Cab & More — TransRentals`,
+        templateDescription: `Rent cars, bikes, buses, luxury vehicles & more across ${state.name}. Self-drive & chauffeur-driven options. Compare quotes from 500+ verified vendors. Best prices guaranteed!`,
+        templateKeywords: [`vehicle rental ${state.name}`, `car rental ${state.name}`, `bike rental ${state.name}`, `bus rental ${state.name}`, `self drive ${state.name}`, `outstation cab ${state.name}`].join(', '),
+        templateHeading: `Vehicle Rentals in ${state.name}`,
+        templatePageDescription: `Book cars, bikes, buses & more across ${state.name}. Compare quotes from verified vendors. Best prices guaranteed.`,
+        override: overrides[pageId] ?? null,
+      };
     });
-    await fetchOverrides();
+  }, []);
+
+  const fetchStateOverrides = useCallback(async () => {
+    setStateLoading(true);
+    try {
+      const res = await fetch('/api/admin/seo/state-page-overrides');
+      const data = res.ok ? await res.json() : { overrides: {} };
+      setStateRows(buildStateRows(data.overrides || {}));
+    } catch {
+      setStateRows(buildStateRows({}));
+    } finally {
+      setStateLoading(false);
+    }
+  }, [buildStateRows]);
+
+  useEffect(() => { fetchCityOverrides(); fetchStateOverrides(); }, [fetchCityOverrides, fetchStateOverrides]);
+
+  // ── Save / Reset (shared) ────────────────────────────────────────────────────
+  const handleSave = async (pageId: string, edit: EditState) => {
+    try {
+      const res = await fetch('/api/admin/seo/page-meta', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pageId,
+          metaTitle: edit.metaTitle,
+          metaDescription: edit.metaDescription,
+          metaKeywords: edit.metaKeywords,
+          pageHeading: edit.pageHeading,
+          pageDescription: edit.pageDescription,
+          sectionsConfig: JSON.stringify(edit.sections),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(`Save failed: ${err.error || res.statusText}`);
+        return;
+      }
+    } catch (e) {
+      alert(`Save failed: ${e}`);
+      return;
+    }
+    if (pageId.startsWith('city:')) await fetchCityOverrides();
+    else await fetchStateOverrides();
   };
 
   const handleReset = async (pageId: string) => {
     await fetch(`/api/admin/seo/page-meta?pageId=${encodeURIComponent(pageId)}`, { method: 'DELETE' });
-    await fetchOverrides();
+    if (pageId.startsWith('city:')) await fetchCityOverrides();
+    else await fetchStateOverrides();
   };
 
-  const filtered = rows.filter((row) => {
+  // ── City filters ─────────────────────────────────────────────────────────────
+  const filteredCities = rows.filter((row) => {
     if (filterOverride && !row.override) return false;
     if (filterTier && String(row.cityTier) !== filterTier) return false;
     if (filterState) {
@@ -1113,7 +1551,18 @@ export default function CityPagesAdmin() {
     return true;
   });
 
-  const customCount = rows.filter(r => r.override).length;
+  // ── State filters ────────────────────────────────────────────────────────────
+  const filteredStates = stateRows.filter((row) => {
+    if (stateFilterOverride && !row.override) return false;
+    if (stateSearch) {
+      const q = stateSearch.toLowerCase();
+      return row.stateName.toLowerCase().includes(q) || row.stateCode.toLowerCase().includes(q) || row.stateSlug.includes(q);
+    }
+    return true;
+  });
+
+  const cityCustomCount = rows.filter(r => r.override).length;
+  const stateCustomCount = stateRows.filter(r => r.override).length;
   const uniqueStateCodes = [...new Set(ALL_CITIES.map(c => c.stateCode))].sort();
 
   return (
@@ -1121,72 +1570,150 @@ export default function CityPagesAdmin() {
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
           <MapPin className="w-6 h-6 text-blue-600" />
-          <h1 className="text-2xl font-bold text-gray-900">City Pages</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Location Pages</h1>
         </div>
         <p className="text-gray-500 text-sm">
-          Manage heading, description, SEO and section content for city landing pages (e.g. /ahmedabad, /mumbai)
+          Manage heading, description, SEO and section content for city and state landing pages.
         </p>
-        <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
-          <span>{rows.length} cities total</span>
-          {customCount > 0 && <span className="text-blue-600 font-semibold">{customCount} customised</span>}
-        </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-5">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search city or state..."
-            className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        <select
-          value={filterState}
-          onChange={(e) => setFilterState(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
-        >
-          <option value="">All States</option>
-          {uniqueStateCodes.map(code => {
-            const state = INDIAN_STATES.find(s => s.code === code);
-            return <option key={code} value={code}>{state?.name || code}</option>;
-          })}
-        </select>
-        <select
-          value={filterTier}
-          onChange={(e) => setFilterTier(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
-        >
-          <option value="">All Tiers</option>
-          <option value="1">Tier 1 (Metro)</option>
-          <option value="2">Tier 2</option>
-          <option value="3">Tier 3</option>
-          <option value="4">Tier 4</option>
-          <option value="5">Tier 5</option>
-        </select>
+      {/* View tabs */}
+      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit">
         <button
-          onClick={() => setFilterOverride(!filterOverride)}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition ${filterOverride ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+          onClick={() => setActiveView('cities')}
+          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition ${activeView === 'cities' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
         >
-          <Filter className="w-3.5 h-3.5" />
-          Customised only
+          🏙️ Cities
+          <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeView === 'cities' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-500'}`}>
+            {rows.length}
+          </span>
+          {cityCustomCount > 0 && (
+            <span className="text-xs px-1.5 py-0.5 bg-blue-600 text-white rounded-full">{cityCustomCount}</span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveView('states')}
+          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-semibold transition ${activeView === 'states' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          🗺️ States & UTs
+          <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeView === 'states' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-200 text-gray-500'}`}>
+            {stateRows.length}
+          </span>
+          {stateCustomCount > 0 && (
+            <span className="text-xs px-1.5 py-0.5 bg-emerald-600 text-white rounded-full">{stateCustomCount}</span>
+          )}
         </button>
       </div>
 
-      <p className="text-xs text-gray-400 mb-3">Showing {filtered.length} of {rows.length} cities</p>
+      {/* ── Cities view ─────────────────────────────────────────────────────── */}
+      {activeView === 'cities' && (
+        <>
+          <div className="flex items-center gap-4 mb-4 text-sm text-gray-500">
+            <span>{rows.length} cities total</span>
+            {cityCustomCount > 0 && <span className="text-blue-600 font-semibold">{cityCustomCount} customised</span>}
+          </div>
 
-      {loading ? (
-        <div className="text-center py-16 text-gray-400">Loading city pages...</div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">No cities match your filters.</div>
-      ) : (
-        <div>
-          {filtered.map(row => (
-            <CityRowItem key={row.pageId} row={row} onSave={handleSave} onReset={handleReset} />
-          ))}
-        </div>
+          {/* City filters */}
+          <div className="flex flex-wrap gap-3 mb-5">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search city or state..."
+                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <select
+              value={filterState}
+              onChange={(e) => setFilterState(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <option value="">All States</option>
+              {uniqueStateCodes.map(code => {
+                const state = INDIAN_STATES.find(s => s.code === code);
+                return <option key={code} value={code}>{state?.name || code}</option>;
+              })}
+            </select>
+            <select
+              value={filterTier}
+              onChange={(e) => setFilterTier(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <option value="">All Tiers</option>
+              <option value="1">Tier 1 (Metro)</option>
+              <option value="2">Tier 2</option>
+              <option value="3">Tier 3</option>
+              <option value="4">Tier 4</option>
+              <option value="5">Tier 5</option>
+            </select>
+            <button
+              onClick={() => setFilterOverride(!filterOverride)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition ${filterOverride ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+            >
+              <Filter className="w-3.5 h-3.5" />
+              Customised only
+            </button>
+          </div>
+
+          <p className="text-xs text-gray-400 mb-3">Showing {filteredCities.length} of {rows.length} cities</p>
+
+          {cityLoading ? (
+            <div className="text-center py-16 text-gray-400">Loading city pages...</div>
+          ) : filteredCities.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">No cities match your filters.</div>
+          ) : (
+            <div>
+              {filteredCities.map(row => (
+                <CityRowItem key={row.pageId} row={row} onSave={handleSave} onReset={handleReset} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── States view ─────────────────────────────────────────────────────── */}
+      {activeView === 'states' && (
+        <>
+          <div className="flex items-center gap-4 mb-4 text-sm text-gray-500">
+            <span>{stateRows.length} states & UTs total</span>
+            {stateCustomCount > 0 && <span className="text-emerald-600 font-semibold">{stateCustomCount} customised</span>}
+          </div>
+
+          {/* State filters */}
+          <div className="flex flex-wrap gap-3 mb-5">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                value={stateSearch}
+                onChange={(e) => setStateSearch(e.target.value)}
+                placeholder="Search state name..."
+                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+            </div>
+            <button
+              onClick={() => setStateFilterOverride(!stateFilterOverride)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition ${stateFilterOverride ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+            >
+              <Filter className="w-3.5 h-3.5" />
+              Customised only
+            </button>
+          </div>
+
+          <p className="text-xs text-gray-400 mb-3">Showing {filteredStates.length} of {stateRows.length} states & UTs</p>
+
+          {stateLoading ? (
+            <div className="text-center py-16 text-gray-400">Loading state pages...</div>
+          ) : filteredStates.length === 0 ? (
+            <div className="text-center py-16 text-gray-400">No states match your filters.</div>
+          ) : (
+            <div>
+              {filteredStates.map(row => (
+                <StateRowItem key={row.pageId} row={row} onSave={handleSave} onReset={handleReset} />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
