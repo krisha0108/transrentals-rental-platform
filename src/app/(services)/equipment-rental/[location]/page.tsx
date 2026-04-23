@@ -310,12 +310,6 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
 
       <WhyRentHere locationName={locationName} />
 
-      <PopularRoutes
-        location={locationName}
-        locationSlug={params.location}
-        serviceSlug="equipment-rental"
-      />
-
       <FAQSection service="equipment-rental" location={locationName} />
 
       <NearbyLocations

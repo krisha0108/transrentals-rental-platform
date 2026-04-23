@@ -10,9 +10,15 @@ interface PopularRoutesProps {
   serviceSlug?: string;
 }
 
+// Only these services have relevant chauffeur/outstation route data in DB
+const CHAUFFEUR_SERVICES = new Set([
+  'chauffeur', 'chauffeur-service', 'airport-transfer',
+  'outstation-cab', 'outstation-car-rental', 'one-way-cab',
+]);
+
 export async function PopularRoutes({ location, locationSlug, serviceSlug = 'bike-on-rent' }: PopularRoutesProps) {
-  // Try DB first
-  const dbRoutes = locationSlug ? await prisma.chauffeur_route_packages.findMany({
+  // Only query chauffeur_route_packages for relevant services
+  const dbRoutes = locationSlug && CHAUFFEUR_SERVICES.has(serviceSlug) ? await prisma.chauffeur_route_packages.findMany({
     where: {
       isActive: true,
       isPopular: true,
