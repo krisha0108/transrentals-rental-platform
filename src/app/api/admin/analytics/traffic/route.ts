@@ -26,13 +26,12 @@ export async function GET(request: NextRequest) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    // Fetch page view data (capped to avoid memory/timeout on large datasets)
+    // Fetch page view data — limited to 5000 most recent, only needed fields
     const pageViews = await prisma.page_views.findMany({
-      where: {
-        createdAt: { gte: startDate },
-      },
+      where: { createdAt: { gte: startDate } },
       orderBy: { createdAt: 'desc' },
-      take: 50000,
+      take: 5000,
+      select: { path: true, duration: true, device: true, referrer: true, sessionId: true, ipAddress: true, browser: true, city: true, country: true, createdAt: true },
     });
 
     // Calculate overview metrics

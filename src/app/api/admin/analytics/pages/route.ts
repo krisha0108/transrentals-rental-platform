@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       prisma.page_views.findMany({
         where: dateFilter,
         orderBy: { createdAt: 'desc' },
-        take: 50000, // cap to avoid memory/timeout issues on large datasets
+        take: 5000,
       }),
       prisma.page_analytics.findMany({
         where: { date: { gte: startDate, lte: now } },
