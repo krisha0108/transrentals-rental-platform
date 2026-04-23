@@ -276,12 +276,6 @@ export default async function TransporterLocationPage({ params }: PageProps) {
 
       <WhyRentHere locationName={locationName} />
 
-      <PopularRoutes
-        location={locationName}
-        locationSlug={params.location}
-        serviceSlug="transporter"
-      />
-
       <FAQSection service="transporter" location={locationName} />
 
       <NearbyLocations
