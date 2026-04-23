@@ -11,6 +11,16 @@ import { prisma } from '@/lib/db/prisma';
 import { getCarRentalServiceId, getLocationId } from '@/lib/db/build-cache';
 import { LocalTaxiPackages } from '@/components/local-taxi/LocalTaxiPackages';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
+
+const COMING_SOON_SLUGS = new Set([
+  'bhavnagar',
+  'goa',
+  'Goa',
+  'pune',
+  'thrissur',
+  'vrindavan',
+]);
 
 interface PageProps {
   params: {
@@ -72,7 +82,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function LocalTaxiLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('local-taxi', params.location);
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') {
+    if (COMING_SOON_SLUGS.has(params.location)) {
+      const cityName = getCityBySlug(params.location)?.name ??
+        params.location.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return (
+        <ServiceComingSoon
+          serviceName="Local Taxi"
+          serviceSlug="local-taxi"
+          locationName={cityName}
+          locationSlug={params.location}
+        />
+      );
+    }
+    permanentRedirect(pageContext.to);
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="local-taxi" serviceName="Local Taxi" />;
   const city = pageContext.city;
   // Fallback: getAllCities().find(c => c.slug === params.location);

@@ -11,6 +11,96 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import { OutstationCabSection } from '@/components/outstation-cab/OutstationCabSection';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
+
+const COMING_SOON_SLUGS = new Set([
+  'ahmedabad-ajmer-roundtrip',
+  'bhilai-raipur-roundtrip',
+  'chennai-puducherry-roundtrip',
+  'durgapur-kolkata-roundtrip',
+  'hyderabad-adilabad-roundtrip',
+  'jamshedpur-kolkata-roundtrip',
+  'mumbai-surat-roundtrip',
+  'vadodara-ahmedabad-roundtrip',
+  'vadodara-surat-roundtrip',
+  'ahmedabad-aizawl-roundtrip',
+  'ahmedabad-ambala-roundtrip',
+  'ahmedabad-mumbai-roundtrip',
+  'ambarnath-mumbai-roundtrip',
+  'ankleshwar-surat-roundtrip',
+  'aurangabad-mumbai-roundtrip',
+  'bangalore-adilabad-roundtrip',
+  'bangalore-hyderabad-roundtrip',
+  'bharuch-ahmedabad-roundtrip',
+  'delhi-panipat-roundtrip',
+  'hyderabad-aligarh-roundtrip',
+  'jalgaon-nashik-roundtrip',
+  'jamnagar-amreli-roundtrip',
+  'korba-raipur-roundtrip',
+  'mumbai-ambala-roundtrip',
+  'nagpur-nashik-roundtrip',
+  'nashik-nagpur-roundtrip',
+  'nashik-navi-mumbai-roundtrip',
+  'pune-aizawl-roundtrip',
+  'rajkot-nadiad-roundtrip',
+  'ranchi-patna-roundtrip',
+  'sikar-jaipur-roundtrip',
+  'surat-mumbai-roundtrip',
+  'ujjain-mumbai-roundtrip',
+  'vadodara-anand-roundtrip',
+  'ahmedabad-airport-amd-ahmedabad-roundtrip',
+  'ahmedabad-alipurduar-roundtrip',
+  'ahmedabad-anand-roundtrip',
+  'bangalore-aligarh-roundtrip',
+  'bangalore-amravati-roundtrip',
+  'bharuch-vadodara-roundtrip',
+  'chennai-bangalore-roundtrip',
+  'indore-nashik-roundtrip',
+  'jammu-and-kashmir-pathankot-roundtrip',
+  'jamnagar-rajkot-roundtrip',
+  'kolkata-ambala-roundtrip',
+  'mumbai-aizawl-roundtrip',
+  'mumbai-alwar-roundtrip',
+  'nagpur-raipur-roundtrip',
+  'raipur-nagpur-roundtrip',
+  'rajkot-vadodara-roundtrip',
+  'shimla-noida-roundtrip',
+  'tiruppur-coimbatore-roundtrip',
+  'vapi-ahmedabad-roundtrip',
+  'ahmedabad-ahmedabad-airport-amd-roundtrip',
+  'bangalore-ajmer-roundtrip',
+  'bangalore-almora-roundtrip',
+  'hyderabad-alipurduar-roundtrip',
+  'pune-alipurduar-roundtrip',
+  'bilaspur-chhattisgarh-raipur-roundtrip',
+  'kolkata-akola-roundtrip',
+  'purnia-patna-roundtrip',
+  'surat-ahmedabad-roundtrip',
+  'surat-vadodara-roundtrip',
+  'thoothukudi-madurai-roundtrip',
+  'bangalore-agartala-roundtrip',
+  'bangalore-aizawl-roundtrip',
+  'bangalore-amritsar-roundtrip',
+  'bangalore-chennai-roundtrip',
+  'dehradun-noida-roundtrip',
+  'kochi-ahmednagar-roundtrip',
+  'latur-mumbai-roundtrip',
+  'mahabaleshwar-mumbai-roundtrip',
+  'mumbai-ajmer-roundtrip',
+  'nagpur-mumbai-roundtrip',
+  'pune-ambala-roundtrip',
+  'pune-amravati-roundtrip',
+  'shirdi-aurangabad-roundtrip',
+  'udaipur-rajasthan-anand-roundtrip',
+]);
+
+function slugToRouteLabel(slug: string): string {
+  return slug
+    .replace(/-roundtrip$/, '')
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
 
 interface PageProps {
   params: {
@@ -72,7 +162,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function OutstationCabLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('outstation-cab', params.location);
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') {
+    if (COMING_SOON_SLUGS.has(params.location)) {
+      return (
+        <ServiceComingSoon
+          serviceName="Outstation Cab"
+          serviceSlug="outstation-cab"
+          locationName={slugToRouteLabel(params.location)}
+          locationSlug={params.location}
+        />
+      );
+    }
+    permanentRedirect(pageContext.to);
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="outstation-cab" serviceName="Outstation Cab" />;
   const city = pageContext.city;
   // Fallback: getAllCities().find(c => c.slug === params.location);

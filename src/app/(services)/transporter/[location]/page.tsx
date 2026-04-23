@@ -19,6 +19,15 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { getCachedServiceBySlug } from '@/lib/services/cached-service-lookups';
 import { getServiceLocations } from '@/lib/services/service-locations';
 
+const COMING_SOON_SLUGS = new Set([
+  'logistics-company-in-bhiwandi',
+  'logistics-company-in-kolkata',
+  'Nellore',
+  'nellore',
+  'bhayandar',
+  'dehradun',
+]);
+
 interface PageProps {
   params: {
     location: string;
@@ -60,7 +69,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function TransporterLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('transporter', params.location, { comingSoonIfUnavailable: true });
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') {
+    if (COMING_SOON_SLUGS.has(params.location)) {
+      const cityName = params.location.replace('logistics-company-in-', '')
+        .split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return (
+        <>
+          <div className="bg-gray-50 border-b border-gray-200">
+            <div className="container-custom py-3">
+              <nav className="text-sm text-gray-600">
+                <a href="/" className="hover:text-primary">Home</a>
+                <span className="mx-2">/</span>
+                <a href="/transporter" className="hover:text-primary">Truck & Tempo Rental</a>
+                <span className="mx-2">/</span>
+                <span className="text-gray-900 font-medium">{cityName}</span>
+              </nav>
+            </div>
+          </div>
+          <ComingSoonHero
+            city={cityName}
+            citySlug={params.location}
+            serviceSlug="transporter"
+            serviceName="Truck & Tempo Rental"
+            themeColor="red"
+          />
+        </>
+      );
+    }
+    permanentRedirect(pageContext.to);
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="transporter" serviceName="Transporter" />;
   if (pageContext.type === 'coming-soon') {
     const cityName = pageContext.city.name;

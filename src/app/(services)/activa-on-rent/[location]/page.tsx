@@ -16,6 +16,13 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { ComingSoonHero } from '@/components/services/ComingSoonHero';
+
+const COMING_SOON_SLUGS = new Set([
+  'margao',
+  'kanyakumari',
+  'mussoorie',
+]);
 
 interface PageProps {
   params: {
@@ -99,7 +106,35 @@ const schemaVehicles = [
 
 export default async function ActivaLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('bike-on-rent', params.location);
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') {
+    if (COMING_SOON_SLUGS.has(params.location)) {
+      const cityName = getCityBySlug(params.location)?.name ??
+        params.location.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return (
+        <>
+          <div className="bg-gray-50 border-b border-gray-200">
+            <div className="container-custom py-3">
+              <nav className="text-sm text-gray-600">
+                <a href="/" className="hover:text-primary">Home</a>
+                <span className="mx-2">/</span>
+                <a href="/activa-on-rent" className="hover:text-primary">Activa on Rent</a>
+                <span className="mx-2">/</span>
+                <span className="text-gray-900 font-medium">{cityName}</span>
+              </nav>
+            </div>
+          </div>
+          <ComingSoonHero
+            city={cityName}
+            citySlug={params.location}
+            serviceSlug="activa-on-rent"
+            serviceName="Activa on Rent"
+            themeColor="emerald"
+          />
+        </>
+      );
+    }
+    permanentRedirect(pageContext.to);
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="activa-on-rent" serviceName="Activa on Rent" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
