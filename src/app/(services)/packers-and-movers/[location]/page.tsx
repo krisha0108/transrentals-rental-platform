@@ -22,6 +22,7 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 const COMING_SOON_SLUGS = new Set([
   'okhla',
   'panihati',
+  'yapral',
 ]);
 
 interface PageProps {

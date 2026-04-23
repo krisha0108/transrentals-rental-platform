@@ -86,6 +86,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/chauffeur', request.url), 301);
   }
 
+  // 301 redirect for /ahmdabad typo → correct /ahmedabad spelling
+  if (pathname.endsWith('/ahmdabad')) {
+    return NextResponse.redirect(new URL(pathname.replace('/ahmdabad', '/ahmedabad'), request.url), 301);
+  }
+
+  // 410 for vehicle names mistakenly used as location slugs in /transporter/*
+  if (pathname.startsWith('/transporter/') && pathname.includes('-on-rent')) {
+    return new NextResponse(null, { status: 410 });
+  }
+
   // Handle CORS preflight requests for API routes
   if (request.method === 'OPTIONS' && pathname.startsWith('/api/')) {
     return new NextResponse(null, {
