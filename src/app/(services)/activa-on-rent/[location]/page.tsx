@@ -200,14 +200,6 @@ export default async function ActivaLocationPage({ params }: PageProps) {
 
   return (
     <>
-      
-      <CityContentSection
-        citySlug={params.location}
-        serviceSlug="activa-on-rent"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
-
       {/* Schema Markup for SEO */}
       <BikeServiceSchema
         serviceName={`Activa on Rent in ${locationName}`}
@@ -279,6 +271,13 @@ export default async function ActivaLocationPage({ params }: PageProps) {
       />
 
       <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
+
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="activa-on-rent"
+        cityName={locationName}
+        stateCode={city?.stateCode}
+      />
 
       <NearbyLocations
         locationSlug={params.location}
