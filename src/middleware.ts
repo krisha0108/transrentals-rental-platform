@@ -96,12 +96,6 @@ export async function middleware(request: NextRequest) {
     return new NextResponse(null, { status: 410 });
   }
 
-  // 410 for airport codes used as city slugs (e.g. ahmedabad-airport-amd)
-  if (/\/[a-z-]+-airport-[a-z]{3}$/.test(pathname)) {
-    return new NextResponse(null, { status: 410 });
-  }
-
-
   // Handle CORS preflight requests for API routes
   if (request.method === 'OPTIONS' && pathname.startsWith('/api/')) {
     return new NextResponse(null, {
