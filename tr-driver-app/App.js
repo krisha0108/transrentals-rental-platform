@@ -3,7 +3,7 @@ import { NavigationContainer, createNavigationContainerRef } from '@react-naviga
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar, Modal, Linking } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar, Modal, Linking, Platform, PermissionsAndroid } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { getMessaging, getToken, onMessage, onTokenRefresh, setBackgroundMessageHandler, onNotificationOpenedApp, getInitialNotification } from '@react-native-firebase/messaging';
@@ -310,11 +310,25 @@ export default function App() {
   useEffect(() => {
     async function checkPermission() {
       try {
-        const settings = await notifee.getNotificationSettings();
-        const isGranted = settings.authorizationStatus === AuthorizationStatus.AUTHORIZED
-          || settings.authorizationStatus === AuthorizationStatus.PROVISIONAL;
-        if (!isGranted) {
-          // Small delay so splash/navigation settles first
+        let needsPermission = false;
+
+        if (Platform.OS === 'android') {
+          if (Platform.Version >= 33) {
+            // Android 13+ — POST_NOTIFICATIONS is a runtime permission
+            const granted = await PermissionsAndroid.check(
+              PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+            );
+            needsPermission = !granted;
+          }
+          // Android < 13 — notifications allowed by default, no permission needed
+        } else {
+          // iOS — use notifee
+          const settings = await notifee.getNotificationSettings();
+          needsPermission = settings.authorizationStatus !== AuthorizationStatus.AUTHORIZED
+            && settings.authorizationStatus !== AuthorizationStatus.PROVISIONAL;
+        }
+
+        if (needsPermission) {
           setTimeout(() => setShowNotifModal(true), 1500);
         }
       } catch {}
@@ -325,12 +339,21 @@ export default function App() {
   async function handleEnableNotifications() {
     setShowNotifModal(false);
     try {
-      const settings = await notifee.requestPermission();
-      const isGranted = settings.authorizationStatus === AuthorizationStatus.AUTHORIZED
-        || settings.authorizationStatus === AuthorizationStatus.PROVISIONAL;
-      if (!isGranted) {
-        // User denied — open app settings so they can enable manually
-        Linking.openSettings();
+      if (Platform.OS === 'android') {
+        if (Platform.Version >= 33) {
+          const result = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+          );
+          if (result !== PermissionsAndroid.RESULTS.GRANTED) {
+            Linking.openSettings();
+          }
+        }
+      } else {
+        // iOS
+        const settings = await notifee.requestPermission();
+        const isGranted = settings.authorizationStatus === AuthorizationStatus.AUTHORIZED
+          || settings.authorizationStatus === AuthorizationStatus.PROVISIONAL;
+        if (!isGranted) Linking.openSettings();
       }
     } catch {}
   }
@@ -342,6 +365,15 @@ export default function App() {
     async function setupFCM() {
       try {
         await setupNotificationChannel();
+
+        // Request POST_NOTIFICATIONS permission on Android 13+
+        if (Platform.OS === 'android' && Platform.Version >= 33) {
+          try {
+            await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+            );
+          } catch {}
+        }
 
         const messagingInstance = getMessaging();
 

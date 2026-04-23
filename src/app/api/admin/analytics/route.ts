@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
+import { getCached, setCached, buildCacheKey } from '@/lib/utils/analytics-cache';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -19,6 +20,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const range = searchParams.get('range') || '7d';
     const section = searchParams.get('section') || 'all';
+
+    // Return cached response if available (5 min TTL)
+    const cacheKey = buildCacheKey('analytics', { range, section });
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return NextResponse.json({ ...cached, _cached: true });
+    }
 
     // Calculate date range
     const now = new Date();
@@ -390,8 +398,7 @@ export async function GET(request: NextRequest) {
         createdAt: c.createdAt,
       }));
 
-    return NextResponse.json({
-      // Summary stats
+    const responseData = {
       summary: {
         totalViews,
         uniqueVisitors,
@@ -400,52 +407,16 @@ export async function GET(request: NextRequest) {
         avgViewsPerDay: Math.round(totalViews / Math.max(chartData.length, 1)),
         activeVisitors: realTimeStats.activeVisitors,
       },
-
-      // Traffic analytics
-      traffic: {
-        deviceBreakdown: deviceCounts,
-        browserBreakdown: browserCounts,
-        trafficSources,
-        topPages,
-        topReferrers,
-        chartData,
-      },
-
-      // Form analytics
-      forms: {
-        stats: formStats,
-        topPages: topFormPages,
-        recent: recentForms,
-      },
-
-      // Chat/Shivi analytics
-      chat: {
-        stats: chatStats,
-        topPages: topChatPages,
-        recent: recentChats,
-      },
-
-      // Click analytics
-      clicks: {
-        stats: clickStats,
-      },
-
-      // Web Vitals / Performance
-      performance: {
-        vitals: vitalsStats,
-        pagesWithIssues,
-      },
-
-      // Real-time
+      traffic: { deviceBreakdown: deviceCounts, browserBreakdown: browserCounts, trafficSources, topPages, topReferrers, chartData },
+      forms: { stats: formStats, topPages: topFormPages, recent: recentForms },
+      chat: { stats: chatStats, topPages: topChatPages, recent: recentChats },
+      clicks: { stats: clickStats },
+      performance: { vitals: vitalsStats, pagesWithIssues },
       realTime: realTimeStats,
-
-      // Recent activity
-      recent: {
-        visits: recentVisits,
-        forms: recentForms,
-        chats: recentChats,
-      },
-    });
+      recent: { visits: recentVisits, forms: recentForms, chats: recentChats },
+    };
+    setCached(cacheKey, responseData);
+    return NextResponse.json(responseData);
   } catch (error) {
     logger.error('Error fetching analytics', error);
     return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 });

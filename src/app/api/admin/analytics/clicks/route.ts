@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
+import { getCached, setCached, buildCacheKey } from '@/lib/utils/analytics-cache';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const range = searchParams.get('range') || '7d';
+
+    const cacheKey = buildCacheKey('analytics:clicks', { range });
+    const cached = getCached(cacheKey);
+    if (cached) return NextResponse.json({ ...cached, _cached: true });
 
     // Calculate date range
     const now = new Date();
@@ -242,7 +247,7 @@ export async function GET(request: NextRequest) {
       clicks,
     }));
 
-    return NextResponse.json({
+    const result = {
       overview: {
         totalClicks,
         uniqueClicks: uniqueSessions,
@@ -260,7 +265,9 @@ export async function GET(request: NextRequest) {
       clickHeatmap,
       deviceClicks,
       hourlyClicks: hourlyClicksArray,
-    });
+    };
+    setCached(cacheKey, result);
+    return NextResponse.json(result);
   } catch (error) {
     logger.error('Error fetching click analytics', error);
     return NextResponse.json(

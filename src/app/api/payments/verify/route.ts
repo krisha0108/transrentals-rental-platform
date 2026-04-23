@@ -485,7 +485,7 @@ export async function POST(request: NextRequest) {
             token,
             { title: notifTitle, body: notifBody },
             { type: 'new_available_booking', bookingId: booking.id, source: 'chauffeur' },
-            { channelId: 'booking_confirmed_channel', sound: 'booking_confirmed' }
+            { channelId: 'driver_default', sound: 'notification_sound' }
           ).catch(() => {});
         }
       } catch (driverNotifErr) {
