@@ -106,22 +106,6 @@ export async function middleware(request: NextRequest) {
     return new NextResponse(null, { status: 410 });
   }
 
-  // 410 for old/removed service routes that no longer exist
-  const DEAD_SERVICE_PREFIXES = [
-    '/26-seater-bus/',
-    '/generator-on-rent/',
-    '/sports-car-rental/',
-    '/wedding-bus-rental/',
-    '/wedding-car-rental/',
-    '/self-drive-car-rentals/',
-    '/self-drive-hatchback-rental/',
-    '/12-seater-tempo-traveller/',
-    '/17-seater-tempo-traveller/',
-    '/20-seater-tempo-traveller/',
-  ];
-  if (DEAD_SERVICE_PREFIXES.some(prefix => pathname.startsWith(prefix))) {
-    return new NextResponse(null, { status: 410 });
-  }
 
   // Handle CORS preflight requests for API routes
   if (request.method === 'OPTIONS' && pathname.startsWith('/api/')) {
