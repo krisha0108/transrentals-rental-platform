@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
+import { getCached, setCached, buildCacheKey } from '@/lib/utils/analytics-cache';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,11 @@ export async function GET(request: NextRequest) {
     const formType = searchParams.get('type') || 'all';
 
     const days = range === '1d' ? 1 : range === '30d' ? 30 : 7;
+
+    const cacheKey = buildCacheKey('analytics:forms', { range, formType });
+    const cached = getCached(cacheKey);
+    if (cached) return NextResponse.json({ ...cached, _cached: true });
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -109,7 +115,7 @@ export async function GET(request: NextRequest) {
       completionTime: s.timeToFill || 0,
     }));
 
-    return NextResponse.json({
+    const result = {
       overview: {
         totalSubmissions,
         successfulSubmissions,
@@ -139,7 +145,9 @@ export async function GET(request: NextRequest) {
         { source: 'Referral', submissions: 143, conversions: 18, rate: 12.6 },
         { source: 'Paid Ads', submissions: 98, conversions: 14, rate: 14.3 },
       ],
-    });
+    };
+    setCached(cacheKey, result);
+    return NextResponse.json(result);
   } catch (error) {
     logger.error('Forms analytics error', error);
     // Return default data on error

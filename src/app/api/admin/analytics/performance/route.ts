@@ -4,6 +4,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 
+import { getCached, setCached, buildCacheKey } from '@/lib/utils/analytics-cache';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const range = searchParams.get('range') || '7d';
+
+    const cacheKey = buildCacheKey('analytics:performance', { range });
+    const cached = getCached(cacheKey);
+    if (cached) return NextResponse.json({ ...cached, _cached: true });
 
     // Calculate date range
     const now = new Date();
@@ -173,7 +178,7 @@ export async function GET(request: NextRequest) {
     // Recommendations
     const recommendations = generateRecommendations(coreWebVitals);
 
-    return NextResponse.json({
+    const result = {
       overview: {
         overallScore: overallScore || 78,
         pagesAudited: pagePerformance.length || 24,
@@ -186,7 +191,9 @@ export async function GET(request: NextRequest) {
       devicePerformance,
       issues,
       recommendations,
-    });
+    };
+    setCached(cacheKey, result);
+    return NextResponse.json(result);
   } catch (error) {
     logger.error('Error fetching performance data', error);
     // Return default data on error
