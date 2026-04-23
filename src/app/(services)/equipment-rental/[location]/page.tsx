@@ -28,6 +28,12 @@ function parseJsonField<T>(value: unknown, defaultValue: T): T {
   return value as T;
 }
 
+const COMING_SOON_SLUGS = new Set([
+  'equipment-rental-in-india',
+  'equipment-rental-technology',
+  'top-benefits-of-renting-construction-equipment-for-your-next-project',
+]);
+
 interface PageProps {
   params: {
     location: string;
@@ -72,7 +78,33 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function EquipmentLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('equipment-rental', params.location, { comingSoonIfUnavailable: true });
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') {
+    if (COMING_SOON_SLUGS.has(params.location)) {
+      return (
+        <>
+          <div className="bg-gray-50 border-b border-gray-200">
+            <div className="container-custom py-3">
+              <nav className="text-sm text-gray-600">
+                <a href="/" className="hover:text-primary">Home</a>
+                <span className="mx-2">/</span>
+                <a href="/equipment-rental" className="hover:text-primary">Equipment Rental</a>
+                <span className="mx-2">/</span>
+                <span className="text-gray-900 font-medium">Coming Soon</span>
+              </nav>
+            </div>
+          </div>
+          <ComingSoonHero
+            city="Equipment Rental"
+            citySlug={params.location}
+            serviceSlug="equipment-rental"
+            serviceName="Equipment Rental"
+            themeColor="blue"
+          />
+        </>
+      );
+    }
+    permanentRedirect(pageContext.to);
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="equipment-rental" serviceName="Equipment Rental" />;
   if (pageContext.type === 'coming-soon') {
     const cityName = pageContext.city.name;
