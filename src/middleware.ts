@@ -91,11 +91,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(pathname.replace('/ahmdabad', '/ahmedabad'), request.url), 301);
   }
 
-  // 410 for vehicle names mistakenly used as location slugs in /transporter/*
-  if (pathname.startsWith('/transporter/') && pathname.includes('-on-rent')) {
-    return new NextResponse(null, { status: 410 });
-  }
-
   // 410 for URLs with literal & in path — invalid URLs Google crawled
   if (pathname.includes('&')) {
     return new NextResponse(null, { status: 410 });
