@@ -6,6 +6,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar, Modal, Linking, Platform, PermissionsAndroid } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
+import '@react-native-firebase/app';
 import { getMessaging, getToken, onMessage, onTokenRefresh, setBackgroundMessageHandler, onNotificationOpenedApp, getInitialNotification, requestPermission, AuthorizationStatus as MessagingAuthStatus } from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance, AuthorizationStatus, EventType } from '@notifee/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,7 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const navigationRef = createNavigationContainerRef();
 
 import { AuthProvider } from './contexts/AuthContext';
-import { updateDriverFcmToken, getDriverAppVersion } from './screens/api/client';
+import { updateDriverFcmToken, getDriverAppVersion, saveDriverBookingNotification } from './screens/api/client';
 
 import DeviceInfo from 'react-native-device-info';
 
@@ -250,11 +251,15 @@ function AppNavigator() {
   );
 }
 
-// Navigate to Bookings tab when a notification is tapped
-function navigateToBookings() {
+// Navigate based on notification data
+function navigateFromNotification(data) {
   try {
-    if (navigationRef.isReady()) {
-      navigationRef.navigate('Main', { screen: 'Bookings' });
+    if (!navigationRef.isReady()) return;
+    const type = data?.type;
+    if (type === 'new_available_booking') {
+      navigationRef.navigate('AvailableBookings');
+    } else {
+      navigationRef.navigate('Notifications');
     }
   } catch {}
 }
@@ -441,15 +446,25 @@ export default function App() {
           console.log('[FCM] Background message received:', JSON.stringify(remoteMessage));
           try {
             const { title, body } = remoteMessage.notification || {};
+            const data = remoteMessage.data || {};
+            // Save to notifications screen
+            saveDriverBookingNotification({
+              title: title || 'New Notification',
+              body: body || '',
+              bookingId: data.bookingId || null,
+              bookingNumber: data.bookingNumber || null,
+              type: data.type || null,
+              serviceType: data.serviceType || null,
+            }).catch(() => {});
             if (title) {
               await notifee.displayNotification({
                 title,
                 body: body || '',
-                android: { channelId: 'driver_default', smallIcon: 'ic_notification', pressAction: { id: 'default' } },
+                android: { channelId: 'driver_default', smallIcon: 'ic_notification', pressAction: { id: 'default' }, data },
               });
               console.log('[FCM] Background notification displayed');
             } else {
-              console.log('[FCM] Background message has no title — data only:', remoteMessage.data);
+              console.log('[FCM] Background message has no title — data only:', data);
             }
           } catch (e) { console.log('[FCM] Background display error:', e); }
         });
@@ -459,6 +474,16 @@ export default function App() {
           console.log('[FCM] Foreground message received:', JSON.stringify(remoteMessage));
           try {
             const { title, body } = remoteMessage.notification || {};
+            const data = remoteMessage.data || {};
+            // Save to notifications screen
+            saveDriverBookingNotification({
+              title: title || 'New Notification',
+              body: body || '',
+              bookingId: data.bookingId || null,
+              bookingNumber: data.bookingNumber || null,
+              type: data.type || null,
+              serviceType: data.serviceType || null,
+            }).catch(() => {});
             if (title) {
               await notifee.displayNotification({
                 title,
@@ -467,28 +492,31 @@ export default function App() {
               });
               console.log('[FCM] Foreground notification displayed');
             } else {
-              console.log('[FCM] Foreground message has no title — data only:', remoteMessage.data);
+              console.log('[FCM] Foreground message has no title — data only:', data);
             }
           } catch (e) { console.log('[FCM] Foreground display error:', e); }
         });
 
-        // Notifee tap handler
+        // Notifee tap handler (app in foreground)
         unsubNotifee = notifee.onForegroundEvent(({ type, detail }) => {
           console.log('[NOTIFEE] Foreground event type:', type, detail);
-          if (type === EventType.PRESS) navigateToBookings();
+          if (type === EventType.PRESS) {
+            const data = detail?.notification?.android?.data || detail?.notification?.data || {};
+            navigateFromNotification(data);
+          }
         });
 
         // Opened from background tap
         onNotificationOpenedApp(messagingInstance, (remoteMessage) => {
           console.log('[FCM] App opened from background notification:', remoteMessage?.notification?.title);
-          navigateToBookings();
+          navigateFromNotification(remoteMessage?.data || {});
         });
 
         // Opened from killed state
         getInitialNotification(messagingInstance).then(remoteMessage => {
           if (remoteMessage) {
             console.log('[FCM] App opened from killed state notification:', remoteMessage?.notification?.title);
-            setTimeout(() => navigateToBookings(), 1000);
+            setTimeout(() => navigateFromNotification(remoteMessage?.data || {}), 1000);
           }
         });
 
