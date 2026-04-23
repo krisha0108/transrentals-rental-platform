@@ -11,6 +11,11 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { TempoFleetSection } from '@/components/tempo-traveller/TempoFleetSection';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { ComingSoonHero } from '@/components/services/ComingSoonHero';
+
+const COMING_SOON_SLUGS = new Set([
+  'rohtak',
+]);
 
 interface PageProps {
   params: {
@@ -72,7 +77,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function TempoTravellerLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('tempo-traveller', params.location);
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') {
+    if (COMING_SOON_SLUGS.has(params.location)) {
+      const cityName = getCityBySlug(params.location)?.name ??
+        params.location.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return (
+        <>
+          <div className="bg-gray-50 border-b border-gray-200">
+            <div className="container-custom py-3">
+              <nav className="text-sm text-gray-600">
+                <a href="/" className="hover:text-primary">Home</a>
+                <span className="mx-2">/</span>
+                <a href="/tempo-traveller" className="hover:text-primary">Tempo Traveller</a>
+                <span className="mx-2">/</span>
+                <span className="text-gray-900 font-medium">{cityName}</span>
+              </nav>
+            </div>
+          </div>
+          <ComingSoonHero
+            city={cityName}
+            citySlug={params.location}
+            serviceSlug="tempo-traveller"
+            serviceName="Tempo Traveller"
+            themeColor="blue"
+          />
+        </>
+      );
+    }
+    permanentRedirect(pageContext.to);
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="tempo-traveller" serviceName="Tempo Traveller" />;
   const city = pageContext.city;
   const locationName = city.name;

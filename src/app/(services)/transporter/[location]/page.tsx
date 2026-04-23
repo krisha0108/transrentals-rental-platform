@@ -26,6 +26,9 @@ const COMING_SOON_SLUGS = new Set([
   'nellore',
   'bhayandar',
   'dehradun',
+  'vapi',
+  'logistics-service-in-gandhidham',
+  'gandhidham',
 ]);
 
 interface PageProps {
