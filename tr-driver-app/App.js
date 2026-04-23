@@ -261,14 +261,16 @@ function navigateToBookings() {
 
 async function setupNotificationChannel() {
   try {
+    console.log('[NOTIF] Creating notification channel...');
     await notifee.createChannel({
       id: 'driver_default',
       name: 'Driver Notifications',
       importance: AndroidImportance.HIGH,
       sound: 'notification_sound',
     });
+    console.log('[NOTIF] Channel driver_default created OK');
   } catch (e) {
-    console.log('Notifee channel setup failed:', e);
+    console.log('[NOTIF] Channel setup FAILED:', e);
   }
 }
 
@@ -311,63 +313,75 @@ export default function App() {
   useEffect(() => {
     async function checkPermission() {
       try {
-        // Only show once — track with AsyncStorage
+        console.log('[NOTIF] checkPermission start — OS:', Platform.OS, 'Version:', Platform.Version);
         const alreadyAsked = await AsyncStorage.getItem('notif_permission_asked');
-        if (alreadyAsked) return;
+        console.log('[NOTIF] alreadyAsked:', alreadyAsked);
+        if (alreadyAsked) {
+          console.log('[NOTIF] Already asked before, skipping modal');
+          return;
+        }
 
         let needsModal = false;
 
         if (Platform.OS === 'ios') {
           const settings = await notifee.getNotificationSettings();
+          console.log('[NOTIF] iOS authorizationStatus:', settings.authorizationStatus);
           needsModal = settings.authorizationStatus !== AuthorizationStatus.AUTHORIZED
             && settings.authorizationStatus !== AuthorizationStatus.PROVISIONAL;
         } else {
-          // Android 13+ — check runtime permission
           if (Platform.Version >= 33) {
             const granted = await PermissionsAndroid.check(
               PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
             );
+            console.log('[NOTIF] Android 13+ POST_NOTIFICATIONS already granted:', granted);
             needsModal = !granted;
           } else {
-            // Android < 13 — no system dialog needed but show custom modal
-            // to guide user and ensure FCM is initialized
+            console.log('[NOTIF] Android < 13 — will show modal to init FCM');
             needsModal = true;
           }
         }
 
+        console.log('[NOTIF] needsModal:', needsModal);
         if (needsModal) {
           setTimeout(() => setShowNotifModal(true), 1500);
         }
-      } catch {}
+      } catch (e) {
+        console.log('[NOTIF] checkPermission ERROR:', e);
+      }
     }
     checkPermission();
   }, []);
 
   async function handleEnableNotifications() {
+    console.log('[NOTIF] handleEnableNotifications called');
     setShowNotifModal(false);
     await AsyncStorage.setItem('notif_permission_asked', 'true');
     try {
       if (Platform.OS === 'android' && Platform.Version >= 33) {
-        // Android 13+ — show system dialog for POST_NOTIFICATIONS
+        console.log('[NOTIF] Requesting POST_NOTIFICATIONS (Android 13+)...');
         const result = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
         );
+        console.log('[NOTIF] POST_NOTIFICATIONS result:', result);
         if (result !== PermissionsAndroid.RESULTS.GRANTED) {
+          console.log('[NOTIF] Permission denied — opening settings');
           Linking.openSettings();
         }
       } else {
-        // Android < 13 + iOS — use Firebase messaging requestPermission
-        // On Android < 13 this just ensures FCM is initialized (no system dialog)
-        // On iOS this triggers the system permission dialog
+        console.log('[NOTIF] Calling Firebase requestPermission (Android <13 / iOS)...');
         const authStatus = await requestPermission(getMessaging());
+        console.log('[NOTIF] Firebase authStatus:', authStatus);
         const enabled =
           authStatus === MessagingAuthStatus.AUTHORIZED ||
           authStatus === MessagingAuthStatus.PROVISIONAL;
+        console.log('[NOTIF] Permission enabled:', enabled);
         if (!enabled && Platform.OS === 'ios') {
           Linking.openSettings();
         }
       }
-    } catch {}
+    } catch (e) {
+      console.log('[NOTIF] handleEnableNotifications ERROR:', e);
+    }
   }
 
   useEffect(() => {
@@ -376,83 +390,111 @@ export default function App() {
 
     async function setupFCM() {
       try {
+        console.log('[FCM] setupFCM start');
         await setupNotificationChannel();
 
-        // Ensure notification permission is granted before getting FCM token
+        // Ensure notification permission before getting token
         if (Platform.OS === 'android' && Platform.Version >= 33) {
           try {
-            await PermissionsAndroid.request(
-              PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-            );
-          } catch {}
+            const current = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+            console.log('[FCM] POST_NOTIFICATIONS already granted:', current);
+            if (!current) {
+              const res = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+              console.log('[FCM] POST_NOTIFICATIONS request result:', res);
+            }
+          } catch (e) { console.log('[FCM] Permission check/request error:', e); }
         } else if (Platform.OS !== 'android') {
-          // iOS — request via Firebase
-          try { await requestPermission(getMessaging()); } catch {}
+          try {
+            const s = await requestPermission(getMessaging());
+            console.log('[FCM] iOS requestPermission result:', s);
+          } catch (e) { console.log('[FCM] iOS permission error:', e); }
+        } else {
+          console.log('[FCM] Android < 13 — no POST_NOTIFICATIONS needed');
         }
 
         const messagingInstance = getMessaging();
+        console.log('[FCM] Got messaging instance');
 
-        // Save FCM token to backend (in case it refreshed since last login)
+        // Get and save FCM token
         try {
+          console.log('[FCM] Getting FCM token...');
           const token = await getToken(messagingInstance);
-          if (token) await updateDriverFcmToken(token);
-        } catch {}
-
-        // Token refresh handler — keep backend in sync
-        onTokenRefresh(messagingInstance, async (newToken) => {
-          try { await updateDriverFcmToken(newToken); } catch {}
-        });
-
-        // FCM background handler — display notification when app is in background
-        setBackgroundMessageHandler(messagingInstance, async (remoteMessage) => {
-          try {
-            const { title, body } = remoteMessage.notification || {};
-            if (title) {
-              await notifee.displayNotification({
-                title,
-                body: body || '',
-                android: { channelId: 'driver_default', smallIcon: 'ic_notification', pressAction: { id: 'default' } },
-              });
-            }
-          } catch {}
-        });
-
-        // FCM foreground handler — display notification when app is open
-        unsubForeground = onMessage(messagingInstance, async (remoteMessage) => {
-          try {
-            const { title, body } = remoteMessage.notification || {};
-            if (title) {
-              await notifee.displayNotification({
-                title,
-                body: body || '',
-                android: { channelId: 'driver_default', smallIcon: 'ic_notification', pressAction: { id: 'default' } },
-              });
-            }
-          } catch {}
-        });
-
-        // Notifee foreground event — handle tapping notification while app is open
-        unsubNotifee = notifee.onForegroundEvent(({ type }) => {
-          if (type === EventType.PRESS) {
-            navigateToBookings();
+          console.log('[FCM] Token received:', token ? token.substring(0, 30) + '...' : 'NULL');
+          if (token) {
+            const res = await updateDriverFcmToken(token);
+            console.log('[FCM] Token saved to backend:', res?.data);
+          } else {
+            console.log('[FCM] WARNING: No token received — notification will NOT work');
           }
+        } catch (e) {
+          console.log('[FCM] Token get/save ERROR:', e?.message || e);
+        }
+
+        // Token refresh
+        onTokenRefresh(messagingInstance, async (newToken) => {
+          console.log('[FCM] Token refreshed:', newToken.substring(0, 30) + '...');
+          try { await updateDriverFcmToken(newToken); } catch (e) { console.log('[FCM] Token refresh save error:', e); }
         });
 
-        // App opened from background by tapping an FCM notification
-        onNotificationOpenedApp(messagingInstance, () => {
+        // Background message handler
+        setBackgroundMessageHandler(messagingInstance, async (remoteMessage) => {
+          console.log('[FCM] Background message received:', JSON.stringify(remoteMessage));
+          try {
+            const { title, body } = remoteMessage.notification || {};
+            if (title) {
+              await notifee.displayNotification({
+                title,
+                body: body || '',
+                android: { channelId: 'driver_default', smallIcon: 'ic_notification', pressAction: { id: 'default' } },
+              });
+              console.log('[FCM] Background notification displayed');
+            } else {
+              console.log('[FCM] Background message has no title — data only:', remoteMessage.data);
+            }
+          } catch (e) { console.log('[FCM] Background display error:', e); }
+        });
+
+        // Foreground message handler
+        unsubForeground = onMessage(messagingInstance, async (remoteMessage) => {
+          console.log('[FCM] Foreground message received:', JSON.stringify(remoteMessage));
+          try {
+            const { title, body } = remoteMessage.notification || {};
+            if (title) {
+              await notifee.displayNotification({
+                title,
+                body: body || '',
+                android: { channelId: 'driver_default', smallIcon: 'ic_notification', pressAction: { id: 'default' } },
+              });
+              console.log('[FCM] Foreground notification displayed');
+            } else {
+              console.log('[FCM] Foreground message has no title — data only:', remoteMessage.data);
+            }
+          } catch (e) { console.log('[FCM] Foreground display error:', e); }
+        });
+
+        // Notifee tap handler
+        unsubNotifee = notifee.onForegroundEvent(({ type, detail }) => {
+          console.log('[NOTIFEE] Foreground event type:', type, detail);
+          if (type === EventType.PRESS) navigateToBookings();
+        });
+
+        // Opened from background tap
+        onNotificationOpenedApp(messagingInstance, (remoteMessage) => {
+          console.log('[FCM] App opened from background notification:', remoteMessage?.notification?.title);
           navigateToBookings();
         });
 
-        // App opened from killed state by tapping an FCM notification
+        // Opened from killed state
         getInitialNotification(messagingInstance).then(remoteMessage => {
           if (remoteMessage) {
-            // Delay to allow navigation to be ready
+            console.log('[FCM] App opened from killed state notification:', remoteMessage?.notification?.title);
             setTimeout(() => navigateToBookings(), 1000);
           }
         });
 
+        console.log('[FCM] setupFCM complete — all handlers registered');
       } catch (e) {
-        console.log('Firebase not configured:', e.message);
+        console.log('[FCM] setupFCM FATAL ERROR:', e.message, e);
       }
     }
 
