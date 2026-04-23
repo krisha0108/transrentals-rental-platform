@@ -105,7 +105,7 @@ const schemaVehicles = [
 ];
 
 export default async function ActivaLocationPage({ params }: PageProps) {
-  const pageContext = await resolveServicePage('bike-on-rent', params.location);
+  const pageContext = await resolveServicePage('activa-on-rent', params.location);
   if (pageContext.type === 'redirect') {
     if (COMING_SOON_SLUGS.has(params.location)) {
       const cityName = getCityBySlug(params.location)?.name ??

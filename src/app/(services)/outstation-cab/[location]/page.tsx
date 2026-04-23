@@ -14,6 +14,11 @@ import { RelatedServices } from '@/components/services/RelatedServices';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
 
 const COMING_SOON_SLUGS = new Set([
+  'ludhiana-noida-roundtrip',
+  'kolkata-aligarh-roundtrip',
+  'hyderabad-anand-roundtrip',
+  'mumbai-vadodara-roundtrip',
+  'udaipur-rajasthan-ahmedabad-roundtrip',
   'ahmedabad-ajmer-roundtrip',
   'bhilai-raipur-roundtrip',
   'chennai-puducherry-roundtrip',

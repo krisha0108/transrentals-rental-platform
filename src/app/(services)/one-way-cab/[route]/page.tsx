@@ -14,6 +14,12 @@ import { RouteFAQs } from '@/components/routes/RouteFAQs';
 
 // Routes not yet in DB — show Coming Soon instead of redirecting
 const COMING_SOON_SLUGS = new Set([
+  'chandigarh',
+  'anantapur-to-chennai',
+  'nashik',
+  'rameswaram',
+  'ajmer-to-bangalore',
+  'mumbai-to-mahabaleshwar',
   'ambala-to-pune',
   'amritsar-to-jalandhar',
   'bangalore-to-chikkaballapur',
@@ -120,6 +126,10 @@ const COMING_SOON_SLUGS = new Set([
   'khanna',
   'nashik-to-aurangabad',
   'noida-to-aligarh',
+  'rourkela',
+  'sindhudurg',
+  'vagator',
+  'panipat-to-delhi',
 ]);
 
 function slugToLabel(slug: string): string {
