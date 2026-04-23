@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
+import { getCached, setCached, buildCacheKey } from '@/lib/utils/analytics-cache';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,11 @@ export async function GET(request: NextRequest) {
     const range = searchParams.get('range') || '7d';
 
     const days = range === '1d' ? 1 : range === '30d' ? 30 : range === '90d' ? 90 : 7;
+
+    const cacheKey = buildCacheKey('analytics:chat', { range });
+    const cached = getCached(cacheKey);
+    if (cached) return NextResponse.json({ ...cached, _cached: true });
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
@@ -131,7 +137,7 @@ export async function GET(request: NextRequest) {
         createdAt: c.createdAt,
       }));
 
-    return NextResponse.json({
+    const result = {
       overview: {
         totalSessions,
         totalMessages,
@@ -146,7 +152,9 @@ export async function GET(request: NextRequest) {
       topPages,
       services,
       recentInteractions,
-    });
+    };
+    setCached(cacheKey, result);
+    return NextResponse.json(result);
   } catch (error) {
     logger.error('Chat analytics error', error);
     // Return default data on error
