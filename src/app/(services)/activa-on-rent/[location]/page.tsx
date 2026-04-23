@@ -9,7 +9,7 @@ import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -235,20 +235,11 @@ export default async function ActivaLocationPage({ params }: PageProps) {
         </div>
       </div>
 
-      <ServiceHeroWithChat
+      <BikeSearchHero
+        city={locationName}
+        citySlug={params.location}
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Activa Rental in ${locationName}`}
-        title="Activa & Scooty Rental"
-        titleHighlight="Starting @₹299/day"
-        description={`Rent Activa and scooters in ${locationName}. Honda Activa, TVS Jupiter, Suzuki Access available. Fuel efficient, automatic, perfect for city commute.`}
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Well Maintained', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Fuel Efficient', color: 'text-cyan-600' },
-        ]}
-        gradientFrom="cyan-50"
-        gradientTo="blue-50"
       />
 
       {/* Why Choose Activa */}
