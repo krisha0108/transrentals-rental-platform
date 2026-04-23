@@ -3,11 +3,12 @@ import { NavigationContainer, createNavigationContainerRef } from '@react-naviga
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar, Modal, Linking } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Animated, StatusBar, Modal, Linking, Platform, PermissionsAndroid } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
-import { getMessaging, getToken, onMessage, onTokenRefresh, setBackgroundMessageHandler, onNotificationOpenedApp, getInitialNotification } from '@react-native-firebase/messaging';
+import { getMessaging, getToken, onMessage, onTokenRefresh, setBackgroundMessageHandler, onNotificationOpenedApp, getInitialNotification, requestPermission, AuthorizationStatus as MessagingAuthStatus } from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance, AuthorizationStatus, EventType } from '@notifee/react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const navigationRef = createNavigationContainerRef();
 
@@ -310,11 +311,31 @@ export default function App() {
   useEffect(() => {
     async function checkPermission() {
       try {
-        const settings = await notifee.getNotificationSettings();
-        const isGranted = settings.authorizationStatus === AuthorizationStatus.AUTHORIZED
-          || settings.authorizationStatus === AuthorizationStatus.PROVISIONAL;
-        if (!isGranted) {
-          // Small delay so splash/navigation settles first
+        // Only show once — track with AsyncStorage
+        const alreadyAsked = await AsyncStorage.getItem('notif_permission_asked');
+        if (alreadyAsked) return;
+
+        let needsModal = false;
+
+        if (Platform.OS === 'ios') {
+          const settings = await notifee.getNotificationSettings();
+          needsModal = settings.authorizationStatus !== AuthorizationStatus.AUTHORIZED
+            && settings.authorizationStatus !== AuthorizationStatus.PROVISIONAL;
+        } else {
+          // Android 13+ — check runtime permission
+          if (Platform.Version >= 33) {
+            const granted = await PermissionsAndroid.check(
+              PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+            );
+            needsModal = !granted;
+          } else {
+            // Android < 13 — no system dialog needed but show custom modal
+            // to guide user and ensure FCM is initialized
+            needsModal = true;
+          }
+        }
+
+        if (needsModal) {
           setTimeout(() => setShowNotifModal(true), 1500);
         }
       } catch {}
@@ -324,13 +345,27 @@ export default function App() {
 
   async function handleEnableNotifications() {
     setShowNotifModal(false);
+    await AsyncStorage.setItem('notif_permission_asked', 'true');
     try {
-      const settings = await notifee.requestPermission();
-      const isGranted = settings.authorizationStatus === AuthorizationStatus.AUTHORIZED
-        || settings.authorizationStatus === AuthorizationStatus.PROVISIONAL;
-      if (!isGranted) {
-        // User denied — open app settings so they can enable manually
-        Linking.openSettings();
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+        // Android 13+ — show system dialog for POST_NOTIFICATIONS
+        const result = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+        );
+        if (result !== PermissionsAndroid.RESULTS.GRANTED) {
+          Linking.openSettings();
+        }
+      } else {
+        // Android < 13 + iOS — use Firebase messaging requestPermission
+        // On Android < 13 this just ensures FCM is initialized (no system dialog)
+        // On iOS this triggers the system permission dialog
+        const authStatus = await requestPermission(getMessaging());
+        const enabled =
+          authStatus === MessagingAuthStatus.AUTHORIZED ||
+          authStatus === MessagingAuthStatus.PROVISIONAL;
+        if (!enabled && Platform.OS === 'ios') {
+          Linking.openSettings();
+        }
       }
     } catch {}
   }
@@ -342,6 +377,18 @@ export default function App() {
     async function setupFCM() {
       try {
         await setupNotificationChannel();
+
+        // Ensure notification permission is granted before getting FCM token
+        if (Platform.OS === 'android' && Platform.Version >= 33) {
+          try {
+            await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+            );
+          } catch {}
+        } else if (Platform.OS !== 'android') {
+          // iOS — request via Firebase
+          try { await requestPermission(getMessaging()); } catch {}
+        }
 
         const messagingInstance = getMessaging();
 

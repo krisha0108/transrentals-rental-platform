@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { SERVICE_PARENT_MAP } from '@/lib/constants/service-mapping';
 import { STATIC_PAGES } from '@/lib/seo/service-meta-templates';
 
+import { getCached, setCached, buildCacheKey } from '@/lib/utils/analytics-cache';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,10 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
+    const cacheKey = buildCacheKey('analytics:pages', { range, page: String(page) });
+    const cached = getCached(cacheKey);
+    if (cached) return NextResponse.json({ ...cached, _cached: true });
+
     // Calculate date range
     const now = new Date();
     const startDate = new Date();
@@ -70,7 +75,7 @@ export async function GET(request: NextRequest) {
       prisma.page_views.findMany({
         where: dateFilter,
         orderBy: { createdAt: 'desc' },
-        take: 50000, // cap to avoid memory/timeout issues on large datasets
+        take: 5000,
       }),
       prisma.page_analytics.findMany({
         where: { date: { gte: startDate, lte: now } },
@@ -384,7 +389,7 @@ export async function GET(request: NextRequest) {
     const totalRecords = pages.length;
     const totalPagesCount = Math.ceil(totalRecords / limit);
 
-    return NextResponse.json({
+    const result = {
       overview: {
         totalPages: totalSitePages,
         avgPageViews,
@@ -406,7 +411,9 @@ export async function GET(request: NextRequest) {
       exitPages,
       pageTypesBreakdown,
       crawlStatus,
-    });
+    };
+    setCached(cacheKey, result);
+    return NextResponse.json(result);
   } catch (error) {
     logger.error('Error fetching page analytics', error);
     // Return default data on error

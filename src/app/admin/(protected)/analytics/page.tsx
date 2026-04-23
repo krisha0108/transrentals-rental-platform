@@ -36,7 +36,7 @@ export default function AnalyticsOverviewPage() {
 
   useEffect(() => {
     fetchAnalytics();
-    const interval = setInterval(fetchAnalytics, 30000);
+    const interval = setInterval(fetchAnalytics, 5 * 60 * 1000); // 5 min — matches server cache TTL
     return () => clearInterval(interval);
   }, [fetchAnalytics]);
 
