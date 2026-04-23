@@ -16,6 +16,10 @@ import { RouteFAQs } from '@/components/routes/RouteFAQs';
 const COMING_SOON_SLUGS = new Set([
   'chandigarh',
   'anantapur-to-chennai',
+  'nashik',
+  'rameswaram',
+  'ajmer-to-bangalore',
+  'mumbai-to-mahabaleshwar',
   'ambala-to-pune',
   'amritsar-to-jalandhar',
   'bangalore-to-chikkaballapur',
