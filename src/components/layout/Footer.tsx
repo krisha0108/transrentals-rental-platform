@@ -143,12 +143,12 @@ export function Footer() {
     { name: 'About Us', href: '/about' },
     { name: 'Contact Us', href: '/contact' },
     { name: 'Become a Vendor', href: '/vendor' },
+    { name: 'Become a Driver', href: '/driver' },
     { name: 'Vendor Guide', href: '/vendor-guide.html', external: true },
     { name: 'Interactive Guide', href: '/guide/vendor' },
     { name: 'Stories', href: '/stories' },
     { name: 'Reflections', href: '/blog' },
     ...(!isCustomerLoggedIn ? [{ name: 'Customer Login', href: `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/customer/login`, external: true }] : []),
-    { name: 'Vendor Login', href: `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/vendor/login`, external: true },
   ];
 
   const policies = [
@@ -413,6 +413,13 @@ export function Footer() {
               >
                 Vendor Login
               </a>
+              <span>|</span>
+              <Link
+                href="/driver/login"
+                className="text-primary hover:text-blue-400 transition-colors font-medium"
+              >
+                Driver Login
+              </Link>
               <span>|</span>
               <p className="text-center md:text-right">
                 Made with ❤️ in India

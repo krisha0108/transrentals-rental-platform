@@ -13,7 +13,7 @@ const noLayoutRoutes = [
   '/subadmin',
   '/manager',
   '/vendor/',
-  '/driver',
+  '/driver/',
   '/customer/',  // all customer pages use CustomerHeader instead
   '/book',
   '/track',
