@@ -49,6 +49,8 @@ logs
 # Uploaded files (keep .gitkeep)
 /public/uploads/vendor/*
 /public/uploads/fleet/*
+/public/uploads/driver-vehicles/*
+/public/uploads/web-stories/*
 !/public/uploads/.gitkeep
 
 # Claude Code local settings
