@@ -3,6 +3,7 @@ import { permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { OneWayRouteBookingHero } from '@/components/one-way-cab/OneWayRouteBookingHero';
+import { OneWayCabComingSoon } from '@/components/one-way-cab/OneWayCabComingSoon';
 import { RouteOverview } from '@/components/routes/RouteOverview';
 import { RoutePricing } from '@/components/routes/RoutePricing';
 import { SimilarRoutes } from '@/components/routes/SimilarRoutes';
@@ -10,6 +11,137 @@ import { PopularStops } from '@/components/routes/PopularStops';
 import { TravelerTips } from '@/components/routes/TravelerTips';
 import { RouteReviews } from '@/components/routes/RouteReviews';
 import { RouteFAQs } from '@/components/routes/RouteFAQs';
+
+// Routes not yet in DB — show Coming Soon instead of redirecting
+const COMING_SOON_SLUGS = new Set([
+  'chandigarh',
+  'anantapur-to-chennai',
+  'nashik',
+  'rameswaram',
+  'ajmer-to-bangalore',
+  'mumbai-to-mahabaleshwar',
+  'ambala-to-pune',
+  'amritsar-to-jalandhar',
+  'bangalore-to-chikkaballapur',
+  'bikaner',
+  'greater-noida',
+  'mumbai-to-aurangabad',
+  'noida-to-panipat',
+  'patna-to-muzaffarpur',
+  'shillong',
+  'udaipur',
+  'ahmedabad',
+  'aihole',
+  'ajmer-to-ahmedabad',
+  'ajmer-to-chennai',
+  'ajmer-to-hyderabad',
+  'aligarh-to-kochi',
+  'along-to-bangalore',
+  'alwar-to-chennai',
+  'ambarnath-to-ahmedabad',
+  'ambarnath-to-bangalore',
+  'ambikapur-to-ahmedabad',
+  'amreli-to-hyderabad',
+  'amreli-to-jamnagar',
+  'amritsar-to-bangalore',
+  'amritsar-to-dalhousie',
+  'anand-to-ahmedabad',
+  'anand-to-vadodara',
+  'bundi',
+  'darbhanga',
+  'dhule',
+  'jammu-and-kashmir',
+  'kargil',
+  'lonavala',
+  'mumbai-to-hyderabad',
+  'nadiad-to-udaipur-rajasthan',
+  'nagpur-to-pune',
+  'neermahal',
+  'noida-to-dehradun',
+  'patna',
+  'rajkot-to-dwarka',
+  'tura',
+  'badami',
+  'adilabad-to-kochi',
+  'agra-to-lucknow',
+  'akola-to-chennai',
+  'aligarh-to-kolkata',
+  'ambala-to-mumbai',
+  'amreli-to-mumbai',
+  'bangalore-to-mangalore',
+  'chandipur',
+  'chennai-to-tirupati',
+  'coorg',
+  'dalhousie',
+  'durg',
+  'jaipur',
+  'jaipur-to-bikaner',
+  'jamnagar',
+  'mangalore',
+  'mumbai-to-latur',
+  'pathankot-to-jammu-and-kashmir',
+  'port-blair',
+  'pune',
+  'rajkot',
+  'tirupati',
+  'ahmednagar-to-chennai',
+  'ahmednagar-to-pune',
+  'alipurduar-to-chennai',
+  'alipurduar-to-hyderabad',
+  'alipurduar-to-mumbai',
+  'alwar-to-pune',
+  'bangalore-to-hubballi',
+  'bhopal-to-indore',
+  'goalpara',
+  'jalgaon',
+  'mysore-to-chennai',
+  'panipat',
+  'pune-to-aurangabad',
+  'arambol',
+  'bangalore-to-tirupati',
+  'jalandhar',
+  'kota',
+  'tiruchirappalli',
+  'aizawl-to-bangalore',
+  'alipurduar-to-pune',
+  'ambikapur-to-mumbai',
+  'amravati-to-pune',
+  'amreli-to-bangalore',
+  'anand-to-surat',
+  'bhuj',
+  'dehradun',
+  'dindigul',
+  'hubballi',
+  'jaipur-to-sikar',
+  'kolkata-to-jamshedpur',
+  'patna-to-ranchi',
+  'ranchi',
+  'thiruvananthapuram',
+  'vapi',
+  'adilabad-to-mumbai',
+  'adoni-to-bangalore',
+  'amreli-to-vadodara',
+  'jamshedpur',
+  'karnal',
+  'khanna',
+  'nashik-to-aurangabad',
+  'noida-to-aligarh',
+  'rourkela',
+  'sindhudurg',
+  'vagator',
+  'panipat-to-delhi',
+]);
+
+function slugToLabel(slug: string): string {
+  return slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+function routeSlugToLabel(slug: string): string {
+  // ambala-to-pune → "Ambala to Pune"
+  const parts = slug.split('-to-');
+  if (parts.length === 2) return `${slugToLabel(parts[0])} to ${slugToLabel(parts[1])}`;
+  return slugToLabel(slug);
+}
 
 interface PageProps {
   params: {
@@ -266,12 +398,29 @@ async function getSimilarRoutesTo(toLocationId: string, excludeFromLocationId: s
 // Generate metadata for SEO
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const parsed = parseRouteSlug(params.route);
+
   if (!parsed) {
+    if (COMING_SOON_SLUGS.has(params.route)) {
+      const label = routeSlugToLabel(params.route);
+      return {
+        title: `${label} One Way Cab — Coming Soon | TransRentals`,
+        description: `${label} one way cab service is launching soon on TransRentals. Browse 500+ available one way routes across India.`,
+        robots: { index: true, follow: true },
+      };
+    }
     return { title: 'One Way Cab | TransRentals' };
   }
 
   const routeData = await getRouteData(parsed.from, parsed.to);
   if (!routeData) {
+    if (COMING_SOON_SLUGS.has(params.route)) {
+      const label = routeSlugToLabel(params.route);
+      return {
+        title: `${label} One Way Cab — Coming Soon | TransRentals`,
+        description: `${label} one way cab service is launching soon on TransRentals. Browse 500+ available one way routes across India.`,
+        robots: { index: true, follow: true },
+      };
+    }
     return { title: 'One Way Cab | TransRentals' };
   }
 
@@ -330,15 +479,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function OneWayCabRoutePage({ params }: PageProps) {
   const parsed = parseRouteSlug(params.route);
 
-  // Invalid route format (not "city-to-city")
+  // Invalid route format (not "city-to-city") — check coming soon before redirecting
   if (!parsed) {
+    if (COMING_SOON_SLUGS.has(params.route)) {
+      return <OneWayCabComingSoon label={routeSlugToLabel(params.route)} slug={params.route} />;
+    }
     permanentRedirect('/one-way-cab');
   }
 
   const routeData = await getRouteData(parsed.from, parsed.to);
 
-  // Route not found in database or no packages available
+  // Route not found in database — check coming soon before redirecting
   if (!routeData) {
+    if (COMING_SOON_SLUGS.has(params.route)) {
+      return <OneWayCabComingSoon label={routeSlugToLabel(params.route)} slug={params.route} />;
+    }
     permanentRedirect('/one-way-cab');
   }
 

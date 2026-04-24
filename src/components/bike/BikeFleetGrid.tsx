@@ -522,17 +522,8 @@ export function BikeFleetGrid({
                         </span>
                       </div>
 
-                      {/* Price & Book */}
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                        <div>
-                          <span className="text-2xl font-bold text-gray-900">
-                            ₹{bike.pricePerDay * rentalDays}
-                          </span>
-                          <span className="text-sm text-gray-500 ml-1">
-                            total
-                          </span>
-                          <p className="text-xs text-gray-400">Starting from ₹{bike.pricePerDay} × {rentalDays} days</p>
-                        </div>
+                      {/* Book */}
+                      <div className="flex items-center justify-end pt-3 border-t border-gray-100">
                         <Button
                           onClick={() => setSelectedBike(bike)}
                           disabled={!bike.available}
@@ -613,22 +604,6 @@ export function BikeFleetGrid({
                   </div>
                 </div>
 
-                {/* Price Breakdown */}
-                <div className="bg-emerald-50 rounded-xl p-4 mb-6">
-                  <h3 className="font-semibold text-gray-900 mb-3">Price Breakdown</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">₹{selectedBike.pricePerDay}/day × {rentalDays} days</span>
-                      <span className="font-medium">₹{selectedBike.pricePerDay * rentalDays}</span>
-                    </div>
-                    <div className="flex justify-between pt-2 border-t border-emerald-200">
-                      <span className="font-bold text-gray-900">Total</span>
-                      <span className="font-bold text-emerald-600 text-lg">
-                        ₹{Math.round(selectedBike.pricePerDay * rentalDays * 1.18)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
 
                 {/* Features */}
                 <div className="mb-6">

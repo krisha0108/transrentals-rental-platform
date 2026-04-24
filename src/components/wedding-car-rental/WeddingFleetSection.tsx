@@ -95,14 +95,7 @@ export function WeddingFleetSection({ cars, locationName }: Props) {
                   )}
                   {car.tagline && <p className="text-xs text-gray-500 mb-3 flex-1">{car.tagline}</p>}
                   <div className="mt-auto pt-3 border-t border-gray-100">
-                    {car.basePricePerDay ? (
-                      <p className="text-base font-bold text-rose-700">
-                        <span className="text-xs font-normal text-gray-500">Starting From </span>
-                        ₹{car.basePricePerDay.toLocaleString('en-IN')}
-                      </p>
-                    ) : (
-                      <p className="text-sm font-semibold text-rose-700">Get Quote</p>
-                    )}
+                    <p className="text-sm font-semibold text-rose-700">Get Quote</p>
                     {car.highlight && <p className="text-xs text-green-600 mt-1">{car.highlight}</p>}
                   </div>
                 </div>

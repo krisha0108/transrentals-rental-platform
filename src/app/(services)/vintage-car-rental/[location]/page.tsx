@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
@@ -117,21 +117,7 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
 
   return (
     <>
-      <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
-        badge={`Vintage Car in ${locationName}`}
-        title="Vintage Car Rental"
-        titleHighlight="Timeless Elegance @₹3999/day"
-        description={`Add old-world charm to your ${locationName} wedding, photoshoot, or special event. Restored vintage cars with a touch of nostalgia — because some moments deserve a classic entrance.`}
-        features={[
-          { icon: 'star', text: 'Photoshoot Ready', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Beautifully Restored', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Professional Chauffeur', color: 'text-yellow-600' },
-        ]}
-        gradientFrom="yellow-50"
-        gradientTo="amber-50"
-      />
+      <SpecialtyCarBookingHero service="vintage" city={locationName} citySlug={params.location} />
 
       {/* Why Vintage Car */}
       <section className="py-16 bg-white">

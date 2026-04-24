@@ -4,6 +4,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { prepareNotificationData } from '@/lib/utils/notification-helper';
 import { sendFCMNotification } from '@/lib/utils/fcm-helper';
 import { sendVendorDirectNotification, sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
+import { sendPushNotification } from '@/lib/services/push-notification-service';
 
 import logger from '@/lib/security/logger';
 import { checkFleetAvailability, blockDatesForBooking } from '@/lib/utils/fleet-availability';
@@ -1042,6 +1043,42 @@ export async function POST(request: NextRequest) {
             serviceDisplayName: 'Car Rental',
           }).catch((err: any) => console.error('[PaymentVerify] Broadcast vendor notify failed:', err));
         }
+      }
+
+      // ⭐ Notify all active drivers (independent + vendor staff) about new available booking
+      try {
+        const tripLabel = booking.tripType
+          ? booking.tripType.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+          : 'Car Rental';
+        const notifTitle = '🚗 New Booking Available!';
+        const notifBody = `${tripLabel} trip from ${booking.pickupCity || booking.locationName || 'your city'} on ${new Date(booking.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}. Tap to view.`;
+
+        const [indepDrivers, staffDrivers] = await Promise.all([
+          prisma.drivers.findMany({
+            where: { status: 'ACTIVE', fcmToken: { not: null } },
+            select: { fcmToken: true },
+          }),
+          prisma.vendor_staff.findMany({
+            where: { status: 'ACTIVE', role: 'DRIVER', fcmToken: { not: null } },
+            select: { fcmToken: true },
+          }),
+        ]);
+
+        const allTokens = [
+          ...indepDrivers.map((d: { fcmToken: string | null }) => d.fcmToken!),
+          ...staffDrivers.map((d: { fcmToken: string | null }) => d.fcmToken!),
+        ].filter(Boolean);
+
+        for (const token of allTokens) {
+          sendPushNotification(
+            token,
+            { title: notifTitle, body: notifBody },
+            { type: 'new_available_booking', bookingId, source: 'chauffeur' },
+            { channelId: 'driver_default', sound: 'notification_sound' }
+          ).catch(() => {});
+        }
+      } catch (driverNotifErr) {
+        logger.error('[PaymentVerify] Driver broadcast notification failed', driverNotifErr);
       }
 
       return NextResponse.json({

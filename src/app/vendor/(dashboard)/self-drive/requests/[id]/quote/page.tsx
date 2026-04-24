@@ -479,6 +479,22 @@ export default function SendSelfDriveQuotePage() {
         </div>
       )}
 
+      {/* Delivery Address */}
+      {request.isDeliveryRequested && (request.pickupAddress || request.dropAddress) && (
+        <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-5">
+          <Navigation className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs font-bold text-blue-700">Delivery Address</p>
+            {request.pickupAddress && (
+              <p className="text-sm text-blue-800 mt-0.5"><span className="font-medium">Pickup:</span> {request.pickupAddress}</p>
+            )}
+            {request.dropAddress && (
+              <p className="text-sm text-blue-800 mt-0.5"><span className="font-medium">Drop:</span> {request.dropAddress}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Template Selector */}
       {templates.length > 0 && (
         <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 mb-5">

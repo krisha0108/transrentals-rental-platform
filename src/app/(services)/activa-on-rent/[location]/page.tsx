@@ -9,13 +9,20 @@ import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { ComingSoonHero } from '@/components/services/ComingSoonHero';
+
+const COMING_SOON_SLUGS = new Set([
+  'margao',
+  'kanyakumari',
+  'mussoorie',
+]);
 
 interface PageProps {
   params: {
@@ -99,7 +106,35 @@ const schemaVehicles = [
 
 export default async function ActivaLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('activa-on-rent', params.location);
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') {
+    if (COMING_SOON_SLUGS.has(params.location)) {
+      const cityName = getCityBySlug(params.location)?.name ??
+        params.location.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return (
+        <>
+          <div className="bg-gray-50 border-b border-gray-200">
+            <div className="container-custom py-3">
+              <nav className="text-sm text-gray-600">
+                <a href="/" className="hover:text-primary">Home</a>
+                <span className="mx-2">/</span>
+                <a href="/activa-on-rent" className="hover:text-primary">Activa on Rent</a>
+                <span className="mx-2">/</span>
+                <span className="text-gray-900 font-medium">{cityName}</span>
+              </nav>
+            </div>
+          </div>
+          <ComingSoonHero
+            city={cityName}
+            citySlug={params.location}
+            serviceSlug="activa-on-rent"
+            serviceName="Activa on Rent"
+            themeColor="emerald"
+          />
+        </>
+      );
+    }
+    permanentRedirect(pageContext.to);
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="activa-on-rent" serviceName="Activa on Rent" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
@@ -165,14 +200,6 @@ export default async function ActivaLocationPage({ params }: PageProps) {
 
   return (
     <>
-      
-      <CityContentSection
-        citySlug={params.location}
-        serviceSlug="activa-on-rent"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
-
       {/* Schema Markup for SEO */}
       <BikeServiceSchema
         serviceName={`Activa on Rent in ${locationName}`}
@@ -200,20 +227,11 @@ export default async function ActivaLocationPage({ params }: PageProps) {
         </div>
       </div>
 
-      <ServiceHeroWithChat
+      <BikeSearchHero
+        city={locationName}
+        citySlug={params.location}
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Activa Rental in ${locationName}`}
-        title="Activa & Scooty Rental"
-        titleHighlight="Starting @₹299/day"
-        description={`Rent Activa and scooters in ${locationName}. Honda Activa, TVS Jupiter, Suzuki Access available. Fuel efficient, automatic, perfect for city commute.`}
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Well Maintained', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Fuel Efficient', color: 'text-cyan-600' },
-        ]}
-        gradientFrom="cyan-50"
-        gradientTo="blue-50"
       />
 
       {/* Why Choose Activa */}
@@ -253,6 +271,13 @@ export default async function ActivaLocationPage({ params }: PageProps) {
       />
 
       <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
+
+      <CityContentSection
+        citySlug={params.location}
+        serviceSlug="activa-on-rent"
+        cityName={locationName}
+        stateCode={city?.stateCode}
+      />
 
       <NearbyLocations
         locationSlug={params.location}

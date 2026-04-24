@@ -30,6 +30,25 @@ const SORT_OPTIONS = [
   { key: 'earnings', label: 'Highest Earning',  icon: 'trending-up-outline' },
 ];
 
+const DATE_PERIODS = [
+  { key: 'TODAY',      label: 'Today',      icon: 'today-outline' },
+  { key: 'YESTERDAY',  label: 'Yesterday',  icon: 'chevron-back-circle-outline' },
+  { key: 'THIS_MONTH', label: 'This Month', icon: 'calendar-clear-outline' },
+  { key: 'LAST_MONTH', label: 'Last Month', icon: 'calendar-outline' },
+  { key: 'ALL',        label: 'All',        icon: 'albums-outline' },
+];
+
+function isInPeriod(dateStr, period) {
+  if (!dateStr) return period === 'ALL';
+  const d = moment(dateStr);
+  const now = moment();
+  if (period === 'TODAY')      return d.isSame(now, 'day');
+  if (period === 'YESTERDAY')  return d.isSame(moment().subtract(1, 'day'), 'day');
+  if (period === 'THIS_MONTH') return d.isSame(now, 'month');
+  if (period === 'LAST_MONTH') return d.isSame(moment().subtract(1, 'month'), 'month');
+  return true; // ALL
+}
+
 const TRIP_LABELS = {
   LOCAL: 'Local', OUTSTATION: 'Outstation',
   AIRPORT: 'Airport', ROUND_TRIP: 'Round Trip',
@@ -275,8 +294,8 @@ export default function AvailableBookingsScreen({ navigation }) {
   const [loading, setLoading]           = useState(true);
   const [refreshing, setRefreshing]     = useState(false);
   const [tripFilter, setTripFilter]     = useState('ALL');
+  const [datePeriod, setDatePeriod]     = useState('TODAY');
   const [sort, setSort]                 = useState('date');
-  const [showAll, setShowAll]           = useState(false);
   const [acceptTarget, setAcceptTarget] = useState(null);
   const [accepting, setAccepting]       = useState(false);
   const autoRefreshRef                  = useRef(null);
@@ -284,12 +303,12 @@ export default function AvailableBookingsScreen({ navigation }) {
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await getAvailableBookings(showAll ? 'all' : 'upcoming');
+      const res = await getAvailableBookings('all');
       setAllBookings(res.data.bookings || []);
     } catch {}
     setLoading(false);
     setRefreshing(false);
-  }, [showAll]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -300,10 +319,14 @@ export default function AvailableBookingsScreen({ navigation }) {
   }, [load]);
 
   // Filter + sort
+  const periodFiltered = allBookings.filter(b =>
+    isInPeriod(b.broadcastedAt || b.createdAt, datePeriod)
+  );
+
   const bookings = (() => {
     let list = tripFilter === 'ALL'
-      ? allBookings
-      : allBookings.filter(b => (b.tripType?.toUpperCase()) === tripFilter);
+      ? periodFiltered
+      : periodFiltered.filter(b => (b.tripType?.toUpperCase()) === tripFilter);
     return [...list].sort((a, b) => {
       if (sort === 'earnings') return (b.driverBatta || 0) - (a.driverBatta || 0);
       return new Date(a.pickupDate) - new Date(b.pickupDate);
@@ -312,8 +335,8 @@ export default function AvailableBookingsScreen({ navigation }) {
 
   const counts = TRIP_FILTERS.reduce((acc, f) => {
     acc[f.key] = f.key === 'ALL'
-      ? allBookings.length
-      : allBookings.filter(b => (b.tripType?.toUpperCase()) === f.key).length;
+      ? periodFiltered.length
+      : periodFiltered.filter(b => (b.tripType?.toUpperCase()) === f.key).length;
     return acc;
   }, {});
 
@@ -358,7 +381,7 @@ export default function AvailableBookingsScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Sort + scope row */}
+        {/* Sort row */}
         <View style={styles.sortRow}>
           {SORT_OPTIONS.map(s => (
             <TouchableOpacity
@@ -372,16 +395,24 @@ export default function AvailableBookingsScreen({ navigation }) {
               </Text>
             </TouchableOpacity>
           ))}
-          <TouchableOpacity
-            style={[styles.sortBtn, styles.sortBtnScope, showAll && styles.sortBtnActive]}
-            onPress={() => setShowAll(v => !v)}
-          >
-            <Ionicons name={showAll ? 'time-outline' : 'flash-outline'} size={12} color={showAll ? '#FDE68A' : 'rgba(255,255,255,0.65)'} />
-            <Text style={[styles.sortBtnText, showAll && { color: '#FDE68A', fontWeight: '800' }]}>
-              {showAll ? 'All' : 'Upcoming'}
-            </Text>
-          </TouchableOpacity>
         </View>
+
+        {/* Date period filter row */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.datePeriodScroll}>
+          {DATE_PERIODS.map(p => (
+            <TouchableOpacity
+              key={p.key}
+              style={[styles.datePeriodBtn, datePeriod === p.key && styles.datePeriodBtnActive]}
+              onPress={() => setDatePeriod(p.key)}
+              activeOpacity={0.75}
+            >
+              <Ionicons name={p.icon} size={11} color={datePeriod === p.key ? '#fff' : 'rgba(255,255,255,0.6)'} />
+              <Text style={[styles.datePeriodText, datePeriod === p.key && styles.datePeriodTextActive]}>
+                {p.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </LinearGradient>
 
       {/* ── Trip type filter chips ── */}
@@ -442,7 +473,11 @@ export default function AvailableBookingsScreen({ navigation }) {
               <Text style={styles.emptyTitle}>
                 {tripFilter !== 'ALL' ? `No ${TRIP_LABELS[tripFilter]} bookings` : 'No bookings available'}
               </Text>
-              <Text style={styles.emptyText}>Pull down to refresh or check back soon</Text>
+              <Text style={styles.emptyText}>
+                {datePeriod !== 'ALL'
+                  ? `No bookings for ${DATE_PERIODS.find(p => p.key === datePeriod)?.label}. Try a different period.`
+                  : 'Pull down to refresh or check back soon'}
+              </Text>
               {tripFilter !== 'ALL' && (
                 <TouchableOpacity style={styles.emptyAction} onPress={() => setTripFilter('ALL')}>
                   <Text style={styles.emptyActionText}>Show All</Text>
@@ -483,7 +518,11 @@ const styles = StyleSheet.create({
   sortBtnActive: { backgroundColor: 'rgba(255,255,255,0.28)' },
   sortBtnText:    { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '600' },
   sortBtnTextActive: { color: '#fff', fontWeight: '800' },
-  sortBtnScope:   { marginLeft: 'auto', borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1 },
+  datePeriodScroll:      { paddingHorizontal: 2, paddingTop: 8, gap: 6, flexDirection: 'row' },
+  datePeriodBtn:         { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 11, paddingVertical: 5, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)' },
+  datePeriodBtnActive:   { backgroundColor: 'rgba(255,255,255,0.3)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)' },
+  datePeriodText:        { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '600' },
+  datePeriodTextActive:  { color: '#fff', fontWeight: '800' },
 
   // Filter bar
   filterBar:    { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },

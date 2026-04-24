@@ -3,11 +3,169 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { permanentRedirect } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import { AirportRouteBookingHero } from '@/components/airport-transfer/AirportRouteBookingHero';
+import { AirportRouteComingSoon } from '@/components/airport-transfer/AirportRouteComingSoon';
 import { RouteOverview } from '@/components/routes/RouteOverview';
 import { RoutePricing } from '@/components/routes/RoutePricing';
 import { RouteReviews } from '@/components/routes/RouteReviews';
 import { RouteFAQs } from '@/components/routes/RouteFAQs';
 import { TravelerTips } from '@/components/routes/TravelerTips';
+
+// Slugs that are not yet in the DB — show Coming Soon instead of redirecting
+const COMING_SOON_SLUGS = new Set([
+  'kolkata-to-hyderabad-airport',
+  'kolkata-to-kochi-airport',
+  'nagpur-airport-to-chandrapur',
+  'kochi-airport-to-city',
+  'pune-to-surat-airport',
+  'chennai-to-chandigarh-airport',
+  'ahmedabad-to-vadodara-airport',
+  'bangalore-airport-to-tumkur',
+  'bangalore-to-coimbatore-airport',
+  'city-to-thiruvananthapuram-airport',
+  'city-to-vadodara-airport',
+  'jalandhar-to-amritsar-airport',
+  'kolkata-to-nagpur-airport',
+  'lonavala-to-mumbai-airport',
+  'pune-to-dehradun-airport',
+  'vadodara-airport-to-ankleshwar',
+  'vijayawada-airport-to-ongole',
+  'ahmedabad-airport-to-bhavnagar',
+  'ahmedabad-airport-to-gandhinagar',
+  'bhubaneswar-airport-to-puri',
+  'chennai-airport-to-nellore',
+  'city-to-goa-airport',
+  'hyderabad-airport-to-karimnagar',
+  'hyderabad-to-coimbatore-airport',
+  'hyderabad-to-delhi-airport',
+  'jaipur-airport-to-ajmer',
+  'kolkata-airport-to-durgapur',
+  'kolkata-to-delhi-airport',
+  'kolkata-to-goa-airport',
+  'kolkata-to-kozhikode-airport',
+  'madurai-airport-to-kanyakumari',
+  'mumbai-to-ahmedabad-airport',
+  'mumbai-to-bangalore-airport',
+  'mumbai-to-kolkata-airport',
+  'mumbai-to-mangalore-airport',
+  'pune-to-kochi-airport',
+  'pune-to-nagpur-airport',
+  'tirupati-airport-to-chittoor',
+  'vijayawada-airport-to-machilipatnam',
+  'ahmedabad-to-tirupati-airport',
+  'bangalore-to-kolkata-airport',
+  'bangalore-to-pune-airport',
+  'bangalore-to-surat-airport',
+  'chandigarh-airport-to-patiala',
+  'chennai-to-ahmedabad-airport',
+  'chennai-to-goa-airport',
+  'chennai-to-kolkata-airport',
+  'city-to-udaipur-airport',
+  'hyderabad-to-goa-airport',
+  'hyderabad-to-jodhpur-airport',
+  'hyderabad-to-mumbai-airport',
+  'hyderabad-to-tirupati-airport',
+  'hyderabad-to-udaipur-airport',
+  'jaipur-airport-to-alwar',
+  'kolkata-to-ahmedabad-airport',
+  'kolkata-to-bangalore-airport',
+  'kolkata-to-surat-airport',
+  'lucknow-airport-to-ayodhya',
+  'mumbai-to-nagpur-airport',
+  'pathankot-to-amritsar-airport',
+  'pune-to-hyderabad-airport',
+  'chennai-to-coimbatore-airport',
+  'chennai-to-delhi-airport',
+  'chennai-to-jaipur-airport',
+  'city-to-kolkata-airport',
+  'coimbatore-airport-to-narasaraopet',
+  'hyderabad-to-varanasi-airport',
+  'kolkata-to-chennai-airport',
+  'mumbai-to-amritsar-airport',
+  'mumbai-to-indore-airport',
+  'mumbai-to-jaipur-airport',
+  'pune-to-chandigarh-airport',
+  'pune-to-vadodara-airport',
+  'rajkot-airport-to-gondal',
+  'ranchi-airport-to-hazaribagh',
+  'visakhapatnam-airport-to-rajahmundry',
+  'bangalore-airport-to-kolar',
+  'chennai-to-lucknow-airport',
+  'chennai-to-nagpur-airport',
+  'chennai-to-thiruvananthapuram-airport',
+  'city-to-lucknow-airport',
+  'hyderabad-to-amritsar-airport',
+  'hyderabad-to-rajkot-airport',
+  'hyderabad-to-thiruvananthapuram-airport',
+  'indore-airport-to-ratlam',
+  'kolkata-to-pune-airport',
+  'mumbai-to-varanasi-airport',
+  'ahmedabad-to-jodhpur-airport',
+  'ahmedabad-to-nagpur-airport',
+  'bhubaneswar-airport-to-cuttack',
+  'chennai-to-bangalore-airport',
+  'city-to-amritsar-airport',
+  'city-to-chennai-airport',
+  'city-to-tirupati-airport',
+  'hyderabad-to-patna-airport',
+  'lucknow-airport-to-kanpur',
+  'mumbai-airport-to-thane',
+  'mumbai-to-delhi-airport',
+  'mumbai-to-surat-airport',
+  'pune-to-kozhikode-airport',
+  'pune-to-varanasi-airport',
+  'tirupati-airport-to-nellore',
+  'visakhapatnam-airport-to-srikakulam',
+  'ahmedabad-airport-to-udaipur-rajasthan',
+  'ahmedabad-to-amritsar-airport',
+  'ahmedabad-to-pune-airport',
+  'bangalore-airport-to-mysore',
+  'bangalore-to-delhi-airport',
+  'bangalore-to-hyderabad-airport',
+  'bangalore-to-madurai-airport',
+  'bangalore-to-mumbai-airport',
+  'bangalore-to-nagpur-airport',
+  'bangalore-to-tirupati-airport',
+  'chennai-to-madurai-airport',
+  'chennai-to-mangalore-airport',
+  'chennai-to-surat-airport',
+  'chennai-to-udaipur-airport',
+  'city-to-madurai-airport',
+  'city-to-mysore-airport',
+  'city-to-patna-airport',
+  'delhi-airport-to-meerut',
+  'hyderabad-to-lucknow-airport',
+  'mumbai-to-bhopal-airport',
+  'pune-to-mangalore-airport',
+  'vadodara-airport-to-nadiad',
+  'ahmedabad-airport-to-surendranagar',
+  'ahmedabad-to-mumbai-airport',
+  'city-to-vijayawada-airport',
+  'ahmedabad-airport-to-vadodara',
+  'ahmedabad-to-bangalore-airport',
+  'ahmedabad-to-dehradun-airport',
+  'ahmedabad-to-goa-airport',
+  'ahmedabad-to-madurai-airport',
+  'ahmedabad-to-patna-airport',
+  'ahmednagar-to-nagpur-airport',
+  'ankleshwar-to-surat-airport',
+  'bangalore-to-chennai-airport',
+  'bangalore-to-dehradun-airport',
+  'bangalore-to-rajkot-airport',
+  'bhopal-airport-to-indore',
+  'bhubaneswar-airport-to-rourkela',
+  'chandigarh-airport-to-solan',
+  'chennai-to-jodhpur-airport',
+  'chennai-to-patna-airport',
+  'city-to-ahmedabad-airport',
+  'city-to-bangalore-airport',
+  'city-to-chandigarh-airport',
+  'city-to-delhi-airport',
+  'city-to-guwahati-airport',
+  'city-to-hyderabad-airport',
+  'city-to-ranchi-airport',
+  'diu',
+  'guwahati-airport-to-shillong',
+]);
 
 interface PageProps {
   params: {
@@ -451,12 +609,32 @@ async function getSimilarAirportRoutes(
 // Generate SEO-optimized metadata
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const parsed = parseRouteSlug(params.slug);
+
   if (!parsed) {
+    if (COMING_SOON_SLUGS.has(params.slug)) {
+      const parts = params.slug.split('-to-');
+      const from = slugToLabel(parts[0]);
+      const to = slugToLabel(parts[1] ?? '');
+      return {
+        title: `${from} to ${to} Airport Transfer — Coming Soon | TransRentals`,
+        description: `${from} to ${to} airport transfer service is launching soon on TransRentals. Book from 500+ available airport routes across India.`,
+        robots: { index: true, follow: true },
+      };
+    }
     return { title: 'Airport Transfer | TransRentals' };
   }
 
   const routeData = await getRouteData(parsed.from, parsed.to, parsed.isCityGeneric);
   if (!routeData) {
+    if (COMING_SOON_SLUGS.has(params.slug)) {
+      const from = slugToLabel(parsed.from);
+      const to = slugToLabel(parsed.to);
+      return {
+        title: `${from} to ${to} Airport Transfer — Coming Soon | TransRentals`,
+        description: `${from} to ${to} airport transfer service is launching soon on TransRentals. Book from 500+ available airport routes across India.`,
+        robots: { index: true, follow: true },
+      };
+    }
     return { title: 'Airport Transfer | TransRentals' };
   }
 
@@ -556,18 +734,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+function slugToLabel(part: string): string {
+  return part.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
 export default async function AirportTransferRoutePage({ params }: PageProps) {
   const parsed = parseRouteSlug(params.slug);
 
   // Invalid route format - must contain "-to-"
   if (!parsed) {
+    if (COMING_SOON_SLUGS.has(params.slug)) {
+      const parts = params.slug.split('-to-');
+      return <AirportRouteComingSoon fromLabel={slugToLabel(parts[0])} toLabel={slugToLabel(parts[1] ?? '')} slug={params.slug} />;
+    }
     permanentRedirect('/airport-transfer');
   }
 
   const routeData = await getRouteData(parsed.from, parsed.to, parsed.isCityGeneric);
 
-  // Route not found or not an airport route
+  // Route not found or not an airport route — show Coming Soon for known slugs
   if (!routeData) {
+    if (COMING_SOON_SLUGS.has(params.slug)) {
+      return (
+        <AirportRouteComingSoon
+          fromLabel={slugToLabel(parsed.from)}
+          toLabel={slugToLabel(parsed.to)}
+          slug={params.slug}
+        />
+      );
+    }
     permanentRedirect('/airport-transfer');
   }
 

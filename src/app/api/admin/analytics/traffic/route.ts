@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { getCached, setCached, buildCacheKey } from '@/lib/utils/analytics-cache';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
@@ -17,17 +18,20 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const range = searchParams.get('range') || '7d';
 
+    const cacheKey = buildCacheKey('analytics:traffic', { range });
+    const cached = getCached(cacheKey);
+    if (cached) return NextResponse.json({ ...cached, _cached: true });
+
     const days = range === '1d' ? 1 : range === '30d' ? 30 : range === '90d' ? 90 : 7;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    // Fetch page view data (capped to avoid memory/timeout on large datasets)
+    // Fetch page view data — limited to 5000 most recent, only needed fields
     const pageViews = await prisma.page_views.findMany({
-      where: {
-        createdAt: { gte: startDate },
-      },
+      where: { createdAt: { gte: startDate } },
       orderBy: { createdAt: 'desc' },
-      take: 50000,
+      take: 5000,
+      select: { path: true, duration: true, device: true, referrer: true, sessionId: true, ipAddress: true, browser: true, city: true, country: true, createdAt: true },
     });
 
     // Calculate overview metrics
@@ -191,7 +195,7 @@ export async function GET(request: NextRequest) {
       }))
       .sort((a, b) => b.visitors - a.visitors);
 
-    return NextResponse.json({
+    const result = {
       overview: {
         totalVisitors,
         uniqueVisitors,
@@ -212,7 +216,9 @@ export async function GET(request: NextRequest) {
       },
       browsers,
       locations,
-    });
+    };
+    setCached(cacheKey, result);
+    return NextResponse.json(result);
   } catch (error) {
     logger.error('Traffic analytics error', error);
     // Return default data on error

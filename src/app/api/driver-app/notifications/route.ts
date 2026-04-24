@@ -64,6 +64,10 @@ export async function POST(request: NextRequest) {
   const { fcmToken } = await request.json();
   if (!fcmToken) return NextResponse.json({ success: false, error: 'fcmToken required' }, { status: 400 });
 
-  await prisma.drivers.update({ where: { id: driver.id }, data: { fcmToken } });
+  if (driver.userType === 'vendor_staff') {
+    await prisma.vendor_staff.update({ where: { id: driver.id }, data: { fcmToken } });
+  } else {
+    await prisma.drivers.update({ where: { id: driver.id }, data: { fcmToken } });
+  }
   return NextResponse.json({ success: true });
 }

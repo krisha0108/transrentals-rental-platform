@@ -29,7 +29,15 @@ export async function POST(request: NextRequest) {
   const data: any = existing?.value ? JSON.parse(existing.value as string) : { notifications: [] };
   if (!Array.isArray(data.notifications)) data.notifications = [];
 
-  if (body.action === 'markAllRead') {
+  if (body.action === 'save' && body.notification) {
+    data.notifications.unshift({
+      ...body.notification,
+      id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      read: false,
+      createdAt: new Date().toISOString(),
+    });
+    data.notifications = data.notifications.slice(0, 50); // keep latest 50
+  } else if (body.action === 'markAllRead') {
     data.notifications = data.notifications.map((n: any) => ({ ...n, read: true }));
   } else if (body.action === 'markRead' && Array.isArray(body.ids)) {
     data.notifications = data.notifications.map((n: any) =>

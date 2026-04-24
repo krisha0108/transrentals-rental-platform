@@ -1,4 +1,4 @@
-package com.trdriverapp
+package com.transdriver
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

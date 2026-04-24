@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -31,14 +31,7 @@ export default function WeddingCarRentalPage() {
 
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Wedding Car Services in 250+ Cities"
-        title="Wedding Car Rental | शादी की गाड़ी"
-        titleHighlight="Luxury Cars Starting @₹2999/Day"
-        description="Make your special day memorable with our premium wedding cars. Luxury sedans, vintage cars, decorated baraat cars for groom & bride."
-        gradientFrom="pink-50"
-        gradientTo="rose-50"
-      />
+      <SpecialtyCarBookingHero service="wedding" />
 
       {/* Why Wedding Car Rental */}
       <section className="py-16">

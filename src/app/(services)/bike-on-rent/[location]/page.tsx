@@ -17,6 +17,22 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
+const COMING_SOON_SLUGS = new Set([
+  'chidambaram',
+  'hosur',
+  'loni',
+  'havelock-island',
+  'ramoji-film-city',
+  'baratang-island',
+  'hubli-dharwad',
+  'rohtang-pass',
+  'sultanpur-majra',
+  'wayanad',
+  'yanam',
+  'yamaha-fz',
+  'yercaud',
+]);
+
 interface PageProps {
   params: {
     location: string;
@@ -133,7 +149,34 @@ const schemaVehicles = [
 
 export default async function BikeLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('bike-on-rent', params.location, { comingSoonIfUnavailable: true });
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') {
+    if (COMING_SOON_SLUGS.has(params.location)) {
+      const cityName = params.location.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return (
+        <>
+          <div className="bg-gray-50 border-b border-gray-200">
+            <div className="container-custom py-3">
+              <nav className="text-sm text-gray-600">
+                <a href="/" className="hover:text-primary">Home</a>
+                <span className="mx-2">/</span>
+                <a href="/bike-on-rent" className="hover:text-primary">Bike Rental</a>
+                <span className="mx-2">/</span>
+                <span className="text-gray-900 font-medium">{cityName}</span>
+              </nav>
+            </div>
+          </div>
+          <ComingSoonHero
+            city={cityName}
+            citySlug={params.location}
+            serviceSlug="bike-on-rent"
+            serviceName="Bike Rental"
+            themeColor="emerald"
+          />
+        </>
+      );
+    }
+    permanentRedirect(pageContext.to);
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="bike-on-rent" serviceName="Bike on Rent" />;
 
   // Coming soon — city exists but service not yet enabled
