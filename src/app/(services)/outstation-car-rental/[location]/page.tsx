@@ -17,6 +17,11 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { BikeServiceSchema } from '@/components/seo/schemas';
+import { ComingSoonHero } from '@/components/services/ComingSoonHero';
+
+const COMING_SOON_SLUGS = new Set([
+  'ahmedabad-airport-amd',
+]);
 
 interface PageProps {
   params: {
@@ -66,7 +71,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function OutstationCarLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('outstation-car-rental', params.location);
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') {
+    if (COMING_SOON_SLUGS.has(params.location)) {
+      const cityName = getCityBySlug(params.location)?.name ??
+        params.location.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return (
+        <>
+          <div className="bg-gray-50 border-b border-gray-200">
+            <div className="container-custom py-3">
+              <nav className="text-sm text-gray-600">
+                <a href="/" className="hover:text-primary">Home</a>
+                <span className="mx-2">/</span>
+                <a href="/outstation-car-rental" className="hover:text-primary">Outstation Car Rental</a>
+                <span className="mx-2">/</span>
+                <span className="text-gray-900 font-medium">{cityName}</span>
+              </nav>
+            </div>
+          </div>
+          <ComingSoonHero
+            city={cityName}
+            citySlug={params.location}
+            serviceSlug="outstation-car-rental"
+            serviceName="Outstation Car Rental"
+            themeColor="blue"
+          />
+        </>
+      );
+    }
+    permanentRedirect(pageContext.to);
+  }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="outstation-car-rental" serviceName="Outstation Car Rental" />;
   const city = pageContext.city;
 

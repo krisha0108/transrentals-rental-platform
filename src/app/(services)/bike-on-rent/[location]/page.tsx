@@ -18,6 +18,9 @@ import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 
 const COMING_SOON_SLUGS = new Set([
+  'chidambaram',
+  'hosur',
+  'loni',
   'havelock-island',
   'ramoji-film-city',
   'baratang-island',
@@ -26,6 +29,8 @@ const COMING_SOON_SLUGS = new Set([
   'sultanpur-majra',
   'wayanad',
   'yanam',
+  'yamaha-fz',
+  'yercaud',
 ]);
 
 interface PageProps {
