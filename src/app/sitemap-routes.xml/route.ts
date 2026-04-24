@@ -5,6 +5,7 @@ import {
   SitemapEntry,
   getCachedRoutePackages,
 } from '@/lib/sitemap/utils';
+import { generateAirportSEOSlug } from '@/lib/airports/slug-utils';
 
 // Route packages change less frequently than service-locations
 export const revalidate = 3600;
@@ -35,12 +36,16 @@ export async function GET() {
       });
     }
 
-    // Airport transfer
+    // Airport transfer — use canonical SEO slug (matches generateStaticParams in page)
     for (const r of airportRoutes) {
-      const fromSlug = r.locations_chauffeur_route_packages_fromLocationIdTolocations.slug;
-      const toSlug = r.locations_chauffeur_route_packages_toLocationIdTolocations.slug;
+      const fromLoc = r.locations_chauffeur_route_packages_fromLocationIdTolocations;
+      const toLoc = r.locations_chauffeur_route_packages_toLocationIdTolocations;
+      const seoSlug = generateAirportSEOSlug(
+        { name: fromLoc.name, slug: fromLoc.slug, type: fromLoc.type, parentCityName: fromLoc.locations?.name },
+        { name: toLoc.name, slug: toLoc.slug, type: toLoc.type, parentCityName: toLoc.locations?.name }
+      );
       entries.push({
-        url: `${BASE_URL}/airport-transfer/${fromSlug}-to-${toSlug}`,
+        url: `${BASE_URL}/airport-transfer/${seoSlug}`,
         changeFrequency: 'weekly',
         priority: 0.75,
       });

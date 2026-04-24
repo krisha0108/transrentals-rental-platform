@@ -320,13 +320,18 @@ const nextConfig = {
       // FLEET & LOCATIONS REDIRECTS
       // ============================================
       {
+        source: '/fleet',
+        destination: '/car-rental',
+        permanent: true,
+      },
+      {
         source: '/car-rental-fleet',
-        destination: '/fleet',
+        destination: '/car-rental',
         permanent: true,
       },
       {
         source: '/car-on-rent/car-rental-fleet',
-        destination: '/fleet',
+        destination: '/car-rental',
         permanent: true,
       },
       {

@@ -13,47 +13,52 @@ import { Compass, Car, ArrowRight, Globe, Tags } from 'lucide-react';
 // Revalidate blog listing page every 60 seconds (ISR)
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: 'Travel Reflection - Car Rental Tips, Road Trip Guides & Destination Guides | TransRentals',
-  description: 'Discover the best travel guides, road trip itineraries, bike trip tips, car rental advice, and destination guides for exploring India. Expert advice from TransRentals travel experts.',
-  keywords: [
-    'travel reflection india',
-    'road trip guides',
-    'car rental tips',
-    'bike trip itineraries',
-    'leh ladakh guide',
-    'manali trip',
-    'goa travel',
-    'kerala road trip',
-    'rajasthan heritage tour',
-    'wedding car rental guide',
-    'corporate car rental',
-    'budget travel tips',
-    'india travel reflection',
-  ],
-  openGraph: {
-    title: 'TransRentals Travel Reflection - Road Trip Guides & Car Rental Tips',
-    description: 'Expert travel guides, road trip itineraries, and car rental tips for exploring incredible India.',
-    type: 'website',
-    url: 'https://transrentals.in/blog',
-    images: [
-      {
-        url: '/images/blog-og.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'TransRentals Travel Reflection',
-      },
+export async function generateMetadata({ searchParams }: { searchParams: { page?: string } }): Promise<Metadata> {
+  const page = Number(searchParams.page) || 1;
+  return {
+    title: 'Travel Reflection - Car Rental Tips, Road Trip Guides & Destination Guides | TransRentals',
+    description: 'Discover the best travel guides, road trip itineraries, bike trip tips, car rental advice, and destination guides for exploring India. Expert advice from TransRentals travel experts.',
+    keywords: [
+      'travel reflection india',
+      'road trip guides',
+      'car rental tips',
+      'bike trip itineraries',
+      'leh ladakh guide',
+      'manali trip',
+      'goa travel',
+      'kerala road trip',
+      'rajasthan heritage tour',
+      'wedding car rental guide',
+      'corporate car rental',
+      'budget travel tips',
+      'india travel reflection',
     ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'TransRentals Travel Reflection',
-    description: 'Expert travel guides and car rental tips for India',
-  },
-  alternates: {
-    canonical: 'https://transrentals.in/blog',
-  },
-};
+    openGraph: {
+      title: 'TransRentals Travel Reflection - Road Trip Guides & Car Rental Tips',
+      description: 'Expert travel guides, road trip itineraries, and car rental tips for exploring incredible India.',
+      type: 'website',
+      url: 'https://transrentals.in/blog',
+      images: [
+        {
+          url: '/images/blog-og.jpg',
+          width: 1200,
+          height: 630,
+          alt: 'TransRentals Travel Reflection',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'TransRentals Travel Reflection',
+      description: 'Expert travel guides and car rental tips for India',
+    },
+    alternates: {
+      canonical: page > 1
+        ? `https://transrentals.in/blog?page=${page}`
+        : 'https://transrentals.in/blog',
+    },
+  };
+}
 
 // Slug → display info mapping for services
 const SERVICE_META: Record<string, { label: string; icon: string; color: string; bg: string }> = {

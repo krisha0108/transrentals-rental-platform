@@ -107,8 +107,18 @@ export const getCachedRoutePackages = unstable_cache(
           ],
         },
         select: {
-          locations_chauffeur_route_packages_fromLocationIdTolocations: { select: { slug: true, type: true } },
-          locations_chauffeur_route_packages_toLocationIdTolocations: { select: { slug: true, type: true } },
+          locations_chauffeur_route_packages_fromLocationIdTolocations: {
+            select: {
+              slug: true, name: true, type: true,
+              locations: { select: { name: true } },
+            },
+          },
+          locations_chauffeur_route_packages_toLocationIdTolocations: {
+            select: {
+              slug: true, name: true, type: true,
+              locations: { select: { name: true } },
+            },
+          },
         },
         distinct: ['fromLocationId', 'toLocationId'],
       }),

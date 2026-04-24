@@ -519,6 +519,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     isAirportPickup ? `${airportCode.toLowerCase()} airport pickup service` : `${cityName.toLowerCase()} to airport drop`,
   ];
 
+  const seoSlug = generateSEOSlug(from, to);
   const _seoDb = await resolvePageMeta(`airport-transfer:${params.slug}`);
   return {
     title: _seoDb?.metaTitle || title,
@@ -539,7 +540,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ],
     },
     alternates: {
-      canonical: `https://transrentals.in/airport-transfer/${params.slug}`,
+      canonical: `https://transrentals.in/airport-transfer/${seoSlug}`,
     },
     robots: {
       index: true,
@@ -571,6 +572,12 @@ export default async function AirportTransferRoutePage({ params }: PageProps) {
   }
 
   const { from, to, packages, isAirportPickup } = routeData;
+
+  // Redirect non-canonical slugs to the SEO-canonical URL (prevents duplicate content)
+  const canonicalSlug = generateSEOSlug(from, to);
+  if (params.slug !== canonicalSlug) {
+    permanentRedirect(`/airport-transfer/${canonicalSlug}`);
+  }
 
   // Get similar airport routes
   const airportId = isAirportPickup ? from.id : to.id;
