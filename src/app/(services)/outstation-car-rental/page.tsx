@@ -1,7 +1,6 @@
-import React from 'react';
 import type { Metadata } from 'next';
 import { FAQSection } from '@/components/services/FAQSection';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { formatPriceHighlight } from '@/lib/utils';
@@ -29,19 +28,7 @@ export default function OutstationCarRentalPage() {
   return (
     <div className="flex flex-col">
       {/* Hero with booking form */}
-      <ServiceHeroWithChat
-        badge="Outstation Car Rental"
-        title="Outstation Car Rental"
-        titleHighlight="Starting @₹10/Km"
-        description="Rent cars for outstation trips, family vacations, or business tours. Self-drive and chauffeur options available."
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'All India Permits', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Quick Booking', color: 'text-green-600' },
-        ]}
-        gradientFrom="sky-50"
-        gradientTo="blue-50"
-      />
+      <SpecialtyCarBookingHero service="outstation" />
 
       {/* Fleet Display from Database */}
       <ServiceFleetDisplay

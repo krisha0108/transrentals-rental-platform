@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 
@@ -31,19 +31,7 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function CretaOnRentPage() {
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Most Popular SUV"
-        title="Creta on Rent Without Driver"
-        titleHighlight="Starting @₹1999/Day"
-        description="India's best-selling SUV for rent. Premium features, powerful performance, comfortable ride. Perfect for family trips and outstation travel."
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Premium SUV', color: 'text-blue-600' },
-        ]}
-        gradientFrom="blue-50"
-        gradientTo="cyan-50"
-      />
+      <SpecialtyCarBookingHero service="creta" />
 
       {/* Hero */}
       <section className="relative bg-gradient-to-br from-blue-700 to-cyan-700 text-white py-16">

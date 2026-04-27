@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { RoundTripRoutesGrid } from '@/components/services/RoundTripRoutesGrid';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 
 export const metadata: Metadata = {
   title: 'Round Trip Cab Service | Outstation Round Trip Taxi @ Best Rates | TransRentals',
@@ -32,19 +32,7 @@ export default function RoundTripPage() {
   return (
     <>
       {/* Hero with booking form */}
-      <ServiceHeroWithChat
-        badge="Round Trip Cab Service"
-        title="Book Round Trip Cabs"
-        titleHighlight="Starting @₹10/km"
-        description="Go and return with same driver. Save 20-30% on outstation travel. All charges included."
-        features={[
-          { icon: 'star', text: 'Professional Drivers', color: 'text-amber-500' },
-          { icon: 'shield', text: 'All Charges Included', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Flexible Return', color: 'text-green-600' },
-        ]}
-        gradientFrom="purple-50"
-        gradientTo="indigo-50"
-      />
+      <SpecialtyCarBookingHero service="round-trip" />
 
       {/* Why Choose Round Trip */}
       <section className="py-16 bg-white">

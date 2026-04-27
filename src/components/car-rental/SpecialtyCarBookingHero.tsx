@@ -1,9 +1,9 @@
 'use client';
 
-import { Heart, Zap, Clock, Shield, Star, Sparkles, Camera, Briefcase, BarChart2, FileText } from 'lucide-react';
+import { Heart, Zap, Clock, Shield, Star, Sparkles, Camera, Briefcase, BarChart2, FileText, Car, Navigation } from 'lucide-react';
 import { CarRentalBookingHero } from './CarRentalBookingHero';
 
-export type SpecialtyService = 'wedding' | 'sports' | 'vintage' | 'corporate';
+export type SpecialtyService = 'wedding' | 'sports' | 'vintage' | 'corporate' | 'creta' | 'outstation' | 'one-way' | 'round-trip' | 'outstation-cab' | 'local-taxi' | 'monthly';
 
 interface SpecialtyCarBookingHeroProps {
   service: SpecialtyService;
@@ -77,6 +77,104 @@ const SERVICE_CONFIG: Record<
       { icon: Briefcase, text: 'GST Invoice Provided' },
       { icon: BarChart2, text: 'Monthly Reports' },
       { icon: FileText, text: 'Dedicated Account Manager' },
+    ],
+  },
+  monthly: {
+    serviceTitle: 'Monthly Car Rental',
+    headingLine1: 'Monthly Car Rental',
+    headingLine2: 'Starting @₹15,999/Month',
+    subheading:
+      'Rent cars on monthly basis for business or personal use. Flexible plans with maintenance included. Self-drive & chauffeur options.',
+    gradient: 'from-violet-900 via-purple-900 to-indigo-900',
+    accent: 'violet-400',
+    trustBadges: [
+      { icon: Star, text: '4.8/5 Rating' },
+      { icon: Shield, text: 'All Inclusive' },
+      { icon: Zap, text: 'Flexible Plans' },
+    ],
+  },
+  'local-taxi': {
+    serviceTitle: 'Local Taxi',
+    headingLine1: 'Book Local Taxi',
+    headingLine2: 'Starting @₹399 | Hourly Packages',
+    subheading:
+      '4hr, 8hr & 12hr packages with professional drivers. Affordable city cab service with AC cars across India.',
+    gradient: 'from-blue-900 via-cyan-900 to-teal-900',
+    accent: 'cyan-400',
+    trustBadges: [
+      { icon: Star, text: '4.8/5 Rating' },
+      { icon: Shield, text: 'Verified Drivers' },
+      { icon: Zap, text: 'Instant Booking' },
+    ],
+  },
+  'round-trip': {
+    serviceTitle: 'Round Trip Cab Service',
+    headingLine1: 'Book Round Trip Cabs',
+    headingLine2: 'Starting @₹10/km',
+    subheading:
+      'Go and return with same driver. Save 20-30% on outstation travel. All charges included — no hidden fees.',
+    gradient: 'from-purple-900 via-indigo-900 to-violet-900',
+    accent: 'purple-400',
+    trustBadges: [
+      { icon: Star, text: 'Professional Drivers' },
+      { icon: Shield, text: 'All Charges Included' },
+      { icon: Navigation, text: 'Flexible Return Date' },
+    ],
+  },
+  'outstation-cab': {
+    serviceTitle: 'Outstation Cab',
+    headingLine1: 'Book Outstation Cab',
+    headingLine2: '@₹12/Km All Inclusive',
+    subheading:
+      'Intercity cab for outstation travel. Round trip & one-way options with professional drivers across 250+ cities.',
+    gradient: 'from-blue-900 via-indigo-900 to-slate-900',
+    accent: 'blue-400',
+    trustBadges: [
+      { icon: Star, text: '4.8/5 Rating' },
+      { icon: Shield, text: 'All India Permit' },
+      { icon: Zap, text: 'Instant Booking' },
+    ],
+  },
+  'one-way': {
+    serviceTitle: 'One Way Car Rental',
+    headingLine1: 'One Way Car Rental',
+    headingLine2: 'Drop at Any City @₹1299',
+    subheading:
+      'No return charges. Book a car, travel to your destination & drop it there. Professional drivers across 250+ cities.',
+    gradient: 'from-blue-900 via-sky-900 to-cyan-900',
+    accent: 'cyan-400',
+    trustBadges: [
+      { icon: Star, text: '4.8/5 Rating' },
+      { icon: Shield, text: 'No Return Charges' },
+      { icon: Zap, text: 'Instant Booking' },
+    ],
+  },
+  outstation: {
+    serviceTitle: 'Outstation Car Rental',
+    headingLine1: 'Book Cars for',
+    headingLine2: 'Outstation & Intercity Trips',
+    subheading:
+      'Round trips, one-way drops & multi-city tours. Professional drivers, all India permits. Starting @₹10/km.',
+    gradient: 'from-sky-900 via-blue-900 to-indigo-900',
+    accent: 'sky-400',
+    trustBadges: [
+      { icon: Star, text: '4.8/5 Rating' },
+      { icon: Shield, text: 'All India Permits' },
+      { icon: Navigation, text: 'One-way & Round Trip' },
+    ],
+  },
+  creta: {
+    serviceTitle: 'Creta on Rent',
+    headingLine1: 'Rent Hyundai Creta',
+    headingLine2: 'Without Driver | Self Drive',
+    subheading:
+      "India's best-selling SUV for self-drive. Premium features, ADAS safety, BlueLink technology. Perfect for family trips & outstation travel.",
+    gradient: 'from-blue-900 via-blue-800 to-cyan-900',
+    accent: 'cyan-400',
+    trustBadges: [
+      { icon: Star, text: '4.9/5 Rating' },
+      { icon: Shield, text: 'Fully Insured' },
+      { icon: Car, text: 'Premium SUV' },
     ],
   },
 };
