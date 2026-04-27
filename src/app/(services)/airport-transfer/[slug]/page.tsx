@@ -165,6 +165,17 @@ const COMING_SOON_SLUGS = new Set([
   'city-to-ranchi-airport',
   'diu',
   'guwahati-airport-to-shillong',
+  'ahmedabad-to-hyderabad-airport',
+  'ahmedabad-to-indore-airport',
+  'ahmedabad-to-kolkata-airport',
+  'bangalore-to-chandigarh-airport',
+  'bangalore-to-udaipur-airport',
+  'chandigarh-airport-to-city',
+  'chandigarh-airport-to-shimla',
+  'chennai-airport-to-salem',
+  'chennai-airport-to-tirupati',
+  'chennai-to-mysore-airport',
+  'chennai-to-pune-airport',
 ]);
 
 interface PageProps {
@@ -697,6 +708,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     isAirportPickup ? `${airportCode.toLowerCase()} airport pickup service` : `${cityName.toLowerCase()} to airport drop`,
   ];
 
+  const seoSlug = generateSEOSlug(from, to);
   const _seoDb = await resolvePageMeta(`airport-transfer:${params.slug}`);
   return {
     title: _seoDb?.metaTitle || title,
@@ -717,7 +729,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ],
     },
     alternates: {
-      canonical: `https://transrentals.in/airport-transfer/${params.slug}`,
+      canonical: `https://transrentals.in/airport-transfer/${seoSlug}`,
     },
     robots: {
       index: true,
@@ -766,6 +778,12 @@ export default async function AirportTransferRoutePage({ params }: PageProps) {
   }
 
   const { from, to, packages, isAirportPickup } = routeData;
+
+  // Redirect non-canonical slugs to the SEO-canonical URL (prevents duplicate content)
+  const canonicalSlug = generateSEOSlug(from, to);
+  if (params.slug !== canonicalSlug) {
+    permanentRedirect(`/airport-transfer/${canonicalSlug}`);
+  }
 
   // Get similar airport routes
   const airportId = isAirportPickup ? from.id : to.id;

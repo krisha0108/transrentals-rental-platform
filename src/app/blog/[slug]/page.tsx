@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { fetchBlogPost, fetchRelatedPosts, getBlogPostSlugs } from '@/lib/api/blog';
@@ -95,6 +95,11 @@ function normalizeImagePath(path: string | undefined): string {
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
+  // Fix slugs accidentally saved with "blog" prefix (e.g. "blogcomplete-..." → "complete-...")
+  if (/^blog[a-z]/.test(params.slug)) {
+    permanentRedirect(`/blog/${params.slug.replace(/^blog/, '')}`);
+  }
+
   const post = await fetchBlogPost(params.slug);
 
   if (!post) {

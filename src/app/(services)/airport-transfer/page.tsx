@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import { prisma } from '@/lib/db/prisma';
 import { AirportRoutesGrid } from '@/components/services/AirportRoutesGrid';
 import Link from 'next/link';
-import { Plane, Star, Shield, Clock, IndianRupee, MapPin, ArrowRight, CheckCircle2 } from 'lucide-react';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { Plane, IndianRupee, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 
 export const metadata: Metadata = {
   title: 'Airport Transfer - Cab Service Starting @₹499 | TransRentals',
@@ -120,19 +120,14 @@ export default async function AirportTransferPage() {
 
   return (
     <>
-      {/* Hero with booking form - REPLACED */}
-      <ServiceHeroWithChat
-        badge="Airport Transfer Service"
-        title="Airport Pickup & Drop"
-        titleHighlight="Starting @₹499"
-        description="Fixed price airport transfers with 45 min free waiting. Professional meet & greet at 50+ airports."
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: '45 Min Free Wait', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Flight Tracking', color: 'text-violet-600' },
-        ]}
-        gradientFrom="blue-50"
-        gradientTo="indigo-50"
+      <CarRentalBookingHero
+        serviceSlug="car-rental"
+        serviceTitle="Airport Transfer"
+        initialTripType="airport"
+        hideTabs
+        headingLine1="Airport Pickup & Drop"
+        headingLine2="Starting @₹499"
+        subheading="Fixed price airport transfers with 45 min free waiting. Professional meet & greet at 50+ airports."
       />
 
       {/* Why Choose Airport Transfer */}

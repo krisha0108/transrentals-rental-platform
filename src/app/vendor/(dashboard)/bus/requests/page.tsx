@@ -71,6 +71,15 @@ function getTripDuration(req: QuoteRequest): string {
   return `${days} day${days !== 1 ? 's' : ''}`;
 }
 
+function getTripExactHours(req: QuoteRequest): string | null {
+  if (!req.returnDate) return null;
+  const diffMs = new Date(req.returnDate).getTime() - new Date(req.pickupDate).getTime();
+  if (diffMs <= 0) return null;
+  const totalHours = Math.floor(diffMs / 3600000);
+  const mins = Math.floor((diffMs % 3600000) / 60000);
+  return mins > 0 ? `${totalHours}h ${mins}m` : `${totalHours}h`;
+}
+
 export default function VendorBusRequestsPage() {
   const { data: session, status: sessionStatus } = useSession();
   const [requests, setRequests] = useState<QuoteRequest[]>([]);
@@ -521,6 +530,7 @@ export default function VendorBusRequestsPage() {
                     <div>
                       <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Duration</p>
                       <p className="text-sm font-bold text-gray-900">{getTripDuration(selected)}</p>
+                      {(() => { const h = getTripExactHours(selected); return h ? <p className="text-[11px] text-gray-400 mt-0.5">{h}</p> : null; })()}
                     </div>
                   </div>
                 </div>
