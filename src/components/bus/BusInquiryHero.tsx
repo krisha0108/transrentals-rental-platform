@@ -57,7 +57,7 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('06:00');
   const [returnDate, setReturnDate] = useState('');
-  const [tripDays, setTripDays] = useState('1');
+  const [returnTime, setReturnTime] = useState('18:00');
   const [routeDetails, setRouteDetails] = useState('');
   const [requirements, setRequirements] = useState('');
   const [needAC, setNeedAC] = useState(true);
@@ -73,6 +73,23 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
 
   const selectedCategory = getBusCategory(vehicleCategory);
   const minDate = new Date().toISOString().split('T')[0];
+
+  const calculateDuration = () => {
+    if (!pickupDate || !returnDate) return null;
+    const start = new Date(`${pickupDate}T${pickupTime || '00:00'}`);
+    const end = new Date(`${returnDate}T${returnTime || '00:00'}`);
+    const diffMs = end.getTime() - start.getTime();
+    if (diffMs <= 0) return null;
+    const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+    const parts = [];
+    if (days > 0) parts.push(`${days} ${days === 1 ? 'day' : 'days'}`);
+    if (hours > 0) parts.push(`${hours} ${hours === 1 ? 'hr' : 'hrs'}`);
+    return { label: parts.join(' '), totalHours, days };
+  };
+
+  const duration = calculateDuration();
 
   // Filter categories based on passenger count
   const getFilteredCategories = () => {
@@ -108,7 +125,8 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
         pickupDate,
         pickupTime,
         returnDate: returnDate || undefined,
-        tripDays: parseInt(tripDays) || 1,
+        returnTime: returnDate ? returnTime : undefined,
+        tripDays: duration ? Math.max(1, duration.days + (duration.totalHours % 24 > 0 ? 1 : 0)) : 1,
         routeDetails: routeDetails || undefined,
         requirements: requirements || undefined,
         needAC,
@@ -385,7 +403,7 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
                       </div>
                     </div>
 
-                    {/* Time & Duration */}
+                    {/* Time Selection */}
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Pickup Time</label>
@@ -397,23 +415,23 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Trip Days</label>
-                        <select
-                          value={tripDays}
-                          onChange={(e) => setTripDays(e.target.value)}
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Return Time</label>
+                        <input
+                          type="time"
+                          value={returnTime}
+                          onChange={(e) => setReturnTime(e.target.value)}
                           className="w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-900"
-                        >
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => (
-                            <option key={d} value={d}>
-                              {d} {d === 1 ? 'Day' : 'Days'}
-                            </option>
-                          ))}
-                          <option value="15">15 Days</option>
-                          <option value="20">20 Days</option>
-                          <option value="30">30 Days</option>
-                        </select>
+                        />
                       </div>
                     </div>
+
+                    {/* Duration Display */}
+                    {duration && (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg">
+                        <Clock className="w-4 h-4 text-orange-500 shrink-0" />
+                        <span className="text-sm text-orange-800 font-medium">Duration: {duration.label}</span>
+                      </div>
+                    )}
 
                     {/* Route Details */}
                     <div>

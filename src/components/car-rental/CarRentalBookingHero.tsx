@@ -183,6 +183,8 @@ interface CarRentalBookingHeroProps {
   citySlug?: string;
   serviceSlug: 'car-rental' | 'luxury-car-rental';
   serviceTitle: string;
+  initialTripType?: TripType;
+  hideTabs?: boolean;
   // Optional overrides for specialty services (wedding, sports, vintage, etc.)
   headingLine1?: string;
   headingLine2?: string;
@@ -647,6 +649,8 @@ export function CarRentalBookingHero({
   citySlug = '',
   serviceSlug,
   serviceTitle,
+  initialTripType = 'local',
+  hideTabs = false,
   headingLine1,
   headingLine2,
   subheading,
@@ -655,7 +659,7 @@ export function CarRentalBookingHero({
   trustBadges,
 }: CarRentalBookingHeroProps) {
   // Trip type state
-  const [tripType, setTripType] = useState<TripType>('local');
+  const [tripType, setTripType] = useState<TripType>(initialTripType);
   const [outstationMode, setOutstationMode] = useState<OutstationMode>('round-trip');
   const [airportMode, setAirportMode] = useState<AirportMode>('pickup');
 
@@ -1202,7 +1206,7 @@ export function CarRentalBookingHero({
             >
               <Car className={`w-4 h-4 text-${themeColors.accent}`} />
               <span className="text-sm font-medium">
-                {serviceTitle} in {city}
+                {serviceTitle}{city ? ` in ${city}` : ''}
               </span>
             </motion.div>
 
@@ -1282,7 +1286,7 @@ export function CarRentalBookingHero({
             className="bg-white rounded-2xl shadow-2xl overflow-hidden"
           >
             {/* Trip Type Tabs */}
-            <div className="flex border-b">
+            <div className={`flex border-b ${hideTabs ? 'hidden' : ''}`}>
               {[
                 { id: 'local' as TripType, label: 'Local', icon: Navigation },
                 { id: 'outstation' as TripType, label: 'Outstation', icon: MapPin },

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Send, Sparkles, CheckCircle, User, AlertTriangle, Calendar, Clock } from 'lucide-react';
+import { Send, Sparkles, CheckCircle, User, AlertTriangle, Calendar, Clock, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocations } from './useLocations';
 import { useServices } from './useServices';
@@ -60,6 +60,14 @@ export function ChatBookingHero({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loggedInCustomer, setLoggedInCustomer] = useState<any>(null);
   const [isB2B, setIsB2B] = useState(false);
+  const [hourInput, setHourInput] = useState('09');
+  const [minInput, setMinInput] = useState('00');
+  const [calView, setCalView] = useState<{ y: number; m: number }>(() => {
+    const d = new Date(); d.setMonth(d.getMonth());
+    return { y: d.getFullYear(), m: d.getMonth() };
+  });
+  const hourFocused = useRef(false);
+  const minFocused = useRef(false);
 
   const B2B_SERVICES = ['car', 'self-drive', 'bus'];
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -68,6 +76,20 @@ export function ChatBookingHero({
 
   const { locations } = useLocations();
   const { services } = useServices();
+
+  // Sync hour/minute display inputs from inputValue (only when not focused)
+  useEffect(() => {
+    const t = inputValue.split('T')[1];
+    if (!t) return;
+    const [h24n, mn] = t.split(':').map(Number);
+    if (!hourFocused.current) {
+      const h12 = (h24n ?? 9) === 0 ? 12 : (h24n ?? 9) > 12 ? (h24n ?? 9) - 12 : (h24n ?? 9);
+      setHourInput(String(h12).padStart(2, '0'));
+    }
+    if (!minFocused.current) {
+      setMinInput(String(mn ?? 0).padStart(2, '0'));
+    }
+  }, [inputValue]);
 
   // Check if user is logged in
   useEffect(() => {
@@ -291,10 +313,13 @@ export function ChatBookingHero({
         'Select date & time'
       );
       setCurrentStep('pickup-datetime');
+      // Pre-fill with tomorrow at 09:00 AM as a sensible default
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      setInputValue(`${tomorrow.toISOString().split('T')[0]}T09:00`);
     }, 800);
   };
 
-  const askForReturnDateTime = () => {
+  const askForReturnDateTime = (pickupDt?: string) => {
     setIsTyping(true);
     setTimeout(() => {
       addShiviMessage(
@@ -305,6 +330,10 @@ export function ChatBookingHero({
         'Select return date & time'
       );
       setCurrentStep('return-datetime');
+      // Pre-fill return: pickup date + 1 day at 06:00 PM
+      const base = pickupDt ? new Date(pickupDt) : new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const returnDt = new Date(base.getTime() + 24 * 60 * 60 * 1000);
+      setInputValue(`${returnDt.toISOString().split('T')[0]}T18:00`);
     }, 800);
   };
 
@@ -2550,12 +2579,14 @@ export function ChatBookingHero({
         const fTime = earliest.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
         setDateError(`Booking requires at least ${MIN_ADVANCE_HOURS} hours advance notice. Earliest pickup: ${fDate}, ${fTime}.`);
         setTimeout(() => setDateError(''), 6000);
-        // Re-show datetime picker so user can retry
+        // Re-show datetime picker so user can retry — pre-fill with earliest valid time
         addShiviMessage(
           'Please select a later date & time 📅',
           undefined, 300, 'datetime-local', 'Select date & time'
         );
-        setInputValue('');
+        const earliestDt = new Date(Date.now() + 13 * 60 * 60 * 1000);
+        const earliestH = earliestDt.getHours() < 6 ? 6 : earliestDt.getHours();
+        setInputValue(`${earliestDt.toISOString().split('T')[0]}T${String(earliestH).padStart(2,'0')}:00`);
         return;
       }
       setDateError('');
@@ -2589,11 +2620,11 @@ export function ChatBookingHero({
         isSelfDriveService); // Self-drive always needs return date
 
       if (needsReturnDate) {
-        askForReturnDateTime();
+        askForReturnDateTime(inputValue);
       } else {
         askForContactInfo();
+        setInputValue('');
       }
-      setInputValue('');
     } else if (currentStep === 'return-datetime') {
       setBookingData((prev: any) => ({ ...prev, returnDateTime: inputValue }));
       askForContactInfo();
@@ -2787,55 +2818,142 @@ export function ChatBookingHero({
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">
-                        <Calendar className="w-3 h-3 inline mr-1" />Date
-                      </label>
-                      <input
-                        type="date"
-                        value={inputValue.split('T')[0] || ''}
-                        onChange={(e) => {
-                          const time = inputValue.split('T')[1] || '10:00';
-                          setInputValue(`${e.target.value}T${time}`);
-                          setDateError('');
-                        }}
-                        min={
-                          currentStep === 'return-datetime' && bookingData.pickupDateTime
-                            ? bookingData.pickupDateTime.split('T')[0]
-                            : new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0]
-                        }
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                        disabled={currentStep === 'completed' || currentStep === 'summary'}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">
-                        <Clock className="w-3 h-3 inline mr-1" />Time
-                      </label>
-                      <select
-                        value={inputValue.split('T')[1] || ''}
-                        onChange={(e) => {
-                          const date = inputValue.split('T')[0] || '';
-                          setInputValue(`${date}T${e.target.value}`);
-                          setDateError('');
-                        }}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                        disabled={currentStep === 'completed' || currentStep === 'summary'}
-                      >
-                        <option value="">Select Time</option>
-                        {Array.from({ length: 48 }, (_, i) => {
-                          const h = Math.floor(i / 2);
-                          const m = (i % 2) * 30;
-                          const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-                          const ap = h < 12 ? 'AM' : 'PM';
-                          const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                          const label = `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ap}`;
-                          return <option key={val} value={val}>{label}</option>;
-                        })}
-                      </select>
-                    </div>
-                  </div>
+                  {/* ── Unified Date + Time Picker ── */}
+                  {(() => {
+                    const isDisabled = currentStep === 'completed' || currentStep === 'summary';
+
+                    // ── date helpers ──
+                    const minDateStr = currentStep === 'return-datetime' && bookingData.pickupDateTime
+                      ? bookingData.pickupDateTime.split('T')[0]
+                      : new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+                    // ── time helpers ──
+                    const rawT = inputValue.split('T')[1] || '09:00';
+                    const [h24r, mR] = rawT.split(':').map(Number);
+                    const h24 = isNaN(h24r) ? 9 : h24r;
+                    const curMin = isNaN(mR) ? 0 : mR;
+                    const curPeriod: 'AM' | 'PM' = h24 < 12 ? 'AM' : 'PM';
+                    const curH12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
+                    const applyTime = (h12: number, min: number, period: 'AM' | 'PM') => {
+                      let h = h12;
+                      if (period === 'AM' && h12 === 12) h = 0;
+                      else if (period === 'PM' && h12 !== 12) h = h12 + 12;
+                      const d = inputValue.split('T')[0] || new Date(Date.now() + 86400000).toISOString().split('T')[0];
+                      setInputValue(`${d}T${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`);
+                      setDateError('');
+                    };
+
+                    return (
+                      <div className={`rounded-2xl border border-gray-200 overflow-hidden shadow-sm ${isDisabled ? 'opacity-50' : ''}`}>
+
+                        {/* header */}
+                        <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 border-b border-gray-100">
+                          <Calendar className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-xs font-bold text-primary">
+                            {currentStep === 'return-datetime' ? 'Return Date & Time' : 'Pickup Date & Time'}
+                          </span>
+                        </div>
+
+                        {/* ── DATE INPUT ── */}
+                        <div className="px-3 py-3 bg-white">
+                          <input
+                            type="date"
+                            value={inputValue.split('T')[0] || ''}
+                            min={minDateStr}
+                            disabled={isDisabled}
+                            onChange={(e) => {
+                              const t = inputValue.split('T')[1] || '09:00';
+                              setInputValue(`${e.target.value}T${t}`);
+                              setDateError('');
+                            }}
+                            className="w-full h-10 px-3 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-primary focus:bg-white transition-colors disabled:opacity-50"
+                          />
+                        </div>
+
+                        {/* ── TIME PICKER ── */}
+                        <div className="border-t border-gray-100 bg-gray-50 px-3 py-3">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> Time
+                          </p>
+                          <div className="flex items-center gap-2">
+                            {/* Hour */}
+                            <div className={`flex items-center gap-1 bg-white rounded-xl border px-2 py-1.5 flex-1 transition-colors ${hourInput && (parseInt(hourInput) < 1 || parseInt(hourInput) > 12) ? 'border-red-400' : 'border-gray-200'}`}>
+                              <button type="button" disabled={isDisabled}
+                                className="text-gray-400 hover:text-primary transition-colors disabled:opacity-30 p-0.5"
+                                onClick={() => applyTime(curH12 === 1 ? 12 : curH12 - 1, curMin, curPeriod)}>
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+                              <input type="text" value={hourInput} maxLength={2} disabled={isDisabled} placeholder="09"
+                                onFocus={() => { hourFocused.current = true; setDateError(''); setHourInput(String(curH12)); }}
+                                onBlur={() => {
+                                  hourFocused.current = false;
+                                  const n = parseInt(hourInput);
+                                  if (isNaN(n) || n < 1 || n > 12) {
+                                    setDateError('⏰ Hour must be between 1 and 12. Please enter a valid time.');
+                                    setHourInput(String(curH12).padStart(2, '0'));
+                                  } else {
+                                    applyTime(n, curMin, curPeriod);
+                                    setHourInput(String(n).padStart(2, '0'));
+                                  }
+                                }}
+                                onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,2); setHourInput(v); const n = parseInt(v); if (n>=1&&n<=12) applyTime(n,curMin,curPeriod); }}
+                                className="flex-1 text-center text-base font-bold text-gray-800 tabular-nums bg-transparent outline-none"
+                              />
+                              <button type="button" disabled={isDisabled}
+                                className="text-gray-400 hover:text-primary transition-colors disabled:opacity-30 p-0.5"
+                                onClick={() => applyTime(curH12 === 12 ? 1 : curH12 + 1, curMin, curPeriod)}>
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            <span className="text-lg font-black text-gray-300 select-none">:</span>
+
+                            {/* Minute */}
+                            <div className={`flex items-center gap-1 bg-white rounded-xl border px-2 py-1.5 flex-1 transition-colors ${minInput && parseInt(minInput) > 59 ? 'border-red-400' : 'border-gray-200'}`}>
+                              <button type="button" disabled={isDisabled}
+                                className="text-gray-400 hover:text-primary transition-colors disabled:opacity-30 p-0.5"
+                                onClick={() => applyTime(curH12, (curMin - 5 + 60) % 60, curPeriod)}>
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+                              <input type="text" value={minInput} maxLength={2} disabled={isDisabled} placeholder="00"
+                                onFocus={() => { minFocused.current = true; setDateError(''); setMinInput(String(curMin)); }}
+                                onBlur={() => {
+                                  minFocused.current = false;
+                                  const n = parseInt(minInput);
+                                  if (isNaN(n) || n < 0 || n > 59) {
+                                    setDateError('⏰ Minutes must be between 0 and 59. Please enter a valid time.');
+                                    setMinInput(String(curMin).padStart(2, '0'));
+                                  } else {
+                                    applyTime(curH12, n, curPeriod);
+                                    setMinInput(String(n).padStart(2, '0'));
+                                  }
+                                }}
+                                onChange={(e) => { const v = e.target.value.replace(/\D/g,'').slice(0,2); setMinInput(v); const n = parseInt(v); if (n>=0&&n<=59) applyTime(curH12,n,curPeriod); }}
+                                className="flex-1 text-center text-base font-bold text-gray-800 tabular-nums bg-transparent outline-none"
+                              />
+                              <button type="button" disabled={isDisabled}
+                                className="text-gray-400 hover:text-primary transition-colors disabled:opacity-30 p-0.5"
+                                onClick={() => applyTime(curH12, (curMin + 5) % 60, curPeriod)}>
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            {/* AM / PM */}
+                            <div className="flex rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
+                              {(['AM', 'PM'] as const).map((p, i) => (
+                                <button key={p} type="button" disabled={isDisabled}
+                                  onClick={() => applyTime(curH12, curMin, p)}
+                                  className={`w-10 py-1.5 text-xs font-bold transition-all ${i > 0 ? 'border-l border-gray-200' : ''} ${curPeriod === p ? 'bg-primary text-white' : 'bg-white text-gray-400 hover:text-gray-700'}`}>
+                                  {p}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+                    );
+                  })()}
                   <button
                     type="button"
                     onClick={() => {
@@ -2844,10 +2962,10 @@ export function ChatBookingHero({
                       }
                     }}
                     disabled={!inputValue.includes('T') || !inputValue.split('T')[0] || !inputValue.split('T')[1] || currentStep === 'completed' || currentStep === 'summary'}
-                    className="w-full py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                    className="w-full py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-sm"
                   >
-                    <Send className="w-3 h-3" />
-                    Confirm
+                    <Send className="w-4 h-4" />
+                    Confirm Date &amp; Time
                   </button>
                 </div>
               ) : (

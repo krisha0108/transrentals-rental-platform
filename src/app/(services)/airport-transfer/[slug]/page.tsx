@@ -165,6 +165,17 @@ const COMING_SOON_SLUGS = new Set([
   'city-to-ranchi-airport',
   'diu',
   'guwahati-airport-to-shillong',
+  'ahmedabad-to-hyderabad-airport',
+  'ahmedabad-to-indore-airport',
+  'ahmedabad-to-kolkata-airport',
+  'bangalore-to-chandigarh-airport',
+  'bangalore-to-udaipur-airport',
+  'chandigarh-airport-to-city',
+  'chandigarh-airport-to-shimla',
+  'chennai-airport-to-salem',
+  'chennai-airport-to-tirupati',
+  'chennai-to-mysore-airport',
+  'chennai-to-pune-airport',
 ]);
 
 interface PageProps {
