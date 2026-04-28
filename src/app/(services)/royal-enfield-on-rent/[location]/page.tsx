@@ -13,7 +13,6 @@ import { BikeServiceSchema } from '@/components/seo/schemas';
 import { getServiceLocations } from '@/lib/services/service-locations';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
 
@@ -164,14 +163,6 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
 
   return (
     <>
-      
-      <CityContentSection
-        citySlug={params.location}
-        serviceSlug="royal-enfield-on-rent"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
-
       {/* Schema Markup for SEO */}
       <BikeServiceSchema
         serviceName={`Royal Enfield on Rent in ${locationName}`}
@@ -186,19 +177,6 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
         reviewCount={612}
       />
       <div className="flex flex-col">
-      {/* Breadcrumbs */}
-      <div className="bg-gray-50 border-b border-gray-200">
-        <div className="container-custom py-3">
-          <nav className="text-sm text-gray-600">
-            <a href="/" className="hover:text-primary">Home</a>
-            <span className="mx-2">/</span>
-            <a href="/royal-enfield-on-rent" className="hover:text-primary">Royal Enfield on Rent</a>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900 font-medium">{locationName}</span>
-          </nav>
-        </div>
-      </div>
-
       <BikeSearchHero
         city={locationName}
         citySlug={params.location}

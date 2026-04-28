@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
+import { Clock, MapPin, Mountain, Users } from 'lucide-react';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
@@ -49,18 +50,27 @@ const itinerary = [
 export default function LehLadakhTourPage() {
   return (
     <>
-      <ServiceHeroWithChat
+      <BikeTourHero
         badge="Most Popular Tour"
         title="Leh Ladakh Bike Tour"
-        titleHighlight="₹32,999 All-Inclusive"
+        price="₹32,999 All-Inclusive"
         description="The ultimate Himalayan motorcycle adventure. Cross Khardung La, camp at Pangong Lake, ride through Nubra Valley. Everything included."
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: '500+ Tours', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Expert Guides', color: 'text-blue-600' },
+        gradient="from-blue-900 via-indigo-900 to-slate-900"
+        accentColor="blue-400"
+        stats={[
+          { icon: Clock, label: 'Duration', value: '10 Days' },
+          { icon: MapPin, label: 'Distance', value: '1,800 km' },
+          { icon: Mountain, label: 'Max Altitude', value: '18,380 ft' },
+          { icon: Users, label: 'Group Size', value: '6–12' },
         ]}
-        gradientFrom="blue-50"
-        gradientTo="indigo-50"
+        features={[
+          { text: 'Ride Captain' },
+          { text: 'Backup Vehicle' },
+          { text: 'Accommodation' },
+          { text: 'Meals Included' },
+          { text: 'Mechanic' },
+          { text: '24/7 Support' },
+        ]}
       />
 
       {/* Breadcrumb */}

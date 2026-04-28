@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 
@@ -46,19 +46,7 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function KTMRentalPage() {
   return (
     <>
-      <ServiceHeroWithChat
-        badge="KTM Rental in 200+ Cities"
-        title="KTM on Rent"
-        titleHighlight="Starting @₹999/Day"
-        description="Rent KTM Duke & RC bikes for the ultimate riding experience. High performance, aggressive styling, perfect for thrill seekers."
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Well Maintained', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'High Performance', color: 'text-orange-600' },
-        ]}
-        gradientFrom="orange-50"
-        gradientTo="red-50"
-      />
+      <BikeSearchHero />
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-orange-600 to-red-700 text-white py-16">

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { formatPriceHighlight } from '@/lib/utils';
@@ -32,19 +32,7 @@ export default function MonthlyCarRentalPage() {
   return (
     <>
       {/* Hero with booking form */}
-      <ServiceHeroWithChat
-        badge="Monthly Car Rental"
-        title="Monthly Car Rental"
-        titleHighlight="Starting @₹15,999/Month"
-        description="Rent cars on monthly basis for business, personal use, or replacement vehicles. Flexible plans with maintenance included."
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'All Inclusive', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Flexible Plans', color: 'text-green-600' },
-        ]}
-        gradientFrom="violet-50"
-        gradientTo="purple-50"
-      />
+      <SpecialtyCarBookingHero service="monthly" />
 
       {/* Fleet Display from Database */}
       <ServiceFleetDisplay

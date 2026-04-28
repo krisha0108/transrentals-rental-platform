@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 
@@ -46,19 +46,7 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function SplendorRentalPage() {
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Splendor Rental in 200+ Cities"
-        title="Splendor on Rent"
-        titleHighlight="Starting @₹299/Day"
-        description="Rent Hero Splendor - India's most trusted bike. Best-in-class mileage, low maintenance, perfect for daily commute and long rides."
-        features={[
-          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Well Maintained', color: 'text-emerald-600' },
-          { icon: 'zap', text: '70+ km/l Mileage', color: 'text-green-600' },
-        ]}
-        gradientFrom="green-50"
-        gradientTo="emerald-50"
-      />
+      <BikeSearchHero />
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-green-600 to-emerald-700 text-white py-16">

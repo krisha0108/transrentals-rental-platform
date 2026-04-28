@@ -9,7 +9,7 @@ import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -171,20 +171,11 @@ export default async function PulsarLocationPage({ params }: PageProps) {
           </div>
         </div>
 
-        <ServiceHeroWithChat
+        <BikeSearchHero
+          city={locationName}
+          citySlug={params.location}
           pageHeading={seoData?.pageHeading || undefined}
           pageDescription={seoData?.pageDescription || undefined}
-          badge={`Pulsar Rental in ${locationName}`}
-          title="Bajaj Pulsar on Rent"
-          titleHighlight="Street Fighter @₹499/day"
-          description={`The street fighter of ${locationName} — Pulsar 150, 200NS, N250. Perfect blend of sporty looks, everyday practicality, and punchy performance.`}
-          features={[
-            { icon: 'zap', text: 'Sporty Twin-Disc', color: 'text-blue-600' },
-            { icon: 'shield', text: 'Well Maintained', color: 'text-emerald-600' },
-            { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
-          ]}
-          gradientFrom="blue-50"
-          gradientTo="indigo-50"
         />
 
         {/* Available Models */}

@@ -72,21 +72,6 @@ interface CarFleetGridMultiVendorProps {
   categories?: { name: string; slug: string }[];
 }
 
-// Filter options
-const PRICE_RANGES = [
-  { label: 'All Prices', min: 0, max: Infinity },
-  { label: 'Under ₹1000', min: 0, max: 1000 },
-  { label: '₹1000 - ₹1500', min: 1000, max: 1500 },
-  { label: '₹1500 - ₹2500', min: 1500, max: 2500 },
-  { label: 'Above ₹2500', min: 2500, max: Infinity },
-];
-
-const SORT_OPTIONS = [
-  { value: 'price_low', label: 'Price: Low to High' },
-  { value: 'price_high', label: 'Price: High to Low' },
-  { value: 'vendors', label: 'Most Vendors' },
-  { value: 'name', label: 'Name (A-Z)' },
-];
 
 const CAR_TYPES = ['All', 'Hatchback', 'Sedan', 'Compact SUV', 'SUV', 'MUV', 'Luxury'];
 const TRANSMISSION_TYPES = ['All', 'Manual', 'Automatic'];
@@ -109,8 +94,6 @@ export function CarFleetGridMultiVendor({
   const [selectedBrand, setSelectedBrand] = useState('All');
   const [selectedTransmission, setSelectedTransmission] = useState('All');
   const [selectedSeats, setSelectedSeats] = useState('All');
-  const [selectedPriceRange, setSelectedPriceRange] = useState(0);
-  const [sortBy, setSortBy] = useState('price_low');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCar, setSelectedCar] = useState<AggregatedCar | null>(null);
   const [editingDates, setEditingDates] = useState(false);
@@ -167,31 +150,8 @@ export function CarFleetGridMultiVendor({
       }
     }
 
-    // Filter by price
-    const priceRange = PRICE_RANGES[selectedPriceRange];
-    result = result.filter(
-      (v) => v.lowestPrice >= priceRange.min && v.lowestPrice < priceRange.max
-    );
-
-    // Sort
-    switch (sortBy) {
-      case 'price_high':
-        result.sort((a, b) => b.lowestPrice - a.lowestPrice);
-        break;
-      case 'vendors':
-        result.sort((a, b) => b.vendorCount - a.vendorCount);
-        break;
-      case 'name':
-        result.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'price_low':
-      default:
-        result.sort((a, b) => a.lowestPrice - b.lowestPrice);
-        break;
-    }
-
     return result;
-  }, [vehicles, selectedType, selectedBrand, selectedTransmission, selectedSeats, selectedPriceRange, sortBy]);
+  }, [vehicles, selectedType, selectedBrand, selectedTransmission, selectedSeats]);
 
   // Format helpers
   const formatDate = (dateStr: string) => {
@@ -238,15 +198,13 @@ export function CarFleetGridMultiVendor({
     setSelectedBrand('All');
     setSelectedTransmission('All');
     setSelectedSeats('All');
-    setSelectedPriceRange(0);
   };
 
   const hasActiveFilters =
     selectedType !== 'All' ||
     selectedBrand !== 'All' ||
     selectedTransmission !== 'All' ||
-    selectedSeats !== 'All' ||
-    selectedPriceRange !== 0;
+    selectedSeats !== 'All';
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -470,51 +428,17 @@ export function CarFleetGridMultiVendor({
                 </div>
               </div>
 
-              {/* Price Filter */}
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Price Range</h4>
-                <div className="space-y-2">
-                  {PRICE_RANGES.map((range, idx) => (
-                    <button
-                      key={range.label}
-                      onClick={() => setSelectedPriceRange(idx)}
-                      className={cn(
-                        'w-full text-left px-3 py-2 rounded-lg transition-all text-sm',
-                        selectedPriceRange === idx
-                          ? 'bg-blue-100 text-blue-700 font-medium'
-                          : 'hover:bg-gray-100 text-gray-600'
-                      )}
-                    >
-                      {range.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </aside>
 
           {/* Main Content */}
           <div className="flex-1">
-            {/* Sort & Results Count */}
-            <div className="flex items-center justify-between mb-6 bg-white p-4 rounded-xl shadow-sm">
+            {/* Results Count */}
+            <div className="flex items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
               <p className="text-gray-600">
                 <span className="font-semibold text-gray-900">{filteredVehicles.length}</span> cars
                 available from multiple vendors
               </p>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Sort by:</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {SORT_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
 
             {/* Vehicle Grid */}
@@ -718,26 +642,6 @@ export function CarFleetGridMultiVendor({
                   </div>
                 </div>
 
-                {/* Mobile Price */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Price Range</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {PRICE_RANGES.map((range, idx) => (
-                      <button
-                        key={range.label}
-                        onClick={() => setSelectedPriceRange(idx)}
-                        className={cn(
-                          'px-4 py-2 rounded-full text-sm transition',
-                          selectedPriceRange === idx
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700'
-                        )}
-                      >
-                        {range.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
               <div className="sticky bottom-0 bg-white border-t border-gray-100 p-4 flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={clearFilters}>

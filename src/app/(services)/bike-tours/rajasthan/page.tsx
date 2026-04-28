@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
+import { Clock, MapPin, Star, Users } from 'lucide-react';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
@@ -38,18 +39,27 @@ const itinerary = [
 export default function RajasthanTourPage() {
   return (
     <>
-      <ServiceHeroWithChat
+      <BikeTourHero
         badge="Royal Heritage Ride"
         title="Rajasthan Bike Tour"
-        titleHighlight="₹24,999 All-Inclusive"
+        price="₹24,999 All-Inclusive"
         description="Ride through royal palaces, golden sand dunes, and colorful Rajasthani culture. Heritage stays, desert camping, and unforgettable sunsets."
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Heritage Stays', color: 'text-orange-600' },
-          { icon: 'zap', text: 'Desert Safari', color: 'text-amber-600' },
+        gradient="from-orange-800 via-red-900 to-rose-900"
+        accentColor="orange-400"
+        stats={[
+          { icon: Clock, label: 'Duration', value: '7 Days' },
+          { icon: MapPin, label: 'Distance', value: '1,440 km' },
+          { icon: Star, label: 'Rating', value: '4.9/5' },
+          { icon: Users, label: 'Group Size', value: '6–12' },
         ]}
-        gradientFrom="orange-50"
-        gradientTo="red-50"
+        features={[
+          { text: 'Ride Captain' },
+          { text: 'Heritage Stays' },
+          { text: 'Desert Safari' },
+          { text: 'Meals Included' },
+          { text: 'Riding Gear' },
+          { text: 'All Permits' },
+        ]}
       />
 
       {/* Breadcrumb */}

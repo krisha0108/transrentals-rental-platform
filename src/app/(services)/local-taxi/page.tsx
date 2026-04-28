@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { prisma } from '@/lib/db/prisma';
 import { getCarRentalServiceId } from '@/lib/db/build-cache';
 import { LocalTaxiPackages } from '@/components/local-taxi/LocalTaxiPackages';
@@ -68,19 +68,7 @@ export default async function LocalTaxiPage() {
   return (
     <>
       {/* Hero with booking form */}
-      <ServiceHeroWithChat
-        badge="Local Taxi Service"
-        title="Local Taxi"
-        titleHighlight="Starting @₹399"
-        description="Book local taxi for hourly city travel. 4hr, 8hr, 12hr packages with professional drivers at affordable rates."
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Verified Drivers', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Instant Booking', color: 'text-green-600' },
-        ]}
-        gradientFrom="blue-50"
-        gradientTo="cyan-50"
-      />
+      <SpecialtyCarBookingHero service="local-taxi" />
 
       {/* Why Local Taxi */}
       <section className="py-16">
