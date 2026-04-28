@@ -1170,13 +1170,16 @@ model competitor_tracking {
 }
 
 model contact_inquiries {
-  id        String   @id
-  name      String
-  phone     String
-  email     String
-  subject   String
-  message   String   @db.Text
-  createdAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  name       String
+  phone      String
+  email      String
+  subject    String
+  message    String    @db.Text
+  status     String    @default("NEW")
+  resolution String?   @db.Text
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
 }
 
 model crawl_data {
@@ -1667,7 +1670,7 @@ model fleet_types {
 }
 
 model form_submissions {
-  id             String                    @id
+  id             String                    @id @default(cuid())
   formType       form_submissions_formType
   formName       String
   pagePath       String

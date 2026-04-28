@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     };
 
     await prisma.contact_inquiries.create({
-      data: sanitizedData,
+      data: { id: crypto.randomUUID(), ...sanitizedData },
     });
 
     logger.info('Contact form submission', { email: sanitizedData.email });
