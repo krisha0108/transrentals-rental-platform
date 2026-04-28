@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
 
     await prisma.form_submissions.create({
       data: {
+        id: crypto.randomUUID(),
         formType: formType || 'OTHER',
         formName: formName || 'Unknown',
         pagePath: pagePath || '/',

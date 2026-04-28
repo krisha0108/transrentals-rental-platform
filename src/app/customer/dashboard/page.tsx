@@ -257,6 +257,17 @@ export default function CustomerDashboardPage() {
   const [tourQuoteRequests, setTourQuoteRequests] = useState<any[]>([]);
   const [isLoadingTourQuotes, setIsLoadingTourQuotes] = useState(false);
 
+  // Contact inquiries
+  const [contactInquiries, setContactInquiries] = useState<any[]>([]);
+
+  const fetchContactInquiries = async (email: string) => {
+    try {
+      const res = await fetch(`/api/customer/contact-inquiries?email=${encodeURIComponent(email)}`);
+      const data = await res.json();
+      setContactInquiries(data.inquiries || []);
+    } catch { /* silent */ }
+  };
+
   // Use local Next.js API routes instead of external Laravel API
   const useLocalAPI = true;
 
@@ -275,6 +286,7 @@ export default function CustomerDashboardPage() {
       if (parsed.isB2B && parsed.b2bStatus === 'APPROVED') {
         setDashboardView('b2b');
       }
+      if (parsed.email) fetchContactInquiries(parsed.email);
 
       // Auto-switch tab from URL param ?tab=tour
       const urlParams = new URLSearchParams(window.location.search);
@@ -1613,6 +1625,47 @@ export default function CustomerDashboardPage() {
                 </div>
                 <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#09B368] ml-auto transition" />
               </Link>
+
+              {/* My Contact Inquiries */}
+              {contactInquiries.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">My Inquiries</p>
+                    <span className="text-[10px] bg-orange-50 text-orange-600 border border-orange-200 rounded-full px-2 py-0.5 font-semibold">
+                      {contactInquiries.length}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {contactInquiries.slice(0, 4).map((inq: any) => {
+                      const statusMap: Record<string, { label: string; cls: string }> = {
+                        NEW: { label: 'New', cls: 'bg-blue-50 text-blue-600' },
+                        IN_PROGRESS: { label: 'In Progress', cls: 'bg-yellow-50 text-yellow-600' },
+                        RESOLVED: { label: 'Resolved', cls: 'bg-green-50 text-green-600' },
+                        CLOSED: { label: 'Closed', cls: 'bg-gray-50 text-gray-500' },
+                      };
+                      const s = statusMap[inq.status] || statusMap.NEW;
+                      return (
+                        <div key={inq.id} className="flex items-start gap-2 p-2.5 rounded-xl bg-gray-50 hover:bg-orange-50/50 transition">
+                          <Inbox className="w-3.5 h-3.5 text-orange-400 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-800 truncate">{inq.subject}</p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">
+                              {new Date(inq.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            </p>
+                          </div>
+                          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 ${s.cls}`}>
+                            {s.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <Link href="/contact"
+                    className="mt-3 flex items-center justify-center gap-1.5 w-full py-2 rounded-xl border border-dashed border-orange-200 text-orange-500 text-[10px] font-semibold hover:bg-orange-50 transition">
+                    <Mail className="w-3 h-3" /> New Inquiry
+                  </Link>
+                </div>
+              )}
 
             </aside>
           </div>

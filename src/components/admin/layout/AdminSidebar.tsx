@@ -406,6 +406,10 @@ const adminItems: NavItem[] = [
     name: 'Helpdesk',
     href: '/admin/helpdesk',
     icon: Headphones,
+    children: [
+      { name: 'All Tickets & Inquiries', href: '/admin/helpdesk', icon: Headphones },
+      { name: 'Contact Inquiries', href: '/admin/contact-inquiries', icon: MessageSquare },
+    ],
   },
   {
     name: 'Payments',
