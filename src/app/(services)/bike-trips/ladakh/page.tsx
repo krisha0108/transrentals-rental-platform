@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
-import { Bike, Mountain, Clock, MapPin } from 'lucide-react';
 import { FAQSection } from '@/components/services/FAQSection';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 
@@ -89,10 +88,10 @@ export default function LadakhBikeTripPage() {
         gradient="from-blue-900 via-indigo-900 to-purple-900"
         accentColor="blue-400"
         stats={[
-          { icon: Bike, label: 'Starting From', value: '₹799/Day' },
-          { icon: Mountain, label: 'Max Altitude', value: '18,380 ft' },
-          { icon: Clock, label: 'Season', value: 'May – Sep' },
-          { icon: MapPin, label: 'One-Way Drops', value: 'Available' },
+          { icon: 'bike', label: 'Starting From', value: '₹799/Day' },
+          { icon: 'mountain', label: 'Max Altitude', value: '18,380 ft' },
+          { icon: 'clock', label: 'Season', value: 'May – Sep' },
+          { icon: 'mappin', label: 'One-Way Drops', value: 'Available' },
         ]}
         features={[
           { text: 'Himalayan & Classic 350' },

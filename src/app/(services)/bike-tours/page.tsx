@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
-import { Clock, MapPin, Star, Users } from 'lucide-react';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
@@ -62,10 +61,10 @@ export default function BikeToursPage() {
         gradient="from-purple-900 via-indigo-900 to-blue-900"
         accentColor="purple-400"
         stats={[
-          { icon: Star, label: 'Customer Rating', value: '4.9/5' },
-          { icon: Users, label: 'Group Size', value: '6–12' },
-          { icon: MapPin, label: 'Destinations', value: '4+' },
-          { icon: Clock, label: 'Tour Length', value: '4–12 Days' },
+          { icon: 'star', label: 'Customer Rating', value: '4.9/5' },
+          { icon: 'users', label: 'Group Size', value: '6–12' },
+          { icon: 'mappin', label: 'Destinations', value: '4+' },
+          { icon: 'clock', label: 'Tour Length', value: '4–12 Days' },
         ]}
         features={[
           { text: 'Ride Captain' },
