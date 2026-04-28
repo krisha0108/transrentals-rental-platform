@@ -59,9 +59,9 @@ export async function generateStaticParams() {
   // All state slugs
   const stateSlugs = INDIAN_STATES.map((state) => ({ slug: state.slug }));
 
-  // Skip database calls during CI build
+  // Skip ALL static generation during CI build — pages served via ISR on first request
   if (process.env.SKIP_DATABASE_CALLS === '1') {
-    return citySlugs;
+    return [];
   }
 
   // Try to get CMS page slugs (may fail if DB not available at build time)
