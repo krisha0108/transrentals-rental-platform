@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
+import { Bike, Mountain, Clock, MapPin } from 'lucide-react';
 import { FAQSection } from '@/components/services/FAQSection';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 
@@ -80,13 +81,27 @@ export default function LadakhBikeTripPage() {
         reviewCount={1856}
       />
 
-      <ServiceHeroWithChat
+      <BikeTourHero
         badge="Ladakh Bike Trip Specialists"
         title="Ladakh Bike Trip Rental"
-        titleHighlight="Royal Enfield @₹799/Day"
+        price="Royal Enfield @₹799/Day"
         description="Rent bikes for Leh Ladakh adventure. Himalayan, Classic 350, Bullet available in Delhi, Manali & Leh. One-way drops, riding gear included."
-        gradientFrom="blue-50"
-        gradientTo="indigo-50"
+        gradient="from-blue-900 via-indigo-900 to-purple-900"
+        accentColor="blue-400"
+        stats={[
+          { icon: Bike, label: 'Starting From', value: '₹799/Day' },
+          { icon: Mountain, label: 'Max Altitude', value: '18,380 ft' },
+          { icon: Clock, label: 'Season', value: 'May – Sep' },
+          { icon: MapPin, label: 'One-Way Drops', value: 'Available' },
+        ]}
+        features={[
+          { text: 'Himalayan & Classic 350' },
+          { text: 'One-Way Drops' },
+          { text: 'Delhi / Manali / Leh' },
+          { text: 'Insurance Included' },
+          { text: 'Riding Gear' },
+          { text: '24/7 Support' },
+        ]}
       />
 
       {/* Hero Section */}

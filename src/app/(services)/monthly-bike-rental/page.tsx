@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
 import { BikeServiceSchema } from '@/components/seo/schemas';
@@ -82,14 +82,7 @@ export default function MonthlyBikeRentalPage() {
         reviewCount={3450}
       />
 
-      <ServiceHeroWithChat
-        badge="Monthly Bike Rental in 200+ Cities"
-        title="Monthly Bike Rental | Scooty Subscription"
-        titleHighlight="Starting @₹2,999/Month"
-        description="Rent bikes & scooters on monthly basis for college, work, or long stays. Zero maintenance, flexible plans, doorstep delivery."
-        gradientFrom="emerald-50"
-        gradientTo="teal-50"
-      />
+      <BikeSearchHero />
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-emerald-600 to-teal-700 text-white py-20">

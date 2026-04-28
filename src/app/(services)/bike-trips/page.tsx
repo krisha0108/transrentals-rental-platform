@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
+import { Bike, MapPin, Star, Shield } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Bike Trip Rentals India | Ladakh, Spiti, Rajasthan Motorcycle Tours | TransRentals',
@@ -74,13 +75,27 @@ export default function BikeTripsPage() {
 
   return (
     <>
-      <ServiceHeroWithChat
+      <BikeTourHero
         badge="Adventure Awaits"
         title="Bike Trip Rentals India"
-        titleHighlight="Explore the Unexplored"
-        description="Rent bikes for epic road trips. Ladakh, Spiti, Rajasthan, Goa - we've got you covered with Royal Enfield, one-way drops, and full gear."
-        gradientFrom="indigo-50"
-        gradientTo="purple-50"
+        price="Explore the Unexplored"
+        description="Rent bikes for epic road trips. Ladakh, Spiti, Rajasthan, Goa — we've got you covered with Royal Enfield, one-way drops, and full gear."
+        gradient="from-indigo-900 via-purple-900 to-pink-900"
+        accentColor="indigo-400"
+        stats={[
+          { icon: Bike, label: 'Bikes Available', value: '50+' },
+          { icon: MapPin, label: 'Pickup Cities', value: '15+' },
+          { icon: Star, label: 'Rating', value: '4.8/5' },
+          { icon: Shield, label: 'Insurance', value: 'Included' },
+        ]}
+        features={[
+          { text: 'Royal Enfield' },
+          { text: 'One-Way Drops' },
+          { text: 'Full Insurance' },
+          { text: 'Riding Gear' },
+          { text: 'Tool Kit' },
+          { text: 'Permit Help' },
+        ]}
       />
 
       {/* Hero */}

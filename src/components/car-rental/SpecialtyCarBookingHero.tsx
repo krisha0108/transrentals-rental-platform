@@ -96,7 +96,7 @@ const SERVICE_CONFIG: Record<
   'local-taxi': {
     serviceTitle: 'Local Taxi',
     headingLine1: 'Book Local Taxi',
-    headingLine2: 'Starting @₹399 | Hourly Packages',
+    headingLine2: 'Hourly City Cab | 4hr, 8hr & 12hr Packages',
     subheading:
       '4hr, 8hr & 12hr packages with professional drivers. Affordable city cab service with AC cars across India.',
     gradient: 'from-blue-900 via-cyan-900 to-teal-900',

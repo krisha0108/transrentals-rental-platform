@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
+import { Clock, MapPin, Star, Users } from 'lucide-react';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
@@ -53,18 +54,27 @@ const inclusions = [
 export default function BikeToursPage() {
   return (
     <>
-      <ServiceHeroWithChat
+      <BikeTourHero
         badge="Guided Motorcycle Tours"
         title="Bike Tours India"
-        titleHighlight="All-Inclusive Packages"
-        description="Join our guided motorcycle tours with ride captain, backup vehicle, accommodation, and meals. Just ride and enjoy - we handle everything else."
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'All-Inclusive', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Expert Guides', color: 'text-purple-600' },
+        price="All-Inclusive Packages"
+        description="Join our guided motorcycle tours with ride captain, backup vehicle, accommodation, and meals. Just ride and enjoy — we handle everything else."
+        gradient="from-purple-900 via-indigo-900 to-blue-900"
+        accentColor="purple-400"
+        stats={[
+          { icon: Star, label: 'Customer Rating', value: '4.9/5' },
+          { icon: Users, label: 'Group Size', value: '6–12' },
+          { icon: MapPin, label: 'Destinations', value: '4+' },
+          { icon: Clock, label: 'Tour Length', value: '4–12 Days' },
         ]}
-        gradientFrom="purple-50"
-        gradientTo="indigo-50"
+        features={[
+          { text: 'Ride Captain' },
+          { text: 'Backup Vehicle' },
+          { text: 'Accommodation' },
+          { text: 'Meals Included' },
+          { text: 'Riding Gear' },
+          { text: 'All Permits' },
+        ]}
       />
 
       {/* Hero */}

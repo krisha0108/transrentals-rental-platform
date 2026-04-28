@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { formatPriceHighlight } from '@/lib/utils';
@@ -18,19 +18,7 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function XUV700OnRentPage() {
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Flagship SUV with ADAS"
-        title="XUV700 on Rent Without Driver"
-        titleHighlight="Starting @₹2999/Day"
-        description="Mahindra XUV700 - India's safest SUV with ADAS, panoramic sunroof, and powerful engines. 5 & 7 seater options available."
-        features={[
-          { icon: 'star', text: '5-Star Safety', color: 'text-amber-500' },
-          { icon: 'shield', text: 'ADAS Equipped', color: 'text-emerald-600' },
-          { icon: 'zap', text: '5 & 7 Seater', color: 'text-red-600' },
-        ]}
-        gradientFrom="red-50"
-        gradientTo="rose-50"
-      />
+      <SwiftRentalTypeHero vehicleName="Mahindra XUV700" selfDrivePrice="₹2999" />
 
       <section className="relative bg-gradient-to-br from-red-700 to-rose-800 text-white py-16">
         <div className="container-custom">

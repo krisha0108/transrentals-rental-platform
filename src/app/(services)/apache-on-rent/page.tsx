@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 
@@ -46,19 +46,7 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function ApacheRentalPage() {
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Apache Rental in 200+ Cities"
-        title="Apache on Rent"
-        titleHighlight="Starting @₹499/Day"
-        description="Rent TVS Apache bikes - Racing DNA built for performance. Sharp handling, aggressive styling, track-inspired engineering."
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Well Maintained', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Racing DNA', color: 'text-red-600' },
-        ]}
-        gradientFrom="red-50"
-        gradientTo="rose-50"
-      />
+      <BikeSearchHero />
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-red-600 to-rose-700 text-white py-16">

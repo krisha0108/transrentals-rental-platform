@@ -5,7 +5,7 @@ import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -73,20 +73,11 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <ServiceHeroWithChat
+      <BikeSearchHero
+        city={locationName}
+        citySlug={params.location}
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Himalayan Rental in ${locationName}`}
-        title="Royal Enfield Himalayan on Rent"
-        titleHighlight="Adventure Ready @₹1099/day"
-        description={`Your ${locationName} adventure starts here. Built for Ladakh, Spiti & Rajasthan — the Himalayan's long-travel suspension, dual-purpose tyres, and windshield handle any road you dare to take.`}
-        features={[
-          { icon: 'zap', text: 'All-Terrain Tyres', color: 'text-slate-600' },
-          { icon: 'shield', text: 'Long-Travel Suspension', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="slate-50"
-        gradientTo="gray-50"
       />
 
       <section className="bg-gradient-to-br from-slate-800 to-blue-900 text-white py-12">

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
+import { Clock, MapPin, Mountain, Users } from 'lucide-react';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
@@ -39,18 +40,27 @@ const itinerary = [
 export default function SpitiValleyTourPage() {
   return (
     <>
-      <ServiceHeroWithChat
+      <BikeTourHero
         badge="Cold Desert Adventure"
         title="Spiti Valley Bike Tour"
-        titleHighlight="₹26,999 All-Inclusive"
+        price="₹26,999 All-Inclusive"
         description="Explore the mystical cold desert of Himachal. Ancient monasteries, pristine lakes, and raw Himalayan beauty. A spiritual motorcycle journey."
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'All-Inclusive', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Expert Guides', color: 'text-teal-600' },
+        gradient="from-teal-800 via-emerald-900 to-green-900"
+        accentColor="teal-400"
+        stats={[
+          { icon: Clock, label: 'Duration', value: '8 Days' },
+          { icon: MapPin, label: 'Distance', value: '800 km' },
+          { icon: Mountain, label: 'Max Altitude', value: '14,931 ft' },
+          { icon: Users, label: 'Group Size', value: '6–12' },
         ]}
-        gradientFrom="teal-50"
-        gradientTo="emerald-50"
+        features={[
+          { text: 'Ride Captain' },
+          { text: 'Backup Vehicle' },
+          { text: 'Homestays' },
+          { text: 'Meals Included' },
+          { text: 'Riding Gear' },
+          { text: 'All Permits' },
+        ]}
       />
 
       {/* Breadcrumb */}

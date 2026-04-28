@@ -7,7 +7,7 @@ import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { CarSearchHero } from '@/components/car';
 import { FAQSection } from '@/components/services/FAQSection';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
@@ -94,20 +94,11 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
         </div>
       </section>
 
-      <ServiceHeroWithChat
+      <CarSearchHero
+        city={locationName}
+        citySlug={params.location}
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Self Drive Hatchback in ${locationName}`}
-        title="Self Drive Hatchback Rental"
-        titleHighlight="City Smart @₹699/day"
-        description={`Navigate ${locationName}'s busy streets stress-free. Compact hatchbacks — Swift, Baleno, i20 — easy to park, fuel efficient, ideal for solo travel and city errands.`}
-        features={[
-          { icon: 'zap', text: 'Easy City Parking', color: 'text-orange-600' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="orange-50"
-        gradientTo="amber-50"
       />
 
       <section className="bg-gradient-to-br from-green-700 to-blue-800 text-white py-12">
