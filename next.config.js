@@ -37,9 +37,8 @@ const nextConfig = {
     serverComponentsExternalPackages: ['@prisma/client', 'prisma', 'jsonwebtoken'],
     // Limit concurrency to prevent DB connection exhaustion during static generation
     workerThreads: false,
-    cpus: 2,
-    // Render at most 2 pages concurrently per worker → max 4 simultaneous DB connections
-    staticGenerationMaxConcurrency: 2,
+    cpus: 4,
+    staticGenerationMaxConcurrency: 8,
   },
   images: {
     remotePatterns: [

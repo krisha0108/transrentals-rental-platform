@@ -180,7 +180,7 @@ jobs:
   build:
     name: Build Application (ISR — No DB Required)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       # Step 1: Checkout code

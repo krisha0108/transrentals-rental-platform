@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { formatPriceHighlight } from '@/lib/utils';
@@ -21,19 +21,7 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function SeltosOnRentPage() {
   return (
     <>
-      <ServiceHeroWithChat
-        badge="Connected Car SUV"
-        title="Seltos on Rent Without Driver"
-        titleHighlight="Starting @₹1899"
-        description="Kia Seltos - Feature-loaded compact SUV with connected car tech, sunroof, and premium interiors. Perfect for family trips and weekend getaways."
-        features={[
-          { icon: 'star', text: '4.9/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Fully Insured', color: 'text-emerald-600' },
-          { icon: 'zap', text: 'Connected Car', color: 'text-red-600' },
-        ]}
-        gradientFrom="red-50"
-        gradientTo="orange-50"
-      />
+      <SwiftRentalTypeHero vehicleName="Kia Seltos" selfDrivePrice="₹1899" />
 
       <section className="relative bg-gradient-to-br from-red-600 to-orange-600 text-white py-16">
         <div className="container-custom">

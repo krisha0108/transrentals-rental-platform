@@ -5,7 +5,7 @@ import { permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { capitalize } from '@/lib/utils';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
@@ -117,20 +117,11 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
         reviewCount={234}
       />
 
-      <ServiceHeroWithChat
+      <BikeSearchHero
+        city={locationName}
+        citySlug={params.location}
         pageHeading={seoData?.pageHeading || undefined}
         pageDescription={seoData?.pageDescription || undefined}
-        badge={`Electric Scooter in ${locationName}`}
-        title="Electric Scooter Rental"
-        titleHighlight="Zero Fuel Cost @₹399/day"
-        description={`Go green in ${locationName} — zero fuel bills, zero emissions, zero noise. Ola S1, Ather 450, TVS iQube available. Charge at home or any public charger.`}
-        features={[
-          { icon: 'zap', text: '₹0 Fuel Cost', color: 'text-green-600' },
-          { icon: 'shield', text: 'Eco-Friendly', color: 'text-emerald-600' },
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-        ]}
-        gradientFrom="green-50"
-        gradientTo="teal-50"
       />
 
       {/* Breadcrumb */}

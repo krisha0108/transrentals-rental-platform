@@ -9,13 +9,13 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface BikeSearchHeroProps {
-  city: string;
-  citySlug: string;
+  city?: string;
+  citySlug?: string;
   pageHeading?: string;
   pageDescription?: string;
 }
 
-export function BikeSearchHero({ city, citySlug, pageHeading, pageDescription }: BikeSearchHeroProps) {
+export function BikeSearchHero({ city = '', citySlug = '', pageHeading, pageDescription }: BikeSearchHeroProps) {
   const router = useRouter();
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('');

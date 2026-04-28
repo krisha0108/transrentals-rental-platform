@@ -1,8 +1,7 @@
-import React from 'react';
 import type { Metadata } from 'next';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
@@ -78,14 +77,7 @@ export default function RoyalEnfieldOnRentPage() {
         reviewCount={2340}
       />
       <div className="flex flex-col">
-        <ServiceHeroWithChat
-        badge="Royal Enfield Rental in 150+ Cities"
-        title="Royal Enfield on Rent | Bullet Rental"
-        titleHighlight="Starting @₹899/Day"
-        description="Rent Royal Enfield bikes for road trips, bike tours, and weekend adventures. Classic 350, Himalayan, Meteor available."
-        gradientFrom="red-50"
-        gradientTo="orange-50"
-      />
+        <BikeSearchHero />
 
       {/* Popular Routes */}
       <section className="py-16 bg-gray-50">

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
+import { Clock, MapPin, Star, Shield } from 'lucide-react';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
@@ -35,18 +36,27 @@ const itinerary = [
 export default function GoaTourPage() {
   return (
     <>
-      <ServiceHeroWithChat
+      <BikeTourHero
         badge="Beach & Backroads"
         title="Goa Coastal Bike Tour"
-        titleHighlight="₹14,999 All-Inclusive"
+        price="₹14,999 All-Inclusive"
         description="Sun, sand, and scenic roads. Explore Goa's beautiful beaches, majestic Dudhsagar Falls, and Portuguese heritage on two wheels."
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Beach Stays', color: 'text-cyan-600' },
-          { icon: 'zap', text: 'Easy Ride', color: 'text-blue-600' },
+        gradient="from-cyan-700 via-blue-800 to-indigo-900"
+        accentColor="cyan-400"
+        stats={[
+          { icon: Clock, label: 'Duration', value: '4 Days' },
+          { icon: MapPin, label: 'Distance', value: '320 km' },
+          { icon: Star, label: 'Rating', value: '4.8/5' },
+          { icon: Shield, label: 'Difficulty', value: 'Easy' },
         ]}
-        gradientFrom="cyan-50"
-        gradientTo="blue-50"
+        features={[
+          { text: 'Ride Captain' },
+          { text: 'Beach Stays' },
+          { text: 'Meals Included' },
+          { text: 'Fuel Covered' },
+          { text: 'Entry Tickets' },
+          { text: 'Photography' },
+        ]}
       />
 
       {/* Breadcrumb */}

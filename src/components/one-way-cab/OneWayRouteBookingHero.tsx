@@ -70,6 +70,7 @@ export function OneWayRouteBookingHero({
   // Form state
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('10:00');
+  const [dateError, setDateError] = useState('');
 
   // Data state
   const [vehiclePackages, setVehiclePackages] = useState<VehiclePackage[]>([]);
@@ -83,12 +84,36 @@ export function OneWayRouteBookingHero({
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<any>(null);
 
-  // Set default date (tomorrow)
+  // Set default date (now + 24 hours)
   useEffect(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    setPickupDate(tomorrow.toISOString().split('T')[0]);
+    const min = new Date();
+    min.setHours(min.getHours() + 24);
+    setPickupDate(min.toISOString().split('T')[0]);
   }, []);
+
+  const getMinAllowedDate = () => {
+    const min = new Date();
+    min.setHours(min.getHours() + 24);
+    return min;
+  };
+
+  const formatEarliestPickup = (date: Date) =>
+    date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) +
+    ', ' +
+    date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+  const validateDateTime = (date: string, time: string) => {
+    if (!date || !time) return;
+    const selected = new Date(`${date}T${time}`);
+    const minAllowed = getMinAllowedDate();
+    if (selected < minAllowed) {
+      setDateError(
+        `Booking requires at least 24 hours advance notice. Earliest pickup: ${formatEarliestPickup(minAllowed)}.`
+      );
+    } else {
+      setDateError('');
+    }
+  };
 
   // Fetch available vehicle packages for this route
   useEffect(() => {
@@ -155,6 +180,12 @@ export function OneWayRouteBookingHero({
   const handleExplore = () => {
     if (!pickupDate) {
       alert('Please select pickup date');
+      return;
+    }
+    if (dateError) return;
+    const selected = new Date(`${pickupDate}T${pickupTime}`);
+    if (selected < getMinAllowedDate()) {
+      validateDateTime(pickupDate, pickupTime);
       return;
     }
     setShowVehicles(true);
@@ -368,9 +399,12 @@ export function OneWayRouteBookingHero({
                           <input
                             type="date"
                             value={pickupDate}
-                            onChange={(e) => setPickupDate(e.target.value)}
-                            min={new Date().toISOString().split('T')[0]}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500"
+                            onChange={(e) => {
+                              setPickupDate(e.target.value);
+                              validateDateTime(e.target.value, pickupTime);
+                            }}
+                            min={(() => { const m = new Date(); m.setHours(m.getHours() + 24); return m.toISOString().split('T')[0]; })()}
+                            className={`w-full pl-10 pr-4 py-3 border rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 ${dateError ? 'border-red-400' : 'border-gray-200'}`}
                           />
                         </div>
                       </div>
@@ -383,12 +417,23 @@ export function OneWayRouteBookingHero({
                           <input
                             type="time"
                             value={pickupTime}
-                            onChange={(e) => setPickupTime(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500"
+                            onChange={(e) => {
+                              setPickupTime(e.target.value);
+                              validateDateTime(pickupDate, e.target.value);
+                            }}
+                            className={`w-full pl-10 pr-4 py-3 border rounded-lg text-gray-900 focus:ring-2 focus:ring-emerald-500 ${dateError ? 'border-red-400' : 'border-gray-200'}`}
                           />
                         </div>
                       </div>
                     </div>
+
+                    {/* Date validation error */}
+                    {dateError && (
+                      <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">
+                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                        <span>{dateError}</span>
+                      </div>
+                    )}
 
                     {/* Explore Button */}
                     <button
