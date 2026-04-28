@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
-import { Clock, MapPin, Mountain, Users } from 'lucide-react';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
@@ -58,10 +57,10 @@ export default function LehLadakhTourPage() {
         gradient="from-blue-900 via-indigo-900 to-slate-900"
         accentColor="blue-400"
         stats={[
-          { icon: Clock, label: 'Duration', value: '10 Days' },
-          { icon: MapPin, label: 'Distance', value: '1,800 km' },
-          { icon: Mountain, label: 'Max Altitude', value: '18,380 ft' },
-          { icon: Users, label: 'Group Size', value: '6–12' },
+          { icon: 'clock', label: 'Duration', value: '10 Days' },
+          { icon: 'mappin', label: 'Distance', value: '1,800 km' },
+          { icon: 'mountain', label: 'Max Altitude', value: '18,380 ft' },
+          { icon: 'users', label: 'Group Size', value: '6–12' },
         ]}
         features={[
           { text: 'Ride Captain' },

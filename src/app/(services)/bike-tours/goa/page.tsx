@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
-import { Clock, MapPin, Star, Shield } from 'lucide-react';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
@@ -44,10 +43,10 @@ export default function GoaTourPage() {
         gradient="from-cyan-700 via-blue-800 to-indigo-900"
         accentColor="cyan-400"
         stats={[
-          { icon: Clock, label: 'Duration', value: '4 Days' },
-          { icon: MapPin, label: 'Distance', value: '320 km' },
-          { icon: Star, label: 'Rating', value: '4.8/5' },
-          { icon: Shield, label: 'Difficulty', value: 'Easy' },
+          { icon: 'clock', label: 'Duration', value: '4 Days' },
+          { icon: 'mappin', label: 'Distance', value: '320 km' },
+          { icon: 'star', label: 'Rating', value: '4.8/5' },
+          { icon: 'shield', label: 'Difficulty', value: 'Easy' },
         ]}
         features={[
           { text: 'Ride Captain' },

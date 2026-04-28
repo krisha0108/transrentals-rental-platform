@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
-import { Clock, MapPin, Mountain, Users } from 'lucide-react';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
@@ -48,10 +47,10 @@ export default function SpitiValleyTourPage() {
         gradient="from-teal-800 via-emerald-900 to-green-900"
         accentColor="teal-400"
         stats={[
-          { icon: Clock, label: 'Duration', value: '8 Days' },
-          { icon: MapPin, label: 'Distance', value: '800 km' },
-          { icon: Mountain, label: 'Max Altitude', value: '14,931 ft' },
-          { icon: Users, label: 'Group Size', value: '6–12' },
+          { icon: 'clock', label: 'Duration', value: '8 Days' },
+          { icon: 'mappin', label: 'Distance', value: '800 km' },
+          { icon: 'mountain', label: 'Max Altitude', value: '14,931 ft' },
+          { icon: 'users', label: 'Group Size', value: '6–12' },
         ]}
         features={[
           { text: 'Ride Captain' },
