@@ -1,7 +1,20 @@
 'use client';
 
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Mountain, Star, Shield, Phone, ArrowRight, Clock, Users, MapPin, Bike } from 'lucide-react';
+
+type StatIcon = 'clock' | 'mappin' | 'mountain' | 'users' | 'star' | 'shield' | 'bike';
+
+const STAT_ICONS: Record<StatIcon, React.ComponentType<{ className?: string }>> = {
+  clock: Clock,
+  mappin: MapPin,
+  mountain: Mountain,
+  users: Users,
+  star: Star,
+  shield: Shield,
+  bike: Bike,
+};
 
 interface BikeTourHeroProps {
   badge: string;
@@ -10,7 +23,7 @@ interface BikeTourHeroProps {
   description: string;
   gradient: string;
   accentColor: string;
-  stats: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }[];
+  stats: { icon: StatIcon; label: string; value: string }[];
   features: { text: string }[];
   ctaPhone?: string;
   ctaLabel?: string;
@@ -122,16 +135,19 @@ export function BikeTourHero({
           >
             {/* Stats Grid */}
             <div className="grid grid-cols-2 gap-4">
-              {stats.map((s) => (
-                <div
-                  key={s.label}
-                  className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5 flex flex-col gap-2"
-                >
-                  <s.icon className="w-6 h-6 text-white/70" />
-                  <p className="text-2xl font-bold">{s.value}</p>
-                  <p className="text-sm text-white/70">{s.label}</p>
-                </div>
-              ))}
+              {stats.map((s) => {
+                const Icon = STAT_ICONS[s.icon];
+                return (
+                  <div
+                    key={s.label}
+                    className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5 flex flex-col gap-2"
+                  >
+                    <Icon className="w-6 h-6 text-white/70" />
+                    <p className="text-2xl font-bold">{s.value}</p>
+                    <p className="text-sm text-white/70">{s.label}</p>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Features / Trust Badges */}
