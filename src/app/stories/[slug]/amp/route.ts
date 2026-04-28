@@ -322,7 +322,7 @@ export async function GET(
     const publisherName = story.publisherName || 'TransRentals';
     const description   = (story as any).metaDescription || story.description
       || `${story.title} — Read on ${publisherName}`;
-    const canonicalUrl  = `${siteUrl}/stories/${slug}/amp`;
+    const canonicalUrl  = `${siteUrl}/stories/${slug}`;
     const publishedAt   = story.publishedAt?.toISOString() || new Date().toISOString();
 
     // Schema.org Article
@@ -362,7 +362,7 @@ export async function GET(
     const slidesHtml = slides.map((s, i) => renderSlide(s, i, siteUrl)).join('\n');
 
     const html = `<!doctype html>
-<html ⚡ lang="en">
+<html amp lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
