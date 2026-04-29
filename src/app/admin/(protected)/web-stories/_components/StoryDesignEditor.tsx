@@ -78,6 +78,18 @@ const EASINGS = [
   { label: 'Bounce', value: 'cubic-bezier(0.175,0.885,0.32,1.275)' },
 ];
 
+// CSS keyframes for canvas animation preview — one entry per ANIMATIONS value
+const CANVAS_ANIM_CSS = `
+@keyframes ws-fade-in{from{opacity:0}to{opacity:1}}
+@keyframes ws-slide-up{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes ws-slide-down{from{transform:translateY(-60px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes ws-slide-left{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes ws-slide-right{from{transform:translateX(-60px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes ws-zoom-in{from{transform:scale(0.2);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes ws-pop{0%{transform:scale(0.2);opacity:0}70%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes ws-spin-in{from{transform:rotate(-180deg) scale(0.3);opacity:0}to{transform:rotate(0deg) scale(1);opacity:1}}
+`;
+
 // Interpolate CSS filter intensity: 0% = no effect, 100% = full effect
 function scaleFilter(css: string | undefined, intensity: number): string | undefined {
   if (!css) return undefined;
@@ -618,7 +630,13 @@ function CanvasEl({ el, selected, multiSelected, scale, canvasRef, onSelect, onS
       onClick={e => { e.stopPropagation(); if (!e.shiftKey) onSelect(); }}
       onDoubleClick={e => { e.stopPropagation(); onDblClick(); }}
     >
-      {renderElInner(el)}
+      {/* Animation preview wrapper — key changes when anim settings change, forcing CSS restart */}
+      <div
+        key={`${el.animation || 'none'}-${el.animationDuration ?? 0.6}-${el.animationEasing ?? 'ease'}`}
+        style={{ position: 'absolute', inset: 0, animation: el.animation ? `ws-${el.animation} ${el.animationDuration ?? 0.6}s ${el.animationEasing ?? 'ease'} both` : undefined }}
+      >
+        {renderElInner(el)}
+      </div>
       {selected && (
         <>
           {/* Rotation handle */}
@@ -1749,10 +1767,11 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden" style={{ fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
-      {/* Google Fonts */}
+      {/* Google Fonts + canvas animation keyframes */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link href={GOOGLE_FONTS_URL} rel="stylesheet" />
+      <style dangerouslySetInnerHTML={{ __html: CANVAS_ANIM_CSS }} />
       <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleAddImage} />
       <input ref={bgImgInputRef} type="file" accept="image/*,video/mp4,video/webm" className="hidden" onChange={handleBgUpload} />
       <input ref={shapeImgInputRef} type="file" accept="image/*" className="hidden" onChange={handleShapeImgUpload} />
