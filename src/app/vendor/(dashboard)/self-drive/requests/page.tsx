@@ -26,6 +26,7 @@ import {
   Settings2,
   Fuel,
   Users,
+  ChevronDown,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
 import { formatBookingDuration } from '@/lib/utils/duration';
@@ -65,6 +66,47 @@ interface QuoteRequest {
   createdAt: string;
 }
 
+type DateFilterKey = 'all' | 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'custom';
+
+function getDateRange(key: DateFilterKey, customStart?: string, customEnd?: string): { startDate?: string; endDate?: string } {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (key === 'today') {
+    const s = fmt(today);
+    return { startDate: s, endDate: s };
+  }
+  if (key === 'yesterday') {
+    const y = new Date(today); y.setDate(y.getDate() - 1);
+    const s = fmt(y);
+    return { startDate: s, endDate: s };
+  }
+  if (key === 'this_week') {
+    const start = new Date(today); start.setDate(today.getDate() - today.getDay());
+    return { startDate: fmt(start), endDate: fmt(today) };
+  }
+  if (key === 'last_week') {
+    const start = new Date(today); start.setDate(today.getDate() - today.getDay() - 7);
+    const end = new Date(start); end.setDate(start.getDate() + 6);
+    return { startDate: fmt(start), endDate: fmt(end) };
+  }
+  if (key === 'this_month') {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    return { startDate: fmt(start), endDate: fmt(today) };
+  }
+  if (key === 'last_month') {
+    const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const end = new Date(today.getFullYear(), today.getMonth(), 0);
+    return { startDate: fmt(start), endDate: fmt(end) };
+  }
+  if (key === 'custom') {
+    return { startDate: customStart, endDate: customEnd };
+  }
+  return {};
+}
+
 /* ── Urgency helper ── */
 function getUrgency(pickupDate: string): { label: string; color: string; urgent: boolean } {
   const diff = new Date(pickupDate).getTime() - Date.now();
@@ -96,11 +138,17 @@ export default function VendorSelfDriveRequestsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
 
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<DateFilterKey>('all');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [showDateFilter, setShowDateFilter] = useState(false);
+
   useEffect(() => {
     if (sessionStatus === 'loading') return;
     if (sessionStatus === 'unauthenticated') return;
     fetchRequests();
-  }, [sessionStatus, filter, currentPage, searchQuery]);
+  }, [sessionStatus, filter, currentPage, searchQuery, dateFilter, customStart, customEnd]);
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -111,6 +159,9 @@ export default function VendorSelfDriveRequestsPage() {
       params.set('page', currentPage.toString());
       params.set('limit', '20');
       if (searchQuery) params.set('search', searchQuery);
+      const { startDate, endDate } = getDateRange(dateFilter, customStart, customEnd);
+      if (startDate) params.set('startDate', startDate);
+      if (endDate) params.set('endDate', endDate);
 
       const response = await fetch(`/api/vendor/self-drive-quote-requests?${params}`);
       const data = await response.json();
@@ -229,7 +280,7 @@ export default function VendorSelfDriveRequestsPage() {
           </form>
 
           {/* Filter tabs */}
-          <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
+          <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1 mb-2">
             {[
               { value: 'new',    label: 'Open',   count: tabCounts.new,    activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
               { value: 'quoted', label: 'Quoted', count: tabCounts.quoted, activeColor: 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25' },
@@ -251,6 +302,103 @@ export default function VendorSelfDriveRequestsPage() {
               </button>
             ))}
           </div>
+
+          {/* Date filter toggle */}
+          <button
+            onClick={() => setShowDateFilter(v => !v)}
+            className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+              dateFilter !== 'all'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
+            }`}
+          >
+            <span className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" />
+              {dateFilter === 'all' ? 'Filter by Date' :
+               dateFilter === 'today' ? 'Today' :
+               dateFilter === 'yesterday' ? 'Yesterday' :
+               dateFilter === 'this_week' ? 'This Week' :
+               dateFilter === 'last_week' ? 'Last Week' :
+               dateFilter === 'this_month' ? 'This Month' :
+               dateFilter === 'last_month' ? 'Last Month' :
+               customStart && customEnd ? `${customStart} → ${customEnd}` : 'Custom Range'}
+            </span>
+            <div className="flex items-center gap-1">
+              {dateFilter !== 'all' && (
+                <span
+                  role="button"
+                  onClick={(e) => { e.stopPropagation(); setDateFilter('all'); setCustomStart(''); setCustomEnd(''); setCurrentPage(1); }}
+                  className="w-4 h-4 rounded-full bg-emerald-200 text-emerald-700 flex items-center justify-center hover:bg-emerald-300"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </span>
+              )}
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showDateFilter ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+
+          {showDateFilter && (
+            <div className="mt-1.5 bg-white border border-gray-200 rounded-xl p-2 shadow-sm space-y-1.5">
+              {/* Preset pills */}
+              <div className="flex flex-wrap gap-1">
+                {([
+                  { key: 'today',      label: 'Today' },
+                  { key: 'yesterday',  label: 'Yesterday' },
+                  { key: 'this_week',  label: 'This Week' },
+                  { key: 'last_week',  label: 'Last Week' },
+                  { key: 'this_month', label: 'This Month' },
+                  { key: 'last_month', label: 'Last Month' },
+                ] as { key: DateFilterKey; label: string }[]).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => { setDateFilter(key); setCurrentPage(1); setShowDateFilter(false); }}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                      dateFilter === key
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+                <button
+                  onClick={() => { setDateFilter('custom'); }}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                    dateFilter === 'custom'
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Custom
+                </button>
+              </div>
+
+              {/* Custom date inputs */}
+              {dateFilter === 'custom' && (
+                <div className="flex gap-1.5 pt-1">
+                  <div className="flex-1">
+                    <p className="text-[10px] text-gray-400 font-semibold mb-0.5 ml-0.5">From</p>
+                    <input
+                      type="date"
+                      value={customStart}
+                      onChange={(e) => { setCustomStart(e.target.value); setCurrentPage(1); }}
+                      className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-300"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] text-gray-400 font-semibold mb-0.5 ml-0.5">To</p>
+                    <input
+                      type="date"
+                      value={customEnd}
+                      min={customStart}
+                      onChange={(e) => { setCustomEnd(e.target.value); setCurrentPage(1); }}
+                      className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-300"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* List */}
