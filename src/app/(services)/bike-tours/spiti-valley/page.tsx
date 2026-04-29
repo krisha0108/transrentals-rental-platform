@@ -47,10 +47,10 @@ export default function SpitiValleyTourPage() {
         gradient="from-teal-800 via-emerald-900 to-green-900"
         accentColor="teal-400"
         stats={[
-          { icon: 'clock' as const, label: 'Duration', value: '8 Days' },
-          { icon: 'mappin' as const, label: 'Distance', value: '800 km' },
-          { icon: 'mountain' as const, label: 'Max Altitude', value: '14,931 ft' },
-          { icon: 'users' as const, label: 'Group Size', value: '6–12' },
+          { icon: 'clock', label: 'Duration', value: '8 Days' },
+          { icon: 'mappin', label: 'Distance', value: '800 km' },
+          { icon: 'mountain', label: 'Max Altitude', value: '14,931 ft' },
+          { icon: 'users', label: 'Group Size', value: '6–12' },
         ]}
         features={[
           { text: 'Ride Captain' },

@@ -270,8 +270,14 @@ export default function CustomerHelpdeskPage() {
 
   const [customerId, setCustomerId] = useState<string | number | null>(null);
   const [customerIdentifier, setCustomerIdentifier] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
 
   const [customerName, setCustomerName] = useState('');
+
+  // Contact inquiries
+  const [contactInquiries, setContactInquiries] = useState<any[]>([]);
+  const [isLoadingInquiries, setIsLoadingInquiries] = useState(false);
+  const [selectedInquiry, setSelectedInquiry] = useState<any | null>(null);
 
   const [tickets, setTickets] = useState<HelpdeskTicket[]>([]);
 
@@ -349,6 +355,16 @@ export default function CustomerHelpdeskPage() {
 
       setCustomerName(parsed?.name || parsed?.full_name || parsed?.customer_name || '');
       setCustomerIdentifier(parsed?.phone || parsed?.email || '');
+      const email = parsed?.email || '';
+      setCustomerEmail(email);
+      if (email) {
+        setIsLoadingInquiries(true);
+        fetch(`/api/customer/contact-inquiries?email=${encodeURIComponent(email)}`)
+          .then(r => r.json())
+          .then(d => setContactInquiries(d.inquiries || []))
+          .catch(() => {})
+          .finally(() => setIsLoadingInquiries(false));
+      }
 
     } catch (err) {
 
@@ -1428,9 +1444,148 @@ export default function CustomerHelpdeskPage() {
 
                 </div>
 
+              {/* Contact Inquiries Section */}
+            <div className="mt-5">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Contact Form Inquiries</h2>
+                    <p className="text-sm text-gray-500 mt-0.5">Messages you sent via the contact form</p>
+                  </div>
+                  <a href="/contact"
+                    className="flex items-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2.5 transition shadow-sm">
+                    <Plus className="h-4 w-4" /> New Inquiry
+                  </a>
+                </div>
+
+                <div className="p-4 md:p-6">
+                  {isLoadingInquiries ? (
+                    <div className="flex items-center justify-center gap-3 py-10 text-gray-400">
+                      <Loader2 className="h-6 w-6 animate-spin text-orange-400" />
+                      <p className="text-sm">Loading inquiries...</p>
+                    </div>
+                  ) : contactInquiries.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 mb-3">
+                        <MessageCircle className="h-7 w-7 text-orange-400" />
+                      </div>
+                      <h3 className="text-sm font-semibold text-gray-700">No inquiries yet</h3>
+                      <p className="mt-1 text-xs text-gray-400 max-w-xs">
+                        Use the contact form to send us a message. Your submissions will appear here.
+                      </p>
+                      <a href="/contact"
+                        className="mt-4 flex items-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-600 px-4 py-2 text-xs font-semibold text-white transition">
+                        <Plus className="h-3.5 w-3.5" /> Send an Inquiry
+                      </a>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Desktop table */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="min-w-full">
+                          <thead>
+                            <tr className="border-b border-gray-100">
+                              {['Ref', 'Subject', 'Message', 'Status', 'Date', ''].map(h => (
+                                <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 bg-gray-50/80">{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {contactInquiries.map((inq: any) => {
+                              const statusMap: Record<string, { label: string; cls: string }> = {
+                                NEW: { label: 'New', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+                                IN_PROGRESS: { label: 'In Progress', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+                                RESOLVED: { label: 'Resolved', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                                CLOSED: { label: 'Closed', cls: 'bg-gray-50 text-gray-600 border-gray-200' },
+                              };
+                              const s = statusMap[inq.status] || statusMap.NEW;
+                              return (
+                                <tr key={inq.id} className="group hover:bg-orange-50/30 transition">
+                                  <td className="px-4 py-4">
+                                    <span className="text-xs font-mono font-semibold text-gray-400">
+                                      INQ-{inq.id.slice(-6).toUpperCase()}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-4 max-w-[180px]">
+                                    <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-orange-700 transition">{inq.subject}</p>
+                                  </td>
+                                  <td className="px-4 py-4 max-w-[240px]">
+                                    <p className="text-xs text-gray-500 line-clamp-2">{inq.message}</p>
+                                  </td>
+                                  <td className="px-4 py-4">
+                                    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[0.7rem] font-semibold ${s.cls}`}>
+                                      {s.label}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-4">
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                                      <Clock className="h-3.5 w-3.5" />
+                                      {new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(inq.createdAt))}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-4 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedInquiry(inq)}
+                                      className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-orange-100 hover:text-orange-600 transition"
+                                      title="View details"
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Mobile cards */}
+                      <div className="md:hidden space-y-3">
+                        {contactInquiries.map((inq: any) => {
+                          const statusMap: Record<string, { label: string; cls: string }> = {
+                            NEW: { label: 'New', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+                            IN_PROGRESS: { label: 'In Progress', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+                            RESOLVED: { label: 'Resolved', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                            CLOSED: { label: 'Closed', cls: 'bg-gray-50 text-gray-600 border-gray-200' },
+                          };
+                          const s = statusMap[inq.status] || statusMap.NEW;
+                          return (
+                            <div key={inq.id} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-slate-900 truncate">{inq.subject}</p>
+                                  <p className="text-xs text-gray-400 mt-0.5 font-mono">INQ-{inq.id.slice(-6).toUpperCase()}</p>
+                                </div>
+                                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[0.65rem] font-semibold whitespace-nowrap ${s.cls}`}>
+                                  {s.label}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 line-clamp-2 mb-3">{inq.message}</p>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1 text-xs text-gray-400">
+                                  <Clock className="h-3 w-3" />
+                                  {new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium' }).format(new Date(inq.createdAt))}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedInquiry(inq)}
+                                  className="flex items-center gap-1.5 rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-100 transition"
+                                >
+                                  <Eye className="h-3.5 w-3.5" /> View
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
               </section>
-
-
 
               {/* Right Sidebar */}
               <aside className="hidden lg:flex flex-col gap-4 w-[280px] flex-shrink-0 sticky top-20">
@@ -1883,6 +2038,14 @@ export default function CustomerHelpdeskPage() {
 
         )}
 
+        {/* Inquiry Detail Modal */}
+        {selectedInquiry && (
+          <InquiryDetailModal
+            inquiry={selectedInquiry}
+            onClose={() => setSelectedInquiry(null)}
+          />
+        )}
+
       </div>
 
     );
@@ -2112,4 +2275,98 @@ function TicketDetailsModal({
 
   );
 
+}
+
+function InquiryDetailModal({ inquiry, onClose }: { inquiry: any; onClose: () => void }) {
+  const statusMap: Record<string, { label: string; cls: string }> = {
+    NEW: { label: 'New', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+    IN_PROGRESS: { label: 'In Progress', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+    RESOLVED: { label: 'Resolved', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    CLOSED: { label: 'Closed', cls: 'bg-gray-50 text-gray-600 border-gray-200' },
+  };
+  const s = statusMap[inquiry.status] || statusMap.NEW;
+  const ref = `INQ-${inquiry.id.slice(-6).toUpperCase()}`;
+  const fmt = (v: string) => new Intl.DateTimeFormat('en-IN', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(v));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6" onClick={onClose}>
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-gray-100 bg-white px-6 py-4 rounded-t-2xl">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50">
+              <MessageCircle className="h-5 w-5 text-orange-500" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-lg font-bold text-slate-900">{ref}</h3>
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[0.65rem] font-semibold ${s.cls}`}>
+                  {s.label}
+                </span>
+              </div>
+              <p className="text-sm text-gray-500">{inquiry.subject}</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-5">
+          {/* Meta */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Subject</p>
+              <p className="text-sm font-semibold text-slate-900">{inquiry.subject}</p>
+            </div>
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Submitted On</p>
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-gray-400" />
+                <p className="text-sm text-gray-700">{fmt(inquiry.createdAt)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Message */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Your Message</p>
+            <div className="rounded-xl bg-gray-50 p-4">
+              <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{inquiry.message}</p>
+            </div>
+          </div>
+
+          {/* Admin Response */}
+          {inquiry.resolution ? (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Response from Team</p>
+              <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-200">
+                    <MessageSquare className="h-4 w-4 text-emerald-700" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-emerald-900">TransRentals Support Team</p>
+                    <p className="mt-1.5 text-sm text-emerald-800 whitespace-pre-line leading-relaxed">{inquiry.resolution}</p>
+                    {inquiry.resolvedAt && (
+                      <p className="mt-2 text-xs text-emerald-600 flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> {fmt(inquiry.resolvedAt)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-gray-200 p-5 text-center">
+              <Inbox className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+              <p className="text-sm font-medium text-gray-500">Awaiting Response</p>
+              <p className="text-xs text-gray-400 mt-1">Our team will respond within 2 business hours.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }

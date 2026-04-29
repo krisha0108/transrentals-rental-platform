@@ -82,10 +82,10 @@ export default function BikeTripsPage() {
         gradient="from-indigo-900 via-purple-900 to-pink-900"
         accentColor="indigo-400"
         stats={[
-          { icon: 'bike' as const, label: 'Bikes Available', value: '50+' },
-          { icon: 'mappin' as const, label: 'Pickup Cities', value: '15+' },
-          { icon: 'star' as const, label: 'Rating', value: '4.8/5' },
-          { icon: 'shield' as const, label: 'Insurance', value: 'Included' },
+          { icon: 'bike', label: 'Bikes Available', value: '50+' },
+          { icon: 'mappin', label: 'Pickup Cities', value: '15+' },
+          { icon: 'star', label: 'Rating', value: '4.8/5' },
+          { icon: 'shield', label: 'Insurance', value: 'Included' },
         ]}
         features={[
           { text: 'Royal Enfield' },
@@ -96,20 +96,6 @@ export default function BikeTripsPage() {
           { text: 'Permit Help' },
         ]}
       />
-
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white py-20">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Bike Trip Rentals Across India
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 opacity-90">
-              Royal Enfield • One-Way Drops • Riding Gear • 24/7 Support
-            </p>
-          </div>
-        </div>
-      </section>
 
       {/* Trips Grid */}
       <section className="py-16">

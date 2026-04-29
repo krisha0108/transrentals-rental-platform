@@ -43,10 +43,10 @@ export default function GoaTourPage() {
         gradient="from-cyan-700 via-blue-800 to-indigo-900"
         accentColor="cyan-400"
         stats={[
-          { icon: 'clock' as const, label: 'Duration', value: '4 Days' },
-          { icon: 'mappin' as const, label: 'Distance', value: '320 km' },
-          { icon: 'star' as const, label: 'Rating', value: '4.8/5' },
-          { icon: 'shield' as const, label: 'Difficulty', value: 'Easy' },
+          { icon: 'clock', label: 'Duration', value: '4 Days' },
+          { icon: 'mappin', label: 'Distance', value: '320 km' },
+          { icon: 'star', label: 'Rating', value: '4.8/5' },
+          { icon: 'shield', label: 'Difficulty', value: 'Easy' },
         ]}
         features={[
           { text: 'Ride Captain' },

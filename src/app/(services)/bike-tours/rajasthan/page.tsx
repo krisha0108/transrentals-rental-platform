@@ -46,10 +46,10 @@ export default function RajasthanTourPage() {
         gradient="from-orange-800 via-red-900 to-rose-900"
         accentColor="orange-400"
         stats={[
-          { icon: 'clock' as const, label: 'Duration', value: '7 Days' },
-          { icon: 'mappin' as const, label: 'Distance', value: '1,440 km' },
-          { icon: 'star' as const, label: 'Rating', value: '4.9/5' },
-          { icon: 'users' as const, label: 'Group Size', value: '6–12' },
+          { icon: 'clock', label: 'Duration', value: '7 Days' },
+          { icon: 'mappin', label: 'Distance', value: '1,440 km' },
+          { icon: 'star', label: 'Rating', value: '4.9/5' },
+          { icon: 'users', label: 'Group Size', value: '6–12' },
         ]}
         features={[
           { text: 'Ride Captain' },

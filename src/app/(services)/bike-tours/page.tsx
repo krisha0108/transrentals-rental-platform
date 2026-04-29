@@ -61,10 +61,10 @@ export default function BikeToursPage() {
         gradient="from-purple-900 via-indigo-900 to-blue-900"
         accentColor="purple-400"
         stats={[
-          { icon: 'star' as const, label: 'Customer Rating', value: '4.9/5' },
-          { icon: 'users' as const, label: 'Group Size', value: '6–12' },
-          { icon: 'mappin' as const, label: 'Destinations', value: '4+' },
-          { icon: 'clock' as const, label: 'Tour Length', value: '4–12 Days' },
+          { icon: 'star', label: 'Customer Rating', value: '4.9/5' },
+          { icon: 'users', label: 'Group Size', value: '6–12' },
+          { icon: 'mappin', label: 'Destinations', value: '4+' },
+          { icon: 'clock', label: 'Tour Length', value: '4–12 Days' },
         ]}
         features={[
           { text: 'Ride Captain' },
