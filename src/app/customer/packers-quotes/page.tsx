@@ -14,9 +14,11 @@ import {
   XCircle,
   AlertCircle,
   ChevronRight,
+  ChevronDown,
   Send,
   MessageSquare,
   Inbox,
+  X,
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import CustomerHeader from '@/components/customer/CustomerHeader';
@@ -51,11 +53,31 @@ const SHIFTING_ICONS: Record<string, any> = {
   Vehicle: Car,
 };
 
+type DateFilterKey = 'all' | 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'custom';
+
+function getDateRange(key: DateFilterKey, customStart?: string, customEnd?: string): { startDate?: string; endDate?: string } {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  if (key === 'today') { const s = fmt(today); return { startDate: s, endDate: s }; }
+  if (key === 'yesterday') { const y = new Date(today); y.setDate(y.getDate() - 1); const s = fmt(y); return { startDate: s, endDate: s }; }
+  if (key === 'this_week') { const start = new Date(today); start.setDate(today.getDate() - today.getDay()); return { startDate: fmt(start), endDate: fmt(today) }; }
+  if (key === 'last_week') { const start = new Date(today); start.setDate(today.getDate() - today.getDay() - 7); const end = new Date(start); end.setDate(start.getDate() + 6); return { startDate: fmt(start), endDate: fmt(end) }; }
+  if (key === 'this_month') { const start = new Date(today.getFullYear(), today.getMonth(), 1); return { startDate: fmt(start), endDate: fmt(today) }; }
+  if (key === 'last_month') { const start = new Date(today.getFullYear(), today.getMonth() - 1, 1); const end = new Date(today.getFullYear(), today.getMonth(), 0); return { startDate: fmt(start), endDate: fmt(end) }; }
+  if (key === 'custom') { return { startDate: customStart, endDate: customEnd }; }
+  return {};
+}
+
 export default function CustomerPackersQuotesPage() {
   const { customer, isAuthenticated, isLoading: authLoading } = useCustomerAuth();
   const [requests, setRequests] = useState<QuoteRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState<DateFilterKey>('all');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [showDateFilter, setShowDateFilter] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -86,8 +108,14 @@ export default function CustomerPackersQuotesPage() {
   };
 
   const filteredRequests = requests.filter((r) => {
-    if (filter === 'active') return ['PENDING', 'QUOTES_RECEIVED'].includes(r.status);
-    if (filter === 'booked') return ['QUOTE_ACCEPTED', 'BOOKING_CREATED'].includes(r.status);
+    if (filter === 'active' && !['PENDING', 'QUOTES_RECEIVED'].includes(r.status)) return false;
+    if (filter === 'booked' && !['QUOTE_ACCEPTED', 'BOOKING_CREATED'].includes(r.status)) return false;
+    if (dateFilter !== 'all') {
+      const { startDate, endDate } = getDateRange(dateFilter, customStart, customEnd);
+      const created = new Date(r.createdAt);
+      if (startDate) { const [sy, sm, sd] = startDate.split('-').map(Number); if (created < new Date(sy, sm - 1, sd)) return false; }
+      if (endDate) { const [ey, em, ed] = endDate.split('-').map(Number); if (created > new Date(ey, em - 1, ed, 23, 59, 59)) return false; }
+    }
     return true;
   });
 
@@ -155,6 +183,34 @@ export default function CustomerPackersQuotesPage() {
               {f.label}
             </button>
           ))}
+        </div>
+
+        {/* Date filter */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button type="button" onClick={() => setShowDateFilter(v => !v)} className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition ${dateFilter !== 'all' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+              <Calendar className="w-3.5 h-3.5" />
+              <span>{dateFilter === 'all' ? 'Date Filter' : dateFilter === 'today' ? 'Today' : dateFilter === 'yesterday' ? 'Yesterday' : dateFilter === 'this_week' ? 'This Week' : dateFilter === 'last_week' ? 'Last Week' : dateFilter === 'this_month' ? 'This Month' : dateFilter === 'last_month' ? 'Last Month' : 'Custom'}</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showDateFilter ? 'rotate-180' : ''}`} />
+            </button>
+            {dateFilter !== 'all' && <button type="button" onClick={() => { setDateFilter('all'); setCustomStart(''); setCustomEnd(''); }} className="flex items-center gap-1 px-3 py-2 rounded-full text-sm font-medium bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 transition"><X className="w-3.5 h-3.5" /> Clear</button>}
+          </div>
+          {showDateFilter && (
+            <div className="mt-2 p-3 bg-white rounded-xl border border-gray-200 shadow-sm space-y-2">
+              <div className="flex flex-wrap gap-1.5">
+                {(['today', 'yesterday', 'this_week', 'last_week', 'this_month', 'last_month', 'custom'] as DateFilterKey[]).map((key) => {
+                  const label = key === 'today' ? 'Today' : key === 'yesterday' ? 'Yesterday' : key === 'this_week' ? 'This Week' : key === 'last_week' ? 'Last Week' : key === 'this_month' ? 'This Month' : key === 'last_month' ? 'Last Month' : 'Custom';
+                  return <button key={key} type="button" onClick={() => { setDateFilter(key); if (key !== 'custom') setShowDateFilter(false); }} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${dateFilter === key ? 'bg-green-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'}`}>{label}</button>;
+                })}
+              </div>
+              {dateFilter === 'custom' && (
+                <div className="flex gap-3 pt-1">
+                  <div className="flex-1"><p className="text-xs text-gray-500 font-semibold mb-1">From</p><input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-300" /></div>
+                  <div className="flex-1"><p className="text-xs text-gray-500 font-semibold mb-1">To</p><input type="date" value={customEnd} min={customStart} onChange={(e) => setCustomEnd(e.target.value)} className="w-full text-sm border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-300" /></div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Requests List */}

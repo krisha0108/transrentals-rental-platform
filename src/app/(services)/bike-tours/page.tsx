@@ -76,24 +76,19 @@ export default function BikeToursPage() {
         ]}
       />
 
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 text-white py-16">
+      {/* Sub-hero strip */}
+      <section className="bg-gray-900 text-white py-10 border-b border-gray-700">
         <div className="container-custom">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Guided Motorcycle Tours Across India
-            </h1>
-            <p className="text-xl md:text-2xl mb-4 opacity-90">
+            <p className="text-lg md:text-xl text-gray-300 mb-2">
               Ride Captain • Backup Vehicle • Accommodation • Meals
             </p>
-            <p className="text-lg opacity-75 mb-8">
-              Small Groups of 6-12 Riders
-            </p>
+            <p className="text-sm text-gray-400 mb-6">Small Groups of 6–12 Riders</p>
             <div className="flex flex-wrap gap-4 justify-center">
               <a href="#tours" className="bg-yellow-400 text-black px-6 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
                 View All Tours
               </a>
-              <Link href="/bike-trips/ladakh" className="border-2 border-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-purple-900 transition">
+              <Link href="/bike-trips/ladakh" className="border border-gray-500 text-gray-300 px-6 py-3 rounded-lg font-semibold hover:bg-gray-700 transition">
                 Most Popular: Ladakh
               </Link>
             </div>

@@ -78,6 +78,18 @@ const EASINGS = [
   { label: 'Bounce', value: 'cubic-bezier(0.175,0.885,0.32,1.275)' },
 ];
 
+// CSS keyframes for canvas animation preview — one entry per ANIMATIONS value
+const CANVAS_ANIM_CSS = `
+@keyframes ws-fade-in{from{opacity:0}to{opacity:1}}
+@keyframes ws-slide-up{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes ws-slide-down{from{transform:translateY(-60px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes ws-slide-left{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes ws-slide-right{from{transform:translateX(-60px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes ws-zoom-in{from{transform:scale(0.2);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes ws-pop{0%{transform:scale(0.2);opacity:0}70%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes ws-spin-in{from{transform:rotate(-180deg) scale(0.3);opacity:0}to{transform:rotate(0deg) scale(1);opacity:1}}
+`;
+
 // Interpolate CSS filter intensity: 0% = no effect, 100% = full effect
 function scaleFilter(css: string | undefined, intensity: number): string | undefined {
   if (!css) return undefined;
@@ -618,7 +630,13 @@ function CanvasEl({ el, selected, multiSelected, scale, canvasRef, onSelect, onS
       onClick={e => { e.stopPropagation(); if (!e.shiftKey) onSelect(); }}
       onDoubleClick={e => { e.stopPropagation(); onDblClick(); }}
     >
-      {renderElInner(el)}
+      {/* Animation preview wrapper — key changes when anim settings change, forcing CSS restart */}
+      <div
+        key={`${el.animation || 'none'}-${el.animationDuration ?? 0.6}-${el.animationEasing ?? 'ease'}`}
+        style={{ position: 'absolute', inset: 0, animation: el.animation ? `ws-${el.animation} ${el.animationDuration ?? 0.6}s ${el.animationEasing ?? 'ease'} both` : undefined }}
+      >
+        {renderElInner(el)}
+      </div>
       {selected && (
         <>
           {/* Rotation handle */}
@@ -701,6 +719,9 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
   const filterBtnRef = useRef<HTMLButtonElement>(null);
   const animBtnRef = useRef<HTMLButtonElement>(null);
   const shadowBtnRef = useRef<HTMLButtonElement>(null);
+  const filterPopupRef = useRef<HTMLDivElement>(null);
+  const animPopupRef = useRef<HTMLDivElement>(null);
+  const shadowPopupRef = useRef<HTMLDivElement>(null);
 
   const calcPos = (ref: React.RefObject<HTMLButtonElement | null>, width: number) => {
     const rect = ref.current?.getBoundingClientRect();
@@ -728,12 +749,17 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
     setShowShadow(true); setShowFilters(false); setShowAnim(false);
   };
 
-  // Close on outside click
+  // Close on outside click — must also check popup div refs, not just the toggle buttons.
+  // React 17+ attaches events to root container, so e.stopPropagation() inside a React
+  // handler does NOT block native document listeners. Checking containment fixes this.
   useEffect(() => {
     if (!showFilters && !showAnim && !showShadow) return;
     const handler = (e: MouseEvent) => {
       const t = e.target as Node;
-      if (!filterBtnRef.current?.contains(t) && !animBtnRef.current?.contains(t) && !shadowBtnRef.current?.contains(t)) {
+      const insideFilter = filterBtnRef.current?.contains(t) || filterPopupRef.current?.contains(t);
+      const insideAnim   = animBtnRef.current?.contains(t)   || animPopupRef.current?.contains(t);
+      const insideShadow = shadowBtnRef.current?.contains(t) || shadowPopupRef.current?.contains(t);
+      if (!insideFilter && !insideAnim && !insideShadow) {
         setShowFilters(false); setShowAnim(false); setShowShadow(false);
       }
     };
@@ -941,7 +967,7 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
             🎨 Filter
           </button>
           {showFilters && popupPos && (
-            <div className="fixed bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 288, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
+            <div ref={filterPopupRef} className="fixed bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 288, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
               <div className="grid grid-cols-4 gap-1 mb-2">
                 {FILTER_PRESETS.map(fp => (
                   <button key={fp.name} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, filterCss: fp.css, filterIntensity: el.filterIntensity ?? 100 }); }}
@@ -959,6 +985,7 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
                   <input type="range" min={0} max={100} step={1}
                     value={el.filterIntensity ?? 100}
                     onMouseDown={ev => ev.stopPropagation()}
+                    onPointerDown={ev => ev.stopPropagation()}
                     onChange={ev => onChange({ ...el, filterIntensity: Number(ev.target.value) })}
                     className="w-full accent-indigo-500" />
                 </div>
@@ -974,7 +1001,7 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
             <Sparkles className="w-3 h-3" /> {el.animation || 'Animate'}
           </button>
           {showAnim && popupPos && (
-            <div className="fixed bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 228, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
+            <div ref={animPopupRef} className="fixed bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 228, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
               <div className="grid grid-cols-2 gap-1 mb-2">
                 {ANIMATIONS.map(a => (
                   <button key={a.value} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, animation: a.value }); setShowAnim(false); }}
@@ -992,6 +1019,7 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
                     </div>
                     <input type="range" min={0.1} max={3} step={0.1} value={el.animationDuration ?? 0.6}
                       onMouseDown={ev => ev.stopPropagation()}
+                      onPointerDown={ev => ev.stopPropagation()}
                       onChange={ev => onChange({ ...el, animationDuration: Number(ev.target.value) })}
                       className="w-full accent-indigo-500" />
                   </div>
@@ -1019,7 +1047,7 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
             🌑 Shadow
           </button>
           {showShadow && popupPos && (
-            <div className="fixed bg-white border border-slate-200 rounded-xl p-3 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 278, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
+            <div ref={shadowPopupRef} className="fixed bg-white border border-slate-200 rounded-xl p-3 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 278, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
               <div className="grid grid-cols-4 gap-1 mb-3">
                 {[
                   { label: '↑ Top', x: 0, y: -8 },
@@ -1042,6 +1070,7 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
                     <span className="text-[10px] text-slate-500 w-10">{label}</span>
                     <input type="range" min={min} max={max} step={step} value={val}
                       onMouseDown={ev => ev.stopPropagation()}
+                      onPointerDown={ev => ev.stopPropagation()}
                       onChange={e => onChange({ ...el, [key]: Number(e.target.value) })}
                       className="flex-1 accent-indigo-500" />
                     <span className="text-[10px] text-slate-500 w-8 text-right">
@@ -1738,10 +1767,11 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 overflow-hidden" style={{ fontFamily: 'ui-sans-serif, system-ui, sans-serif' }}>
-      {/* Google Fonts */}
+      {/* Google Fonts + canvas animation keyframes */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link href={GOOGLE_FONTS_URL} rel="stylesheet" />
+      <style dangerouslySetInnerHTML={{ __html: CANVAS_ANIM_CSS }} />
       <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={handleAddImage} />
       <input ref={bgImgInputRef} type="file" accept="image/*,video/mp4,video/webm" className="hidden" onChange={handleBgUpload} />
       <input ref={shapeImgInputRef} type="file" accept="image/*" className="hidden" onChange={handleShapeImgUpload} />
@@ -1777,6 +1807,17 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-slate-600 hover:text-slate-900 text-xs rounded-xl hover:bg-slate-100 border border-slate-200 transition disabled:opacity-30">
             <Eye className="w-3.5 h-3.5" /> Preview
           </button>
+          {mode === 'edit' && initialData?.slug && (
+            <a
+              href={`https://validator.ampproject.org/?url=${encodeURIComponent(`https://transrentals.in/stories/${initialData.slug}/amp`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Validate AMP boilerplate in Google AMP Validator"
+              className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-green-700 hover:text-green-900 text-xs font-bold rounded-xl hover:bg-green-50 border border-green-200 transition"
+            >
+              AMP ✓
+            </a>
+          )}
           <button onClick={() => handleSave()} disabled={saving}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium rounded-xl transition disabled:opacity-50 shadow-sm">
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}

@@ -25,6 +25,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Zap,
+  ChevronDown,
 } from 'lucide-react';
 import { BUS_CATEGORIES, BUS_TRIP_TYPES } from '@/lib/bus-categories';
 import Pagination from '@/components/vendor/Pagination';
@@ -51,6 +52,23 @@ interface QuoteRequest {
   createdAt: string;
   hasQuoted: boolean;
   myQuote?: { id: string; quoteNumber: string; totalAmount: number; status: string; bookingId?: string | null; bookingNumber?: string | null };
+}
+
+type DateFilterKey = 'all' | 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'custom';
+
+function getDateRange(key: DateFilterKey, customStart?: string, customEnd?: string): { startDate?: string; endDate?: string } {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (key === 'today') { const s = fmt(today); return { startDate: s, endDate: s }; }
+  if (key === 'yesterday') { const y = new Date(today); y.setDate(y.getDate() - 1); const s = fmt(y); return { startDate: s, endDate: s }; }
+  if (key === 'this_week') { const start = new Date(today); start.setDate(today.getDate() - today.getDay()); return { startDate: fmt(start), endDate: fmt(today) }; }
+  if (key === 'last_week') { const start = new Date(today); start.setDate(today.getDate() - today.getDay() - 7); const end = new Date(start); end.setDate(start.getDate() + 6); return { startDate: fmt(start), endDate: fmt(end) }; }
+  if (key === 'this_month') { const start = new Date(today.getFullYear(), today.getMonth(), 1); return { startDate: fmt(start), endDate: fmt(today) }; }
+  if (key === 'last_month') { const start = new Date(today.getFullYear(), today.getMonth() - 1, 1); const end = new Date(today.getFullYear(), today.getMonth(), 0); return { startDate: fmt(start), endDate: fmt(end) }; }
+  if (key === 'custom') { return { startDate: customStart, endDate: customEnd }; }
+  return {};
 }
 
 /* ── Urgency helper ── */
@@ -94,11 +112,16 @@ export default function VendorBusRequestsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
 
+  const [dateFilter, setDateFilter] = useState<DateFilterKey>('all');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [showDateFilter, setShowDateFilter] = useState(false);
+
   useEffect(() => {
     if (sessionStatus === 'loading') return;
     if (sessionStatus === 'unauthenticated') return;
     fetchRequests();
-  }, [sessionStatus, filter, currentPage, searchQuery]);
+  }, [sessionStatus, filter, currentPage, searchQuery, dateFilter, customStart, customEnd]);
 
   const fetchRequests = async () => {
     setIsLoading(true);
@@ -109,6 +132,9 @@ export default function VendorBusRequestsPage() {
       params.set('page', currentPage.toString());
       params.set('limit', '20');
       if (searchQuery) params.set('search', searchQuery);
+      const { startDate, endDate } = getDateRange(dateFilter, customStart, customEnd);
+      if (startDate) params.set('startDate', startDate);
+      if (endDate) params.set('endDate', endDate);
 
       const response = await fetch(`/api/vendor/bus-quote-requests?${params}`);
       const data = await response.json();
@@ -252,6 +278,84 @@ export default function VendorBusRequestsPage() {
                 )}
               </button>
             ))}
+          </div>
+
+          {/* Date filter */}
+          <div className="mt-2">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowDateFilter(v => !v)}
+                className={`flex-1 flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                  dateFilter !== 'all'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                    : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
+                }`}
+              >
+                <span>{dateFilter === 'all' ? 'Filter by date' : dateFilter === 'today' ? 'Today' : dateFilter === 'yesterday' ? 'Yesterday' : dateFilter === 'this_week' ? 'This Week' : dateFilter === 'last_week' ? 'Last Week' : dateFilter === 'this_month' ? 'This Month' : dateFilter === 'last_month' ? 'Last Month' : 'Custom Range'}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showDateFilter ? 'rotate-180' : ''}`} />
+              </button>
+              {dateFilter !== 'all' && (
+                <button
+                  type="button"
+                  onClick={() => { setDateFilter('all'); setCustomStart(''); setCustomEnd(''); }}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-all"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            {showDateFilter && (
+              <div className="mt-2 p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {([
+                    { key: 'today', label: 'Today' },
+                    { key: 'yesterday', label: 'Yesterday' },
+                    { key: 'this_week', label: 'This Week' },
+                    { key: 'last_week', label: 'Last Week' },
+                    { key: 'this_month', label: 'This Month' },
+                    { key: 'last_month', label: 'Last Month' },
+                    { key: 'custom', label: 'Custom' },
+                  ] as { key: DateFilterKey; label: string }[]).map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => { setDateFilter(key); setCurrentPage(1); if (key !== 'custom') setShowDateFilter(false); }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                        dateFilter === key
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-white border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-600'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {dateFilter === 'custom' && (
+                  <div className="flex gap-2 pt-1">
+                    <div className="flex-1">
+                      <p className="text-[10px] text-gray-400 font-semibold mb-1">From</p>
+                      <input
+                        type="date"
+                        value={customStart}
+                        onChange={(e) => { setCustomStart(e.target.value); setCurrentPage(1); }}
+                        className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-300"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] text-gray-400 font-semibold mb-1">To</p>
+                      <input
+                        type="date"
+                        value={customEnd}
+                        min={customStart}
+                        onChange={(e) => { setCustomEnd(e.target.value); setCurrentPage(1); }}
+                        className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-300"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
