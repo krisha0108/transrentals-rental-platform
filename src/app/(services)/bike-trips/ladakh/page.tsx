@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
-import { Bike, Mountain, Clock, MapPin } from 'lucide-react';
 import { FAQSection } from '@/components/services/FAQSection';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 
@@ -89,10 +88,10 @@ export default function LadakhBikeTripPage() {
         gradient="from-blue-900 via-indigo-900 to-purple-900"
         accentColor="blue-400"
         stats={[
-          { icon: Bike, label: 'Starting From', value: '₹799/Day' },
-          { icon: Mountain, label: 'Max Altitude', value: '18,380 ft' },
-          { icon: Clock, label: 'Season', value: 'May – Sep' },
-          { icon: MapPin, label: 'One-Way Drops', value: 'Available' },
+          { icon: 'bike' as const, label: 'Starting From', value: '₹799/Day' },
+          { icon: 'mountain' as const, label: 'Max Altitude', value: '18,380 ft' },
+          { icon: 'clock' as const, label: 'Season', value: 'May – Sep' },
+          { icon: 'mappin' as const, label: 'One-Way Drops', value: 'Available' },
         ]}
         features={[
           { text: 'Himalayan & Classic 350' },
@@ -104,54 +103,6 @@ export default function LadakhBikeTripPage() {
         ]}
       />
 
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 text-white py-20">
-        <div className="absolute inset-0 bg-[url('/images/ladakh-mountains.jpg')] bg-cover bg-center opacity-20"></div>
-        <div className="container-custom relative">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-block bg-yellow-500 text-black px-4 py-1 rounded-full text-sm font-semibold mb-4">
-              🏔️ Season: May - September
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Rent Bikes for Ladakh Adventure
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 opacity-90">
-              Conquer Khardung La • Explore Pangong Lake • Ride Through Nubra Valley
-            </p>
-            <div className="grid md:grid-cols-3 gap-6 mb-8 text-left">
-              <div className="bg-white/10 backdrop-blur p-4 rounded-lg">
-                <div className="text-3xl mb-2">🏍️</div>
-                <h3 className="font-semibold mb-1">Himalayan Ready</h3>
-                <p className="text-sm opacity-90">High-altitude proven bikes</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur p-4 rounded-lg">
-                <div className="text-3xl mb-2">🔄</div>
-                <h3 className="font-semibold mb-1">One-Way Drops</h3>
-                <p className="text-sm opacity-90">Delhi ↔ Manali ↔ Leh</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur p-4 rounded-lg">
-                <div className="text-3xl mb-2">🛡️</div>
-                <h3 className="font-semibold mb-1">Fully Equipped</h3>
-                <p className="text-sm opacity-90">Gear, tools, insurance included</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <Link
-                href="#bikes"
-                className="bg-yellow-500 text-black px-8 py-3 rounded-lg font-semibold hover:bg-yellow-400 transition"
-              >
-                View Bikes & Rates
-              </Link>
-              <Link
-                href="#routes"
-                className="border-2 border-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-indigo-900 transition"
-              >
-                Popular Routes
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Pickup Locations */}
       <section className="py-12 bg-white">

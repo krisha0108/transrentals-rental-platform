@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
-import { Bike, MapPin, Star, Shield } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Bike Trip Rentals India | Ladakh, Spiti, Rajasthan Motorcycle Tours | TransRentals',
@@ -83,10 +82,10 @@ export default function BikeTripsPage() {
         gradient="from-indigo-900 via-purple-900 to-pink-900"
         accentColor="indigo-400"
         stats={[
-          { icon: Bike, label: 'Bikes Available', value: '50+' },
-          { icon: MapPin, label: 'Pickup Cities', value: '15+' },
-          { icon: Star, label: 'Rating', value: '4.8/5' },
-          { icon: Shield, label: 'Insurance', value: 'Included' },
+          { icon: 'bike' as const, label: 'Bikes Available', value: '50+' },
+          { icon: 'mappin' as const, label: 'Pickup Cities', value: '15+' },
+          { icon: 'star' as const, label: 'Rating', value: '4.8/5' },
+          { icon: 'shield' as const, label: 'Insurance', value: 'Included' },
         ]}
         features={[
           { text: 'Royal Enfield' },

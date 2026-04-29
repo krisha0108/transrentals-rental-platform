@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
-import { Clock, MapPin, Star, Users } from 'lucide-react';
 import { FAQSection } from '@/components/services/FAQSection';
 
 export const metadata: Metadata = {
@@ -47,10 +46,10 @@ export default function RajasthanTourPage() {
         gradient="from-orange-800 via-red-900 to-rose-900"
         accentColor="orange-400"
         stats={[
-          { icon: Clock, label: 'Duration', value: '7 Days' },
-          { icon: MapPin, label: 'Distance', value: '1,440 km' },
-          { icon: Star, label: 'Rating', value: '4.9/5' },
-          { icon: Users, label: 'Group Size', value: '6–12' },
+          { icon: 'clock' as const, label: 'Duration', value: '7 Days' },
+          { icon: 'mappin' as const, label: 'Distance', value: '1,440 km' },
+          { icon: 'star' as const, label: 'Rating', value: '4.9/5' },
+          { icon: 'users' as const, label: 'Group Size', value: '6–12' },
         ]}
         features={[
           { text: 'Ride Captain' },
@@ -62,50 +61,6 @@ export default function RajasthanTourPage() {
         ]}
       />
 
-      {/* Breadcrumb */}
-      <section className="bg-gray-100 py-3">
-        <div className="container-custom">
-          <nav className="text-sm text-gray-600">
-            <Link href="/" className="hover:text-orange-700">Home</Link>
-            <span className="mx-2">/</span>
-            <Link href="/bike-tours" className="hover:text-orange-700">Bike Tours</Link>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900">Rajasthan</span>
-          </nav>
-        </div>
-      </section>
-
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-orange-600 via-red-700 to-rose-800 text-white py-16">
-        <div className="container-custom">
-          <div className="max-w-4xl">
-            <p className="text-yellow-400 font-semibold mb-2">GUIDED MOTORCYCLE TOUR</p>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Rajasthan Royal Ride 2025
-            </h1>
-            <p className="text-xl opacity-90 mb-6">
-              7 Days • Jaipur • Jodhpur • Jaisalmer • Udaipur • Desert Safari
-            </p>
-            <div className="flex flex-wrap gap-4 mb-8">
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Duration</p>
-                <p className="text-2xl font-bold">7 Days</p>
-              </div>
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Best Time</p>
-                <p className="text-2xl font-bold">Oct - Mar</p>
-              </div>
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Difficulty</p>
-                <p className="text-2xl font-bold">Moderate</p>
-              </div>
-            </div>
-            <button className="bg-yellow-400 text-black px-8 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
-              Book Now
-            </button>
-          </div>
-        </div>
-      </section>
 
       {/* Highlights */}
       <section className="py-12 bg-white">
