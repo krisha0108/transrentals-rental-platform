@@ -4,6 +4,13 @@ import { prisma } from '@/lib/db/prisma';
 const CANVAS_W = 390;
 const CANVAS_H = 693;
 
+// AMP boilerplate — MUST NOT be reformatted/wrapped by any code formatter.
+// Stored as constants so Prettier/ESLint cannot insert newlines inside the CSS.
+// prettier-ignore
+const AMP_BP = 'body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}';
+// prettier-ignore
+const AMP_BP_NOSCRIPT = 'body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}';
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** HTML-escape for attribute values and text content */
@@ -367,8 +374,8 @@ export async function GET(
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
 <title>${esc(story.title)}</title>
-<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style>
-<noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>
+<style amp-boilerplate>${AMP_BP}</style>
+<noscript><style amp-boilerplate>${AMP_BP_NOSCRIPT}</style></noscript>
 <link rel="canonical" href="${canonicalUrl}">
 <script async src="https://cdn.ampproject.org/v0.js"></script>
 <script async custom-element="amp-story" src="https://cdn.ampproject.org/v0/amp-story-1.0.js"></script>
