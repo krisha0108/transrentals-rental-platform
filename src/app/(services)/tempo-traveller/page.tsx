@@ -1,12 +1,54 @@
 import { Metadata } from 'next';
+import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
-import { formatPriceHighlight } from '@/lib/utils';
+
+const TEMPO_FAQS = [
+  {
+    q: 'What is the cost of a Tempo Traveller per km in India?',
+    a: 'Tempo Traveller rental rates in India start from ₹18/km for a 9-seater and vary by seater capacity, AC/non-AC, and trip duration. Day packages (8 hrs/80 km) are a popular option for local trips. Outstation rates include driver allowance and vary by state. Get a quote on TransRentals for your specific route.',
+  },
+  {
+    q: 'What is the difference between a 12-seater and 17-seater Tempo Traveller?',
+    a: 'The 12-seater Tempo Traveller is a Force Traveller or Tata Winger with 3+9 seat configuration — ideal for groups of 10–12. The 17-seater has a longer wheelbase with 3+14 configuration and larger luggage boot — best for groups of 14–17 and longer trips with heavy luggage.',
+  },
+  {
+    q: 'Are Tempo Travellers AC or non-AC?',
+    a: 'Both AC and non-AC Tempo Travellers are available on TransRentals. AC versions with roof-mounted AC units are recommended for summer trips (March–June) and south Indian routes. Non-AC is sufficient for hill stations and winter travel in north India.',
+  },
+  {
+    q: 'How far in advance should I book a Tempo Traveller?',
+    a: 'For regular trips, 48–72 hours notice is sufficient. During peak seasons — Navratri, Diwali, long weekends, and Char Dham season (May–June) — book at least 1–2 weeks in advance. For large group travel during pilgrimages, 3–4 weeks advance booking is recommended.',
+  },
+  {
+    q: 'Can a Tempo Traveller go on hilly routes like Manali or Ooty?',
+    a: 'Yes, most Tempo Travellers (Force Traveller/Tata Winger) can handle moderate ghat roads. For steep high-altitude routes like Manali-Leh, Spiti Valley, or Zanskar, a more powerful SUV or 4WD is recommended. Always request hill-experienced drivers for ghat routes.',
+  },
+  {
+    q: 'What is included in the Tempo Traveller booking price?',
+    a: 'Standard inclusions: vehicle + driver + driver\'s basic allowance for the trip duration. Extra charges typically apply for: toll charges, state permits for interstate travel, night halt charges (₹250–₹500/night), and fuel if crossing the included km limit.',
+  },
+];
+
+const TOP_CITIES = [
+  { name: 'Delhi', slug: 'delhi' },
+  { name: 'Mumbai', slug: 'mumbai' },
+  { name: 'Bangalore', slug: 'bangalore' },
+  { name: 'Jaipur', slug: 'jaipur' },
+  { name: 'Hyderabad', slug: 'hyderabad' },
+  { name: 'Chennai', slug: 'chennai' },
+  { name: 'Pune', slug: 'pune' },
+  { name: 'Lucknow', slug: 'lucknow' },
+  { name: 'Chandigarh', slug: 'chandigarh' },
+  { name: 'Kochi', slug: 'kochi' },
+  { name: 'Ahmedabad', slug: 'ahmedabad' },
+  { name: 'Coimbatore', slug: 'coimbatore' },
+];
 
 export const metadata: Metadata = {
-  title: formatPriceHighlight('Tempo Traveller on Rent | 12, 17 Seater @₹18/Km | Force Traveller Booking'),
-  description: formatPriceHighlight('Rent Tempo Traveller for group travel. 12 seater, 17 seater, 20 seater available. Family trips, pilgrimages, corporate events. Book force traveller online.'),
+  title: 'Tempo Traveller on Rent | 12-20 Seater | Starting ₹18/km | TransRentals',
+  description: 'Rent Tempo Traveller for group travel across India. 9, 12, 14, 17 seater AC/Non-AC available. Pilgrimages, family trips, corporate events. Verified drivers across 50+ cities.',
   keywords: [
     'tempo traveller on rent',
     '12 seater tempo traveller',
@@ -22,8 +64,8 @@ export const metadata: Metadata = {
     'tempo for outstation',
   ],
   openGraph: {
-    title: formatPriceHighlight('Tempo Traveller on Rent India | 12-17 Seater @₹18/Km | TransRentals'),
-    description: formatPriceHighlight('Book Tempo Traveller for group travel across India. Comfortable AC vehicles for family trips and corporate events.'),
+    title: 'Tempo Traveller on Rent India | 12-17 Seater | TransRentals',
+    description: 'Book Tempo Traveller for group travel across India. Comfortable AC/Non-AC vehicles for pilgrimages, family trips, and corporate events.',
   },
 };
 
@@ -62,7 +104,7 @@ export default function TempoTravellerPage() {
       <ServiceHeroWithChat
         badge="Tempo Traveller Rental"
         title="Tempo Traveller"
-        titleHighlight="Starting @₹18/Km"
+        titleHighlight="AC & Non-AC | All India"
         description="12, 17, 20 Seater AC Tempo Travellers for family trips, pilgrimages, corporate events. Professional drivers included!"
         features={[
           { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
@@ -91,6 +133,67 @@ export default function TempoTravellerPage() {
       />
 
       {occasionsSection}
+
+      {/* Tempo Traveller FAQ Section */}
+      <section className="py-14 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Tempo Traveller Rental FAQs</h2>
+            <p className="text-gray-600">Common questions about hiring a Tempo Traveller in India</p>
+          </div>
+          <div className="max-w-3xl mx-auto space-y-4">
+            {TEMPO_FAQS.map((faq, idx) => (
+              <div key={idx} className="bg-gray-50 rounded-xl p-5">
+                <h3 className="font-semibold text-gray-900 mb-2">{faq.q}</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">{faq.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Internal City Links */}
+      <section className="py-10 bg-gray-50 border-t border-gray-100">
+        <div className="container mx-auto px-4">
+          <h2 className="text-lg font-bold text-gray-900 mb-4 text-center">Tempo Traveller by City</h2>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+            {TOP_CITIES.map((city) => (
+              <Link
+                key={city.slug}
+                href={`/tempo-traveller/${city.slug}`}
+                className="text-center py-2.5 px-2 rounded-lg border border-gray-200 hover:border-amber-400 hover:bg-amber-50 transition text-sm font-medium text-gray-700 hover:text-amber-700"
+              >
+                {city.name}
+              </Link>
+            ))}
+          </div>
+          <div className="mt-6 text-center">
+            <div className="flex flex-wrap justify-center gap-3 text-sm">
+              <Link href="/12-seater-tempo-traveller" className="text-amber-600 hover:underline">12 Seater Tempo Traveller</Link>
+              <span className="text-gray-300">|</span>
+              <Link href="/17-seater-tempo-traveller" className="text-amber-600 hover:underline">17 Seater Tempo Traveller</Link>
+              <span className="text-gray-300">|</span>
+              <Link href="/bus-rental" className="text-amber-600 hover:underline">Bus Rental India</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQPage Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: TEMPO_FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.q,
+              acceptedAnswer: { '@type': 'Answer', text: faq.a },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

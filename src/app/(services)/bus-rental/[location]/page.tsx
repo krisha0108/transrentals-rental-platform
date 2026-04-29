@@ -7,8 +7,8 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { permanentRedirect } from 'next/navigation';
-import { capitalize, formatPriceHighlight } from '@/lib/utils';
-import { ALL_CITIES, STATIC_CITIES, getCityBySlug } from '@/data/indian-cities';
+import { capitalize } from '@/lib/utils';
+import { getCityBySlug } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -18,6 +18,15 @@ import { prisma } from '@/lib/db/prisma';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { getCachedServiceBySlug } from '@/lib/services/cached-service-lookups';
 import { getServiceLocations } from '@/lib/services/service-locations';
+import { CITY_SEO } from '@/data/city-seo-content';
+
+const BUS_RENTAL_FALLBACK_FAQS = [
+  { question: 'What is the cost of bus rental per km in India?', answer: 'Bus rental rates depend on bus size and type. Tempo Traveller (12-seater) starts from ₹18/km. Mini bus (20-seater) starts from ₹25/km. Luxury coach (40-50 seater) starts from ₹40/km. Local packages (8 hrs/80 km) are also available. Get a free quote on TransRentals for your specific route and group size.' },
+  { question: 'What bus sizes are available for rent?', answer: 'TransRentals offers Tempo Travellers (9, 12, 14, 17, 20-seater), mini buses (20–32 seater), standard buses (35–45 seater), and luxury coaches (45–55 seater). Both AC and non-AC options are available. Choose based on your group size — for comfortable travel with luggage, plan for 1–2 fewer passengers than stated capacity.' },
+  { question: 'Is driver included in bus rental?', answer: 'Yes, all bus rentals on TransRentals include a professional driver. For outstation trips, driver allowance (₹300–₹500/day) is typically charged separately. Drivers are verified, licensed, and experienced on the relevant routes.' },
+  { question: 'What are buses typically hired for?', answer: 'Common use cases: weddings (baraat and guest transport), corporate team outings, school and college excursions, pilgrimages (Shirdi, Tirupati, Char Dham), airport group transfers, sports events, and political/social rallies. Both single-day and multi-day packages are available.' },
+  { question: 'How far in advance should I book a bus for a wedding or event?', answer: 'For weddings, book at least 3–4 weeks in advance — premium dates (wedding season Nov–Feb, May) fill up quickly. For corporate outings and pilgrimages, 1 week in advance is sufficient for regular demand. During Navratri, Dussehra, and long weekends, book 2 weeks ahead minimum.' },
+];
 
 const COMING_SOON_SLUGS = new Set([
   'uluberia',
@@ -47,8 +56,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const _seoDb = await resolvePageMeta(`bus-rental:${params.location}`);
   return {
-    title: _seoDb?.metaTitle || formatPriceHighlight(`Bus Rental in ${locationName} | Starting @₹2499/Day | TransRentals`),
-    description: _seoDb?.metaDescription || formatPriceHighlight(`Rent buses in ${locationName} with TransRentals. Choose from mini buses, tempo travellers, luxury coaches. Best prices guaranteed. Book your bus rental now!`),
+    title: _seoDb?.metaTitle || `Bus Rental in ${locationName} | Starting ₹18/km | TransRentals`,
+    description: _seoDb?.metaDescription || `Hire buses and tempo travellers in ${locationName}. Mini buses, luxury coaches, and AC Tempo Travellers for pilgrimages, weddings, corporate events. Verified operators.`,
     keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `bus rental in ${locationName}`,
       `bus on rent ${locationName}`,
@@ -60,9 +69,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       canonical: `https://transrentals.in/bus-rental/${params.location}`,
     },
     openGraph: {
-      title: formatPriceHighlight(`Bus Rental in ${locationName} - TransRentals`),
-      description: formatPriceHighlight(`Rent buses in ${locationName} starting @₹2499/day. Best prices guaranteed.`),
+      title: `Bus Rental in ${locationName} | TransRentals`,
+      description: `Hire buses and tempo travellers in ${locationName}. AC/Non-AC options for pilgrimages, weddings, and corporate events. 500+ verified operators.`,
+      type: 'website',
+      url: `https://transrentals.in/bus-rental/${params.location}`,
+      locale: 'en_IN',
+      siteName: 'TransRentals',
     },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Bus Rental in ${locationName} | TransRentals`,
+      description: `Hire buses and tempo travellers in ${locationName}. Verified operators for pilgrimages, weddings, and events.`,
+    },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
   };
 }
 
@@ -224,31 +243,8 @@ export default async function BusLocationPage({ params }: PageProps) {
     });
   }
 
-  // Page data
-  const pageData = {
-    location: {
-      name: locationName,
-      slug: params.location,
-      state: cityData?.state || 'India',
-    },
-    service: {
-      name: 'Bus Rental',
-      slug: 'bus-rental',
-    },
-    hero: {
-      title: `Bus Rental in ${locationName}`,
-      subtitle: `Comfortable and affordable bus rental services for your group travel in ${locationName}`,
-      image: '/images/locations/default.jpg',
-    },
-    vehicles,
-    nearbyLocations: [
-      { name: 'Nearby City 1', slug: 'nearby-city-1' },
-      { name: 'Nearby City 2', slug: 'nearby-city-2' },
-    ],
-  };
-
   const seoData = await resolvePageMeta(`bus-rental:${params.location}`);
-
+  const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['bus-rental'] || [];
 
   return (
     <div className="flex flex-col">
@@ -274,7 +270,7 @@ export default async function BusLocationPage({ params }: PageProps) {
         pageDescription={seoData?.pageDescription || undefined}
         badge={`Bus Rental in ${locationName}`}
         title="Bus Rental Services"
-        titleHighlight="Mini & Luxury Buses @₹2499/day"
+        titleHighlight="Mini Bus & Luxury Coach Hire"
         description={`Rent comfortable buses in ${locationName} for group travel, tours, and events. Choose from mini buses, tempo travellers, and luxury coaches.`}
         features={[
           { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
@@ -286,7 +282,7 @@ export default async function BusLocationPage({ params }: PageProps) {
       />
 
       <VehicleGrid
-        vehicles={pageData.vehicles}
+        vehicles={vehicles}
         title={`Available Buses in ${locationName}`}
         location={locationName}
         locationSlug={params.location}
@@ -301,7 +297,13 @@ export default async function BusLocationPage({ params }: PageProps) {
         serviceSlug="bus-rental"
       />
 
-      <FAQSection service="bus-rental" location={locationName} />
+      {cityFAQs.length === 0 && (
+        <FAQSection
+          service="bus-rental"
+          location={locationName}
+          customFaqs={BUS_RENTAL_FALLBACK_FAQS}
+        />
+      )}
 
       <NearbyLocations
         locationSlug={params.location}
@@ -315,27 +317,63 @@ export default async function BusLocationPage({ params }: PageProps) {
         stateCode={cityData?.stateCode}
       />
 
-      {/* Schema Markup for SEO */}
+      {/* TravelAgency / BusService Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
-            name: `Bus Rental in ${locationName}`,
-            description: `Rent buses in ${locationName} starting at ₹${Math.min(...(vehicles.length > 0 ? vehicles.map(v => v.price) : [2499]))}/day`,
-            offers: {
-              '@type': 'AggregateOffer',
-              lowPrice: String(Math.min(...(vehicles.length > 0 ? vehicles.map(v => v.price) : [2499]))),
-              highPrice: String(Math.max(...(vehicles.length > 0 ? vehicles.map(v => v.price) : [5999]))),
-              offerCount: vehicles.length || 3,
-              priceCurrency: 'INR',
-              availability: 'https://schema.org/InStock',
+            '@type': 'LocalBusiness',
+            name: `Bus Rental in ${locationName} — TransRentals`,
+            description: `Hire buses and tempo travellers in ${locationName}. Mini buses, luxury coaches for pilgrimages, weddings, and corporate events.`,
+            url: `https://transrentals.in/bus-rental/${params.location}`,
+            areaServed: { '@type': 'City', name: locationName },
+            provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
+            priceRange: '₹₹',
+            hasOfferCatalog: {
+              '@type': 'OfferCatalog',
+              name: 'Bus Rental Services',
+              itemListElement: [
+                { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Tempo Traveller Hire' } },
+                { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Mini Bus Rental' } },
+                { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Luxury Coach Hire' } },
+              ],
             },
-            provider: {
-              '@type': 'Organization',
-              name: 'TransRentals',
-            },
+          }),
+        }}
+      />
+      {/* BreadcrumbList Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
+              { '@type': 'ListItem', position: 2, name: 'Bus Rental', item: 'https://transrentals.in/bus-rental' },
+              { '@type': 'ListItem', position: 3, name: `Bus Rental in ${locationName}`, item: `https://transrentals.in/bus-rental/${params.location}` },
+            ],
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: cityFAQs.length > 0
+              ? cityFAQs.map((faq) => ({
+                  '@type': 'Question',
+                  name: faq.q,
+                  acceptedAnswer: { '@type': 'Answer', text: faq.a },
+                }))
+              : BUS_RENTAL_FALLBACK_FAQS.map((faq) => ({
+                  '@type': 'Question',
+                  name: faq.question,
+                  acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+                })),
           }),
         }}
       />

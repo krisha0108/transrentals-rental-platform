@@ -16,6 +16,15 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { CITY_SEO } from '@/data/city-seo-content';
+
+const CAR_RENTAL_FALLBACK_FAQS = [
+  { question: 'What is the cost of car rental per day?', answer: 'Self-drive hatchback rentals start from ₹999/day. Chauffeur-driven sedans start from ₹1,500/day. SUVs start from ₹2,500/day. Outstation trips are charged per km (₹12–18/km). Rates vary by vehicle type and city — get a free quote on TransRentals for exact pricing.' },
+  { question: 'What documents are required to rent a car?', answer: 'For self-drive: valid driving licence (minimum 1 year old), Aadhaar Card or Passport, and a refundable security deposit. For chauffeur-driven: any valid government ID — no DL required from the passenger. International tourists need an IDP (International Driving Permit).' },
+  { question: 'Is self-drive or chauffeur-driven better for outstation trips?', answer: 'Chauffeur-driven is better for outstation trips — the driver handles toll collection, navigation, and fatigue, especially on long routes. Self-drive is ideal if you want maximum flexibility and privacy. Both options are available on TransRentals.' },
+  { question: 'Can I cancel or modify my car rental booking?', answer: 'Yes, free cancellation is available up to 24 hours before the scheduled pickup time. For modifications (date/time changes), contact the vendor directly via TransRentals. Cancellations within 24 hours may attract a partial charge depending on the vendor\'s policy.' },
+  { question: 'Are outstation trips allowed with rental cars?', answer: 'Yes, most TransRentals vendors permit outstation travel. Confirm the specific outstation policy and any additional interstate permit charges at the time of booking. One-way outstation rentals (pay only for the distance to destination, not the return) are available on most routes.' },
+];
 
 const COMING_SOON_SLUGS = new Set([
   'burhanpur',
@@ -52,7 +61,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const _seoDb = await resolvePageMeta(`car-rental:${params.location}`);
   return {
-    title: _seoDb?.metaTitle || `Car Rental in ${locationName} | Self Drive Cars @₹999/Day | TransRentals`,
+    title: _seoDb?.metaTitle || `Car Rental in ${locationName} | Starting ₹999/Day | TransRentals`,
     description: _seoDb?.metaDescription || `Rent cars in ${locationName}. Self-drive cars, SUVs, sedans, hatchbacks available. Book online. Best prices guaranteed. 24/7 support. Verified vendors.`,
     keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `car rental ${locationName.toLowerCase()}`,
@@ -63,7 +72,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ...(city.keywords || []).map(k => `car rental ${k}`),
     ],
     openGraph: {
-      title: `Car Rental in ${locationName} - Starting @₹999/Day`,
+      title: `Car Rental in ${locationName} - Starting ₹999/Day`,
       description: `Book self-drive cars in ${locationName}. Wide range of hatchbacks, sedans, SUVs, and luxury cars. Instant booking.`,
       url: `https://transrentals.in/car-rental/${params.location}`,
     },
@@ -220,6 +229,7 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
 
   // Fetch packages from database
   const categories = await getPackagesForLocation(params.location);
+  const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['car-rental'] || [];
 
   return (
     <div className="flex flex-col">
@@ -261,7 +271,13 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
         serviceSlug="car-rental"
       />
 
-      <FAQSection service="car-rental" location={locationName} />
+      {cityFAQs.length === 0 && (
+        <FAQSection
+          service="car-rental"
+          location={locationName}
+          customFaqs={CAR_RENTAL_FALLBACK_FAQS}
+        />
+      )}
 
       <NearbyLocations
         locationSlug={params.location}
@@ -275,33 +291,39 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
         stateCode={city.stateCode}
       />
 
-      {/* Schema Markup for SEO */}
+      {/* LocalBusiness Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
-            name: `Car Rental in ${locationName}`,
-            description: `Rent cars in ${locationName}. Self-drive and with driver options available.`,
-            offers: {
-              '@type': 'AggregateOffer',
-              priceCurrency: 'INR',
-              lowPrice: categories.length > 0
-                ? Math.min(...categories.flatMap(c => c.packages.map(p => p.basePrice))).toString()
-                : '999',
-              highPrice: categories.length > 0
-                ? Math.max(...categories.flatMap(c => c.packages.map(p => p.basePrice))).toString()
-                : '9999',
-              offerCount: categories.flatMap(c => c.packages).length > 0
-                ? `${categories.flatMap(c => c.packages).length}+`
-                : '50+',
-            },
-            provider: {
-              '@type': 'Organization',
-              name: 'TransRentals',
-              url: 'https://transrentals.in',
-            },
+            '@type': 'LocalBusiness',
+            name: `Car Rental in ${locationName} — TransRentals`,
+            description: `Rent cars in ${locationName}. Self-drive and chauffeur-driven options for local, outstation, and corporate travel.`,
+            url: `https://transrentals.in/car-rental/${params.location}`,
+            areaServed: { '@type': 'City', name: locationName },
+            provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
+            priceRange: '₹₹',
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: cityFAQs.length > 0
+              ? cityFAQs.map((faq) => ({
+                  '@type': 'Question',
+                  name: faq.q,
+                  acceptedAnswer: { '@type': 'Answer', text: faq.a },
+                }))
+              : CAR_RENTAL_FALLBACK_FAQS.map((faq) => ({
+                  '@type': 'Question',
+                  name: faq.question,
+                  acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+                })),
           }),
         }}
       />
