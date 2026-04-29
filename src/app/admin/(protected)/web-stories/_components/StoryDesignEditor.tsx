@@ -701,6 +701,9 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
   const filterBtnRef = useRef<HTMLButtonElement>(null);
   const animBtnRef = useRef<HTMLButtonElement>(null);
   const shadowBtnRef = useRef<HTMLButtonElement>(null);
+  const filterPopupRef = useRef<HTMLDivElement>(null);
+  const animPopupRef = useRef<HTMLDivElement>(null);
+  const shadowPopupRef = useRef<HTMLDivElement>(null);
 
   const calcPos = (ref: React.RefObject<HTMLButtonElement | null>, width: number) => {
     const rect = ref.current?.getBoundingClientRect();
@@ -728,12 +731,17 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
     setShowShadow(true); setShowFilters(false); setShowAnim(false);
   };
 
-  // Close on outside click
+  // Close on outside click — must also check popup div refs, not just the toggle buttons.
+  // React 17+ attaches events to root container, so e.stopPropagation() inside a React
+  // handler does NOT block native document listeners. Checking containment fixes this.
   useEffect(() => {
     if (!showFilters && !showAnim && !showShadow) return;
     const handler = (e: MouseEvent) => {
       const t = e.target as Node;
-      if (!filterBtnRef.current?.contains(t) && !animBtnRef.current?.contains(t) && !shadowBtnRef.current?.contains(t)) {
+      const insideFilter = filterBtnRef.current?.contains(t) || filterPopupRef.current?.contains(t);
+      const insideAnim   = animBtnRef.current?.contains(t)   || animPopupRef.current?.contains(t);
+      const insideShadow = shadowBtnRef.current?.contains(t) || shadowPopupRef.current?.contains(t);
+      if (!insideFilter && !insideAnim && !insideShadow) {
         setShowFilters(false); setShowAnim(false); setShowShadow(false);
       }
     };
@@ -941,7 +949,7 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
             🎨 Filter
           </button>
           {showFilters && popupPos && (
-            <div className="fixed bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 288, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
+            <div ref={filterPopupRef} className="fixed bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 288, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
               <div className="grid grid-cols-4 gap-1 mb-2">
                 {FILTER_PRESETS.map(fp => (
                   <button key={fp.name} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, filterCss: fp.css, filterIntensity: el.filterIntensity ?? 100 }); }}
@@ -959,6 +967,7 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
                   <input type="range" min={0} max={100} step={1}
                     value={el.filterIntensity ?? 100}
                     onMouseDown={ev => ev.stopPropagation()}
+                    onPointerDown={ev => ev.stopPropagation()}
                     onChange={ev => onChange({ ...el, filterIntensity: Number(ev.target.value) })}
                     className="w-full accent-indigo-500" />
                 </div>
@@ -974,7 +983,7 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
             <Sparkles className="w-3 h-3" /> {el.animation || 'Animate'}
           </button>
           {showAnim && popupPos && (
-            <div className="fixed bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 228, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
+            <div ref={animPopupRef} className="fixed bg-white border border-slate-200 rounded-xl p-2 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 228, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
               <div className="grid grid-cols-2 gap-1 mb-2">
                 {ANIMATIONS.map(a => (
                   <button key={a.value} onMouseDown={ev => { ev.preventDefault(); onSnapshot?.(); onChange({ ...el, animation: a.value }); setShowAnim(false); }}
@@ -992,6 +1001,7 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
                     </div>
                     <input type="range" min={0.1} max={3} step={0.1} value={el.animationDuration ?? 0.6}
                       onMouseDown={ev => ev.stopPropagation()}
+                      onPointerDown={ev => ev.stopPropagation()}
                       onChange={ev => onChange({ ...el, animationDuration: Number(ev.target.value) })}
                       className="w-full accent-indigo-500" />
                   </div>
@@ -1019,7 +1029,7 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
             🌑 Shadow
           </button>
           {showShadow && popupPos && (
-            <div className="fixed bg-white border border-slate-200 rounded-xl p-3 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 278, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
+            <div ref={shadowPopupRef} className="fixed bg-white border border-slate-200 rounded-xl p-3 shadow-2xl shadow-slate-300/60 z-[9999]" style={{ width: 278, top: popupPos.top, left: popupPos.left }} onMouseDown={e => e.stopPropagation()}>
               <div className="grid grid-cols-4 gap-1 mb-3">
                 {[
                   { label: '↑ Top', x: 0, y: -8 },
@@ -1042,6 +1052,7 @@ function StaticToolbar({ el, onChange, onShapeImageFill, onSnapshot }: {
                     <span className="text-[10px] text-slate-500 w-10">{label}</span>
                     <input type="range" min={min} max={max} step={step} value={val}
                       onMouseDown={ev => ev.stopPropagation()}
+                      onPointerDown={ev => ev.stopPropagation()}
                       onChange={e => onChange({ ...el, [key]: Number(e.target.value) })}
                       className="flex-1 accent-indigo-500" />
                     <span className="text-[10px] text-slate-500 w-8 text-right">
