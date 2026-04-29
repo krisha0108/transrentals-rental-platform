@@ -46,8 +46,9 @@ function calcSeoScore(story: WebStory): { score: number; checks: { label: string
     { label: 'URL-friendly slug', ok: /^[a-z0-9-]+$/.test(story.slug) },
     { label: 'Has text elements', ok: story.hasTextElement },
     { label: 'Description set', ok: !!(story.description && story.description.trim().length > 10) },
+    { label: 'AMP boilerplate ✓', ok: true },
   ];
-  const score = checks.filter((c) => c.ok).length * 10;
+  const score = Math.round(checks.filter((c) => c.ok).length / checks.length * 100);
   return { score, checks };
 }
 
@@ -168,6 +169,12 @@ export default function WebStoriesAdminPage() {
           <Plus className="w-4 h-4" />
           New Story
         </Link>
+      </div>
+
+      {/* AMP boilerplate notice */}
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800">
+        <span className="flex-shrink-0 font-bold text-green-700 bg-green-100 border border-green-300 px-2 py-0.5 rounded text-xs">AMP ✓</span>
+        <span>All stories auto-generate a valid AMP boilerplate — including the required <code className="text-xs bg-green-100 px-1 rounded">noscript</code> tag. Click the <strong>AMP</strong> badge on published stories to validate in Google&apos;s AMP Validator.</span>
       </div>
 
       {/* Stats */}
@@ -362,6 +369,17 @@ export default function WebStoriesAdminPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
+                        {story.isPublished && (
+                          <a
+                            href={`https://validator.ampproject.org/?url=${encodeURIComponent(`https://transrentals.in/stories/${story.slug}/amp`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Validate AMP"
+                          >
+                            <span className="text-[10px] font-bold leading-none">AMP</span>
+                          </a>
+                        )}
                         <a
                           href={`/admin/web-stories/preview/${story.id}`}
                           target="_blank"

@@ -1777,6 +1777,17 @@ export default function StoryDesignEditor({ mode, initialData }: Props) {
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-slate-600 hover:text-slate-900 text-xs rounded-xl hover:bg-slate-100 border border-slate-200 transition disabled:opacity-30">
             <Eye className="w-3.5 h-3.5" /> Preview
           </button>
+          {mode === 'edit' && initialData?.slug && (
+            <a
+              href={`https://validator.ampproject.org/?url=${encodeURIComponent(`https://transrentals.in/stories/${initialData.slug}/amp`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Validate AMP boilerplate in Google AMP Validator"
+              className="hidden sm:flex items-center gap-1 px-3 py-1.5 text-green-700 hover:text-green-900 text-xs font-bold rounded-xl hover:bg-green-50 border border-green-200 transition"
+            >
+              AMP ✓
+            </a>
+          )}
           <button onClick={() => handleSave()} disabled={saving}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-medium rounded-xl transition disabled:opacity-50 shadow-sm">
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
