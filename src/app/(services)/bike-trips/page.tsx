@@ -97,20 +97,6 @@ export default function BikeTripsPage() {
         ]}
       />
 
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white py-20">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Bike Trip Rentals Across India
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 opacity-90">
-              Royal Enfield • One-Way Drops • Riding Gear • 24/7 Support
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* Trips Grid */}
       <section className="py-16">
         <div className="container-custom">

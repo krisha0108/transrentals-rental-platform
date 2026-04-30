@@ -72,51 +72,6 @@ export default function LehLadakhTourPage() {
         ]}
       />
 
-      {/* Breadcrumb */}
-      <section className="bg-gray-100 py-3">
-        <div className="container-custom">
-          <nav className="text-sm text-gray-600">
-            <Link href="/" className="hover:text-blue-700">Home</Link>
-            <span className="mx-2">/</span>
-            <Link href="/bike-tours" className="hover:text-blue-700">Bike Tours</Link>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900">Leh Ladakh</span>
-          </nav>
-        </div>
-      </section>
-
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-blue-700 via-indigo-800 to-purple-900 text-white py-16">
-        <div className="container-custom">
-          <div className="max-w-4xl">
-            <p className="text-yellow-400 font-semibold mb-2">GUIDED MOTORCYCLE TOUR</p>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Leh Ladakh Bike Tour 2025
-            </h1>
-            <p className="text-xl opacity-90 mb-6">
-              10-12 Days • Manali/Srinagar • Khardung La • Pangong Lake • Nubra Valley
-            </p>
-            <div className="flex flex-wrap gap-4 mb-8">
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Duration</p>
-                <p className="text-2xl font-bold">10-12 Days</p>
-              </div>
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Best Time</p>
-                <p className="text-2xl font-bold">May - Sep</p>
-              </div>
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Group Size</p>
-                <p className="text-2xl font-bold">6-12 Riders</p>
-              </div>
-            </div>
-            <a href="#packages" className="inline-block bg-yellow-400 text-black px-8 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
-              View Packages & Dates
-            </a>
-          </div>
-        </div>
-      </section>
-
       {/* What's Included */}
       <section className="py-16 bg-gray-50">
         <div className="container-custom">

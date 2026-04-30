@@ -62,50 +62,6 @@ export default function SpitiValleyTourPage() {
         ]}
       />
 
-      {/* Breadcrumb */}
-      <section className="bg-gray-100 py-3">
-        <div className="container-custom">
-          <nav className="text-sm text-gray-600">
-            <Link href="/" className="hover:text-teal-700">Home</Link>
-            <span className="mx-2">/</span>
-            <Link href="/bike-tours" className="hover:text-teal-700">Bike Tours</Link>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900">Spiti Valley</span>
-          </nav>
-        </div>
-      </section>
-
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-teal-700 via-emerald-800 to-green-900 text-white py-16">
-        <div className="container-custom">
-          <div className="max-w-4xl">
-            <p className="text-yellow-400 font-semibold mb-2">GUIDED MOTORCYCLE TOUR</p>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Spiti Valley Bike Tour 2025
-            </h1>
-            <p className="text-xl opacity-90 mb-6">
-              8 Days • Shimla - Spiti - Manali • Key Monastery • Chandratal Lake
-            </p>
-            <div className="flex flex-wrap gap-4 mb-8">
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Duration</p>
-                <p className="text-2xl font-bold">8 Days</p>
-              </div>
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Best Time</p>
-                <p className="text-2xl font-bold">Jun - Oct</p>
-              </div>
-              <div className="bg-white/20 px-4 py-2 rounded-lg">
-                <p className="text-xs opacity-75">Difficulty</p>
-                <p className="text-2xl font-bold">Challenging</p>
-              </div>
-            </div>
-            <button className="bg-yellow-400 text-black px-8 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition">
-              Book Now
-            </button>
-          </div>
-        </div>
-      </section>
 
       {/* Highlights */}
       <section className="py-12 bg-white">

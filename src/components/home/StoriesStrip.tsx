@@ -75,11 +75,14 @@ export function StoriesStrip() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/web-stories')
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    fetch('/api/web-stories', { signal: controller.signal })
       .then(r => r.json())
       .then(d => setStories(d.stories?.slice(0, 12) || []))
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { clearTimeout(timer); setLoading(false); });
+    return () => { clearTimeout(timer); controller.abort(); };
   }, []);
 
   if (!loading && stories.length === 0) return null;

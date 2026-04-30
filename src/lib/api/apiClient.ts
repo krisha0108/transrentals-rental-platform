@@ -27,7 +27,8 @@ class ApiClient {
 
   private async request<T = any>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    timeoutMs = 5000
   ): Promise<ApiResponse<T>> {
     const token = this.getAuthToken();
 
@@ -36,23 +37,26 @@ class ApiClient {
       ...(options.headers as Record<string, string> || {}),
     };
 
-    // Add Authorization header if token exists
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Add Content-Type for JSON requests
     if (options.body && typeof options.body === 'string') {
       headers['Content-Type'] = 'application/json';
     }
 
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), timeoutMs);
+
     const config: RequestInit = {
       ...options,
       headers,
+      signal: options.signal ?? controller.signal,
     };
 
     try {
       const response = await fetch(`${this.baseURL}${endpoint}`, config);
+      clearTimeout(timerId);
 
       // Handle non-JSON responses
       const contentType = response.headers.get('content-type');
@@ -68,6 +72,7 @@ class ApiClient {
 
       return data;
     } catch (error) {
+      clearTimeout(timerId);
       if (error instanceof Error) {
         throw error;
       }
