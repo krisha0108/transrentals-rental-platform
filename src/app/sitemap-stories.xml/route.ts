@@ -45,6 +45,13 @@ export async function GET() {
     console.error('[sitemap-stories] DB error:', err);
   }
 
+  if (entries.length === 0) {
+    return new NextResponse('Stories sitemap temporarily unavailable', {
+      status: 503,
+      headers: { 'Retry-After': '3600' },
+    });
+  }
+
   const xml = buildUrlsetXml(entries);
 
   return new NextResponse(xml, {
