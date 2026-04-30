@@ -6,7 +6,7 @@ import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { permanentRedirect } from 'next/navigation';
-import { capitalize, formatPriceHighlight } from '@/lib/utils';
+import { capitalize } from '@/lib/utils';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { getAllIndiaFleet } from '@/lib/fleet-utils';
 import { resolveServicePage } from '@/lib/services/service-availability';
@@ -16,6 +16,15 @@ import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { prisma } from '@/lib/db/prisma';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { CITY_SEO } from '@/data/city-seo-content';
+
+const TRANSPORTER_FALLBACK_FAQS = [
+  { question: 'What is the cost of truck rental per day?', answer: 'Mini truck (Tata Ace, 1T) starts from ₹2,500/day for local trips. Tata 407 (5T) starts from ₹6,000/day. Container trucks (20–32 ft) are quoted per trip based on route and load. Outstation rates are charged per km. Get a free quote on TransRentals for your specific load and route requirements.' },
+  { question: 'What types of trucks are available for rent?', answer: 'TransRentals offers mini trucks (Tata Ace, Mahindra Jeeto — 1T), light commercial vehicles (Tata 407, Bolero Pickup — 1.5–5T), medium trucks (Eicher 14/17/19 ft — 3–7T), container trucks (20 ft, 24 ft, 32 ft — 10–25T), and full trailers (40-ft flatbed/container — 25–40T).' },
+  { question: 'What is the difference between full-load (FTL) and part-load (LTL)?', answer: 'Full-truck-load (FTL) means you hire the entire truck exclusively for your goods — faster transit, better for large or fragile shipments. Part-load (LTL) means your goods share space with others — cheaper but slower transit. TransRentals offers both options.' },
+  { question: 'Can I book a truck for a one-way intercity trip?', answer: 'Yes, one-way intercity truck bookings are available. Major routes: Delhi–Mumbai, Mumbai–Pune, Bangalore–Chennai, Delhi–Kolkata. One-way rates include driver allowance. Contact TransRentals for freight quotes on specific routes.' },
+  { question: 'Is goods insurance available for truck rentals?', answer: 'Yes, transit insurance for goods is available at 0.5–1% of declared goods value. All vehicles have mandatory third-party insurance. For valuable or fragile cargo, always opt for goods-in-transit insurance before booking.' },
+];
 import { getCachedServiceBySlug } from '@/lib/services/cached-service-lookups';
 import { getServiceLocations } from '@/lib/services/service-locations';
 
@@ -54,8 +63,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const _seoDb = await resolvePageMeta(`transporter:${params.location}`);
   return {
-    title: _seoDb?.metaTitle || formatPriceHighlight(`Truck Rental in ${locationName} | Starting @₹3999/Day | TransRentals`),
-    description: _seoDb?.metaDescription || formatPriceHighlight(`Professional truck rental and transport services in ${locationName}. 7-ton to 32-ton trucks with GPS tracking. Best prices guaranteed. Book now!`),
+    title: _seoDb?.metaTitle || `Truck Rental in ${locationName} | Starting from ₹3,999/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Book trucks and goods vehicles in ${locationName}. Mini trucks to 32-ton containers with GPS tracking and verified drivers. Full-load and part-load options.`,
     keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `truck rental in ${locationName}`,
       `transporter in ${locationName}`,
@@ -64,8 +73,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `cargo transport ${locationName}`,
     ],
     openGraph: {
-      title: formatPriceHighlight(`Truck Rental in ${locationName} - TransRentals`),
-      description: formatPriceHighlight(`Professional truck rental in ${locationName} starting @₹3999/day. GPS tracking included.`),
+      title: `Truck Rental in ${locationName} | TransRentals`,
+      description: `Book trucks and goods vehicles in ${locationName}. GPS tracking, verified drivers. Full-load and part-load available.`,
     },
   };
 }
@@ -230,7 +239,7 @@ export default async function TransporterLocationPage({ params }: PageProps) {
   const vehicles = dbVehicles;
 
   const seoData = await resolvePageMeta(`transporter:${params.location}`);
-
+  const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['transporter'] || [];
 
   return (
     <div className="flex flex-col">
@@ -256,7 +265,7 @@ export default async function TransporterLocationPage({ params }: PageProps) {
         pageDescription={seoData?.pageDescription || undefined}
         badge={`Truck Rental in ${locationName}`}
         title="Professional Transport Services"
-        titleHighlight="7-32 Ton Trucks @₹3999/day"
+        titleHighlight="7-32 Ton Trucks | GPS Tracked"
         description={`Reliable truck rental and transport services in ${locationName}. GPS tracking, professional drivers, and timely delivery for all your cargo needs.`}
         features={[
           { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
@@ -276,7 +285,13 @@ export default async function TransporterLocationPage({ params }: PageProps) {
 
       <WhyRentHere locationName={locationName} />
 
-      <FAQSection service="transporter" location={locationName} />
+      {cityFAQs.length === 0 && (
+        <FAQSection
+          service="transporter"
+          location={locationName}
+          customFaqs={TRANSPORTER_FALLBACK_FAQS}
+        />
+      )}
 
       <NearbyLocations
         locationSlug={params.location}
@@ -291,25 +306,39 @@ export default async function TransporterLocationPage({ params }: PageProps) {
         stateCode={city?.stateCode}
       />
 
-      {/* Schema Markup for SEO */}
+      {/* LocalBusiness Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
-            name: `Truck Rental in ${locationName}`,
-            description: `Professional truck rental services in ${locationName} starting at ₹3999/day`,
-            offers: {
-              '@type': 'AggregateOffer',
-              lowPrice: '3999',
-              priceCurrency: 'INR',
-              availability: 'https://schema.org/InStock',
-            },
-            provider: {
-              '@type': 'Organization',
-              name: 'TransRentals',
-            },
+            '@type': 'LocalBusiness',
+            name: `Truck Rental in ${locationName} — TransRentals`,
+            description: `Professional truck rental and goods transport in ${locationName}. Mini trucks to 32-ton container trucks. GPS tracking, verified drivers.`,
+            url: `https://transrentals.in/transporter/${params.location}`,
+            areaServed: { '@type': 'City', name: locationName },
+            provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
+            priceRange: '₹₹',
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: cityFAQs.length > 0
+              ? cityFAQs.map((faq) => ({
+                  '@type': 'Question',
+                  name: faq.q,
+                  acceptedAnswer: { '@type': 'Answer', text: faq.a },
+                }))
+              : TRANSPORTER_FALLBACK_FAQS.map((faq) => ({
+                  '@type': 'Question',
+                  name: faq.question,
+                  acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+                })),
           }),
         }}
       />

@@ -16,6 +16,7 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { CITY_SEO } from '@/data/city-seo-content';
 
 const COMING_SOON_SLUGS = new Set([
   'chidambaram',
@@ -312,6 +313,7 @@ export default async function BikeLocationPage({ params }: PageProps) {
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationFaqs = getLocationFaqs(locationName);
   const seoData = await resolvePageMeta(`bike-on-rent:${params.location}`);
+  const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['bike-on-rent'] || [];
 
   return (
     <>
@@ -394,7 +396,7 @@ export default async function BikeLocationPage({ params }: PageProps) {
       </section>
 
       {/* FAQs */}
-      <FAQSection service="bike-on-rent" location={locationName} />
+      {cityFAQs.length === 0 && <FAQSection service="bike-on-rent" location={locationName} />}
 
       {/* Nearby Locations */}
       <NearbyLocations locationSlug={params.location} service="bike-on-rent" />
@@ -405,6 +407,23 @@ export default async function BikeLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={pageContext.city.stateCode}
       />
+
+      {cityFAQs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: cityFAQs.map((faq) => ({
+                '@type': 'Question',
+                name: faq.q,
+                acceptedAnswer: { '@type': 'Answer', text: faq.a },
+              })),
+            }),
+          }}
+        />
+      )}
 
       {/* SEO Content */}
       <section className="py-16 bg-gray-50">

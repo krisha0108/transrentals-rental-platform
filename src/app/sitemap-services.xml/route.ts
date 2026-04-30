@@ -84,6 +84,13 @@ export async function GET() {
     console.error('[sitemap-services] DB error:', error);
   }
 
+  if (entries.length === 0) {
+    return new NextResponse('Services sitemap temporarily unavailable', {
+      status: 503,
+      headers: { 'Retry-After': '3600' },
+    });
+  }
+
   return new NextResponse(buildUrlsetXml(entries), {
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',

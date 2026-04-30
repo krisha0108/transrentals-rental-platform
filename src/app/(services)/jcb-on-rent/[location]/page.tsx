@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const _seoDb = await resolvePageMeta(`jcb-on-rent:${params.location}`);
   return {
-    title: _seoDb?.metaTitle || `JCB on Rent in ${locationName} | Backhoe Loader Rental @₹2999/Day | TransRentals`,
+    title: _seoDb?.metaTitle || `JCB on Rent in ${locationName} | Starting from ₹2,999/Day | TransRentals`,
     description: _seoDb?.metaDescription || `Rent JCB backhoe loaders in ${locationName} for construction, excavation & road work. Expert operators included. Book JCB rental now!`,
     keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `jcb on rent in ${locationName}`,
@@ -52,13 +52,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ],
     openGraph: {
       title: `JCB on Rent in ${locationName} - TransRentals`,
-      description: `Rent JCB backhoe loaders in ${locationName} starting @₹2999/day with operators.`,
+      description: `Hire JCB backhoe loaders in ${locationName} for construction, excavation & road work. Certified operators included.`,
     },
     alternates: { canonical: `https://transrentals.in/jcb-on-rent/${params.location}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `JCB on Rent in ${locationName} | TransRentals`,
-      description: `Rent JCB backhoe loaders in ${locationName} starting @₹2999/day with expert operators.`,
+      description: `Hire JCB backhoe loaders in ${locationName} for construction, excavation & road work. Expert operators included.`,
     },
   };
 }
@@ -121,7 +121,7 @@ export default async function JCBLocationPage({ params }: PageProps) {
         pageDescription={seoData?.pageDescription || undefined}
         badge={`JCB Rental in ${locationName}`}
         title="JCB on Rent"
-        titleHighlight="Starting @₹2999/day"
+        titleHighlight="Certified Operators Included"
         description={`Rent JCB backhoe loaders in ${locationName} for excavation, construction, and earthmoving. Well-maintained machines with expert operators.`}
         features={[
           { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
@@ -210,10 +210,10 @@ export default async function JCBLocationPage({ params }: PageProps) {
       <BikeServiceSchema
         serviceName="JCB on Rent"
         serviceSlug="jcb-on-rent"
-        description={`Rent JCB backhoe loaders in ${locationName} starting @₹2999/day with expert operators.`}
+        description={`Hire JCB backhoe loaders in ${locationName} for excavation, construction & road work. Certified operators included.`}
         city={locationName}
         citySlug={params.location}
-        faqs={[]}
+        faqs={pageFaqs}
       />
       <RelatedServices
         locationSlug={params.location}
