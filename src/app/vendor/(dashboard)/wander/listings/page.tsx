@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Compass, Plus, Pencil, Trash2, ToggleLeft, ToggleRight,
   Loader2, MapPin, Users, Clock, Tag, AlertCircle, Star,
-  Search, PackageCheck, PauseCircle, FileEdit, TrendingUp, Sparkles,
+  Search, PackageCheck, PauseCircle, FileEdit, TrendingUp, Sparkles, Eye,
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -201,7 +201,7 @@ export default function VendorWanderListingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
             {filtered.map((listing) => {
               const sc     = STATUS_CONFIG[listing.status] || STATUS_CONFIG.DRAFT;
-              const images = listing.images ? JSON.parse(listing.images) : [];
+              const images = (() => { try { const p = Array.isArray(listing.images) ? listing.images : (typeof listing.images === 'string' ? JSON.parse(listing.images) : null); return Array.isArray(p) ? p : []; } catch { return []; } })();
               return (
                 <div
                   key={listing.id}
@@ -278,6 +278,14 @@ export default function VendorWanderListingsPage() {
                       >
                         <Pencil className="w-3.5 h-3.5" /> Edit
                       </Link>
+                      <a
+                        href={`/wander/${listing.slug || listing.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> View
+                      </a>
                       <button
                         onClick={() => toggleStatus(listing)}
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition"

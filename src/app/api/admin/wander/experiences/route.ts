@@ -6,13 +6,20 @@ import { prisma } from '@/lib/db/prisma';
 
 export const dynamic = 'force-dynamic';
 
-// GET - List all experiences
-export async function GET() {
+// GET - List all experiences (optionally filtered by categoryId)
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    const { searchParams } = new URL(request.url);
+    const categoryId = searchParams.get('categoryId');
+
+    const where: any = {};
+    if (categoryId) where.categoryId = categoryId;
+
     const experiences = await (prisma as any).wander_experiences.findMany({
+      where,
       orderBy: [{ displayOrder: 'asc' }, { createdAt: 'desc' }],
       include: {
         category: { select: { id: true, name: true, icon: true } },

@@ -4640,7 +4640,7 @@ model wander_listings {
   id                 String                     @id @default(cuid())
   listingId          String                     @unique
   slug               String?                    @unique
-  vendorId           String
+  vendorId           String?
   experienceId       String?
   categoryId         String
   subCategoryId      String?
@@ -4686,7 +4686,7 @@ model wander_listings {
   category           wander_categories          @relation("CategoryListings", fields: [categoryId], references: [id])
   subCategory        wander_categories?         @relation("SubCategoryListings", fields: [subCategoryId], references: [id])
   mainLocation       locations                  @relation(fields: [mainLocationId], references: [id])
-  vendor             vendors                    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendor             vendors?                   @relation(fields: [vendorId], references: [id], onDelete: SetNull)
   experience         wander_experiences?        @relation(fields: [experienceId], references: [id])
   quoteRequests      wander_quote_requests[]
   reviews            wander_reviews[]
