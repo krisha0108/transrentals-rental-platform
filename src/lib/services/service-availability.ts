@@ -214,7 +214,7 @@ export async function resolveServicePage(
   if (!city && prisma && process.env.SKIP_DATABASE_CALLS !== '1') {
     try {
       const dbLoc = await prisma.locations.findFirst({
-        where: { slug: locationSlug, type: { in: ['CITY', 'UNION_TERRITORY'] }, isActive: true },
+        where: { slug: locationSlug, type: { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] }, isActive: true },
         select: { name: true, slug: true, code: true },
       });
       if (dbLoc) {

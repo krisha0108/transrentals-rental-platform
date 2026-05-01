@@ -674,7 +674,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
         // Build id→{name,type} map
         const infoMap: Record<string, { name: string; type: string }> = {};
         raw.forEach((l: any) => { infoMap[l.id] = { name: l.name, type: l.type }; });
-        // Exclude COUNTRY, STATE, AIRPORT — show CITY, UNION_TERRITORY, AREA
+        // Exclude COUNTRY, STATE, AIRPORT — show CITY, UNION_TERRITORY, AREA, VILLAGE
         const locs = raw
           .filter((l: any) => !['COUNTRY', 'STATE', 'AIRPORT'].includes(l.type))
           .map((l: any) => ({

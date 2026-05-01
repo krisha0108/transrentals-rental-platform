@@ -4870,6 +4870,7 @@ enum locations_type {
   CITY
   AREA
   AIRPORT
+  VILLAGE
 }
 
 enum redirects_type {

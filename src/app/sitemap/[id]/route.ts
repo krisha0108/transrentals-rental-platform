@@ -445,9 +445,9 @@ async function generateCityTagSitemap(currentDate: string): Promise<SitemapUrl[]
   }
 
   try {
-    // City homepages
+    // City + village homepages
     const cities = await prisma.locations.findMany({
-      where: { type: 'CITY', isActive: true },
+      where: { type: { in: ['CITY', 'VILLAGE'] }, isActive: true },
       select: {
         slug: true,
         locations: { select: { name: true } },

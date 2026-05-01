@@ -101,7 +101,7 @@ async function getLocationBySlug(locationSlug: string) {
       location = await prisma.locations.findFirst({
         where: {
           name: { contains: locationSlug.replace(/-/g, ' ') },
-          type: 'CITY',
+          type: { in: ['CITY', 'VILLAGE'] },
         },
         select: { id: true, name: true, slug: true },
       });
@@ -126,7 +126,7 @@ async function getCarsForLocation(locationSlug: string): Promise<AggregatedCar[]
       location = await prisma.locations.findFirst({
         where: {
           name: { contains: locationSlug.replace(/-/g, ' ') },
-          type: 'CITY',
+          type: { in: ['CITY', 'VILLAGE'] },
         },
       });
     }

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const locations = await prisma.locations.findMany({
       where: {
         isActive: true,
-        type: { in: ['CITY', 'STATE', 'AREA', 'UNION_TERRITORY'] },
+        type: { in: ['CITY', 'STATE', 'AREA', 'UNION_TERRITORY', 'VILLAGE'] },
         name: { contains: search },
       },
       select: {

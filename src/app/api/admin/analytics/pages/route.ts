@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
           _count: { select: { service_locations: { where: { isActive: true } } } },
         },
       }),
-      prisma.locations.count({ where: { isActive: true, type: { in: ['CITY', 'UNION_TERRITORY'] } } }),
+      prisma.locations.count({ where: { isActive: true, type: { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] } } }),
       prisma.chauffeur_route_packages.count({ where: { isActive: true } }),
     ]);
 

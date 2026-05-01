@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const serviceSlug = searchParams.get('serviceSlug');
 
     // Validate and cast type to LocationType enum
-    const validTypes = ['COUNTRY', 'STATE', 'UNION_TERRITORY', 'CITY', 'AREA', 'AIRPORT'];
+    const validTypes = ['COUNTRY', 'STATE', 'UNION_TERRITORY', 'CITY', 'AREA', 'AIRPORT', 'VILLAGE'];
     const type = validTypes.includes(typeParam) ? (typeParam as LocationType) : 'CITY';
 
     // Build where clause
@@ -26,12 +26,12 @@ export async function GET(request: NextRequest) {
       isActive: true,
     };
 
-    // If includeAirports is true, fetch cities, union territories and airports
+    // If includeAirports is true, fetch cities, union territories, villages and airports
     if (includeAirports && type === 'CITY') {
-      whereClause.type = { in: ['CITY', 'UNION_TERRITORY', 'AIRPORT'] };
+      whereClause.type = { in: ['CITY', 'UNION_TERRITORY', 'AIRPORT', 'VILLAGE'] };
     } else if (type === 'CITY') {
-      // When querying for cities, also include union territories (they're city-level)
-      whereClause.type = { in: ['CITY', 'UNION_TERRITORY'] };
+      // When querying for cities, also include union territories and villages (they're city-level)
+      whereClause.type = { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] };
     } else {
       whereClause.type = type;
     }

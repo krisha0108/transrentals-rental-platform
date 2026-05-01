@@ -20,6 +20,7 @@ import {
   Save,
   MapPinned,
   Plane,
+  Home,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -27,7 +28,7 @@ interface Location {
   id: string;
   name: string;
   slug: string;
-  type: 'COUNTRY' | 'STATE' | 'UNION_TERRITORY' | 'CITY' | 'AREA' | 'AIRPORT';
+  type: 'COUNTRY' | 'STATE' | 'UNION_TERRITORY' | 'CITY' | 'AREA' | 'AIRPORT' | 'VILLAGE';
   parentId: string | null;
   code: string | null;
   image: string | null;
@@ -45,8 +46,9 @@ const TYPE_CONFIG = {
   STATE: { label: 'State', icon: Building2, color: 'bg-purple-100 text-purple-700', order: 2 },
   UNION_TERRITORY: { label: 'Union Territory', icon: MapPin, color: 'bg-indigo-100 text-indigo-700', order: 3 },
   CITY: { label: 'City', icon: Map, color: 'bg-green-100 text-green-700', order: 4 },
-  AREA: { label: 'Area', icon: Navigation, color: 'bg-amber-100 text-amber-700', order: 5 },
-  AIRPORT: { label: 'Airport', icon: Plane, color: 'bg-sky-100 text-sky-700', order: 6 },
+  VILLAGE: { label: 'Village', icon: Home, color: 'bg-emerald-100 text-emerald-700', order: 5 },
+  AREA: { label: 'Area', icon: Navigation, color: 'bg-amber-100 text-amber-700', order: 6 },
+  AIRPORT: { label: 'Airport', icon: Plane, color: 'bg-sky-100 text-sky-700', order: 7 },
 };
 
 export default function LocationsManagementPage() {
@@ -64,7 +66,7 @@ export default function LocationsManagementPage() {
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
-    type: 'CITY' as 'COUNTRY' | 'STATE' | 'UNION_TERRITORY' | 'CITY' | 'AREA' | 'AIRPORT',
+    type: 'CITY' as 'COUNTRY' | 'STATE' | 'UNION_TERRITORY' | 'CITY' | 'AREA' | 'AIRPORT' | 'VILLAGE',
     parentId: '',
     code: '',
     image: '',
@@ -135,18 +137,18 @@ export default function LocationsManagementPage() {
     }
   }, [viewMode, typeFilter]);
 
+  // Hierarchy: COUNTRY -> (STATE | UNION_TERRITORY) -> CITY -> (AREA | AIRPORT)
+  // VILLAGE: parent can be STATE, UNION_TERRITORY, or CITY (flexible — some villages sit directly under a state, others under a city)
+  const getValidParentTypes = (type: string): string[] => {
+    if (type === 'STATE' || type === 'UNION_TERRITORY') return ['COUNTRY'];
+    if (type === 'CITY') return ['STATE', 'UNION_TERRITORY'];
+    if (type === 'AREA' || type === 'AIRPORT') return ['CITY'];
+    if (type === 'VILLAGE') return ['STATE', 'UNION_TERRITORY', 'CITY'];
+    return [];
+  };
+
   const fetchParentOptions = async (type: string) => {
-    // Hierarchy: COUNTRY -> (STATE | UNION_TERRITORY) -> CITY -> (AREA | AIRPORT)
-    // STATE's parent is COUNTRY
-    // UNION_TERRITORY's parent is COUNTRY
-    // CITY's parent is STATE or UNION_TERRITORY
-    // AREA's parent is CITY
-    // AIRPORT's parent is CITY (airports are located in cities)
-    // COUNTRY has no parent
-    let parentTypes: string[] = [];
-    if (type === 'STATE' || type === 'UNION_TERRITORY') parentTypes = ['COUNTRY'];
-    else if (type === 'CITY') parentTypes = ['STATE', 'UNION_TERRITORY'];
-    else if (type === 'AREA' || type === 'AIRPORT') parentTypes = ['CITY'];
+    const parentTypes = getValidParentTypes(type);
 
     if (parentTypes.length === 0) {
       setParentOptions([]);
@@ -198,8 +200,17 @@ export default function LocationsManagementPage() {
     }
 
     if (name === 'type') {
+      // Only reset parentId if the currently-selected parent is no longer valid for the new type.
+      // e.g., switching AREA -> VILLAGE keeps the CITY parent (CITY is a valid parent for VILLAGE),
+      // but switching CITY -> AREA clears the STATE parent (STATE is not valid for AREA).
+      const validParentTypes = getValidParentTypes(value);
+      const currentParent = parentOptions.find((p) => p.id === formData.parentId);
+      const keepParent = currentParent && validParentTypes.includes(currentParent.type);
+
       fetchParentOptions(value);
-      setFormData((prev) => ({ ...prev, parentId: '' }));
+      if (!keepParent) {
+        setFormData((prev) => ({ ...prev, parentId: '' }));
+      }
     }
   };
 
@@ -536,6 +547,7 @@ export default function LocationsManagementPage() {
               <option value="STATE">States</option>
               <option value="UNION_TERRITORY">Union Territories</option>
               <option value="CITY">Cities</option>
+              <option value="VILLAGE">Villages</option>
               <option value="AREA">Areas</option>
               <option value="AIRPORT">Airports</option>
             </select>
@@ -615,6 +627,7 @@ export default function LocationsManagementPage() {
                     <option value="STATE">State</option>
                     <option value="UNION_TERRITORY">Union Territory</option>
                     <option value="CITY">City</option>
+                    <option value="VILLAGE">Village</option>
                     <option value="AREA">Area</option>
                     <option value="AIRPORT">Airport</option>
                   </select>
@@ -635,9 +648,29 @@ export default function LocationsManagementPage() {
                     <option value="">
                       {formData.type === 'COUNTRY' ? 'No parent (Top level)' : 'Select parent...'}
                     </option>
-                    {parentOptions.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
+                    {(() => {
+                      const validTypes = getValidParentTypes(formData.type);
+                      // When parent can be multiple types (e.g. VILLAGE accepts STATE/UT/CITY,
+                      // CITY accepts STATE/UT), group options by type so cities aren't lost in a
+                      // long list of states.
+                      if (validTypes.length > 1) {
+                        return validTypes.map((parentType) => {
+                          const opts = parentOptions.filter((p) => p.type === parentType);
+                          if (opts.length === 0) return null;
+                          const label = TYPE_CONFIG[parentType as keyof typeof TYPE_CONFIG]?.label || parentType;
+                          return (
+                            <optgroup key={parentType} label={label}>
+                              {opts.map((p) => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                              ))}
+                            </optgroup>
+                          );
+                        });
+                      }
+                      return parentOptions.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ));
+                    })()}
                   </select>
                 </div>
               </div>
@@ -681,7 +714,7 @@ export default function LocationsManagementPage() {
                 </div>
               </div>
 
-              {(formData.type === 'CITY' || formData.type === 'AREA' || formData.type === 'STATE' || formData.type === 'UNION_TERRITORY') && (
+              {(formData.type === 'CITY' || formData.type === 'AREA' || formData.type === 'STATE' || formData.type === 'UNION_TERRITORY' || formData.type === 'VILLAGE') && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="block text-sm font-medium text-gray-700">

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const typeFilter = type === 'ALL'
       ? {}
       : type === 'CITY'
-        ? { type: { in: ['CITY', 'UNION_TERRITORY'] } }
+        ? { type: { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] } }
         : { type: type };
 
     // Search locations by name (MySQL is case-insensitive by default)

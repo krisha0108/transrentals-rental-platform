@@ -1038,7 +1038,7 @@ export default function ServiceFleetPage() {
   // Fetch all locations for filter dropdown
   const fetchLocations = React.useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/locations?flat=true&types=CITY,UNION_TERRITORY&limit=1000');
+      const res = await fetch('/api/admin/locations?flat=true&types=CITY,UNION_TERRITORY,VILLAGE&limit=1000');
       if (res.ok) {
         const data = await res.json();
         // transformPrismaResponse returns array directly when flat=true
