@@ -107,7 +107,7 @@ export async function GET(
         type: true, // Include type to distinguish STATE vs UNION_TERRITORY
         other_locations: {
           where: {
-            type: 'CITY',
+            type: { in: ['CITY', 'VILLAGE'] },
             isActive: true,
             id: { in: Array.from(serviceLocationIds) }, // Only service-configured locations
           },

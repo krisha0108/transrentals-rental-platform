@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         type: true,
         other_locations: {
           where: {
-            type: 'CITY',
+            type: { in: ['CITY', 'VILLAGE'] },
             isActive: true,
           },
           orderBy: { name: 'asc' },

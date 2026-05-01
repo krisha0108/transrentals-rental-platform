@@ -64,16 +64,17 @@ async function getChauffeurInventory(serviceId: string, serviceSlug: string) {
       select: { id: true, name: true, slug: true },
     });
 
-    // Get all locations
+    // Get all locations (cities + villages — both can be service locations)
     const allLocations = await prisma.locations.findMany({
       where: {
-        type: 'CITY',
+        type: { in: ['CITY', 'VILLAGE'] },
         isActive: true,
       },
       select: {
         id: true,
         name: true,
         slug: true,
+        type: true,
         locations: {
           select: { name: true },
         },
@@ -127,6 +128,7 @@ async function getChauffeurInventory(serviceId: string, serviceSlug: string) {
       locationId: string;
       locationName: string;
       locationSlug: string;
+      locationType: string;
       stateName: string;
       localPackages: any[];
       cityPricing: any[];
@@ -143,11 +145,12 @@ async function getChauffeurInventory(serviceId: string, serviceSlug: string) {
     }>();
 
     // Initialize with all locations
-    allLocations.forEach(loc => {
+    allLocations.forEach((loc: any) => {
       inventoryMap.set(loc.id, {
         locationId: loc.id,
         locationName: loc.name,
         locationSlug: loc.slug,
+        locationType: loc.type,
         stateName: loc.locations?.name || 'Unknown',
         localPackages: [],
         cityPricing: [],
@@ -294,6 +297,7 @@ async function getFleetInventory(serviceId: string, serviceSlug: string) {
             id: true,
             name: true,
             slug: true,
+            type: true,
             locations: {
               select: {
                 name: true,
@@ -379,18 +383,20 @@ async function getFleetInventory(serviceId: string, serviceSlug: string) {
       locationId: string;
       locationName: string;
       locationSlug: string;
+      locationType: string;
       stateName: string;
       vehicleModels: any[];
       fleetVehicles: any[];
     }>();
 
     // Initialize with all service locations
-    serviceLocations.forEach(sl => {
+    serviceLocations.forEach((sl: any) => {
       if (sl.locations) {
         inventoryMap.set(sl.locationId, {
           locationId: sl.locationId,
           locationName: sl.locations.name,
           locationSlug: sl.locations.slug,
+          locationType: sl.locations.type,
           stateName: sl.locations.locations?.name || 'Unknown',
           vehicleModels: [],
           fleetVehicles: [],

@@ -362,6 +362,13 @@ export default function CustomerLoginPage() {
             </div>
 
             <GoogleSignInButton />
+
+            <div className="pt-1 p-3 bg-[#09B368]/5 border border-[#09B368]/15 rounded-xl text-center">
+              <p className="text-xs text-gray-600">
+                Corporate account?{' '}
+                <Link href="/customer/b2b-register" className="text-[#09B368] hover:text-[#078F53] font-semibold">Register as B2B →</Link>
+              </p>
+            </div>
           </form>
         );
 

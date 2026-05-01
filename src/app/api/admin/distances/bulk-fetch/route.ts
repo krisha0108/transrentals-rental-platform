@@ -48,7 +48,7 @@ async function loadCitiesForState(serviceId: string, stateName: string) {
       isActive: true,
       locations: {
         isActive: true,
-        type: 'CITY' as any,
+        type: { in: ['CITY', 'VILLAGE'] as any[] },
         ...(stateRecord
           ? { parentId: stateRecord.id }
           : { locations: { name: { equals: stateName } } }),

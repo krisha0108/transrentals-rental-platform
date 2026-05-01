@@ -100,7 +100,7 @@ export default function UsersManagementPage() {
   const fetchLocationsAndServices = async () => {
     try {
       const [locRes, svcRes] = await Promise.all([
-        fetch('/api/admin/locations?flat=true&types=CITY,UNION_TERRITORY'),
+        fetch('/api/admin/locations?flat=true&types=CITY,UNION_TERRITORY,VILLAGE'),
         fetch('/api/admin/services?flat=true'),
       ]);
 
