@@ -11,8 +11,10 @@ import {
   Car, Info, ArrowLeft, Sparkles, CheckCircle, Building2, UserPlus,
 } from 'lucide-react';
 import ReviewsSection from '@/components/wander/ReviewsSection';
+import { Images } from 'lucide-react';
 
-function parseJSON(str: string | null, fallback: any) {
+function parseJSON(str: any, fallback: any) {
+  if (Array.isArray(str) || (str && typeof str === 'object')) return str;
   if (!str) return fallback;
   try { return JSON.parse(str); } catch { return fallback; }
 }
@@ -27,104 +29,215 @@ const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /* ─── Image Gallery ─────────────────────────────────────────────────────────── */
 function Gallery({ images, title }: { images: string[]; title: string }) {
-  const [active, setActive] = useState(0);
-  const [showAll, setShowAll] = useState(false);
+  const [current, setCurrent]     = useState(0);
+  const [paused, setPaused]       = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
+  /* ── auto-slide every 3s (pause on hover / lightbox open) ── */
+  useEffect(() => {
+    if (images.length <= 1 || paused || lightboxIdx !== null) return;
+    timerRef.current = setInterval(() => {
+      setCurrent(c => (c + 1) % images.length);
+    }, 3000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [images.length, paused, lightboxIdx]);
+
+  const goTo   = (i: number) => { setCurrent(i); setPaused(true); };
+  const goPrev = () => goTo((current - 1 + images.length) % images.length);
+  const goNext = () => goTo((current + 1) % images.length);
+
+  /* ── lightbox keyboard ── */
+  useEffect(() => {
+    if (lightboxIdx === null) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft')  setLightboxIdx(i => (i! - 1 + images.length) % images.length);
+      else if (e.key === 'ArrowRight') setLightboxIdx(i => (i! + 1) % images.length);
+      else if (e.key === 'Escape') setLightboxIdx(null);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightboxIdx, images.length]);
+
+  /* ── no images ── */
   if (!images.length) {
     return (
-      <div className="h-80 md:h-[520px] bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center rounded-3xl">
-        <span className="text-9xl opacity-20">🗺️</span>
-      </div>
-    );
-  }
-
-  // Mosaic grid for 3+ images
-  if (images.length >= 3 && !showAll) {
-    return (
-      <div className="space-y-2">
-        {/* Main + side mosaic */}
-        <div className="grid grid-cols-3 gap-2 h-72 md:h-[420px] rounded-3xl overflow-hidden">
-          <div className="col-span-2 relative overflow-hidden">
-            <img src={images[0]} alt={title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer" onClick={() => setShowAll(true)} />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
-          </div>
-          <div className="grid grid-rows-2 gap-2">
-            <div className="relative overflow-hidden rounded-tr-3xl">
-              <img src={images[1]} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer" onClick={() => setShowAll(true)} />
-            </div>
-            <div className="relative overflow-hidden rounded-br-3xl">
-              <img src={images[2] || images[1]} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer" onClick={() => setShowAll(true)} />
-              {images.length > 3 && (
-                <button
-                  onClick={() => setShowAll(true)}
-                  className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white hover:bg-black/60 transition-colors"
-                >
-                  <span className="text-2xl font-black">+{images.length - 3}</span>
-                  <span className="text-xs font-medium mt-1">more photos</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-        <button onClick={() => setShowAll(true)} className="text-xs text-indigo-600 hover:underline font-medium flex items-center gap-1">
-          <span>📷</span> View all {images.length} photos
-        </button>
+      <div className="h-64 md:h-[400px] bg-gradient-to-br from-slate-50 to-indigo-50 flex flex-col items-center justify-center rounded-2xl border border-dashed border-indigo-100">
+        <span className="text-6xl opacity-20 mb-2">🗺️</span>
+        <p className="text-sm text-gray-400">No photos yet</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-    <div className="relative rounded-3xl overflow-hidden h-80 md:h-[520px] bg-gray-900 shadow-xl shadow-gray-900/10">
-      <img src={images[active]} alt={title} className="w-full h-full object-cover transition-opacity duration-300" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-      {images.length > 1 && (
-        <>
+    <>
+      {/* ══ SLIDER ══ */}
+      <div
+        className="relative w-full h-64 md:h-[400px] rounded-2xl overflow-hidden bg-gray-900 select-none"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        {/* slides */}
+        {images.map((src, i) => (
+          <img
+            key={i}
+            src={src}
+            alt={i === 0 ? title : ''}
+            onClick={() => setLightboxIdx(i)}
+            className={`absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-700 ${
+              i === current ? 'opacity-100 z-10' : 'opacity-0 z-0'
+            }`}
+          />
+        ))}
+
+        {/* dark gradient at bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent z-20 pointer-events-none" />
+
+        {/* prev / next arrows — only when 2+ images */}
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={goPrev}
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-sm flex items-center justify-center text-white transition-all"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={goNext}
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-sm flex items-center justify-center text-white transition-all"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </>
+        )}
+
+        {/* bottom bar: dots + counter + photo badge */}
+        <div className="absolute bottom-0 left-0 right-0 z-30 px-4 pb-3 flex items-end justify-between">
+          {/* dot indicators */}
+          {images.length > 1 ? (
+            <div className="flex items-center gap-1.5">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => goTo(i)}
+                  className={`rounded-full transition-all duration-300 ${
+                    i === current
+                      ? 'w-5 h-2 bg-white'
+                      : 'w-2 h-2 bg-white/45 hover:bg-white/70'
+                  }`}
+                />
+              ))}
+            </div>
+          ) : <span />}
+
+          {/* counter + photos badge */}
           <button
-            onClick={() => setActive(i => (i - 1 + images.length) % images.length)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/40 hover:bg-black/70 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white transition-all hover:scale-105"
+            onClick={() => setLightboxIdx(current)}
+            className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm hover:bg-black/70 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <Images className="w-3.5 h-3.5" />
+            {images.length > 1 ? `${current + 1} / ${images.length}` : '1 photo'}
           </button>
-          <button
-            onClick={() => setActive(i => (i + 1) % images.length)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/40 hover:bg-black/70 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white transition-all hover:scale-105"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-            {images.map((_, i) => (
-              <button key={i} onClick={() => setActive(i)}
-                className={`rounded-full transition-all duration-300 ${i === active ? 'w-6 h-2 bg-white' : 'w-2 h-2 bg-white/40 hover:bg-white/70'}`}
-              />
-            ))}
+        </div>
+
+        {/* progress bar */}
+        {images.length > 1 && !paused && lightboxIdx === null && (
+          <div className="absolute bottom-0 left-0 right-0 h-[3px] z-40 bg-white/20">
+            <div
+              key={current}
+              className="h-full bg-white/80 rounded-full"
+              style={{ animation: 'slideProgress 3s linear forwards' }}
+            />
           </div>
-        </>
-      )}
-      {/* Thumbnail strip */}
+        )}
+      </div>
+
+      {/* progress bar keyframe */}
+      <style>{`
+        @keyframes slideProgress {
+          from { width: 0% }
+          to   { width: 100% }
+        }
+      `}</style>
+
+      {/* ══ THUMBNAIL STRIP (below slider, 2+ images) ══ */}
       {images.length > 1 && (
-        <div className="absolute bottom-4 right-4 flex gap-1.5">
-          {images.slice(0, 5).map((img, i) => (
-            <button key={i} onClick={() => setActive(i)}
-              className={`w-14 h-10 rounded-xl overflow-hidden border-2 transition-all duration-200 ${i === active ? 'border-white scale-105 shadow-lg' : 'border-white/30 opacity-60 hover:opacity-100 hover:border-white/70'}`}
+        <div className="flex gap-2 mt-2 overflow-x-auto pb-0.5">
+          {images.map((img, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className={`flex-shrink-0 w-16 h-11 rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                i === current
+                  ? 'border-indigo-500 scale-105 shadow-md'
+                  : 'border-transparent opacity-55 hover:opacity-100'
+              }`}
             >
               <img src={img} alt="" className="w-full h-full object-cover" />
             </button>
           ))}
-          {images.length > 5 && (
-            <div className="w-14 h-10 rounded-xl bg-black/50 backdrop-blur-sm flex items-center justify-center text-white text-xs font-bold">
-              +{images.length - 5}
+        </div>
+      )}
+
+      {/* ══ LIGHTBOX ══ */}
+      {lightboxIdx !== null && (
+        <div className="fixed inset-0 z-[999] flex flex-col bg-black/96" onClick={() => setLightboxIdx(null)}>
+          {/* top bar */}
+          <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" onClick={e => e.stopPropagation()}>
+            <span className="text-white/55 text-sm">{lightboxIdx + 1} / {images.length}</span>
+            <p className="text-white font-semibold text-sm truncate max-w-xs text-center">{title}</p>
+            <button onClick={() => setLightboxIdx(null)} className="text-white/70 hover:text-white p-1.5 rounded-xl hover:bg-white/10 transition">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* image */}
+          <div className="flex-1 flex items-center justify-center relative px-14 min-h-0" onClick={e => e.stopPropagation()}>
+            <img
+              src={images[lightboxIdx]}
+              alt={title}
+              className="max-w-full max-h-full object-contain rounded-xl"
+              style={{ maxHeight: 'calc(100vh - 180px)' }}
+            />
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={() => setLightboxIdx(i => (i! - 1 + images.length) % images.length)}
+                  className="absolute left-3 w-10 h-10 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center text-white transition-all"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setLightboxIdx(i => (i! + 1) % images.length)}
+                  className="absolute right-3 w-10 h-10 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center text-white transition-all"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* thumbnail strip */}
+          {images.length > 1 && (
+            <div className="flex-shrink-0 px-4 py-3 flex gap-2 overflow-x-auto justify-center" onClick={e => e.stopPropagation()}>
+              {images.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => setLightboxIdx(i)}
+                  className={`flex-shrink-0 w-14 h-10 rounded-lg overflow-hidden transition-all duration-200 ${
+                    i === lightboxIdx
+                      ? 'ring-2 ring-white ring-offset-2 ring-offset-black scale-105'
+                      : 'opacity-40 hover:opacity-80'
+                  }`}
+                >
+                  <img src={img} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
             </div>
           )}
         </div>
       )}
-    </div>
-    {showAll && (
-      <button onClick={() => setShowAll(false)} className="text-xs text-gray-400 hover:text-gray-600 font-medium flex items-center gap-1">
-        ↑ Show less
-      </button>
-    )}
-    </div>
+    </>
   );
 }
 
@@ -361,7 +474,7 @@ function QuoteForm({
         let estPrice: number | null = null;
         if (priceType === 'PER_PERSON' && basePrice) {
           estPrice = qty * Number(basePrice);
-        } else if (priceType === 'GROUP_BASED' && priceTiers?.length) {
+        } else if (priceType === 'PER_GROUP' && priceTiers?.length) {
           // find best matching tier (closest groupSize that covers qty)
           const sorted = [...priceTiers].sort((a, b) => parseInt(a.groupSize) - parseInt(b.groupSize));
           const match = sorted.find(t => parseInt(t.groupSize) >= qty) || sorted[sorted.length - 1];
@@ -664,7 +777,7 @@ function VendorCard({ vendor, listingCount }: { vendor: any; listingCount?: numb
 
 /* ─── Similar Tour Mini-Card ─────────────────────────────────────────────────── */
 function SimilarCard({ listing }: { listing: any }) {
-  const images: string[] = (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
+  const images: string[] = Array.isArray(listing.images) ? listing.images : (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
   const cover = images[0] || null;
   return (
     <Link href={`/wander/${listing.slug || listing.id}`}
@@ -805,6 +918,7 @@ export default function TourDetailPage() {
   const priceTiers = parseJSON(listing.priceTiers, []);
   const guideLanguages = parseJSON(listing.guideLanguages, []);
   const availableDays = parseJSON(listing.availableDays, []);
+  const customPlaces: { name: string }[] = parseJSON(listing.customPlaces, []);
   const cancelInfo = CANCEL_LABELS[listing.cancellationPolicy] || CANCEL_LABELS.MODERATE;
 
   const priceLabel = listing.priceType === 'ON_REQUEST'
@@ -812,7 +926,7 @@ export default function TourDetailPage() {
     : listing.basePrice
       ? `₹${Number(listing.basePrice).toLocaleString('en-IN')}`
       : null;
-  const priceSuffix = listing.priceType === 'PER_PERSON' ? 'per person' : listing.priceType === 'GROUP_BASED' ? 'per group' : '';
+  const priceSuffix = listing.priceType === 'PER_PERSON' ? 'per person' : listing.priceType === 'PER_GROUP' ? 'per group' : '';
 
   return (
     <div className="min-h-screen bg-white">
@@ -893,6 +1007,13 @@ export default function TourDetailPage() {
                 {guideLanguages.length > 0 && (
                   <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-2 rounded-xl">
                     <Globe className="w-3.5 h-3.5 text-indigo-400" /> {guideLanguages.join(', ')}
+                  </span>
+                )}
+                {listing.tourStartDate && (
+                  <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-2 rounded-xl">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                    {new Date(listing.tourStartDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {listing.tourEndDate && ` – ${new Date(listing.tourEndDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                   </span>
                 )}
               </div>
@@ -1047,8 +1168,22 @@ export default function TourDetailPage() {
               </div>
             )}
 
+            {/* Custom Places */}
+            {customPlaces.length > 0 && (
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 mb-3">Places You'll Visit</h2>
+                <div className="flex flex-wrap gap-2">
+                  {customPlaces.map((p: { name: string }, i: number) => (
+                    <span key={i} className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm px-3 py-1.5 rounded-xl">
+                      <MapPin className="w-3.5 h-3.5 text-indigo-400" /> {p.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Pricing */}
-            {(priceLabel || priceTiers.length > 0) && (
+            {(listing.priceType === 'ON_REQUEST' || priceLabel || priceTiers.length > 0) && (
               <div>
                 <h2 className="text-lg font-bold text-gray-900 mb-3">Pricing</h2>
                 {priceTiers.length > 0 ? (
@@ -1079,7 +1214,12 @@ export default function TourDetailPage() {
                     <span className="text-3xl font-black text-indigo-700">{priceLabel}</span>
                     {priceSuffix && <span className="text-sm text-indigo-400 ml-2">{priceSuffix}</span>}
                   </div>
-                ) : null}
+                ) : (
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+                    <p className="text-lg font-bold text-indigo-700">Price on Request</p>
+                    <p className="text-sm text-indigo-400 mt-1">Get a custom quote tailored to your group & dates</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1121,7 +1261,11 @@ export default function TourDetailPage() {
                 <h2 className="text-lg font-bold text-gray-900 mb-3">Pickup Information</h2>
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm text-gray-600 space-y-2">
                   {listing.pickupType && (
-                    <p><span className="font-semibold text-gray-700">Type:</span> {listing.pickupType}</p>
+                    <p><span className="font-semibold text-gray-700">Type:</span> {
+                      listing.pickupType === 'HOTEL_PICKUP' ? 'Hotel Pickup'
+                      : listing.pickupType === 'FIXED_POINT' ? 'Fixed Meeting Point'
+                      : listing.pickupType
+                    }</p>
                   )}
                   {listing.meetingPoint && (
                     <p><span className="font-semibold text-gray-700">Meeting Point:</span> {listing.meetingPoint}</p>

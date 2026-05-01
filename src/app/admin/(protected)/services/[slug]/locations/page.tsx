@@ -36,6 +36,8 @@ interface CityLocation {
   id: string;
   name: string;
   slug: string;
+  type?: 'CITY' | 'VILLAGE';
+  parentName?: string | null;
   isEnabled: boolean;
   vehicleCount: number;
   vendorCount: number;
@@ -56,6 +58,8 @@ interface FlatLocation {
   id: string;
   name: string;
   state: string;
+  type?: 'CITY' | 'VILLAGE' | 'UNION_TERRITORY';
+  parentName?: string | null;
   tier: number;
   isActive: boolean;
   isEnabled: boolean;
@@ -138,6 +142,8 @@ export default function ServiceLocationsPage() {
               id: loc.id,
               name: loc.name,
               state: loc.state,
+              type: loc.type,
+              parentName: loc.parentName,
               tier: loc.tier,
               isActive: loc.isActive,
               isEnabled: loc.isEnabled,
@@ -145,12 +151,14 @@ export default function ServiceLocationsPage() {
               vendorCount: loc.vendorCount || 0,
             }))
           );
-          // Set union territories
+          // Set union territories (and any villages directly under UTs, returned by API)
           setUnionTerritories(
             (data.unionTerritories || []).map((ut: any) => ({
               id: ut.id,
               name: ut.name,
               slug: ut.slug,
+              type: ut.type,
+              parentName: ut.parentName,
               isEnabled: ut.isEnabled,
               vehicleCount: ut.vehicleCount || 0,
               vendorCount: ut.vendorCount || 0,
@@ -574,9 +582,19 @@ export default function ServiceLocationsPage() {
                             }`}
                           >
                             <div className="flex items-center justify-between mb-1">
-                              <span className="font-medium text-gray-900 text-sm">{city.name}</span>
-                              {city.isEnabled && <Check className="w-4 h-4 text-blue-600" />}
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="font-medium text-gray-900 text-sm truncate">{city.name}</span>
+                                {city.type === 'VILLAGE' && (
+                                  <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-100 text-emerald-700 shrink-0">
+                                    Village
+                                  </span>
+                                )}
+                              </div>
+                              {city.isEnabled && <Check className="w-4 h-4 text-blue-600 shrink-0" />}
                             </div>
+                            {city.parentName && (
+                              <div className="text-[11px] text-gray-400 mb-1">in {city.parentName}</div>
+                            )}
                             <div className="flex items-center gap-3 text-xs text-gray-400">
                               <span className="flex items-center gap-1">
                                 <Car className="w-3 h-3" />
@@ -624,9 +642,19 @@ export default function ServiceLocationsPage() {
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-gray-900 text-sm">{ut.name}</span>
-                          {ut.isEnabled && <Check className="w-4 h-4 text-indigo-600" />}
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-medium text-gray-900 text-sm truncate">{ut.name}</span>
+                            {ut.type === 'VILLAGE' && (
+                              <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-100 text-emerald-700 shrink-0">
+                                Village
+                              </span>
+                            )}
+                          </div>
+                          {ut.isEnabled && <Check className="w-4 h-4 text-indigo-600 shrink-0" />}
                         </div>
+                        {ut.parentName && (
+                          <div className="text-[11px] text-gray-400 mb-1">in {ut.parentName}</div>
+                        )}
                         <div className="flex items-center gap-3 text-xs text-gray-400">
                           <span className="flex items-center gap-1">
                             <Car className="w-3 h-3" />
@@ -695,10 +723,19 @@ export default function ServiceLocationsPage() {
                           }`}
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-gray-900">{location.name}</span>
-                            {location.isEnabled && <Check className="w-5 h-5 text-blue-600" />}
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="font-medium text-gray-900 truncate">{location.name}</span>
+                              {location.type === 'VILLAGE' && (
+                                <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-100 text-emerald-700 shrink-0">
+                                  Village
+                                </span>
+                              )}
+                            </div>
+                            {location.isEnabled && <Check className="w-5 h-5 text-blue-600 shrink-0" />}
                           </div>
-                          <p className="text-xs text-gray-500 mb-2">{location.state}</p>
+                          <p className="text-xs text-gray-500 mb-2">
+                            {location.parentName ? `${location.parentName}, ${location.state}` : location.state}
+                          </p>
                           <div className="flex items-center gap-3 text-xs text-gray-400">
                             <span className="flex items-center gap-1">
                               <Car className="w-3 h-3" />

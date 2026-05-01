@@ -815,7 +815,6 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
                   alt="TransRentals"
                   width={130}
                   height={32}
-                  className="object-contain"
                 />
               </div>
             </div>

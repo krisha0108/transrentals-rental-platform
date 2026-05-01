@@ -32,7 +32,7 @@ export async function GET() {
   try {
     // Total active city/UT count (for services that generate pages for ALL locations)
     const totalActiveLocations = await prisma.locations.count({
-      where: { isActive: true, type: { in: ['CITY', 'UNION_TERRITORY'] } },
+      where: { isActive: true, type: { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] } },
     });
 
     // All parent services with location counts

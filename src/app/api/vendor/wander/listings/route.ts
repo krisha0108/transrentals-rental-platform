@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
       images, pickupType, meetingPoint, guideLanguages, availableDays,
       advanceNoticeHours, cancellationPolicy, cancellationNotes,
       tourStartDate, tourEndDate,
+      requireAdvancePayment, advancePaymentType, advancePaymentValue,
     } = body;
 
     if (!categoryId) return NextResponse.json({ error: 'Category is required' }, { status: 400 });
@@ -108,6 +109,9 @@ export async function POST(request: NextRequest) {
         cancellationNotes: cancellationNotes?.trim() || null,
         tourStartDate: tourStartDate ? new Date(tourStartDate) : null,
         tourEndDate: tourEndDate ? new Date(tourEndDate) : null,
+        requireAdvancePayment: requireAdvancePayment === true,
+        advancePaymentType: requireAdvancePayment ? (advancePaymentType || null) : null,
+        advancePaymentValue: requireAdvancePayment && advancePaymentValue ? parseFloat(advancePaymentValue) : null,
         status: body.publish ? 'ACTIVE' : 'DRAFT',
       },
     });

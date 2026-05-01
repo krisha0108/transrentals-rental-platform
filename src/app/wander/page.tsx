@@ -146,7 +146,7 @@ function ExperienceCard({ exp }: { exp: any }) {
 /* ─── TourCard ─────────────────────────────────────── */
 function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; isWishlisted?: boolean; onToggleWishlist?: (id: string) => void }) {
   const [vendorLogoError, setVendorLogoError] = useState(false);
-  const images: string[] = (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
+  const images: string[] = Array.isArray(listing.images) ? listing.images : (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
   const coverImg = images[0] || null;
 
   // Parse priceTiers for GROUP_BASED pricing
@@ -155,7 +155,7 @@ function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; i
   })();
   const minTierPrice = priceTiers.length > 0 ? Math.min(...priceTiers.map((t: any) => Number(t.price))) : null;
 
-  const isGroupBased = listing.priceType === 'GROUP_BASED';
+  const isGroupBased = listing.priceType === 'PER_GROUP';
   const isOnRequest = listing.priceType === 'ON_REQUEST';
 
   let priceLabel: string;
@@ -1047,7 +1047,7 @@ export default function WanderHomePage() {
                           </div>
                           <div className="space-y-3">
                             {monthListings.map((listing: any) => {
-                              const images: string[] = (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
+                              const images: string[] = Array.isArray(listing.images) ? listing.images : (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
                               const startD = new Date(listing.tourStartDate);
                               const endD = listing.tourEndDate ? new Date(listing.tourEndDate) : null;
                               return (

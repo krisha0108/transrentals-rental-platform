@@ -41,6 +41,7 @@ interface LocationInventory {
   locationId: string;
   locationName: string;
   locationSlug: string;
+  locationType?: string;
   stateName: string;
   vehicleModels?: VehicleModel[];
   fleetVehicles?: FleetVehicle[];
@@ -784,7 +785,14 @@ export default function LocationInventoryPage() {
                           <MapPin className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{location.locationName}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-gray-900">{location.locationName}</h3>
+                            {location.locationType === 'VILLAGE' && (
+                              <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-100 text-emerald-700">
+                                Village
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-500">{location.stateName}</p>
                         </div>
                       </div>

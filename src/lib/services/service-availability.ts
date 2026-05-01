@@ -50,7 +50,7 @@ const _cachedAvailableLocations = unstable_cache(
 const _cachedDbCityLookup = unstable_cache(
   async (locationSlug: string) => {
     return prisma.locations.findFirst({
-      where: { slug: locationSlug, type: { in: ['CITY', 'UNION_TERRITORY'] }, isActive: true },
+      where: { slug: locationSlug, type: { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] }, isActive: true },
       select: { name: true, slug: true, code: true },
     });
   },

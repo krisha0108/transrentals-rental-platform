@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { LocationType } from '@prisma/client';
 import { unstable_cache } from 'next/cache';
 import logger from '@/lib/security/logger';
 
@@ -9,9 +8,9 @@ const getCachedLocations = unstable_cache(
     const whereClause: any = { isActive: true };
 
     if (includeAirports && type === 'CITY') {
-      whereClause.type = { in: ['CITY', 'UNION_TERRITORY', 'AIRPORT'] };
+      whereClause.type = { in: ['CITY', 'UNION_TERRITORY', 'AIRPORT', 'VILLAGE'] };
     } else if (type === 'CITY') {
-      whereClause.type = { in: ['CITY', 'UNION_TERRITORY'] };
+      whereClause.type = { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] };
     } else {
       whereClause.type = type;
     }
@@ -68,7 +67,7 @@ export async function GET(request: NextRequest) {
     const includeAirports = searchParams.get('includeAirports') === 'true';
     const serviceSlug = searchParams.get('serviceSlug');
 
-    const validTypes = ['COUNTRY', 'STATE', 'UNION_TERRITORY', 'CITY', 'AREA', 'AIRPORT'];
+    const validTypes = ['COUNTRY', 'STATE', 'UNION_TERRITORY', 'CITY', 'AREA', 'AIRPORT', 'VILLAGE'];
     const type = validTypes.includes(typeParam) ? typeParam : 'CITY';
 
     const formattedLocations = await getCachedLocations(type, includeAirports, serviceSlug);

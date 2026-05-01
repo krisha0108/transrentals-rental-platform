@@ -127,8 +127,8 @@ export function LuxuryBookingHero({ city, citySlug }: LuxuryBookingHeroProps) {
         const res = await fetch('/api/services/luxury-car-rental/locations?limit=1000');
         if (res.ok) {
           const data = await res.json();
-          // Filter only CITY type locations
-          const cityLocations = (data.locations || []).filter((loc: City) => loc.type === 'CITY');
+          // Filter CITY and VILLAGE type locations (both are valid pickup places)
+          const cityLocations = (data.locations || []).filter((loc: City) => loc.type === 'CITY' || loc.type === 'VILLAGE');
           setCities(cityLocations);
 
           // Set default pickup city based on the city prop

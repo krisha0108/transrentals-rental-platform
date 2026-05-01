@@ -29,7 +29,7 @@ export async function generateStaticParams() {
   if (process.env.SKIP_DATABASE_CALLS === '1') return [];
   try {
     const locations = await prisma.locations.findMany({
-      where: { type: { in: ['CITY', 'UNION_TERRITORY'] }, isActive: true },
+      where: { type: { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] }, isActive: true },
       select: { slug: true },
     });
     return locations.map((loc) => ({ location: loc.slug }));
