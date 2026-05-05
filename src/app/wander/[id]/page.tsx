@@ -8,10 +8,9 @@ import {
   Compass, MapPin, Clock, Users, ChevronLeft, ChevronRight,
   Check, X, Star, Shield, Globe, Loader2, AlertCircle,
   Calendar, Phone, Mail, User, MessageSquare, ChevronDown,
-  Car, Info, ArrowLeft, Sparkles, CheckCircle, Building2, UserPlus,
+  Car, Info, ArrowLeft, Sparkles, CheckCircle, Building2, UserPlus, TrendingUp, Images,
 } from 'lucide-react';
 import ReviewsSection from '@/components/wander/ReviewsSection';
-import { Images } from 'lucide-react';
 
 function parseJSON(str: any, fallback: any) {
   if (Array.isArray(str) || (str && typeof str === 'object')) return str;
@@ -28,7 +27,18 @@ const CANCEL_LABELS: Record<string, { label: string; desc: string; color: string
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /* ─── Image Gallery ─────────────────────────────────────────────────────────── */
-function Gallery({ images, title }: { images: string[]; title: string }) {
+function Gallery({ images, title, meta }: {
+  images: string[];
+  title: string;
+  meta?: {
+    category?: { icon: string; name: string } | null;
+    location?: string | null;
+    duration?: string | null;
+    rating?: number | null;
+    totalRatings?: number;
+    popular?: boolean;
+  };
+}) {
   const [current, setCurrent]     = useState(0);
   const [paused, setPaused]       = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
@@ -62,9 +72,13 @@ function Gallery({ images, title }: { images: string[]; title: string }) {
   /* ── no images ── */
   if (!images.length) {
     return (
-      <div className="h-64 md:h-[400px] bg-gradient-to-br from-slate-50 to-indigo-50 flex flex-col items-center justify-center rounded-2xl border border-dashed border-indigo-100">
-        <span className="text-6xl opacity-20 mb-2">🗺️</span>
-        <p className="text-sm text-gray-400">No photos yet</p>
+      <div className="h-72 md:h-[480px] bg-gradient-to-br from-slate-800 to-indigo-900 flex flex-col items-center justify-center rounded-2xl relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        <span className="text-8xl opacity-10 mb-4 relative z-10">🗺️</span>
+        <p className="text-sm text-white/40 relative z-10">No photos yet</p>
+        <div className="absolute bottom-0 left-0 right-0 px-5 pb-6 z-10">
+          <h1 className="font-black text-white text-xl md:text-2xl leading-tight drop-shadow-xl">{title}</h1>
+        </div>
       </div>
     );
   }
@@ -73,7 +87,7 @@ function Gallery({ images, title }: { images: string[]; title: string }) {
     <>
       {/* ══ SLIDER ══ */}
       <div
-        className="relative w-full h-64 md:h-[400px] rounded-2xl overflow-hidden bg-gray-900 select-none"
+        className="relative w-full h-72 md:h-[520px] rounded-2xl overflow-hidden bg-gray-900 select-none"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
@@ -90,54 +104,93 @@ function Gallery({ images, title }: { images: string[]; title: string }) {
           />
         ))}
 
-        {/* dark gradient at bottom */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent z-20 pointer-events-none" />
+        {/* Strong bottom-heavy gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10 z-20 pointer-events-none" />
+        {/* Side vignette */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30 z-20 pointer-events-none" />
+
+        {/* Top bar: category + popular */}
+        <div className="absolute top-0 left-0 right-0 z-30 px-4 pt-4 flex items-start justify-between">
+          {meta?.category && (
+            <span className="inline-flex items-center gap-1.5 bg-black/45 backdrop-blur-md text-[11px] font-bold text-white px-3 py-1.5 rounded-xl border border-white/10 shadow-lg">
+              {meta.category.icon} {meta.category.name}
+            </span>
+          )}
+          {meta?.popular && (
+            <div className="ml-auto bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl flex items-center gap-1 shadow-lg">
+              <TrendingUp className="w-2.5 h-2.5" /> Hot
+            </div>
+          )}
+        </div>
 
         {/* prev / next arrows — only when 2+ images */}
         {images.length > 1 && (
           <>
             <button
               onClick={goPrev}
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-sm flex items-center justify-center text-white transition-all"
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-sm flex items-center justify-center text-white transition-all hover:scale-110"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <button
               onClick={goNext}
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-sm flex items-center justify-center text-white transition-all"
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-sm flex items-center justify-center text-white transition-all hover:scale-110"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
           </>
         )}
 
-        {/* bottom bar: dots + counter + photo badge */}
-        <div className="absolute bottom-0 left-0 right-0 z-30 px-4 pb-3 flex items-end justify-between">
-          {/* dot indicators */}
-          {images.length > 1 ? (
-            <div className="flex items-center gap-1.5">
-              {images.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => goTo(i)}
-                  className={`rounded-full transition-all duration-300 ${
-                    i === current
-                      ? 'w-5 h-2 bg-white'
-                      : 'w-2 h-2 bg-white/45 hover:bg-white/70'
-                  }`}
-                />
-              ))}
-            </div>
-          ) : <span />}
-
-          {/* counter + photos badge */}
-          <button
-            onClick={() => setLightboxIdx(current)}
-            className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm hover:bg-black/70 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
-          >
-            <Images className="w-3.5 h-3.5" />
-            {images.length > 1 ? `${current + 1} / ${images.length}` : '1 photo'}
-          </button>
+        {/* Bottom overlay: title + meta + dots + counter */}
+        <div className="absolute bottom-0 left-0 right-0 z-30 px-5 pb-4 pt-20">
+          {/* Title */}
+          <h1 className="font-black text-white text-xl md:text-[1.65rem] leading-snug mb-2.5 drop-shadow-xl tracking-tight">
+            {title}
+          </h1>
+          {/* Location + Duration + Rating */}
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            {meta?.location && (
+              <span className="flex items-center gap-1.5 text-white/85 text-sm font-medium">
+                <MapPin className="w-3.5 h-3.5 text-indigo-300 flex-shrink-0" /> {meta.location}
+              </span>
+            )}
+            {meta?.duration && (
+              <span className="flex items-center gap-1.5 text-white/70 text-sm">
+                <Clock className="w-3.5 h-3.5 flex-shrink-0" /> {meta.duration}
+              </span>
+            )}
+            {meta?.rating != null && meta.rating > 0 && (
+              <span className="inline-flex items-center gap-1 bg-amber-400 text-gray-900 text-xs font-black px-2.5 py-1 rounded-lg shadow-md">
+                <Star className="w-3 h-3 fill-gray-900" /> {meta.rating}
+                {meta.totalRatings != null && meta.totalRatings > 0 && (
+                  <span className="font-normal ml-0.5 text-gray-700">({meta.totalRatings})</span>
+                )}
+              </span>
+            )}
+          </div>
+          {/* Dots + counter row */}
+          <div className="flex items-center justify-between">
+            {images.length > 1 ? (
+              <div className="flex items-center gap-1.5">
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => goTo(i)}
+                    className={`rounded-full transition-all duration-300 ${
+                      i === current ? 'w-5 h-2 bg-white' : 'w-2 h-2 bg-white/45 hover:bg-white/70'
+                    }`}
+                  />
+                ))}
+              </div>
+            ) : <span />}
+            <button
+              onClick={() => setLightboxIdx(current)}
+              className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm hover:bg-black/70 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
+            >
+              <Images className="w-3.5 h-3.5" />
+              {images.length > 1 ? `${current + 1} / ${images.length}` : '1 photo'}
+            </button>
+          </div>
         </div>
 
         {/* progress bar */}
@@ -181,12 +234,20 @@ function Gallery({ images, title }: { images: string[]; title: string }) {
 
       {/* ══ LIGHTBOX ══ */}
       {lightboxIdx !== null && (
-        <div className="fixed inset-0 z-[999] flex flex-col bg-black/96" onClick={() => setLightboxIdx(null)}>
+        <div
+          className="fixed inset-0 z-[999] flex flex-col backdrop-blur-sm"
+          style={{ backgroundColor: 'rgba(0,0,0,0.92)' }}
+          onClick={() => setLightboxIdx(null)}
+        >
           {/* top bar */}
           <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" onClick={e => e.stopPropagation()}>
             <span className="text-white/55 text-sm">{lightboxIdx + 1} / {images.length}</span>
             <p className="text-white font-semibold text-sm truncate max-w-xs text-center">{title}</p>
-            <button onClick={() => setLightboxIdx(null)} className="text-white/70 hover:text-white p-1.5 rounded-xl hover:bg-white/10 transition">
+            {/* Prominent close button */}
+            <button
+              onClick={() => setLightboxIdx(null)}
+              className="w-10 h-10 bg-white/15 hover:bg-white/30 border border-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -196,20 +257,20 @@ function Gallery({ images, title }: { images: string[]; title: string }) {
             <img
               src={images[lightboxIdx]}
               alt={title}
-              className="max-w-full max-h-full object-contain rounded-xl"
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
               style={{ maxHeight: 'calc(100vh - 180px)' }}
             />
             {images.length > 1 && (
               <>
                 <button
                   onClick={() => setLightboxIdx(i => (i! - 1 + images.length) % images.length)}
-                  className="absolute left-3 w-10 h-10 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center text-white transition-all"
+                  className="absolute left-3 w-11 h-11 bg-white/15 hover:bg-white/30 border border-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => setLightboxIdx(i => (i! + 1) % images.length)}
-                  className="absolute right-3 w-10 h-10 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center text-white transition-all"
+                  className="absolute right-3 w-11 h-11 bg-white/15 hover:bg-white/30 border border-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
@@ -818,7 +879,9 @@ export default function TourDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    fetch(`/api/wander/listings/${id}`)
+    const isPreview = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1';
+    const previewQuery = isPreview ? '?preview=1' : '';
+    fetch(`/api/wander/listings/${id}${previewQuery}`)
       .then(r => r.json())
       .then(d => {
         if (d.error) setError(d.error);
@@ -928,8 +991,16 @@ export default function TourDetailPage() {
       : null;
   const priceSuffix = listing.priceType === 'PER_PERSON' ? 'per person' : listing.priceType === 'PER_GROUP' ? 'per group' : '';
 
+  const isPreviewMode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1';
+
   return (
     <div className="min-h-screen bg-white">
+      {/* Preview banner */}
+      {isPreviewMode && (
+        <div className="bg-amber-400 text-amber-900 text-xs font-bold text-center py-2 px-4 flex items-center justify-center gap-2">
+          <span>👁️ Preview Mode — This tour is not yet published</span>
+        </div>
+      )}
       {/* Breadcrumb */}
       <div className="bg-gray-50 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-2 text-xs text-gray-500">
@@ -954,48 +1025,27 @@ export default function TourDetailPage() {
           <div className="lg:col-span-2 space-y-8">
 
             {/* Gallery */}
-            <Gallery images={images} title={listing.title} />
+            <Gallery
+              images={images}
+              title={listing.title}
+              meta={{
+                category: listing.category || null,
+                location: listing.mainLocation?.name || null,
+                duration: listing.duration || null,
+                rating: listing.rating > 0 ? listing.rating : null,
+                totalRatings: listing.totalRatings,
+                popular: (listing._count?.quoteRequests ?? 0) > 5,
+              }}
+            />
 
-            {/* Title & Meta */}
+            {/* Info below image */}
             <div>
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                {listing.category && (
-                  <span className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-xl">
-                    {listing.category.icon} {listing.category.name}
-                  </span>
-                )}
-                {listing._count?.quoteRequests > 5 && (
-                  <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-600 text-xs font-bold px-3 py-1.5 rounded-xl">
-                    🔥 Popular
-                  </span>
-                )}
-                {listing.rating > 0 && (
-                  <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-xl">
-                    ⭐ {listing.rating} <span className="font-normal text-amber-500">({listing.totalRatings} reviews)</span>
-                  </span>
-                )}
-              </div>
-
-              <h1 className="text-2xl md:text-[2rem] font-black text-gray-900 mb-4 leading-tight tracking-tight">
-                {listing.title}
-              </h1>
-
               {listing.shortDescription && (
                 <p className="text-gray-500 text-base leading-relaxed mb-5">{listing.shortDescription}</p>
               )}
 
-              {/* Quick stats bar */}
+              {/* Quick stats — only additional info not already shown in gallery */}
               <div className="flex flex-wrap gap-2">
-                {listing.mainLocation?.name && (
-                  <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-2 rounded-xl">
-                    <MapPin className="w-3.5 h-3.5 text-indigo-400" /> {listing.mainLocation.name}
-                  </span>
-                )}
-                {listing.duration && (
-                  <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-2 rounded-xl">
-                    <Clock className="w-3.5 h-3.5 text-indigo-400" /> {listing.duration}
-                  </span>
-                )}
                 {(listing.minGroupSize > 1 || listing.maxGroupSize) && (
                   <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-2 rounded-xl">
                     <Users className="w-3.5 h-3.5 text-indigo-400" />

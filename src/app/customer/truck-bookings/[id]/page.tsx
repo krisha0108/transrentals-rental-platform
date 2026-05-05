@@ -229,6 +229,14 @@ export default function CustomerTruckBookingDetailPage() {
     });
   };
 
+  const formatRawTime = (timeStr: string) => {
+    if (!timeStr) return timeStr;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const d = new Date();
+    d.setHours(hours, minutes, 0, 0);
+    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
   const copyOtp = (otp: string) => {
     navigator.clipboard.writeText(otp);
     setCopied(true);
@@ -392,7 +400,7 @@ export default function CustomerTruckBookingDetailPage() {
                 <p className="text-sm font-bold text-gray-900">{booking.pickupCity}</p>
                 {booking.pickupAddress && <p className="text-xs text-gray-500 mt-0.5">{booking.pickupAddress}</p>}
                 <p className="text-xs text-gray-600 mt-1">{booking.pickupDate ? new Date(booking.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</p>
-                <p className="text-xs text-gray-500">{booking.pickupTime}</p>
+                <p className="text-xs text-gray-500">{formatRawTime(booking.pickupTime)}</p>
               </div>
               {/* Drop */}
               <div className="bg-red-50 border border-red-100 rounded-xl p-3">
@@ -635,7 +643,7 @@ export default function CustomerTruckBookingDetailPage() {
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-500">Cancelled At</span>
                 <span className="text-xs font-semibold text-gray-800">
-                  {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                  {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', hour12: true })}
                 </span>
               </div>
               {booking.cancelledBy && (
@@ -885,6 +893,7 @@ export default function CustomerTruckBookingDetailPage() {
                         {new Date(msg.created_at).toLocaleTimeString('en-IN', {
                           hour: '2-digit',
                           minute: '2-digit',
+                          hour12: true,
                         })}
                       </p>
                     </div>

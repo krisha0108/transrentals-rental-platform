@@ -8,7 +8,7 @@ const ITEMS_PER_PAGE = 25;
 const formatDateTime = (value?: string | Date | null) => {
   if (!value) return '—';
   const date = typeof value === 'string' ? new Date(value) : value;
-  return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  return new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short', hour12: true }).format(date);
 };
 
 const previewText = (value?: string | null, limit = 80) => {

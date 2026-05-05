@@ -24,7 +24,7 @@ const skipTypeCheck = true;  // ENABLE type checking
 const skipLint = true;        // ENABLE linting
 
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   eslint: {
     ignoreDuringBuilds: skipLint,
   },

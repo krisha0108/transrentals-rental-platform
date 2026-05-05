@@ -381,7 +381,7 @@ export default function VendorSelfDriveQuotesPage() {
       )}
 
       {/* ══════════ Filters + Search ══════════ */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-3 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+      <div className="relative z-10 bg-white rounded-2xl border border-gray-100 p-3 opacity-0 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex gap-1 bg-gray-100/80 rounded-xl p-1">
             {filterTabs.map((f) => {

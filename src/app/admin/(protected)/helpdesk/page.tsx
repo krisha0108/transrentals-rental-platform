@@ -10,6 +10,7 @@ const formatDateTime = (value?: string | Date | null) => {
   return new Intl.DateTimeFormat('en-IN', {
     dateStyle: 'medium',
     timeStyle: 'short',
+    hour12: true,
   }).format(date);
 };
 

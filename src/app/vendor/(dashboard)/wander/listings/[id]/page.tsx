@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 import {
   Compass, ChevronRight, ChevronLeft, Check, Loader2, AlertCircle,
-  Plus, Trash2, MapPin, Search, X, Clock, Car, ArrowLeft, Eye,
+  Plus, Trash2, MapPin, Search, X, Clock, Car, ArrowLeft, Eye, Save,
 } from 'lucide-react';
 
 // ─── Constants (same as new page) ─────────────────────────────────────────────
@@ -148,6 +148,13 @@ export default function EditWanderListingPage() {
   const [error, setError] = useState('');
   const locationRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // Restore step from URL on mount
+  useEffect(() => {
+    const s = new URLSearchParams(window.location.search).get('step');
+    const n = parseInt(s || '1');
+    if (n >= 1 && n <= 6) setStep(n);
+  }, []);
 
   // Load listing + categories on mount
   useEffect(() => {
@@ -344,7 +351,6 @@ export default function EditWanderListingPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Failed to save'); return; }
-      router.push('/vendor/wander/listings');
     } catch {
       setError('Failed to save tour');
     } finally {
@@ -388,12 +394,21 @@ export default function EditWanderListingPage() {
           <h1 className="text-xl font-bold text-gray-900">Edit Tour</h1>
           <p className="text-sm text-gray-500">Step {step} of {STEPS.length} — {STEPS[step - 1].label}</p>
         </div>
+        <button
+          type="button"
+          onClick={() => isApproved ? handleSave(null) : openVerificationModal()}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition flex-shrink-0 disabled:opacity-60"
+        >
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          Save
+        </button>
         {listingSlug && (
           <a
-            href={`/wander/${listingSlug}`}
+            href={`/wander/${listingSlug}?preview=1`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-lg transition"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition"
           >
             <Eye className="w-3.5 h-3.5" /> Preview
           </a>

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     };
     const baseWhere = {
       isActive: true,
-      type: { in: ['CITY', 'STATE', 'AREA', 'UNION_TERRITORY'] },
+      type: { in: ['CITY', 'STATE', 'AREA', 'UNION_TERRITORY', 'VILLAGE'] },
     };
 
     const [prefix, contains] = await Promise.all([

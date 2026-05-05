@@ -222,7 +222,7 @@ export default function BookingTrackPage() {
               <button onClick={fetchBooking} className="flex items-center gap-2 bg-white/10 hover:bg-white/15 border border-white/10 text-white/60 hover:text-white text-sm px-4 py-2 rounded-xl transition">
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Refresh</span>
-                <span className="text-white/30 text-xs hidden sm:inline">· {lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="text-white/30 text-xs hidden sm:inline">· {lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
               </button>
             </div>
           )}

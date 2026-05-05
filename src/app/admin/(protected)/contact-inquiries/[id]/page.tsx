@@ -6,7 +6,7 @@ import { ArrowLeft, User, Mail, Phone, MessageSquare, Calendar, FileText } from 
 const formatDateTime = (value?: string | Date | null) => {
   if (!value) return '—';
   const date = typeof value === 'string' ? new Date(value) : value;
-  return new Intl.DateTimeFormat('en-IN', { dateStyle: 'long', timeStyle: 'short' }).format(date);
+  return new Intl.DateTimeFormat('en-IN', { dateStyle: 'long', timeStyle: 'short', hour12: true }).format(date);
 };
 
 export default async function ContactInquiryDetailPage({ params }: { params: { id: string } }) {
