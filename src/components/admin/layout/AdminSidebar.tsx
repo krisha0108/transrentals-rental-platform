@@ -381,6 +381,11 @@ const adminItems: NavItem[] = [
     ],
   },
   {
+    name: 'Customers',
+    href: '/admin/customers',
+    icon: Users,
+  },
+  {
     name: 'Social Network',
     href: '/admin/social/categories',
     icon: Smile,

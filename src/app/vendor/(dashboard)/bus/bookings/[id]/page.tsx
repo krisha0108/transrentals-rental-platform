@@ -23,6 +23,7 @@ import {
     Eye,
 } from 'lucide-react';
 import { BUS_CATEGORIES, BUS_TRIP_TYPES } from '@/lib/bus-categories';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 interface BusBooking {
     id: string;
@@ -537,9 +538,7 @@ export default function VendorBusBookingDetailPage() {
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                             {booking.customerPhone && (
-                                <a href={`tel:${booking.customerPhone}`} className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all">
-                                    <User className="w-3 h-3" /> {booking.customerPhone}
-                                </a>
+                                <VendorCallButton phone={booking.customerPhone} bookingType="bus_booking" bookingId={booking.id} variant="blue" />
                             )}
                             {booking.customerEmail && (
                                 <a href={`mailto:${booking.customerEmail}`} className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-600 transition-all">

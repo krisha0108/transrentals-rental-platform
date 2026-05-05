@@ -9,13 +9,14 @@ import {
   ActivityIndicator,
   Alert,
   StatusBar,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import LinearGradient from 'react-native-linear-gradient';
-import { getQuoteRequestById } from '../../../api/client';
+import { getQuoteRequestById, getBaseURL, getSessionToken } from '../../../api/client';
 import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
 
 const C = {
@@ -194,6 +195,21 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
   const customerEmail = request.customerEmail || request.customer_email;
   const customerPhone = request.customerPhone || request.customer_phone;
 
+  const handleCallCustomer = () => {
+    if (!customerPhone) return;
+    (async () => {
+      try {
+        const [baseURL, token] = await Promise.all([getBaseURL(), getSessionToken()]);
+        fetch(`${baseURL}/api/vendor/call-log`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ bookingType: 'self_drive_quote_request', bookingId: request.id, source: 'app' }),
+        }).catch(() => {});
+      } catch {}
+    })();
+    Linking.openURL(`tel:${customerPhone}`);
+  };
+
   // Vehicle Details
   const vehicleModelName = request.vehicleModelName || request.vehicle_model_name;
   const vehicleBrand = request.vehicleBrand || request.vehicle_brand;
@@ -350,6 +366,15 @@ export default function SelfDriveQuoteRequestDetailScreen({ route, navigation })
                   </View>
                 </View>
               )}
+              {customerPhone ? (
+                <TouchableOpacity
+                  onPress={handleCallCustomer}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 4 }}
+                >
+                  <Ionicons name="call" size={16} color={C.g600} />
+                  <Text style={{ color: C.g600, fontWeight: '700', fontSize: 14 }}>Call Customer</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
 

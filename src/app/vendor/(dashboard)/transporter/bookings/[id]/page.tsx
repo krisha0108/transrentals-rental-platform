@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 interface Booking {
   id: string;
@@ -477,9 +478,7 @@ export default function VendorTruckBookingDetailPage() {
             </div>
             <div className="flex flex-wrap gap-1.5">
               {booking.customerPhone && (
-                <a href={`tel:${booking.customerPhone}`} className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all">
-                  <Phone className="w-3 h-3" /> {booking.customerPhone}
-                </a>
+                <VendorCallButton phone={booking.customerPhone} bookingType="transporter_booking" bookingId={booking.id} variant="blue" />
               )}
               {booking.customerEmail && (
                 <a href={`mailto:${booking.customerEmail}`} className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-600 transition-all">

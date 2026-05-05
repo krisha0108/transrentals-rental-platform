@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 import {
   Car,
   Calendar,
@@ -647,13 +648,13 @@ export default function VendorLuxuryActivePage() {
                           </div>
 
                           {/* Guest */}
-                          <div className="flex items-center gap-2.5">
+                          <div className="flex items-center gap-2.5" onClick={e => e.stopPropagation()}>
                             <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center border border-emerald-100 shrink-0">
                               <User className="w-4 h-4" />
                             </div>
                             <div className="min-w-0">
                               <p className="text-xs font-bold text-gray-900 truncate">{booking.customerName}</p>
-                              <p className="text-[10px] text-gray-400">{booking.customerPhone}</p>
+                              <VendorCallButton phone={booking.customerPhone} bookingType="luxury_booking" bookingId={booking.id} size="sm" />
                             </div>
                           </div>
 
@@ -722,15 +723,9 @@ export default function VendorLuxuryActivePage() {
                               Complete Trip
                             </button>
                           )}
-                          <a
-                            href={`tel:${booking.customerPhone}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="h-9 px-3 bg-white border border-gray-200 text-gray-400 rounded-xl hover:border-emerald-300 hover:text-emerald-600 transition-all flex items-center gap-1.5"
-                            title="Call Guest"
-                          >
-                            <Phone className="w-3.5 h-3.5" />
-                            <span className="text-[11px] font-semibold hidden sm:inline">Call</span>
-                          </a>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <VendorCallButton phone={booking.customerPhone} bookingType="luxury_booking" bookingId={booking.id} label="Call" size="sm" />
+                          </div>
                           <button
                             onClick={(e) => { e.stopPropagation(); setViewingBooking(booking); }}
                             className="h-9 px-6 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 active:scale-95"
@@ -868,13 +863,8 @@ export default function VendorLuxuryActivePage() {
                     <div className="flex items-center justify-between relative z-10">
                       <div>
                         <p className="text-lg font-bold text-gray-900 tracking-tight leading-none mb-1">{booking.customerName}</p>
-                        <p className="text-xs font-bold text-emerald-600 flex items-center gap-1.5 uppercase tracking-wider">
-                          <Phone className="w-3.5 h-3.5 text-emerald-500" />{booking.customerPhone}
-                        </p>
+                        <VendorCallButton phone={booking.customerPhone} bookingType="luxury_booking" bookingId={booking.id} size="sm" />
                       </div>
-                      <a href={`tel:${booking.customerPhone}`} className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center border border-emerald-200 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm group/call">
-                        <Phone className="w-5 h-5 group-hover/call:scale-110 transition-transform" />
-                      </a>
                     </div>
                   </div>
 

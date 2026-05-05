@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 import {
   ArrowLeft, Phone, Mail, Car, Calendar, MapPin,
   CheckCircle2, XCircle, PlayCircle, AlertCircle,
@@ -428,9 +429,9 @@ export default function DirectBookingDetailPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-gray-900 text-lg leading-tight">{booking.customerName}</p>
-                    <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5 text-gray-400" /> {booking.customerPhone}
-                    </p>
+                    <div className="mt-0.5">
+                      <VendorCallButton phone={booking.customerPhone} bookingType="direct_booking" bookingId={booking.id} size="sm" />
+                    </div>
                     {booking.customerEmail && (
                       <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-0.5 truncate">
                         <Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" />
@@ -441,9 +442,9 @@ export default function DirectBookingDetailPage() {
                 </div>
               </div>
               <div className="border-t border-gray-100 grid grid-cols-2 divide-x divide-gray-100">
-                <a href={`tel:${booking.customerPhone}`} className="flex items-center justify-center gap-2 py-3 text-sm font-semibold text-emerald-600 hover:bg-emerald-50 transition">
-                  <Phone className="w-4 h-4" /> Call Now
-                </a>
+                <div className="flex items-center justify-center py-3">
+                  <VendorCallButton phone={booking.customerPhone} bookingType="direct_booking" bookingId={booking.id} label="Call Now" />
+                </div>
                 <a
                   href={`https://wa.me/91${booking.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${booking.customerName}, regarding your booking #${booking.bookingNumber}...`)}`}
                   target="_blank" rel="noopener noreferrer"

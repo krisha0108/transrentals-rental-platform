@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Bike, Bus, Car, Package, Truck, Compass, Star, BookOpen, Layers,
-  Search, X, ChevronRight, Phone, Calendar, IndianRupee,
+  Search, X, ChevronRight, Calendar, IndianRupee,
   Clock, CheckCircle2, AlertCircle, Zap, RotateCcw, RefreshCw,
   Loader2, Filter, ArrowUpDown,
 } from 'lucide-react';
@@ -312,14 +312,6 @@ export default function AllBookingsPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] font-mono text-gray-400">{b.bookingNumber}</span>
-                            {b.customerPhone && (
-                              <>
-                                <span className="text-gray-300">·</span>
-                                <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
-                                  <Phone className="w-2.5 h-2.5" />{b.customerPhone}
-                                </span>
-                              </>
-                            )}
                           </div>
                         </div>
 

@@ -10,7 +10,6 @@ import {
   MapPin,
   Clock,
   Eye,
-  Phone,
   IndianRupee,
   CheckCircle,
   AlertCircle,
@@ -25,6 +24,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 interface Booking {
   id: string;
@@ -740,9 +740,7 @@ export default function CalendarPage() {
                 <User className="w-5 h-5 text-gray-400 mt-0.5" />
                 <div>
                   <p className="font-medium text-gray-900">{selectedBooking.customerName}</p>
-                  <a href={`tel:${selectedBooking.customerPhone}`} className="text-sm text-blue-600">
-                    {selectedBooking.customerPhone}
-                  </a>
+                  <VendorCallButton phone={selectedBooking.customerPhone} bookingType={`${selectedBooking.serviceType}_booking`} bookingId={selectedBooking.id} size="sm" />
                 </div>
               </div>
 
@@ -820,13 +818,7 @@ export default function CalendarPage() {
               )}
             </div>
             <div className="p-6 border-t flex gap-3">
-              <a
-                href={`tel:${selectedBooking.customerPhone}`}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2"
-              >
-                <Phone className="w-4 h-4" />
-                Call Customer
-              </a>
+              <VendorCallButton phone={selectedBooking.customerPhone} bookingType={`${selectedBooking.serviceType}_booking`} bookingId={selectedBooking.id} label="Call Customer" />
               <Link
                 href={`/vendor/${selectedBooking.serviceType}-bookings/${selectedBooking.id}`}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition flex items-center justify-center gap-2"

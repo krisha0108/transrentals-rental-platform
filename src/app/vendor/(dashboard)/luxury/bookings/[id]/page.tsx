@@ -33,6 +33,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 interface LuxuryBooking {
   id: string;
@@ -684,10 +685,7 @@ export default function VendorLuxuryBookingDetailPage() {
 
             <div className="flex items-center gap-4">
               <div className="hidden sm:flex items-center gap-3 mr-2">
-                <a href={`tel:${booking.customerPhone}`} className="px-5 py-2.5 bg-[#FAFAFA] hover:bg-[#F3F4F6] border border-[#EEEEEE] rounded-xl text-sm font-bold text-[#6B7280] transition-all flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  Call Customer
-                </a>
+                <VendorCallButton phone={booking.customerPhone} bookingType="luxury_booking" bookingId={booking.id} variant="gray" size="md" />
               </div>
             </div>
           </div>
@@ -891,7 +889,7 @@ export default function VendorLuxuryBookingDetailPage() {
                     </div>
                     <div>
                       <p className="text-[10px] text-[#6B7280] uppercase font-black tracking-widest mb-1">Phone Number</p>
-                      <p className="text-base font-bold text-[#1F2A37]">{booking.customerPhone}</p>
+                      <VendorCallButton phone={booking.customerPhone} bookingType="luxury_booking" bookingId={booking.id} variant="gray" size="md" />
                     </div>
                   </div>
                 </div>

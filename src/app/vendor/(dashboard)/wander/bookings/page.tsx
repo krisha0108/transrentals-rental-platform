@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CalendarCheck, Loader2, Users, Clock, Phone, IndianRupee, RefreshCw, ChevronRight, MapPin, CheckCircle2, TrendingUp, Wallet } from 'lucide-react';
+import { CalendarCheck, Loader2, Users, Clock, IndianRupee, RefreshCw, ChevronRight, MapPin, CheckCircle2, TrendingUp, Wallet } from 'lucide-react';
 import Link from 'next/link';
 
 function fmt(date: string) {
@@ -201,15 +201,6 @@ export default function VendorWanderBookingsPage() {
                       <CustomerAvatar name={booking.customer?.name} />
                       <div className="min-w-0">
                         <p className="text-[13px] font-semibold text-gray-800 truncate">{booking.customer?.name || '—'}</p>
-                        {booking.customer?.phone && (
-                          <a
-                            href={`tel:${booking.customer.phone}`}
-                            onClick={e => e.stopPropagation()}
-                            className="text-[11px] text-emerald-500 hover:text-emerald-700 flex items-center gap-1 mt-0.5"
-                          >
-                            <Phone className="w-2.5 h-2.5" />{booking.customer.phone}
-                          </a>
-                        )}
                       </div>
                     </div>
 

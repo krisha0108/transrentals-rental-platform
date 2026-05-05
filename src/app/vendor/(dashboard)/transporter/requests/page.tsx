@@ -28,6 +28,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { TRANSPORTER_CONFIG } from '@/lib/quote-services';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 interface QuoteRequest {
   id: string;
@@ -634,18 +635,12 @@ export default function VendorTransporterRequestsPage() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-gray-900">{selected.customerName}</p>
-                      {selected.customerPhone && <p className="text-xs text-gray-400">{selected.customerPhone}</p>}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {selected.customerPhone && (
                       <>
-                        <a
-                          href={`tel:${selected.customerPhone}`}
-                          className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all"
-                        >
-                          <Phone className="w-3.5 h-3.5" /> Call
-                        </a>
+                        <VendorCallButton phone={selected.customerPhone} bookingType="truck_quote_request" bookingId={selected.id} variant="blue" />
                         <a
                           href={`https://wa.me/${selected.customerPhone.replace(/\D/g, '')}`}
                           target="_blank"
