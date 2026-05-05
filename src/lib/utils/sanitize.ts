@@ -22,6 +22,28 @@ export function sanitizeInput(input: string | null | undefined): string | undefi
 }
 
 /**
+ * Sanitize rich-text HTML (from Tiptap editors) — keeps safe formatting tags,
+ * strips scripts/iframes/event handlers.
+ */
+export function sanitizeRichText(html: string | null | undefined): string {
+  if (!html) return '';
+  return xss(html, {
+    whiteList: {
+      p: [], br: [], hr: [],
+      strong: [], b: [], em: [], i: [], u: [], s: [], strike: [], del: [],
+      h1: [], h2: [], h3: [], h4: [], h5: [], h6: [],
+      ul: [], ol: [], li: [],
+      blockquote: [], code: [], pre: [],
+      a: ['href', 'rel', 'target', 'class', 'title'],
+      span: ['class'],
+      div: ['class'],
+    },
+    stripIgnoreTag: true,
+    stripIgnoreTagBody: ['script', 'style', 'iframe'],
+  });
+}
+
+/**
  * Sanitize multiple string fields in an object
  */
 export function sanitizeObject<T extends Record<string, any>>(

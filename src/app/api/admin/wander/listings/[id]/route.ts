@@ -48,19 +48,21 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     } = body;
 
     if (!categoryId) return NextResponse.json({ error: 'Category is required' }, { status: 400 });
-    if (!mainLocationId) return NextResponse.json({ error: 'Main location is required' }, { status: 400 });
     if (!title?.trim()) return NextResponse.json({ error: 'Tour title is required' }, { status: 400 });
-    if (!duration?.trim()) return NextResponse.json({ error: 'Duration is required' }, { status: 400 });
+    if (publish) {
+      if (!mainLocationId) return NextResponse.json({ error: 'Main location is required to publish' }, { status: 400 });
+      if (!duration?.trim()) return NextResponse.json({ error: 'Duration is required to publish' }, { status: 400 });
+    }
 
     const data: any = {
       categoryId,
       subCategoryId: subCategoryId || null,
       experienceId: experienceId || null,
-      mainLocationId,
+      mainLocationId: mainLocationId || null,
       title: title.trim(),
       shortDescription: shortDescription?.trim() || null,
       description: description?.trim() || null,
-      duration: duration.trim(),
+      duration: duration?.trim() || null,
       highlights: highlights ? JSON.stringify(highlights) : null,
       basePrice: basePrice ? parseFloat(basePrice) : null,
       priceType: priceType || 'ON_REQUEST',

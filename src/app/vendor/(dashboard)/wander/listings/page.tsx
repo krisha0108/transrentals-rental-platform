@@ -3,10 +3,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Compass, Plus, Pencil, Trash2, ToggleLeft, ToggleRight,
   Loader2, MapPin, Users, Clock, Tag, AlertCircle, Star,
   Search, PackageCheck, PauseCircle, FileEdit, TrendingUp, Sparkles, Eye,
+  Zap, FileText, ArrowRight, X,
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -24,10 +26,22 @@ const TABS = [
 ];
 
 export default function VendorWanderListingsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [listings, setListings] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [tab, setTab]           = useState('all');
   const [error, setError]       = useState('');
+  const [showAddModeModal, setShowAddModeModal] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('addMode') === 'open') {
+      setShowAddModeModal(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('addMode');
+      router.replace(url.pathname + (url.search || ''), { scroll: false });
+    }
+  }, [searchParams, router]);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [search, setSearch]     = useState('');
@@ -108,12 +122,13 @@ export default function VendorWanderListingsPage() {
             </h1>
             <p className="text-emerald-100/70 text-sm">Manage, publish and track all your tour packages</p>
           </div>
-          <Link
-            href="/vendor/wander/listings/new"
+          <button
+            type="button"
+            onClick={() => setShowAddModeModal(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-white/20 backdrop-blur-sm text-white border border-white/20 rounded-xl hover:bg-white/30 active:bg-white/10 transition font-semibold text-sm shadow-lg shadow-black/10 flex-shrink-0 mt-1"
           >
             <Plus className="w-4 h-4" /> Create Tour
-          </Link>
+          </button>
         </div>
 
         {/* Metric Cards */}
@@ -194,12 +209,13 @@ export default function VendorWanderListingsPage() {
             </div>
             <p className="font-bold text-gray-800 mb-1 text-base">No tour listings yet</p>
             <p className="text-gray-400 text-sm mb-6">Create your first tour to start receiving bookings</p>
-            <Link
-              href="/vendor/wander/listings/new"
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-white/20 backdrop-blur-sm text-white border border-white/20 rounded-xl hover:bg-emerald-600 transition text-sm font-semibold shadow-md shadow-emerald-500/20"
+            <button
+              type="button"
+              onClick={() => setShowAddModeModal(true)}
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition text-sm font-semibold shadow-md shadow-emerald-500/20"
             >
               <Plus className="w-4 h-4" /> Create Your First Tour
-            </Link>
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
@@ -277,7 +293,11 @@ export default function VendorWanderListingsPage() {
                     {/* Actions */}
                     <div className="flex items-center gap-2 pt-3 border-t border-gray-50 mt-auto">
                       <Link
-                        href={`/vendor/wander/listings/${listing.id}`}
+                        href={
+                          listing.createMode === 'QUICK'
+                            ? `/vendor/wander/listings/${listing.id}/edit/quick`
+                            : `/vendor/wander/listings/${listing.id}`
+                        }
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition"
                       >
                         <Pencil className="w-3.5 h-3.5" /> Edit
@@ -328,6 +348,73 @@ export default function VendorWanderListingsPage() {
           </div>
         )}
       </div>
+
+      {showAddModeModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setShowAddModeModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">How would you like to add the tour?</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Pick the option that suits your workflow.</p>
+              </div>
+              <button
+                onClick={() => setShowAddModeModal(false)}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
+              <button
+                type="button"
+                onClick={() => router.push('/vendor/wander/listings/new/quick')}
+                className="group text-left rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 hover:border-emerald-500 hover:shadow-lg transition"
+              >
+                <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-4 shadow-sm group-hover:scale-105 transition">
+                  <Zap className="w-6 h-6" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900">Quick Add</h3>
+                  <ArrowRight className="w-4 h-4 text-emerald-600 opacity-0 group-hover:opacity-100 transition" />
+                </div>
+                <p className="text-xs text-gray-600 mt-1.5">Just the essentials — get a tour live in under a minute.</p>
+                <ul className="text-[11px] text-gray-500 mt-3 space-y-1">
+                  <li>• Category, title, location</li>
+                  <li>• Duration & base price</li>
+                  <li>• Description & images</li>
+                </ul>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push('/vendor/wander/listings/new')}
+                className="group text-left rounded-2xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 hover:border-indigo-500 hover:shadow-lg transition"
+              >
+                <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center mb-4 shadow-sm group-hover:scale-105 transition">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900">Detailed Add</h3>
+                  <ArrowRight className="w-4 h-4 text-indigo-600 opacity-0 group-hover:opacity-100 transition" />
+                </div>
+                <p className="text-xs text-gray-600 mt-1.5">Full 6-step wizard with itinerary, pricing tiers, inclusions.</p>
+                <ul className="text-[11px] text-gray-500 mt-3 space-y-1">
+                  <li>• Day-wise itinerary builder</li>
+                  <li>• Vehicle options & pricing tiers</li>
+                  <li>• Inclusions, exclusions, policies</li>
+                </ul>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

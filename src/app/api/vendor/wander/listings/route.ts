@@ -56,7 +56,9 @@ export async function POST(request: NextRequest) {
       advanceNoticeHours, cancellationPolicy, cancellationNotes,
       tourStartDate, tourEndDate,
       requireAdvancePayment, advancePaymentType, advancePaymentValue,
+      createMode,
     } = body;
+    const safeCreateMode = createMode === 'QUICK' ? 'QUICK' : 'DETAILED';
 
     if (!categoryId) return NextResponse.json({ error: 'Category is required' }, { status: 400 });
     if (!title?.trim()) return NextResponse.json({ error: 'Tour title is required' }, { status: 400 });
@@ -90,8 +92,8 @@ export async function POST(request: NextRequest) {
         images, pickupType, meetingPoint, guideLanguages, availableDays,
         advanceNoticeHours, cancellationPolicy, cancellationNotes,
         requireAdvancePayment, advancePaymentType, advancePaymentValue,
-        tourStartDate, tourEndDate, rating, totalRatings, totalBookings, status, createdAt, updatedAt
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,0,0,?,?,?)`,
+        tourStartDate, tourEndDate, createMode, rating, totalRatings, totalBookings, status, createdAt, updatedAt
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,0,0,?,?,?)`,
       newId, listingId, slug, auth.vendorId, categoryId,
       subCategoryId || null, experienceId || null, mainLocationId || null,
       title.trim(), shortDescription?.trim() || null, description?.trim() || null,
@@ -119,6 +121,7 @@ export async function POST(request: NextRequest) {
       requireAdvancePayment && advancePaymentValue ? parseFloat(advancePaymentValue) : null,
       tourStartDate ? new Date(tourStartDate) : null,
       tourEndDate ? new Date(tourEndDate) : null,
+      safeCreateMode,
       body.publish ? 'ACTIVE' : 'DRAFT',
       now, now
     );

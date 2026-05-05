@@ -57,6 +57,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (body.requireAdvancePayment !== undefined) data.requireAdvancePayment = Boolean(body.requireAdvancePayment);
     if (body.advancePaymentType !== undefined) data.advancePaymentType = body.advancePaymentType || null;
     if (body.advancePaymentValue !== undefined) data.advancePaymentValue = body.advancePaymentValue != null ? parseFloat(body.advancePaymentValue) : null;
+    if (body.createMode === 'QUICK' || body.createMode === 'DETAILED') data.createMode = body.createMode;
 
     const listing = await (prisma as any).wander_listings.update({
       where: { id: params.id },

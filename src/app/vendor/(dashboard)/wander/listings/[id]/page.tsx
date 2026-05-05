@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 import {
   Compass, ChevronRight, ChevronLeft, Check, Loader2, AlertCircle,
-  Plus, Trash2, MapPin, Search, X, Clock, Car, ArrowLeft, Eye, Save,
+  Plus, Trash2, MapPin, Search, X, Clock, Car, ArrowLeft, Eye, Save, Zap,
 } from 'lucide-react';
 
 // ─── Constants (same as new page) ─────────────────────────────────────────────
@@ -146,8 +146,27 @@ export default function EditWanderListingPage() {
   const [saving, setSaving] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [error, setError] = useState('');
+  const [switchingMode, setSwitchingMode] = useState(false);
   const locationRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  async function switchToQuick() {
+    setSwitchingMode(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/vendor/wander/listings/${listingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ createMode: 'QUICK' }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Failed to switch'); setSwitchingMode(false); return; }
+      router.push(`/vendor/wander/listings/${listingId}/edit/quick`);
+    } catch (err) {
+      setError(err.message || 'Failed to switch');
+      setSwitchingMode(false);
+    }
+  }
 
   // Restore step from URL on mount
   useEffect(() => {
@@ -351,6 +370,10 @@ export default function EditWanderListingPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Failed to save'); return; }
+      if (publish === true) {
+        router.push('/vendor/wander/listings');
+        return;
+      }
     } catch {
       setError('Failed to save tour');
     } finally {
@@ -394,6 +417,16 @@ export default function EditWanderListingPage() {
           <h1 className="text-xl font-bold text-gray-900">Edit Tour</h1>
           <p className="text-sm text-gray-500">Step {step} of {STEPS.length} — {STEPS[step - 1].label}</p>
         </div>
+        <button
+          type="button"
+          onClick={switchToQuick}
+          disabled={switchingMode || saving}
+          title="Switch this tour to Quick edit mode (your data stays — only the form changes)"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition flex-shrink-0 disabled:opacity-60"
+        >
+          {switchingMode ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+          Quick mode
+        </button>
         <button
           type="button"
           onClick={() => isApproved ? handleSave(null) : openVerificationModal()}

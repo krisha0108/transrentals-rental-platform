@@ -7,7 +7,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import {
   MessageSquare, ChevronLeft, ChevronRight, Loader2,
   AlertCircle, Calendar, Users, Building2, User, CheckCircle,
-  Clock, XCircle, ChevronDown, ChevronUp,
+  Clock, XCircle, ChevronDown, ChevronUp, Globe, Send,
 } from 'lucide-react';
 
 const STATUS_TABS = [
@@ -47,6 +47,27 @@ export default function AdminWanderQuotesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [broadcastingId, setBroadcastingId] = useState<string | null>(null);
+
+  async function broadcastRequest(reqId: string, e?: React.MouseEvent) {
+    if (e) { e.stopPropagation(); e.preventDefault(); }
+    if (!confirm('Broadcast this request to all wander vendors? They will be able to submit quotes.')) return;
+    setBroadcastingId(reqId);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin/wander/quotes/${reqId}/broadcast`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to broadcast');
+        return;
+      }
+      setRequests(rs => rs.map(r => r.id === reqId ? { ...r, broadcastedAt: data.broadcastedAt } : r));
+    } catch {
+      setError('Failed to broadcast request');
+    } finally {
+      setBroadcastingId(null);
+    }
+  }
 
   const statusFilter = searchParams.get('status') || 'all';
   const page = parseInt(searchParams.get('page') || '1');
@@ -158,6 +179,12 @@ export default function AdminWanderQuotesPage() {
                         <StatusIcon className="w-3 h-3" />
                         {sc.label}
                       </span>
+                      {!req.listing?.vendorId && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                          <Globe className="w-3 h-3" />
+                          {req.broadcastedAt ? 'Broadcasted' : 'Admin Tour'}
+                        </span>
+                      )}
                     </div>
 
                     <p className="font-medium text-gray-900 text-sm line-clamp-1 mb-1">
@@ -167,7 +194,7 @@ export default function AdminWanderQuotesPage() {
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
                         <Building2 className="w-3 h-3" />
-                        {req.listing?.vendor?.businessName || '—'}
+                        {req.listing?.vendorId ? (req.listing?.vendor?.businessName || '—') : <em className="not-italic text-amber-700 font-medium">Admin (no vendor)</em>}
                       </span>
                       <span className="flex items-center gap-1">
                         <User className="w-3 h-3" />
@@ -192,6 +219,24 @@ export default function AdminWanderQuotesPage() {
                   </div>
 
                   <div className="flex items-center gap-2 text-xs text-gray-400 flex-shrink-0">
+                    {!req.listing?.vendorId && !req.broadcastedAt && req.status !== 'ACCEPTED' && req.status !== 'CANCELLED' && (
+                      <button
+                        type="button"
+                        onClick={(e) => broadcastRequest(req.id, e)}
+                        disabled={broadcastingId === req.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition disabled:opacity-60"
+                      >
+                        {broadcastingId === req.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <Send className="w-3.5 h-3.5" />}
+                        Broadcast to vendors
+                      </button>
+                    )}
+                    {req.broadcastedAt && (
+                      <span className="text-amber-700 font-medium" title={`Broadcasted on ${fmt(req.broadcastedAt)}`}>
+                        ✓ Sent to vendors
+                      </span>
+                    )}
                     <span>{fmt(req.createdAt)}</span>
                     {isOpen
                       ? <ChevronUp className="w-4 h-4" />

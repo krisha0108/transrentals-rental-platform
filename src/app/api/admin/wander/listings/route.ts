@@ -68,7 +68,9 @@ export async function POST(request: NextRequest) {
       advanceNoticeHours, cancellationPolicy, cancellationNotes,
       tourStartDate, tourEndDate,
       requireAdvancePayment, advancePaymentType, advancePaymentValue,
+      createMode,
     } = body;
+    const safeCreateMode = createMode === 'QUICK' ? 'QUICK' : 'DETAILED';
 
     if (!categoryId) return NextResponse.json({ error: 'Category is required' }, { status: 400 });
     if (!title?.trim()) return NextResponse.json({ error: 'Tour title is required' }, { status: 400 });
@@ -100,8 +102,8 @@ export async function POST(request: NextRequest) {
         images, pickupType, meetingPoint, guideLanguages, availableDays,
         advanceNoticeHours, cancellationPolicy, cancellationNotes,
         requireAdvancePayment, advancePaymentType, advancePaymentValue,
-        tourStartDate, tourEndDate, rating, totalRatings, totalBookings, status, createdAt, updatedAt
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,0,0,?,?,?)`,
+        tourStartDate, tourEndDate, createMode, rating, totalRatings, totalBookings, status, createdAt, updatedAt
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,0,0,?,?,?)`,
       newId, listingId, slug, categoryId,
       subCategoryId || null, experienceId || null, mainLocationId || null,
       title.trim(), shortDescription?.trim() || null, description?.trim() || null,
@@ -129,6 +131,7 @@ export async function POST(request: NextRequest) {
       requireAdvancePayment && advancePaymentValue ? parseFloat(advancePaymentValue) : null,
       tourStartDate ? new Date(tourStartDate) : null,
       tourEndDate ? new Date(tourEndDate) : null,
+      safeCreateMode,
       body.publish ? 'ACTIVE' : 'DRAFT',
       now, now
     );
@@ -146,7 +149,7 @@ export async function PATCH(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id, status, experienceId, metaTitle, metaDescription, metaKeywords, ogImage, slug } = await request.json();
+    const { id, status, experienceId, metaTitle, metaDescription, metaKeywords, ogImage, slug, createMode } = await request.json();
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
     const data: any = {};
@@ -157,6 +160,7 @@ export async function PATCH(request: NextRequest) {
     if (metaKeywords !== undefined) data.metaKeywords = metaKeywords?.trim() || null;
     if (ogImage !== undefined) data.ogImage = ogImage?.trim() || null;
     if (slug !== undefined) data.slug = slug?.trim() || null;
+    if (createMode === 'QUICK' || createMode === 'DETAILED') data.createMode = createMode;
 
     const listing = await (prisma as any).wander_listings.update({
       where: { id },
