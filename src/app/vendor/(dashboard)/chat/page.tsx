@@ -426,7 +426,7 @@ export default function VendorChatPage() {
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) {
-      return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
     } else if (diffDays === 1) {
       return 'Yesterday';
     } else if (diffDays < 7) {
@@ -883,7 +883,7 @@ export default function VendorChatPage() {
                               )}
 
                               <div className={`flex items-center justify-end gap-0.5 ${msg.messageType === 'IMAGE' ? 'px-1 pb-0.5' : 'mt-[2px]'} ${isVendor ? 'text-white/50' : 'text-gray-300'}`}>
-                                <span className="text-xs">{new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className="text-xs">{new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                                 {isVendor && (msg.status === 'READ' ? <CheckCheck className="w-3 h-3 text-emerald-200" /> : msg.status === 'DELIVERED' ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />)}
                               </div>
                             </div>

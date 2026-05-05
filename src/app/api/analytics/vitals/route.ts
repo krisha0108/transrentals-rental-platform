@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import crypto from 'crypto';
-
 import logger from '@/lib/security/logger';
+import { prisma } from '@/lib/db/prisma';
+
 export const dynamic = 'force-dynamic';
 
 // Helper to generate a cuid-like unique ID
@@ -112,14 +113,6 @@ export async function POST(request: NextRequest) {
     const headersList = await headers();
     const userAgent = headersList.get('user-agent') || '';
     const { device, browser, browserVersion, os } = parseUserAgent(userAgent);
-
-    const { prisma } = await import('@/lib/db/prisma');
-
-    // Check if Prisma is available
-    if (!prisma) {
-      logger.debug('Prisma not available - analytics disabled');
-      return NextResponse.json({ success: true, note: 'analytics-disabled' });
-    }
 
     const vitalsData = {
       id: generateId(),

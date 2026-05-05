@@ -23,7 +23,7 @@ interface Inquiry {
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return '—';
-  return new Intl.DateTimeFormat('en-IN', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(value));
+  return new Intl.DateTimeFormat('en-IN', { dateStyle: 'long', timeStyle: 'short', hour12: true }).format(new Date(value));
 };
 
 const statusColors: Record<string, string> = {

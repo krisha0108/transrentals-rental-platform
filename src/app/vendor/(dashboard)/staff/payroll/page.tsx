@@ -950,7 +950,7 @@ export default function PayrollPage() {
 
                 <div className="footer mt-8 pt-4 border-t text-center text-gray-500 text-sm">
                   <p>This is a computer generated slip and does not require signature.</p>
-                  <p>Generated on {new Date().toLocaleDateString('en-IN')} at {new Date().toLocaleTimeString('en-IN')}</p>
+                  <p>Generated on {new Date().toLocaleDateString('en-IN')} at {new Date().toLocaleTimeString('en-IN', { hour12: true })}</p>
                 </div>
               </div>
             </div>

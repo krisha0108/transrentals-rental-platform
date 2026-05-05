@@ -4644,11 +4644,11 @@ model wander_listings {
   experienceId       String?
   categoryId         String
   subCategoryId      String?
-  mainLocationId     String
+  mainLocationId     String?
   title              String
   shortDescription   String?
   description        String?                    @db.Text
-  duration           String
+  duration           String?
   highlights         String?                    @db.Text
   basePrice          Float?
   priceType          wander_price_type          @default(ON_REQUEST)
@@ -4685,7 +4685,7 @@ model wander_listings {
   updatedAt          DateTime                   @updatedAt
   category           wander_categories          @relation("CategoryListings", fields: [categoryId], references: [id])
   subCategory        wander_categories?         @relation("SubCategoryListings", fields: [subCategoryId], references: [id])
-  mainLocation       locations                  @relation(fields: [mainLocationId], references: [id])
+  mainLocation       locations?                 @relation(fields: [mainLocationId], references: [id])
   vendor             vendors?                   @relation(fields: [vendorId], references: [id], onDelete: SetNull)
   experience         wander_experiences?        @relation(fields: [experienceId], references: [id])
   quoteRequests      wander_quote_requests[]

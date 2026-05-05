@@ -364,6 +364,14 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
     }
   };
 
+  const formatRawTime = (timeStr: string) => {
+    if (!timeStr) return timeStr;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const d = new Date();
+    d.setHours(hours, minutes, 0, 0);
+    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
   const handleCancel = async () => {
     const finalReason = selectedCancelReason === 'Other' ? otherCancelReason.trim() : selectedCancelReason;
     if (!finalReason) {
@@ -700,7 +708,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
                     month: 'long',
                     year: 'numeric',
                   })}{' '}
-                  at {booking.pickupTime}
+                  at {formatRawTime(booking.pickupTime)}
                 </p>
               </div>
             </div>
@@ -837,7 +845,7 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-500">Cancelled At</span>
                 <span className="text-xs font-semibold text-gray-800">
-                  {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                  {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', hour12: true })}
                 </span>
               </div>
               {booking.cancelledBy && (
@@ -1241,7 +1249,8 @@ function BookingDetailContent({ bookingId }: { bookingId: string }) {
                       }`}>
                         {new Date(msg.createdAt || msg.created_at).toLocaleTimeString('en-IN', {
                           hour: '2-digit',
-                          minute: '2-digit'
+                          minute: '2-digit',
+                          hour12: true,
                         })}
                       </p>
                     </div>

@@ -525,7 +525,7 @@ export default function CustomerEquipmentBookingDetailPage() {
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-500">Cancelled At</span>
                 <span className="text-xs font-semibold text-gray-800">
-                  {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                  {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', hour12: true })}
                 </span>
               </div>
               {booking.cancelledBy && (
@@ -732,6 +732,7 @@ export default function CustomerEquipmentBookingDetailPage() {
                         {new Date(msg.created_at).toLocaleTimeString('en-IN', {
                           hour: '2-digit',
                           minute: '2-digit',
+                          hour12: true,
                         })}
                       </p>
                     </div>

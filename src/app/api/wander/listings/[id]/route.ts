@@ -10,11 +10,16 @@ function safeJson(val: any, fallback: any = []) {
   try { return JSON.parse(val); } catch { return fallback; }
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const identifier = params.id;
+    const isPreview = req.nextUrl.searchParams.get('preview') === '1';
+
+    const whereClause: any = { OR: [{ slug: identifier }, { id: identifier }] };
+    if (!isPreview) whereClause.status = 'ACTIVE';
+
     const raw = await (prisma as any).wander_listings.findFirst({
-      where: { OR: [{ slug: identifier }, { id: identifier }], status: 'ACTIVE' },
+      where: whereClause,
       include: {
         category:     { select: { id: true, name: true, icon: true, slug: true, description: true } },
         mainLocation: { select: { id: true, name: true, slug: true } },

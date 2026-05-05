@@ -8,7 +8,7 @@ import {
   Compass, ChevronRight, ChevronLeft, Check, Loader2, AlertCircle,
   Plus, Trash2, MapPin, Search, X, Clock, Car, GripVertical, Coffee,
   CalendarRange, ChevronDown, Eye, Sparkles, Images,
-  Calendar,
+  Calendar, Save,
 } from 'lucide-react';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -500,6 +500,10 @@ function TourPreviewModal({ form, selectedLocation, onClose }) {
   );
 }
 
+// ─── Draft persistence ────────────────────────────────────────────────────────
+
+const LS_KEY = 'wander_admin_new_draft';
+
 // ─── Initial State ────────────────────────────────────────────────────────────
 
 const initForm = () => ({
@@ -578,8 +582,27 @@ export default function AdminCreateWanderListingPage() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [error, setError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [savedListingId, setSavedListingId] = useState(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
   const locationRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // Restore draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+      if (saved.form) setForm(prev => ({ ...prev, ...saved.form }));
+      if (saved.step && saved.step >= 1 && saved.step <= 6) setStep(saved.step);
+      if (saved.selectedLocation) setSelectedLocation(saved.selectedLocation);
+    } catch {}
+    setDraftLoaded(true);
+  }, []);
+
+  // Persist draft to localStorage whenever form/step/selectedLocation changes
+  useEffect(() => {
+    if (!draftLoaded) return;
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ form, step, selectedLocation })); } catch {}
+  }, [form, step, selectedLocation, draftLoaded]);
 
   useEffect(() => {
     const handler = (e) => {
@@ -805,10 +828,13 @@ export default function AdminCreateWanderListingPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Failed to save'); return; }
-      if (openPreview && data.slug) {
-        window.open(`/wander/${data.slug}`, '_blank');
+      setSavedListingId(data.id);
+      if (openPreview) {
+        setShowPreview(true);
+      } else if (publish) {
+        try { localStorage.removeItem(LS_KEY); } catch {}
+        router.push('/admin/wander/listings');
       }
-      router.push('/admin/wander/listings');
     } catch {
       setError('Failed to save tour');
     } finally {
@@ -839,10 +865,21 @@ export default function AdminCreateWanderListingPage() {
         </div>
         <button
           type="button"
-          onClick={() => setShowPreview(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition flex-shrink-0"
+          onClick={() => handleSubmit(false, false)}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition flex-shrink-0 disabled:opacity-60"
         >
-          <Eye className="w-3.5 h-3.5" /> Preview
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          Save
+        </button>
+        <button
+          type="button"
+          onClick={() => handleSubmit(false, true)}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition flex-shrink-0 disabled:opacity-60"
+        >
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+          Save & Preview
         </button>
       </div>
 
@@ -1836,14 +1873,6 @@ export default function AdminCreateWanderListingPage() {
               >
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                 Save as Draft
-              </button>
-              <button
-                onClick={() => handleSubmit(false, true)}
-                disabled={saving}
-                className="flex items-center gap-2 px-5 py-2 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-medium"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
-                Save & Preview
               </button>
               <button
                 onClick={() => handleSubmit(true)}

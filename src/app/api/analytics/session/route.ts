@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import crypto from 'crypto';
-
 import logger from '@/lib/security/logger';
+import { prisma } from '@/lib/db/prisma';
+
 export const dynamic = 'force-dynamic';
 
 // Helper to generate a cuid-like unique ID
@@ -74,11 +75,8 @@ export async function POST(request: NextRequest) {
     const userAgent = headersList.get('user-agent') || '';
     const { device, browser, os } = parseUserAgent(userAgent);
 
-    const { prisma } = await import('@/lib/db/prisma');
-
     if (cleanup && sessionId) {
-      // Cleanup can be fire-and-forget too
-      void prisma.active_sessions.delete({
+      void prisma.active_sessions.deleteMany({
         where: { sessionId },
       }).catch(() => {});
 
@@ -131,8 +129,6 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Session ID required' });
     }
 
-    const { prisma } = await import('@/lib/db/prisma');
-
     // Fire-and-forget
     void prisma.active_sessions.updateMany({
       where: { sessionId },
@@ -165,13 +161,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Session ID required' }, { status: 400 });
     }
 
-    const { prisma } = await import('@/lib/db/prisma');
-
-    await prisma.active_sessions.delete({
+    void prisma.active_sessions.deleteMany({
       where: { sessionId },
-    }).catch(() => {
-      // Session might not exist, ignore
-    });
+    }).catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -187,8 +179,6 @@ export async function GET() {
   }
 
   try {
-    const { prisma } = await import('@/lib/db/prisma');
-
     // Get sessions active in last 5 minutes
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 

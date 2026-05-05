@@ -396,7 +396,16 @@ export default function CarBookingDetailPage() {
     return date.toLocaleTimeString('en-IN', {
       hour: '2-digit',
       minute: '2-digit',
+      hour12: true,
     });
+  };
+
+  const formatRawTime = (timeStr: string) => {
+    if (!timeStr) return timeStr;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const d = new Date();
+    d.setHours(hours, minutes, 0, 0);
+    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
   const handleCancelBooking = () => {
@@ -708,7 +717,7 @@ export default function CarBookingDetailPage() {
               <div className="flex-1">
                 <p className="text-sm text-gray-500">Pickup</p>
                 <p className="font-semibold text-gray-900">
-                  {formatDate(booking.pickupDate)} at {booking.pickupTime}
+                  {formatDate(booking.pickupDate)} at {formatRawTime(booking.pickupTime)}
                 </p>
                 <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
                   <MapPin className="w-4 h-4" />
@@ -722,7 +731,7 @@ export default function CarBookingDetailPage() {
               <div className="flex-1">
                 <p className="text-sm text-gray-500">Drop</p>
                 <p className="font-semibold text-gray-900">
-                  {formatDate(booking.dropDate)} at {booking.dropTime}
+                  {formatDate(booking.dropDate)} at {formatRawTime(booking.dropTime)}
                 </p>
                 <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
                   <MapPin className="w-4 h-4" />

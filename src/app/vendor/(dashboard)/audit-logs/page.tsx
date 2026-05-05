@@ -241,7 +241,7 @@ export default function AuditLogsPage() {
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     return {
-      time: date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      time: date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
       date: date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
     };
   };

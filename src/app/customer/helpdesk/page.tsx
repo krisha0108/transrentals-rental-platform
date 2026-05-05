@@ -84,6 +84,8 @@ const formatDateTime = (value?: string | Date | null) => {
 
     timeStyle: 'short',
 
+    hour12: true,
+
   }).format(date);
 
 };
@@ -1520,7 +1522,7 @@ export default function CustomerHelpdeskPage() {
                                   <td className="px-4 py-4">
                                     <div className="flex items-center gap-1.5 text-xs text-gray-400">
                                       <Clock className="h-3.5 w-3.5" />
-                                      {new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(inq.createdAt))}
+                                      {new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short', hour12: true }).format(new Date(inq.createdAt))}
                                     </div>
                                   </td>
                                   <td className="px-4 py-4 text-right">
@@ -2286,7 +2288,7 @@ function InquiryDetailModal({ inquiry, onClose }: { inquiry: any; onClose: () =>
   };
   const s = statusMap[inquiry.status] || statusMap.NEW;
   const ref = `INQ-${inquiry.id.slice(-6).toUpperCase()}`;
-  const fmt = (v: string) => new Intl.DateTimeFormat('en-IN', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(v));
+  const fmt = (v: string) => new Intl.DateTimeFormat('en-IN', { dateStyle: 'long', timeStyle: 'short', hour12: true }).format(new Date(v));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6" onClick={onClose}>

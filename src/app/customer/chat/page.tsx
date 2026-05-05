@@ -288,7 +288,7 @@ export default function CustomerChatPage() {
     if (!d) return '';
     const date = new Date(d);
     const diff = Math.floor((Date.now() - date.getTime()) / 86400000);
-    if (diff === 0) return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    if (diff === 0) return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
     if (diff === 1) return 'Yesterday';
     if (diff < 7) return date.toLocaleDateString('en-IN', { weekday: 'short' });
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
@@ -681,7 +681,7 @@ export default function CustomerChatPage() {
                                 )}
 
                                 <div className={`flex items-center justify-end gap-0.5 ${msg.messageType === 'IMAGE' ? 'px-1 pb-0.5' : 'mt-[2px]'} ${isCustomer ? 'text-white/50' : 'text-gray-300'}`}>
-                                  <span className="text-xs">{new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                  <span className="text-xs">{new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
                                   {isCustomer && (msg.status === 'READ' ? <CheckCheck className="w-3 h-3 text-teal-200" /> : msg.status === 'DELIVERED' ? <CheckCheck className="w-3 h-3" /> : <Check className="w-3 h-3" />)}
                                 </div>
                               </div>

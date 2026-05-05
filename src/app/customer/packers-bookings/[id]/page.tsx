@@ -292,6 +292,14 @@ export default function CustomerPackersBookingDetailPage() {
     });
   };
 
+  const formatRawTime = (timeStr: string) => {
+    if (!timeStr) return timeStr;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const d = new Date();
+    d.setHours(hours, minutes, 0, 0);
+    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
   const copyOtp = (otp: string) => {
     navigator.clipboard.writeText(otp);
     setCopied(true);
@@ -480,7 +488,7 @@ export default function CustomerPackersBookingDetailPage() {
                   <Clock className="w-5 h-5 text-teal-500 mt-0.5" />
                   <div>
                     <p className="text-sm text-gray-500">Time</p>
-                    <p className="font-medium text-gray-900">{booking.scheduledTime}</p>
+                    <p className="font-medium text-gray-900">{formatRawTime(booking.scheduledTime)}</p>
                   </div>
                 </div>
               )}
@@ -869,7 +877,7 @@ export default function CustomerPackersBookingDetailPage() {
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-500">Cancelled At</span>
                 <span className="text-xs font-semibold text-gray-800">
-                  {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                  {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', hour12: true })}
                 </span>
               </div>
               {booking.cancelledBy && (
@@ -1175,6 +1183,7 @@ export default function CustomerPackersBookingDetailPage() {
                         {new Date(msg.created_at).toLocaleTimeString('en-IN', {
                           hour: '2-digit',
                           minute: '2-digit',
+                          hour12: true,
                         })}
                       </p>
                     </div>
