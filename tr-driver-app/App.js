@@ -45,6 +45,8 @@ import EditProfileScreen from './screens/profile/EditProfileScreen';
 import AboutScreen from './screens/profile/AboutScreen';
 import SupportScreen from './screens/profile/SupportScreen';
 import NotificationsScreen from './screens/notifications/NotificationsScreen';
+import ChatListScreen from './screens/chat/ChatListScreen';
+import ChatScreen from './screens/chat/ChatScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -247,6 +249,8 @@ function AppNavigator() {
       <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       <Stack.Screen name="About" component={AboutScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
+      <Stack.Screen name="ChatList" component={ChatListScreen} />
+      <Stack.Screen name="DriverChat" component={ChatScreen} />
     </Stack.Navigator>
   );
 }

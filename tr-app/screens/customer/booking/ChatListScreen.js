@@ -90,6 +90,9 @@ export default function ChatListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [chatMode, setChatMode] = useState('vendor');
+  const [driverConversations, setDriverConversations] = useState([]);
+  const [driverTotalUnread, setDriverTotalUnread] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -156,9 +159,28 @@ export default function ChatListScreen() {
     }
   };
 
+  const fetchDriverConversations = useCallback(async () => {
+    try {
+      const data = await chatService.getDriverConversations();
+      if (data?.conversations) {
+        setDriverConversations(data.conversations);
+        setDriverTotalUnread(data.totalUnread || 0);
+      }
+    } catch {}
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchDriverConversations();
+      const driverInterval = setInterval(fetchDriverConversations, 10000);
+      return () => clearInterval(driverInterval);
+    }, [fetchDriverConversations])
+  );
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchBookings();
+    fetchDriverConversations();
   };
 
   const getTimeAgo = (dateString) => {
@@ -374,6 +396,70 @@ export default function ChatListScreen() {
     </View>
   );
 
+  const renderDriverItem = ({ item }) => {
+    const driverName = item.driver?.name || 'Driver';
+    const initial = driverName.charAt(0).toUpperCase();
+    const lastMsg = item.lastMessage?.content || 'No messages yet';
+    const time = item.lastMessageAt ? getTimeAgo(item.lastMessageAt) : '';
+    const unread = item.unreadCount || 0;
+
+    return (
+      <TouchableOpacity
+        style={styles.vendorCard}
+        onPress={() => navigation.navigate('DriverChat', { conversationId: item.id, driverName })}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.vendorAvatar, { backgroundColor: '#16A34A18' }]}>
+          <Text style={styles.driverAvatarText}>{initial}</Text>
+        </View>
+        <View style={styles.vendorContent}>
+          <View style={styles.topRow}>
+            <Text style={[styles.vendorName, unread > 0 && { fontWeight: '800' }]} numberOfLines={1}>
+              {driverName}
+            </Text>
+            <View style={styles.rightMeta}>
+              {unread > 0 && (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadText}>{unread > 9 ? '9+' : unread}</Text>
+                </View>
+              )}
+              <Text style={styles.timeAgo}>{time}</Text>
+            </View>
+          </View>
+          <View style={styles.bookingMetaRow}>
+            <View style={[styles.bookingCountPill, { backgroundColor: '#DCFCE7' }]}>
+              <Ionicons name="car-outline" size={wp('2.8%')} color="#16A34A" />
+              <Text style={[styles.bookingCountText, { color: '#16A34A' }]}>Chauffeur</Text>
+            </View>
+          </View>
+          <View style={styles.lastMsgRow}>
+            {item.lastMessage?.senderType === 'driver' ? (
+              <Ionicons name="arrow-down" size={wp('3%')} color="#16A34A" />
+            ) : (
+              <Ionicons name="arrow-up" size={wp('3%')} color={TEXT_MUTED} />
+            )}
+            <Text style={[styles.lastMessage, unread > 0 && styles.lastMessageUnread]} numberOfLines={1}>
+              {item.lastMessage?.senderType === 'customer' ? 'You: ' : ''}{lastMsg}
+            </Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={wp('5%')} color="#CBD5E1" />
+      </TouchableOpacity>
+    );
+  };
+
+  const renderDriverEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconCircle}>
+        <Ionicons name="car-outline" size={wp('10%')} color={TEAL} />
+      </View>
+      <Text style={styles.emptyTitle}>No Driver Chats Yet</Text>
+      <Text style={styles.emptyText}>
+        Driver chats appear after your chauffeur booking is assigned to a driver.
+      </Text>
+    </View>
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
@@ -403,6 +489,7 @@ export default function ChatListScreen() {
   }
 
   const totalUnread = vendorGroups.reduce((s, g) => s + g.totalUnread, 0);
+  const combinedUnread = totalUnread + driverTotalUnread;
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom', 'left', 'right']}>
@@ -420,9 +507,9 @@ export default function ChatListScreen() {
             <Text style={styles.headerTitle}>Chats</Text>
             <Text style={styles.headerSubtitle}>Your conversations</Text>
           </View>
-          {totalUnread > 0 && (
+          {combinedUnread > 0 && (
             <View style={styles.headerBadge}>
-              <Text style={styles.headerBadgeText}>{totalUnread}</Text>
+              <Text style={styles.headerBadgeText}>{combinedUnread}</Text>
             </View>
           )}
         </View>
@@ -445,23 +532,70 @@ export default function ChatListScreen() {
         )}
       </View>
 
-      {/* Vendor Groups List */}
-      <FlatList
-        data={vendorGroups}
-        keyExtractor={(item) => item.vendorId}
-        renderItem={renderVendorItem}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={renderEmptyState}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[TEAL]}
-            tintColor={TEAL}
+      {/* Mode Tabs */}
+      <View style={styles.modeTabs}>
+        <TouchableOpacity
+          style={[styles.modeTab, chatMode === 'vendor' && styles.modeTabActive]}
+          onPress={() => setChatMode('vendor')}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="storefront-outline"
+            size={wp('4%')}
+            color={chatMode === 'vendor' ? '#fff' : TEAL}
           />
-        }
-        showsVerticalScrollIndicator={false}
-      />
+          <Text style={[styles.modeTabText, chatMode === 'vendor' && styles.modeTabTextActive]}>
+            Vendor Chats
+          </Text>
+          {totalUnread > 0 && chatMode !== 'vendor' && (
+            <View style={styles.modeTabBadge}>
+              <Text style={styles.modeTabBadgeText}>{totalUnread > 9 ? '9+' : totalUnread}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.modeTab, chatMode === 'driver' && styles.modeTabActive]}
+          onPress={() => setChatMode('driver')}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="car-outline"
+            size={wp('4%')}
+            color={chatMode === 'driver' ? '#fff' : TEAL}
+          />
+          <Text style={[styles.modeTabText, chatMode === 'driver' && styles.modeTabTextActive]}>
+            Driver Chats
+          </Text>
+          {driverTotalUnread > 0 && chatMode !== 'driver' && (
+            <View style={styles.modeTabBadge}>
+              <Text style={styles.modeTabBadgeText}>{driverTotalUnread > 9 ? '9+' : driverTotalUnread}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {chatMode === 'vendor' ? (
+        <FlatList
+          data={vendorGroups}
+          keyExtractor={(item) => item.vendorId}
+          renderItem={renderVendorItem}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={renderEmptyState}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[TEAL]} tintColor={TEAL} />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <FlatList
+          data={driverConversations}
+          keyExtractor={(item) => item.id}
+          renderItem={renderDriverItem}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={renderDriverEmptyState}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -747,5 +881,59 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: wp('3.5%'),
     fontWeight: '700',
+  },
+
+  // --- Mode Tabs ---
+  modeTabs: {
+    flexDirection: 'row',
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1%'),
+    marginBottom: hp('0.5%'),
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: wp('3%'),
+    padding: wp('1%'),
+    gap: wp('1%'),
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: wp('1.5%'),
+    paddingVertical: hp('1.2%'),
+    borderRadius: wp('2.5%'),
+  },
+  modeTabActive: {
+    backgroundColor: TEAL,
+    ...SHADOW_SM,
+  },
+  modeTabText: {
+    fontSize: wp('3.2%'),
+    fontWeight: '600',
+    color: TEAL,
+  },
+  modeTabTextActive: {
+    color: '#fff',
+  },
+  modeTabBadge: {
+    backgroundColor: '#EF4444',
+    borderRadius: wp('2%'),
+    minWidth: wp('4.5%'),
+    height: wp('4.5%'),
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: wp('1%'),
+  },
+  modeTabBadgeText: {
+    color: '#fff',
+    fontSize: wp('2.5%'),
+    fontWeight: '800',
+  },
+
+  // --- Driver Avatar Text ---
+  driverAvatarText: {
+    fontSize: wp('5.5%'),
+    fontWeight: '800',
+    color: '#16A34A',
   },
 });

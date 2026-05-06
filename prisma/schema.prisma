@@ -743,7 +743,10 @@ model car_bookings {
 model chat_conversations {
   id              String          @id
   customerId      String?
-  vendorId        String
+  vendorId        String?
+  driverId        String?
+  staffDriverId   String?
+  participantType String          @default("vendor")
   bookingType     String
   bookingId       String?
   quoteId         String?
@@ -751,18 +754,24 @@ model chat_conversations {
   status          String          @default("ACTIVE")
   customerUnread  Int             @default(0)
   vendorUnread    Int             @default(0)
+  driverUnread    Int             @default(0)
   lastMessageAt   DateTime?
   lastMessageText String?         @db.Text
   lastSenderType  String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   customers       customers?      @relation(fields: [customerId], references: [id])
-  vendors         vendors         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendors         vendors?        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  drivers         drivers?        @relation(fields: [driverId], references: [id])
   chat_messages   chat_messages[]
 
   @@unique([customerId, vendorId, bookingType, bookingId])
+  @@unique([customerId, driverId, bookingType, bookingId])
+  @@unique([customerId, staffDriverId, bookingType, bookingId])
   @@index([bookingType])
   @@index([customerId])
+  @@index([driverId])
+  @@index([staffDriverId])
   @@index([lastMessageAt])
   @@index([status])
   @@index([vendorId])
@@ -6000,6 +6009,7 @@ model drivers {
 
   chauffeur_bookings  chauffeur_bookings[]
   driver_vehicles     driver_vehicles[]
+  chat_conversations  chat_conversations[]
 
   @@index([email])
   @@index([phone])

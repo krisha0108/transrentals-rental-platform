@@ -18,10 +18,17 @@ interface Customer {
   image?: string;
 }
 
+interface Driver {
+  id: string;
+  name: string;
+  email?: string;
+}
+
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [driver, setDriver] = useState<Driver | null>(null);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -35,18 +42,19 @@ export function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Check for logged in customer
+  // Check for logged in customer or driver
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
       const customerData = localStorage.getItem('customer');
-
       if (token && customerData) {
-        try {
-          setCustomer(JSON.parse(customerData));
-        } catch (e) {
-          console.error('Failed to parse customer data');
-        }
+        try { setCustomer(JSON.parse(customerData)); } catch {}
+      }
+
+      const driverToken = localStorage.getItem('driver-token');
+      const driverData = localStorage.getItem('driver');
+      if (driverToken && driverData) {
+        try { setDriver(JSON.parse(driverData)); } catch {}
       }
     }
   }, []);
@@ -55,7 +63,10 @@ export function Header() {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('token');
     localStorage.removeItem('customer');
+    localStorage.removeItem('driver-token');
+    localStorage.removeItem('driver');
     setCustomer(null);
+    setDriver(null);
     setIsUserMenuOpen(false);
     router.push('/');
   };
@@ -184,18 +195,18 @@ export function Header() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
-            {customer ? (
-              // Logged in user menu
+            {(customer || driver) ? (
+              // Logged in user menu (customer or driver)
               <div className="relative">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors"
                 >
                   <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                    {customer.name?.charAt(0).toUpperCase() || 'U'}
+                    {(customer?.name || driver?.name)?.charAt(0).toUpperCase() || 'U'}
                   </div>
                   <span className="text-sm font-medium text-gray-700 max-w-[100px] truncate">
-                    {customer.name?.split(' ')[0] || 'User'}
+                    {(customer?.name || driver?.name)?.split(' ')[0] || 'User'}
                   </span>
                   <ChevronDown
                     className={cn(
@@ -209,14 +220,14 @@ export function Header() {
                   <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                     <div className="px-4 py-2 border-b border-gray-100">
                       <p className="font-medium text-gray-900 truncate">
-                        {customer.name}
+                        {customer?.name || driver?.name}
                       </p>
                       <p className="text-xs text-gray-500 truncate">
-                        {customer.email}
+                        {customer?.email || driver?.email || (driver ? 'Driver Account' : '')}
                       </p>
                     </div>
                     <Link
-                      href="/customer/dashboard"
+                      href={driver ? '/driver/dashboard' : '/customer/dashboard'}
                       onClick={() => setIsUserMenuOpen(false)}
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                     >
@@ -339,24 +350,24 @@ export function Header() {
               </Link>
 
               <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-200">
-                {customer ? (
+                {(customer || driver) ? (
                   <>
                     <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg mb-2">
                       <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white font-semibold">
-                        {customer.name?.charAt(0).toUpperCase() || 'U'}
+                        {(customer?.name || driver?.name)?.charAt(0).toUpperCase() || 'U'}
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">
-                          {customer.name}
+                          {customer?.name || driver?.name}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {customer.email}
+                          {customer?.email || driver?.email || (driver ? 'Driver Account' : '')}
                         </p>
                       </div>
                     </div>
                     <Button variant="outline" className="w-full" asChild>
                       <Link
-                        href="/customer/dashboard"
+                        href={driver ? '/driver/dashboard' : '/customer/dashboard'}
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         My Dashboard
