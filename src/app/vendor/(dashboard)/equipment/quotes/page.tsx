@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
+import QuoteShareButton from '@/components/vendor/QuoteShareButton';
 
 interface Quote {
   id: string;
@@ -608,6 +609,13 @@ export default function VendorEquipmentQuotesPage() {
                       View Details
                       <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
                     </Link>
+                    <QuoteShareButton
+                      quoteUrl={`/vendor/equipment/quotes/${quote.id}`}
+                      quoteNumber={quote.quoteNumber}
+                      customerName={quote.request?.customerName || ''}
+                      amount={quote.totalAmount}
+                      serviceName="Equipment Rental"
+                    />
                     {quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status) && (
                       <Link
                         href={`/vendor/equipment/requests/${quote.request.id}/quote`}

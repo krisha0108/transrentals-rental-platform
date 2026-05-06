@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { BUS_CATEGORIES, BUS_TRIP_TYPES } from '@/lib/bus-categories';
 import Pagination from '@/components/vendor/Pagination';
+import QuoteShareButton from '@/components/vendor/QuoteShareButton';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface Quote {
@@ -518,6 +519,13 @@ export default function VendorBusQuotesPage() {
                       View Quote Details
                       <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
                     </Link>
+                    <QuoteShareButton
+                      quoteUrl={`/vendor/bus/quotes/${quote.id}`}
+                      quoteNumber={quote.quoteNumber}
+                      customerName={quote.request?.customerName || ''}
+                      amount={quote.totalAmount}
+                      serviceName="Bus Rental"
+                    />
                     {['SENT', 'VIEWED'].includes(quote.status) && (
                       <button
                         onClick={async (e) => {

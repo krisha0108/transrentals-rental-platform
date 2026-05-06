@@ -28,6 +28,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
+import QuoteShareButton from '@/components/vendor/QuoteShareButton';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface Quote {
@@ -500,7 +501,7 @@ export default function VendorPackersQuotesPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-3 border-t border-gray-100">
+                  <div className="flex gap-2 pt-3 border-t border-gray-100" onClick={(e) => e.preventDefault()}>
                     <Link
                       href={`/vendor/packers/quotes/${quote.id}`}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-xs font-bold rounded-xl transition-all active:scale-95"
@@ -509,6 +510,13 @@ export default function VendorPackersQuotesPage() {
                       View Quote Details
                       <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
                     </Link>
+                    <QuoteShareButton
+                      quoteUrl={`/vendor/packers/quotes/${quote.id}`}
+                      quoteNumber={quote.quoteNumber}
+                      customerName={quote.request?.customerName || ''}
+                      amount={quote.totalAmount}
+                      serviceName="Packers & Movers"
+                    />
                     {quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status) && (
                       <Link
                         href={`/vendor/packers/requests/${quote.request.id}/quote`}

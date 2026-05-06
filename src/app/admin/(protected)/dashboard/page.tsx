@@ -12,6 +12,7 @@ import { blogPosts } from '@/data/blog-posts';
 import Link from 'next/link';
 import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
 import EnhancedDashboard from '@/components/admin/EnhancedDashboard';
+import IndiaCityMap from '@/components/admin/IndiaCityMap';
 
 // Count of static redirects defined in next.config.js
 const STATIC_REDIRECTS_COUNT = 72; // Approximate count from next.config.js redirects array
@@ -159,6 +160,9 @@ export default async function AdminDashboardPage() {
 
       {/* Enhanced Dashboard with Bookings & Quotes */}
       <EnhancedDashboard />
+
+      {/* Quote Requests — India Map */}
+      <IndiaCityMap />
 
       {/* Visitor Analytics */}
       <AnalyticsDashboard />
