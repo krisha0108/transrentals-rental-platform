@@ -10,6 +10,7 @@ import {
   CheckCircle, XCircle, Clock, Pause, Loader2,
   AlertCircle, MapPin, Building2, X, Save, Globe,
   PlusCircle, Pencil, ExternalLink, ImageIcon, MessageSquare,
+  Zap, FileText, ArrowRight,
 } from 'lucide-react';
 import MediaPicker from '@/components/admin/MediaPicker';
 
@@ -49,6 +50,16 @@ export default function AdminWanderListingsPage() {
   const [experiences, setExperiences] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [showAddModeModal, setShowAddModeModal] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('addMode') === 'open') {
+      setShowAddModeModal(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('addMode');
+      router.replace(url.pathname + (url.search || ''), { scroll: false });
+    }
+  }, [searchParams, router]);
 
   const [seoListing, setSeoListing] = useState<any>(null);
   const [seoForm, setSeoForm] = useState({ slug: '', metaTitle: '', metaDescription: '', metaKeywords: '', ogImage: '' });
@@ -164,13 +175,14 @@ export default function AdminWanderListingsPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Link
-            href="/admin/wander/listings/new"
+          <button
+            type="button"
+            onClick={() => setShowAddModeModal(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition shadow-sm"
           >
             <PlusCircle className="w-4 h-4" />
             Add Tour
-          </Link>
+          </button>
           <Link href="/admin/wander" className="text-sm text-indigo-600 hover:underline">
             ← Wander Overview
           </Link>
@@ -429,7 +441,11 @@ export default function AdminWanderListingsPage() {
 
                           {/* Edit */}
                           <Link
-                            href={`/admin/wander/listings/${listing.id}/edit`}
+                            href={
+                              listing.createMode === 'QUICK'
+                                ? `/admin/wander/listings/${listing.id}/edit/quick`
+                                : `/admin/wander/listings/${listing.id}/edit`
+                            }
                             title="Edit listing"
                             className="p-1.5 rounded-xl bg-gray-100 text-gray-400 hover:bg-indigo-100 hover:text-indigo-600 transition-colors"
                           >
@@ -554,6 +570,73 @@ export default function AdminWanderListingsPage() {
               <button onClick={saveSeo} disabled={seoSaving} className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition text-sm font-medium disabled:opacity-60">
                 {seoSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 Save SEO
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddModeModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setShowAddModeModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">How would you like to add the tour?</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Pick the option that suits your workflow.</p>
+              </div>
+              <button
+                onClick={() => setShowAddModeModal(false)}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
+              <button
+                type="button"
+                onClick={() => router.push('/admin/wander/listings/new/quick')}
+                className="group text-left rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 hover:border-emerald-500 hover:shadow-lg transition"
+              >
+                <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center mb-4 shadow-sm group-hover:scale-105 transition">
+                  <Zap className="w-6 h-6" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900">Quick Add</h3>
+                  <ArrowRight className="w-4 h-4 text-emerald-600 opacity-0 group-hover:opacity-100 transition" />
+                </div>
+                <p className="text-xs text-gray-600 mt-1.5">Just the essentials — get a tour live in under a minute.</p>
+                <ul className="text-[11px] text-gray-500 mt-3 space-y-1">
+                  <li>• Category, title, location</li>
+                  <li>• Duration & base price</li>
+                  <li>• Description & images</li>
+                </ul>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => router.push('/admin/wander/listings/new')}
+                className="group text-left rounded-2xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-5 hover:border-indigo-500 hover:shadow-lg transition"
+              >
+                <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center mb-4 shadow-sm group-hover:scale-105 transition">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900">Detailed Add</h3>
+                  <ArrowRight className="w-4 h-4 text-indigo-600 opacity-0 group-hover:opacity-100 transition" />
+                </div>
+                <p className="text-xs text-gray-600 mt-1.5">Full 6-step wizard with itinerary, pricing tiers, inclusions.</p>
+                <ul className="text-[11px] text-gray-500 mt-3 space-y-1">
+                  <li>• Day-wise itinerary builder</li>
+                  <li>• Vehicle options & pricing tiers</li>
+                  <li>• Inclusions, exclusions, policies</li>
+                </ul>
               </button>
             </div>
           </div>

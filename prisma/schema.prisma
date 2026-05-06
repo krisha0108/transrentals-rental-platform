@@ -4681,6 +4681,7 @@ model wander_listings {
   ogImage            String?
   tourStartDate      DateTime?                  @db.Date
   tourEndDate        DateTime?                  @db.Date
+  createMode         wander_create_mode         @default(DETAILED)
   status             wander_listing_status      @default(DRAFT)
   createdAt          DateTime                   @default(now())
   updatedAt          DateTime                   @updatedAt
@@ -4716,6 +4717,7 @@ model wander_quote_requests {
   status          wander_quote_request_status @default(PENDING)
   droppedAt       DateTime?
   dropReason      String?                     @db.Text
+  broadcastedAt   DateTime?
   createdAt       DateTime                    @default(now())
   updatedAt       DateTime                    @updatedAt
   booking         wander_bookings?
@@ -5496,6 +5498,11 @@ enum wander_listing_status {
   ACTIVE
   PAUSED
   INACTIVE
+}
+
+enum wander_create_mode {
+  QUICK
+  DETAILED
 }
 
 enum wander_cancellation_policy {

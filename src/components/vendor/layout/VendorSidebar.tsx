@@ -241,7 +241,7 @@ const approvedNavigationItems: NavItem[] = [
     icon: Compass,
     children: [
       { name: 'My Listings', href: '/vendor/wander/listings', icon: MapIcon },
-      { name: 'Create Tour', href: '/vendor/wander/listings/new', icon: Plus },
+      { name: 'Create Tour', href: '/vendor/wander/listings?addMode=open', icon: Plus },
       { name: 'Quote Requests', href: '/vendor/wander/quotes', icon: Inbox },
       { name: 'Bookings', href: '/vendor/wander/bookings', icon: CalendarCheck },
       { name: 'Analytics', href: '/vendor/wander/analytics', icon: BarChart3 },
@@ -591,7 +591,7 @@ const pendingNavigationItems: NavItem[] = [
     icon: Compass,
     children: [
       { name: 'My Listings',    href: '/vendor/wander/listings',     icon: MapIcon       },
-      { name: 'Create Tour',    href: '/vendor/wander/listings/new', icon: Plus          },
+      { name: 'Create Tour',    href: '/vendor/wander/listings?addMode=open', icon: Plus          },
       { name: 'Quote Requests', href: '/vendor/wander/quotes',       icon: Inbox         },
       { name: 'Bookings',       href: '/vendor/wander/bookings',     icon: CalendarCheck },
       { name: 'Analytics',      href: '/vendor/wander/analytics',    icon: BarChart3     },

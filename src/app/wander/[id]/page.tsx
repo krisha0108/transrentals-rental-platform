@@ -9,8 +9,10 @@ import {
   Check, X, Star, Shield, Globe, Loader2, AlertCircle,
   Calendar, Phone, Mail, User, MessageSquare, ChevronDown,
   Car, Info, ArrowLeft, Sparkles, CheckCircle, Building2, UserPlus, TrendingUp, Images,
+  Lock, Eye, EyeOff,
 } from 'lucide-react';
 import ReviewsSection from '@/components/wander/ReviewsSection';
+import { sanitizeRichText } from '@/lib/utils/sanitize';
 
 function parseJSON(str: any, fallback: any) {
   if (Array.isArray(str) || (str && typeof str === 'object')) return str;
@@ -312,14 +314,17 @@ function QuoteForm({
   priceTiers?: { groupSize: string; price: string }[];
   requireAdvancePayment?: boolean; advancePaymentType?: string; advancePaymentValue?: number | null;
 }) {
-  const [loggedInCustomer, setLoggedInCustomer] = useState<{ name: string; phone: string; email: string; isB2B?: boolean; companyName?: string } | null>(null);
+  const [loggedInCustomer, setLoggedInCustomer] = useState<{ id: string; name: string; phone: string; email: string; isB2B?: boolean; companyName?: string } | null>(null);
   const [form, setForm] = useState({
-    name: '', phone: '', email: '', travelDate: '', groupSize: '2', pickupLocation: '', requirements: '',
+    name: '', phone: '', email: '', password: '', confirmPassword: '',
+    travelDate: '', groupSize: '2', pickupLocation: '', requirements: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [bookingFor, setBookingFor] = useState<'PERSONAL' | 'COMPANY'>('PERSONAL');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [needsLogin, setNeedsLogin] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -329,8 +334,8 @@ function QuoteForm({
       const raw = localStorage.getItem('customer');
       if (token && raw) {
         const c = JSON.parse(raw);
-        if (c?.name && c?.phone) {
-          setLoggedInCustomer({ name: c.name, phone: c.phone, email: c.email || '', isB2B: !!c.isB2B && c.b2bStatus === 'APPROVED', companyName: c.companyName || '' });
+        if (c?.id && c?.name && c?.phone) {
+          setLoggedInCustomer({ id: c.id, name: c.name, phone: c.phone, email: c.email || '', isB2B: !!c.isB2B && c.b2bStatus === 'APPROVED', companyName: c.companyName || '' });
           setForm(f => ({ ...f, name: c.name, phone: c.phone, email: c.email || '' }));
         }
       }
@@ -344,23 +349,37 @@ function QuoteForm({
     setError('');
     if (!form.name.trim()) return setError('Name is required');
     if (!form.phone.trim() || form.phone.length < 10) return setError('Valid phone is required');
+    if (!form.email.trim()) return setError('Email is required');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return setError('Please enter a valid email');
+    if (!loggedInCustomer) {
+      if (!form.password) return setError('Please choose a password');
+      if (form.password.length < 8) return setError('Password must be at least 8 characters');
+      if (form.password !== form.confirmPassword) return setError('Passwords do not match');
+    }
     if (!form.travelDate) return setError('Travel date is required');
 
     setSubmitting(true);
     try {
       const isB2BCompany = loggedInCustomer?.isB2B && bookingFor === 'COMPANY';
+      const { confirmPassword: _cp, password, ...rest } = form;
       const res = await fetch('/api/wander/quote-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           listingId,
-          ...form,
+          ...rest,
+          ...(loggedInCustomer
+            ? { customerId: loggedInCustomer.id }
+            : { password }),
           bookingFor: isB2BCompany ? 'COMPANY' : 'PERSONAL',
           companyName: isB2BCompany ? (loggedInCustomer?.companyName || '') : undefined,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed');
+      if (!res.ok) {
+        if (data.requiresLogin) setNeedsLogin(true);
+        throw new Error(data.error || 'Failed');
+      }
       setSuccess(data.requestId);
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
@@ -404,6 +423,19 @@ function QuoteForm({
               <p className="text-xs text-gray-500 truncate">{loggedInCustomer.phone}{loggedInCustomer.email ? ` · ${loggedInCustomer.email}` : ''}</p>
             </div>
           </div>
+          {!loggedInCustomer.email && (
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Email *</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input value={form.email} onChange={e => set('email', e.target.value)}
+                  type="email" required placeholder="you@example.com"
+                  className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1">We'll send tour quotes & updates to this email.</p>
+            </div>
+          )}
           {/* B2B customers only: trip is personal or for company */}
           {loggedInCustomer.isB2B && (
             <div>
@@ -456,14 +488,50 @@ function QuoteForm({
             </div>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 mb-1 block">Email</label>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Email *</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input value={form.email} onChange={e => set('email', e.target.value)}
-                type="email" placeholder="Optional"
+                type="email" required placeholder="you@example.com"
                 className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
               />
             </div>
+          </div>
+          <div className="col-span-2 mt-1 p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl">
+            <p className="text-[11px] font-semibold text-indigo-700 mb-2 flex items-center gap-1.5">
+              <Lock className="w-3 h-3" /> Set a password to track your quote
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Password *</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <input value={form.password} onChange={e => set('password', e.target.value)}
+                    type={showPassword ? 'text' : 'password'} required minLength={8} placeholder="Min 8 characters"
+                    className="w-full pl-8 pr-9 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                  <button type="button" onClick={() => setShowPassword(s => !s)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Confirm *</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <input value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)}
+                    type={showPassword ? 'text' : 'password'} required minLength={8} placeholder="Re-enter"
+                    className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+              </div>
+            </div>
+            <p className="text-[10px] text-gray-500 mt-2">
+              We'll create your account so you can login with your email + password to view quotes & updates.
+            </p>
           </div>
         </div>
       )}
@@ -577,8 +645,19 @@ function QuoteForm({
       })()}
 
       {error && (
-        <div className="flex items-center gap-2 text-red-600 text-xs bg-red-50 border border-red-200 rounded-xl px-3 py-2">
-          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {error}
+        <div className="flex items-start gap-2 text-red-600 text-xs bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p>{error}</p>
+            {needsLogin && (
+              <Link
+                href={`/customer/login?redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname : '')}`}
+                className="inline-block mt-1.5 font-semibold text-indigo-600 hover:underline"
+              >
+                Login to your account →
+              </Link>
+            )}
+          </div>
         </div>
       )}
       <button
@@ -1094,7 +1173,10 @@ export default function TourDetailPage() {
             {listing.description && (
               <div>
                 <h2 className="text-lg font-bold text-gray-900 mb-3">About this Tour</h2>
-                <p className="text-gray-600 leading-relaxed whitespace-pre-line">{listing.description}</p>
+                <div
+                  className="prose prose-sm max-w-none text-gray-600 prose-headings:text-gray-900 prose-a:text-emerald-700 prose-strong:text-gray-900"
+                  dangerouslySetInnerHTML={{ __html: sanitizeRichText(listing.description) }}
+                />
               </div>
             )}
 
