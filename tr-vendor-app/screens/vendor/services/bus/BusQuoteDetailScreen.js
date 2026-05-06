@@ -2,14 +2,14 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, ActivityIndicator, Image, Dimensions,
-  FlatList, Platform, StatusBar,
+  FlatList, Platform, StatusBar, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getVendorQuotes, getBaseURL, getQuoteRequestById, withdrawQuote } from '../../../api/client';
+import { getVendorQuotes, getBaseURL, getSessionToken, getQuoteRequestById, withdrawQuote } from '../../../api/client';
 import { showError, showSuccess, showInfo, showConfirm } from '../../../../services/alertService';
 
 const { width } = Dimensions.get('window');
@@ -94,6 +94,21 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
   const [baseUrl, setBaseUrl] = useState('');
 
   useEffect(() => { getBaseURL().then(url => setBaseUrl(url)); }, []);
+
+  const handleCallCustomer = (phone, quoteType, qId) => {
+    if (!phone) return;
+    (async () => {
+      try {
+        const [baseURL, token] = await Promise.all([getBaseURL(), getSessionToken()]);
+        fetch(`${baseURL}/api/vendor/call-log`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Session-Token': token || '' },
+          body: JSON.stringify({ bookingType: quoteType, bookingId: qId, source: 'app' }),
+        }).catch(() => {});
+      } catch (e) {}
+    })();
+    Linking.openURL(`tel:${phone}`);
+  };
 
   const fetchQuoteDetail = useCallback(async () => {
     if (!quoteId) { showError('Quote ID is missing'); navigation.goBack(); return; }
@@ -317,7 +332,15 @@ export default function BusQuoteDetailScreen({ route, navigation }) {
           <Section icon={<Ionicons name="person-circle-outline" size={16} color={C.g700} />} title="Customer Information">
             <InfoRow iconName="person" color={C.g600} label="Name" value={customerName} />
             {customerEmail && <InfoRow iconName="mail" color={C.blue} label="Email" value={customerEmail} />}
-            {customerPhone && <InfoRow iconName="call" color={C.teal} label="Phone" value={customerPhone} />}
+            {customerPhone && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4, gap: 10 }}
+                onPress={() => handleCallCustomer(customerPhone, 'bus_quote', quote.id)}
+              >
+                <Ionicons name="call" size={16} color={C.teal} />
+                <Text style={{ color: C.teal, fontWeight: '600', fontSize: 14 }}>Call Customer</Text>
+              </TouchableOpacity>
+            )}
           </Section>
 
           {vehicleName && (

@@ -24,6 +24,7 @@ import {
   Receipt,
   Building2,
 } from 'lucide-react';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 // Mock invoices data
 const invoicesData = [
@@ -349,7 +350,7 @@ export default function InvoicesPage() {
                   <td className="px-4 py-3">
                     <div>
                       <p className="font-medium text-gray-900">{invoice.customerName}</p>
-                      <p className="text-sm text-gray-500">{invoice.customerPhone}</p>
+                      <VendorCallButton phone={invoice.customerPhone} bookingType="invoice" bookingId={invoice.id} size="sm" />
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-700">{invoice.service}</td>
@@ -455,7 +456,9 @@ export default function InvoicesPage() {
                     {selectedInvoice.customerGstin && (
                       <p className="text-sm text-gray-600">GSTIN: {selectedInvoice.customerGstin}</p>
                     )}
-                    <p className="text-sm text-gray-600">{selectedInvoice.customerPhone}</p>
+                    <div className="mt-1">
+                      <VendorCallButton phone={selectedInvoice.customerPhone} bookingType="invoice" bookingId={selectedInvoice.id} size="sm" />
+                    </div>
                   </div>
                 </div>
               </div>

@@ -13,6 +13,7 @@ import { showError, showConfirm, showSuccess } from '../../../../services/alertS
 import {
   getBookingById, acceptBooking, rejectBooking,
   assignOperator, getStaffDrivers,
+  getBaseURL, getSessionToken,
 } from '../../../api/client';
 
 const { width: W } = Dimensions.get('window');
@@ -99,7 +100,22 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
     }, { confirmText: 'Reject', destructive: true });
   };
 
-  const handleCall     = (phone) => { if (phone) Linking.openURL(`tel:${phone}`); };
+  const handleCall = (phone, bookingType, bookingId) => {
+    if (!phone) return;
+    if (bookingType && bookingId) {
+      (async () => {
+        try {
+          const [baseURL, token] = await Promise.all([getBaseURL(), getSessionToken()]);
+          fetch(`${baseURL}/api/vendor/call-log`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Session-Token': token || '' },
+            body: JSON.stringify({ bookingType, bookingId, source: 'app' }),
+          }).catch(() => {});
+        } catch (e) {}
+      })();
+    }
+    Linking.openURL(`tel:${phone}`);
+  };
   const handleWhatsApp = (phone) => {
     if (phone) Linking.openURL(`whatsapp://send?phone=${phone.replace(/\D/g, '')}`);
   };
@@ -313,7 +329,7 @@ export default function LuxuryBookingDetailScreen({ route, navigation }) {
             {booking.customerPhone ? (
               <TouchableOpacity
                 style={[s.contactBtn, { backgroundColor: C.g50, borderColor: C.g100 }]}
-                onPress={() => handleCall(booking.customerPhone)}
+                onPress={() => handleCall(booking.customerPhone, 'luxury_booking', booking.id)}
               >
                 <Ionicons name="call" size={15} color={C.g700} />
                 <Text style={[s.contactTxt, { color: C.g700 }]}>Call</Text>

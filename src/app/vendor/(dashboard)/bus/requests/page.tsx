@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { BUS_CATEGORIES, BUS_TRIP_TYPES } from '@/lib/bus-categories';
 import Pagination from '@/components/vendor/Pagination';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 interface QuoteRequest {
   id: string;
@@ -650,18 +651,12 @@ export default function VendorBusRequestsPage() {
                     </div>
                     <div>
                       <p className="text-sm font-bold text-gray-900">{selected.customerName}</p>
-                      {selected.customerPhone && <p className="text-xs text-gray-400">{selected.customerPhone}</p>}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {selected.customerPhone && (
                       <>
-                        <a
-                          href={`tel:${selected.customerPhone}`}
-                          className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all"
-                        >
-                          <Phone className="w-3.5 h-3.5" /> Call
-                        </a>
+                        <VendorCallButton phone={selected.customerPhone} bookingType="bus_quote_request" bookingId={selected.id} />
                         <a
                           href={`https://wa.me/${selected.customerPhone.replace(/\D/g, '')}`}
                           target="_blank"

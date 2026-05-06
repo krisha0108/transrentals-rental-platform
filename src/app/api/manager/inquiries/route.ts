@@ -301,6 +301,23 @@ export async function GET(request: NextRequest) {
     // Sort by creation date (newest first)
     allInquiries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+    // Fetch call counts for all inquiry IDs in one query
+    const allIds = allInquiries.map((i: any) => i.id);
+    const callCountRows = allIds.length > 0
+      ? await prisma.vendor_call_logs.groupBy({
+          by: ['bookingId'],
+          where: { bookingId: { in: allIds } },
+          _count: { bookingId: true },
+        }).catch(() => [])
+      : [];
+    const callCountMap: Record<string, number> = {};
+    for (const row of callCountRows) {
+      callCountMap[row.bookingId] = row._count.bookingId;
+    }
+    for (const inquiry of allInquiries) {
+      inquiry.callsCount = callCountMap[inquiry.id] || 0;
+    }
+
     // Create unique service list based on main service names
     // Each entry has alternateSlug variants so manager assignment matching works
     const mainServices: { slug: string; name: string; alts: string[] }[] = [

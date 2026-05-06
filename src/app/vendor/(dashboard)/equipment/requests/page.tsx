@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { EQUIPMENT_CONFIG } from '@/lib/quote-services';
 import Pagination from '@/components/vendor/Pagination';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 const EQUIPMENT_TYPE_NAMES: Record<string, string> = {
   '1': 'Grove Crane',
@@ -697,15 +698,12 @@ export default function VendorEquipmentRequestsPage() {
                     <div>
                       <p className="text-sm font-bold text-gray-900">{selected.customerName}</p>
                       {selected.companyName && <p className="text-xs text-gray-400 flex items-center gap-1"><Building2 className="w-3 h-3" /> {selected.companyName}</p>}
-                      {selected.customerPhone && <p className="text-xs text-gray-400">{selected.customerPhone}</p>}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {selected.customerPhone && (
                       <>
-                        <a href={`tel:${selected.customerPhone}`} className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 transition-all">
-                          <Phone className="w-3.5 h-3.5" /> Call
-                        </a>
+                        <VendorCallButton phone={selected.customerPhone} bookingType="equipment_quote_request" bookingId={selected.id} variant="blue" />
                         <a href={`https://wa.me/${selected.customerPhone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] transition-all">
                           <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
                         </a>

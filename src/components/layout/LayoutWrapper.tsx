@@ -20,6 +20,7 @@ const noLayoutRoutes = [
   '/invoice',
   '/trip',
   '/stories/',   // web stories - full screen, no header/footer/login
+  '/q/',         // public quote share pages - standalone
 ];
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {

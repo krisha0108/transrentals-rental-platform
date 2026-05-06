@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, ActivityIndicator, StatusBar,
+  RefreshControl, ActivityIndicator, StatusBar, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getQuoteRequestById } from '../../../api/client';
+import { getQuoteRequestById, getBaseURL, getSessionToken } from '../../../api/client';
 import { showError, showInfo } from '../../../../services/alertService';
 
 const C = {
@@ -125,8 +125,24 @@ export default function EquipmentQuoteRequestDetailScreen({ route, navigation })
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING;
   const requestNumber = request.requestNumber || request.request_number || (request.id || request._id)?.toString().slice(-8);
 
-  const customerName = request.customerName || request.customer_name || 'Customer';
+  const customerName  = request.customerName || request.customer_name || 'Customer';
   const customerEmail = request.customerEmail || request.customer_email;
+  const customerPhone = request.customerPhone || request.customer_phone;
+
+  const handleCallCustomer = () => {
+    if (!customerPhone) return;
+    (async () => {
+      try {
+        const [baseURL, token] = await Promise.all([getBaseURL(), getSessionToken()]);
+        fetch(`${baseURL}/api/vendor/call-log`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ bookingType: 'equipment_quote_request', bookingId: request.id, source: 'app' }),
+        }).catch(() => {});
+      } catch {}
+    })();
+    Linking.openURL(`tel:${customerPhone}`);
+  };
 
   const equipmentCategory = request.equipmentCategory || request.equipment_category;
   const equipmentTypeRaw = request.equipmentType || request.equipment_type;
@@ -212,6 +228,15 @@ export default function EquipmentQuoteRequestDetailScreen({ route, navigation })
           <View style={s.card}>
             <InfoRow icon={<Ionicons name="person" size={16} color={C.muted} />} label="Name" value={customerName} />
             {customerEmail && <InfoRow icon={<Ionicons name="mail" size={16} color={C.muted} />} label="Email" value={customerEmail} />}
+            {customerPhone ? (
+              <TouchableOpacity
+                onPress={handleCallCustomer}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 4 }}
+              >
+                <Ionicons name="call" size={16} color={C.g600} />
+                <Text style={{ color: C.g600, fontWeight: '700', fontSize: 14 }}>Call Customer</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
 

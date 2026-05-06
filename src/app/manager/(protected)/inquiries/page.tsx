@@ -38,6 +38,7 @@ interface Inquiry {
   pickupTime?: string;
   dropDate?: string;
   quotesCount: number;
+  callsCount: number;
   source?: string;
   createdAt: string;
 }
@@ -514,15 +515,21 @@ export default function ManagerInquiriesPage() {
                       )}
                     </div>
 
-                    {/* Quotes Count & Arrow */}
+                    {/* Quotes + Calls + Arrow */}
                     <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-gray-900">
-                          {inquiry.quotesCount}
+                      <div className="flex flex-col items-end gap-1.5">
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-gray-900 leading-none">{inquiry.quotesCount}</div>
+                          <p className="text-xs text-gray-400">{inquiry.quotesCount === 1 ? 'Quote' : 'Quotes'}</p>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {inquiry.quotesCount === 1 ? 'Quote' : 'Quotes'}
-                        </p>
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          inquiry.callsCount > 0
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-gray-100 text-gray-400'
+                        }`}>
+                          <Phone className="w-3 h-3" />
+                          {inquiry.callsCount} {inquiry.callsCount === 1 ? 'call' : 'calls'}
+                        </div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-gray-400" />
                     </div>

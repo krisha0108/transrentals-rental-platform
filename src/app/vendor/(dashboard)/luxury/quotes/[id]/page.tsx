@@ -23,6 +23,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 interface Quote {
   id: string;
@@ -750,7 +751,7 @@ export default function VendorLuxuryQuoteDetailPage() {
                   <Phone className="w-5 h-5 text-emerald-500" />
                   <div>
                     <p className="text-xs text-gray-400">Phone</p>
-                    <p className="font-medium text-gray-900">{quote.request.customerPhone}</p>
+                    <VendorCallButton phone={quote.request.customerPhone} bookingType="luxury_quote" bookingId={quote.id} />
                   </div>
                 </div>
               )}

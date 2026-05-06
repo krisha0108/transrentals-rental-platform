@@ -31,6 +31,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import VendorBookingChat from '@/components/vendor/VendorBookingChat';
@@ -775,13 +776,7 @@ export default function VendorBookingDetailPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-900 text-lg">{booking.customerName}</p>
                   <div className="flex flex-wrap items-center gap-3 mt-2">
-                    <a
-                      href={`tel:${booking.customerPhone}`}
-                      className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600 transition-colors bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      {booking.customerPhone}
-                    </a>
+                    <VendorCallButton phone={booking.customerPhone} bookingType="car_rental_booking" bookingId={booking.id} />
                     <a
                       href={`mailto:${booking.customerEmail}`}
                       className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600 transition-colors bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50 truncate"

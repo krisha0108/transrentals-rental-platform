@@ -3784,6 +3784,7 @@ model vendors {
   wander_quotes                                                   wander_quotes[]
 
   vendor_bank_accounts                                            vendor_bank_accounts[]
+  vendor_call_logs                                                vendor_call_logs[]
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
   @@index([email])
@@ -4680,6 +4681,7 @@ model wander_listings {
   ogImage            String?
   tourStartDate      DateTime?                  @db.Date
   tourEndDate        DateTime?                  @db.Date
+  createMode         wander_create_mode         @default(DETAILED)
   status             wander_listing_status      @default(DRAFT)
   createdAt          DateTime                   @default(now())
   updatedAt          DateTime                   @updatedAt
@@ -4715,6 +4717,7 @@ model wander_quote_requests {
   status          wander_quote_request_status @default(PENDING)
   droppedAt       DateTime?
   dropReason      String?                     @db.Text
+  broadcastedAt   DateTime?
   createdAt       DateTime                    @default(now())
   updatedAt       DateTime                    @updatedAt
   booking         wander_bookings?
@@ -5497,6 +5500,11 @@ enum wander_listing_status {
   INACTIVE
 }
 
+enum wander_create_mode {
+  QUICK
+  DETAILED
+}
+
 enum wander_cancellation_policy {
   FLEXIBLE
   MODERATE
@@ -6109,4 +6117,20 @@ enum drivers_status {
   ACTIVE
   INACTIVE
   SUSPENDED
+}
+
+model vendor_call_logs {
+  id          String   @id @default(cuid())
+  vendorId    String?
+  bookingType String
+  bookingId   String
+  source      String   @default("web")
+  callerType  String   @default("vendor")
+  callerId    String?
+  clickedAt   DateTime @default(now())
+  vendors     vendors? @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+  @@index([bookingId])
+  @@index([bookingType, bookingId])
 }

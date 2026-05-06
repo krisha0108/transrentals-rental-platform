@@ -6,8 +6,9 @@ import Link from 'next/link';
 import {
   Inbox, Loader2, AlertCircle, Calendar, Users,
   ChevronRight, CheckCircle, RefreshCw, Send, Zap,
-  MessageSquare, TrendingUp,
+  MessageSquare, TrendingUp, Globe, Briefcase,
 } from 'lucide-react';
+import QuoteShareButton from '@/components/vendor/QuoteShareButton';
 
 const STATUS_CONFIG = {
   PENDING:   { label: 'New Request', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200',      dot: 'bg-emerald-500' },
@@ -39,16 +40,19 @@ export default function VendorWanderQuotesPage() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [tab, setTab]           = useState('all');
+  const [scope, setScope]       = useState<'mine' | 'marketplace'>('mine');
+  const [eligibleForMarketplace, setEligibleForMarketplace] = useState(true);
   const [error, setError]       = useState('');
 
-  useEffect(() => { fetchRequests(); }, [tab]);
+  useEffect(() => { fetchRequests(); }, [tab, scope]);
 
   async function fetchRequests() {
     setLoading(true);
     try {
-      const res  = await fetch(`/api/vendor/wander/quotes?status=${tab}`);
+      const res  = await fetch(`/api/vendor/wander/quotes?status=${tab}&type=${scope}`);
       const data = await res.json();
       setRequests(data.requests || []);
+      if (typeof data.eligibleForMarketplace === 'boolean') setEligibleForMarketplace(data.eligibleForMarketplace);
     } catch {
       setError('Failed to load requests');
     } finally {
@@ -107,6 +111,50 @@ export default function VendorWanderQuotesPage() {
         </div>
       </div>
 
+      {/* ── Scope Tabs (My Listings / Marketplace) ── */}
+      <div className="bg-white border-b border-gray-100 px-8 pt-4">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setScope('mine')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-semibold transition border-b-2 ${
+              scope === 'mine'
+                ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
+                : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+            }`}
+          >
+            <Briefcase className="w-4 h-4" />
+            My Listings
+          </button>
+          <button
+            onClick={() => setScope('marketplace')}
+            disabled={!eligibleForMarketplace && scope !== 'marketplace'}
+            title={!eligibleForMarketplace ? 'Add at least one wander listing to access marketplace requests' : undefined}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-semibold transition border-b-2 ${
+              scope === 'marketplace'
+                ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
+                : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+            } ${!eligibleForMarketplace && scope !== 'marketplace' ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <Globe className="w-4 h-4" />
+            Marketplace
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase tracking-wider">
+              Open
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {scope === 'marketplace' && (
+        <div className="bg-amber-50 border-b border-amber-100 px-8 py-2.5">
+          <p className="text-xs text-amber-800 flex items-center gap-2">
+            <Globe className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>
+              <strong>Marketplace requests</strong> — These are quote requests on tours listed by admin. Multiple vendors can submit quotes; the customer picks one.
+            </span>
+          </p>
+        </div>
+      )}
+
       {/* ── Sticky Toolbar ── */}
       <div className="bg-white border-b border-gray-100 px-8 py-3 sticky top-[57px] z-20 shadow-sm">
         <div className="flex items-center gap-1">
@@ -149,8 +197,14 @@ export default function VendorWanderQuotesPage() {
             <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mb-4">
               <Inbox className="w-8 h-8 text-emerald-200" />
             </div>
-            <p className="font-bold text-gray-800 mb-1 text-base">No quote requests yet</p>
-            <p className="text-gray-400 text-sm">Requests appear here when customers enquire about your tours</p>
+            <p className="font-bold text-gray-800 mb-1 text-base">
+              {scope === 'marketplace' ? 'No marketplace requests yet' : 'No quote requests yet'}
+            </p>
+            <p className="text-gray-400 text-sm">
+              {scope === 'marketplace'
+                ? 'When customers send quote requests on admin-listed tours, they will appear here for any wander vendor to quote on.'
+                : 'Requests appear here when customers enquire about your tours'}
+            </p>
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -181,7 +235,7 @@ export default function VendorWanderQuotesPage() {
                   >
                     {/* Tour */}
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-bold text-gray-900 text-[13px] truncate group-hover:text-emerald-700 transition">
                           {req.listing?.title || 'Untitled Tour'}
                         </p>
@@ -190,9 +244,17 @@ export default function VendorWanderQuotesPage() {
                             New
                           </span>
                         )}
+                        {!req.listing?.vendorId && (
+                          <span className="flex-shrink-0 inline-flex items-center gap-1 text-[9px] font-black bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-md uppercase tracking-wide">
+                            <Globe className="w-2.5 h-2.5" /> Marketplace
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-[11px] text-gray-400 font-mono bg-gray-50 px-1.5 py-0.5 rounded">{req.requestId}</span>
+                        {req.listing?.mainLocation?.name && (
+                          <span className="text-[11px] text-gray-400">📍 {req.listing.mainLocation.name}</span>
+                        )}
                         {req.requirements && (
                           <span className="text-[11px] text-gray-400 italic truncate max-w-[140px]">"{req.requirements}"</span>
                         )}
@@ -242,7 +304,17 @@ export default function VendorWanderQuotesPage() {
                       </span>
                     </div>
 
-                    <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-500 transition flex-shrink-0" />
+                    <div className="flex items-center gap-1.5 flex-shrink-0" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>
+                      <QuoteShareButton
+                        quoteUrl={`/vendor/wander/quotes/${req.id}`}
+                        quoteNumber={req.requestId}
+                        customerName={req.customer?.name || ''}
+                        amount={myQuote?.amount}
+                        serviceName="Wander Tour"
+                        publicUrl={myQuote?.id ? `/q/${myQuote.id}` : undefined}
+                      />
+                      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-500 transition flex-shrink-0" />
+                    </div>
                   </Link>
                 );
               })}

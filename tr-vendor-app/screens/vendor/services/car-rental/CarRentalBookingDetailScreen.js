@@ -392,6 +392,21 @@ export default function BookingDetailScreen({ route, navigation }) {
     }
   };
 
+  const handleCustomerCall = (phone, bookingId) => {
+    if (!phone) return;
+    (async () => {
+      try {
+        const [baseURL, token] = await Promise.all([getBaseURL(), getSessionToken()]);
+        fetch(`${baseURL}/api/vendor/call-log`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ bookingType: 'car_rental_booking', bookingId, source: 'app' }),
+        }).catch(() => {});
+      } catch {}
+    })();
+    Linking.openURL(`tel:${phone}`);
+  };
+
   const handleChat = () => {
     navigation.navigate('ChatScreen', {
       bookingId: booking.id,
@@ -729,6 +744,14 @@ export default function BookingDetailScreen({ route, navigation }) {
               <Text style={styles.customerName}>{booking.customerName || 'Customer'}</Text>
             </View>
             <View style={styles.customerActions}>
+              {booking.customerPhone && (
+                <TouchableOpacity
+                  style={[styles.iconBtn, { backgroundColor: '#F0FDFA', marginRight: 6 }]}
+                  onPress={() => handleCustomerCall(booking.customerPhone, booking.id)}
+                >
+                  <Ionicons name="call" size={18} color="#0D9488" />
+                </TouchableOpacity>
+              )}
               <TouchableOpacity
                 style={[styles.iconBtn, { backgroundColor: C.blueL }]}
                 onPress={handleChat}

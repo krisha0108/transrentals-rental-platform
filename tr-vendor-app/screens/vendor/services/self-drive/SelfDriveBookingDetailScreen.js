@@ -25,6 +25,8 @@ import {
   generateTripOtp,
   verifyTripOtp,
   completeBooking,
+  getBaseURL,
+  getSessionToken,
 } from '../../../api/client';
 
 const C = {
@@ -118,10 +120,19 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
         }, { confirmText: 'Reject', destructive: true });
   };
 
-  const handleCall = (phone) => {
-    if (phone) {
-      Linking.openURL(`tel:${phone}`);
-    }
+  const handleCall = (phone, bookingType, bookingId) => {
+    if (!phone) return;
+    (async () => {
+      try {
+        const [baseURL, token] = await Promise.all([getBaseURL(), getSessionToken()]);
+        fetch(`${baseURL}/api/vendor/call-log`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ bookingType, bookingId, source: 'app' }),
+        }).catch(() => {});
+      } catch {}
+    })();
+    Linking.openURL(`tel:${phone}`);
   };
 
   const handleWhatsApp = (phone) => {
@@ -403,6 +414,15 @@ export default function SelfDriveBookingDetailScreen({ route, navigation }) {
 
           {/* Quick Actions */}
           <View style={styles.quickActions}>
+            {booking.customerPhone && (
+              <TouchableOpacity
+                style={[styles.quickActionBtn, { backgroundColor: C.tealL }]}
+                onPress={() => handleCall(booking.customerPhone, 'self_drive_booking', booking.id)}
+              >
+                <Ionicons name="call" size={20} color={C.teal} />
+                <Text style={[styles.quickActionText, { color: C.teal }]}>Call</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={[styles.quickActionBtn, { backgroundColor: C.purpleL }]}
               onPress={handleChat}

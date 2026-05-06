@@ -12,6 +12,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { showError, showConfirm, showSuccess } from '../../../../services/alertService';
 import {
   getBookingById, acceptBooking, rejectBooking, assignOperator, getStaffDrivers,
+  getBaseURL, getSessionToken,
 } from '../../../api/client';
 
 const C = {
@@ -103,6 +104,21 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
   };
 
   const handleCall = (phone) => { if (phone) Linking.openURL(`tel:${phone}`); };
+
+  const handleCustomerCall = (phone, bookingId) => {
+    if (!phone) return;
+    (async () => {
+      try {
+        const [baseURL, token] = await Promise.all([getBaseURL(), getSessionToken()]);
+        fetch(`${baseURL}/api/vendor/call-log`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ bookingType: 'packers_booking', bookingId, source: 'app' }),
+        }).catch(() => {});
+      } catch {}
+    })();
+    Linking.openURL(`tel:${phone}`);
+  };
 
   const handleChat = () => {
     navigation.navigate('ChatScreen', {
@@ -328,6 +344,11 @@ export default function PackersBookingDetailScreen({ route, navigation }) {
             <View style={{ flex: 1 }}>
               <Text style={s.customerName}>{booking.customerName || 'Customer'}</Text>
             </View>
+            {booking.customerPhone && (
+              <TouchableOpacity style={[s.iconBtn, { backgroundColor: '#F0FDFA', marginRight: 6 }]} onPress={() => handleCustomerCall(booking.customerPhone, booking.id)}>
+                <Ionicons name="call" size={18} color="#0D9488" />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity style={[s.iconBtn, { backgroundColor: C.blueL }]} onPress={handleChat}>
               <Icon name="message-circle" size={18} color={C.blue} />
             </TouchableOpacity>

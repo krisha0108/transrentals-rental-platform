@@ -4,6 +4,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useVendorVerification } from '@/contexts/VendorVerificationContext';
+import { sanitizeRichText } from '@/lib/utils/sanitize';
 import {
   Compass, ChevronRight, ChevronLeft, Check, Loader2, AlertCircle,
   Plus, Trash2, MapPin, Search, X, Clock, Users, Car, GripVertical, Coffee,
@@ -324,10 +325,13 @@ function TourPreviewModal({ form, selectedLocation, onClose }) {
               </div>
 
               {/* Description */}
-              {form.description?.trim() && (
+              {form.description?.replace(/<[^>]*>/g, '').trim() && (
                 <div>
                   <h2 className="text-lg font-bold text-gray-900 mb-3">About this Tour</h2>
-                  <p className="text-gray-600 leading-relaxed whitespace-pre-line">{form.description}</p>
+                  <div
+                    className="prose prose-sm max-w-none text-gray-600 prose-headings:text-gray-900 prose-a:text-emerald-700 prose-strong:text-gray-900"
+                    dangerouslySetInnerHTML={{ __html: sanitizeRichText(form.description) }}
+                  />
                 </div>
               )}
 

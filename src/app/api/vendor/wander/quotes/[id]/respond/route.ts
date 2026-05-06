@@ -22,9 +22,22 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     });
 
     if (!quoteRequest) return NextResponse.json({ error: 'Quote request not found' }, { status: 404 });
-    if (quoteRequest.listing.vendorId !== auth.vendorId) {
+
+    const isAdminTour = quoteRequest.listing.vendorId === null;
+    const isOwnTour = quoteRequest.listing.vendorId === auth.vendorId;
+
+    if (!isOwnTour && !isAdminTour) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
+
+    // Marketplace eligibility — vendor must have at least 1 wander listing
+    if (isAdminTour) {
+      const listingCount = await (prisma as any).wander_listings.count({ where: { vendorId: auth.vendorId } });
+      if (listingCount === 0) {
+        return NextResponse.json({ error: 'You must have at least one wander listing to quote on marketplace tours' }, { status: 403 });
+      }
+    }
+
     if (quoteRequest.status === 'ACCEPTED' || quoteRequest.status === 'CANCELLED') {
       return NextResponse.json({ error: 'Cannot respond to this request' }, { status: 400 });
     }
