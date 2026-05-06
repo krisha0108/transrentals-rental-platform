@@ -8,6 +8,7 @@ import {
   ChevronRight, CheckCircle, RefreshCw, Send, Zap,
   MessageSquare, TrendingUp, Globe, Briefcase,
 } from 'lucide-react';
+import QuoteShareButton from '@/components/vendor/QuoteShareButton';
 
 const STATUS_CONFIG = {
   PENDING:   { label: 'New Request', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200',      dot: 'bg-emerald-500' },
@@ -303,7 +304,17 @@ export default function VendorWanderQuotesPage() {
                       </span>
                     </div>
 
-                    <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-500 transition flex-shrink-0" />
+                    <div className="flex items-center gap-1.5 flex-shrink-0" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>
+                      <QuoteShareButton
+                        quoteUrl={`/vendor/wander/quotes/${req.id}`}
+                        quoteNumber={req.requestId}
+                        customerName={req.customer?.name || ''}
+                        amount={myQuote?.amount}
+                        serviceName="Wander Tour"
+                        publicUrl={myQuote?.id ? `/q/${myQuote.id}` : undefined}
+                      />
+                      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-500 transition flex-shrink-0" />
+                    </div>
                   </Link>
                 );
               })}
