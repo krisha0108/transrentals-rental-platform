@@ -74,10 +74,10 @@ export default function FleetPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Car className="w-5 h-5 text-emerald-600" /> My Fleet
+          <h1 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <Car className="w-4 h-4 text-emerald-600" /> My Fleet
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">{vehicles.length} vehicle{vehicles.length !== 1 ? 's' : ''}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{vehicles.length} vehicle{vehicles.length !== 1 ? 's' : ''}</p>
         </div>
         <Link
           href="/driver/fleet/add"

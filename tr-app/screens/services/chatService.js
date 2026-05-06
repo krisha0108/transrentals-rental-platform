@@ -168,6 +168,43 @@ const chatService = {
     });
     return response.data;
   },
+
+  /**
+   * Get driver chat conversations for customer
+   */
+  getDriverConversations: async () => {
+    const customerData = await AsyncStorage.getItem('customer');
+    const customer = JSON.parse(customerData);
+    const params = {};
+    if (customer?.phone) params.phone = customer.phone;
+    else if (customer?.email) params.email = customer.email;
+    const response = await api.get('/customer/driver-chat', { params });
+    return response.data;
+  },
+
+  /**
+   * Get messages for a driver conversation
+   */
+  getDriverMessages: async (conversationId, since = null) => {
+    const params = {};
+    if (since) params.since = since;
+    const response = await api.get(`/customer/driver-chat/${conversationId}/messages`, { params });
+    return response.data;
+  },
+
+  /**
+   * Send message in driver conversation
+   */
+  sendDriverMessage: async (conversationId, content) => {
+    const customerData = await AsyncStorage.getItem('customer');
+    const customer = JSON.parse(customerData);
+    const response = await api.post(`/customer/driver-chat/${conversationId}/messages`, {
+      content,
+      customerId: customer?.id,
+      senderName: customer?.name || 'Customer',
+    });
+    return response.data;
+  },
 };
 
 export default chatService;
