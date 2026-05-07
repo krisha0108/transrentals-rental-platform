@@ -110,6 +110,23 @@ export default function CustomerLoginPage() {
         body: JSON.stringify({ action: 'login', email: formData.email, password: formData.password }),
       });
       const data = await response.json();
+
+      // Travel-agent fallback: same credentials matched a travel_agents row.
+      // The API has already set the NextAuth TA session cookie AND issued a
+      // shadow-customer JWT so customer-side booking flows treat us as logged in.
+      if (data.status === 'success' && data.userType === 'travel_agent') {
+        if (data.token && data.customers) {
+          localStorage.setItem('auth_token', data.token);
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('customer', JSON.stringify(data.customers));
+        }
+        setSuccess('Welcome back! Redirecting to your dashboard...');
+        setTimeout(() => {
+          window.location.href = data.redirect || '/customer/dashboard';
+        }, 800);
+        return;
+      }
+
       if (data.status === 'success' && data.token) {
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('token', data.token);
@@ -295,10 +312,13 @@ export default function CustomerLoginPage() {
 
             <GoogleSignInButton />
 
-            <div className="pt-1 p-3 bg-[#09B368]/5 border border-[#09B368]/15 rounded-xl text-center">
+            <div className="pt-1 p-3 bg-[#09B368]/5 border border-[#09B368]/15 rounded-xl text-center space-y-1">
               <p className="text-xs text-gray-600">
                 Corporate account?{' '}
                 <Link href="/customer/b2b-register" className="text-[#09B368] hover:text-[#078F53] font-semibold">Register as B2B →</Link>
+              </p>
+              <p className="text-[11px] text-gray-500">
+                Travel agent? Use your agent email &amp; password — we&apos;ll send you to your dashboard.
               </p>
             </div>
           </form>

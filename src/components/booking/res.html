@@ -1,0 +1,132 @@
+<div class="mid">
+				<div class="m-mid">
+					<form id="frmresult" action="/Result/SSCResultView" method="post">
+						<div class="m-m-up">
+							<center>
+								<label>    Enter Seat No :</label>
+								<select id="drpInitChar" class="form-control" name="InitialCharacter">
+									<option value="A" selected="selected">A</option>
+									<option value="B">B</option>
+									<option value="C">C</option>
+									<option value="S">S</option>
+									<option value="P">P</option>
+								</select>
+
+								&nbsp;
+
+								<input type="number" class="form-control" placeholder="Seat No. 7 Digit" oninput="javascript: if (this.value.length &gt; this.maxLength) this.value = this.value.slice(0, this.maxLength);" onkeypress="return isNumberKey(event)" maxlength="7" size="10" style="width:92px;" data-val="true" data-val-required="SeatNo is required" id="SeatNo" name="SeatNo" value="7015453"><input name="__Invariant" type="hidden" value="SeatNo">
+
+								<span class="captchSection">
+									<asp:label id="lblCaptcha" runat="server">Total of 0 + 15 = </asp:label>
+									<input type="text" class="form-control" placeholder="Captcha" maxlength="5" id="txtCaptcha" style="width:92px;" data-val="true" data-val-required="Captcha is required" name="Captcha" value="79">
+									<input type="hidden" id="hdnCaptchaAns" value="xpfMzotHNw0a81KhZrtD5Q==" data-val="true" data-val-required="Null value in Captcha" name="hdnCaptcha">
+
+								</span>
+
+								<input type="Submit" value="  Go  " name="go" onclick="return validate()">
+							</center>
+							<center>
+								<span class="text-danger field-validation-valid" data-valmsg-for="hdnCaptcha" data-valmsg-replace="true"></span>
+								<span class="text-danger field-validation-valid" data-valmsg-for="SeatNo" data-valmsg-replace="true"></span>
+								&nbsp;&nbsp;
+								<span class="text-danger field-validation-valid" data-valmsg-for="Captcha" data-valmsg-replace="true"></span>
+
+								&nbsp;&nbsp;
+								<asp:label id="lblCaptchaValidation" runat="server" class="text-danger"></asp:label>
+							</center>
+							<center>
+								<span class="blue">Enter 7 digits Seat No.</span>
+							</center>
+							<center>
+								<span class="red">Please confirm the result with your actual printed marksheet issued by board</span>
+							</center>
+						</div>
+					<input name="__RequestVerificationToken" type="hidden" value="CfDJ8CP-tni2EpJOlwKISgBF1298UZz26z7tOTJ3XYsi1K3qdi2-x1x9KzDdgS5y_Rs1nXfF1s_tlr5I7nVXmyqHc406kOG-BqBB4jZub39q6JFOBj2UPrmsE-GIc9g6cgc2RehPXaSM6Nt7UOns4BKVwic"></form>
+					<div class="m-m-mid">
+
+						<div class="m-m-iframe" style=" background: url(images/bg.jpg) white; background-size: 30%; background-position: center; background-repeat: no-repeat;">
+							<div style="WIDTH: 100%; HEIGHT: 750px;" name="marksheet" align="center" frameborder="0" scrolling="yes">
+								<meta http-equiv="Page-Enter" content="revealTrans(Duration=0.2,transition=1)"><meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><style type="text/css">td{font-family: arial, Verdana;font-size: 12px;}.colum-left {width: 50%;display: inline-block;}.colum-right {display: inline-block;}.maintbl {margin: 0;padding: 0;width: 100%;border-collapse: collapse}table td {border: 1px solid #e7e7e7;padding: 5px;}.background1 {background: #f7f7f7}.textcolor {color: #125dae}.titletxt {font-weight: bold;text-align: center;color: #000;}.highlitedbg {background: none repeat scroll 0 0 #125DAE;}.highlitedbg .titletxt {color: #FFFFFF;}.highlitedtd{ text-align:center; font-weight:bold;}</style><link href="../../../../css/media-query.css" rel="stylesheet" type="text/css" media="all">
+<table class="maintbl" cellpading="0" cellspacing="0">
+ <tbody><tr class="background1"><td colspan="9"><span class="colum-left"><b class="textcolor">Seat No: </b>A7015453</span> <span class="colum-right secondcol"><b class="textcolor">Name: </b>KRISH  HARSHAD  NAGPURE</span></td></tr>
+ <tr class="background1"><td colspan="9"><span class="colum-left"><b class="textcolor">Result: </b>QUALIFIED FOR SECONDARY SCHOOL CERTIFICATE</span> <span class="colum-right secondcol"><b class="textcolor">School Index: </b>50.0088</span></td></tr>
+ <tr class="background1"><td colspan="9"><span class="colum-right secondcol"><b class="textcolor">S.I.D. No.: </b>26S-50-07491</span></td></tr>
+<tr class="textcolor" align="center"> <td width="40%"><b>Subject Name</b></td> <td width="20%"><b>Marks Obtained in External Board Exam Out Of 80</b></td> <td width="20%"><b>Marks Obtained in Internal School Evaluation Out Of 20</b></td> <td width="20%"><b>Subject Wise Grand Total Out Of 100</b></td> <td width="20%"><b>Subject Wise Grade</b></td> </tr>
+<tr><td align="left">01 GUJARATI FL</td><td align="center">47</td><td align="center">16</td><td align="center">063</td><td align="center">B2</td></tr>
+<tr><td align="left">10 SOCIAL SCIENCE</td><td align="center">54</td><td align="center">16</td><td align="center">070</td><td align="center">B2</td></tr>
+<tr><td align="left">11 SCIENCE</td><td align="center">62</td><td align="center">15</td><td align="center">077</td><td align="center">B1</td></tr>
+<tr><td align="left">16 ENGLISH SL</td><td align="center">60</td><td align="center">16</td><td align="center">076</td><td align="center">B1</td></tr>
+<tr><td align="left">17 SANSKRIT SL</td><td align="center">50</td><td align="center">17</td><td align="center">067</td><td align="center">B2</td></tr>
+<tr><td align="left">18 BASIC MATHS</td><td align="center">53</td><td align="center">15</td><td align="center">068</td><td align="center">B2</td></tr>
+<tr class="background1"><td align="right"><b class="textcolor">Grand Total</b></td><td colspan="4" align="left"><b class="texcolor">520 ( FOUR HUNDRED TWENTY ONE )</b></td></tr>
+<tr><td colspan="5"><table width="100%" cellpading="0" cellspacing="0"><tbody><tr class="background1" align="center"> <td colspan="4"><b class="textcolor">PERFORMANCE IN THE SUBJECTS OF SCHOOL BASED EXAMINATION</b></td> </tr>
+<tr><td colspan="4"><table width="100%" cellpading="0" cellspacing="0"><tbody><tr class="textcolor"><td><b>Subject Name</b></td><td align="center"><b>Grade</b></td></tr>
+<tr><td align="left">24 COMPUTER EDU.-T</td><td align="center">B1</td></tr>
+<tr><td align="left">51 COMPUTER EDU.-P</td><td align="center">A1</td></tr>
+</tbody></table></td></tr><tr class="textcolor background1 highlitedbg"><td class="titletxt" colspan="2">Overall Grade</td><td class="titletxt" colspan="3">Percentile Rank</td></tr>
+<tr class="textcolor background1 highlitedtd"><td colspan="2">B1</td> <td colspan="3">67.93</td> </tr>
+<tr class="background1" align="center"><td colspan="9"><font color="red">Note : </font>AO=Absent / XO= Exemption</td> </tr>
+</tbody></table>
+							
+
+						
+						<div class="m-m-gipl">Powered By :- <a href="http://www.gipl.in" class="blue-link" target="_blank">Guj Info Petro Limited</a></div>
+					
+					<div style="text-align:center;">
+						<a href="http://www.gipl.in" target="_blank" style="text-decoration:none;text-align: center;">
+							<img src="/images/gipl.png" alt="GIPL" style="height: 60px;margin: auto;margin-top: 6px;" border="0">
+						</a>
+					</div>
+				
+			
+		
+	
+
+
+
+
+
+<script type="text/javascript">
+	$(document).ready(function () {
+		$("#marksheet").src = "";
+		$("#studentnumber").src = "";
+		$("#drpInitChar").val("A");
+
+
+	});
+
+	// $(document).ready(function () {
+
+
+	//     $('#btnSearch').click(function () {
+	//         debugger;
+	//         if ($("#studentnumber").val().length != 6) {
+	//             alert("Student Number Has To be atleast 6 digits ");
+	//             return false;
+	//         }
+	//         $('#frmresult').submit();
+
+	//     });
+	// });
+	// Disable right click
+	document.addEventListener("contextmenu", function (e) {
+		e.preventDefault();
+	});
+
+	// Disable key shortcuts
+	document.onkeydown = function (e) {
+		if (e.keyCode == 123) return false; // F12
+		if (e.ctrlKey && e.shiftKey && e.keyCode == 73) return false; // Ctrl+Shift+I
+		if (e.ctrlKey && e.shiftKey && e.keyCode == 74) return false; // Ctrl+Shift+J
+		if (e.ctrlKey && e.keyCode == 85) return false; // Ctrl+U
+	};
+</script>
+        
+    
+
+    <footer b-z4jq4i4pza="" class="border-top footer text-muted">
+    </footer>
+    
+
+
+</td></tr></tbody></table></div></div></div></div></div>

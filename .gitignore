@@ -51,7 +51,12 @@ logs
 /public/uploads/fleet/*
 /public/uploads/driver-vehicles/*
 /public/uploads/web-stories/*
+/public/uploads/travel-agents/*
+/public/uploads/lead-payments/*
 !/public/uploads/.gitkeep
+
+# Sensitive KYC / private storage
+/storage/private/travel-agent-documents/*
 
 # Claude Code local settings
 .claude/settings.local.json

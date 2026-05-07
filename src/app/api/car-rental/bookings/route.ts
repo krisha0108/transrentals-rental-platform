@@ -88,6 +88,9 @@ export async function POST(request: NextRequest) {
       mode,              // modal sends outstationMode as 'mode'
       numberOfVehicles,
       numberOfEmployees,
+      // Travel-agent fields (forwarded from the booking page when the customer
+      // is linked to a travel agent — see customers.linkedTravelAgentId).
+      taBookingMode,    // 'PERSONAL' | 'COMPANY'
     } = body;
 
     // modal sends outstationMode as 'mode' and airportName as 'airport'
@@ -180,6 +183,104 @@ export async function POST(request: NextRequest) {
           isEmailVerified: true,
           isPhoneVerified: true,
         },
+      });
+    }
+
+    // ===== TRAVEL AGENT FLOW =====
+    // If this customer record is linked to a travel agent and the form picked
+    // a TA booking mode (Personal/Company) — route the request into the
+    // shared b2b_bookings table for the manager queue. No upfront payment.
+    const linkedTaRows: any[] = await (prisma as any).$queryRawUnsafe(
+      `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`,
+      customer.id,
+    );
+    const linkedTravelAgentId: string | null = linkedTaRows[0]?.linkedTravelAgentId || null;
+    const taMode: 'PERSONAL' | 'COMPANY' | null =
+      linkedTravelAgentId && (taBookingMode === 'PERSONAL' || taBookingMode === 'COMPANY')
+        ? taBookingMode
+        : null;
+
+    if (taMode) {
+      const vehiclesReq =
+        taMode === 'COMPANY' && numberOfVehicles && parseInt(numberOfVehicles) > 0
+          ? parseInt(numberOfVehicles)
+          : 1;
+
+      const taBookingNumber = `TA-${taMode === 'COMPANY' ? 'CO' : 'PR'}-${new Date()
+        .getFullYear()}-${Math.floor(Math.random() * 100000)
+        .toString()
+        .padStart(5, '0')}`;
+
+      // Fetch agent for companyName/agencyName (for the b2b row)
+      const agentRows: any[] = await (prisma as any).$queryRawUnsafe(
+        `SELECT agencyName, ownerName FROM travel_agents WHERE id = ? LIMIT 1`,
+        linkedTravelAgentId,
+      );
+      const agencyName = agentRows[0]?.agencyName || customer.name;
+
+      const taBooking = await prisma.b2b_bookings.create({
+        data: {
+          bookingNumber: taBookingNumber,
+          customerId: customer.id,
+          customerName: customer.name,
+          customerEmail: customer.email,
+          customerPhone: customer.phone,
+          companyName: agencyName,
+          serviceType: 'car',
+          vehiclesRequired: vehiclesReq,
+          passengerCount: numberOfEmployees ? parseInt(numberOfEmployees) : null,
+          vehicleCategory: carCategoryName || null,
+          pickupLocation: pickupCity,
+          dropLocation: dropCity || null,
+          tripType: tripType,
+          scheduledDate: pickup,
+          scheduledTime: pickupTime,
+          returnDate: ret,
+          returnTime: returnTime || null,
+          specialNotes: customerNotes || null,
+          status: 'OPEN_FOR_QUOTES',
+        },
+      });
+
+      // Set TA fields via raw SQL (columns not in generated client yet)
+      await (prisma as any).$executeRawUnsafe(
+        `UPDATE b2b_bookings SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+        linkedTravelAgentId,
+        taMode,
+        taBooking.id,
+      );
+
+      const token = await new SignJWT({
+        customerId: customer.id,
+        email: customer.email,
+        phone: customer.phone,
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('30d')
+        .sign(JWT_SECRET);
+
+      return NextResponse.json({
+        success: true,
+        message:
+          taMode === 'COMPANY'
+            ? 'Company booking request sent to manager. You will receive a quote shortly.'
+            : 'Personal booking request sent to manager. You will receive a quote shortly.',
+        booking: {
+          id: taBooking.id,
+          bookingNumber: taBooking.bookingNumber,
+          status: taBooking.status,
+        },
+        customer: {
+          id: customer.id,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+        },
+        token,
+        isTravelAgent: true,
+        bookingMode: taMode,
+        redirect_to: `/customer/b2b-bookings/${taBooking.id}?customer_id=${customer.id}`,
       });
     }
 

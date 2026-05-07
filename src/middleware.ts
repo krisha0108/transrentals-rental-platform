@@ -144,6 +144,28 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Handle travel-agent dashboard protection (exclude auth pages, public lead-capture, share links)
+  if (pathname.startsWith('/travel-agent/') &&
+      !pathname.startsWith('/travel-agent/login') &&
+      !pathname.startsWith('/travel-agent/register') &&
+      !pathname.startsWith('/travel-agent/forgot-password') &&
+      !pathname.startsWith('/travel-agent/lead/') &&
+      !pathname.startsWith('/travel-agent/booking/share/') &&
+      pathname !== '/travel-agent') {
+    // Travel-agent provider lives in the default authOptions, so the cookie
+    // is the default NextAuth session cookie — no custom cookieName needed.
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+
+    if (!token || token.userType !== 'travel_agent') {
+      const loginUrl = new URL('/travel-agent/login', request.url);
+      const redirectResponse = NextResponse.redirect(loginUrl);
+      return addSecurityHeaders(redirectResponse);
+    }
+  }
+
   // NOTE: Dynamic redirects via Prisma removed - use next.config.js redirects instead
   // Prisma cannot run in Edge Runtime (middleware always runs on edge)
   // Static redirects in next.config.js handle all redirect cases

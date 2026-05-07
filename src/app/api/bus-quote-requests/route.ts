@@ -111,6 +111,8 @@ export async function POST(request: NextRequest) {
       isB2B,
       numberOfVehicles,
       numberOfPersons,
+      // Travel-agent fields
+      taBookingMode,    // 'PERSONAL' | 'COMPANY'
     } = body;
 
     // ===== INPUT SANITIZATION (XSS Protection) =====
@@ -174,6 +176,113 @@ export async function POST(request: NextRequest) {
         { error: 'Valid trip type is required' },
         { status: 400 }
       );
+    }
+
+    // ============ TRAVEL AGENT FLOW ============
+    // If the submitting customer is linked to a travel agent and has chosen
+    // a TA booking mode, route the request into b2b_bookings for the manager
+    // queue. No advance, monthly invoice for company bookings.
+    if (taBookingMode === 'PERSONAL' || taBookingMode === 'COMPANY') {
+      // Find / resolve the customer
+      let taCustomer: any = null;
+      if (customerId) {
+        taCustomer = await prisma.customers.findUnique({ where: { id: customerId } });
+      }
+      if (!taCustomer && customerEmail) {
+        taCustomer = await prisma.customers.findFirst({
+          where: { email: customerEmail.toLowerCase() },
+        });
+      }
+      if (!taCustomer && customerPhone) {
+        taCustomer = await prisma.customers.findFirst({ where: { phone: customerPhone } });
+      }
+
+      if (taCustomer) {
+        const linkedRows: any[] = await (prisma as any).$queryRawUnsafe(
+          `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`,
+          taCustomer.id,
+        );
+        const linkedTravelAgentId: string | null =
+          linkedRows[0]?.linkedTravelAgentId || null;
+
+        if (linkedTravelAgentId) {
+          const vehiclesReq =
+            taBookingMode === 'COMPANY' && numberOfVehicles && parseInt(numberOfVehicles) > 0
+              ? parseInt(numberOfVehicles)
+              : 1;
+
+          const agentRows: any[] = await (prisma as any).$queryRawUnsafe(
+            `SELECT agencyName, ownerName FROM travel_agents WHERE id = ? LIMIT 1`,
+            linkedTravelAgentId,
+          );
+          const agencyName = agentRows[0]?.agencyName || taCustomer.name;
+
+          const taBookingId = generateB2BId();
+          const taBookingNumber = `TA-${taBookingMode === 'COMPANY' ? 'CO' : 'PR'}-${new Date()
+            .getFullYear()}-${Math.floor(Math.random() * 100000)
+            .toString()
+            .padStart(5, '0')}`;
+
+          const busPreference = {
+            vehicleCategoryName: vehicleCategoryName || 'Standard Bus',
+            passengers: passengers ? parseInt(String(passengers)) : null,
+            needAC: needAC === true || needAC === 'true',
+            needLuxury: needLuxury === true || needLuxury === 'true',
+            needSleeper: needSleeper === true || needSleeper === 'true',
+            requirements: requirements || null,
+            routeDetails: routeDetails || null,
+          };
+
+          const taBooking = await prisma.b2b_bookings.create({
+            data: {
+              id: taBookingId,
+              bookingNumber: taBookingNumber,
+              customerId: taCustomer.id,
+              customerName: taCustomer.name,
+              customerEmail: taCustomer.email,
+              customerPhone: taCustomer.phone,
+              companyName: agencyName,
+              serviceType: 'bus',
+              vehiclesRequired: vehiclesReq,
+              passengerCount: passengers ? parseInt(String(passengers)) : null,
+              vehicleCategory: vehicleCategoryName || 'Standard Bus',
+              pickupLocation: pickupCity ? String(pickupCity).trim() : null,
+              dropLocation: dropCity ? String(dropCity).trim() : null,
+              tripType: tripType || 'outstation',
+              scheduledDate: new Date(pickupDate),
+              scheduledTime: pickupTime || '06:00',
+              returnDate: returnDate ? new Date(returnDate) : null,
+              returnTime: returnTime || null,
+              specialNotes: JSON.stringify(busPreference),
+              status: 'OPEN_FOR_QUOTES',
+            },
+          });
+
+          await (prisma as any).$executeRawUnsafe(
+            `UPDATE b2b_bookings SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+            linkedTravelAgentId,
+            taBookingMode,
+            taBooking.id,
+          );
+
+          return NextResponse.json({
+            success: true,
+            isTravelAgent: true,
+            bookingMode: taBookingMode,
+            message:
+              taBookingMode === 'COMPANY'
+                ? 'Company bus booking sent to manager. Quote will be shared shortly.'
+                : 'Personal bus booking sent to manager. Quote will be shared shortly.',
+            booking: {
+              id: taBooking.id,
+              bookingNumber: taBooking.bookingNumber,
+              status: taBooking.status,
+            },
+            redirect_to: `/customer/b2b-bookings/${taBooking.id}?customer_id=${taCustomer.id}`,
+          });
+        }
+      }
+      // If we couldn't link, fall through to normal quote-request flow
     }
 
     // ============ B2B FLOW ============

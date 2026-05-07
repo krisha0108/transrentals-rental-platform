@@ -84,6 +84,13 @@ function BookingContent({ location }: { location: string }) {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Travel-agent flow
+  const [isTravelAgent, setIsTravelAgent] = useState(false);
+  const [agentName, setAgentName] = useState('');
+  const [taBookingMode, setTaBookingMode] = useState<'PERSONAL' | 'COMPANY'>('PERSONAL');
+  const [numberOfVehicles, setNumberOfVehicles] = useState('1');
+  const [numberOfEmployees, setNumberOfEmployees] = useState('');
+
   // Check if user is logged in and pre-fill details
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -94,6 +101,10 @@ function BookingContent({ location }: { location: string }) {
           setCustomerName(customer.name || '');
           setCustomerEmail(customer.email || '');
           setCustomerPhone(customer.phone || '');
+          if (customer.linkedTravelAgentId) {
+            setIsTravelAgent(true);
+            setAgentName(customer.name || '');
+          }
         } catch (e) {
           console.error('Failed to parse customer data:', e);
         }
@@ -128,7 +139,7 @@ function BookingContent({ location }: { location: string }) {
     setIsSubmitting(true);
 
     try {
-      const bookingData = {
+      const bookingData: any = {
         tripType,
         carCategory,
         carCategoryName: carName,
@@ -155,6 +166,17 @@ function BookingContent({ location }: { location: string }) {
         platformFee,
         grandTotal,
       };
+
+      // Travel-agent: forward mode + (for COMPANY) number of vehicles/employees
+      if (isTravelAgent) {
+        bookingData.taBookingMode = taBookingMode;
+        if (taBookingMode === 'COMPANY') {
+          bookingData.numberOfVehicles = numberOfVehicles;
+          if (numberOfEmployees) bookingData.numberOfEmployees = numberOfEmployees;
+        } else {
+          bookingData.numberOfVehicles = '1';
+        }
+      }
 
       const response = await fetch('/api/car-rental/bookings', {
         method: 'POST',
@@ -317,6 +339,91 @@ function BookingContent({ location }: { location: string }) {
                 </div>
               </div>
 
+              {/* ── Travel Agent mode selector (only when linked) ── */}
+              {isTravelAgent && (
+                <div className="bg-gradient-to-br from-indigo-50 via-emerald-50 to-teal-50 border border-indigo-200 rounded-xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle2 className="w-5 h-5 text-indigo-600" />
+                    <h2 className="font-semibold text-base text-indigo-900">
+                      Booking as Travel Agent — {agentName}
+                    </h2>
+                  </div>
+                  <p className="text-xs text-indigo-700 mb-4">
+                    No upfront payment required. Your request will be sent to the
+                    manager who will share a quote and assign vehicles.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setTaBookingMode('PERSONAL')}
+                      className={`text-left p-4 rounded-lg border-2 transition ${
+                        taBookingMode === 'PERSONAL'
+                          ? 'bg-white border-indigo-500 ring-2 ring-indigo-200'
+                          : 'bg-white/60 border-gray-200 hover:border-indigo-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">👤</span>
+                        <p className="font-bold text-sm text-gray-900">Personal Booking</p>
+                      </div>
+                      <p className="text-[11px] text-gray-600 mt-1">
+                        For you / your family. 1 vehicle, manager review.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTaBookingMode('COMPANY')}
+                      className={`text-left p-4 rounded-lg border-2 transition ${
+                        taBookingMode === 'COMPANY'
+                          ? 'bg-white border-indigo-500 ring-2 ring-indigo-200'
+                          : 'bg-white/60 border-gray-200 hover:border-indigo-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🏢</span>
+                        <p className="font-bold text-sm text-gray-900">Company Booking</p>
+                      </div>
+                      <p className="text-[11px] text-gray-600 mt-1">
+                        For your agency. Multi-vehicle, monthly invoiced.
+                      </p>
+                    </button>
+                  </div>
+
+                  {taBookingMode === 'COMPANY' && (
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-indigo-200">
+                      <div>
+                        <label className="block text-xs font-semibold text-indigo-900 mb-1">
+                          # of Vehicles *
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={numberOfVehicles}
+                          onChange={(e) => setNumberOfVehicles(e.target.value)}
+                          className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-indigo-900 mb-1">
+                          # of Passengers
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={numberOfEmployees}
+                          onChange={(e) => setNumberOfEmployees(e.target.value)}
+                          placeholder="Optional"
+                          className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 bg-white"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Pickup/Drop Address */}
               <div className="bg-white rounded-xl shadow-sm p-6">
                 <h2 className="font-semibold text-lg mb-4">Pickup & Drop Details</h2>
@@ -460,12 +567,21 @@ function BookingContent({ location }: { location: string }) {
                 <button
                   type="submit"
                   disabled={isSubmitting || !agreeTerms}
-                  className="w-full mt-6 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-4 rounded-lg transition flex items-center justify-center gap-2"
+                  className={`w-full mt-6 disabled:bg-gray-400 text-white font-semibold py-4 rounded-lg transition flex items-center justify-center gap-2 ${
+                    isTravelAgent
+                      ? 'bg-indigo-600 hover:bg-indigo-700'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
                 >
                   {isSubmitting ? (
                     <>
                       <span className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
                       Processing...
+                    </>
+                  ) : isTravelAgent ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      Submit Request to Manager
                     </>
                   ) : (
                     <>
@@ -478,9 +594,27 @@ function BookingContent({ location }: { location: string }) {
             </form>
           </div>
 
-          {/* Right - Price Summary */}
+          {/* Right - Price Summary (or TA quote-pending notice) */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm p-6 sticky top-4">
+              {isTravelAgent ? (
+                <>
+                  <h3 className="font-semibold text-lg mb-2 text-indigo-900">Quote Pending</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    The manager will review your request and share a custom quote.
+                    {taBookingMode === 'COMPANY'
+                      ? ' Company bookings are billed monthly via invoice.'
+                      : ' Personal bookings are billed after the trip.'}
+                  </p>
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-xs text-indigo-800 space-y-1.5">
+                    <p className="font-semibold">Estimated reference fare</p>
+                    <p className="text-gray-700">
+                      ₹{fare.toLocaleString()} (subject to manager review)
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
               <h3 className="font-semibold text-lg mb-4">Fare Breakdown</h3>
 
               <div className="space-y-3 text-sm">
@@ -499,6 +633,8 @@ function BookingContent({ location }: { location: string }) {
                   <span className="font-bold text-blue-600">₹{grandTotal.toLocaleString()}</span>
                 </div>
               </div>
+                </>
+              )}
 
               {/* What's Included */}
               <div className="mt-6 pt-6 border-t">

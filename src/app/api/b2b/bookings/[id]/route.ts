@@ -106,6 +106,20 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'B2B booking not found' }, { status: 404 });
     }
 
+    // Enrich with TA fields (columns not yet in generated Prisma client)
+    let travelAgentId: string | null = null;
+    let bookingMode: string | null = null;
+    try {
+      const taRows: any[] = await (prisma as any).$queryRawUnsafe(
+        `SELECT travelAgentId, bookingMode FROM b2b_bookings WHERE id = ? LIMIT 1`,
+        id,
+      );
+      travelAgentId = taRows[0]?.travelAgentId || null;
+      bookingMode = taRows[0]?.bookingMode || null;
+    } catch { /* columns may not exist in older deployments */ }
+    (booking as any).travelAgentId = travelAgentId;
+    (booking as any).bookingMode = bookingMode;
+
     // Strip OTP from trips (should not be exposed in booking detail)
     const sanitizedTrips = booking.trips.map(({ otp, otpGeneratedAt, ...rest }: any) => rest);
 

@@ -56,11 +56,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
 
+    // Enrich with linkedTravelAgentId via raw SQL (column not in generated Prisma client yet)
+    let linkedTravelAgentId: string | null = null;
+    try {
+      const rows: any[] = await (prisma as any).$queryRawUnsafe(
+        `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`,
+        customer.id,
+      );
+      linkedTravelAgentId = rows[0]?.linkedTravelAgentId || null;
+    } catch {
+      /* column may not exist in older deployments */
+    }
+
     return NextResponse.json({
       success: true,
       customers: {
         ...customer,
         image: customer.avatar,
+        linkedTravelAgentId,
       },
     });
   } catch (error) {

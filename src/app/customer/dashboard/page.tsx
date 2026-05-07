@@ -1095,6 +1095,37 @@ export default function CustomerDashboardPage() {
 
       {/* Main Content with top padding for fixed header */}
       <div className="pt-16">
+        {/* Travel-Agent Self-Booking Banner — shown when this customer record
+             is linked to a travel agent (i.e. the agent is using their own
+             customer login to place bookings). Quick way back to the agent
+             dashboard. */}
+        {(customer as any)?.linkedTravelAgentId && (
+          <div className="bg-gradient-to-r from-indigo-600 via-emerald-600 to-teal-600 text-white">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5 flex-1">
+                <div className="w-8 h-8 bg-white/15 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Sparkles className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">You&apos;re signed in as a Travel Agent</p>
+                  <p className="text-[11px] text-white/85 leading-relaxed">
+                    <span className="font-semibold">Car Rental</span> supports full TA modes (Personal &amp; Company with manager review).
+                    Other transport services book as standard customer.
+                    Non-transport services (packers, equipment, group trips) are not available for company booking — they use standard flow.
+                    All bookings auto-appear on your agent dashboard.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/travel-agent/bookings"
+                className="inline-flex items-center gap-1.5 bg-white text-indigo-700 hover:bg-indigo-50 text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0"
+              >
+                Open Agent Dashboard <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* B2B Approval Pending Banner */}
         {customer?.isB2B && customer?.b2bStatus !== 'APPROVED' && (
           <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200">

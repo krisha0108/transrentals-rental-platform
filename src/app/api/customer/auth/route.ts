@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import bcrypt from 'bcryptjs';
+import { encode } from 'next-auth/jwt';
 import {
   checkRateLimit,
   RATE_LIMITS,
@@ -16,6 +17,208 @@ import {
 } from '@/lib/security';
 import { sendOTPEmail } from '@/lib/services/email-service';
 import { generateCustomerId } from '@/lib/utils/id-generator';
+
+// The travel-agent provider is registered in the SHARED authOptions (used by
+// /api/auth/[...nextauth]) — that uses the default NextAuth cookie name and is
+// what the middleware/getToken read from.
+const TA_COOKIE_NAME =
+  process.env.NODE_ENV === 'production'
+    ? '__Secure-next-auth.session-token'
+    : 'next-auth.session-token';
+const TA_SESSION_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
+
+/**
+ * Try to authenticate the request as a travel agent (same email + password as
+ * the agent's profile). If successful, set the NextAuth travel-agent session
+ * cookie on the response and return a payload telling the client to redirect
+ * to the travel-agent dashboard.
+ */
+async function tryTravelAgentLogin(
+  email: string,
+  password: string,
+  request: NextRequest,
+  ip: string,
+): Promise<NextResponse | null> {
+  if (!prisma) return null;
+
+  const agent = await (prisma as any).travel_agents.findUnique({
+    where: { email: email.toLowerCase().trim() },
+  });
+  if (!agent || !agent.password) return null;
+
+  const ok = await bcrypt.compare(password, agent.password);
+  if (!ok) return null;
+
+  // Block disallowed account states with a clear error so the agent knows why
+  if (agent.status === 'BLOCKED') {
+    return NextResponse.json(
+      { status: 'error', message: 'Your travel agent account has been blocked. Contact support.' },
+      { status: 403 },
+    );
+  }
+  if (agent.status === 'SUSPENDED') {
+    return NextResponse.json(
+      { status: 'error', message: 'Your travel agent account is suspended. Contact support.' },
+      { status: 403 },
+    );
+  }
+  if (agent.status === 'REJECTED') {
+    return NextResponse.json(
+      { status: 'error', message: 'Your travel agent application was rejected. Contact support.' },
+      { status: 403 },
+    );
+  }
+
+  // Update last login (best-effort)
+  await (prisma as any).travel_agents
+    .update({ where: { id: agent.id }, data: { lastLoginAt: new Date() } })
+    .catch(() => {});
+
+  // ── Shadow customer: ensure this TA has a linked customer record so the
+  //    customer-side booking flows treat them as logged-in.
+  const shadowCustomer = await ensureShadowCustomer(agent, password);
+
+  // Encode a NextAuth-compatible JWT for the TA dashboard cookie.
+  const now = Math.floor(Date.now() / 1000);
+  const sessionToken = await encode({
+    token: {
+      id: agent.id,
+      sub: agent.id,
+      email: agent.email,
+      name: agent.agencyName,
+      role: 'TRAVEL_AGENT',
+      userType: 'travel_agent',
+      status: agent.status,
+      phone: agent.phone,
+      ownerName: agent.ownerName,
+      iat: now,
+      exp: now + TA_SESSION_MAX_AGE,
+    },
+    secret: process.env.NEXTAUTH_SECRET!,
+    maxAge: TA_SESSION_MAX_AGE,
+  });
+
+  // Also issue a customer JWT (for localStorage) so customer-side booking
+  // forms see this TA as a logged-in customer when they self-book.
+  const fingerprint = generateFingerprint(
+    request.headers.get('user-agent') || undefined,
+    ip,
+  );
+  const { token: customerToken, expiresAt, expiresIn } = await createAccessToken(
+    shadowCustomer.id,
+    fingerprint,
+  );
+
+  const response = NextResponse.json({
+    status: 'success',
+    message: 'Travel agent login successful',
+    userType: 'travel_agent',
+    // Redirect to the customer dashboard — TA stays in "as a customer" mode
+    // so booking flows treat them as logged-in. The customer dashboard shows
+    // a banner with a one-click link back to /travel-agent/bookings when needed.
+    redirect: '/customer/dashboard',
+    travelAgent: {
+      id: agent.id,
+      email: agent.email,
+      agencyName: agent.agencyName,
+      ownerName: agent.ownerName,
+      phone: agent.phone,
+      status: agent.status,
+    },
+    // Customer-shaped payload for the existing /customer/login form to
+    // persist into localStorage — keeps customer flows happy.
+    token: customerToken,
+    expiresAt: expiresAt.toISOString(),
+    expiresIn,
+    customers: {
+      id: shadowCustomer.id,
+      name: shadowCustomer.name,
+      email: shadowCustomer.email,
+      phone: shadowCustomer.phone,
+      avatar: shadowCustomer.avatar || null,
+      isB2B: false,
+      companyName: null,
+      b2bStatus: null,
+      linkedTravelAgentId: agent.id,
+    },
+  });
+
+  response.cookies.set(TA_COOKIE_NAME, sessionToken, {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: TA_SESSION_MAX_AGE,
+  });
+
+  logger.info('Travel agent login via customer auth route', {
+    agentId: agent.id,
+    shadowCustomerId: shadowCustomer.id,
+  });
+
+  return response;
+}
+
+/**
+ * Make sure a customer row exists for the given travel agent, linked via
+ * `linkedTravelAgentId`. Returns the (existing or freshly created) customer.
+ *
+ * Phone uniqueness: customers.phone is UNIQUE. If the agent's phone is already
+ * taken by another customer, we fall back to a deterministic placeholder
+ * (`ta-<agentId>`) so creation doesn't fail.
+ */
+async function ensureShadowCustomer(agent: any, plaintextPassword: string) {
+  // 1) Already a customer with this email?
+  const existingByEmail: any = await (prisma as any).customers.findFirst({
+    where: { email: agent.email.toLowerCase() },
+  });
+
+  if (existingByEmail) {
+    // Link it (idempotent — raw SQL because the field isn't in the generated client yet)
+    await (prisma as any).$executeRawUnsafe(
+      `UPDATE customers SET linkedTravelAgentId = ? WHERE id = ? AND (linkedTravelAgentId IS NULL OR linkedTravelAgentId = ?)`,
+      agent.id,
+      existingByEmail.id,
+      agent.id,
+    );
+    return existingByEmail;
+  }
+
+  // 2) No customer yet — create one. Use the agent's hashed password directly
+  //    so the same credentials work standalone too if ever needed.
+  const hashedPassword =
+    agent.password ?? (await bcrypt.hash(plaintextPassword, 12));
+
+  // Determine a non-conflicting phone
+  let phoneToUse = agent.phone || `ta-${agent.id}`;
+  if (agent.phone) {
+    const phoneTaken: any = await (prisma as any).customers.findFirst({
+      where: { phone: agent.phone },
+    });
+    if (phoneTaken) phoneToUse = `ta-${agent.id}`;
+  }
+
+  const newId = await generateCustomerId();
+  const created: any = await (prisma as any).customers.create({
+    data: {
+      id: newId,
+      name: agent.ownerName || agent.agencyName || agent.email.split('@')[0],
+      email: agent.email.toLowerCase(),
+      phone: phoneToUse,
+      password: hashedPassword,
+      isEmailVerified: true,
+    },
+  });
+
+  // Set the link via raw SQL (column not in generated Prisma client yet)
+  await (prisma as any).$executeRawUnsafe(
+    `UPDATE customers SET linkedTravelAgentId = ? WHERE id = ?`,
+    agent.id,
+    created.id,
+  );
+
+  return created;
+}
 
 // Helper to get client IP
 function getClientIP(request: NextRequest): string {
@@ -176,6 +379,13 @@ async function handleLogin(
   });
 
   if (!customer) {
+    // No customer with this email — try travel-agent credentials before failing
+    const taResponse = await tryTravelAgentLogin(normalizedEmail, password, request, ip);
+    if (taResponse) {
+      clearLockoutOnSuccess(normalizedEmail, ip);
+      return taResponse;
+    }
+
     // Record failed attempt (but don't reveal if user exists)
     recordFailedLogin(normalizedEmail, ip);
     return NextResponse.json(
@@ -205,6 +415,14 @@ async function handleLogin(
   const isValidPassword = await bcrypt.compare(password, customer.password);
 
   if (!isValidPassword) {
+    // Customer password mismatch — same email may be a travel agent's email,
+    // try TA credentials before treating this as a hard failure.
+    const taResponse = await tryTravelAgentLogin(normalizedEmail, password, request, ip);
+    if (taResponse) {
+      clearLockoutOnSuccess(normalizedEmail, ip);
+      return taResponse;
+    }
+
     const lockoutResult = recordFailedLogin(normalizedEmail, ip);
     logger.logSecurityEvent('Failed login attempt', 'low', { email: normalizedEmail, ip });
 

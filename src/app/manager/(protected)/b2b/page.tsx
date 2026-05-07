@@ -258,6 +258,16 @@ export default function ManagerB2BPage() {
                         {b.status === 'QUOTES_RECEIVED' && (
                           <span className="px-2 py-0.5 rounded bg-orange-500 text-white text-xs font-bold animate-pulse">ACTION NEEDED</span>
                         )}
+                        {b.travelAgentId && b.bookingMode === 'PERSONAL' && (
+                          <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold border border-indigo-200">
+                            🌟 TA · PERSONAL
+                          </span>
+                        )}
+                        {b.travelAgentId && b.bookingMode === 'COMPANY' && (
+                          <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold border border-purple-200">
+                            🏢 TA · COMPANY
+                          </span>
+                        )}
                       </div>
                       <div className="font-semibold text-gray-900">{b.companyName}</div>
                       <div className="flex flex-wrap gap-4 text-sm text-gray-500 mt-1">

@@ -10,7 +10,9 @@ import {
   MessageSquare, ChevronRight, Building2, Send,
   ArrowLeft, Info, Check, X, ChevronLeft,
   TrendingUp, TrendingDown, Minus, Hourglass,
+  Smartphone, Copy, CreditCard, Banknote, Plus,
 } from 'lucide-react';
+import QRCode from 'qrcode';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import WanderChat from '@/components/wander/WanderChat';
 import CustomerHeader from '@/components/customer/CustomerHeader';
@@ -272,6 +274,18 @@ export default function CustomerWanderQuoteDetailPage() {
         </div>
       </div>
 
+      {/* ══ TOUR DETAILS — description / highlights / itinerary / terms ═════ */}
+      {(listing?.description ||
+        listing?.itinerary ||
+        listing?.termsConditions ||
+        (listing?.tourHighlights && listing.tourHighlights.length > 0) ||
+        (listing?.tourInclusions && listing.tourInclusions.length > 0) ||
+        (listing?.tourExclusions && listing.tourExclusions.length > 0)) && (
+        <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-8">
+          <TourDetailsSection listing={listing} />
+        </div>
+      )}
+
       {/* ══ BODY — two-column grid ════════════════════════════════════════════ */}
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -374,8 +388,8 @@ export default function CustomerWanderQuoteDetailPage() {
               </div>
             )}
 
-            {/* Confirmed banner (non-B2B only) */}
-            {isAccepted && !wanderBooking?.isB2BBooking && (!wanderBooking?.advanceAmount || wanderBooking?.status === 'CONFIRMED') && (
+            {/* Confirmed banner (non-B2B only) — skipped for travel-agent leads (their card handles it) */}
+            {isAccepted && !data.isTravelAgentLead && !wanderBooking?.isB2BBooking && (!wanderBooking?.advanceAmount || wanderBooking?.status === 'CONFIRMED') && (
               <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-lg">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -405,6 +419,106 @@ export default function CustomerWanderQuoteDetailPage() {
             {wanderBooking?.status === 'COMPLETED' && (
               <ReviewCard bookingId={wanderBooking.id} customerId={data.customer?.id} />
             )}
+
+            {/* Travel-agent payment flow — only after the customer accepts */}
+            {data.isTravelAgentLead && data.customerAcceptedAt && data.quotes?.[0] && (() => {
+              const q = data.quotes[0];
+              const adv = calcAdvance(Number(q.amount));
+              const amountDue = adv ?? Number(q.amount);
+              const pStatus = data.payment?.status || 'PENDING';
+
+              // Verified — done
+              if (pStatus === 'VERIFIED') {
+                return (
+                  <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white shadow-lg">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <CheckCircle className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="font-black text-base">Payment Confirmed!</p>
+                        <p className="text-emerald-100 text-xs">Booking is confirmed</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-emerald-50 leading-relaxed mt-2">
+                      Advance of ₹{amountDue.toLocaleString('en-IN')} verified. The agent will contact you shortly with trip details.
+                    </p>
+                    {data.payment?.txnId && (
+                      <p className="text-[11px] text-emerald-100 mt-2 font-mono">Txn: {data.payment.txnId}</p>
+                    )}
+                  </div>
+                );
+              }
+
+              // Submitted — under review
+              if (pStatus === 'SUBMITTED') {
+                return (
+                  <div className="bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl p-5 text-white shadow-lg">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Hourglass className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="font-black text-base">Payment Under Review</p>
+                        <p className="text-amber-100 text-xs">Agent is verifying your payment</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-amber-50 leading-relaxed mt-2">
+                      Advance of ₹{amountDue.toLocaleString('en-IN')} submitted. You'll be notified once the agent confirms.
+                    </p>
+                    <div className="mt-3 bg-white/10 rounded-xl p-3 space-y-1 text-xs">
+                      {data.payment.txnId ? (
+                        <p><span className="text-amber-100">Txn ID:</span> <span className="font-mono font-semibold">{data.payment.txnId}</span></p>
+                      ) : (
+                        <p className="text-amber-100">Submitted via screenshot</p>
+                      )}
+                      {data.payment.note && <p><span className="text-amber-100">Note:</span> {data.payment.note}</p>}
+                      {data.payment.images?.length > 0 && (
+                        <div className="flex gap-2 mt-2">
+                          {data.payment.images.map((src: string, i: number) => (
+                            <a key={i} href={src} target="_blank" rel="noreferrer">
+                              <img src={src} className="w-12 h-12 rounded-lg object-cover border-2 border-white/40" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {data.payment.rejectReason && (
+                      <p className="text-xs text-amber-100 mt-2">
+                        Note from agent: {data.payment.rejectReason}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+
+              // Pending — payment needed
+              return (
+                <>
+                  {data.agentPaymentMethod && (
+                    <UpiPaymentCard
+                      upiId={data.agentPaymentMethod.upiId}
+                      payeeName={data.agentPaymentMethod.payeeName}
+                      amount={amountDue}
+                      reference={`Advance-${data.requestId || data.id}`}
+                      bank={data.agentPaymentMethod.bank}
+                    />
+                  )}
+                  <PaymentProofForm
+                    leadId={data.id}
+                    expectedAmount={amountDue}
+                    rejectReason={data.payment?.rejectReason}
+                    onSubmitted={async () => {
+                      const res = await fetch(`/api/customer/wander-quote-requests/${data.id}`);
+                      if (res.ok) {
+                        const fresh = await res.json();
+                        setData(fresh);
+                      }
+                    }}
+                  />
+                </>
+              );
+            })()}
 
             {/* Request details card */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -613,28 +727,79 @@ export default function CustomerWanderQuoteDetailPage() {
                                 </div>
                               );
                             })()}
-                            {/* Advance payment pill */}
+                            {/* Payment breakdown */}
                             {(() => {
                               const adv = calcAdvance(Number(quote.amount));
                               if (!adv) return null;
+                              const total = Number(quote.amount);
+                              const balance = total - adv;
+                              const advPct = total > 0 ? Math.round((adv / total) * 100) : 0;
                               return (
-                                <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                                  <p className="text-[10px] text-amber-500 uppercase tracking-wider font-semibold mb-0.5">
-                                    ⚡ Advance Required
-                                    {listing.advancePaymentType === 'PERCENTAGE' ? ` (${listing.advancePaymentValue}%)` : ''}
-                                  </p>
-                                  <p className="text-lg font-black text-amber-700">₹{adv.toLocaleString('en-IN')}</p>
-                                  <p className="text-[10px] text-amber-400 mt-0.5">
-                                    Balance ₹{(Number(quote.amount) - adv).toLocaleString('en-IN')} on trip day
-                                  </p>
+                                <div className="mt-3 bg-white border-2 border-amber-200 rounded-2xl p-3.5 shadow-sm">
+                                  <div className="flex items-center justify-between mb-2.5">
+                                    <p className="text-[10px] text-amber-600 uppercase tracking-wider font-bold flex items-center gap-1">
+                                      ⚡ Payment Plan
+                                    </p>
+                                    <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
+                                      {listing.advancePaymentType === 'PERCENTAGE'
+                                        ? `${listing.advancePaymentValue}% advance`
+                                        : 'Fixed advance'}
+                                    </span>
+                                  </div>
+                                  {/* Visual split bar */}
+                                  <div className="flex h-2 rounded-full overflow-hidden mb-3 bg-gray-100">
+                                    <div
+                                      className="bg-gradient-to-r from-amber-400 to-orange-500"
+                                      style={{ width: `${advPct}%` }}
+                                    />
+                                    <div
+                                      className="bg-gradient-to-r from-emerald-400 to-teal-500"
+                                      style={{ width: `${100 - advPct}%` }}
+                                    />
+                                  </div>
+                                  {/* Pay now */}
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-1.5 mb-0.5">
+                                        <span className="w-2 h-2 rounded-full bg-amber-500" />
+                                        <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide">Pay Now</p>
+                                      </div>
+                                      <p className="text-xl font-black text-amber-700 leading-tight">
+                                        ₹{adv.toLocaleString('en-IN')}
+                                      </p>
+                                      <p className="text-[10px] text-gray-500 mt-0.5">to confirm booking</p>
+                                    </div>
+                                    <div className="flex-1 text-right">
+                                      <div className="flex items-center justify-end gap-1.5 mb-0.5">
+                                        <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">Balance</p>
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                      </div>
+                                      <p className="text-xl font-black text-emerald-700 leading-tight">
+                                        ₹{balance.toLocaleString('en-IN')}
+                                      </p>
+                                      <p className="text-[10px] text-gray-500 mt-0.5">on trip day</p>
+                                    </div>
+                                  </div>
                                 </div>
                               );
                             })()}
                             <div className="mt-3 text-xs text-gray-400">
                               <span>Received {fmt(quote.createdAt)}</span>
-                              {quote.validUntil && (
-                                <span className="block text-amber-600 font-medium mt-0.5">Valid until {fmt(quote.validUntil)}</span>
-                              )}
+                              {quote.validUntil && (() => {
+                                const expired = new Date(quote.validUntil) < new Date();
+                                return (
+                                  <span
+                                    className={`block font-semibold mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] border ${
+                                      expired
+                                        ? 'bg-red-50 text-red-600 border-red-200'
+                                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                                    }`}
+                                  >
+                                    <Clock className="w-2.5 h-2.5" />
+                                    {expired ? 'Expired' : `Valid till ${fmt(quote.validUntil)}`}
+                                  </span>
+                                );
+                              })()}
                             </div>
                           </div>
 
@@ -755,25 +920,69 @@ export default function CustomerWanderQuoteDetailPage() {
               {(() => {
                 const adv = calcAdvance(Number(confirmQuote.amount));
                 if (!adv) return null;
-                const balance = Number(confirmQuote.amount) - adv;
+                const total = Number(confirmQuote.amount);
+                const balance = total - adv;
+                const advPct = total > 0 ? Math.round((adv / total) * 100) : 0;
                 return (
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6">
-                    <p className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                      ⚡ Advance Payment Required
-                    </p>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-amber-700">
-                          Pay now
-                          {listing.advancePaymentType === 'PERCENTAGE' ? ` (${listing.advancePaymentValue}%)` : ''}
-                        </span>
-                        <span className="text-xl font-black text-amber-700">₹{adv.toLocaleString('en-IN')}</span>
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 mb-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-xs font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1.5">
+                        ⚡ Payment Plan
+                      </p>
+                      <span className="text-[10px] font-bold text-amber-700 bg-white border border-amber-200 px-2 py-0.5 rounded-full">
+                        {listing.advancePaymentType === 'PERCENTAGE'
+                          ? `${listing.advancePaymentValue}% advance`
+                          : 'Fixed advance'}
+                      </span>
+                    </div>
+
+                    {/* Visual split bar */}
+                    <div className="flex h-2.5 rounded-full overflow-hidden mb-3.5 bg-white border border-amber-100">
+                      <div
+                        className="bg-gradient-to-r from-amber-400 to-orange-500 flex items-center justify-end pr-1"
+                        style={{ width: `${advPct}%` }}
+                      />
+                      <div
+                        className="bg-gradient-to-r from-emerald-400 to-teal-500"
+                        style={{ width: `${100 - advPct}%` }}
+                      />
+                    </div>
+
+                    {/* Two-column breakdown */}
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div className="bg-white rounded-xl p-3 border border-amber-200 shadow-sm">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="w-2 h-2 rounded-full bg-amber-500" />
+                          <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wide">Pay Now</p>
+                        </div>
+                        <p className="text-2xl font-black text-amber-700 leading-tight">
+                          ₹{adv.toLocaleString('en-IN')}
+                        </p>
+                        <p className="text-[10px] text-gray-500 mt-1">
+                          {advPct}% to confirm
+                        </p>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-gray-400 border-t border-amber-100 pt-2">
-                        <span>Balance due on trip day</span>
-                        <span className="font-semibold text-gray-600">₹{balance.toLocaleString('en-IN')}</span>
+                      <div className="bg-white rounded-xl p-3 border border-emerald-200 shadow-sm">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                          <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">Balance</p>
+                        </div>
+                        <p className="text-2xl font-black text-emerald-700 leading-tight">
+                          ₹{balance.toLocaleString('en-IN')}
+                        </p>
+                        <p className="text-[10px] text-gray-500 mt-1">
+                          {100 - advPct}% on trip day
+                        </p>
                       </div>
                     </div>
+
+                    {/* Validity reminder */}
+                    {confirmQuote.validUntil && (
+                      <div className="text-[10px] text-amber-700 bg-white/60 border border-amber-100 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                        <Clock className="w-3 h-3" />
+                        Quote valid till {fmt(confirmQuote.validUntil)}
+                      </div>
+                    )}
                   </div>
                 );
               })()}
@@ -801,6 +1010,462 @@ export default function CustomerWanderQuoteDetailPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ─── Tour Details Section ─── */
+function TourDetailsSection({ listing }: { listing: any }) {
+  const [tab, setTab] = useState<'overview' | 'itinerary' | 'terms'>(
+    listing?.description ? 'overview' : listing?.itinerary ? 'itinerary' : 'terms',
+  );
+  const highlights: string[] = listing?.tourHighlights || [];
+  const inclusions: string[] = listing?.tourInclusions || [];
+  const exclusions: string[] = listing?.tourExclusions || [];
+
+  const tabs = [
+    listing?.description && { key: 'overview', label: 'Overview' },
+    listing?.itinerary && { key: 'itinerary', label: 'Itinerary' },
+    listing?.termsConditions && { key: 'terms', label: 'Terms' },
+  ].filter(Boolean) as { key: typeof tab; label: string }[];
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+        <Compass className="w-4 h-4 text-indigo-500" />
+        <h2 className="font-bold text-gray-900 text-base">Tour Details</h2>
+      </div>
+
+      {/* Highlights */}
+      {highlights.length > 0 && (
+        <div className="px-6 pt-5">
+          <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wider mb-2">
+            ✨ Highlights
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {highlights.map((h, i) => (
+              <span
+                key={i}
+                className="text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-full"
+              >
+                {h}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tabs (only if more than one tab to show) */}
+      {tabs.length > 0 && (
+        <>
+          <div className="px-6 pt-5 flex gap-1 border-b border-gray-100">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`px-4 py-2 text-sm font-bold border-b-2 transition ${
+                  tab === t.key
+                    ? 'border-indigo-500 text-indigo-700'
+                    : 'border-transparent text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="px-6 py-5 text-sm text-gray-700 leading-relaxed">
+            {tab === 'overview' && listing?.description && (
+              <p className="whitespace-pre-wrap">{listing.description}</p>
+            )}
+            {tab === 'itinerary' && listing?.itinerary && (
+              <p className="whitespace-pre-wrap">{listing.itinerary}</p>
+            )}
+            {tab === 'terms' && listing?.termsConditions && (
+              <p className="whitespace-pre-wrap">{listing.termsConditions}</p>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Inclusions / Exclusions */}
+      {(inclusions.length > 0 || exclusions.length > 0) && (
+        <div className="px-6 pb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {inclusions.length > 0 && (
+            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
+              <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5" /> What's Included
+              </p>
+              <ul className="space-y-1.5">
+                {inclusions.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-emerald-900">
+                    <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {exclusions.length > 0 && (
+            <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
+              <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                <X className="w-3.5 h-3.5" /> Not Included
+              </p>
+              <ul className="space-y-1.5">
+                {exclusions.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-red-900">
+                    <X className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Payment Proof Form ─── */
+function PaymentProofForm({
+  leadId,
+  expectedAmount,
+  rejectReason,
+  onSubmitted,
+}: {
+  leadId: string;
+  expectedAmount: number;
+  rejectReason?: string | null;
+  onSubmitted: () => void | Promise<void>;
+}) {
+  const [txnId, setTxnId] = useState('');
+  const [note, setNote] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files || []);
+    const next = [...files, ...picked].slice(0, 5);
+    setFiles(next);
+    setPreviews(next.map((f) => URL.createObjectURL(f)));
+    e.target.value = '';
+  };
+
+  const removeAt = (i: number) => {
+    const next = files.filter((_, idx) => idx !== i);
+    setFiles(next);
+    setPreviews(next.map((f) => URL.createObjectURL(f)));
+  };
+
+  const hasTxn = txnId.trim().length > 0;
+  const hasFiles = files.length > 0;
+  const canSubmit = hasTxn || hasFiles;
+
+  const submit = async () => {
+    setError('');
+    if (!canSubmit) {
+      setError('Please enter a transaction ID or upload a screenshot');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const fd = new FormData();
+      if (hasTxn) fd.append('txnId', txnId.trim());
+      if (note.trim()) fd.append('note', note.trim());
+      files.forEach((f) => fd.append('files', f));
+      const res = await fetch(
+        `/api/customer/wander-quote-requests/${leadId}/payment-proof`,
+        { method: 'POST', body: fd },
+      );
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error || 'Failed to submit proof');
+        return;
+      }
+      await onSubmitted();
+    } catch {
+      setError('Network error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-indigo-100 shadow-sm overflow-hidden">
+      <div className="px-5 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+        <div className="flex items-center gap-2">
+          <CreditCard className="w-4 h-4" />
+          <h3 className="font-bold text-sm">Submit Payment Proof</h3>
+        </div>
+        <p className="text-xs text-amber-50 mt-0.5">
+          After paying ₹{expectedAmount.toLocaleString('en-IN')}, share the transaction ID <span className="opacity-80">or</span> a screenshot
+        </p>
+      </div>
+
+      <div className="p-5 space-y-3.5">
+        {rejectReason && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 text-xs text-red-700">
+            <p className="font-bold mb-0.5">Previous submission rejected</p>
+            <p>{rejectReason}</p>
+          </div>
+        )}
+
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-[11px] text-amber-800">
+          ℹ️ Provide <strong>either</strong> the transaction ID <strong>or</strong> a screenshot — or both. At least one is needed.
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+            Transaction ID / UTR{' '}
+            <span className="text-gray-400 font-normal">(optional if screenshot uploaded)</span>
+          </label>
+          <input
+            type="text"
+            value={txnId}
+            onChange={(e) => setTxnId(e.target.value)}
+            placeholder="e.g. 412345678901"
+            maxLength={64}
+            className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
+          />
+          <p className="text-[10px] text-gray-400 mt-1">
+            UTR / reference number from your UPI app or bank
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+            Payment Screenshots{' '}
+            <span className="text-gray-400 font-normal">
+              {hasTxn ? '(optional, up to 5)' : '(or upload up to 5 instead of txn ID)'}
+            </span>
+          </label>
+          <div className="grid grid-cols-5 gap-2">
+            {previews.map((src, i) => (
+              <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 group">
+                <img src={src} className="w-full h-full object-cover" alt="" />
+                <button
+                  type="button"
+                  onClick={() => removeAt(i)}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            {files.length < 5 && (
+              <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-amber-400 hover:bg-amber-50 flex items-center justify-center cursor-pointer transition">
+                <Plus className="w-5 h-5 text-gray-400" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={onPick}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+            Note <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <textarea
+            rows={2}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Anything the agent should know"
+            className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+          />
+        </div>
+
+        {error && <p className="text-xs text-red-600 font-semibold">{error}</p>}
+
+        <button
+          type="button"
+          onClick={submit}
+          disabled={submitting || !canSubmit}
+          className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 text-white font-bold rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-md"
+        >
+          {submitting ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Submitting...</>
+          ) : (
+            <><Send className="w-4 h-4" /> Submit Payment Proof</>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── UPI Payment Card ─── */
+function UpiPaymentCard({
+  upiId,
+  payeeName,
+  amount,
+  reference,
+  bank,
+}: {
+  upiId: string | null;
+  payeeName: string | null;
+  amount: number;
+  reference: string;
+  bank: any;
+}) {
+  const [qrSrc, setQrSrc] = useState<string>('');
+  const [copied, setCopied] = useState<string>('');
+
+  const upiUri = upiId
+    ? `upi://pay?pa=${encodeURIComponent(upiId)}` +
+      (payeeName ? `&pn=${encodeURIComponent(payeeName)}` : '') +
+      (amount > 0 ? `&am=${amount}` : '') +
+      `&cu=INR&tn=${encodeURIComponent(reference)}`
+    : '';
+
+  useEffect(() => {
+    if (!upiUri) { setQrSrc(''); return; }
+    QRCode.toDataURL(upiUri, { margin: 1, width: 320, errorCorrectionLevel: 'M' })
+      .then(setQrSrc)
+      .catch(() => setQrSrc(''));
+  }, [upiUri]);
+
+  const copy = (text: string, key: string) => {
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(key);
+      setTimeout(() => setCopied(''), 1500);
+    });
+  };
+
+  if (!upiId && !bank) return null;
+
+  return (
+    <div className="bg-white rounded-2xl border border-indigo-100 shadow-sm overflow-hidden">
+      <div className="px-5 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+        <div className="flex items-center gap-2">
+          <Smartphone className="w-4 h-4" />
+          <h3 className="font-bold text-sm">Pay Advance to Confirm</h3>
+        </div>
+        {amount > 0 && (
+          <p className="text-xs text-indigo-100 mt-0.5">
+            Amount due: <span className="font-bold text-white">₹{amount.toLocaleString('en-IN')}</span>
+          </p>
+        )}
+      </div>
+
+      {/* UPI block */}
+      {upiId && (
+        <div className="p-5 space-y-3">
+          <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-4 flex flex-col items-center">
+            {qrSrc ? (
+              <img src={qrSrc} alt="UPI QR" className="w-44 h-44 rounded-xl bg-white p-2 shadow-sm" />
+            ) : (
+              <div className="w-44 h-44 rounded-xl bg-white flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
+              </div>
+            )}
+            <p className="text-[11px] text-indigo-500 font-semibold mt-3 text-center">
+              Scan with any UPI app to pay
+            </p>
+            <div className="flex items-center gap-2 mt-1.5 text-[10px] text-indigo-400 font-medium">
+              <span>GPay</span>•<span>PhonePe</span>•<span>Paytm</span>•<span>BHIM</span>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5">UPI ID</p>
+            <button
+              type="button"
+              onClick={() => copy(upiId, 'upi')}
+              className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl px-3 py-2.5 transition group"
+            >
+              <span className="font-mono text-sm font-semibold text-gray-800 truncate">{upiId}</span>
+              <span className="text-xs text-indigo-600 font-semibold flex items-center gap-1 shrink-0 ml-2">
+                {copied === 'upi' ? <><Check className="w-3.5 h-3.5" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
+              </span>
+            </button>
+            {payeeName && (
+              <p className="text-[11px] text-gray-500 mt-1.5">
+                Payee: <span className="font-semibold text-gray-700">{payeeName}</span>
+              </p>
+            )}
+          </div>
+
+          <a
+            href={upiUri}
+            className="md:hidden flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl text-sm shadow-md"
+          >
+            <Smartphone className="w-4 h-4" /> Open in UPI App
+          </a>
+        </div>
+      )}
+
+      {/* Bank block */}
+      {bank && (
+        <div className={`px-5 pb-5 ${upiId ? 'pt-1' : 'pt-5'}`}>
+          {upiId && (
+            <div className="flex items-center gap-2 my-3">
+              <div className="flex-1 h-px bg-gray-100" />
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">or bank transfer</span>
+              <div className="flex-1 h-px bg-gray-100" />
+            </div>
+          )}
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3.5 space-y-2">
+            <div className="flex items-center gap-2 mb-1">
+              <Banknote className="w-4 h-4 text-gray-500" />
+              <p className="text-xs font-bold text-gray-700">{bank.bankName}</p>
+            </div>
+            <BankRow label="A/C Holder" value={bank.accountHolderName} onCopy={(v) => copy(v, 'name')} copied={copied === 'name'} />
+            <BankRow label="A/C Number" value={bank.accountNumber} onCopy={(v) => copy(v, 'acc')} copied={copied === 'acc'} mono />
+            <BankRow label="IFSC" value={bank.ifscCode} onCopy={(v) => copy(v, 'ifsc')} copied={copied === 'ifsc'} mono />
+            {bank.branchName && <BankRow label="Branch" value={bank.branchName} />}
+            <p className="text-[10px] text-gray-400 mt-1">
+              Type: {bank.accountType}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="px-5 pb-4 -mt-1">
+        <p className="text-[10px] text-gray-400 leading-relaxed">
+          ⚠️ After paying, share the screenshot/UTR with the agent on chat so they can confirm your booking.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function BankRow({
+  label,
+  value,
+  onCopy,
+  copied,
+  mono,
+}: {
+  label: string;
+  value: string;
+  onCopy?: (v: string) => void;
+  copied?: boolean;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2 text-xs">
+      <span className="text-gray-500">{label}</span>
+      <div className="flex items-center gap-1.5 min-w-0">
+        <span className={`font-semibold text-gray-800 truncate ${mono ? 'font-mono' : ''}`}>{value}</span>
+        {onCopy && (
+          <button
+            type="button"
+            onClick={() => onCopy(value)}
+            className="text-gray-400 hover:text-indigo-600 transition shrink-0"
+          >
+            {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

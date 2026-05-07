@@ -23,7 +23,46 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         customer: { select: { id: true, name: true, email: true, companyName: true } },
       },
     });
-    if (!quoteRequest) return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+
+    // ── Fallback: travel-agent lead accept flow ───────────────────────────────
+    if (!quoteRequest) {
+      const lead = await (prisma as any).travel_agent_leads.findUnique({
+        where: { id: params.id },
+      });
+      if (lead) {
+        if (!lead.quotedAmount) {
+          return NextResponse.json({ error: 'No quote to accept yet' }, { status: 400 });
+        }
+        const hasAdvance =
+          (lead.quoteAdvanceAmount && Number(lead.quoteAdvanceAmount) > 0) ||
+          (lead.quoteAdvancePercent && Number(lead.quoteAdvancePercent) > 0);
+        const updated = await (prisma as any).travel_agent_leads.update({
+          where: { id: params.id },
+          data: {
+            customerAcceptedAt: lead.customerAcceptedAt || new Date(),
+            // Stay in QUOTED until payment received; if no advance required, jump to BOOKED
+            status: hasAdvance ? 'NEGOTIATING' : 'BOOKED',
+            paymentStatus: hasAdvance ? (lead.paymentStatus || 'PENDING') : 'VERIFIED',
+            paymentVerifiedAt: hasAdvance ? lead.paymentVerifiedAt : new Date(),
+          },
+        });
+        await (prisma as any).travel_agent_lead_notes.create({
+          data: {
+            leadId: lead.id,
+            note: hasAdvance
+              ? `Customer accepted the quote. Awaiting advance payment.`
+              : `Customer accepted the quote. No advance required.`,
+          },
+        });
+        return NextResponse.json({
+          success: true,
+          isTravelAgentLead: true,
+          lead: updated,
+          requiresAdvance: hasAdvance,
+        });
+      }
+      return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+    }
 
     if (quoteRequest.status === 'ACCEPTED') {
       const existing = await (prisma as any).wander_bookings.findFirst({
@@ -124,8 +163,17 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     return NextResponse.json({ success: true, booking });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Customer Wander Quote Accept]', error);
-    return NextResponse.json({ error: 'Failed to accept quote' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to accept quote',
+        message: error?.message || String(error),
+        code: error?.code,
+        meta: error?.meta,
+        stack: error?.stack?.split('\n').slice(0, 8),
+      },
+      { status: 500 }
+    );
   }
 }

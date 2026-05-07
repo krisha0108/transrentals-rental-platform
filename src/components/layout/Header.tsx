@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, Phone, User, MapPin, ChevronDown, LogOut, Compass } from 'lucide-react';
+import { Menu, X, Phone, User, MapPin, ChevronDown, LogOut, Compass, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { LocationSelector } from '@/components/LocationSelector';
@@ -99,6 +99,12 @@ export function Header() {
               >
                 Become a Vendor
               </Link>
+              <Link
+                href="/travel-agents"
+                className="hover:text-primary-100 transition-colors"
+              >
+                For Travel Agents
+              </Link>
               {/* <Link
                 href="/contact"
                 className="hover:text-primary-100 transition-colors"
@@ -179,6 +185,20 @@ export function Header() {
             >
               <Compass className="w-4 h-4" />
               Tours
+            </Link>
+
+            {/* Travel Agents landing */}
+            <Link
+              href="/travel-agents"
+              className={cn(
+                'px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-1.5',
+                pathname === '/travel-agents'
+                  ? 'text-emerald-700 bg-emerald-50'
+                  : 'text-gray-700 hover:text-emerald-700 hover:bg-emerald-50/60'
+              )}
+            >
+              <Plane className="w-4 h-4" />
+              For Travel Agents
             </Link>
           </nav>
 
@@ -334,6 +354,24 @@ export function Header() {
                 <span className="flex items-center gap-2">
                   <Compass className="w-5 h-5" />
                   Tours
+                </span>
+                <ChevronDown className="w-4 h-4 -rotate-90" />
+              </Link>
+
+              {/* Travel Agents landing - Mobile */}
+              <Link
+                href="/travel-agents"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={cn(
+                  'px-4 py-3 rounded-md font-medium transition-colors flex items-center justify-between',
+                  pathname === '/travel-agents'
+                    ? 'text-emerald-700 bg-emerald-50'
+                    : 'text-gray-700 hover:text-emerald-700 hover:bg-emerald-50'
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <Plane className="w-5 h-5" />
+                  For Travel Agents
                 </span>
                 <ChevronDown className="w-4 h-4 -rotate-90" />
               </Link>
