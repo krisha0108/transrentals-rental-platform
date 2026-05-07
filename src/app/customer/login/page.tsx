@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Script from 'next/script';
 import Image from 'next/image';
-import { Eye, EyeOff, Mail, Lock, Phone, User, ArrowLeft, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Phone, User, ArrowLeft, Loader2, MapPin } from 'lucide-react';
 
 type AuthMode = 'login' | 'register' | 'verify-otp' | 'forgot-password' | 'reset-password';
 
@@ -40,6 +40,10 @@ export default function CustomerLoginPage() {
     email: '',
     phone: '',
     password: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
     otp: '',
   });
 
@@ -151,7 +155,17 @@ export default function CustomerLoginPage() {
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ action: 'register', name: formData.name, email: formData.email, phone: formData.phone, password: formData.password }),
+        body: JSON.stringify({
+          action: 'register',
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode,
+        }),
       });
       const data = await response.json();
       if (data.status === 'success' && data.token) {
@@ -368,6 +382,37 @@ export default function CustomerLoginPage() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Address</label>
+              <div className="relative">
+                <MapPin className="absolute left-3.5 top-3 h-4 w-4 text-gray-400" />
+                <textarea name="address" value={formData.address} onChange={handleChange} rows={2}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/25 focus:border-[#09B368] focus:outline-none text-sm bg-gray-50/50 resize-none"
+                  placeholder="House / Flat, Street, Landmark" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">City</label>
+                <input type="text" name="city" value={formData.city} onChange={handleChange}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/25 focus:border-[#09B368] focus:outline-none text-sm bg-gray-50/50"
+                  placeholder="City" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">State</label>
+                <input type="text" name="state" value={formData.state} onChange={handleChange}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/25 focus:border-[#09B368] focus:outline-none text-sm bg-gray-50/50"
+                  placeholder="State" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Pincode</label>
+                <input type="text" name="pincode" value={formData.pincode} onChange={handleChange} maxLength={6} pattern="[0-9]{6}"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/25 focus:border-[#09B368] focus:outline-none text-sm bg-gray-50/50"
+                  placeholder="123456" />
               </div>
             </div>
 

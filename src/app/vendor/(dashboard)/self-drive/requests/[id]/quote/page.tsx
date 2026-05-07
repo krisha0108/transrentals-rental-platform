@@ -41,6 +41,7 @@ interface QuoteRequest {
   transmission?: string;
   fuelType?: string;
   minSeats?: number;
+  numberOfVehicles?: number;
   customerName: string;
   customerPhone: string;
   locationId: string;
@@ -463,6 +464,7 @@ export default function SendSelfDriveQuotePage() {
               {request.transmission && <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-white font-medium">{request.transmission}</span>}
               {request.fuelType && <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-white font-medium">{request.fuelType}</span>}
               {request.minSeats && <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-white font-medium">{request.minSeats}+ seats</span>}
+              {request.numberOfVehicles && request.numberOfVehicles > 1 && <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded text-white font-medium">× {request.numberOfVehicles} cars</span>}
             </div>
           </div>
         </div>

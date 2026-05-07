@@ -9,7 +9,7 @@ import {
   Shield, ChevronDown, ChevronUp, Star, CreditCard, BadgeCheck,
   ArrowLeft, IndianRupee, FileText, MessageCircle, Award, Copy,
   CircleDot, Timer, Phone, LayoutDashboard, Building2, Sparkles,
-  CheckCheck, TrendingUp, Info,
+  CheckCheck, TrendingUp, Info, Check,
 } from 'lucide-react';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 
@@ -145,7 +145,7 @@ export default function PublicQuotePage() {
         <Skeleton className="h-8 w-20 rounded-xl" />
       </div>
       <div className="h-56 bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse" />
-      <div className="max-w-4xl mx-auto px-4 -mt-6 space-y-3 pb-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-6 space-y-3 pb-10">
         <div className="grid grid-cols-4 gap-3">
           {[1,2,3,4].map(i => <Skeleton key={i} className="h-20 rounded-2xl" />)}
         </div>
@@ -248,206 +248,112 @@ export default function PublicQuotePage() {
     </div>
   );
 
-  /* ── Pending payment screen ── */
-  if (pendingPayment && !paymentDone && quote) {
-    const pm   = META[quote.serviceType] || META.transporter;
-    const PIco = pm.icon;
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {/* Top bar */}
-        <div className="sticky top-0 z-30 bg-white border-b border-gray-100 px-4 h-14 flex items-center gap-3 shadow-sm">
-          <button onClick={() => setPendingPayment(null)}
-            className="w-9 h-9 rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-200 flex items-center justify-center transition shrink-0">
-            <ArrowLeft className="w-4 h-4 text-gray-600" />
-          </button>
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className={`w-8 h-8 ${pm.iconBg} rounded-lg flex items-center justify-center shrink-0`}>
-              <PIco className={`w-4 h-4 ${pm.iconColor}`} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-gray-900 leading-none truncate">{quote.serviceName}</p>
-              <p className="text-[11px] text-gray-400 font-mono">#{pendingPayment.bookingNumber}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-md mx-auto px-4 py-6 space-y-4">
-          {/* Hero amount */}
-          <div className={`bg-gradient-to-br ${pm.heroGrad} rounded-3xl p-6 text-white relative overflow-hidden shadow-xl`}>
-            <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-            <div className="relative">
-              <p className="text-white/70 text-xs font-semibold uppercase tracking-widest mb-2">Advance Payment</p>
-              <p className="text-5xl font-black tracking-tight mb-4">{fmtAmt(pendingPayment.amount)}</p>
-              <div className="flex items-center justify-between pt-3 border-t border-white/20">
-                <div>
-                  <p className="text-white/50 text-[10px] uppercase tracking-wider">Service</p>
-                  <p className="text-white font-semibold text-sm mt-0.5">{quote.serviceDetail || quote.serviceName}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-white/50 text-[10px] uppercase tracking-wider">Balance Due Later</p>
-                  <p className="text-white font-semibold text-sm mt-0.5">{fmtAmt(quote.balanceAmount)}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Payment component */}
-          <BookingPayment
-            bookingId={pendingPayment.bookingId}
-            bookingType={pendingPayment.bookingType as any}
-            amount={pendingPayment.amount}
-            bookingNumber={pendingPayment.bookingNumber}
-            serviceSlug={pendingPayment.bookingType}
-            onSuccess={() => setPaymentDone(true)}
-          />
-
-          <p className="text-center text-xs text-gray-300 pb-4">Powered by TransRentals</p>
-        </div>
-      </div>
-    );
-  }
+  // Pending payment is now rendered INLINE inside the main quote page (below the hero),
+  // so the customer keeps the full quote context (price breakdown, trip details, vendor)
+  // visible while completing payment — instead of a near-empty narrow page.
+  const showPaymentSection = pendingPayment && !paymentDone && quote;
 
   /* ══════════════════════════════════════════════════════════════════
      MAIN QUOTE PAGE
   ══════════════════════════════════════════════════════════════════ */
   return (
-    <div className={`min-h-screen bg-gray-50 ${canAccept ? 'pb-28' : 'pb-10'}`}>
+    <div className={`min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 ${canAccept && !showPaymentSection ? 'pb-32' : 'pb-12'}`}>
 
       {/* ── Top Nav ── */}
-      <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 h-14 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <div className={`w-8 h-8 ${meta.iconBg} rounded-lg flex items-center justify-center ring-2 ${meta.ringColor}`}>
-            <Icon className={`w-4 h-4 ${meta.iconColor}`} />
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className={`w-8 h-8 ${meta.iconBg} rounded-lg flex items-center justify-center ring-1 ${meta.ringColor} shrink-0`}>
+              <Icon className={`w-4 h-4 ${meta.iconColor}`} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-gray-900 leading-none truncate">{quote.serviceName}</p>
+              <p className="text-[11px] text-gray-400 mt-0.5 font-mono">#{quote.quoteNumber}</p>
+            </div>
           </div>
-          <div className="hidden sm:block">
-            <p className="text-sm font-bold text-gray-900 leading-none">{quote.serviceName}</p>
-            <p className="text-[11px] text-gray-400 mt-0.5">Quote from <span className="font-semibold text-gray-600">{quote.vendorName}</span></p>
-          </div>
-          <p className="text-sm font-bold text-gray-900 sm:hidden">{quote.serviceName}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className={`hidden sm:inline-flex px-2.5 py-1 rounded-lg text-xs font-bold ${statusInfo.cls}`}>
+          <span className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold ${statusInfo.cls}`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
             {statusInfo.label}
           </span>
-          <button onClick={handleShare}
-            className="flex items-center gap-1.5 px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 transition active:scale-95">
-            {copied ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
-            {copied ? 'Copied!' : 'Share'}
-          </button>
         </div>
-      </div>
+      </header>
 
-      {/* ── Hero Banner ── */}
-      <div className={`bg-gradient-to-br ${meta.heroGrad} relative overflow-hidden`}>
-        {/* Decorative circles */}
-        <div className="absolute -top-16 -right-16 w-64 h-64 bg-white/5 rounded-full" />
-        <div className="absolute -bottom-10 left-1/3 w-48 h-48 bg-white/5 rounded-full" />
-        <div className="absolute top-8 right-1/4 w-24 h-24 bg-white/5 rounded-full" />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 space-y-4">
 
-        <div className="relative max-w-4xl mx-auto px-5 pt-8 pb-16">
-          {/* Status + quote# */}
-          <div className="flex items-center gap-2 mb-5">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/15 backdrop-blur rounded-full text-xs font-semibold text-white">
-              <span className="w-1.5 h-1.5 rounded-full bg-white/70" />
-              {statusInfo.label}
-            </span>
-            <button onClick={handleShare}
-              className="inline-flex items-center gap-1 px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded-full text-xs font-mono text-white/80 transition">
-              #{quote.quoteNumber}
-              <Copy className="w-3 h-3 opacity-60" />
-            </button>
-            {copied && <span className="text-[10px] font-bold text-white/90 bg-white/20 px-2 py-0.5 rounded-full">Copied!</span>}
-          </div>
+        {/* ── Hero Card ── */}
+        <section className="relative bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          {/* Top accent bar */}
+          <div className={`h-1.5 bg-gradient-to-r ${meta.heroGrad}`} />
+          {/* Soft brand wash in corner */}
+          <div className={`absolute -top-24 -right-24 w-72 h-72 bg-gradient-to-br ${meta.heroGrad} opacity-[0.08] rounded-full blur-3xl pointer-events-none`} />
 
-          {/* Service + Amount */}
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center border border-white/20 shadow-lg">
-                  <Icon className="w-7 h-7 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-black text-white leading-tight">
-                    {quote.serviceDetail || quote.serviceName}
-                  </h1>
-                  <p className="text-white/60 text-sm font-medium">{quote.serviceName} · Custom Quote</p>
+          <div className="relative p-5 sm:p-7">
+            {/* Vendor identity + status */}
+            <div className="flex items-start justify-between gap-3 pb-5 mb-5 border-b border-gray-100">
+              <div className="flex items-center gap-3 min-w-0">
+                {quote.vendorLogo ? (
+                  <img src={quote.vendorLogo} alt="" className="w-12 h-12 rounded-xl object-cover bg-white ring-1 ring-gray-200 shadow-sm shrink-0" />
+                ) : (
+                  <div className={`w-12 h-12 ${meta.iconBg} rounded-xl flex items-center justify-center ring-1 ${meta.ringColor} shrink-0`}>
+                    <span className={`text-lg font-black ${meta.iconColor}`}>{quote.vendorName?.charAt(0)?.toUpperCase() || 'V'}</span>
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold leading-none">Quoted by</p>
+                  <p className="text-base font-black text-gray-900 mt-1 truncate">{quote.vendorName}</p>
+                  {(quote.vendorCity || quote.vendorState) && (
+                    <p className="text-xs text-gray-500 truncate flex items-center gap-1 mt-0.5">
+                      <MapPin className="w-3 h-3 shrink-0" />
+                      {[quote.vendorCity, quote.vendorState].filter(Boolean).join(', ')}
+                    </p>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center shrink-0">
-                  <Building2 className="w-3 h-3 text-white/80" />
+              <span className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold ${statusInfo.cls}`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
+                {statusInfo.label}
+              </span>
+            </div>
+
+            {/* Service + Amount */}
+            <div className="grid sm:grid-cols-[1fr_auto] gap-5 sm:gap-8 sm:items-end">
+              <div className="min-w-0">
+                <p className={`text-[11px] font-bold ${meta.accentText} uppercase tracking-widest mb-2 flex items-center gap-1.5`}>
+                  <Icon className="w-3.5 h-3.5" /> {quote.serviceName}
+                </p>
+                <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight tracking-tight">
+                  {quote.serviceDetail || quote.serviceName}
+                </h1>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-gray-500">
+                  <span className="font-mono font-semibold">#{quote.quoteNumber}</span>
+                  {quote.validTill && (
+                    <span className={`flex items-center gap-1 ${isExpired ? 'text-red-500 font-semibold' : ''}`}>
+                      <Timer className="w-3 h-3" />
+                      {isExpired ? 'Expired ' : 'Valid till '}{fmt(quote.validTill)}
+                    </span>
+                  )}
                 </div>
-                <p className="text-white/75 text-sm">Quoted by <span className="font-bold text-white">{quote.vendorName}</span></p>
+              </div>
+              <div className="sm:text-right">
+                <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-1">Total Amount</p>
+                <p className={`text-4xl sm:text-5xl font-black tracking-tight leading-none ${meta.accentText}`}>{fmtAmt(quote.amount)}</p>
+                {quote.perPersonAmount && (
+                  <p className="text-xs text-gray-500 mt-1.5">{fmtAmt(quote.perPersonAmount)}/person × {quote.request?.groupSize}</p>
+                )}
+                {hasAdvance && (
+                  <p className="text-[11px] text-gray-500 mt-2.5 flex sm:justify-end items-center gap-1.5">
+                    <span className={`font-bold ${meta.accentText}`}>{fmtAmt(quote.advanceAmount)}</span> advance
+                    <span className="w-1 h-1 rounded-full bg-gray-300" />
+                    <span className="font-semibold text-gray-700">{fmtAmt(quote.balanceAmount)}</span> later
+                  </p>
+                )}
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-white/60 text-xs font-semibold uppercase tracking-widest mb-1">Total Amount</p>
-              <p className="text-4xl font-black text-white tracking-tight">{fmtAmt(quote.amount)}</p>
-              {quote.perPersonAmount && (
-                <p className="text-white/60 text-xs mt-1">{fmtAmt(quote.perPersonAmount)}/person × {quote.request?.groupSize}</p>
-              )}
-            </div>
           </div>
-        </div>
-      </div>
-
-      {/* ── Stats Strip ── */}
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 -mt-8 grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-100 overflow-hidden">
-          {[
-            {
-              icon: IndianRupee,
-              label: 'Advance',
-              value: hasAdvance ? fmtAmt(quote.advanceAmount) : 'None',
-              sub: hasAdvance ? 'Pay now' : 'Full on day',
-              color: meta.iconColor,
-              bg: meta.iconBg,
-            },
-            {
-              icon: TrendingUp,
-              label: 'Balance',
-              value: hasAdvance ? fmtAmt(quote.balanceAmount) : fmtAmt(quote.amount),
-              sub: 'On service day',
-              color: 'text-gray-500',
-              bg: 'bg-gray-100',
-            },
-            {
-              icon: Timer,
-              label: 'Valid Till',
-              value: quote.validTill ? new Date(quote.validTill).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—',
-              sub: isExpired ? 'Expired' : 'Active',
-              color: isExpired ? 'text-red-500' : 'text-emerald-500',
-              bg: isExpired ? 'bg-red-50' : 'bg-emerald-50',
-            },
-            {
-              icon: BadgeCheck,
-              label: 'Status',
-              value: statusInfo.label,
-              sub: isWon ? 'Booking done' : isWithdrawn ? 'Withdrawn' : isExpired ? 'Expired' : 'Awaiting',
-              color: isWon ? 'text-emerald-600' : isWithdrawn || isExpired ? 'text-gray-400' : meta.iconColor,
-              bg: isWon ? 'bg-emerald-50' : isWithdrawn || isExpired ? 'bg-gray-50' : meta.iconBg,
-            },
-          ].map((s, i) => {
-            const SI = s.icon;
-            return (
-              <div key={i} className="flex items-center gap-3 px-4 py-3.5">
-                <div className={`w-9 h-9 ${s.bg} rounded-xl flex items-center justify-center shrink-0`}>
-                  <SI className={`w-4 h-4 ${s.color}`} />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 font-medium">{s.label}</p>
-                  <p className="text-sm font-black text-gray-900">{s.value}</p>
-                  <p className={`text-[10px] font-semibold ${s.color}`}>{s.sub}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+        </section>
 
       {/* ── Alert banners ── */}
-      <div className="max-w-4xl mx-auto px-4 mt-3 space-y-2">
+      <div className="space-y-2">
         {isWithdrawn && (
           <div className="flex items-center gap-3 bg-gray-100 border border-gray-200 rounded-2xl px-4 py-3">
             <XCircle className="w-5 h-5 text-gray-400 shrink-0" />
@@ -484,38 +390,38 @@ export default function PublicQuotePage() {
       </div>
 
       {/* ── Main Grid ── */}
-      <div className="max-w-4xl mx-auto px-4 mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
 
         {/* ═══ Left column (2/3) ═══ */}
         <div className="lg:col-span-2 space-y-4">
 
           {/* Price Breakdown */}
           {pricing.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2.5">
+            <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <header className="px-5 py-4 border-b border-gray-100 flex items-center gap-2.5">
                 <div className={`w-8 h-8 ${meta.iconBg} rounded-xl flex items-center justify-center`}>
                   <IndianRupee className={`w-4 h-4 ${meta.iconColor}`} />
                 </div>
-                <h3 className="font-bold text-gray-900">Price Breakdown</h3>
-              </div>
-              <div className="p-5 space-y-2.5">
+                <h3 className="font-black text-gray-900 text-[15px]">Price Breakdown</h3>
+              </header>
+              <div className="p-5 space-y-3">
                 {pricing.map((item: any, i: number) => (
-                  <div key={i} className={`flex items-center justify-between ${item.isTotal ? 'pt-3 border-t-2 border-dashed border-gray-100' : ''}`}>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-sm ${item.isTotal ? 'font-bold text-gray-900' : item.isAdvance ? `font-semibold ${meta.accentText}` : 'text-gray-500'}`}>
+                  <div key={i} className={`flex items-center justify-between ${item.isTotal ? 'pt-3 mt-1 border-t-2 border-dashed border-gray-100' : ''}`}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`text-sm truncate ${item.isTotal ? 'font-black text-gray-900' : item.isAdvance ? `font-bold ${meta.accentText}` : 'text-gray-500'}`}>
                         {item.label}
                       </span>
                       {item.note && (
-                        <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{item.note}</span>
+                        <span className="text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full font-semibold shrink-0">{item.note}</span>
                       )}
                     </div>
-                    <span className={`${item.isTotal ? `text-xl font-black ${meta.accentText}` : item.isAdvance ? `font-bold ${meta.accentText}` : 'text-sm font-semibold text-gray-900'}`}>
+                    <span className={`shrink-0 ${item.isTotal ? `text-xl font-black ${meta.accentText}` : item.isAdvance ? `font-bold ${meta.accentText}` : 'text-sm font-bold text-gray-800'}`}>
                       {fmtAmt(item.amount)}
                     </span>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           )}
 
           {/* Inclusions & Exclusions */}
@@ -593,6 +499,78 @@ export default function PublicQuotePage() {
             </div>
           )}
 
+          {/* ── Inline Payment Section (after Terms) ── */}
+          {showPaymentSection && (
+            <section className="bg-white rounded-2xl border-2 border-emerald-200 shadow-sm overflow-hidden">
+              {/* Compact header — matches Trip Details card style */}
+              <header className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center shrink-0">
+                    <CheckCircle className="w-4 h-4 text-white" strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-black text-gray-900 text-[15px] leading-none">Complete Your Payment</h3>
+                    <p className="text-[11px] text-gray-500 font-mono mt-1 truncate">#{pendingPayment.bookingNumber}</p>
+                  </div>
+                </div>
+                <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                  <Timer className="w-2.5 h-2.5" /> Pending
+                </span>
+              </header>
+
+              {/* Compact amount rows */}
+              <div className="divide-y divide-gray-50">
+                <div className="px-5 py-3 flex items-center justify-between gap-3 bg-emerald-50/40">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <IndianRupee className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="text-xs text-emerald-700 font-bold uppercase tracking-wider">Pay Now</span>
+                  </div>
+                  <span className="text-base font-black text-emerald-700 shrink-0">{fmtAmt(pendingPayment.amount)}</span>
+                </div>
+                <div className="px-5 py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <BadgeCheck className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Total</span>
+                  </div>
+                  <span className="text-sm font-bold text-gray-900 shrink-0">{fmtAmt(quote.amount)}</span>
+                </div>
+                <div className="px-5 py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Balance Later</span>
+                  </div>
+                  <span className="text-sm font-bold text-gray-700 shrink-0">{fmtAmt(quote.balanceAmount)}</span>
+                </div>
+              </div>
+
+              {/* Razorpay widget — embedded mode (no duplicate header/wrapper) */}
+              <div className="px-5 py-4 border-t border-gray-100">
+                <BookingPayment
+                  bookingId={pendingPayment.bookingId}
+                  bookingType={pendingPayment.bookingType as any}
+                  amount={pendingPayment.amount}
+                  bookingNumber={pendingPayment.bookingNumber}
+                  serviceSlug={pendingPayment.bookingType}
+                  onSuccess={() => setPaymentDone(true)}
+                  embedded
+                />
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-2.5 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between gap-3 text-[11px] text-gray-400">
+                <button
+                  onClick={() => setPendingPayment(null)}
+                  className="hover:text-gray-600 transition flex items-center gap-1 font-semibold"
+                >
+                  <ArrowLeft className="w-3 h-3" /> Back to quote
+                </button>
+                <span className="flex items-center gap-1">
+                  <Shield className="w-3 h-3" /> Razorpay secured
+                </span>
+              </div>
+            </section>
+          )}
+
           {/* Vendor Note */}
           {quote.notes && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -612,108 +590,100 @@ export default function PublicQuotePage() {
         </div>
 
         {/* ═══ Right sidebar (1/3) ═══ */}
-        <div className="space-y-4 lg:sticky lg:top-[57px] lg:max-h-[calc(100vh-57px)] lg:overflow-y-auto">
+        <aside className="space-y-4 lg:sticky lg:top-[72px]">
 
-          {/* Booking Details */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2.5">
-              <div className={`w-8 h-8 ${meta.iconBg} rounded-xl flex items-center justify-center`}>
-                <Calendar className={`w-4 h-4 ${meta.iconColor}`} />
+          {/* Trip Details */}
+          {(quote.request?.date || quote.request?.location || quote.request?.duration || quote.request?.groupSize) && (
+            <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <header className="px-5 py-4 border-b border-gray-100 flex items-center gap-2.5">
+                <div className={`w-8 h-8 ${meta.iconBg} rounded-xl flex items-center justify-center`}>
+                  <Calendar className={`w-4 h-4 ${meta.iconColor}`} />
+                </div>
+                <h3 className="font-black text-gray-900 text-[15px]">Trip Details</h3>
+              </header>
+              <div className="divide-y divide-gray-50">
+                {quote.request?.date && (
+                  <div className="px-5 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <CircleDot className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Start</span>
+                    </div>
+                    <span className="text-sm font-bold text-gray-900 text-right">{fmt(quote.request.date)}</span>
+                  </div>
+                )}
+                {quote.request?.endDate && (
+                  <div className="px-5 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <CircleDot className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                      <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">End</span>
+                    </div>
+                    <span className="text-sm font-bold text-gray-900 text-right">{fmt(quote.request.endDate)}</span>
+                  </div>
+                )}
+                {quote.request?.duration && (
+                  <div className="px-5 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Timer className={`w-3.5 h-3.5 ${meta.iconColor} shrink-0`} />
+                      <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Duration</span>
+                    </div>
+                    <span className="text-sm font-bold text-gray-900 text-right">{quote.request.duration}</span>
+                  </div>
+                )}
+                {quote.request?.groupSize && (
+                  <div className="px-5 py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Users className={`w-3.5 h-3.5 ${meta.iconColor} shrink-0`} />
+                      <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Group</span>
+                    </div>
+                    <span className="text-sm font-bold text-gray-900 text-right">{quote.request.groupSize} {quote.request.groupSize > 1 ? 'people' : 'person'}</span>
+                  </div>
+                )}
+                {quote.request?.location && (
+                  <div className="px-5 py-3 flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <MapPin className={`w-3.5 h-3.5 ${meta.iconColor} shrink-0`} />
+                      <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Location</span>
+                    </div>
+                    <span className="text-sm font-bold text-gray-900 text-right break-words">{quote.request.location}</span>
+                  </div>
+                )}
               </div>
-              <h3 className="font-bold text-gray-900">Booking Details</h3>
-            </div>
-            <div className="p-4 space-y-3">
+            </section>
+          )}
 
-              {/* Duration / Group highlight */}
-              {(quote.request?.duration || quote.request?.groupSize) && (
-                <div className={`bg-gradient-to-r ${meta.lightGrad} rounded-xl p-3 flex gap-3 border ${meta.accentBorder}`}>
-                  {quote.request?.duration && (
-                    <div className="text-center flex-1">
-                      <p className={`text-[9px] font-black ${meta.accentText} uppercase tracking-widest`}>Duration</p>
-                      <p className={`text-2xl font-black ${meta.accentText}`}>{quote.request.duration}</p>
-                    </div>
-                  )}
-                  {quote.request?.groupSize && (
-                    <div className="text-center flex-1">
-                      <p className={`text-[9px] font-black ${meta.accentText} uppercase tracking-widest`}>Group</p>
-                      <p className={`text-2xl font-black ${meta.accentText}`}>{quote.request.groupSize}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Dates */}
-              {quote.request?.date && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
-                    <div className="w-7 h-7 bg-emerald-100 rounded-lg flex items-center justify-center shrink-0">
-                      <CircleDot className="w-3.5 h-3.5 text-emerald-500" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Start</p>
-                      <p className="text-sm font-bold text-gray-900">{fmt(quote.request.date)}</p>
-                    </div>
-                  </div>
-                  {quote.request?.endDate && (
-                    <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
-                      <div className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
-                        <MapPin className="w-3.5 h-3.5 text-red-500" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">End</p>
-                        <p className="text-sm font-bold text-gray-900">{fmt(quote.request.endDate)}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Location */}
-              {quote.request?.location && (
-                <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
-                  <div className={`w-7 h-7 ${meta.iconBg} rounded-lg flex items-center justify-center shrink-0`}>
-                    <MapPin className={`w-3.5 h-3.5 ${meta.iconColor}`} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Location</p>
-                    <p className="text-sm font-bold text-gray-900 truncate">{quote.request.location}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Customer */}
-              {quote.request?.customerName && (
-                <div className="flex items-center gap-3 p-2.5 bg-gray-50 rounded-xl">
-                  <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-sm font-black text-white shadow-sm shrink-0">
-                    {quote.request.customerName.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Customer</p>
-                    <p className="text-sm font-bold text-gray-900">{quote.request.customerName}</p>
-                    {quote.request.customerPhone && (
-                      <p className="text-xs text-gray-400 font-mono">{quote.request.customerPhone}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Customer */}
+          {quote.request?.customerName && (
+            <section className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+              <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-base font-black text-white shadow-sm shrink-0">
+                {quote.request.customerName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider leading-none">Customer</p>
+                <p className="text-sm font-black text-gray-900 mt-1 truncate">{quote.request.customerName}</p>
+                {quote.request.customerPhone && (
+                  <p className="text-[11px] text-gray-400 font-mono mt-0.5">{quote.request.customerPhone}</p>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* Vendor Card */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className={`bg-gradient-to-r ${meta.heroGrad} px-5 py-4`}>
-              <div className="flex items-center gap-3">
+          <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="relative px-5 py-5 border-b border-gray-100 overflow-hidden">
+              <div className={`absolute inset-0 bg-gradient-to-br ${meta.heroGrad} opacity-[0.06]`} />
+              <div className="relative flex items-center gap-3">
                 {quote.vendorLogo ? (
-                  <img src={quote.vendorLogo} alt="" className="w-11 h-11 rounded-xl object-cover border-2 border-white/30 shadow-md shrink-0" />
+                  <img src={quote.vendorLogo} alt="" className="w-12 h-12 rounded-xl object-cover bg-white ring-1 ring-gray-200 shadow-sm shrink-0" />
                 ) : (
-                  <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center shrink-0 border border-white/20">
-                    <span className="text-lg font-black text-white">{quote.vendorName?.charAt(0)?.toUpperCase() || 'V'}</span>
+                  <div className={`w-12 h-12 ${meta.iconBg} rounded-xl flex items-center justify-center ring-1 ${meta.ringColor} shrink-0`}>
+                    <span className={`text-lg font-black ${meta.iconColor}`}>{quote.vendorName?.charAt(0)?.toUpperCase() || 'V'}</span>
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="font-bold text-white truncate">{quote.vendorName}</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider leading-none">Vendor</p>
+                  <p className="font-black text-gray-900 truncate mt-1">{quote.vendorName}</p>
                   {(quote.vendorCity || quote.vendorState) && (
-                    <p className="text-white/60 text-xs flex items-center gap-1 mt-0.5">
+                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                       <MapPin className="w-3 h-3 shrink-0" />
                       {[quote.vendorCity, quote.vendorState].filter(Boolean).join(', ')}
                     </p>
@@ -727,9 +697,9 @@ export default function PublicQuotePage() {
               </div>
             )}
             {quote.vendorPhone && (
-              <div className="p-4 grid grid-cols-2 gap-2">
+              <div className="p-3 grid grid-cols-2 gap-2">
                 <a href={`tel:${quote.vendorPhone}`}
-                  className="flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs rounded-xl transition border border-blue-100 active:scale-95">
+                  className="flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl transition border border-blue-100 active:scale-95">
                   <Phone className="w-3.5 h-3.5" /> Call
                 </a>
                 <button onClick={handleWhatsApp}
@@ -738,39 +708,18 @@ export default function PublicQuotePage() {
                 </button>
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Quote Info */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-violet-100 rounded-xl flex items-center justify-center">
-                <Info className="w-4 h-4 text-violet-500" />
-              </div>
-              <h3 className="font-bold text-gray-900">Quote Info</h3>
-            </div>
-            <div className="p-4 space-y-2.5">
-              {[
-                { label: 'Quote No.', value: `#${quote.quoteNumber}`, mono: true },
-                { label: 'Valid Until', value: fmt(quote.validTill) },
-                { label: 'Status', value: statusInfo.label },
-              ].map((row, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">{row.label}</span>
-                  <span className={`text-xs font-bold text-gray-800 ${row.mono ? 'font-mono' : ''}`}>{row.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <p className="text-center text-xs text-gray-300 pb-1">Powered by TransRentals</p>
-        </div>
+          <p className="text-center text-[11px] text-gray-300 pt-1 pb-1">Powered by <span className="font-semibold">TransRentals</span></p>
+        </aside>
       </div>
+      </main>
 
-      {/* ── Sticky Accept CTA ── */}
-      {canAccept && (
+      {/* ── Sticky Accept CTA ── (hidden while in-page payment is active) */}
+      {canAccept && !showPaymentSection && (
         <div className="fixed bottom-0 left-0 right-0 z-40">
-          <div className="bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-2xl px-4 pt-3 pb-5">
-            <div className="max-w-4xl mx-auto">
+          <div className="bg-white/95 backdrop-blur-md border-t border-gray-100 shadow-2xl px-4 sm:px-6 pt-3 pb-5">
+            <div className="max-w-7xl mx-auto">
               {acceptError && (
                 <p className="text-xs text-red-600 text-center mb-2">{acceptError}</p>
               )}

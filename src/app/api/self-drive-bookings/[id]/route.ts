@@ -28,7 +28,7 @@ export async function GET(
           rating: true,
         },
       },
-      self_drive_quote_requests: { select: { id: true, requestNumber: true } },
+      self_drive_quote_requests: { select: { id: true, requestNumber: true, numberOfVehicles: true } },
       self_drive_quotes: {
         select: {
           id: true,
@@ -98,6 +98,7 @@ export async function GET(
         transmission: booking.requestedTransmission,
         fuelType: booking.requestedFuelType,
         seats: booking.requestedSeats,
+        numberOfVehicles: booking.self_drive_quote_requests?.numberOfVehicles ?? null,
         location: booking.locations,
         locationName: booking.locations?.name || null,
         pickupAddress: booking.pickupAddress,

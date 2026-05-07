@@ -204,9 +204,12 @@ export default function VendorJCBRequestsPage() {
                     <div>
                       <h3 className="font-bold text-gray-900">{request.equipmentType}</h3>
                       <p className="text-sm text-gray-500 capitalize">{request.workType}</p>
-                      <div className="flex items-center gap-1 text-gray-600 mt-1">
-                        <MapPin className="w-4 h-4" />
-                        <span className="text-sm">{request.city}</span>
+                      <div className="flex items-start gap-1 text-gray-600 mt-1">
+                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="text-sm">{request.city}</span>
+                          {request.siteLocation && <p className="text-xs text-gray-500 mt-0.5">{request.siteLocation}</p>}
+                        </div>
                       </div>
                     </div>
                   </div>

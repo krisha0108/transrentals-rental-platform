@@ -53,6 +53,22 @@ interface Booking {
   advancePaymentVerified: boolean;
   source?: string;
   createdAt: string;
+  pickupAddress?: string | null;
+  dropAddress?: string | null;
+  deliveryCity?: string | null;
+  deliveryAddress?: string | null;
+  numberOfVehicles?: number | null;
+  // ── Packers list extras ──
+  shiftingScope?: string | null;
+  shiftingType?: string | null;
+  propertySize?: string | null;
+  estimatedWeight?: number | null;
+  // ── Truck list extras ──
+  truckBodyType?: string | null;
+  tripDirection?: string | null;
+  estimatedVolume?: string | null;
+  pickupPincode?: string | null;
+  dropPincode?: string | null;
   callsCount?: number;
 }
 
@@ -478,9 +494,16 @@ export default function ManagerBookingsPage() {
                           <Phone className="w-4 h-4 text-gray-400" />
                           <span>{booking.customerPhone}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <MapPin className="w-4 h-4 text-gray-400" />
-                          <span className="truncate">{booking.locationName}</span>
+                        <div className="flex items-start gap-2 text-gray-600">
+                          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <span className="truncate block">{booking.locationName || booking.deliveryCity}</span>
+                            {(booking.pickupAddress || booking.deliveryAddress) && (
+                              <span className="block text-xs text-gray-400 truncate">
+                                {booking.pickupAddress || booking.deliveryAddress}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2 text-gray-600">
                           <Calendar className="w-4 h-4 text-gray-400" />
@@ -498,6 +521,44 @@ export default function ManagerBookingsPage() {
                         {booking.serviceName && (
                           <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-medium text-gray-600">
                             {booking.serviceName}
+                          </span>
+                        )}
+                        {booking.serviceSlug === 'bike-rental' && booking.numberOfVehicles && booking.numberOfVehicles > 1 && (
+                          <span className="px-2 py-0.5 bg-emerald-50 rounded text-xs font-medium text-emerald-700">
+                            × {booking.numberOfVehicles} bikes
+                          </span>
+                        )}
+                        {booking.serviceSlug === 'self-drive' && booking.numberOfVehicles && booking.numberOfVehicles > 1 && (
+                          <span className="px-2 py-0.5 bg-emerald-50 rounded text-xs font-medium text-emerald-700">
+                            × {booking.numberOfVehicles} cars
+                          </span>
+                        )}
+                        {(booking.serviceSlug === 'packers-and-movers' || booking.serviceSlug === 'packers-movers') && booking.shiftingScope && (
+                          <span className="px-2 py-0.5 bg-emerald-50 rounded text-xs font-medium text-emerald-700">
+                            {booking.shiftingScope}
+                          </span>
+                        )}
+                        {(booking.serviceSlug === 'packers-and-movers' || booking.serviceSlug === 'packers-movers') && booking.propertySize && (
+                          <span className="px-2 py-0.5 bg-gray-100 rounded text-xs font-medium text-gray-600">
+                            {booking.propertySize}
+                          </span>
+                        )}
+                        {/* Truck chips */}
+                        {(booking.serviceSlug === 'truck-transport' || booking.serviceSlug === 'truck-rental' || booking.serviceSlug === 'transporter' || booking.serviceSlug === 'truck-tempo-rental' || booking.serviceSlug === 'mini-truck') && booking.truckBodyType && (
+                          <span className="px-2 py-0.5 bg-emerald-50 rounded text-xs font-medium text-emerald-700">
+                            {(() => {
+                              const m: Record<string, string> = {
+                                OPEN: 'Open', CLOSED_BODY: 'Closed Body', CONTAINER: 'Container',
+                                TRAILER: 'Trailer', LCV: 'LCV', REFRIGERATED: 'Refrigerated',
+                                FLATBED: 'Flatbed', OTHER: 'Other',
+                              };
+                              return m[booking.truckBodyType!] || booking.truckBodyType;
+                            })()}
+                          </span>
+                        )}
+                        {(booking.serviceSlug === 'truck-transport' || booking.serviceSlug === 'truck-rental' || booking.serviceSlug === 'transporter' || booking.serviceSlug === 'truck-tempo-rental' || booking.serviceSlug === 'mini-truck') && booking.tripDirection && (
+                          <span className="px-2 py-0.5 bg-blue-50 rounded text-xs font-medium text-blue-700">
+                            {booking.tripDirection === 'ROUND_TRIP' ? 'Round Trip' : 'One Way'}
                           </span>
                         )}
                         {booking.vendorName && (

@@ -9,7 +9,6 @@ export type AirportMode = 'pickup' | 'drop';
 
 // Local hourly packages
 export const LUXURY_LOCAL_PACKAGES = [
-  { id: '4hr-40km', hours: 4, km: 40, label: '4 Hrs / 40 Km' },
   { id: '8hr-80km', hours: 8, km: 80, label: '8 Hrs / 80 Km' },
   { id: '12hr-120km', hours: 12, km: 120, label: '12 Hrs / 120 Km' },
 ] as const;

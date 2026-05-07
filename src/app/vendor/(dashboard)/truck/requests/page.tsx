@@ -30,12 +30,31 @@ interface QuoteRequest {
   requestNumber: string;
   serviceType: string;
   chauffeur_vehicle_categories: string;
+  truckBodyType?: string;
+  tripDirection?: string;
   goodsType: string;
+  goodsDescription?: string;
+  estimatedWeight?: number;
+  estimatedVolume?: string;
   pickupCity: string;
+  pickupAddress?: string;
+  pickupPincode?: string;
   dropCity: string;
+  dropAddress?: string;
+  dropPincode?: string;
   pickupDate: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
   requiresLabour: boolean;
   labourCount?: number;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  requiresPOD?: boolean;
+  isFlexibleDate?: boolean;
+  needInsurance?: boolean;
+  needPackaging?: boolean;
   budgetMin?: number;
   budgetMax?: number;
   customerName: string;
@@ -213,11 +232,20 @@ export default function VendorTruckRequestsPage() {
                           {SERVICE_TYPES[request.serviceType] || request.serviceType}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 text-gray-600">
-                        <MapPin className="w-4 h-4" />
-                        <span className="text-sm">
-                          {request.pickupCity} → {request.dropCity}
-                        </span>
+                      <div className="flex items-start gap-1 text-gray-600">
+                        <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <span className="text-sm">
+                            {request.pickupCity} → {request.dropCity}
+                          </span>
+                          {(request.pickupAddress || request.dropAddress) && (
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {request.pickupAddress && <span>{request.pickupAddress}</span>}
+                              {request.pickupAddress && request.dropAddress && <span> → </span>}
+                              {request.dropAddress && <span>{request.dropAddress}</span>}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

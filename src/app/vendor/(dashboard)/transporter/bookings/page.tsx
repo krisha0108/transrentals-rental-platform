@@ -32,7 +32,9 @@ interface TruckBooking {
   customerName: string;
 
   pickupCity: string;
+  pickupAddress?: string;
   dropCity: string;
+  dropAddress?: string;
   pickupDate: string;
   pickupTime: string;
   totalAmount: number;
@@ -286,6 +288,13 @@ export default function VendorTransporterBookingsPage() {
                         <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(booking.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
                         {booking.goodsType && <span className="font-semibold text-emerald-600">({booking.goodsType})</span>}
                       </div>
+                      {(booking.pickupAddress || booking.dropAddress) && (
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                          {booking.pickupAddress && <span>{booking.pickupAddress}</span>}
+                          {booking.pickupAddress && booking.dropAddress && <span> → </span>}
+                          {booking.dropAddress && <span>{booking.dropAddress}</span>}
+                        </p>
+                      )}
                       {booking.status === 'DROPPED' && (
                         <div className="mt-2 px-3 py-2 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 flex items-center gap-1.5"><XCircle className="w-3 h-3 shrink-0" /><span className="font-medium">Dropped</span></div>
                       )}

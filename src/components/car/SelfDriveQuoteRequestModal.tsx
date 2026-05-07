@@ -26,6 +26,7 @@ import {
   Fuel,
   Users,
   Truck,
+  Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCustomerAuth } from '@/hooks/useCustomer';
@@ -195,11 +196,11 @@ export function SelfDriveQuoteRequestModal({
         // Requirements
         isDeliveryRequested,
         customerNotes: customerNotes.trim() || null,
+        numberOfVehicles: numberOfVehicles ? parseInt(numberOfVehicles) : 1,
 
         // B2B fields
         ...(bookingPurpose === 'company' && {
           isB2B: true,
-          numberOfVehicles: numberOfVehicles ? parseInt(numberOfVehicles) : undefined,
           numberOfPersons: numberOfPersons ? parseInt(numberOfPersons) : undefined,
         }),
       };
@@ -641,6 +642,22 @@ export function SelfDriveQuoteRequestModal({
                 <div className="space-y-3 mb-6">
                   <h4 className="font-semibold text-gray-900">Requirements</h4>
 
+                  {/* Number of Cars */}
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">
+                      <Hash className="w-4 h-4 inline mr-1" />
+                      Number of Cars
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={numberOfVehicles}
+                      onChange={(e) => setNumberOfVehicles(e.target.value)}
+                      placeholder="e.g., 1"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
                   {/* Delivery Option */}
                   <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
                     <input
@@ -849,6 +866,21 @@ export function SelfDriveQuoteRequestModal({
                     {/* Requirements */}
                     <div className="space-y-3 pt-2">
                       <h4 className="font-semibold text-gray-900">Requirements</h4>
+
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          <Hash className="w-4 h-4 inline mr-1" />
+                          Number of Cars
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={numberOfVehicles}
+                          onChange={(e) => setNumberOfVehicles(e.target.value)}
+                          placeholder="e.g., 1"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
 
                       <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
                         <input

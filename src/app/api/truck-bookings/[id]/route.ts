@@ -18,7 +18,22 @@ export async function GET(
       where: { id },
       include: {
         vendors: { select: { id: true, businessName: true, phone: true, rating: true } },
-        truck_quote_requests: { select: { id: true, requestNumber: true } },
+        truck_quote_requests: {
+          select: {
+            id: true, requestNumber: true,
+            truckBodyType: true, tripDirection: true,
+            estimatedVolume: true, estimatedWeight: true,
+            goodsDescription: true,
+            pickupPincode: true, dropPincode: true,
+            hasPickupLift: true, hasDropLift: true,
+            expectedDeliveryDate: true, expectedDeliveryTime: true,
+            requiresLabour: true, labourCount: true,
+            hasMultipleStops: true, multipleStopsDetails: true,
+            receiverName: true, receiverPhone: true, requiresPOD: true,
+            isFlexibleDate: true, needInsurance: true, needPackaging: true,
+            budgetMin: true, budgetMax: true, requirements: true,
+          }
+        },
         truck_quotes: {
           select: {
             id: true,
@@ -56,7 +71,22 @@ export async function GET(
         where: { bookingNumber: id },
         include: {
           vendors: { select: { id: true, businessName: true, phone: true, rating: true } },
-          truck_quote_requests: { select: { id: true, requestNumber: true } },
+          truck_quote_requests: {
+          select: {
+            id: true, requestNumber: true,
+            truckBodyType: true, tripDirection: true,
+            estimatedVolume: true, estimatedWeight: true,
+            goodsDescription: true,
+            pickupPincode: true, dropPincode: true,
+            hasPickupLift: true, hasDropLift: true,
+            expectedDeliveryDate: true, expectedDeliveryTime: true,
+            requiresLabour: true, labourCount: true,
+            hasMultipleStops: true, multipleStopsDetails: true,
+            receiverName: true, receiverPhone: true, requiresPOD: true,
+            isFlexibleDate: true, needInsurance: true, needPackaging: true,
+            budgetMin: true, budgetMax: true, requirements: true,
+          }
+        },
           truck_quotes: {
             select: {
               id: true,
@@ -94,11 +124,35 @@ export async function GET(
 
     // Transform booking to include quote with the expected property name
     const quoteAdvance = booking.truck_quotes?.advanceAmount;
+    const qr: any = booking.truck_quote_requests || {};
     const transformedBooking = {
       ...booking,
       // Use vendor-set advanceAmount from quote if available (overrides booking record)
       advanceAmount: (quoteAdvance != null && quoteAdvance > 0) ? quoteAdvance : booking.advanceAmount,
       balanceAmount: booking.totalAmount - ((quoteAdvance != null && quoteAdvance > 0) ? quoteAdvance : booking.advanceAmount),
+      // Surface extended quote-request fields
+      truckBodyType: qr.truckBodyType,
+      tripDirection: qr.tripDirection,
+      estimatedVolume: qr.estimatedVolume,
+      estimatedWeight: qr.estimatedWeight,
+      goodsDescription: booking.goodsDescription || qr.goodsDescription,
+      pickupPincode: qr.pickupPincode,
+      dropPincode: qr.dropPincode,
+      hasPickupLift: qr.hasPickupLift,
+      hasDropLift: qr.hasDropLift,
+      expectedDeliveryDate: qr.expectedDeliveryDate,
+      expectedDeliveryTime: qr.expectedDeliveryTime,
+      requiresLabour: qr.requiresLabour,
+      hasMultipleStops: qr.hasMultipleStops,
+      multipleStopsDetails: qr.multipleStopsDetails,
+      receiverName: qr.receiverName,
+      receiverPhone: qr.receiverPhone,
+      requiresPOD: qr.requiresPOD,
+      isFlexibleDate: qr.isFlexibleDate,
+      needInsurance: qr.needInsurance,
+      needPackaging: qr.needPackaging,
+      budgetMin: qr.budgetMin,
+      budgetMax: qr.budgetMax,
       vendor: booking.vendors ? {
         id: booking.vendors.id,
         name: booking.vendors.businessName,

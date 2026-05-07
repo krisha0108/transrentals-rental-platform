@@ -50,7 +50,10 @@ interface PackersBooking {
   quoteRequest?: {
     id: string;
     requestNumber: string;
-  };
+    shiftingScope?: string;
+    propertySize?: string;
+    estimatedWeight?: number;
+  } & Record<string, any>;
   createdAt: string;
 }
 
@@ -289,6 +292,16 @@ export default function VendorPackersBookingsPage() {
                         <span className="flex items-center gap-1 font-medium text-gray-700"><Users className="w-3 h-3 text-gray-400" /> {booking.customerName}</span>
                         <span className="text-gray-300">·</span>
                         <span className="flex items-center gap-1 capitalize"><Package className="w-3 h-3 text-gray-400" /> {booking.shiftingType} Shifting</span>
+                        {booking.quoteRequest?.shiftingScope && (
+                          <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded border border-emerald-100">
+                            {booking.quoteRequest.shiftingScope}
+                          </span>
+                        )}
+                        {booking.quoteRequest?.estimatedWeight ? (
+                          <span className="text-[10px] text-gray-500 px-1.5 py-0.5 bg-gray-100 rounded">
+                            {booking.quoteRequest.estimatedWeight} kg
+                          </span>
+                        ) : null}
                       </div>
                       <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-400">
                         <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {booking.pickupCity} → {booking.dropCity}</span>
@@ -296,6 +309,13 @@ export default function VendorPackersBookingsPage() {
                         <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {new Date(booking.scheduledDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
                         <span className="font-semibold text-emerald-600">(Team: {booking.teamSize})</span>
                       </div>
+                      {(booking.pickupAddress || booking.dropAddress) && (
+                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                          {booking.pickupAddress && <span>{booking.pickupAddress}</span>}
+                          {booking.pickupAddress && booking.dropAddress && <span> → </span>}
+                          {booking.dropAddress && <span>{booking.dropAddress}</span>}
+                        </p>
+                      )}
                       {booking.status === 'DROPPED' && (
                         <div className="mt-2 px-3 py-2 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 flex items-center gap-1.5"><XCircle className="w-3 h-3 shrink-0" /><span className="font-medium">Dropped</span></div>
                       )}

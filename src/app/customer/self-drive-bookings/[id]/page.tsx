@@ -64,6 +64,7 @@ interface Booking {
   requestedTransmission?: string;
   requestedFuelType?: string;
   requestedSeats?: number;
+  numberOfVehicles?: number;
   assignedVehicleName?: string;
   pickupDate: string;
   pickupTime: string;
@@ -434,6 +435,15 @@ export default function CustomerSelfDriveBookingPage() {
                     <p className="font-medium flex items-center gap-1">
                       <Users className="w-4 h-4 text-gray-400" />
                       {booking.requestedSeats}
+                    </p>
+                  </div>
+                )}
+                {booking.numberOfVehicles && booking.numberOfVehicles > 1 && (
+                  <div>
+                    <p className="text-sm text-gray-500">Number of Cars</p>
+                    <p className="font-medium flex items-center gap-1">
+                      <Car className="w-4 h-4 text-gray-400" />
+                      {booking.numberOfVehicles}
                     </p>
                   </div>
                 )}

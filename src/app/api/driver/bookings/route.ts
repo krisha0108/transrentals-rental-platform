@@ -288,26 +288,76 @@ export async function GET(request: NextRequest) {
       }
 
       console.log('Truck where conditions:', truckWhereConditions);
-      truckBookings = await prisma.truck_bookings.findMany({
+      truckBookings = await (prisma as any).truck_bookings.findMany({
         where: truckWhereConditions,
+        include: {
+          truck_quote_requests: {
+            select: {
+              truckBodyType: true,
+              tripDirection: true,
+              estimatedVolume: true,
+              estimatedWeight: true,
+              goodsDescription: true,
+              pickupPincode: true,
+              dropPincode: true,
+              hasPickupLift: true,
+              hasDropLift: true,
+              expectedDeliveryDate: true,
+              expectedDeliveryTime: true,
+              requiresLabour: true,
+              labourCount: true,
+              hasMultipleStops: true,
+              multipleStopsDetails: true,
+              receiverName: true,
+              receiverPhone: true,
+              requiresPOD: true,
+              isFlexibleDate: true,
+              requirements: true,
+            },
+          },
+        },
         orderBy: [{ pickupDate: 'asc' }, { pickupTime: 'asc' }],
       });
 
       console.log('Truck bookings found:', truckBookings.length);
 
       // Transform truck bookings to match car booking structure
-      truckBookings = truckBookings.map(b => ({
-        ...b,
-        serviceType: 'truck',
-        carCategoryName: b.vehicleName || b.vehicleCategory || 'Truck',
-        grandTotal: b.totalAmount,
-        tripType: b.serviceType,
-        driverBatta: 0,
-        otpSent: !!b.loadingOtp,
-        tripStartOtp: b.loadingOtp,
-        tripStartedAt: b.loadingStartedAt,
-        tripEndedAt: b.completedAt,
-      }));
+      truckBookings = truckBookings.map((b: any) => {
+        const qr = b.truck_quote_requests || {};
+        return {
+          ...b,
+          serviceType: 'truck',
+          carCategoryName: b.vehicleName || b.vehicleCategory || 'Truck',
+          grandTotal: b.totalAmount,
+          tripType: b.serviceType,
+          driverBatta: 0,
+          otpSent: !!b.loadingOtp,
+          tripStartOtp: b.loadingOtp,
+          tripStartedAt: b.loadingStartedAt,
+          tripEndedAt: b.completedAt,
+          // Surface extended truck info from quote request
+          truckBodyType: qr.truckBodyType,
+          tripDirection: qr.tripDirection,
+          estimatedVolume: qr.estimatedVolume,
+          estimatedWeight: qr.estimatedWeight,
+          goodsDescription: b.goodsDescription || qr.goodsDescription,
+          pickupPincode: qr.pickupPincode,
+          dropPincode: qr.dropPincode,
+          hasPickupLift: qr.hasPickupLift,
+          hasDropLift: qr.hasDropLift,
+          expectedDeliveryDate: qr.expectedDeliveryDate,
+          expectedDeliveryTime: qr.expectedDeliveryTime,
+          requiresLabour: qr.requiresLabour,
+          labourCount: b.labourCount ?? qr.labourCount,
+          hasMultipleStops: qr.hasMultipleStops,
+          multipleStopsDetails: qr.multipleStopsDetails,
+          receiverName: qr.receiverName,
+          receiverPhone: qr.receiverPhone,
+          requiresPOD: qr.requiresPOD,
+          isFlexibleDate: qr.isFlexibleDate,
+          requirements: b.customerNotes || qr.requirements,
+        };
+      });
 
       // Truck stats
       const allTruckBookings = await prisma.truck_bookings.findMany({

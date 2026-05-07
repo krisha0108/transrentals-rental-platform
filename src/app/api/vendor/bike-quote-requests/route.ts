@@ -172,6 +172,8 @@ export async function GET(request: NextRequest) {
         dropTime: r.dropTime,
         totalDays: r.totalDays,
         helmetsRequired: r.helmetsRequired,
+        numberOfVehicles: r.numberOfVehicles,
+        pickupAddress: r.pickupAddress,
         customerNotes: r.customerNotes,
         budgetMin: r.budgetMin,
         budgetMax: r.budgetMax,

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import TruckRequestDetails from '@/components/truck/TruckRequestDetails';
 import {
   Truck,
   Inbox,
@@ -35,16 +36,37 @@ interface QuoteRequest {
   requestNumber: string;
   truckMode: string;
   truckType: string;
+  truckBodyType?: string;
+  tripDirection?: string;
   goodsType: string;
+  goodsDescription?: string;
   weight: number;
   weightUnit: string;
+  estimatedWeight?: number;
+  estimatedVolume?: string;
   pickupCity: string;
+  pickupAddress?: string;
+  pickupPincode?: string;
   dropCity: string;
+  dropAddress?: string;
+  dropPincode?: string;
   pickupDate: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
   requirements?: string;
+  requiresLabour?: boolean;
+  labourCount?: number;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  requiresPOD?: boolean;
+  isFlexibleDate?: boolean;
+  needInsurance?: boolean;
+  needPackaging?: boolean;
   status: string;
   totalQuotesReceived: number;
   createdAt: string;
@@ -592,6 +614,7 @@ export default function VendorTransporterRequestsPage() {
                       <span className="text-[10px] font-bold uppercase tracking-wider">Pickup</span>
                     </div>
                     <p className="text-sm font-bold text-gray-900 truncate">{selected.pickupCity}</p>
+                    {selected.pickupAddress && <p className="text-xs text-gray-500 mt-0.5 truncate">{selected.pickupAddress}</p>}
                   </div>
                   <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-3">
                     <div className="flex items-center gap-1.5 text-gray-400 mb-1">
@@ -599,6 +622,7 @@ export default function VendorTransporterRequestsPage() {
                       <span className="text-[10px] font-bold uppercase tracking-wider">Drop</span>
                     </div>
                     <p className="text-sm font-bold text-gray-900 truncate">{selected.dropCity}</p>
+                    {selected.dropAddress && <p className="text-xs text-gray-500 mt-0.5 truncate">{selected.dropAddress}</p>}
                   </div>
                 </div>
 
@@ -622,6 +646,52 @@ export default function VendorTransporterRequestsPage() {
                       <p className="text-sm font-bold text-gray-900">{selected.goodsType || 'General Goods'}</p>
                     </div>
                   </div>
+                </div>
+
+                {/* Truck attribute chips */}
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {selected.truckBodyType && (
+                    <span className="px-2 py-0.5 text-[11px] rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                      {(() => {
+                        const m: Record<string, string> = {
+                          OPEN: 'Open Truck', CLOSED_BODY: 'Closed Body', CONTAINER: 'Container',
+                          TRAILER: 'Trailer', LCV: 'LCV', REFRIGERATED: 'Refrigerated',
+                          FLATBED: 'Flatbed', OTHER: 'Other',
+                        };
+                        return m[selected.truckBodyType!] || selected.truckBodyType;
+                      })()}
+                    </span>
+                  )}
+                  {selected.tripDirection && (
+                    <span className="px-2 py-0.5 text-[11px] rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                      {selected.tripDirection === 'ROUND_TRIP' ? 'Round Trip' : 'One Way'}
+                    </span>
+                  )}
+                  {selected.requiresLabour && (
+                    <span className="px-2 py-0.5 text-[11px] rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+                      Labour Needed{selected.labourCount ? ` (${selected.labourCount})` : ''}
+                    </span>
+                  )}
+                  {selected.hasMultipleStops && (
+                    <span className="px-2 py-0.5 text-[11px] rounded-full bg-violet-50 text-violet-700 border border-violet-100">
+                      Multi-stop
+                    </span>
+                  )}
+                  {selected.requiresPOD && (
+                    <span className="px-2 py-0.5 text-[11px] rounded-full bg-pink-50 text-pink-700 border border-pink-100">
+                      POD Required
+                    </span>
+                  )}
+                  {selected.estimatedVolume && (
+                    <span className="px-2 py-0.5 text-[11px] rounded-full bg-gray-50 text-gray-700 border border-gray-100">
+                      Volume: {selected.estimatedVolume}
+                    </span>
+                  )}
+                </div>
+
+                {/* Full quotation details */}
+                <div className="mt-4">
+                  <TruckRequestDetails data={selected as any} hideVehicle={true} />
                 </div>
               </div>
 

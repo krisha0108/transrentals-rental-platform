@@ -33,10 +33,13 @@ export async function GET(request: NextRequest) {
     const dateFilter = getDateRange(filter);
     const where = Object.keys(dateFilter).length ? { createdAt: dateFilter } : {};
 
-    // Fetch city-grouped data from all services in parallel
+    // Fetch city-grouped data from all services in parallel.
+    // Note: Car Rental (chauffeur-driven) has no separate quote_requests table —
+    // chauffeur_bookings itself acts as the quote/lifecycle tracker (PENDING_PAYMENT → assigned → accepted),
+    // matching the convention used in /api/admin/dashboard/stats.
     const [
       busGroups, luxuryGroups, packersGroups, truckGroups, equipmentGroups,
-      bikeGroups, selfDriveGroups,
+      bikeGroups, selfDriveGroups, carGroups,
     ] = await Promise.all([
       prisma.bus_quote_requests.groupBy({
         by: ['pickupCity'],
@@ -80,73 +83,66 @@ export async function GET(request: NextRequest) {
         where: { ...where, locationName: { not: null, not: '' } },
         orderBy: { _count: { id: 'desc' } },
       }),
+      prisma.chauffeur_bookings.groupBy({
+        by: ['pickupCity'],
+        _count: { id: true },
+        where: { ...where, pickupCity: { not: '' } },
+        orderBy: { _count: { id: 'desc' } },
+      }),
     ]);
 
-    // Merge all cities into a single map: city → { total, byService }
+    // Aggregate into two parallel maps from raw groupBy results:
+    //   cityMap    — city → { total, byService }      (used to build top-N cities for the map)
+    //   serviceMap — service → { total, topCity, cities[] }  (used for service-level breakdowns)
+    // Each ingest() call updates BOTH so per-service city lists aren't truncated by the top-N filter.
     const cityMap: Record<string, { total: number; byService: Record<string, number> }> = {};
+    const serviceMap: Record<string, { total: number; topCity: string; cities: { city: string; count: number }[] }> = {};
+    // city-within-service accumulator, so duplicate city names (different casing/whitespace from raw data)
+    // are merged into a single row per service before sorting
+    const serviceCityTotals: Record<string, Record<string, number>> = {};
 
-    function addToMap(groups: any[], serviceLabel: string, cityField: string) {
+    function ingest(groups: any[], serviceLabel: string, cityField: string) {
+      if (!serviceMap[serviceLabel]) serviceMap[serviceLabel] = { total: 0, topCity: '', cities: [] };
+      if (!serviceCityTotals[serviceLabel]) serviceCityTotals[serviceLabel] = {};
+
       for (const g of groups) {
         const city = (g[cityField] || '').trim();
-        if (!city) continue;
+        const count = g._count?.id || 0;
+        if (!city || !count) continue;
+
+        // service totals — counted across ALL cities, not just map's top-N
+        serviceMap[serviceLabel].total += count;
+        serviceCityTotals[serviceLabel][city] = (serviceCityTotals[serviceLabel][city] || 0) + count;
+
+        // city totals — feeds the map
         if (!cityMap[city]) cityMap[city] = { total: 0, byService: {} };
-        const cnt = g._count?.id || 0;
-        cityMap[city].total += cnt;
-        cityMap[city].byService[serviceLabel] = (cityMap[city].byService[serviceLabel] || 0) + cnt;
+        cityMap[city].total += count;
+        cityMap[city].byService[serviceLabel] = (cityMap[city].byService[serviceLabel] || 0) + count;
       }
     }
 
-    addToMap(busGroups,       'Bus Rental',        'pickupCity');
-    addToMap(luxuryGroups,    'Luxury Cars',       'pickupCity');
-    addToMap(packersGroups,   'Packers & Movers',  'pickupCity');
-    addToMap(truckGroups,     'Truck Rental',      'pickupCity');
-    addToMap(equipmentGroups, 'Equipment',         'deliveryCity');
-    addToMap(bikeGroups,      'Bike Rental',       'locationName');
-    addToMap(selfDriveGroups, 'Self Drive',        'locationName');
+    ingest(busGroups,       'Bus Rental',       'pickupCity');
+    ingest(luxuryGroups,    'Luxury Cars',      'pickupCity');
+    ingest(packersGroups,   'Packers & Movers', 'pickupCity');
+    ingest(truckGroups,     'Truck Rental',     'pickupCity');
+    ingest(equipmentGroups, 'Equipment',        'deliveryCity');
+    ingest(bikeGroups,      'Bike Rental',      'locationName');
+    ingest(selfDriveGroups, 'Self Drive',       'locationName');
+    ingest(carGroups,       'Car Rental',       'pickupCity');
 
-    // Sort cities by total, take top 15
+    // Materialize per-service city lists: sort by count desc, set topCity
+    for (const [label, svc] of Object.entries(serviceMap)) {
+      svc.cities = Object.entries(serviceCityTotals[label] || {})
+        .map(([city, count]) => ({ city, count }))
+        .sort((a, b) => b.count - a.count);
+      svc.topCity = svc.cities[0]?.city || '';
+    }
+
+    // Top 20 cities by total bookings across all services — for map dots
     const topCities = Object.entries(cityMap)
       .map(([city, data]) => ({ city, ...data }))
       .sort((a, b) => b.total - a.total)
-      .slice(0, 15);
-
-    // Build service-wise summary: which service gets most requests and from which top city
-    const serviceMap: Record<string, { total: number; topCity: string; cities: { city: string; count: number }[] }> = {};
-
-    for (const { city, byService } of topCities) {
-      for (const [service, count] of Object.entries(byService)) {
-        if (!serviceMap[service]) serviceMap[service] = { total: 0, topCity: '', cities: [] };
-        serviceMap[service].total += count;
-        serviceMap[service].cities.push({ city, count });
-      }
-    }
-
-    // Also aggregate services that might not appear in top 15 cities
-    function addServiceTotal(groups: any[], serviceLabel: string, cityField: string) {
-      const total = groups.reduce((s: number, g: any) => s + (g._count?.id || 0), 0);
-      if (!serviceMap[serviceLabel]) serviceMap[serviceLabel] = { total: 0, topCity: '', cities: [] };
-      const existing = serviceMap[serviceLabel].total;
-      if (total > existing) serviceMap[serviceLabel].total = total;
-      if (groups.length > 0) {
-        const top = groups[0];
-        const topCity = (top[cityField] || '').trim();
-        if (topCity && !serviceMap[serviceLabel].topCity) serviceMap[serviceLabel].topCity = topCity;
-      }
-    }
-
-    addServiceTotal(busGroups,       'Bus Rental',       'pickupCity');
-    addServiceTotal(luxuryGroups,    'Luxury Cars',      'pickupCity');
-    addServiceTotal(packersGroups,   'Packers & Movers', 'pickupCity');
-    addServiceTotal(truckGroups,     'Truck Rental',     'pickupCity');
-    addServiceTotal(equipmentGroups, 'Equipment',        'deliveryCity');
-    addServiceTotal(bikeGroups,      'Bike Rental',      'locationName');
-    addServiceTotal(selfDriveGroups, 'Self Drive',       'locationName');
-
-    // Sort each service's cities and pick topCity
-    for (const svc of Object.values(serviceMap)) {
-      svc.cities.sort((a, b) => b.count - a.count);
-      if (!svc.topCity && svc.cities.length > 0) svc.topCity = svc.cities[0].city;
-    }
+      .slice(0, 20);
 
     return NextResponse.json({ topCities, byService: serviceMap, filter });
   } catch (error) {

@@ -40,6 +40,8 @@ interface QuoteRequest {
   dropTime?: string;
   totalDays: number;
   helmetsRequired?: number;
+  numberOfVehicles?: number;
+  pickupAddress?: string;
   customerNotes?: string;
   budgetMin?: number;
   budgetMax?: number;
@@ -442,7 +444,9 @@ export default function SendBikeQuotePage() {
           <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl px-3 py-2.5">
             <div className="flex items-center gap-1.5 text-white/70 mb-1"><MapPin className="w-3 h-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Location</span></div>
             <p className="text-sm font-bold text-white truncate">{request.locationName}</p>
+            {request.pickupAddress && <p className="text-[10px] text-emerald-100/90 truncate" title={request.pickupAddress}>{request.pickupAddress}</p>}
             {request.helmetsRequired && <p className="text-[10px] text-emerald-200">{request.helmetsRequired} helmet(s)</p>}
+            {request.numberOfVehicles && request.numberOfVehicles > 1 && <p className="text-[10px] text-emerald-200">{request.numberOfVehicles} bikes needed</p>}
           </div>
           <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl px-3 py-2.5">
             <div className="flex items-center gap-1.5 text-white/70 mb-1"><Calendar className="w-3 h-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Dates</span></div>

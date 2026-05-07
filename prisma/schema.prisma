@@ -274,10 +274,12 @@ model bike_quote_requests {
   customerName                                                 String
   customerNotes                                                String?                    @db.Text
   customerPhone                                                String
+  pickupAddress                                                String?                    @db.Text
   dropDate                                                     DateTime
   dropTime                                                     String
   expiresAt                                                    DateTime
   helmetsRequired                                              Int                        @default(1)
+  numberOfVehicles                                             Int                        @default(1)
   locationId                                                   String
   locationName                                                 String
   pickupDate                                                   DateTime
@@ -2318,6 +2320,25 @@ model packers_quote_requests {
   preferredDate       DateTime
   isFlexibleDate      Boolean                       @default(false)
   flexibleDateRange   String?
+  expectedDeliveryDate DateTime?
+  expectedDeliveryTime String?
+  shiftingScope       packers_shifting_scope        @default(LOCAL)
+  pickupPincode       String?
+  dropPincode         String?
+  receiverName        String?
+  receiverPhone       String?
+  vehicleType         packers_vehicle_type          @default(DEDICATED)
+  partLoadAccepted    Boolean                       @default(false)
+  needLoading         Boolean                       @default(true)
+  needUnloading       Boolean                       @default(true)
+  labourCount         Int?
+  boxesCount          Int?
+  bagsCount           Int?
+  estimatedWeight     Float?
+  estimatedVolumeCubFt Float?
+  hasMultipleStops    Boolean                       @default(false)
+  multipleStopsDetails String?                      @db.Text
+  requiresPOD         Boolean                       @default(false)
   needPacking         Boolean                       @default(true)
   needUnpacking       Boolean                       @default(false)
   needStorage         Boolean                       @default(false)
@@ -2604,6 +2625,7 @@ model self_drive_quote_requests {
   locationId                                                                     String
   locationName                                                                   String
   minSeats                                                                       Int?
+  numberOfVehicles                                                               Int                              @default(1)
   pickupAddress                                                                  String?                          @db.Text
   pickupDate                                                                     DateTime
   pickupTime                                                                     String
@@ -3028,15 +3050,26 @@ model truck_quote_requests {
   labourCount         Int?
   pickupCity          String
   pickupAddress       String?                     @db.Text
+  pickupPincode       String?
   pickupFloor         Int?
   hasPickupLift       Boolean                     @default(false)
   dropCity            String
   dropAddress         String?                     @db.Text
+  dropPincode         String?
   dropFloor           Int?
   hasDropLift         Boolean                     @default(false)
   estimatedDistance   Float?
   pickupDate          DateTime
   pickupTime          String
+  expectedDeliveryDate DateTime?
+  expectedDeliveryTime String?
+  truckBodyType       truck_body_type?
+  tripDirection       truck_trip_direction        @default(ONE_WAY)
+  hasMultipleStops    Boolean                     @default(false)
+  multipleStopsDetails String?                    @db.Text
+  receiverName        String?
+  receiverPhone       String?
+  requiresPOD         Boolean                     @default(false)
   isFlexibleDate      Boolean                     @default(false)
   requirements        String?                     @db.Text
   needInsurance       Boolean                     @default(false)
@@ -5198,6 +5231,22 @@ enum bike_bookings_paymentStatus {
   FAILED
 }
 
+enum truck_body_type {
+  OPEN
+  CLOSED_BODY
+  CONTAINER
+  TRAILER
+  LCV
+  REFRIGERATED
+  FLATBED
+  OTHER
+}
+
+enum truck_trip_direction {
+  ONE_WAY
+  ROUND_TRIP
+}
+
 enum truck_quote_requests_status {
   PENDING
   QUOTES_RECEIVED
@@ -5270,6 +5319,17 @@ enum packers_quote_requests_status {
   CANCELLED
   EXPIRED
   DROPPED
+}
+
+enum packers_shifting_scope {
+  LOCAL
+  DOMESTIC
+  INTERCITY
+}
+
+enum packers_vehicle_type {
+  SHARED
+  DEDICATED
 }
 
 enum packers_bookings_status {

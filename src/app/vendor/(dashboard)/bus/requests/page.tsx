@@ -39,7 +39,9 @@ interface QuoteRequest {
   vehicleCategoryName?: string;
   passengers: number;
   pickupCity: string;
+  pickupAddress?: string;
   dropCity?: string;
+  dropAddress?: string;
   pickupDate: string;
   returnDate?: string;
   pickupTime?: string;
@@ -621,13 +623,20 @@ export default function VendorBusRequestsPage() {
 
                 {/* Secondary info row */}
                 <div className="flex flex-wrap gap-2.5">
-                  <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-gray-400" />
+                  <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Route</p>
                       <p className="text-sm font-bold text-gray-900">
                         {selected.pickupCity}{selected.dropCity && ` → ${selected.dropCity}`}
                       </p>
+                      {(selected.pickupAddress || selected.dropAddress) && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {selected.pickupAddress && <span>{selected.pickupAddress}</span>}
+                          {selected.pickupAddress && selected.dropAddress && <span> → </span>}
+                          {selected.dropAddress && <span>{selected.dropAddress}</span>}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 flex items-center gap-2">

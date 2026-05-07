@@ -63,10 +63,62 @@ export async function GET(
 
     if (!booking) {
       // Try Truck Booking
-      booking = await prisma.truck_bookings.findUnique({
+      booking = await (prisma as any).truck_bookings.findUnique({
         where: { bookingNumber },
+        include: {
+          truck_quote_requests: {
+            select: {
+              truckBodyType: true,
+              tripDirection: true,
+              estimatedVolume: true,
+              estimatedWeight: true,
+              goodsDescription: true,
+              pickupPincode: true,
+              dropPincode: true,
+              hasPickupLift: true,
+              hasDropLift: true,
+              expectedDeliveryDate: true,
+              expectedDeliveryTime: true,
+              requiresLabour: true,
+              labourCount: true,
+              hasMultipleStops: true,
+              multipleStopsDetails: true,
+              receiverName: true,
+              receiverPhone: true,
+              requiresPOD: true,
+              isFlexibleDate: true,
+              requirements: true,
+            },
+          },
+        },
       });
-      if (booking) serviceType = 'truck';
+      if (booking) {
+        serviceType = 'truck';
+        const qr: any = (booking as any).truck_quote_requests || {};
+        booking = {
+          ...booking,
+          truckBodyType: qr.truckBodyType,
+          tripDirection: qr.tripDirection,
+          estimatedVolume: qr.estimatedVolume,
+          estimatedWeight: qr.estimatedWeight,
+          goodsDescription: (booking as any).goodsDescription || qr.goodsDescription,
+          pickupPincode: qr.pickupPincode,
+          dropPincode: qr.dropPincode,
+          hasPickupLift: qr.hasPickupLift,
+          hasDropLift: qr.hasDropLift,
+          expectedDeliveryDate: qr.expectedDeliveryDate,
+          expectedDeliveryTime: qr.expectedDeliveryTime,
+          requiresLabour: qr.requiresLabour,
+          labourCount: (booking as any).labourCount ?? qr.labourCount,
+          hasMultipleStops: qr.hasMultipleStops,
+          multipleStopsDetails: qr.multipleStopsDetails,
+          receiverName: qr.receiverName,
+          receiverPhone: qr.receiverPhone,
+          requiresPOD: qr.requiresPOD,
+          isFlexibleDate: qr.isFlexibleDate,
+          requirements: (booking as any).customerNotes || qr.requirements,
+        } as any;
+      }
     }
 
     if (!booking) {

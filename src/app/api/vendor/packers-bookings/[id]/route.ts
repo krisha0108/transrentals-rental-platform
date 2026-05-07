@@ -33,14 +33,7 @@ export async function GET(
     const booking = await prisma.packers_bookings.findFirst({
       where: { id, vendorId: vendor.id },
       include: {
-        packers_quote_requests: {
-          select: {
-            id: true,
-            requestNumber: true,
-            pickupCity: true,
-            dropCity: true,
-          }
-        },
+        packers_quote_requests: true,
         packers_quotes: {
           select: {
             id: true,

@@ -127,6 +127,10 @@ interface ProfileFormState {
   email: string;
   phone: string;
   avatar?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
   bank_name?: string;
   account_number?: string;
   ifsc_code?: string;
@@ -211,6 +215,10 @@ export default function CustomerDashboardPage() {
     email: '',
     phone: '',
     avatar: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
     bank_name: '',
     account_number: '',
     ifsc_code: '',
@@ -329,6 +337,10 @@ export default function CustomerDashboardPage() {
         email: parsed.email || '',
         phone: parsed.phone || '',
         avatar: parsed.avatar || parsed.image || '',
+        address: parsed.address || '',
+        city: parsed.city || '',
+        state: parsed.state || '',
+        pincode: parsed.pincode || '',
         bank_name: parsed.bank_name || parsed.bankName || '',
         account_number: parsed.account_number || parsed.accountNumber || '',
         ifsc_code: parsed.ifsc_code || parsed.ifscCode || '',
@@ -359,6 +371,10 @@ export default function CustomerDashboardPage() {
       email: customer.email || '',
       phone: customer.phone || '',
       avatar: customer.avatar || customer.image || prev.avatar || '',
+      address: (customer as any).address || prev.address || '',
+      city: (customer as any).city || prev.city || '',
+      state: (customer as any).state || prev.state || '',
+      pincode: (customer as any).pincode || prev.pincode || '',
       bank_name: (customer as any).bank_name || (customer as any).bankName || prev.bank_name || '',
       account_number:
         (customer as any).account_number ||
@@ -766,6 +782,10 @@ export default function CustomerDashboardPage() {
         name: profileForm.name,
         email: profileForm.email,
         phone: profileForm.phone,
+        address: profileForm.address,
+        city: profileForm.city,
+        state: profileForm.state,
+        pincode: profileForm.pincode,
         bank_name: profileForm.bank_name,
         account_number: profileForm.account_number,
         ifsc_code: profileForm.ifsc_code,
@@ -807,6 +827,10 @@ export default function CustomerDashboardPage() {
           phone: profileForm.phone,
           avatar: avatarUrl,
           image: avatarUrl,
+          address: profileForm.address,
+          city: profileForm.city,
+          state: profileForm.state,
+          pincode: profileForm.pincode,
           bank_name: profileForm.bank_name,
           account_number: profileForm.account_number,
           ifsc_code: profileForm.ifsc_code,
@@ -1709,9 +1733,9 @@ export default function CustomerDashboardPage() {
       {/* Profile Edit Modal */}
       {showProfileModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Modal Header */}
-            <div className="bg-[#09B368] p-6 text-white">
+            <div className="bg-[#09B368] p-6 text-white flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold">Edit Profile</h3>
@@ -1727,7 +1751,7 @@ export default function CustomerDashboardPage() {
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-5">
+            <div className="p-6 space-y-5 flex-1 overflow-y-auto">
               {profileError && (
                 <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm">
                   <AlertCircle className="h-5 w-5 flex-shrink-0" />
@@ -1833,6 +1857,59 @@ export default function CustomerDashboardPage() {
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
                       placeholder="10-digit mobile number"
                       maxLength={10}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-100 space-y-4">
+                <p className="text-sm font-semibold text-gray-700">Address</p>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    <MapPin className="h-3.5 w-3.5 inline mr-1.5" />
+                    Address
+                  </label>
+                  <textarea
+                    value={profileForm.address}
+                    onChange={(e) => setProfileForm((prev) => ({ ...prev, address: e.target.value }))}
+                    rows={2}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition resize-none"
+                    placeholder="House / Flat, Street, Landmark"
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">City</label>
+                    <input
+                      type="text"
+                      value={profileForm.city}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, city: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                      placeholder="City"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">State</label>
+                    <input
+                      type="text"
+                      value={profileForm.state}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, state: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                      placeholder="State"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Pincode</label>
+                    <input
+                      type="text"
+                      value={profileForm.pincode}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        if (val.length <= 6) setProfileForm((prev) => ({ ...prev, pincode: val }));
+                      }}
+                      maxLength={6}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09B368]/40 focus:border-[#09B368] transition"
+                      placeholder="123456"
                     />
                   </div>
                 </div>
@@ -1966,7 +2043,7 @@ export default function CustomerDashboardPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 pt-0 flex gap-3">
+            <div className="p-6 pt-4 flex gap-3 flex-shrink-0 border-t border-gray-100 bg-white">
               <button
                 onClick={() => setShowProfileModal(false)}
                 className="flex-1 px-6 py-3 border border-gray-200 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition"

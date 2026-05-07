@@ -117,6 +117,8 @@ export async function GET(
         dropTime: quoteRequest.dropTime,
         totalDays: quoteRequest.totalDays,
         helmetsRequired: quoteRequest.helmetsRequired,
+        numberOfVehicles: quoteRequest.numberOfVehicles,
+        pickupAddress: quoteRequest.pickupAddress,
         customerNotes: quoteRequest.customerNotes,
         budgetMin: quoteRequest.budgetMin,
         budgetMax: quoteRequest.budgetMax,

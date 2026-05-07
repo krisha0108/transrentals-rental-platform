@@ -578,6 +578,7 @@ export default function VendorEquipmentQuotesPage() {
                         <span className="text-[9px] font-bold uppercase tracking-wider">Location</span>
                       </div>
                       <p className="text-[11px] font-bold text-gray-700 truncate">{req?.deliveryCity}</p>
+                      {req?.deliveryAddress && <p className="text-[10px] text-gray-500 truncate mt-0.5">{req.deliveryAddress}</p>}
                     </div>
                     <div className="bg-gradient-to-br from-cyan-50/60 to-white border border-cyan-100 rounded-xl px-3 py-2">
                       <div className="flex items-center gap-1 text-cyan-500 mb-0.5">

@@ -82,6 +82,7 @@ export async function GET(
         transmission: quoteRequest.transmission,
         fuelType: quoteRequest.fuelType,
         minSeats: quoteRequest.minSeats,
+        numberOfVehicles: quoteRequest.numberOfVehicles,
         locationId: quoteRequest.locationId,
         locationName: quoteRequest.locationName,
         location: quoteRequest.locations,

@@ -109,6 +109,8 @@ export async function GET(request: NextRequest) {
               customerName: true,
               vehicleCategoryName: true,
               locationName: true,
+              pickupAddress: true,
+              numberOfVehicles: true,
               pickupDate: true,
               dropDate: true,
               totalDays: true,

@@ -26,6 +26,8 @@ import {
   Star,
   Truck,
 } from 'lucide-react';
+import PackersRequestDetails from '@/components/packers/PackersRequestDetails';
+import { formatShiftingScope } from '@/lib/packers-display';
 import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 interface PackersQuoteRequest {
@@ -65,6 +67,26 @@ interface PackersQuoteRequest {
   budgetMax?: number;
   customerName: string;
   customerPhone: string;
+  // ── Newly-added packers fields ──
+  shiftingScope?: string;
+  pickupPincode?: string;
+  dropPincode?: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
+  boxesCount?: number;
+  bagsCount?: number;
+  estimatedWeight?: number;
+  estimatedVolumeCubFt?: number;
+  needLoading?: boolean;
+  needUnloading?: boolean;
+  labourCount?: number;
+  vehicleType?: string;
+  partLoadAccepted?: boolean;
+  requiresPOD?: boolean;
+  receiverName?: string;
+  receiverPhone?: string;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
 }
 
 interface PackersTemplate {
@@ -534,7 +556,13 @@ export default function SendPackersQuotePage() {
               <p className="font-medium text-gray-900">
                 {request.pickupCity} → {request.dropCity}
               </p>
-              <p className="text-sm text-gray-600">{request.pickupAddress}</p>
+              {(request.pickupAddress || request.dropAddress) && (
+                <p className="text-sm text-gray-600">
+                  {request.pickupAddress && <span>{request.pickupAddress}</span>}
+                  {request.pickupAddress && request.dropAddress && <span> → </span>}
+                  {request.dropAddress && <span>{request.dropAddress}</span>}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -601,12 +629,30 @@ export default function SendPackersQuotePage() {
           )}
         </div>
 
+        {request.shiftingScope && (
+          <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
+            <Truck className="w-3.5 h-3.5" />
+            {formatShiftingScope(request.shiftingScope)}
+          </div>
+        )}
+
         {request.requirements && (
           <div className="mt-4 p-3 bg-white rounded-lg">
             <p className="text-sm text-gray-500">Special Requirements</p>
             <p className="text-gray-700">{request.requirements}</p>
           </div>
         )}
+      </div>
+
+      {/* Detailed Request Information (so vendor sees all info to quote accurately) */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+            <FileSpreadsheet className="w-5 h-5 text-cyan-500" />
+            Customer Request Details
+          </h3>
+        </div>
+        <PackersRequestDetails data={request} hidePropertyType />
       </div>
 
       {/* Template Selector */}

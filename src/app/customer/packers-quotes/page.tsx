@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { formatShiftingScope, formatPropertySize } from '@/lib/packers-display';
 
 interface QuoteRequest {
   id: string;
@@ -30,12 +31,24 @@ interface QuoteRequest {
   shiftingType: string;
   propertySize: string;
   pickupCity: string;
+  pickupAddress?: string;
   dropCity: string;
+  dropAddress?: string;
   preferredDate: string;
   status: string;
   totalQuotesReceived: number;
   quotes: { id: string; totalAmount: number }[];
   createdAt: string;
+  // ── Newly-added (subset for list views) ──
+  shiftingScope?: string;
+  pickupPincode?: string;
+  dropPincode?: string;
+  estimatedWeight?: number;
+  estimatedVolumeCubFt?: number;
+  boxesCount?: number;
+  bagsCount?: number;
+  vehicleType?: string;
+  labourCount?: number;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
@@ -292,9 +305,24 @@ export default function CustomerPackersQuotesPage() {
 
                     {/* Trip Details */}
                     <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4 text-green-500" />
-                        {request.pickupCity} → {request.dropCity}
+                      <div className="flex items-start gap-1.5">
+                        <MapPin className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div>
+                            {request.pickupCity}
+                            {request.pickupPincode ? ` (${request.pickupPincode})` : ''}
+                            {' → '}
+                            {request.dropCity}
+                            {request.dropPincode ? ` (${request.dropPincode})` : ''}
+                          </div>
+                          {(request.pickupAddress || request.dropAddress) && (
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {request.pickupAddress && <span>{request.pickupAddress}</span>}
+                              {request.pickupAddress && request.dropAddress && <span> → </span>}
+                              {request.dropAddress && <span>{request.dropAddress}</span>}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-4 h-4 text-green-500" />
@@ -305,6 +333,32 @@ export default function CustomerPackersQuotesPage() {
                         })}
                       </div>
                     </div>
+
+                    {/* Subtle chips with scope/weight/etc */}
+                    {(request.shiftingScope || request.estimatedWeight || request.boxesCount) && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {request.shiftingScope && (
+                          <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+                            {formatShiftingScope(request.shiftingScope)}
+                          </span>
+                        )}
+                        {request.propertySize && (
+                          <span className="text-[10px] bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full font-medium">
+                            {formatPropertySize(request.propertySize)}
+                          </span>
+                        )}
+                        {request.estimatedWeight ? (
+                          <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                            {request.estimatedWeight} kg
+                          </span>
+                        ) : null}
+                        {request.boxesCount ? (
+                          <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                            {request.boxesCount} boxes
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
 
                     {/* CTA */}
                     {hasNewQuotes && (

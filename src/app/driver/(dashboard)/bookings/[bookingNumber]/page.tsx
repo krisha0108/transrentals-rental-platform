@@ -32,6 +32,7 @@ import {
   Crown,
   RefreshCw,
 } from 'lucide-react';
+import TruckRequestDetails from '@/components/truck/TruckRequestDetails';
 
 interface Booking {
   id: string;
@@ -84,6 +85,27 @@ interface Booking {
   vehicleFuel?: string;
   // Truck-specific fields
   goodsType?: string;
+  goodsDescription?: string;
+  truckBodyType?: string;
+  tripDirection?: string;
+  estimatedVolume?: string;
+  estimatedWeight?: number;
+  pickupPincode?: string;
+  pickupFloor?: number | null;
+  hasPickupLift?: boolean;
+  dropPincode?: string;
+  dropFloor?: number | null;
+  hasDropLift?: boolean;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
+  requiresLabour?: boolean;
+  labourCount?: number;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  requiresPOD?: boolean;
+  isFlexibleDate?: boolean;
   loadingOtp?: string;
   deliveryOtp?: string;
   loadingStartedAt?: string;
@@ -2164,6 +2186,13 @@ export default function DriverBookingDetailPage() {
                   {booking.localPackageHours} Hours / {booking.localPackageKm} KM
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Truck-specific extended details */}
+          {isTruck && (
+            <div className="pt-4 border-t border-gray-100">
+              <TruckRequestDetails data={booking as any} hideVehicle />
             </div>
           )}
         </div>

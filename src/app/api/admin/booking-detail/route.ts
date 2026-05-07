@@ -39,8 +39,13 @@ export async function GET(request: NextRequest) {
             grandTotal: true, advanceAmount: true,
             customerNotes: true, vendorNotes: true, adminNotes: true,
             cancellationReason: true, acceptedQuoteId: true,
+            bike_quote_requests: { select: { pickupAddress: true, numberOfVehicles: true } },
           },
         });
+        if (raw?.bike_quote_requests) {
+          raw.pickupAddress = raw.bike_quote_requests.pickupAddress;
+          raw.numberOfVehicles = raw.bike_quote_requests.numberOfVehicles;
+        }
         if (raw?.acceptedQuoteId) {
           quote = await prisma.bike_quotes.findUnique({
             where: { id: raw.acceptedQuoteId },
@@ -64,10 +69,15 @@ export async function GET(request: NextRequest) {
             customerName: true, customerPhone: true, customerEmail: true,
             pickupDate: true, dropDate: true, totalDays: true, pickupTime: true,
             grandTotal: true, advanceAmount: true,
+            pickupAddress: true,
             customerNotes: true, vendorNotes: true, adminNotes: true,
             cancellationReason: true, acceptedQuoteId: true,
+            self_drive_quote_requests: { select: { numberOfVehicles: true } },
           },
         });
+        if (raw?.self_drive_quote_requests) {
+          raw.numberOfVehicles = raw.self_drive_quote_requests.numberOfVehicles;
+        }
         if (raw?.acceptedQuoteId) {
           quote = await prisma.self_drive_quotes.findUnique({
             where: { id: raw.acceptedQuoteId },
@@ -116,7 +126,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true, bookingNumber: true, status: true,
             customerName: true, customerPhone: true, customerEmail: true,
-            pickupCity: true, dropCity: true,
+            pickupCity: true, pickupAddress: true, dropCity: true, dropAddress: true,
             pickupDate: true, pickupTime: true, returnDate: true, returnTime: true,
             tripDays: true, totalAmount: true, advanceAmount: true,
             customerNotes: true, vendorNotes: true, adminNotes: true,
@@ -144,11 +154,28 @@ export async function GET(request: NextRequest) {
           select: {
             id: true, bookingNumber: true, status: true,
             customerName: true, customerPhone: true, customerEmail: true,
-            pickupCity: true, dropCity: true, goodsType: true,
+            pickupCity: true, pickupAddress: true, pickupFloor: true,
+            dropCity: true, dropAddress: true, dropFloor: true, goodsType: true,
+            goodsDescription: true,
             pickupDate: true, pickupTime: true,
+            labourCount: true,
             totalAmount: true, advanceAmount: true,
             customerNotes: true, vendorNotes: true,
             cancellationReason: true, acceptedQuoteId: true,
+            truck_quote_requests: {
+              select: {
+                truckBodyType: true, tripDirection: true,
+                estimatedVolume: true, estimatedWeight: true,
+                pickupPincode: true, dropPincode: true,
+                hasPickupLift: true, hasDropLift: true,
+                expectedDeliveryDate: true, expectedDeliveryTime: true,
+                requiresLabour: true, labourCount: true,
+                hasMultipleStops: true, multipleStopsDetails: true,
+                receiverName: true, receiverPhone: true, requiresPOD: true,
+                isFlexibleDate: true, needInsurance: true, needPackaging: true,
+                budgetMin: true, budgetMax: true, requirements: true,
+              },
+            },
           },
         });
         if (raw?.acceptedQuoteId) {
@@ -171,7 +198,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true, bookingNumber: true, status: true,
             customerName: true, customerPhone: true, customerEmail: true,
-            equipmentName: true, equipmentType: true, deliveryCity: true,
+            equipmentName: true, equipmentType: true, deliveryCity: true, deliveryAddress: true,
             startDate: true, endDate: true, rentalDays: true,
             totalAmount: true, advanceAmount: true, securityDeposit: true,
             customerNotes: true, vendorNotes: true,
@@ -199,7 +226,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true, bookingNumber: true, status: true,
             customerName: true, customerPhone: true, customerEmail: true,
-            pickupCity: true, dropCity: true, serviceType: true,
+            pickupCity: true, pickupAddress: true, dropCity: true, dropAddress: true, serviceType: true,
             scheduledDate: true, scheduledTime: true,
             totalAmount: true, advanceAmount: true,
             customerNotes: true, vendorNotes: true,
@@ -227,7 +254,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true, bookingNumber: true, status: true,
             customerName: true, customerPhone: true, customerEmail: true,
-            pickupCity: true, dropCity: true, tripType: true,
+            pickupCity: true, pickupAddress: true, dropCity: true, dropAddress: true, tripType: true,
             pickupDate: true, pickupTime: true, returnDate: true, returnTime: true,
             totalDays: true, totalHours: true,
             grandTotal: true, paidAmount: true, baseFare: true, gstAmount: true,
@@ -269,7 +296,10 @@ export async function GET(request: NextRequest) {
         endDate,
         duration,
         location: raw.pickupCity || raw.deliveryCity || null,
+        pickupAddress: raw.pickupAddress || raw.deliveryAddress || null,
+        numberOfVehicles: raw.numberOfVehicles || null,
         dropLocation: raw.dropCity || null,
+        dropAddress: raw.dropAddress || null,
         goodsType: raw.goodsType || raw.serviceType || raw.equipmentType || raw.tripType || null,
         itemName: raw.equipmentName || null,
         amounts: {

@@ -158,6 +158,7 @@ export async function GET(request: NextRequest) {
         include: {
           locations: { select: { name: true, slug: true } },
           customers: { select: { id: true, name: true, phone: true } },
+          self_drive_quote_requests: { select: { numberOfVehicles: true } },
         },
         orderBy: [
           { responseDeadline: 'asc' }, // Urgent first
@@ -184,6 +185,7 @@ export async function GET(request: NextRequest) {
         transmission: b.requestedTransmission,
         fuelType: b.requestedFuelType,
         seats: b.requestedSeats,
+        numberOfVehicles: b.self_drive_quote_requests?.numberOfVehicles ?? null,
         location: b.locations,
         locationName: b.locationName,
         pickupAddress: b.pickupAddress,

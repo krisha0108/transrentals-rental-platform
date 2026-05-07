@@ -29,6 +29,7 @@ import {
   Loader2,
   FileText,
 } from 'lucide-react';
+import PackersRequestDetails from '@/components/packers/PackersRequestDetails';
 import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 interface PackersBooking {
@@ -49,6 +50,34 @@ interface PackersBooking {
   dropFloor?: number;
   hasDropLift?: boolean;
   scheduledDate: string;
+  // ── Newly-added optional packers fields (sourced from quoteRequest relation) ──
+  shiftingScope?: string;
+  pickupPincode?: string;
+  dropPincode?: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
+  inventoryList?: string;
+  boxesCount?: number;
+  bagsCount?: number;
+  estimatedWeight?: number;
+  estimatedVolumeCubFt?: number;
+  hasHeavyItems?: boolean;
+  heavyItemsDesc?: string;
+  hasFragileItems?: boolean;
+  fragileItemsDesc?: string;
+  needPacking?: boolean;
+  needLoading?: boolean;
+  needUnloading?: boolean;
+  labourCount?: number;
+  vehicleType?: string;
+  partLoadAccepted?: boolean;
+  needInsurance?: boolean;
+  insuranceValue?: number;
+  requiresPOD?: boolean;
+  receiverName?: string;
+  receiverPhone?: string;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
   teamSize?: number;
   propertyType?: string;
   propertySize?: string;
@@ -183,7 +212,11 @@ export default function VendorPackersBookingDetailPage() {
       const data = await response.json();
 
       if (data.success) {
-        setBooking(data.booking);
+        // Merge any new packers fields surfaced via the related quoteRequest
+        const merged = data.booking?.quoteRequest
+          ? { ...data.booking.quoteRequest, ...data.booking }
+          : data.booking;
+        setBooking(merged);
         setAssignForm({
           teamLeaderName: data.booking.teamLeaderName || '',
           teamLeaderPhone: data.booking.teamLeaderPhone || '',
@@ -536,6 +569,18 @@ export default function VendorPackersBookingDetailPage() {
               <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">{booking.customerNotes}</p>
             </div>
           )}
+
+          {/* Detailed Move Information */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-emerald-500" /> Move Information
+              </h3>
+            </div>
+            <div className="p-5">
+              <PackersRequestDetails data={booking as any} hidePropertyType />
+            </div>
+          </div>
 
           {/* Team Assignment */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

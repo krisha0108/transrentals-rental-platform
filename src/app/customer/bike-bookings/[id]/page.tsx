@@ -177,7 +177,7 @@ export default function BikeBookingDetailPage() {
             vendorReviewCount: 0,
             vendorAddress: apiBooking.vendorAddress || '',
             location: apiBooking.locationName || '',
-            pickupAddress: apiBooking.locationName || '',
+            pickupAddress: apiBooking.pickupAddress || apiBooking.locationName || '',
             pickupDate: apiBooking.pickupDate?.split('T')[0] || '',
             pickupTime: apiBooking.pickupTime || '10:00',
             dropDate: apiBooking.dropDate?.split('T')[0] || '',

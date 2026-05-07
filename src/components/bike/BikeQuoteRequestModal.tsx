@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   Loader2,
   ChevronRight,
+  Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCustomerAuth } from '@/hooks/useCustomer';
@@ -73,6 +74,8 @@ export function BikeQuoteRequestModal({
   const [customerPhone, setCustomerPhone] = useState(customer?.phone || '');
   const [password, setPassword] = useState('');
   const [helmetsRequired, setHelmetsRequired] = useState(1);
+  const [numberOfVehicles, setNumberOfVehicles] = useState(1);
+  const [pickupAddress, setPickupAddress] = useState((customer as any)?.address || '');
   const [customerNotes, setCustomerNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -127,6 +130,7 @@ export function BikeQuoteRequestModal({
       setCustomerName(customer.name || '');
       setCustomerEmail(customer.email || '');
       setCustomerPhone(customer.phone || '');
+      setPickupAddress((customer as any).address || '');
     }
   }, [customer]);
 
@@ -136,12 +140,14 @@ export function BikeQuoteRequestModal({
       setSubmitted(false);
       setError(null);
       setCustomerNotes('');
+      setPickupAddress((customer as any)?.address || '');
       setHelmetsRequired(1);
+      setNumberOfVehicles(1);
       setPassword('');
       setAuthMode('check');
       setShowPassword(false);
     }
-  }, [isOpen]);
+  }, [isOpen, customer]);
 
   // Submit quote request
   const submitQuoteRequest = async (customerId?: string) => {
@@ -174,6 +180,8 @@ export function BikeQuoteRequestModal({
         dropTime,
 
         // Requirements
+        pickupAddress: pickupAddress.trim() || null,
+        numberOfVehicles,
         helmetsRequired,
         customerNotes: customerNotes.trim() || null,
       };
@@ -535,6 +543,41 @@ export function BikeQuoteRequestModal({
 
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">
+                      <MapPin className="w-4 h-4 inline mr-1" />
+                      Pickup Address
+                    </label>
+                    <textarea
+                      value={pickupAddress}
+                      onChange={(e) => setPickupAddress(e.target.value)}
+                      placeholder="Building, Street, Area, Landmark"
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+                    />
+                    {(customer as any)?.address && (
+                      <p className="text-[11px] text-gray-500 mt-1">Pre-filled from your profile — edit if needed for this booking.</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">
+                      <Hash className="w-4 h-4 inline mr-1" />
+                      Number of Vehicles
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={numberOfVehicles}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        setNumberOfVehicles(isNaN(val) || val < 1 ? 1 : val);
+                      }}
+                      placeholder="e.g., 1"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">
                       <HardHat className="w-4 h-4 inline mr-1" />
                       Helmets Required
                     </label>
@@ -545,6 +588,8 @@ export function BikeQuoteRequestModal({
                     >
                       <option value={1}>1 Helmet</option>
                       <option value={2}>2 Helmets</option>
+                      <option value={3}>3 Helmets</option>
+                      <option value={4}>4 Helmets</option>
                     </select>
                   </div>
 
@@ -663,6 +708,20 @@ export function BikeQuoteRequestModal({
                     {/* Requirements */}
                     <div className="space-y-3 pt-2">
                       <h4 className="font-semibold text-gray-900">Requirements</h4>
+
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          <MapPin className="w-4 h-4 inline mr-1" />
+                          Pickup Address
+                        </label>
+                        <textarea
+                          value={pickupAddress}
+                          onChange={(e) => setPickupAddress(e.target.value)}
+                          placeholder="Building, Street, Area, Landmark"
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+                        />
+                      </div>
 
                       <div>
                         <label className="block text-sm text-gray-600 mb-1">

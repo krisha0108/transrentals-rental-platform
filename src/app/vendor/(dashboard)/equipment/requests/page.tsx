@@ -616,11 +616,12 @@ export default function VendorEquipmentRequestsPage() {
 
                 {/* Secondary info row */}
                 <div className="flex flex-wrap gap-2.5">
-                  <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-gray-400" />
+                  <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Location</p>
                       <p className="text-sm font-bold text-gray-900">{selected.deliveryCity || selected.city}</p>
+                      {selected.deliveryAddress && <p className="text-xs text-gray-500 mt-0.5">{selected.deliveryAddress}</p>}
                     </div>
                   </div>
                   {selected.quantity > 1 && (

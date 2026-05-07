@@ -454,6 +454,7 @@ export async function GET(request: NextRequest) {
         include: {
           locations: { select: { name: true, slug: true } },
           vendors_bike_bookings_acceptedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, rating: true } },
+          bike_quote_requests: { select: { pickupAddress: true, numberOfVehicles: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -495,6 +496,8 @@ export async function GET(request: NextRequest) {
         dropDate: b.dropDate,
         dropTime: b.dropTime,
         totalDays: b.totalDays,
+        numberOfVehicles: b.bike_quote_requests?.numberOfVehicles || null,
+        pickupAddress: b.bike_quote_requests?.pickupAddress || null,
         dailyRate: b.dailyRate,
         totalAmount: b.totalAmount,
         gstAmount: b.gstAmount,
