@@ -108,7 +108,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         const fleets = await (prisma as any).travel_agent_fleets.findMany({
           where: {
             id: { in: vehicleIds },
-            travelAgentId: agentTour.travelAgents.id,
+            travelAgentId: agentTour.travel_agents.id,
             isActive: true,
           },
         });
