@@ -14,6 +14,12 @@ interface BookingPaymentProps {
   bookingNumber: string;
   serviceSlug?: string;
   onSuccess?: () => void;
+  /**
+   * When true, skips the outer card chrome (white wrapper + emerald header).
+   * Use when the parent already provides its own card/header — avoids duplicate
+   * "Complete Your Booking" labels and lets the widget sit flush.
+   */
+  embedded?: boolean;
 }
 
 export function BookingPayment({
@@ -23,10 +29,30 @@ export function BookingPayment({
   bookingNumber,
   serviceSlug,
   onSuccess,
+  embedded = false,
 }: BookingPaymentProps) {
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'manual'>('razorpay');
 
   if (paymentMethod === 'manual') {
+    if (embedded) {
+      return (
+        <>
+          <PaymentConfirmation
+            bookingId={bookingId}
+            bookingNumber={bookingNumber}
+            amount={amount}
+            serviceSlug={serviceSlug}
+            onPaymentConfirmed={onSuccess}
+          />
+          <button
+            onClick={() => setPaymentMethod('razorpay')}
+            className="w-full text-xs text-emerald-600 hover:text-emerald-700 font-semibold text-center pt-3 transition"
+          >
+            ← Back to online payment
+          </button>
+        </>
+      );
+    }
     return (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="bg-gradient-to-r from-gray-700 to-gray-800 px-5 py-4 text-white">
@@ -58,6 +84,27 @@ export function BookingPayment({
           </button>
         </div>
       </div>
+    );
+  }
+
+  if (embedded) {
+    return (
+      <>
+        <RazorpayPayment
+          bookingId={bookingId}
+          bookingType={bookingType}
+          onSuccess={() => onSuccess?.()}
+          onError={() => {/* errors are shown inside RazorpayPayment with retry/manual options */}}
+          onCancel={() => setPaymentMethod('manual')}
+          compact
+        />
+        <button
+          onClick={() => setPaymentMethod('manual')}
+          className="w-full text-[10px] text-gray-400 hover:text-gray-600 text-center pt-2 transition"
+        >
+          Having trouble? Pay via UPI / Bank Transfer
+        </button>
+      </>
     );
   }
 

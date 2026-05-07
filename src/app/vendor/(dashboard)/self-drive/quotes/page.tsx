@@ -28,6 +28,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import Pagination from '@/components/vendor/Pagination';
+import QuoteShareButton from '@/components/vendor/QuoteShareButton';
 import DateFilterDropdown from '@/components/vendor/DateFilterDropdown';
 
 interface Quote {
@@ -603,6 +604,13 @@ export default function VendorSelfDriveQuotesPage() {
                       <Eye className="w-3.5 h-3.5" /> View Details
                       <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
                     </Link>
+                    <QuoteShareButton
+                      quoteUrl={`/vendor/self-drive/quotes/${quote.id}`}
+                      quoteNumber={quote.quoteNumber}
+                      customerName={quote.request?.customerName || ''}
+                      amount={quote.grandTotal}
+                      serviceName="Self Drive"
+                    />
                     {['SENT', 'VIEWED'].includes(quote.status) && (
                       <button
                         onClick={async (e) => {
