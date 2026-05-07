@@ -197,20 +197,6 @@ export function Header() {
               <Compass className="w-4 h-4" />
               Tours
             </Link>
-
-            {/* Travel Agents landing */}
-            <Link
-              href="/travel-agents"
-              className={cn(
-                'px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-1.5',
-                pathname === '/travel-agents'
-                  ? 'text-emerald-700 bg-emerald-50'
-                  : 'text-gray-700 hover:text-emerald-700 hover:bg-emerald-50/60'
-              )}
-            >
-              <Plane className="w-4 h-4" />
-              For Travel Agents
-            </Link>
           </nav>
 
           {/* Action Buttons */}
