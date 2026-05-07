@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import TruckRequestDetails from '@/components/truck/TruckRequestDetails';
 
 interface Customer {
   id: string;
@@ -38,14 +39,41 @@ interface TruckBooking {
   serviceType: string;
   chauffeur_vehicle_categories: string;
   vehicleName: string;
+  vehicleCategoryName?: string;
+  truckBodyType?: string;
+  tripDirection?: string;
   goodsType: string;
+  goodsDescription?: string;
   weight?: number;
+  estimatedWeight?: number;
+  estimatedVolume?: string;
   pickupCity: string;
   pickupAddress?: string;
+  pickupPincode?: string;
+  pickupFloor?: number | null;
+  hasPickupLift?: boolean;
   dropCity: string;
   dropAddress?: string;
+  dropPincode?: string;
+  dropFloor?: number | null;
+  hasDropLift?: boolean;
   pickupDate: string;
   pickupTime: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
+  requiresLabour?: boolean;
+  labourCount?: number;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  requiresPOD?: boolean;
+  isFlexibleDate?: boolean;
+  needInsurance?: boolean;
+  needPackaging?: boolean;
+  budgetMin?: number;
+  budgetMax?: number;
+  requirements?: string;
   baseAmount: number;
   additionalCharges: number;
   gstAmount: number;
@@ -424,6 +452,11 @@ export default function CustomerTruckBookingDetailPage() {
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Weight</p>
                 <p className="text-sm font-bold text-gray-800">{booking.weight ? `${booking.weight} kg` : '—'}</p>
               </div>
+            </div>
+
+            {/* Extended truck quotation details */}
+            <div className="mt-4">
+              <TruckRequestDetails data={booking as any} hideVehicle />
             </div>
           </div>
         </div>

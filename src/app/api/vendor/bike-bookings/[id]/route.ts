@@ -47,6 +47,7 @@ export async function GET(
         locations: { select: { id: true, name: true, slug: true } },
         vendors_bike_bookings_acceptedVendorIdTovendors: { select: { id: true, businessName: true, phone: true } },
         customers: { select: { id: true, name: true, email: true, phone: true } },
+        bike_quote_requests: { select: { pickupAddress: true, numberOfVehicles: true } },
       },
     });
 
@@ -102,6 +103,8 @@ export async function GET(
         dropDate: booking.dropDate.toISOString(),
         dropTime: booking.dropTime,
         totalDays: booking.totalDays,
+        numberOfVehicles: booking.bike_quote_requests?.numberOfVehicles || null,
+        pickupAddress: booking.bike_quote_requests?.pickupAddress || null,
         dailyRate: booking.dailyRate,
         totalAmount: booking.totalAmount,
         gstAmount: booking.gstAmount,

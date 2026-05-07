@@ -36,6 +36,30 @@ export async function GET(
           select: {
             id: true,
             requestNumber: true,
+            truckBodyType: true,
+            tripDirection: true,
+            estimatedVolume: true,
+            estimatedWeight: true,
+            goodsDescription: true,
+            pickupPincode: true,
+            dropPincode: true,
+            hasPickupLift: true,
+            hasDropLift: true,
+            expectedDeliveryDate: true,
+            expectedDeliveryTime: true,
+            requiresLabour: true,
+            labourCount: true,
+            hasMultipleStops: true,
+            multipleStopsDetails: true,
+            receiverName: true,
+            receiverPhone: true,
+            requiresPOD: true,
+            isFlexibleDate: true,
+            needInsurance: true,
+            needPackaging: true,
+            budgetMin: true,
+            budgetMax: true,
+            requirements: true,
             locations: {
               select: { name: true, slug: true }
             }
@@ -69,10 +93,34 @@ export async function GET(
     const pickupCity = booking.truck_quote_requests?.locations?.name || booking.pickupCity || 'N/A';
     const dropCity = booking.dropCity || 'N/A';
 
+    const qr = booking.truck_quote_requests as any;
     const transformedBooking = {
       ...booking,
       pickupCity,
       dropCity,
+      // Surface extended quote-request fields onto the booking object for UI convenience
+      truckBodyType: qr?.truckBodyType,
+      tripDirection: qr?.tripDirection,
+      estimatedVolume: qr?.estimatedVolume,
+      estimatedWeight: qr?.estimatedWeight,
+      goodsDescription: booking.goodsDescription || qr?.goodsDescription,
+      pickupPincode: qr?.pickupPincode,
+      dropPincode: qr?.dropPincode,
+      hasPickupLift: qr?.hasPickupLift,
+      hasDropLift: qr?.hasDropLift,
+      expectedDeliveryDate: qr?.expectedDeliveryDate,
+      expectedDeliveryTime: qr?.expectedDeliveryTime,
+      requiresLabour: qr?.requiresLabour,
+      hasMultipleStops: qr?.hasMultipleStops,
+      multipleStopsDetails: qr?.multipleStopsDetails,
+      receiverName: qr?.receiverName,
+      receiverPhone: qr?.receiverPhone,
+      requiresPOD: qr?.requiresPOD,
+      isFlexibleDate: qr?.isFlexibleDate,
+      needInsurance: qr?.needInsurance,
+      needPackaging: qr?.needPackaging,
+      budgetMin: qr?.budgetMin,
+      budgetMax: qr?.budgetMax,
     };
 
     return NextResponse.json({ success: true, booking: transformedBooking });

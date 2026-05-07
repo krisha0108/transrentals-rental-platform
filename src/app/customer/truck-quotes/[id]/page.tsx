@@ -24,19 +24,47 @@ import {
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import TruckRequestDetails from '@/components/truck/TruckRequestDetails';
 
 interface QuoteRequest {
   id: string;
   requestNumber: string;
   serviceType: string;
   chauffeur_vehicle_categories: string;
+  vehicleCategory?: string;
+  vehicleCategoryName?: string;
+  truckBodyType?: string;
+  tripDirection?: string;
   goodsType: string;
+  goodsDescription?: string;
   estimatedWeight: number | null;
+  estimatedVolume?: string;
   pickupCity: string;
   pickupAddress: string;
+  pickupPincode?: string;
+  pickupFloor?: number | null;
+  hasPickupLift?: boolean;
   dropCity: string;
   dropAddress: string;
+  dropPincode?: string;
+  dropFloor?: number | null;
+  hasDropLift?: boolean;
   pickupDate: string;
+  pickupTime?: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
+  requiresLabour?: boolean;
+  labourCount?: number;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  requiresPOD?: boolean;
+  isFlexibleDate?: boolean;
+  needInsurance?: boolean;
+  needPackaging?: boolean;
+  budgetMin?: number;
+  budgetMax?: number;
   requirements: string;
   status: string;
 }
@@ -348,9 +376,18 @@ export default function CustomerTruckQuoteDetailPage() {
                 </>
               )}
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-blue-500" />
-              <span>{request.pickupCity} → {request.dropCity}</span>
+            <div className="flex items-start gap-2 text-sm">
+              <MapPin className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <span>{request.pickupCity} → {request.dropCity}</span>
+                {(request.pickupAddress || request.dropAddress) && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {request.pickupAddress && <span>{request.pickupAddress}</span>}
+                    {request.pickupAddress && request.dropAddress && <span> → </span>}
+                    {request.dropAddress && <span>{request.dropAddress}</span>}
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="w-4 h-4 text-blue-500" />
@@ -368,6 +405,11 @@ export default function CustomerTruckQuoteDetailPage() {
               <strong>Requirements:</strong> {request.requirements}
             </div>
           )}
+
+          {/* Extended truck quotation details */}
+          <div className="mt-5">
+            <TruckRequestDetails data={request as any} hideVehicle />
+          </div>
         </div>
 
         {/* Quotes */}
@@ -832,9 +874,18 @@ export default function CustomerTruckQuoteDetailPage() {
                 <Truck className="w-4 h-4 text-gray-400" />
                 <span className="font-medium capitalize">{request?.serviceType?.replace(/-/g, ' ')}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4 text-gray-400" />
-                <span>{request?.pickupCity} → {request?.dropCity}</span>
+              <div className="flex items-start gap-2 text-sm text-gray-600">
+                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span>{request?.pickupCity} → {request?.dropCity}</span>
+                  {(request?.pickupAddress || request?.dropAddress) && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {request?.pickupAddress && <span>{request.pickupAddress}</span>}
+                      {request?.pickupAddress && request?.dropAddress && <span> → </span>}
+                      {request?.dropAddress && <span>{request.dropAddress}</span>}
+                    </p>
+                  )}
+                </div>
               </div>
               {request?.goodsType && (
                 <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">

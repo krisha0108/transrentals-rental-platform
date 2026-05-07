@@ -122,6 +122,7 @@ export async function GET(
         include: {
           customers: customerInclude,
           locations: locationInclude,
+          bike_quote_requests: true,
           vendors_bike_bookings_assignedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, email: true } },
           vendors_bike_bookings_acceptedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, email: true } },
         },
@@ -142,6 +143,7 @@ export async function GET(
         include: {
           customers: customerInclude,
           locations: locationInclude,
+          self_drive_quote_requests: { select: { numberOfVehicles: true } },
           vendors_car_bookings_assignedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, email: true } },
           vendors_car_bookings_acceptedVendorIdTovendors: { select: { id: true, businessName: true, phone: true, email: true } },
         },
@@ -182,6 +184,7 @@ export async function GET(
         include: {
           customers: customerInclude,
           vendors: { select: { id: true, businessName: true, phone: true, email: true } },
+          packers_quote_requests: true,
         },
       }).catch(() => null),
 
@@ -191,6 +194,7 @@ export async function GET(
         include: {
           customers: customerInclude,
           vendors: { select: { id: true, businessName: true, phone: true, email: true } },
+          truck_quote_requests: true,
         },
       }).catch(() => null),
 
@@ -289,7 +293,43 @@ export async function GET(
               customerPhone: qr.customerPhone || qr.customers?.phone,
               customer: qr.customers || null,
               pickupCity: qr.pickupCity || qr.locationName || null,
+              pickupAddress: qr.pickupAddress ?? null,
+              pickupPincode: qr.pickupPincode ?? null,
+              pickupFloor: qr.pickupFloor ?? null,
+              hasPickupLift: qr.hasPickupLift ?? null,
+              dropCity: qr.dropCity ?? null,
+              dropAddress: qr.dropAddress ?? null,
+              dropPincode: qr.dropPincode ?? null,
+              dropFloor: qr.dropFloor ?? null,
+              hasDropLift: qr.hasDropLift ?? null,
+              deliveryCity: qr.deliveryCity ?? null,
+              deliveryAddress: qr.deliveryAddress ?? null,
+              numberOfVehicles: qr.numberOfVehicles ?? null,
               pickupDate: qr.pickupDate || qr.startDate || qr.scheduledDate || null,
+              pickupTime: qr.pickupTime ?? null,
+              expectedDeliveryDate: qr.expectedDeliveryDate ?? null,
+              expectedDeliveryTime: qr.expectedDeliveryTime ?? null,
+              // Truck specific
+              truckBodyType: qr.truckBodyType ?? null,
+              tripDirection: qr.tripDirection ?? null,
+              vehicleCategoryName: qr.vehicleCategoryName ?? null,
+              estimatedWeight: qr.estimatedWeight ?? null,
+              estimatedVolume: qr.estimatedVolume ?? null,
+              goodsType: qr.goodsType ?? null,
+              goodsDescription: qr.goodsDescription ?? null,
+              requiresLabour: qr.requiresLabour ?? null,
+              labourCount: qr.labourCount ?? null,
+              hasMultipleStops: qr.hasMultipleStops ?? null,
+              multipleStopsDetails: qr.multipleStopsDetails ?? null,
+              receiverName: qr.receiverName ?? null,
+              receiverPhone: qr.receiverPhone ?? null,
+              requiresPOD: qr.requiresPOD ?? null,
+              isFlexibleDate: qr.isFlexibleDate ?? null,
+              needInsurance: qr.needInsurance ?? null,
+              needPackaging: qr.needPackaging ?? null,
+              budgetMin: qr.budgetMin ?? null,
+              budgetMax: qr.budgetMax ?? null,
+              requirements: qr.requirements ?? null,
               createdAt: qr.createdAt,
               updatedAt: qr.updatedAt,
               assignedVendor: null,
@@ -338,6 +378,10 @@ export async function GET(
       customers,
       locations,
       vendors,
+      bike_quote_requests,
+      self_drive_quote_requests,
+      packers_quote_requests,
+      truck_quote_requests,
       vendors_bike_bookings_assignedVendorIdTovendors,
       vendors_bike_bookings_acceptedVendorIdTovendors,
       vendors_car_bookings_assignedVendorIdTovendors,
@@ -348,6 +392,77 @@ export async function GET(
       vendors_luxury_bookings_acceptedVendorIdTovendors,
       ...rawFields
     } = booking;
+
+    // Pull packers fields from the related quote request when this booking is a packers booking
+    const packersFields = packers_quote_requests
+      ? {
+          shiftingScope: packers_quote_requests.shiftingScope,
+          pickupPincode: packers_quote_requests.pickupPincode,
+          dropPincode: packers_quote_requests.dropPincode,
+          expectedDeliveryDate: packers_quote_requests.expectedDeliveryDate,
+          expectedDeliveryTime: packers_quote_requests.expectedDeliveryTime,
+          inventoryList: packers_quote_requests.inventoryList,
+          boxesCount: packers_quote_requests.boxesCount,
+          bagsCount: packers_quote_requests.bagsCount,
+          estimatedWeight: packers_quote_requests.estimatedWeight,
+          estimatedVolumeCubFt: packers_quote_requests.estimatedVolumeCubFt,
+          hasHeavyItems: packers_quote_requests.hasHeavyItems,
+          heavyItemsDesc: packers_quote_requests.heavyItemsDesc,
+          hasFragileItems: packers_quote_requests.hasFragileItems,
+          fragileItemsDesc: packers_quote_requests.fragileItemsDesc,
+          pickupFloor: rawFields.pickupFloor ?? packers_quote_requests.pickupFloor,
+          hasPickupLift: packers_quote_requests.hasPickupLift,
+          dropFloor: rawFields.dropFloor ?? packers_quote_requests.dropFloor,
+          hasDropLift: packers_quote_requests.hasDropLift,
+          needPacking: packers_quote_requests.needPacking,
+          needLoading: packers_quote_requests.needLoading,
+          needUnloading: packers_quote_requests.needUnloading,
+          labourCount: packers_quote_requests.labourCount,
+          vehicleType: packers_quote_requests.vehicleType,
+          partLoadAccepted: packers_quote_requests.partLoadAccepted,
+          needInsurance: packers_quote_requests.needInsurance,
+          insuranceValue: packers_quote_requests.insuranceValue,
+          requiresPOD: packers_quote_requests.requiresPOD,
+          receiverName: packers_quote_requests.receiverName,
+          receiverPhone: packers_quote_requests.receiverPhone,
+          hasMultipleStops: packers_quote_requests.hasMultipleStops,
+          multipleStopsDetails: packers_quote_requests.multipleStopsDetails,
+          propertySize: rawFields.propertySize ?? packers_quote_requests.propertySize,
+          shiftingType: rawFields.shiftingType ?? packers_quote_requests.shiftingType,
+        }
+      : {};
+
+    // Pull truck fields from the related quote request when this booking is a truck booking
+    const truckFields = truck_quote_requests
+      ? {
+          truckBodyType: truck_quote_requests.truckBodyType,
+          tripDirection: truck_quote_requests.tripDirection,
+          estimatedVolume: truck_quote_requests.estimatedVolume,
+          estimatedWeight: truck_quote_requests.estimatedWeight,
+          goodsDescription: rawFields.goodsDescription || truck_quote_requests.goodsDescription,
+          pickupPincode: truck_quote_requests.pickupPincode,
+          dropPincode: truck_quote_requests.dropPincode,
+          pickupFloor: rawFields.pickupFloor ?? truck_quote_requests.pickupFloor,
+          hasPickupLift: truck_quote_requests.hasPickupLift,
+          dropFloor: rawFields.dropFloor ?? truck_quote_requests.dropFloor,
+          hasDropLift: truck_quote_requests.hasDropLift,
+          expectedDeliveryDate: truck_quote_requests.expectedDeliveryDate,
+          expectedDeliveryTime: truck_quote_requests.expectedDeliveryTime,
+          requiresLabour: truck_quote_requests.requiresLabour,
+          labourCount: rawFields.labourCount ?? truck_quote_requests.labourCount,
+          hasMultipleStops: truck_quote_requests.hasMultipleStops,
+          multipleStopsDetails: truck_quote_requests.multipleStopsDetails,
+          receiverName: truck_quote_requests.receiverName,
+          receiverPhone: truck_quote_requests.receiverPhone,
+          requiresPOD: truck_quote_requests.requiresPOD,
+          isFlexibleDate: truck_quote_requests.isFlexibleDate,
+          needInsurance: truck_quote_requests.needInsurance,
+          needPackaging: truck_quote_requests.needPackaging,
+          budgetMin: truck_quote_requests.budgetMin,
+          budgetMax: truck_quote_requests.budgetMax,
+          requirements: rawFields.customerNotes || truck_quote_requests.requirements,
+        }
+      : {};
 
     // Build clean relation references
     const assignedVendor = serviceSlug === 'bike-rental' ? vendors_bike_bookings_assignedVendorIdTovendors :
@@ -364,6 +479,8 @@ export async function GET(
     // Format response - spread ALL raw fields, then overlay normalized aliases
     const formattedBooking = {
       ...rawFields,
+      ...packersFields,
+      ...truckFields,
       serviceName,
       serviceSlug,
       // Normalized customer fields
@@ -397,6 +514,20 @@ export async function GET(
       // Normalized trip status aliases
       pickedUpAt: booking.pickedUpAt || booking.tripStartedAt || null,
       returnedAt: booking.returnedAt || booking.tripEndedAt || null,
+      // Normalized address & service-specific fields
+      pickupAddress: serviceSlug === 'bike-rental'
+        ? (bike_quote_requests?.pickupAddress ?? booking.pickupAddress ?? null)
+        : (booking.pickupAddress ?? null),
+      dropAddress: serviceSlug === 'bike-rental'
+        ? (booking.dropAddress ?? null)
+        : (booking.dropAddress ?? null),
+      deliveryAddress: booking.deliveryAddress ?? null,
+      deliveryCity: booking.deliveryCity ?? null,
+      numberOfVehicles: serviceSlug === 'bike-rental'
+        ? (bike_quote_requests?.numberOfVehicles ?? null)
+        : serviceSlug === 'self-drive'
+          ? (self_drive_quote_requests?.numberOfVehicles ?? null)
+          : null,
     };
 
     return NextResponse.json({

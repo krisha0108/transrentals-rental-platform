@@ -32,7 +32,9 @@ interface QuoteRequest {
   vehicleCategoryName?: string;
   passengers: number;
   pickupCity: string;
+  pickupAddress?: string;
   dropCity?: string;
+  dropAddress?: string;
   pickupDate: string;
   pickupTime?: string;
   returnDate?: string;
@@ -301,10 +303,21 @@ export default function CustomerBusQuotesPage() {
 
                     {/* Trip Details */}
                     <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4 text-orange-500" />
-                        {request.pickupCity}
-                        {request.dropCity && ` → ${request.dropCity}`}
+                      <div className="flex items-start gap-1.5">
+                        <MapPin className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div>
+                            {request.pickupCity}
+                            {request.dropCity && ` → ${request.dropCity}`}
+                          </div>
+                          {(request.pickupAddress || request.dropAddress) && (
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {request.pickupAddress && <span>{request.pickupAddress}</span>}
+                              {request.pickupAddress && request.dropAddress && <span> → </span>}
+                              {request.dropAddress && <span>{request.dropAddress}</span>}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-4 h-4 text-orange-500" />

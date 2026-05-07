@@ -99,6 +99,7 @@ interface Quote {
     transmission?: string;
     fuelType?: string;
     minSeats?: number;
+    numberOfVehicles?: number;
     locationName: string;
     pickupDate: string;
     pickupTime: string;
@@ -795,7 +796,12 @@ export default function VendorSelfDriveQuoteDetailPage() {
                   {quote.request.customerName.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-gray-900">{quote.request.customerName}</p>
+                  <p className="text-sm font-bold text-gray-900">
+                    {quote.request.customerName}
+                    {quote.request.numberOfVehicles && quote.request.numberOfVehicles > 1 && (
+                      <span className="ml-1 text-gray-500 font-medium">· × {quote.request.numberOfVehicles} cars</span>
+                    )}
+                  </p>
                   {quote.request.customerPhone && <p className="text-xs text-gray-400">{quote.request.customerPhone}</p>}
                 </div>
               </div>

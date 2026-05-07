@@ -32,7 +32,9 @@ interface Quote {
     requestNumber: string;
     customerName: string;
     pickupCity: string;
+    pickupAddress?: string;
     dropCity: string;
+    dropAddress?: string;
     pickupDate: string;
     status: string;
   };
@@ -267,10 +269,21 @@ export default function VendorTruckQuotesPage() {
 
                   {/* Trip Details */}
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-blue-500" />
-                      {quote.request?.pickupCity}
-                      {quote.request?.dropCity && ` → ${quote.request.dropCity}`}
+                    <div className="flex items-start gap-1.5">
+                      <MapPin className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div>
+                          {quote.request?.pickupCity}
+                          {quote.request?.dropCity && ` → ${quote.request.dropCity}`}
+                        </div>
+                        {(quote.request?.pickupAddress || quote.request?.dropAddress) && (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {quote.request?.pickupAddress && <span>{quote.request.pickupAddress}</span>}
+                            {quote.request?.pickupAddress && quote.request?.dropAddress && <span> → </span>}
+                            {quote.request?.dropAddress && <span>{quote.request.dropAddress}</span>}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-4 h-4 text-blue-500" />

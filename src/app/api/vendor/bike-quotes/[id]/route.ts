@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const quote = await prisma.bike_quotes.findFirst({
       where: { id, vendorId: auth.vendorId },
       include: {
-        bike_quote_requests_bike_quotes_requestIdTobike_quote_requests: { select: { id: true, requestNumber: true, customerName: true, customerPhone: true, locationName: true, pickupDate: true, dropDate: true, totalDays: true, status: true } },
+        bike_quote_requests_bike_quotes_requestIdTobike_quote_requests: { select: { id: true, requestNumber: true, customerName: true, customerPhone: true, locationName: true, pickupAddress: true, numberOfVehicles: true, helmetsRequired: true, pickupDate: true, dropDate: true, totalDays: true, status: true } },
         bike_bookings: { select: { id: true, bookingNumber: true, status: true } },
       },
     });

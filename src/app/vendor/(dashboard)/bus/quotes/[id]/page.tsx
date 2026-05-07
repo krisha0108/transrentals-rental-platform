@@ -729,11 +729,18 @@ export default function VendorBusQuoteDetailPage() {
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg px-3 py-2 flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+              <div className="bg-gray-50 rounded-lg px-3 py-2 flex items-start gap-2">
+                <MapPin className="w-3.5 h-3.5 text-orange-400 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Route</p>
                   <p className="text-sm font-bold text-gray-900">{req.pickupCity}{req.dropCity && ` → ${req.dropCity}`}</p>
+                  {(req.pickupAddress || req.dropAddress) && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {req.pickupAddress && <span>{req.pickupAddress}</span>}
+                      {req.pickupAddress && req.dropAddress && <span> → </span>}
+                      {req.dropAddress && <span>{req.dropAddress}</span>}
+                    </p>
+                  )}
                 </div>
               </div>
 

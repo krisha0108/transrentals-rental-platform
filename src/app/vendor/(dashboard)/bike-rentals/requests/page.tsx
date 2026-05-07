@@ -46,6 +46,8 @@ interface QuoteRequest {
   dropTime?: string;
   totalDays: number;
   helmetsRequired?: number;
+  numberOfVehicles?: number;
+  pickupAddress?: string;
   customerNotes?: string;
   budgetMin?: number;
   budgetMax?: number;
@@ -386,7 +388,13 @@ export default function VendorBikeRequestsPage() {
                           {/* Location */}
                           <p className="text-[11px] text-gray-400 flex items-center gap-1 truncate">
                             <MapPin className="w-3 h-3 shrink-0" /> {req.locationName}
+                            {req.numberOfVehicles && req.numberOfVehicles > 1 && (
+                              <span className="ml-1 font-semibold text-gray-500">· × {req.numberOfVehicles}</span>
+                            )}
                           </p>
+                          {req.pickupAddress && (
+                            <p className="text-[11px] text-gray-400 truncate ml-4">{req.pickupAddress}</p>
+                          )}
 
                           {/* Date + Duration */}
                           <div className="flex items-center gap-2 mt-1.5">
@@ -597,11 +605,14 @@ export default function VendorBikeRequestsPage() {
 
                 {/* Secondary info row */}
                 <div className="flex flex-wrap gap-2.5">
-                  <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-gray-400" />
+                  <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
                     <div>
                       <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Location</p>
                       <p className="text-sm font-bold text-gray-900">{selected.locationName}</p>
+                      {selected.pickupAddress && (
+                        <p className="text-xs text-gray-500 mt-0.5">{selected.pickupAddress}</p>
+                      )}
                     </div>
                   </div>
                   {selected.helmetsRequired && selected.helmetsRequired > 0 && (
@@ -610,6 +621,15 @@ export default function VendorBikeRequestsPage() {
                       <div>
                         <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Helmets</p>
                         <p className="text-sm font-bold text-gray-900">{selected.helmetsRequired}</p>
+                      </div>
+                    </div>
+                  )}
+                  {selected.numberOfVehicles && selected.numberOfVehicles > 1 && (
+                    <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 flex items-center gap-2">
+                      <span className="text-base">🏍️</span>
+                      <div>
+                        <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Bikes</p>
+                        <p className="text-sm font-bold text-gray-900">{selected.numberOfVehicles}</p>
                       </div>
                     </div>
                   )}

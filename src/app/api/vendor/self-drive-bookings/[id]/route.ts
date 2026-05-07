@@ -35,6 +35,7 @@ export async function GET(
       where: { id },
       include: {
         locations: { select: { name: true, slug: true } },
+        self_drive_quote_requests: { select: { numberOfVehicles: true } },
       },
     });
 
@@ -79,6 +80,7 @@ export async function GET(
         requestedTransmission: booking.requestedTransmission,
         requestedFuelType: booking.requestedFuelType,
         requestedSeats: booking.requestedSeats,
+        numberOfVehicles: (booking as any).self_drive_quote_requests?.numberOfVehicles ?? null,
         locationId: booking.locationId,
         locationName: booking.locationName,
         pickupAddress: booking.pickupAddress,

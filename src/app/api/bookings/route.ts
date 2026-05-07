@@ -647,13 +647,42 @@ async function handleTruckQuoteRequest(customerInfo: { name: string; email: stri
   const goodsType = (bookingData.personal_good_type as string) || (bookingData.commercial_good_type as string) || (bookingData.goodsType as string) || 'household';
   const goodsTypeName = (bookingData.personal_good_type_name as string) || (bookingData.commercial_good_type_name as string) || (bookingData.goodsTypeName as string) || 'Household Items';
   const weightVal = (bookingData.weight_val as string) || (bookingData.weightVal as string);
-  const weightUnit = (bookingData.weight_unit as string) || (bookingData.weightUnit as string) || 'KG';
   const weightUnitName = (bookingData.weight_unit_name as string) || (bookingData.weightUnitName as string) || 'KG';
+  const materialDetails = (bookingData.material_details as string) || null;
 
   const requirements = (bookingData.other_info as string) ||
     `Truck: ${truckTypeName}, Goods: ${goodsTypeName}, Weight: ${weightVal || 'N/A'} ${weightUnitName}`;
 
-  const quoteRequest = await prisma.truck_quote_requests.create({
+  // Helper: parse expected delivery (string from chat → DateTime|null)
+  const parseExpectedDelivery = (val: unknown): Date | null => {
+    if (!val) return null;
+    const s = String(val).trim();
+    if (!s) return null;
+    const m = s.match(/^(\d+)\s*(day|days|week|weeks)$/i);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      const unitDays = /week/i.test(m[2]) ? 7 : 1;
+      return new Date(Date.now() + n * unitDays * 24 * 60 * 60 * 1000);
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  // Validate truck body type enum (fall back to null if not recognised)
+  const validBodyTypes = ['OPEN', 'CLOSED_BODY', 'CONTAINER', 'TRAILER', 'LCV', 'REFRIGERATED', 'FLATBED', 'OTHER'];
+  const rawBodyType = (bookingData.truck_body_type as string) || null;
+  const truckBodyType = rawBodyType && validBodyTypes.includes(rawBodyType) ? rawBodyType : null;
+
+  const validTripDirections = ['ONE_WAY', 'ROUND_TRIP'];
+  const rawTripDirection = (bookingData.trip_direction as string) || 'ONE_WAY';
+  const tripDirection = validTripDirections.includes(rawTripDirection) ? rawTripDirection : 'ONE_WAY';
+
+  // goodsDescription combines goodsTypeName and material details when provided
+  const goodsDescription = materialDetails
+    ? `${goodsTypeName} – ${materialDetails}`
+    : goodsTypeName;
+
+  const quoteRequest = await (prisma as any).truck_quote_requests.create({
     data: {
       requestNumber,
       customerId: customer.id,
@@ -664,14 +693,47 @@ async function handleTruckQuoteRequest(customerInfo: { name: string; email: stri
       vehicleCategory: truckType,
       vehicleCategoryName: truckTypeName,
       goodsType: goodsType,
-      goodsDescription: goodsTypeName,
+      goodsDescription: goodsDescription,
       estimatedWeight: weightVal ? parseFloat(weightVal) : null,
+      estimatedVolume: (bookingData.truck_estimated_volume as string) || null,
+      requiresLabour: bookingData.requires_labour === true,
+      labourCount: bookingData.truck_labour_count != null
+        ? parseInt(bookingData.truck_labour_count as string)
+        : null,
       pickupCity: (bookingData.location_name as string) || (bookingData.pickupLocation as string) || 'Not specified',
-      pickupAddress: (bookingData.location_name as string) || (bookingData.pickupLocation as string) || null,
+      pickupAddress: (bookingData.pickup_full_address as string) || (bookingData.location_name as string) || (bookingData.pickupLocation as string) || null,
+      pickupPincode: (bookingData.truck_pickup_pincode as string) || null,
+      pickupFloor: bookingData.truck_pickup_floor != null
+        ? parseInt(bookingData.truck_pickup_floor as string)
+        : null,
+      hasPickupLift: bookingData.has_truck_pickup_lift === true,
       dropCity: (bookingData.destination as string) || 'Not specified',
-      dropAddress: (bookingData.destination as string) || null,
+      dropAddress: (bookingData.destination_full_address as string) || (bookingData.destination as string) || null,
+      dropPincode: (bookingData.truck_drop_pincode as string) || null,
+      dropFloor: bookingData.truck_drop_floor != null
+        ? parseInt(bookingData.truck_drop_floor as string)
+        : null,
+      hasDropLift: bookingData.has_truck_drop_lift === true,
       pickupDate: pickupDateTime,
       pickupTime: pickupDateTime.toTimeString().slice(0, 5),
+      expectedDeliveryDate: parseExpectedDelivery(bookingData.truck_expected_delivery_date),
+      expectedDeliveryTime: (bookingData.truck_expected_delivery_time as string) || null,
+      truckBodyType: truckBodyType,
+      tripDirection: tripDirection,
+      hasMultipleStops: bookingData.truck_has_multiple_stops === true,
+      multipleStopsDetails: (bookingData.truck_multiple_stops_details as string) || null,
+      receiverName: (bookingData.truck_receiver_name as string) || null,
+      receiverPhone: (bookingData.truck_receiver_phone as string) || null,
+      requiresPOD: bookingData.truck_requires_pod === true,
+      isFlexibleDate: bookingData.is_flexible_date === true,
+      needInsurance: bookingData.need_insurance === true,
+      needPackaging: bookingData.need_packaging === true,
+      budgetMin: bookingData.budget_min != null
+        ? parseFloat(bookingData.budget_min as string)
+        : null,
+      budgetMax: bookingData.budget_max != null
+        ? parseFloat(bookingData.budget_max as string)
+        : null,
       requirements: requirements,
       locationId: pickupLocation?.id || 'default_loc',
       status: 'PENDING',
@@ -717,7 +779,23 @@ async function handlePackersQuoteRequest(customerInfo: { name: string; email: st
   const quotesOpenTill = new Date();
   quotesOpenTill.setHours(quotesOpenTill.getHours() + 48);
 
-  const quoteRequest = await prisma.packers_quote_requests.create({
+  // Helper: best-effort parse of expected delivery (string from chat → DateTime|null)
+  const parseExpectedDelivery = (val: unknown): Date | null => {
+    if (!val) return null;
+    const s = String(val).trim();
+    if (!s) return null;
+    // Match "N day(s)", "N week(s)" relative spec
+    const m = s.match(/^(\d+)\s*(day|days|week|weeks)$/i);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      const unitDays = /week/i.test(m[2]) ? 7 : 1;
+      return new Date(Date.now() + n * unitDays * 24 * 60 * 60 * 1000);
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const quoteRequest = await (prisma as any).packers_quote_requests.create({
     data: {
       requestNumber,
       customerId: customer.id,
@@ -726,14 +804,43 @@ async function handlePackersQuoteRequest(customerInfo: { name: string; email: st
       customerPhone: customerInfo.phone,
       serviceType: 'full-service',
       shiftingType: (bookingData.shifting_type as string) || 'Home',
-      propertySize: (bookingData.home_shifting as string) || (bookingData.specific_type as string) || null,
+      shiftingScope: (bookingData.shifting_scope as string) || 'LOCAL',
+      propertySize: (bookingData.home_shifting as string) || (bookingData.office_shifting as string) || (bookingData.vehicle_shifting as string) || null,
       pickupCity: bookingData.location_name as string,
-      pickupAddress: bookingData.location_name as string,
+      pickupAddress: (bookingData.pickup_full_address as string) || (bookingData.location_name as string),
+      pickupPincode: (bookingData.pickup_pincode as string) || null,
+      pickupFloor: bookingData.pickup_floor != null ? parseInt(bookingData.pickup_floor as string) : null,
+      hasPickupLift: bookingData.has_pickup_lift === true,
       dropCity: bookingData.destination as string,
-      dropAddress: bookingData.destination as string,
+      dropAddress: (bookingData.destination_full_address as string) || (bookingData.destination as string),
+      dropPincode: (bookingData.drop_pincode as string) || null,
+      dropFloor: bookingData.drop_floor != null ? parseInt(bookingData.drop_floor as string) : null,
+      hasDropLift: bookingData.has_drop_lift === true,
       preferredDate: bookingData.journey_datetime ? new Date(bookingData.journey_datetime as string) : new Date(),
-      needPacking: true,
-      needUnpacking: true,
+      expectedDeliveryDate: parseExpectedDelivery(bookingData.expected_delivery_date),
+      expectedDeliveryTime: (bookingData.expected_delivery_time as string) || null,
+      inventoryList: (bookingData.inventory_list as string) || null,
+      estimatedWeight: bookingData.estimated_weight != null ? parseFloat(bookingData.estimated_weight as string) : null,
+      hasHeavyItems: bookingData.has_heavy_items === true,
+      heavyItemsDesc: (bookingData.heavy_items_desc as string) || null,
+      hasFragileItems: bookingData.has_fragile_items === true,
+      fragileItemsDesc: (bookingData.fragile_items_desc as string) || null,
+      boxesCount: bookingData.boxes_count != null ? parseInt(bookingData.boxes_count as string) : null,
+      bagsCount: bookingData.bags_count != null ? parseInt(bookingData.bags_count as string) : null,
+      needPacking: bookingData.need_packing !== false,
+      needLoading: bookingData.need_loading !== false,
+      needUnloading: bookingData.need_unloading !== false,
+      needUnpacking: bookingData.need_unpacking === true,
+      labourCount: bookingData.labour_count != null ? parseInt(bookingData.labour_count as string) : null,
+      vehicleType: (bookingData.vehicle_type_req as string) || 'DEDICATED',
+      partLoadAccepted: bookingData.part_load_accepted === true,
+      needInsurance: bookingData.need_insurance === true,
+      insuranceValue: bookingData.insurance_value != null ? parseFloat(bookingData.insurance_value as string) : null,
+      requiresPOD: bookingData.requires_pod === true,
+      receiverName: (bookingData.receiver_name as string) || null,
+      receiverPhone: (bookingData.receiver_phone as string) || null,
+      hasMultipleStops: bookingData.has_multiple_stops === true,
+      multipleStopsDetails: (bookingData.multiple_stops_details as string) || null,
       requirements: (bookingData.other_info as string) || null,
       locationId: pickupLocation?.id || null,
       status: 'PENDING',
@@ -804,7 +911,7 @@ async function handleEquipmentQuoteRequest(customerInfo: { name: string; email: 
       rentalDuration: durationInfo.type,
       rentalDays: durationInfo.days,
       deliveryCity: (bookingData.location_name as string) || 'Not specified',
-      deliveryAddress: (bookingData.location_name as string) || 'Not specified',
+      deliveryAddress: (bookingData.pickup_full_address as string) || (bookingData.location_name as string) || 'Not specified',
       startDate,
       endDate,
       needOperator: true,
@@ -867,9 +974,9 @@ async function handleBusQuoteRequest(customerInfo: { name: string; email: string
       vehicleCategoryName: 'Bus',
       passengers: parseInt(bookingData.total_passangers as string) || 20,
       pickupCity: bookingData.location_name as string,
-      pickupAddress: bookingData.location_name as string,
+      pickupAddress: (bookingData.pickup_full_address as string) || (bookingData.location_name as string),
       dropCity: (bookingData.destination as string) || null,
-      dropAddress: (bookingData.destination as string) || null,
+      dropAddress: (bookingData.destination_full_address as string) || (bookingData.destination as string) || null,
       pickupDate: pickupDateTime,
       pickupTime: pickupDateTime.toTimeString().slice(0, 5),
       returnDate: bookingData.return_datetime ? new Date(bookingData.return_datetime as string) : null,
@@ -1140,6 +1247,7 @@ async function handleBikeQuoteRequest(customerInfo: { name: string; email: strin
       vehicleCategoryName: vehicleCategory, // human-readable for display only
       locationId: location?.id || 'default_loc',
       locationName: (bookingData.location_name as string) || location?.name || 'Not specified',
+      pickupAddress: (bookingData.pickup_full_address as string) || null,
       pickupDate,
       pickupTime: pickupDate.toTimeString().slice(0, 5),
       dropDate: returnDate,

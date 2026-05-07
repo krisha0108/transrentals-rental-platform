@@ -24,6 +24,8 @@ import {
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import PackersRequestDetails from '@/components/packers/PackersRequestDetails';
+import { formatShiftingScope } from '@/lib/packers-display';
 
 interface QuoteRequest {
   id: string;
@@ -40,6 +42,37 @@ interface QuoteRequest {
   needUnpacking: boolean;
   requirements: string;
   status: string;
+  // ── Newly-added optional packers fields ──
+  shiftingScope?: string;
+  pickupPincode?: string;
+  dropPincode?: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
+  inventoryList?: string;
+  boxesCount?: number;
+  bagsCount?: number;
+  estimatedWeight?: number;
+  estimatedVolumeCubFt?: number;
+  hasHeavyItems?: boolean;
+  heavyItemsDesc?: string;
+  hasFragileItems?: boolean;
+  fragileItemsDesc?: string;
+  pickupFloor?: number;
+  hasPickupLift?: boolean;
+  dropFloor?: number;
+  hasDropLift?: boolean;
+  needLoading?: boolean;
+  needUnloading?: boolean;
+  labourCount?: number;
+  vehicleType?: string;
+  partLoadAccepted?: boolean;
+  needInsurance?: boolean;
+  insuranceValue?: number;
+  requiresPOD?: boolean;
+  receiverName?: string;
+  receiverPhone?: string;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
 }
 
 interface VendorQuote {
@@ -312,9 +345,18 @@ export default function CustomerPackersQuoteDetailPage() {
               <Package className="w-4 h-4 text-green-500" />
               <span>{request.serviceType || 'Full Service'}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-green-500" />
-              <span>{request.pickupCity} → {request.dropCity}</span>
+            <div className="flex items-start gap-2 text-sm">
+              <MapPin className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <span>{request.pickupCity} → {request.dropCity}</span>
+                {(request.pickupAddress || request.dropAddress) && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {request.pickupAddress && <span>{request.pickupAddress}</span>}
+                    {request.pickupAddress && request.dropAddress && <span> → </span>}
+                    {request.dropAddress && <span>{request.dropAddress}</span>}
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="w-4 h-4 text-green-500" />
@@ -328,16 +370,37 @@ export default function CustomerPackersQuoteDetailPage() {
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
+            {request.shiftingScope && (
+              <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full">{formatShiftingScope(request.shiftingScope)}</span>
+            )}
             {request.needPacking && (
               <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Packing Required</span>
             )}
             {request.needUnpacking && (
               <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Unpacking Required</span>
             )}
+            {request.needLoading && (
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Loading Required</span>
+            )}
+            {request.needUnloading && (
+              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Unloading Required</span>
+            )}
+            {request.partLoadAccepted && (
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Part Load OK</span>
+            )}
+            {request.requiresPOD && (
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">POD Required</span>
+            )}
           </div>
+
+          {/* Detailed packers fields */}
+          <div className="mt-4">
+            <PackersRequestDetails data={request} hidePropertyType />
+          </div>
+
           {request.requirements && (
             <div className="mt-3 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
-              <strong>Requirements:</strong> {request.requirements}
+              <strong>Special Instructions:</strong> {request.requirements}
             </div>
           )}
         </div>

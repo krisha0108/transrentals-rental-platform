@@ -330,9 +330,18 @@ export default function CustomerBusQuoteDetailPage() {
               <Users className="w-4 h-4 text-orange-500" />
               <span>{getTripTypeName(request.tripType)}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-orange-500" />
-              <span>{request.pickupCity} → {request.dropCity}</span>
+            <div className="flex items-start gap-2 text-sm">
+              <MapPin className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <span>{request.pickupCity} → {request.dropCity}</span>
+                {(request.pickupAddress || request.dropAddress) && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {request.pickupAddress && <span>{request.pickupAddress}</span>}
+                    {request.pickupAddress && request.dropAddress && <span> → </span>}
+                    {request.dropAddress && <span>{request.dropAddress}</span>}
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="w-4 h-4 text-orange-500" />

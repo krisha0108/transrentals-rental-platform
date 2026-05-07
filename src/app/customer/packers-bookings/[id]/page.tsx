@@ -27,6 +27,8 @@ import {
 } from 'lucide-react';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import PackersRequestDetails from '@/components/packers/PackersRequestDetails';
+import { formatShiftingScope, formatPropertyTypeAndSize } from '@/lib/packers-display';
 
 interface Customer {
   id: string;
@@ -41,13 +43,45 @@ interface PackersBooking {
   customerId?: string;
   serviceType: string;
   shiftingType: string;
+  propertySize?: string;
   pickupCity: string;
   pickupAddress: string;
   pickupFloor?: number;
+  hasPickupLift?: boolean;
   dropCity: string;
   dropAddress: string;
   dropFloor?: number;
+  hasDropLift?: boolean;
   scheduledDate: string;
+  // ── Newly-added optional packers fields ──
+  shiftingScope?: string;
+  pickupPincode?: string;
+  dropPincode?: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
+  inventoryList?: string;
+  boxesCount?: number;
+  bagsCount?: number;
+  estimatedWeight?: number;
+  estimatedVolumeCubFt?: number;
+  hasHeavyItems?: boolean;
+  heavyItemsDesc?: string;
+  hasFragileItems?: boolean;
+  fragileItemsDesc?: string;
+  needPacking?: boolean;
+  needLoading?: boolean;
+  needUnloading?: boolean;
+  labourCount?: number;
+  vehicleType?: string;
+  partLoadAccepted?: boolean;
+  needInsurance?: boolean;
+  insuranceValue?: number;
+  requiresPOD?: boolean;
+  receiverName?: string;
+  receiverPhone?: string;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
+  quoteRequest?: any;
   scheduledTime?: string;
   teamLeaderName?: string;
   teamLeaderPhone?: string;
@@ -492,7 +526,37 @@ export default function CustomerPackersBookingDetailPage() {
                   </div>
                 </div>
               )}
+              {booking.shiftingScope && (
+                <div className="flex items-start gap-3">
+                  <Navigation className="w-5 h-5 text-teal-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Shifting Scope</p>
+                    <p className="font-medium text-gray-900">{formatShiftingScope(booking.shiftingScope)}</p>
+                  </div>
+                </div>
+              )}
+              {(booking.shiftingType || booking.propertySize) && (
+                <div className="flex items-start gap-3">
+                  <Home className="w-5 h-5 text-teal-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-500">Property</p>
+                    <p className="font-medium text-gray-900">
+                      {formatPropertyTypeAndSize(booking.shiftingType, booking.propertySize) || '—'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
+          </div>
+        </div>
+
+        {/* Detailed packers fields */}
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="p-4 border-b bg-gray-50">
+            <h2 className="font-semibold text-gray-900">Move Information</h2>
+          </div>
+          <div className="p-4">
+            <PackersRequestDetails data={{ ...booking, ...(booking.quoteRequest || {}) }} hidePropertyType />
           </div>
         </div>
 
@@ -1250,9 +1314,18 @@ export default function CustomerPackersBookingDetailPage() {
                 <Package className="w-4 h-4 text-gray-400" />
                 <span className="font-medium">{SHIFTING_TYPES[booking?.shiftingType || ''] || booking?.shiftingType}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                <MapPin className="w-4 h-4 text-gray-400" />
-                <span>{booking?.pickupCity} → {booking?.dropCity}</span>
+              <div className="flex items-start gap-2 text-sm text-gray-600 mb-1">
+                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span>{booking?.pickupCity} → {booking?.dropCity}</span>
+                  {(booking?.pickupAddress || booking?.dropAddress) && (
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {booking?.pickupAddress && <span>{booking.pickupAddress}</span>}
+                      {booking?.pickupAddress && booking?.dropAddress && <span> → </span>}
+                      {booking?.dropAddress && <span>{booking.dropAddress}</span>}
+                    </p>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Calendar className="w-4 h-4 text-gray-400" />

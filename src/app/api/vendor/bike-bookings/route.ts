@@ -176,6 +176,7 @@ export async function GET(request: NextRequest) {
         include: {
           locations: { select: { name: true, slug: true } },
           customers: { select: { id: true, name: true, phone: true } },
+          bike_quote_requests: { select: { pickupAddress: true, numberOfVehicles: true } },
         },
         orderBy: [
           { responseDeadline: 'asc' }, // Urgent first
@@ -213,6 +214,8 @@ export async function GET(request: NextRequest) {
         securityDeposit: b.securityDeposit,
         grandTotal: b.grandTotal,
         helmetsRequired: b.helmetsRequired,
+        numberOfVehicles: b.bike_quote_requests?.numberOfVehicles || null,
+        pickupAddress: b.bike_quote_requests?.pickupAddress || null,
         status: b.status,
         paymentStatus: b.paymentStatus,
         responseDeadline: b.responseDeadline,

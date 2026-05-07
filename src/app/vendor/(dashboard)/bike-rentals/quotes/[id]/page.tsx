@@ -76,6 +76,8 @@ interface Quote {
     vehicleBrand?: string;
     vehicleCategoryName?: string;
     locationName: string;
+    pickupAddress?: string;
+    numberOfVehicles?: number;
     pickupDate: string;
     pickupTime: string;
     dropDate: string;
@@ -744,8 +746,21 @@ export default function VendorBikeQuoteDetailPage() {
                 <div>
                   <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Location</p>
                   <p className="text-sm font-bold text-gray-900">{quote.request.locationName}</p>
+                  {quote.request.pickupAddress && (
+                    <p className="text-xs text-gray-500 mt-0.5">{quote.request.pickupAddress}</p>
+                  )}
                 </div>
               </div>
+
+              {quote.request.numberOfVehicles && quote.request.numberOfVehicles > 1 && (
+                <div className="bg-gray-50 rounded-lg px-3 py-2 flex items-center gap-2">
+                  <span className="text-base">🏍️</span>
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Bikes</p>
+                    <p className="text-sm font-bold text-gray-900">{quote.request.numberOfVehicles}</p>
+                  </div>
+                </div>
+              )}
 
               {quote.request.helmetsRequired > 0 && (
                 <div className="bg-gray-50 rounded-lg px-3 py-2 flex items-center gap-2">

@@ -33,6 +33,7 @@ interface QuoteRequest {
   rentalDuration: number;
   durationUnit: string;
   city: string;
+  deliveryCity?: string;
   deliveryAddress: string;
   startDate: string;
   needOperator: boolean;
@@ -313,9 +314,14 @@ export default function CustomerEquipmentQuoteDetailPage() {
               <Clock className="w-4 h-4 text-amber-500" />
               <span>{request.rentalDuration} {request.durationUnit}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-amber-500" />
-              <span>{request.city}</span>
+            <div className="flex items-start gap-2 text-sm">
+              <MapPin className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <span>{request.deliveryCity || request.city}</span>
+                {request.deliveryAddress && (
+                  <p className="text-xs text-gray-500 mt-0.5">{request.deliveryAddress}</p>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="w-4 h-4 text-amber-500" />

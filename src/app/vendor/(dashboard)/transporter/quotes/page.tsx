@@ -45,7 +45,9 @@ interface Quote {
     requestNumber: string;
     customerName: string;
     pickupCity: string;
+    pickupAddress?: string;
     dropCity: string;
+    dropAddress?: string;
     pickupDate: string;
     status: string;
   };
@@ -432,6 +434,13 @@ export default function VendorTransporterQuotesPage() {
                         <ArrowRight className="w-2.5 h-2.5 text-gray-400 shrink-0" />
                         {quote.request?.dropCity}
                       </p>
+                      {(quote.request?.pickupAddress || quote.request?.dropAddress) && (
+                        <p className="text-[10px] text-gray-500 truncate mt-0.5">
+                          {quote.request?.pickupAddress && <span>{quote.request.pickupAddress}</span>}
+                          {quote.request?.pickupAddress && quote.request?.dropAddress && <span> → </span>}
+                          {quote.request?.dropAddress && <span>{quote.request.dropAddress}</span>}
+                        </p>
+                      )}
                     </div>
                     <div className="bg-gradient-to-br from-emerald-50/50 to-white border border-emerald-100/50 rounded-xl px-3 py-2">
                       <div className="flex items-center gap-1 text-emerald-400 mb-0.5">

@@ -25,6 +25,10 @@ import {
   Truck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import PackersRequestDetails from '@/components/packers/PackersRequestDetails';
+import { formatShiftingScope } from '@/lib/packers-display';
+import TruckRequestDetails from '@/components/truck/TruckRequestDetails';
+import { formatTruckBodyType, formatTripDirection } from '@/lib/truck-display';
 
 interface BookingDetails {
   id: string;
@@ -457,6 +461,20 @@ export default function BookingDetailPage() {
                   <p className="font-medium text-gray-900">{booking.totalDays} Days</p>
                 </div>
               )}
+              {booking.numberOfVehicles && booking.numberOfVehicles > 1 && (
+                <div>
+                  <p className="text-sm text-gray-500">
+                    {(slug.includes('self-drive') || slug.includes('car')) && !slug.includes('bike') ? 'Number of Cars' : 'Number of Bikes'}
+                  </p>
+                  <p className="font-medium text-gray-900">{booking.numberOfVehicles}</p>
+                </div>
+              )}
+              {booking.helmetsRequired ? (
+                <div>
+                  <p className="text-sm text-gray-500">Helmets Required</p>
+                  <p className="font-medium text-gray-900">{booking.helmetsRequired}</p>
+                </div>
+              ) : null}
 
               {/* Specifications */}
               {booking.transmission && (
@@ -494,6 +512,43 @@ export default function BookingDetailPage() {
               <div className="mt-4 pt-4 border-t">
                 <p className="text-sm text-gray-500 mb-1">Customer Notes</p>
                 <p className="text-gray-900">{booking.customerNotes}</p>
+              </div>
+            )}
+
+            {/* Packers-specific fields */}
+            {(slug === 'packers-and-movers' || slug === 'packers-movers') && (
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-semibold text-gray-900">Move Information</h3>
+                  {booking.shiftingScope && (
+                    <span className="px-2 py-0.5 text-xs font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-100">
+                      {formatShiftingScope(booking.shiftingScope)}
+                    </span>
+                  )}
+                </div>
+                <PackersRequestDetails data={booking as any} hidePropertyType />
+              </div>
+            )}
+
+            {/* Truck-specific fields */}
+            {(slug === 'truck-rental' || slug === 'truck-tempo-rental' || slug === 'transporter' || slug === 'truck-transport' || slug === 'mini-truck') && (
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-semibold text-gray-900">Trip Information</h3>
+                  <div className="flex gap-1.5">
+                    {booking.truckBodyType && (
+                      <span className="px-2 py-0.5 text-xs font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-100">
+                        {formatTruckBodyType(booking.truckBodyType)}
+                      </span>
+                    )}
+                    {booking.tripDirection && (
+                      <span className="px-2 py-0.5 text-xs font-bold rounded bg-blue-50 text-blue-700 border border-blue-100">
+                        {formatTripDirection(booking.tripDirection)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <TruckRequestDetails data={booking as any} hideVehicle />
               </div>
             )}
           </div>

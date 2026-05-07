@@ -45,7 +45,9 @@ export async function POST(request: NextRequest) {
 
       // Requirements
       helmetsRequired = 1,
+      numberOfVehicles = 1,
       customerNotes,
+      pickupAddress,
 
       // Budget hint
       budgetMin,
@@ -153,7 +155,9 @@ export async function POST(request: NextRequest) {
         dropTime: dropTime || '10:00',
         totalDays,
         helmetsRequired,
+        numberOfVehicles: typeof numberOfVehicles === 'number' && numberOfVehicles > 0 ? numberOfVehicles : 1,
         customerNotes: customerNotes || null,
+        pickupAddress: pickupAddress?.trim() || null,
         budgetMin: budgetMin || null,
         budgetMax: budgetMax || null,
         status: 'PENDING',
@@ -273,12 +277,14 @@ export async function GET(request: NextRequest) {
         vehicleCategoryName: r.vehicleCategoryName,
         locationId: r.locationId,
         locationName: r.locationName,
+        pickupAddress: r.pickupAddress,
         pickupDate: r.pickupDate,
         pickupTime: r.pickupTime,
         dropDate: r.dropDate,
         dropTime: r.dropTime,
         totalDays: r.totalDays,
         helmetsRequired: r.helmetsRequired,
+        numberOfVehicles: r.numberOfVehicles,
         status: r.status,
         totalQuotesReceived: r.totalQuotesReceived,
         quotes: r.bike_quotes_bike_quotes_requestIdTobike_quote_requests,

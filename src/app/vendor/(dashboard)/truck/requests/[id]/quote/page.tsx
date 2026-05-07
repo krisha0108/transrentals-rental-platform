@@ -21,6 +21,7 @@ import {
   FileSpreadsheet,
   Weight,
 } from 'lucide-react';
+import TruckRequestDetails from '@/components/truck/TruckRequestDetails';
 
 interface QuoteRequest {
   id: string;
@@ -28,17 +29,38 @@ interface QuoteRequest {
   serviceType: string;
   vehicleCategory: string;
   vehicleCategoryName?: string;
+  truckBodyType?: string;
+  tripDirection?: string;
   goodsType: string;
   goodsDescription?: string;
   estimatedWeight?: number;
+  estimatedVolume?: string;
   pickupCity: string;
+  pickupAddress?: string;
+  pickupPincode?: string;
+  pickupFloor?: number | null;
+  hasPickupLift?: boolean;
   dropCity: string;
+  dropAddress?: string;
+  dropPincode?: string;
+  dropFloor?: number | null;
+  hasDropLift?: boolean;
   pickupDate: string;
   pickupTime?: string;
-  pickupAddress?: string;
-  dropAddress?: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
   requiresLabour: boolean;
   labourCount?: number;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  requiresPOD?: boolean;
+  isFlexibleDate?: boolean;
+  needInsurance?: boolean;
+  needPackaging?: boolean;
+  budgetMin?: number;
+  budgetMax?: number;
   customerName: string;
   customerPhone: string;
   specialRequirements?: string;
@@ -244,17 +266,38 @@ export default function SendTruckQuotePage() {
           serviceType: data.request.serviceType,
           vehicleCategory: data.request.vehicleCategory,
           vehicleCategoryName: data.request.vehicleCategoryName,
+          truckBodyType: data.request.truckBodyType,
+          tripDirection: data.request.tripDirection,
           goodsType: data.request.goodsType,
           goodsDescription: data.request.goodsDescription,
           estimatedWeight: data.request.estimatedWeight,
+          estimatedVolume: data.request.estimatedVolume,
           pickupCity: data.request.pickupCity,
           dropCity: data.request.dropCity,
           pickupDate: data.request.pickupDate,
           pickupTime: data.request.pickupTime,
           pickupAddress: data.request.pickupAddress,
+          pickupPincode: data.request.pickupPincode,
+          pickupFloor: data.request.pickupFloor,
+          hasPickupLift: data.request.hasPickupLift,
           dropAddress: data.request.dropAddress,
+          dropPincode: data.request.dropPincode,
+          dropFloor: data.request.dropFloor,
+          hasDropLift: data.request.hasDropLift,
+          expectedDeliveryDate: data.request.expectedDeliveryDate,
+          expectedDeliveryTime: data.request.expectedDeliveryTime,
           requiresLabour: data.request.requiresLabour,
           labourCount: data.request.labourCount,
+          hasMultipleStops: data.request.hasMultipleStops,
+          multipleStopsDetails: data.request.multipleStopsDetails,
+          receiverName: data.request.receiverName,
+          receiverPhone: data.request.receiverPhone,
+          requiresPOD: data.request.requiresPOD,
+          isFlexibleDate: data.request.isFlexibleDate,
+          needInsurance: data.request.needInsurance,
+          needPackaging: data.request.needPackaging,
+          budgetMin: data.request.budgetMin,
+          budgetMax: data.request.budgetMax,
           customerName: data.request.customerName,
           customerPhone: data.request.customerPhone,
           specialRequirements: data.request.requirements,
@@ -624,8 +667,12 @@ export default function SendTruckQuotePage() {
               <p className="font-medium text-gray-900">
                 {request.pickupCity} → {request.dropCity}
               </p>
-              {request.pickupAddress && (
-                <p className="text-sm text-gray-600">{request.pickupAddress}</p>
+              {(request.pickupAddress || request.dropAddress) && (
+                <p className="text-sm text-gray-600">
+                  {request.pickupAddress && <span>{request.pickupAddress}</span>}
+                  {request.pickupAddress && request.dropAddress && <span> → </span>}
+                  {request.dropAddress && <span>{request.dropAddress}</span>}
+                </p>
               )}
             </div>
           </div>
@@ -672,6 +719,11 @@ export default function SendTruckQuotePage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Extended truck quotation details */}
+        <div className="mt-5 bg-white rounded-lg p-4">
+          <TruckRequestDetails data={request as any} hideVehicle />
         </div>
       </div>
 

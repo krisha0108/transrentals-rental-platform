@@ -24,6 +24,7 @@ import {
   Weight,
   Key,
 } from 'lucide-react';
+import TruckRequestDetails from '@/components/truck/TruckRequestDetails';
 
 interface TruckBooking {
   id: string;
@@ -31,7 +32,12 @@ interface TruckBooking {
   serviceType: string;
   vehicleCategory: string;
   vehicleName?: string;
+  truckBodyType?: string;
+  tripDirection?: string;
   goodsType: string;
+  goodsDescription?: string;
+  estimatedVolume?: string;
+  estimatedWeight?: number;
   weight?: number;
   weightUnit?: string;
   customerName: string;
@@ -39,10 +45,18 @@ interface TruckBooking {
   customerEmail?: string;
   pickupCity: string;
   pickupAddress?: string;
+  pickupPincode?: string;
+  pickupFloor?: number | null;
+  hasPickupLift?: boolean;
   dropCity: string;
   dropAddress?: string;
+  dropPincode?: string;
+  dropFloor?: number | null;
+  hasDropLift?: boolean;
   pickupDate: string;
   pickupTime: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
   totalAmount: number;
   advanceAmount: number;
   advancePaid: number;
@@ -61,6 +75,19 @@ interface TruckBooking {
   advancePaymentProof?: string;
   advancePaymentVerified?: boolean;
   customerNotes?: string;
+  requiresLabour?: boolean;
+  labourCount?: number;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  requiresPOD?: boolean;
+  isFlexibleDate?: boolean;
+  needInsurance?: boolean;
+  needPackaging?: boolean;
+  budgetMin?: number;
+  budgetMax?: number;
+  requirements?: string;
   createdAt: string;
   quoteRequest?: {
     id: string;
@@ -416,6 +443,11 @@ export default function VendorTruckBookingDetailPage() {
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* Extended truck details */}
+              <div className="mt-4">
+                <TruckRequestDetails data={booking as any} hideVehicle />
               </div>
             </div>
           </div>

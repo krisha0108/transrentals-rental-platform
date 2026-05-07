@@ -363,6 +363,7 @@ export async function GET(
         self_drive_quote_requests: {
           select: {
             requestNumber: true,
+            numberOfVehicles: true,
           },
         },
       },

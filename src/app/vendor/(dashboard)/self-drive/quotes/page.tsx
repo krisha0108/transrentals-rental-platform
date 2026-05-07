@@ -56,6 +56,7 @@ interface Quote {
     customerName: string;
     vehicleCategoryName?: string;
     transmission?: string;
+    numberOfVehicles?: number;
     locationName: string;
     pickupDate: string;
     dropDate: string;
@@ -547,7 +548,12 @@ export default function VendorSelfDriveQuotesPage() {
                       <span className="text-[10px] font-bold text-white">{quote.request?.customerName?.charAt(0)?.toUpperCase() || 'C'}</span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-gray-700 truncate">{quote.request?.customerName}</p>
+                      <p className="text-xs font-semibold text-gray-700 truncate">
+                        {quote.request?.customerName}
+                        {quote.request?.numberOfVehicles && quote.request.numberOfVehicles > 1 && (
+                          <span className="ml-1 text-gray-500 font-medium">· × {quote.request.numberOfVehicles} cars</span>
+                        )}
+                      </p>
                       <p className="text-[10px] text-gray-400">Req #{quote.request?.requestNumber}</p>
                     </div>
                   </div>

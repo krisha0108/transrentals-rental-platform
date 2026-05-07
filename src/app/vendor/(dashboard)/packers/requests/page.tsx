@@ -29,6 +29,8 @@ import {
 } from 'lucide-react';
 import { PACKERS_MOVERS_CONFIG } from '@/lib/quote-services';
 import Pagination from '@/components/vendor/Pagination';
+import PackersRequestDetails from '@/components/packers/PackersRequestDetails';
+import { formatShiftingScope } from '@/lib/packers-display';
 
 interface QuoteRequest {
   id: string;
@@ -53,6 +55,26 @@ interface QuoteRequest {
   totalQuotesReceived: number;
   createdAt: string;
   myQuote?: { id: string; quoteNumber: string; totalAmount: number; status: string };
+  // ── Newly-added packers fields ──
+  shiftingScope?: string;
+  pickupPincode?: string;
+  dropPincode?: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
+  boxesCount?: number;
+  bagsCount?: number;
+  estimatedWeight?: number;
+  estimatedVolumeCubFt?: number;
+  needLoading?: boolean;
+  needUnloading?: boolean;
+  labourCount?: number;
+  vehicleType?: string;
+  partLoadAccepted?: boolean;
+  requiresPOD?: boolean;
+  receiverName?: string;
+  receiverPhone?: string;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
 }
 
 type DateFilterKey = 'all' | 'today' | 'yesterday' | 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'custom';
@@ -375,6 +397,11 @@ export default function VendorPackersRequestsPage() {
                               {getCategoryName(req.propertySize)}
                             </span>
                             <span className="text-[10px] text-gray-400 shrink-0 capitalize">{req.shiftingType}</span>
+                            {req.shiftingScope && (
+                              <span className="text-[9px] font-bold uppercase shrink-0 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                {req.shiftingScope}
+                              </span>
+                            )}
                           </div>
 
                           {/* Route */}
@@ -690,6 +717,14 @@ export default function VendorPackersRequestsPage() {
                   </div>
                 </div>
               )}
+
+              {/* Detailed packers fields */}
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">More Details</h3>
+                <div className="bg-white border border-gray-100 rounded-xl p-4">
+                  <PackersRequestDetails data={selected as any} hidePropertyType />
+                </div>
+              </div>
 
               {/* Your Quote (if quoted) */}
               {selected.myQuote && (

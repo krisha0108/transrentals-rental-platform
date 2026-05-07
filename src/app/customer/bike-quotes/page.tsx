@@ -38,6 +38,8 @@ interface QuoteRequest {
   dropTime?: string;
   totalDays: number;
   helmetsRequired?: number;
+  numberOfVehicles?: number;
+  pickupAddress?: string;
   status: string;
   totalQuotesReceived: number;
   quotes: { id: string; grandTotal: number; dailyRate: number }[];
@@ -264,15 +266,25 @@ export default function CustomerBikeQuotesPage() {
                                 <Bike className="w-4 h-4 text-[#09B368]" />
                               </div>
                               <div>
-                                <p className="font-semibold text-gray-900 text-sm">{request.vehicleCategoryName || 'Any Bike'}</p>
+                                <p className="font-semibold text-gray-900 text-sm">
+                                  {request.vehicleCategoryName || 'Any Bike'}
+                                  {request.numberOfVehicles && request.numberOfVehicles > 1 && (
+                                    <span className="ml-1 text-xs text-gray-500">× {request.numberOfVehicles}</span>
+                                  )}
+                                </p>
                                 <p className="text-xs text-gray-400">#{request.requestNumber}</p>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 hidden md:table-cell">
-                            <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                              <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                              <span className="truncate max-w-[140px]">{request.locationName}</span>
+                            <div className="flex items-start gap-1.5 text-sm text-gray-600">
+                              <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
+                              <div className="min-w-0">
+                                <span className="block truncate max-w-[180px]">{request.locationName}</span>
+                                {request.pickupAddress && (
+                                  <p className="text-xs text-gray-500 mt-0.5 truncate max-w-[180px]">{request.pickupAddress}</p>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 hidden lg:table-cell text-sm text-gray-600">

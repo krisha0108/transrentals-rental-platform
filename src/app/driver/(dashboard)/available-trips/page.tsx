@@ -284,6 +284,15 @@ export default function AvailableTripsPage() {
                       </div>
                     </div>
                   )}
+                  {booking.dropAddress && (
+                    <div className="col-span-2 flex items-start gap-2">
+                      <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500">Drop Address</p>
+                        <p className="text-gray-700">{booking.dropAddress}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Accept button */}

@@ -55,6 +55,8 @@ interface BikeBooking {
   dropDate: string;
   dropTime: string;
   totalDays: number;
+  numberOfVehicles?: number;
+  pickupAddress?: string;
   dailyRate: number;
   totalAmount: number;
   gstAmount: number;
@@ -368,15 +370,25 @@ export default function CustomerBikeBookingsPage() {
                                 <Bike className="w-4 h-4 text-[#09B368]" />
                               </div>
                               <div>
-                                <p className="font-semibold text-gray-900 text-sm">{booking.vehicleName}</p>
+                                <p className="font-semibold text-gray-900 text-sm">
+                                  {booking.vehicleName}
+                                  {booking.numberOfVehicles && booking.numberOfVehicles > 1 && (
+                                    <span className="ml-1 text-xs text-gray-500">× {booking.numberOfVehicles}</span>
+                                  )}
+                                </p>
                                 <p className="text-xs text-gray-400">#{booking.bookingNumber}</p>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 hidden md:table-cell">
-                            <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                              <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                              <span className="truncate max-w-[140px]">{booking.locationName || booking.location?.name || '—'}</span>
+                            <div className="flex items-start gap-1.5 text-sm text-gray-600">
+                              <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
+                              <div className="min-w-0">
+                                <span className="block truncate max-w-[180px]">{booking.locationName || booking.location?.name || '—'}</span>
+                                {booking.pickupAddress && (
+                                  <p className="text-xs text-gray-500 mt-0.5 truncate max-w-[180px]">{booking.pickupAddress}</p>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 hidden lg:table-cell">

@@ -105,6 +105,7 @@ export async function GET(request: NextRequest) {
             include: {
               customers: customerInclude,
               locations: { select: { id: true, name: true } },
+              bike_quote_requests: { select: { pickupAddress: true, numberOfVehicles: true } },
               vendors_bike_bookings_assignedVendorIdTovendors: { select: { businessName: true } },
               vendors_bike_bookings_acceptedVendorIdTovendors: { select: { businessName: true } },
             },
@@ -131,6 +132,7 @@ export async function GET(request: NextRequest) {
             include: {
               customers: customerInclude,
               locations: { select: { id: true, name: true } },
+              self_drive_quote_requests: { select: { numberOfVehicles: true } },
               vendors_car_bookings_assignedVendorIdTovendors: { select: { businessName: true } },
               vendors_car_bookings_acceptedVendorIdTovendors: { select: { businessName: true } },
             },
@@ -183,6 +185,13 @@ export async function GET(request: NextRequest) {
             include: {
               customers: customerInclude,
               vendors: { select: { businessName: true } },
+              packers_quote_requests: {
+                select: {
+                  shiftingScope: true,
+                  propertySize: true,
+                  estimatedWeight: true,
+                },
+              },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -190,11 +199,23 @@ export async function GET(request: NextRequest) {
 
       // Truck Transport
       shouldFetchService('truck-transport') || shouldFetchService('truck') || shouldFetchService('transporter') || shouldFetchService('truck-rental') || shouldFetchService('truck-tempo-rental')
-        ? prisma.truck_bookings.findMany({
+        ? (prisma as any).truck_bookings.findMany({
             where: pickupCityFilter,
             include: {
               customers: customerInclude,
               vendors: { select: { businessName: true } },
+              truck_quote_requests: {
+                select: {
+                  truckBodyType: true,
+                  tripDirection: true,
+                  estimatedVolume: true,
+                  estimatedWeight: true,
+                  pickupPincode: true,
+                  dropPincode: true,
+                  expectedDeliveryDate: true,
+                  expectedDeliveryTime: true,
+                },
+              },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -245,6 +266,9 @@ export async function GET(request: NextRequest) {
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: getVendorName(b, 'bike_bookings'),
         locationName: b.locations?.name || b.locationName,
+        pickupAddress: b.bike_quote_requests?.pickupAddress ?? b.pickupAddress ?? null,
+        dropAddress: b.dropAddress ?? null,
+        numberOfVehicles: b.bike_quote_requests?.numberOfVehicles ?? null,
         pickupDate: b.pickupDate,
         pickupTime: b.pickupTime,
         dropDate: b.dropDate,
@@ -266,6 +290,8 @@ export async function GET(request: NextRequest) {
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: b.vendors?.businessName,
         locationName: b.pickupCity,
+        pickupAddress: b.pickupAddress ?? null,
+        dropAddress: b.dropAddress ?? null,
         pickupDate: b.pickupDate,
         pickupTime: b.pickupTime,
         dropDate: b.returnDate,
@@ -287,6 +313,7 @@ export async function GET(request: NextRequest) {
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: getVendorName(b, 'car_bookings'),
         locationName: b.locations?.name || b.locationName,
+        numberOfVehicles: b.self_drive_quote_requests?.numberOfVehicles ?? null,
         pickupDate: b.pickupDate,
         pickupTime: b.pickupTime,
         dropDate: b.dropDate,
@@ -328,7 +355,9 @@ export async function GET(request: NextRequest) {
         customerPhone: b.customers?.phone || b.customerPhone,
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: b.vendors?.businessName,
-        locationName: b.locationName,
+        locationName: b.locationName || b.deliveryCity,
+        deliveryCity: b.deliveryCity ?? null,
+        deliveryAddress: b.deliveryAddress ?? null,
         pickupDate: b.startDate,
         pickupTime: null,
         dropDate: b.endDate,
@@ -371,6 +400,8 @@ export async function GET(request: NextRequest) {
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: b.vendors?.businessName,
         locationName: b.locationName,
+        pickupAddress: b.pickupAddress ?? null,
+        dropAddress: b.dropAddress ?? null,
         pickupDate: b.moveDate,
         pickupTime: null,
         dropDate: null,
@@ -379,6 +410,11 @@ export async function GET(request: NextRequest) {
         totalDays: null,
         advancePaymentVerified: false,
         source: b.source || 'web',
+        // ── Packers list-view extras ──
+        shiftingScope: b.packers_quote_requests?.shiftingScope ?? null,
+        propertySize: b.propertySize || b.packers_quote_requests?.propertySize || null,
+        estimatedWeight: b.packers_quote_requests?.estimatedWeight ?? null,
+        shiftingType: b.shiftingType ?? null,
         createdAt: b.createdAt,
       })),
       ...truckBookings.map((b: any) => ({
@@ -392,6 +428,8 @@ export async function GET(request: NextRequest) {
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: b.vendors?.businessName,
         locationName: b.pickupCity,
+        pickupAddress: b.pickupAddress ?? null,
+        dropAddress: b.dropAddress ?? null,
         pickupDate: b.pickupDate,
         pickupTime: b.pickupTime,
         dropDate: null,
@@ -400,6 +438,12 @@ export async function GET(request: NextRequest) {
         totalDays: null,
         advancePaymentVerified: b.advancePaymentVerified,
         source: b.source || 'web',
+        truckBodyType: b.truck_quote_requests?.truckBodyType ?? null,
+        tripDirection: b.truck_quote_requests?.tripDirection ?? null,
+        estimatedVolume: b.truck_quote_requests?.estimatedVolume ?? null,
+        estimatedWeight: b.truck_quote_requests?.estimatedWeight ?? null,
+        pickupPincode: b.truck_quote_requests?.pickupPincode ?? null,
+        dropPincode: b.truck_quote_requests?.dropPincode ?? null,
         createdAt: b.createdAt,
       })),
       ...wanderBookings.map((b: any) => ({

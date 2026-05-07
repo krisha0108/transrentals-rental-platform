@@ -34,6 +34,7 @@ interface QuoteRequest {
   returnDate?: string;
   pickupTime: string;
   pickupAddress?: string;
+  dropAddress?: string;
   customerName: string;
   customerPhone: string;
   specialRequirements?: string;
@@ -201,6 +202,7 @@ export default function SendQuotePage() {
           returnDate: data.request.returnDate,
           pickupTime: data.request.pickupTime,
           pickupAddress: data.request.pickupAddress,
+          dropAddress: data.request.dropAddress,
           customerName: data.request.customerName,
           customerPhone: data.request.customerPhone,
           specialRequirements: data.request.requirements,
@@ -519,7 +521,13 @@ export default function SendQuotePage() {
           <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl px-3 py-2.5">
             <div className="flex items-center gap-1.5 text-white/70 mb-1"><MapPin className="w-3 h-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Route</span></div>
             <p className="text-sm font-bold text-white truncate">{request.pickupCity}{request.dropCity ? ` → ${request.dropCity}` : ''}</p>
-            {request.pickupAddress && <p className="text-[10px] text-white/60 truncate">{request.pickupAddress}</p>}
+            {(request.pickupAddress || request.dropAddress) && (
+              <p className="text-[10px] text-white/60 truncate">
+                {request.pickupAddress && <span>{request.pickupAddress}</span>}
+                {request.pickupAddress && request.dropAddress && <span> → </span>}
+                {request.dropAddress && <span>{request.dropAddress}</span>}
+              </p>
+            )}
           </div>
           <div className="bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl px-3 py-2.5">
             <div className="flex items-center gap-1.5 text-white/70 mb-1"><Calendar className="w-3 h-3" /><span className="text-[10px] font-bold uppercase tracking-wider">Dates</span></div>

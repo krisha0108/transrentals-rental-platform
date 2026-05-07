@@ -32,7 +32,9 @@ interface TruckBooking {
   customerName: string;
 
   pickupCity: string;
+  pickupAddress?: string;
   dropCity: string;
+  dropAddress?: string;
   pickupDate: string;
   pickupTime: string;
   totalAmount: number;
@@ -295,11 +297,22 @@ export default function VendorTruckBookingsPage() {
 
                   {/* Route Details */}
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4 text-blue-500" />
-                      <span className="font-medium">{booking.pickupCity}</span>
-                      <span className="text-gray-400">→</span>
-                      <span className="font-medium">{booking.dropCity}</span>
+                    <div className="flex items-start gap-1.5">
+                      <MapPin className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div>
+                          <span className="font-medium">{booking.pickupCity}</span>
+                          <span className="text-gray-400"> → </span>
+                          <span className="font-medium">{booking.dropCity}</span>
+                        </div>
+                        {(booking.pickupAddress || booking.dropAddress) && (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {booking.pickupAddress && <span>{booking.pickupAddress}</span>}
+                            {booking.pickupAddress && booking.dropAddress && <span> → </span>}
+                            {booking.dropAddress && <span>{booking.dropAddress}</span>}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-4 h-4 text-blue-500" />

@@ -36,6 +36,7 @@ interface Booking {
   vehicleType: string;
   chauffeur_vehicle_categories: string;
   locationName: string;
+  numberOfVehicles?: number;
   pickupDate: string;
   dropDate: string;
   totalDays: number;
@@ -403,6 +404,9 @@ export default function VendorSelfDriveBookingsPage() {
                   </div>
                   <p className="text-sm text-gray-600 mt-1">
                     {booking.vehicleName} • {booking.chauffeur_vehicle_categories || booking.vehicleType}
+                    {booking.numberOfVehicles && booking.numberOfVehicles > 1 && (
+                      <span className="ml-1 text-xs text-gray-500">× {booking.numberOfVehicles}</span>
+                    )}
                   </p>
                   <p className="text-sm text-gray-500">
                     {booking.customerName} • {booking.locationName}

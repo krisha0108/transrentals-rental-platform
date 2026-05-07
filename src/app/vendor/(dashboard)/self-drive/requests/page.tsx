@@ -42,6 +42,7 @@ interface QuoteRequest {
   transmission?: string;
   fuelType?: string;
   minSeats?: number;
+  numberOfVehicles?: number;
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
@@ -442,6 +443,9 @@ export default function VendorSelfDriveRequestsPage() {
                             {req.vehicleBrand && (
                               <span className="text-[10px] text-gray-400 shrink-0">{req.vehicleBrand}</span>
                             )}
+                            {req.numberOfVehicles && req.numberOfVehicles > 1 && (
+                              <span className="ml-1 font-semibold text-gray-500">· × {req.numberOfVehicles}</span>
+                            )}
                           </div>
 
                           {/* Location */}
@@ -688,6 +692,15 @@ export default function VendorSelfDriveRequestsPage() {
                       <div>
                         <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Min Seats</p>
                         <p className="text-sm font-bold text-gray-900">{selected.minSeats}+</p>
+                      </div>
+                    </div>
+                  )}
+                  {selected.numberOfVehicles && selected.numberOfVehicles > 1 && (
+                    <div className="bg-white border border-gray-100 rounded-xl px-3.5 py-2.5 flex items-center gap-2">
+                      <Car className="w-4 h-4 text-gray-400" />
+                      <div>
+                        <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Number of Cars</p>
+                        <p className="text-sm font-bold text-gray-900">{selected.numberOfVehicles}</p>
                       </div>
                     </div>
                   )}

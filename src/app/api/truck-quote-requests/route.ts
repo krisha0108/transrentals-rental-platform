@@ -55,11 +55,14 @@ export async function POST(request: NextRequest) {
     let {
       customerName, customerEmail, customerPhone, customerId,
       serviceType, vehicle_category, vehicleCategoryName,
+      truckBodyType, tripDirection,
       goodsType, goodsDescription, estimatedWeight, estimatedVolume,
       requiresLabour, labourCount,
-      pickupCity, pickupAddress, pickupFloor, hasPickupLift,
-      dropCity, dropAddress, dropFloor, hasDropLift, estimatedDistance,
-      pickupDate, pickupTime, isFlexibleDate,
+      pickupCity, pickupAddress, pickupPincode, pickupFloor, hasPickupLift,
+      dropCity, dropAddress, dropPincode, dropFloor, hasDropLift, estimatedDistance,
+      pickupDate, pickupTime, expectedDeliveryDate, expectedDeliveryTime,
+      isFlexibleDate, hasMultipleStops, multipleStopsDetails,
+      receiverName, receiverPhone, requiresPOD,
       requirements, needInsurance, needPackaging,
       budgetMin, budgetMax,
     } = body;
@@ -121,7 +124,18 @@ export async function POST(request: NextRequest) {
     const quotesOpenTill = new Date();
     quotesOpenTill.setHours(quotesOpenTill.getHours() + 48);
 
-    const quoteRequest = await prisma.truck_quote_requests.create({
+    const validBodyTypes = ['OPEN', 'CLOSED_BODY', 'CONTAINER', 'TRAILER', 'LCV', 'REFRIGERATED', 'FLATBED', 'OTHER'];
+    const validTripDirections = ['ONE_WAY', 'ROUND_TRIP'];
+    const safeBodyType = truckBodyType && validBodyTypes.includes(truckBodyType) ? truckBodyType : null;
+    const safeTripDirection = tripDirection && validTripDirections.includes(tripDirection) ? tripDirection : 'ONE_WAY';
+    const parsedExpectedDelivery = expectedDeliveryDate
+      ? (() => {
+          const d = new Date(expectedDeliveryDate);
+          return isNaN(d.getTime()) ? null : d;
+        })()
+      : null;
+
+    const quoteRequest = await (prisma as any).truck_quote_requests.create({
       data: {
         requestNumber,
         customerId: customerId || null,
@@ -129,6 +143,8 @@ export async function POST(request: NextRequest) {
         serviceType: serviceType || 'intercity',
         vehicleCategory: vehicle_category,
         vehicleCategoryName: vehicleCategoryName || vehicle_category,
+        truckBodyType: safeBodyType,
+        tripDirection: safeTripDirection,
         goodsType,
         goodsDescription: goodsDescription || null,
         estimatedWeight: estimatedWeight || null,
@@ -137,16 +153,25 @@ export async function POST(request: NextRequest) {
         labourCount: labourCount || null,
         pickupCity,
         pickupAddress: pickupAddress || null,
+        pickupPincode: pickupPincode || null,
         pickupFloor: pickupFloor || null,
         hasPickupLift: hasPickupLift || false,
         dropCity,
         dropAddress: dropAddress || null,
+        dropPincode: dropPincode || null,
         dropFloor: dropFloor || null,
         hasDropLift: hasDropLift || false,
         estimatedDistance: estimatedDistance || null,
         pickupDate: new Date(pickupDate),
         pickupTime: pickupTime || '08:00',
+        expectedDeliveryDate: parsedExpectedDelivery,
+        expectedDeliveryTime: expectedDeliveryTime || null,
         isFlexibleDate: isFlexibleDate || false,
+        hasMultipleStops: hasMultipleStops || false,
+        multipleStopsDetails: multipleStopsDetails || null,
+        receiverName: receiverName || null,
+        receiverPhone: receiverPhone || null,
+        requiresPOD: requiresPOD || false,
         requirements: requirements || null,
         needInsurance: needInsurance || false,
         needPackaging: needPackaging || false,
@@ -181,7 +206,9 @@ export async function POST(request: NextRequest) {
         chauffeur_vehicle_categories: quoteRequest.vehicleCategoryName,
         goodsType: quoteRequest.goodsType,
         pickupCity: quoteRequest.pickupCity,
+        pickupAddress: quoteRequest.pickupAddress,
         dropCity: quoteRequest.dropCity,
+        dropAddress: quoteRequest.dropAddress,
         pickupDate: quoteRequest.pickupDate,
         expiresAt: quoteRequest.expiresAt,
       },
@@ -230,10 +257,41 @@ export async function GET(request: NextRequest) {
         requestNumber: r.requestNumber,
         serviceType: r.serviceType,
         chauffeur_vehicle_categories: r.vehicleCategoryName,
+        vehicleCategory: r.vehicleCategory,
+        vehicleCategoryName: r.vehicleCategoryName,
+        truckBodyType: r.truckBodyType,
+        tripDirection: r.tripDirection,
         goodsType: r.goodsType,
+        goodsDescription: r.goodsDescription,
+        estimatedWeight: r.estimatedWeight,
+        estimatedVolume: r.estimatedVolume,
         pickupCity: r.pickupCity,
+        pickupAddress: r.pickupAddress,
+        pickupPincode: r.pickupPincode,
+        pickupFloor: r.pickupFloor,
+        hasPickupLift: r.hasPickupLift,
         dropCity: r.dropCity,
+        dropAddress: r.dropAddress,
+        dropPincode: r.dropPincode,
+        dropFloor: r.dropFloor,
+        hasDropLift: r.hasDropLift,
         pickupDate: r.pickupDate,
+        pickupTime: r.pickupTime,
+        expectedDeliveryDate: r.expectedDeliveryDate,
+        expectedDeliveryTime: r.expectedDeliveryTime,
+        requiresLabour: r.requiresLabour,
+        labourCount: r.labourCount,
+        hasMultipleStops: r.hasMultipleStops,
+        multipleStopsDetails: r.multipleStopsDetails,
+        receiverName: r.receiverName,
+        receiverPhone: r.receiverPhone,
+        requiresPOD: r.requiresPOD,
+        isFlexibleDate: r.isFlexibleDate,
+        needInsurance: r.needInsurance,
+        needPackaging: r.needPackaging,
+        budgetMin: r.budgetMin,
+        budgetMax: r.budgetMax,
+        requirements: r.requirements,
         status: r.status,
         totalQuotesReceived: r.totalQuotesReceived,
         quotes: r.truck_quotes,

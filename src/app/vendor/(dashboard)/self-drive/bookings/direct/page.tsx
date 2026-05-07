@@ -34,6 +34,7 @@ interface Booking {
   requestedTransmission: string;
   requestedFuelType: string;
   requestedSeats: number;
+  numberOfVehicles?: number;
   locationName: string;
   pickupDate: string;
   pickupTime: string;
@@ -245,7 +246,12 @@ export default function VendorSelfDriveDirectRequestsPage() {
                             <Car className="w-6 h-6 text-emerald-600" />
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900">{booking.requestedVehicleName}</p>
+                            <p className="font-medium text-gray-900">
+                              {booking.requestedVehicleName}
+                              {booking.numberOfVehicles && booking.numberOfVehicles > 1 && (
+                                <span className="ml-1 text-xs text-gray-500">× {booking.numberOfVehicles}</span>
+                              )}
+                            </p>
                             <p className="text-sm text-gray-500">{booking.requestedCategory}</p>
                           </div>
                         </div>

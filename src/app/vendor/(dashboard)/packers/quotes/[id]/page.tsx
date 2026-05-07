@@ -35,6 +35,8 @@ import {
   Loader2,
 } from 'lucide-react';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
+import PackersRequestDetails from '@/components/packers/PackersRequestDetails';
+import { formatShiftingScope } from '@/lib/packers-display';
 
 interface Quote {
   id: string;
@@ -88,6 +90,31 @@ interface Quote {
     insuranceValue?: number;
     requirements?: string;
     status: string;
+    // ── Newly-added optional packers fields ──
+    shiftingScope?: string;
+    pickupPincode?: string;
+    dropPincode?: string;
+    expectedDeliveryDate?: string;
+    expectedDeliveryTime?: string;
+    inventoryList?: string;
+    boxesCount?: number;
+    bagsCount?: number;
+    estimatedWeight?: number;
+    estimatedVolumeCubFt?: number;
+    hasHeavyItems?: boolean;
+    heavyItemsDesc?: string;
+    hasFragileItems?: boolean;
+    fragileItemsDesc?: string;
+    needLoading?: boolean;
+    needUnloading?: boolean;
+    labourCount?: number;
+    vehicleType?: string;
+    partLoadAccepted?: boolean;
+    requiresPOD?: boolean;
+    receiverName?: string;
+    receiverPhone?: string;
+    hasMultipleStops?: boolean;
+    multipleStopsDetails?: string;
   };
   booking?: {
     id: string;
@@ -625,6 +652,24 @@ export default function ViewPackersQuotePage() {
               </div>
             </div>
           )}
+
+          {/* Detailed Move Info */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-3.5 py-2.5 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-emerald-500" />
+                Move Information
+                {quote.request.shiftingScope && (
+                  <span className="ml-auto text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    {formatShiftingScope(quote.request.shiftingScope)}
+                  </span>
+                )}
+              </h3>
+            </div>
+            <div className="p-3.5">
+              <PackersRequestDetails data={quote.request} hidePropertyType />
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -318,6 +318,7 @@ export async function GET(request: NextRequest) {
             rating: true,
           },
         },
+        self_drive_quote_requests: { select: { numberOfVehicles: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -333,6 +334,7 @@ export async function GET(request: NextRequest) {
         transmission: b.requestedTransmission,
         fuelType: b.requestedFuelType,
         seats: b.requestedSeats,
+        numberOfVehicles: b.self_drive_quote_requests?.numberOfVehicles ?? null,
         location: b.locations?.name,
         locationSlug: b.locations?.slug,
         pickupAddress: b.pickupAddress,
