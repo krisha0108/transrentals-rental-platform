@@ -18,6 +18,11 @@ interface RazorpayPaymentProps {
   onError: (error: string) => void;
   onCancel?: () => void;
   autoOpen?: boolean;
+  /**
+   * Compact mode — for use when the parent already shows the booking amount/details.
+   * Hides the duplicate amount display, shrinks the pay button, payment pills, and badge.
+   */
+  compact?: boolean;
 }
 
 interface PaymentSuccessData {
@@ -36,6 +41,7 @@ export function RazorpayPayment({
   onError,
   onCancel,
   autoOpen = false,
+  compact = false,
 }: RazorpayPaymentProps) {
   const [status, setStatus] = useState<PaymentStatus>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -278,25 +284,30 @@ export function RazorpayPayment({
     }
   }, [bookingId, status, createOrder]);
 
+  // Padding shorthand — flat in compact mode (parent already provides padding)
+  const statePad = compact ? 'py-4 gap-2' : 'py-10 px-6 gap-3';
+  const stateIcon = compact ? 'w-9 h-9' : 'w-12 h-12';
+  const stateIconInner = compact ? 'w-4 h-4' : 'w-6 h-6';
+
   if (status === 'loading') {
     return (
-      <div className="flex flex-col items-center justify-center py-10 px-6 gap-3">
-        <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+      <div className={`flex flex-col items-center justify-center ${statePad}`}>
+        <div className={`${stateIcon} bg-emerald-50 rounded-2xl flex items-center justify-center`}>
+          <Loader2 className={`${stateIconInner} animate-spin text-emerald-600`} />
         </div>
-        <p className="text-gray-500 text-sm">Preparing payment...</p>
+        <p className="text-gray-500 text-xs">Preparing payment...</p>
       </div>
     );
   }
 
   if (status === 'checking') {
     return (
-      <div className="flex flex-col items-center justify-center py-10 px-6 gap-3">
-        <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+      <div className={`flex flex-col items-center justify-center ${statePad}`}>
+        <div className={`${stateIcon} bg-emerald-50 rounded-2xl flex items-center justify-center`}>
+          <Loader2 className={`${stateIconInner} animate-spin text-emerald-600`} />
         </div>
-        <p className="text-gray-800 font-medium text-sm">Verifying your payment...</p>
-        <p className="text-gray-400 text-xs text-center max-w-xs">
+        <p className="text-gray-800 font-semibold text-xs">Verifying your payment...</p>
+        <p className="text-gray-400 text-[11px] text-center max-w-xs">
           UPI payments may take a moment to confirm. Please wait.
         </p>
       </div>
@@ -305,25 +316,25 @@ export function RazorpayPayment({
 
   if (status === 'error') {
     return (
-      <div className="flex flex-col items-center justify-center py-8 px-6 gap-4">
-        <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center">
-          <XCircle className="w-6 h-6 text-red-500" />
+      <div className={`flex flex-col items-center justify-center ${compact ? 'py-3 gap-3' : 'py-8 px-6 gap-4'}`}>
+        <div className={`${stateIcon} bg-red-50 rounded-2xl flex items-center justify-center`}>
+          <XCircle className={`${stateIconInner} text-red-500`} />
         </div>
         <div className="text-center">
           <p className="text-gray-900 font-semibold text-sm">Payment Failed</p>
-          <p className="text-gray-500 text-xs mt-1 max-w-xs">{error}</p>
+          <p className="text-gray-500 text-[11px] mt-1 max-w-xs">{error}</p>
         </div>
         <div className="flex gap-2 w-full">
           <button
             onClick={createOrder}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium text-sm transition"
+            className={`flex-1 flex items-center justify-center gap-1.5 ${compact ? 'py-2 text-xs' : 'py-2.5 text-sm'} bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold transition`}
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="w-3.5 h-3.5" />
             Try Again
           </button>
           <button
             onClick={() => onCancel?.()}
-            className="flex-1 py-2.5 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl text-sm transition"
+            className={`flex-1 ${compact ? 'py-2 text-xs' : 'py-2.5 text-sm'} border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl font-semibold transition`}
           >
             Manual Pay
           </button>
@@ -334,24 +345,24 @@ export function RazorpayPayment({
 
   if (status === 'processing') {
     return (
-      <div className="flex flex-col items-center justify-center py-10 px-6 gap-3">
-        <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+      <div className={`flex flex-col items-center justify-center ${statePad}`}>
+        <div className={`${stateIcon} bg-emerald-50 rounded-2xl flex items-center justify-center`}>
+          <Loader2 className={`${stateIconInner} animate-spin text-emerald-600`} />
         </div>
-        <p className="text-gray-800 font-medium text-sm">Processing payment...</p>
-        <p className="text-gray-400 text-xs">Please complete payment in the popup window</p>
+        <p className="text-gray-800 font-semibold text-xs">Processing payment...</p>
+        <p className="text-gray-400 text-[11px]">Please complete payment in the popup window</p>
       </div>
     );
   }
 
   if (status === 'success') {
     return (
-      <div className="flex flex-col items-center justify-center py-10 px-6 gap-3">
-        <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center">
-          <CheckCircle className="w-8 h-8 text-emerald-600" />
+      <div className={`flex flex-col items-center justify-center ${statePad}`}>
+        <div className={`${compact ? 'w-10 h-10' : 'w-14 h-14'} bg-emerald-100 rounded-full flex items-center justify-center`}>
+          <CheckCircle className={`${compact ? 'w-5 h-5' : 'w-8 h-8'} text-emerald-600`} />
         </div>
-        <p className="text-emerald-700 font-semibold">Payment Successful!</p>
-        <p className="text-gray-500 text-sm">Your booking is confirmed.</p>
+        <p className="text-emerald-700 font-bold text-sm">Payment Successful!</p>
+        <p className="text-gray-500 text-xs">Your booking is confirmed.</p>
       </div>
     );
   }
@@ -363,16 +374,16 @@ export function RazorpayPayment({
   const vehicleName = orderData?.booking?.vehicleName;
 
   return (
-    <div className="px-5 py-6">
+    <div className={compact ? '' : 'px-5 py-6'}>
       {/* Warning if polling failed previously */}
       {error && (
-        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800 text-center">
+        <div className={`${compact ? 'mb-2 px-3 py-2 text-[11px]' : 'mb-4 px-4 py-3 text-xs'} bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-center`}>
           {error}
         </div>
       )}
 
-      {/* Amount display */}
-      {orderData && (
+      {/* Amount display — hidden in compact mode (parent shows it) */}
+      {!compact && orderData && (
         <div className="text-center mb-6">
           <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Advance Payment</p>
           <p className="text-5xl font-bold text-gray-900 tracking-tight">
@@ -387,18 +398,18 @@ export function RazorpayPayment({
       {/* Pay button */}
       <button
         onClick={() => openPaymentModal()}
-        className="w-full flex items-center justify-center gap-2.5 py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-2xl font-semibold text-base transition-all shadow-lg shadow-emerald-100"
+        className={`w-full flex items-center justify-center gap-2 ${compact ? 'py-2.5 text-sm rounded-xl shadow-sm shadow-emerald-100' : 'py-4 text-base rounded-2xl shadow-lg shadow-emerald-100'} bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold transition-all`}
       >
-        <Lock className="w-4 h-4" />
+        <Lock className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
         Pay Securely
       </button>
 
       {/* Payment methods */}
-      <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
+      <div className={`${compact ? 'mt-2 gap-1' : 'mt-4 gap-2'} flex items-center justify-center flex-wrap`}>
         {['UPI', 'Cards', 'Net Banking', 'Wallets'].map((m) => (
           <span
             key={m}
-            className="text-xs text-gray-400 bg-gray-50 border border-gray-200 rounded-full px-3 py-1"
+            className={`text-gray-400 bg-gray-50 border border-gray-200 rounded-full ${compact ? 'text-[10px] px-2 py-0.5' : 'text-xs px-3 py-1'}`}
           >
             {m}
           </span>
@@ -406,8 +417,8 @@ export function RazorpayPayment({
       </div>
 
       {/* Razorpay badge */}
-      <div className="mt-3 flex items-center justify-center gap-1.5 text-gray-400 text-xs">
-        <Shield className="w-3 h-3" />
+      <div className={`${compact ? 'mt-1.5 text-[10px]' : 'mt-3 text-xs'} flex items-center justify-center gap-1.5 text-gray-400`}>
+        <Shield className={compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
         <span>100% secure · Powered by Razorpay</span>
       </div>
     </div>
