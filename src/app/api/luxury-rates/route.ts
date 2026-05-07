@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       });
     } else if (locationSlug) {
       location = await prisma.locations.findFirst({
-        where: { slug: locationSlug, type: { in: ['CITY', 'UNION_TERRITORY'] }, isActive: true },
+        where: { slug: locationSlug, type: { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] }, isActive: true },
         select: { id: true, name: true, slug: true },
       });
     }

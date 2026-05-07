@@ -78,8 +78,8 @@ export default function NotificationsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Bell className="w-5 h-5 text-emerald-600" /> Notifications
+          <h1 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <Bell className="w-4 h-4 text-emerald-600" /> Notifications
           </h1>
         </div>
         <button

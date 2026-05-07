@@ -54,6 +54,14 @@ export async function GET() {
     console.error('[sitemap-routes] DB error:', error);
   }
 
+  // Return 503 if no entries — avoids Google caching an empty <urlset> (causes "Missing XML tag" error)
+  if (entries.length === 0) {
+    return new NextResponse('Route sitemap temporarily unavailable', {
+      status: 503,
+      headers: { 'Retry-After': '3600' },
+    });
+  }
+
   return new NextResponse(buildUrlsetXml(entries), {
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',

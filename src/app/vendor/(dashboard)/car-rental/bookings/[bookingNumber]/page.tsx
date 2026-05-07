@@ -31,6 +31,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import VendorBookingChat from '@/components/vendor/VendorBookingChat';
@@ -157,6 +158,15 @@ const TRIP_TYPE_LABELS: Record<string, string> = {
   AIRPORT_PICKUP: 'Airport Pickup',
   AIRPORT_DROP: 'Airport Drop',
 };
+
+function formatTime(time?: string): string {
+  if (!time) return '';
+  const [h, m] = time.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return time;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${period}`;
+}
 
 export default function VendorBookingDetailPage() {
   const params = useParams();
@@ -529,7 +539,7 @@ export default function VendorBookingDetailPage() {
             )}
             {(booking as any).droppedAt && (
               <p className="text-xs text-red-400 mt-1">
-                Dropped on: {new Date((booking as any).droppedAt).toLocaleString('en-IN')}
+                Dropped on: {new Date((booking as any).droppedAt).toLocaleString('en-IN', { hour12: true })}
               </p>
             )}
           </div>
@@ -653,7 +663,7 @@ export default function VendorBookingDetailPage() {
                                 <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 bg-emerald-50 rounded-lg border border-emerald-100">
                                   <Calendar className="w-3.5 h-3.5 text-emerald-600" />
                                   <p className="text-xs text-emerald-700 font-semibold">
-                                    {new Date(booking.pickupDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} &middot; {booking.pickupTime}
+                                    {new Date(booking.pickupDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} &middot; {formatTime(booking.pickupTime)}
                                   </p>
                                 </div>
                               )}
@@ -661,7 +671,7 @@ export default function VendorBookingDetailPage() {
                                 <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-1 bg-red-50 rounded-lg border border-red-100">
                                   <Calendar className="w-3.5 h-3.5 text-red-500" />
                                   <p className="text-xs text-red-600 font-semibold">
-                                    Return: {new Date(booking.dropDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} · {booking.dropTime}
+                                    Return: {new Date(booking.dropDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} · {formatTime(booking.dropTime)}
                                   </p>
                                 </div>
                               )}
@@ -698,7 +708,7 @@ export default function VendorBookingDetailPage() {
                         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
                       })}
                     </p>
-                    <p className="text-sm text-gray-500">{booking.pickupTime}</p>
+                    <p className="text-sm text-gray-500">{formatTime(booking.pickupTime)}</p>
                   </div>
                 </div>
               )}
@@ -722,7 +732,7 @@ export default function VendorBookingDetailPage() {
                       <div>
                         <p className="text-xs text-gray-500 mb-0.5">Cancelled At</p>
                         <p className="font-medium text-gray-800">
-                          {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                          {new Date(booking.cancelledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', hour12: true })}
                         </p>
                       </div>
                     )}
@@ -766,13 +776,7 @@ export default function VendorBookingDetailPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-gray-900 text-lg">{booking.customerName}</p>
                   <div className="flex flex-wrap items-center gap-3 mt-2">
-                    <a
-                      href={`tel:${booking.customerPhone}`}
-                      className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600 transition-colors bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      {booking.customerPhone}
-                    </a>
+                    <VendorCallButton phone={booking.customerPhone} bookingType="car_rental_booking" bookingId={booking.id} />
                     <a
                       href={`mailto:${booking.customerEmail}`}
                       className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-emerald-600 transition-colors bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50 truncate"
@@ -1056,7 +1060,7 @@ export default function VendorBookingDetailPage() {
                     <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
                       <p className="text-[11px] font-medium text-green-500 uppercase tracking-wider mb-1">Trip Started</p>
                       <p className="font-bold text-gray-900 text-sm">
-                        {new Date(booking.tripStartedAt).toLocaleString('en-IN')}
+                        {new Date(booking.tripStartedAt).toLocaleString('en-IN', { hour12: true })}
                       </p>
                     </div>
                   )}
@@ -1064,7 +1068,7 @@ export default function VendorBookingDetailPage() {
                     <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-4 border border-red-100">
                       <p className="text-[11px] font-medium text-red-500 uppercase tracking-wider mb-1">Trip Ended</p>
                       <p className="font-bold text-gray-900 text-sm">
-                        {new Date(booking.tripEndedAt).toLocaleString('en-IN')}
+                        {new Date(booking.tripEndedAt).toLocaleString('en-IN', { hour12: true })}
                       </p>
                     </div>
                   )}
@@ -1236,12 +1240,6 @@ export default function VendorBookingDetailPage() {
                   </div>
                 )}
 
-                {(booking.platformFee || 0) > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Platform Fee</span>
-                    <span className="font-medium">₹{booking.platformFee.toLocaleString()}</span>
-                  </div>
-                )}
 
                 <div className="border-t pt-3 mt-3">
                   <div className="flex justify-between items-center bg-gradient-to-r from-emerald-50 to-teal-50 -mx-6 px-6 py-3 border-y border-emerald-100">
@@ -1320,7 +1318,7 @@ export default function VendorBookingDetailPage() {
                 </div>
                 <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
                   <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">Created</span>
-                  <span className="font-medium text-sm text-gray-900">{new Date(booking.createdAt).toLocaleString('en-IN')}</span>
+                  <span className="font-medium text-sm text-gray-900">{new Date(booking.createdAt).toLocaleString('en-IN', { hour12: true })}</span>
                 </div>
                 {booking.location && (
                   <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
@@ -1363,7 +1361,7 @@ export default function VendorBookingDetailPage() {
                           <p className="text-sm text-emerald-900 whitespace-pre-line">{n.text}</p>
                           {n.sentAt && (
                             <p className="text-xs text-emerald-500 mt-1 text-right">
-                              {new Date(n.sentAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                              {new Date(n.sentAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', hour12: true })}
                             </p>
                           )}
                         </div>

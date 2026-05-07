@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 import {
   Compass, ChevronRight, ChevronLeft, Check, Loader2, AlertCircle,
-  Plus, Trash2, MapPin, Search, X, Clock, Car, ArrowLeft,
+  Plus, Trash2, MapPin, Search, X, Clock, Car, ArrowLeft, Eye, Save, Zap,
 } from 'lucide-react';
 
 // ─── Constants (same as new page) ─────────────────────────────────────────────
@@ -136,6 +136,7 @@ export default function EditWanderListingPage() {
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(null);
+  const [listingSlug, setListingSlug] = useState('');
   const [categories, setCategories] = useState([]);
   const [locationSearch, setLocationSearch] = useState('');
   const [locations, setLocations] = useState([]);
@@ -145,8 +146,34 @@ export default function EditWanderListingPage() {
   const [saving, setSaving] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [error, setError] = useState('');
+  const [switchingMode, setSwitchingMode] = useState(false);
   const locationRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  async function switchToQuick() {
+    setSwitchingMode(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/vendor/wander/listings/${listingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ createMode: 'QUICK' }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Failed to switch'); setSwitchingMode(false); return; }
+      router.push(`/vendor/wander/listings/${listingId}/edit/quick`);
+    } catch (err) {
+      setError(err.message || 'Failed to switch');
+      setSwitchingMode(false);
+    }
+  }
+
+  // Restore step from URL on mount
+  useEffect(() => {
+    const s = new URLSearchParams(window.location.search).get('step');
+    const n = parseInt(s || '1');
+    if (n >= 1 && n <= 6) setStep(n);
+  }, []);
 
   // Load listing + categories on mount
   useEffect(() => {
@@ -161,6 +188,7 @@ export default function EditWanderListingPage() {
         if (!listingRes.ok) { setError(listing.error || 'Failed to load listing'); return; }
         setCategories(Array.isArray(cats) ? cats.filter((c) => c.isActive) : []);
         setForm(listingToForm(listing));
+        if (listing.slug) setListingSlug(listing.slug);
         // Pre-fill location display
         if (listing.mainLocation) {
           setSelectedLocation({ id: listing.mainLocationId, name: listing.mainLocation.name, displayName: listing.mainLocation.name });
@@ -311,7 +339,7 @@ export default function EditWanderListingPage() {
           day: i + 1,
           emoji: stop.emoji,
           time: stop.time,
-          title: stop.title,
+          title: stop.type === 'break' ? (stop.breakNote || stop.title) : stop.title,
           description: stop.description,
           activities: stop.activities.filter(Boolean),
           timeSpent: stop.timeSpent,
@@ -342,7 +370,10 @@ export default function EditWanderListingPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Failed to save'); return; }
-      router.push('/vendor/wander/listings');
+      if (publish === true) {
+        router.push('/vendor/wander/listings');
+        return;
+      }
     } catch {
       setError('Failed to save tour');
     } finally {
@@ -382,10 +413,39 @@ export default function EditWanderListingPage() {
         <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
           <Compass className="w-5 h-5 text-emerald-600" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold text-gray-900">Edit Tour</h1>
           <p className="text-sm text-gray-500">Step {step} of {STEPS.length} — {STEPS[step - 1].label}</p>
         </div>
+        <button
+          type="button"
+          onClick={switchToQuick}
+          disabled={switchingMode || saving}
+          title="Switch this tour to Quick edit mode (your data stays — only the form changes)"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition flex-shrink-0 disabled:opacity-60"
+        >
+          {switchingMode ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+          Quick mode
+        </button>
+        <button
+          type="button"
+          onClick={() => isApproved ? handleSave(null) : openVerificationModal()}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition flex-shrink-0 disabled:opacity-60"
+        >
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          Save
+        </button>
+        {listingSlug && (
+          <a
+            href={`/wander/${listingSlug}?preview=1`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition"
+          >
+            <Eye className="w-3.5 h-3.5" /> Preview
+          </a>
+        )}
       </div>
 
       {/* Progress bar */}

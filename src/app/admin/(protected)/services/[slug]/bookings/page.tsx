@@ -56,6 +56,7 @@ interface Booking {
   source?: string;
   createdAt: string;
   vehicleImage?: string;
+  callsCount?: number;
 }
 
 const IconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -632,6 +633,14 @@ export default function ServiceBookingsPage() {
                       <td className="px-6 py-4">
                         <p className="font-medium text-gray-900">{booking.customerName}</p>
                         <p className="text-sm text-gray-500">{booking.customerPhone}</p>
+                        <span className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          (booking.callsCount ?? 0) > 0
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-gray-100 text-gray-400'
+                        }`}>
+                          <Phone className="w-3 h-3" />
+                          {booking.callsCount ?? 0} {(booking.callsCount ?? 0) === 1 ? 'call' : 'calls'}
+                        </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">

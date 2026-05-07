@@ -157,18 +157,18 @@ export default function DriverDashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-6 text-white">
-        <h1 className="text-2xl font-bold">Welcome Back!</h1>
-        <p className="text-emerald-100 mt-1">Here's your trip summary for today</p>
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-6 sm:p-8 text-white">
+        <h1 className="text-lg sm:text-xl font-bold">Welcome Back!</h1>
+        <p className="text-emerald-100 mt-1 text-sm">Here's your trip summary for today</p>
       </div>
 
       {/* Available Trips Banner — independent drivers only */}
       {driverInfo.userType === 'independent' && (
         <Link
           href="/driver/available-trips"
-          className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl p-4 hover:bg-blue-100 transition"
+          className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl p-4 sm:p-5 hover:bg-blue-100 transition"
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -191,51 +191,51 @@ export default function DriverDashboardPage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 shadow-sm border">
-          <div className="flex items-center gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border">
+          <div className="flex flex-col gap-3">
             <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
               <AlertCircle className="w-6 h-6 text-amber-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
-              <p className="text-sm text-gray-500">Active Trips</p>
+              <p className="text-3xl font-bold text-gray-900">{stats.active}</p>
+              <p className="text-sm text-gray-500 mt-0.5">Active Trips</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm border">
-          <div className="flex items-center gap-3">
+        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border">
+          <div className="flex flex-col gap-3">
             <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
               <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.completed}</p>
-              <p className="text-sm text-gray-500">Completed</p>
+              <p className="text-3xl font-bold text-gray-900">{stats.completed}</p>
+              <p className="text-sm text-gray-500 mt-0.5">Completed</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm border">
-          <div className="flex items-center gap-3">
+        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border">
+          <div className="flex flex-col gap-3">
             <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
               <Calendar className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-              <p className="text-sm text-gray-500">Total Trips</p>
+              <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
+              <p className="text-sm text-gray-500 mt-0.5">Total Trips</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm border">
-          <div className="flex items-center gap-3">
+        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border">
+          <div className="flex flex-col gap-3">
             <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
               <TrendingUp className="w-6 h-6 text-emerald-600" />
             </div>
             <div>
-              <p className="text-xl font-bold text-gray-900">₹{stats.totalEarnings.toLocaleString()}</p>
-              <p className="text-sm text-gray-500">Earnings</p>
+              <p className="text-2xl font-bold text-gray-900">₹{stats.totalEarnings.toLocaleString()}</p>
+              <p className="text-sm text-gray-500 mt-0.5">Earnings</p>
             </div>
           </div>
         </div>
@@ -243,8 +243,8 @@ export default function DriverDashboardPage() {
 
       {/* Active Trips */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-gray-900">Active Trips</h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-xl font-bold text-gray-900">Active Trips</h2>
           <Link
             href="/driver/bookings"
             className="text-emerald-600 text-sm font-medium flex items-center gap-1 hover:underline"
@@ -289,7 +289,7 @@ export default function DriverDashboardPage() {
 
           if (filtered.length === 0) {
             return (
-              <div className="bg-white rounded-xl border p-8 text-center">
+              <div className="bg-white rounded-2xl border p-10 sm:p-14 text-center">
                 <Car className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="font-medium text-gray-900 mb-1">No Active Trips</h3>
                 <p className="text-sm text-gray-500">
@@ -300,7 +300,7 @@ export default function DriverDashboardPage() {
           }
 
           return (
-          <div className="space-y-4">
+          <div className="space-y-4 sm:space-y-5">
             {filtered.slice(0, 5).map((booking) => {
               const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.DRIVER_ASSIGNED;
               const ServiceIcon = SERVICE_ICONS[booking.serviceType || 'car'] || Car;
@@ -337,11 +337,11 @@ export default function DriverDashboardPage() {
                 <Link
                   key={booking.id}
                   href={`/driver/bookings/${booking.bookingNumber}`}
-                  className="block bg-white rounded-xl border shadow-sm p-4 hover:shadow-md transition"
+                  className="block bg-white rounded-2xl border shadow-sm p-5 sm:p-6 hover:shadow-md transition"
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-start gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${serviceColors.bg}`}>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-4">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${serviceColors.bg}`}>
                         <ServiceIcon className={`w-5 h-5 ${serviceColors.text}`} />
                       </div>
                       <div>
@@ -370,7 +370,7 @@ export default function DriverDashboardPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                     <div className="flex items-start gap-2">
                       <MapPin className="w-4 h-4 text-emerald-500 mt-0.5" />
                       <div>
@@ -422,7 +422,7 @@ export default function DriverDashboardPage() {
 
                   {/* Trip in progress indicator */}
                   {['IN_PROGRESS', 'LOADING', 'IN_TRANSIT', 'UNLOADING', 'PACKING', 'UNPACKING', 'DELIVERED', 'IN_USE', 'PICKUP_SCHEDULED'].includes(booking.status) && (
-                    <div className={`mt-4 pt-3 border-t -mx-4 -mb-4 px-4 py-3 rounded-b-xl ${
+                    <div className={`mt-5 pt-3 border-t -mx-5 sm:-mx-6 -mb-5 sm:-mb-6 px-5 sm:px-6 py-3 rounded-b-2xl ${
                       booking.status === 'LOADING' ? 'bg-blue-50' :
                       booking.status === 'UNLOADING' ? 'bg-orange-50' :
                       booking.status === 'PACKING' ? 'bg-cyan-50' :

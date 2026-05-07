@@ -16,6 +16,15 @@ import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { prisma } from '@/lib/db/prisma';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { CITY_SEO } from '@/data/city-seo-content';
+
+const EQUIPMENT_FALLBACK_FAQS = [
+  { question: 'What is the cost of equipment rental per day?', answer: 'JCB backhoe loader starts from ₹2,999/day with certified operator. Mini excavators start from ₹3,500/day. Cranes, road rollers, and generators are quoted based on machine type and project requirements. Get a free quote on TransRentals for your specific site.' },
+  { question: 'Is a certified operator included with equipment rental?', answer: 'Yes, all heavy equipment rentals on TransRentals include a certified, experienced operator. You need to provide clear site access and necessary permissions. Independent operation without our operator is not permitted for safety reasons.' },
+  { question: 'How many hours does rented equipment work per day?', answer: 'Standard rental is 8 working hours per day. Extended 12-hour and 24-hour shifts are available at additional cost. Fuel is typically not included — the client arranges diesel at the site. Confirm the fuel arrangement with your vendor at booking.' },
+  { question: 'What types of construction equipment are available for rent?', answer: 'Available equipment includes: JCB backhoe loaders, hydraulic excavators, cranes (hydraulic, tower, pick-and-carry), road rollers, motor graders, tipper trucks, generators (15 kVA–500 kVA), concrete mixers, and compactors. Event equipment (DJ systems, lighting, generators) is also available.' },
+  { question: 'How do I book construction equipment for my project?', answer: 'Specify your equipment type, site location, start date, and duration on TransRentals. Get quotes from multiple verified vendors and compare before confirming. Book at least 48–72 hours in advance; for rare or heavy equipment, book 5–7 days ahead.' },
+];
 import { B2BServiceNote } from '@/components/common/B2BServiceNote';
 import { getCachedServiceBySlug, getCachedSubServices } from '@/lib/services/cached-service-lookups';
 import { getServiceLocations } from '@/lib/services/service-locations';
@@ -60,7 +69,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const _seoDb = await resolvePageMeta(`equipment-rental:${params.location}`);
   return {
-    title: _seoDb?.metaTitle || `Equipment Rental in ${locationName} | Starting @₹1499/Day | TransRentals`,
+    title: _seoDb?.metaTitle || `Equipment Rental in ${locationName} | Starting from ₹1,499/Day | TransRentals`,
     description: _seoDb?.metaDescription || `Rent construction and event equipment in ${locationName}. Excavators, cranes, generators, DJ systems. Professional operators available. Book now!`,
     keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `equipment rental in ${locationName}`,
@@ -71,7 +80,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ],
     openGraph: {
       title: `Equipment Rental in ${locationName} - TransRentals`,
-      description: `Rent equipment in ${locationName} starting @₹1499/day. Construction & event equipment available.`,
+      description: `Rent construction and event equipment in ${locationName}. Excavators, cranes, generators, DJ systems. Verified operators available.`,
     },
   };
 }
@@ -262,7 +271,7 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
   const vehicles = dbVehicles;
 
   const seoData = await resolvePageMeta(`equipment-rental:${params.location}`);
-
+  const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['equipment-rental'] || [];
 
   return (
     <div className="flex flex-col">
@@ -290,7 +299,7 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
         pageDescription={seoData?.pageDescription || undefined}
         badge={`Equipment Rental in ${locationName}`}
         title="Construction & Event Equipment"
-        titleHighlight="Rent Equipment @₹1499/day"
+        titleHighlight="Verified Operators Available"
         description={`Rent quality construction and event equipment in ${locationName}. Excavators, cranes, generators, DJ systems, and more. Professional operators available.`}
         features={[
           { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
@@ -310,7 +319,13 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
 
       <WhyRentHere locationName={locationName} />
 
-      <FAQSection service="equipment-rental" location={locationName} />
+      {cityFAQs.length === 0 && (
+        <FAQSection
+          service="equipment-rental"
+          location={locationName}
+          customFaqs={EQUIPMENT_FALLBACK_FAQS}
+        />
+      )}
 
       <NearbyLocations
         locationSlug={params.location}
@@ -325,25 +340,39 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
         stateCode={city?.stateCode}
       />
 
-      {/* Schema Markup for SEO */}
+      {/* LocalBusiness Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
-            name: `Equipment Rental in ${locationName}`,
-            description: `Construction and event equipment rental in ${locationName} starting at ₹1499/day`,
-            offers: {
-              '@type': 'AggregateOffer',
-              lowPrice: '1499',
-              priceCurrency: 'INR',
-              availability: 'https://schema.org/InStock',
-            },
-            provider: {
-              '@type': 'Organization',
-              name: 'TransRentals',
-            },
+            '@type': 'LocalBusiness',
+            name: `Equipment Rental in ${locationName} — TransRentals`,
+            description: `Construction and heavy equipment rental in ${locationName}. JCB, cranes, excavators, generators with certified operators.`,
+            url: `https://transrentals.in/equipment-rental/${params.location}`,
+            areaServed: { '@type': 'City', name: locationName },
+            provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
+            priceRange: '₹₹',
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: cityFAQs.length > 0
+              ? cityFAQs.map((faq) => ({
+                  '@type': 'Question',
+                  name: faq.q,
+                  acceptedAnswer: { '@type': 'Answer', text: faq.a },
+                }))
+              : EQUIPMENT_FALLBACK_FAQS.map((faq) => ({
+                  '@type': 'Question',
+                  name: faq.question,
+                  acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+                })),
           }),
         }}
       />

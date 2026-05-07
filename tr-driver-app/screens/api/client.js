@@ -349,3 +349,25 @@ export async function getDriverAppVersion() {
   const base = await getBaseURL();
   return axios.get(`${base}/api/driver-app/app-version`);
 }
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+export async function getDriverChatList() {
+  const c = await getClient();
+  return c.get(`${BASE}/chat`);
+}
+
+export async function getOrCreateDriverChat(bookingId, bookingType = 'chauffeur', customerId = null) {
+  const c = await getClient();
+  return c.post(`${BASE}/chat`, { bookingId, bookingType, customerId });
+}
+
+export async function getDriverChatMessages(conversationId, since = null) {
+  const c = await getClient();
+  const qs = since ? `?since=${encodeURIComponent(since)}` : '';
+  return c.get(`${BASE}/chat/${conversationId}/messages${qs}`);
+}
+
+export async function sendDriverChatMessage(conversationId, content) {
+  const c = await getClient();
+  return c.post(`${BASE}/chat/${conversationId}/messages`, { content });
+}

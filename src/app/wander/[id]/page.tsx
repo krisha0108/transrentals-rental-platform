@@ -8,11 +8,14 @@ import {
   Compass, MapPin, Clock, Users, ChevronLeft, ChevronRight,
   Check, X, Star, Shield, Globe, Loader2, AlertCircle,
   Calendar, Phone, Mail, User, MessageSquare, ChevronDown,
-  Car, Info, ArrowLeft, Sparkles, CheckCircle, Building2, UserPlus,
+  Car, Info, ArrowLeft, Sparkles, CheckCircle, Building2, UserPlus, TrendingUp, Images,
+  Lock, Eye, EyeOff,
 } from 'lucide-react';
 import ReviewsSection from '@/components/wander/ReviewsSection';
+import { sanitizeRichText } from '@/lib/utils/sanitize';
 
-function parseJSON(str: string | null, fallback: any) {
+function parseJSON(str: any, fallback: any) {
+  if (Array.isArray(str) || (str && typeof str === 'object')) return str;
   if (!str) return fallback;
   try { return JSON.parse(str); } catch { return fallback; }
 }
@@ -26,105 +29,278 @@ const CANCEL_LABELS: Record<string, { label: string; desc: string; color: string
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /* ─── Image Gallery ─────────────────────────────────────────────────────────── */
-function Gallery({ images, title }: { images: string[]; title: string }) {
-  const [active, setActive] = useState(0);
-  const [showAll, setShowAll] = useState(false);
+function Gallery({ images, title, meta }: {
+  images: string[];
+  title: string;
+  meta?: {
+    category?: { icon: string; name: string } | null;
+    location?: string | null;
+    duration?: string | null;
+    rating?: number | null;
+    totalRatings?: number;
+    popular?: boolean;
+  };
+}) {
+  const [current, setCurrent]     = useState(0);
+  const [paused, setPaused]       = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
+  /* ── auto-slide every 3s (pause on hover / lightbox open) ── */
+  useEffect(() => {
+    if (images.length <= 1 || paused || lightboxIdx !== null) return;
+    timerRef.current = setInterval(() => {
+      setCurrent(c => (c + 1) % images.length);
+    }, 3000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [images.length, paused, lightboxIdx]);
+
+  const goTo   = (i: number) => { setCurrent(i); setPaused(true); };
+  const goPrev = () => goTo((current - 1 + images.length) % images.length);
+  const goNext = () => goTo((current + 1) % images.length);
+
+  /* ── lightbox keyboard ── */
+  useEffect(() => {
+    if (lightboxIdx === null) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft')  setLightboxIdx(i => (i! - 1 + images.length) % images.length);
+      else if (e.key === 'ArrowRight') setLightboxIdx(i => (i! + 1) % images.length);
+      else if (e.key === 'Escape') setLightboxIdx(null);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightboxIdx, images.length]);
+
+  /* ── no images ── */
   if (!images.length) {
     return (
-      <div className="h-80 md:h-[520px] bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center rounded-3xl">
-        <span className="text-9xl opacity-20">🗺️</span>
-      </div>
-    );
-  }
-
-  // Mosaic grid for 3+ images
-  if (images.length >= 3 && !showAll) {
-    return (
-      <div className="space-y-2">
-        {/* Main + side mosaic */}
-        <div className="grid grid-cols-3 gap-2 h-72 md:h-[420px] rounded-3xl overflow-hidden">
-          <div className="col-span-2 relative overflow-hidden">
-            <img src={images[0]} alt={title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer" onClick={() => setShowAll(true)} />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
-          </div>
-          <div className="grid grid-rows-2 gap-2">
-            <div className="relative overflow-hidden rounded-tr-3xl">
-              <img src={images[1]} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer" onClick={() => setShowAll(true)} />
-            </div>
-            <div className="relative overflow-hidden rounded-br-3xl">
-              <img src={images[2] || images[1]} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500 cursor-pointer" onClick={() => setShowAll(true)} />
-              {images.length > 3 && (
-                <button
-                  onClick={() => setShowAll(true)}
-                  className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white hover:bg-black/60 transition-colors"
-                >
-                  <span className="text-2xl font-black">+{images.length - 3}</span>
-                  <span className="text-xs font-medium mt-1">more photos</span>
-                </button>
-              )}
-            </div>
-          </div>
+      <div className="h-72 md:h-[480px] bg-gradient-to-br from-slate-800 to-indigo-900 flex flex-col items-center justify-center rounded-2xl relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        <span className="text-8xl opacity-10 mb-4 relative z-10">🗺️</span>
+        <p className="text-sm text-white/40 relative z-10">No photos yet</p>
+        <div className="absolute bottom-0 left-0 right-0 px-5 pb-6 z-10">
+          <h1 className="font-black text-white text-xl md:text-2xl leading-tight drop-shadow-xl">{title}</h1>
         </div>
-        <button onClick={() => setShowAll(true)} className="text-xs text-indigo-600 hover:underline font-medium flex items-center gap-1">
-          <span>📷</span> View all {images.length} photos
-        </button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
-    <div className="relative rounded-3xl overflow-hidden h-80 md:h-[520px] bg-gray-900 shadow-xl shadow-gray-900/10">
-      <img src={images[active]} alt={title} className="w-full h-full object-cover transition-opacity duration-300" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-      {images.length > 1 && (
-        <>
-          <button
-            onClick={() => setActive(i => (i - 1 + images.length) % images.length)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/40 hover:bg-black/70 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white transition-all hover:scale-105"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => setActive(i => (i + 1) % images.length)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/40 hover:bg-black/70 backdrop-blur-sm rounded-2xl flex items-center justify-center text-white transition-all hover:scale-105"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-            {images.map((_, i) => (
-              <button key={i} onClick={() => setActive(i)}
-                className={`rounded-full transition-all duration-300 ${i === active ? 'w-6 h-2 bg-white' : 'w-2 h-2 bg-white/40 hover:bg-white/70'}`}
-              />
-            ))}
+    <>
+      {/* ══ SLIDER ══ */}
+      <div
+        className="relative w-full h-72 md:h-[520px] rounded-2xl overflow-hidden bg-gray-900 select-none"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        {/* slides */}
+        {images.map((src, i) => (
+          <img
+            key={i}
+            src={src}
+            alt={i === 0 ? title : ''}
+            onClick={() => setLightboxIdx(i)}
+            className={`absolute inset-0 w-full h-full object-cover cursor-zoom-in transition-opacity duration-700 ${
+              i === current ? 'opacity-100 z-10' : 'opacity-0 z-0'
+            }`}
+          />
+        ))}
+
+        {/* Strong bottom-heavy gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10 z-20 pointer-events-none" />
+        {/* Side vignette */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30 z-20 pointer-events-none" />
+
+        {/* Top bar: category + popular */}
+        <div className="absolute top-0 left-0 right-0 z-30 px-4 pt-4 flex items-start justify-between">
+          {meta?.category && (
+            <span className="inline-flex items-center gap-1.5 bg-black/45 backdrop-blur-md text-[11px] font-bold text-white px-3 py-1.5 rounded-xl border border-white/10 shadow-lg">
+              {meta.category.icon} {meta.category.name}
+            </span>
+          )}
+          {meta?.popular && (
+            <div className="ml-auto bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl flex items-center gap-1 shadow-lg">
+              <TrendingUp className="w-2.5 h-2.5" /> Hot
+            </div>
+          )}
+        </div>
+
+        {/* prev / next arrows — only when 2+ images */}
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={goPrev}
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-sm flex items-center justify-center text-white transition-all hover:scale-110"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={goNext}
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-sm flex items-center justify-center text-white transition-all hover:scale-110"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </>
+        )}
+
+        {/* Bottom overlay: title + meta + dots + counter */}
+        <div className="absolute bottom-0 left-0 right-0 z-30 px-5 pb-4 pt-20">
+          {/* Title */}
+          <h1 className="font-black text-white text-xl md:text-[1.65rem] leading-snug mb-2.5 drop-shadow-xl tracking-tight">
+            {title}
+          </h1>
+          {/* Location + Duration + Rating */}
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            {meta?.location && (
+              <span className="flex items-center gap-1.5 text-white/85 text-sm font-medium">
+                <MapPin className="w-3.5 h-3.5 text-indigo-300 flex-shrink-0" /> {meta.location}
+              </span>
+            )}
+            {meta?.duration && (
+              <span className="flex items-center gap-1.5 text-white/70 text-sm">
+                <Clock className="w-3.5 h-3.5 flex-shrink-0" /> {meta.duration}
+              </span>
+            )}
+            {meta?.rating != null && meta.rating > 0 && (
+              <span className="inline-flex items-center gap-1 bg-amber-400 text-gray-900 text-xs font-black px-2.5 py-1 rounded-lg shadow-md">
+                <Star className="w-3 h-3 fill-gray-900" /> {meta.rating}
+                {meta.totalRatings != null && meta.totalRatings > 0 && (
+                  <span className="font-normal ml-0.5 text-gray-700">({meta.totalRatings})</span>
+                )}
+              </span>
+            )}
           </div>
-        </>
-      )}
-      {/* Thumbnail strip */}
+          {/* Dots + counter row */}
+          <div className="flex items-center justify-between">
+            {images.length > 1 ? (
+              <div className="flex items-center gap-1.5">
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => goTo(i)}
+                    className={`rounded-full transition-all duration-300 ${
+                      i === current ? 'w-5 h-2 bg-white' : 'w-2 h-2 bg-white/45 hover:bg-white/70'
+                    }`}
+                  />
+                ))}
+              </div>
+            ) : <span />}
+            <button
+              onClick={() => setLightboxIdx(current)}
+              className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm hover:bg-black/70 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
+            >
+              <Images className="w-3.5 h-3.5" />
+              {images.length > 1 ? `${current + 1} / ${images.length}` : '1 photo'}
+            </button>
+          </div>
+        </div>
+
+        {/* progress bar */}
+        {images.length > 1 && !paused && lightboxIdx === null && (
+          <div className="absolute bottom-0 left-0 right-0 h-[3px] z-40 bg-white/20">
+            <div
+              key={current}
+              className="h-full bg-white/80 rounded-full"
+              style={{ animation: 'slideProgress 3s linear forwards' }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* progress bar keyframe */}
+      <style>{`
+        @keyframes slideProgress {
+          from { width: 0% }
+          to   { width: 100% }
+        }
+      `}</style>
+
+      {/* ══ THUMBNAIL STRIP (below slider, 2+ images) ══ */}
       {images.length > 1 && (
-        <div className="absolute bottom-4 right-4 flex gap-1.5">
-          {images.slice(0, 5).map((img, i) => (
-            <button key={i} onClick={() => setActive(i)}
-              className={`w-14 h-10 rounded-xl overflow-hidden border-2 transition-all duration-200 ${i === active ? 'border-white scale-105 shadow-lg' : 'border-white/30 opacity-60 hover:opacity-100 hover:border-white/70'}`}
+        <div className="flex gap-2 mt-2 overflow-x-auto pb-0.5">
+          {images.map((img, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className={`flex-shrink-0 w-16 h-11 rounded-xl overflow-hidden border-2 transition-all duration-200 ${
+                i === current
+                  ? 'border-indigo-500 scale-105 shadow-md'
+                  : 'border-transparent opacity-55 hover:opacity-100'
+              }`}
             >
               <img src={img} alt="" className="w-full h-full object-cover" />
             </button>
           ))}
-          {images.length > 5 && (
-            <div className="w-14 h-10 rounded-xl bg-black/50 backdrop-blur-sm flex items-center justify-center text-white text-xs font-bold">
-              +{images.length - 5}
+        </div>
+      )}
+
+      {/* ══ LIGHTBOX ══ */}
+      {lightboxIdx !== null && (
+        <div
+          className="fixed inset-0 z-[999] flex flex-col backdrop-blur-sm"
+          style={{ backgroundColor: 'rgba(0,0,0,0.92)' }}
+          onClick={() => setLightboxIdx(null)}
+        >
+          {/* top bar */}
+          <div className="flex items-center justify-between px-5 py-4 flex-shrink-0" onClick={e => e.stopPropagation()}>
+            <span className="text-white/55 text-sm">{lightboxIdx + 1} / {images.length}</span>
+            <p className="text-white font-semibold text-sm truncate max-w-xs text-center">{title}</p>
+            {/* Prominent close button */}
+            <button
+              onClick={() => setLightboxIdx(null)}
+              className="w-10 h-10 bg-white/15 hover:bg-white/30 border border-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* image */}
+          <div className="flex-1 flex items-center justify-center relative px-14 min-h-0" onClick={e => e.stopPropagation()}>
+            <img
+              src={images[lightboxIdx]}
+              alt={title}
+              className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+              style={{ maxHeight: 'calc(100vh - 180px)' }}
+            />
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={() => setLightboxIdx(i => (i! - 1 + images.length) % images.length)}
+                  className="absolute left-3 w-11 h-11 bg-white/15 hover:bg-white/30 border border-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setLightboxIdx(i => (i! + 1) % images.length)}
+                  className="absolute right-3 w-11 h-11 bg-white/15 hover:bg-white/30 border border-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* thumbnail strip */}
+          {images.length > 1 && (
+            <div className="flex-shrink-0 px-4 py-3 flex gap-2 overflow-x-auto justify-center" onClick={e => e.stopPropagation()}>
+              {images.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => setLightboxIdx(i)}
+                  className={`flex-shrink-0 w-14 h-10 rounded-lg overflow-hidden transition-all duration-200 ${
+                    i === lightboxIdx
+                      ? 'ring-2 ring-white ring-offset-2 ring-offset-black scale-105'
+                      : 'opacity-40 hover:opacity-80'
+                  }`}
+                >
+                  <img src={img} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
             </div>
           )}
         </div>
       )}
-    </div>
-    {showAll && (
-      <button onClick={() => setShowAll(false)} className="text-xs text-gray-400 hover:text-gray-600 font-medium flex items-center gap-1">
-        ↑ Show less
-      </button>
-    )}
-    </div>
+    </>
   );
 }
 
@@ -138,14 +314,17 @@ function QuoteForm({
   priceTiers?: { groupSize: string; price: string }[];
   requireAdvancePayment?: boolean; advancePaymentType?: string; advancePaymentValue?: number | null;
 }) {
-  const [loggedInCustomer, setLoggedInCustomer] = useState<{ name: string; phone: string; email: string; isB2B?: boolean; companyName?: string } | null>(null);
+  const [loggedInCustomer, setLoggedInCustomer] = useState<{ id: string; name: string; phone: string; email: string; isB2B?: boolean; companyName?: string } | null>(null);
   const [form, setForm] = useState({
-    name: '', phone: '', email: '', travelDate: '', groupSize: '2', pickupLocation: '', requirements: '',
+    name: '', phone: '', email: '', password: '', confirmPassword: '',
+    travelDate: '', groupSize: '2', pickupLocation: '', requirements: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [bookingFor, setBookingFor] = useState<'PERSONAL' | 'COMPANY'>('PERSONAL');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [needsLogin, setNeedsLogin] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -155,8 +334,8 @@ function QuoteForm({
       const raw = localStorage.getItem('customer');
       if (token && raw) {
         const c = JSON.parse(raw);
-        if (c?.name && c?.phone) {
-          setLoggedInCustomer({ name: c.name, phone: c.phone, email: c.email || '', isB2B: !!c.isB2B && c.b2bStatus === 'APPROVED', companyName: c.companyName || '' });
+        if (c?.id && c?.name && c?.phone) {
+          setLoggedInCustomer({ id: c.id, name: c.name, phone: c.phone, email: c.email || '', isB2B: !!c.isB2B && c.b2bStatus === 'APPROVED', companyName: c.companyName || '' });
           setForm(f => ({ ...f, name: c.name, phone: c.phone, email: c.email || '' }));
         }
       }
@@ -170,23 +349,37 @@ function QuoteForm({
     setError('');
     if (!form.name.trim()) return setError('Name is required');
     if (!form.phone.trim() || form.phone.length < 10) return setError('Valid phone is required');
+    if (!form.email.trim()) return setError('Email is required');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return setError('Please enter a valid email');
+    if (!loggedInCustomer) {
+      if (!form.password) return setError('Please choose a password');
+      if (form.password.length < 8) return setError('Password must be at least 8 characters');
+      if (form.password !== form.confirmPassword) return setError('Passwords do not match');
+    }
     if (!form.travelDate) return setError('Travel date is required');
 
     setSubmitting(true);
     try {
       const isB2BCompany = loggedInCustomer?.isB2B && bookingFor === 'COMPANY';
+      const { confirmPassword: _cp, password, ...rest } = form;
       const res = await fetch('/api/wander/quote-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           listingId,
-          ...form,
+          ...rest,
+          ...(loggedInCustomer
+            ? { customerId: loggedInCustomer.id }
+            : { password }),
           bookingFor: isB2BCompany ? 'COMPANY' : 'PERSONAL',
           companyName: isB2BCompany ? (loggedInCustomer?.companyName || '') : undefined,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed');
+      if (!res.ok) {
+        if (data.requiresLogin) setNeedsLogin(true);
+        throw new Error(data.error || 'Failed');
+      }
       setSuccess(data.requestId);
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
@@ -230,6 +423,19 @@ function QuoteForm({
               <p className="text-xs text-gray-500 truncate">{loggedInCustomer.phone}{loggedInCustomer.email ? ` · ${loggedInCustomer.email}` : ''}</p>
             </div>
           </div>
+          {!loggedInCustomer.email && (
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">Email *</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input value={form.email} onChange={e => set('email', e.target.value)}
+                  type="email" required placeholder="you@example.com"
+                  className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1">We'll send tour quotes & updates to this email.</p>
+            </div>
+          )}
           {/* B2B customers only: trip is personal or for company */}
           {loggedInCustomer.isB2B && (
             <div>
@@ -282,14 +488,50 @@ function QuoteForm({
             </div>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 mb-1 block">Email</label>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">Email *</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
               <input value={form.email} onChange={e => set('email', e.target.value)}
-                type="email" placeholder="Optional"
+                type="email" required placeholder="you@example.com"
                 className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
               />
             </div>
+          </div>
+          <div className="col-span-2 mt-1 p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl">
+            <p className="text-[11px] font-semibold text-indigo-700 mb-2 flex items-center gap-1.5">
+              <Lock className="w-3 h-3" /> Set a password to track your quote
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Password *</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <input value={form.password} onChange={e => set('password', e.target.value)}
+                    type={showPassword ? 'text' : 'password'} required minLength={8} placeholder="Min 8 characters"
+                    className="w-full pl-8 pr-9 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                  <button type="button" onClick={() => setShowPassword(s => !s)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Confirm *</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <input value={form.confirmPassword} onChange={e => set('confirmPassword', e.target.value)}
+                    type={showPassword ? 'text' : 'password'} required minLength={8} placeholder="Re-enter"
+                    className="w-full pl-8 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  />
+                </div>
+              </div>
+            </div>
+            <p className="text-[10px] text-gray-500 mt-2">
+              We'll create your account so you can login with your email + password to view quotes & updates.
+            </p>
           </div>
         </div>
       )}
@@ -361,7 +603,7 @@ function QuoteForm({
         let estPrice: number | null = null;
         if (priceType === 'PER_PERSON' && basePrice) {
           estPrice = qty * Number(basePrice);
-        } else if (priceType === 'GROUP_BASED' && priceTiers?.length) {
+        } else if (priceType === 'PER_GROUP' && priceTiers?.length) {
           // find best matching tier (closest groupSize that covers qty)
           const sorted = [...priceTiers].sort((a, b) => parseInt(a.groupSize) - parseInt(b.groupSize));
           const match = sorted.find(t => parseInt(t.groupSize) >= qty) || sorted[sorted.length - 1];
@@ -403,8 +645,19 @@ function QuoteForm({
       })()}
 
       {error && (
-        <div className="flex items-center gap-2 text-red-600 text-xs bg-red-50 border border-red-200 rounded-xl px-3 py-2">
-          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {error}
+        <div className="flex items-start gap-2 text-red-600 text-xs bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p>{error}</p>
+            {needsLogin && (
+              <Link
+                href={`/customer/login?redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname : '')}`}
+                className="inline-block mt-1.5 font-semibold text-indigo-600 hover:underline"
+              >
+                Login to your account →
+              </Link>
+            )}
+          </div>
         </div>
       )}
       <button
@@ -664,7 +917,7 @@ function VendorCard({ vendor, listingCount }: { vendor: any; listingCount?: numb
 
 /* ─── Similar Tour Mini-Card ─────────────────────────────────────────────────── */
 function SimilarCard({ listing }: { listing: any }) {
-  const images: string[] = (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
+  const images: string[] = Array.isArray(listing.images) ? listing.images : (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
   const cover = images[0] || null;
   return (
     <Link href={`/wander/${listing.slug || listing.id}`}
@@ -705,7 +958,9 @@ export default function TourDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    fetch(`/api/wander/listings/${id}`)
+    const isPreview = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1';
+    const previewQuery = isPreview ? '?preview=1' : '';
+    fetch(`/api/wander/listings/${id}${previewQuery}`)
       .then(r => r.json())
       .then(d => {
         if (d.error) setError(d.error);
@@ -805,6 +1060,7 @@ export default function TourDetailPage() {
   const priceTiers = parseJSON(listing.priceTiers, []);
   const guideLanguages = parseJSON(listing.guideLanguages, []);
   const availableDays = parseJSON(listing.availableDays, []);
+  const customPlaces: { name: string }[] = parseJSON(listing.customPlaces, []);
   const cancelInfo = CANCEL_LABELS[listing.cancellationPolicy] || CANCEL_LABELS.MODERATE;
 
   const priceLabel = listing.priceType === 'ON_REQUEST'
@@ -812,10 +1068,18 @@ export default function TourDetailPage() {
     : listing.basePrice
       ? `₹${Number(listing.basePrice).toLocaleString('en-IN')}`
       : null;
-  const priceSuffix = listing.priceType === 'PER_PERSON' ? 'per person' : listing.priceType === 'GROUP_BASED' ? 'per group' : '';
+  const priceSuffix = listing.priceType === 'PER_PERSON' ? 'per person' : listing.priceType === 'PER_GROUP' ? 'per group' : '';
+
+  const isPreviewMode = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('preview') === '1';
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Preview banner */}
+      {isPreviewMode && (
+        <div className="bg-amber-400 text-amber-900 text-xs font-bold text-center py-2 px-4 flex items-center justify-center gap-2">
+          <span>👁️ Preview Mode — This tour is not yet published</span>
+        </div>
+      )}
       {/* Breadcrumb */}
       <div className="bg-gray-50 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-2 text-xs text-gray-500">
@@ -840,48 +1104,27 @@ export default function TourDetailPage() {
           <div className="lg:col-span-2 space-y-8">
 
             {/* Gallery */}
-            <Gallery images={images} title={listing.title} />
+            <Gallery
+              images={images}
+              title={listing.title}
+              meta={{
+                category: listing.category || null,
+                location: listing.mainLocation?.name || null,
+                duration: listing.duration || null,
+                rating: listing.rating > 0 ? listing.rating : null,
+                totalRatings: listing.totalRatings,
+                popular: (listing._count?.quoteRequests ?? 0) > 5,
+              }}
+            />
 
-            {/* Title & Meta */}
+            {/* Info below image */}
             <div>
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                {listing.category && (
-                  <span className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-xl">
-                    {listing.category.icon} {listing.category.name}
-                  </span>
-                )}
-                {listing._count?.quoteRequests > 5 && (
-                  <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-600 text-xs font-bold px-3 py-1.5 rounded-xl">
-                    🔥 Popular
-                  </span>
-                )}
-                {listing.rating > 0 && (
-                  <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-xl">
-                    ⭐ {listing.rating} <span className="font-normal text-amber-500">({listing.totalRatings} reviews)</span>
-                  </span>
-                )}
-              </div>
-
-              <h1 className="text-2xl md:text-[2rem] font-black text-gray-900 mb-4 leading-tight tracking-tight">
-                {listing.title}
-              </h1>
-
               {listing.shortDescription && (
                 <p className="text-gray-500 text-base leading-relaxed mb-5">{listing.shortDescription}</p>
               )}
 
-              {/* Quick stats bar */}
+              {/* Quick stats — only additional info not already shown in gallery */}
               <div className="flex flex-wrap gap-2">
-                {listing.mainLocation?.name && (
-                  <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-2 rounded-xl">
-                    <MapPin className="w-3.5 h-3.5 text-indigo-400" /> {listing.mainLocation.name}
-                  </span>
-                )}
-                {listing.duration && (
-                  <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-2 rounded-xl">
-                    <Clock className="w-3.5 h-3.5 text-indigo-400" /> {listing.duration}
-                  </span>
-                )}
                 {(listing.minGroupSize > 1 || listing.maxGroupSize) && (
                   <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-2 rounded-xl">
                     <Users className="w-3.5 h-3.5 text-indigo-400" />
@@ -893,6 +1136,13 @@ export default function TourDetailPage() {
                 {guideLanguages.length > 0 && (
                   <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-2 rounded-xl">
                     <Globe className="w-3.5 h-3.5 text-indigo-400" /> {guideLanguages.join(', ')}
+                  </span>
+                )}
+                {listing.tourStartDate && (
+                  <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-xs font-medium px-3 py-2 rounded-xl">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+                    {new Date(listing.tourStartDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {listing.tourEndDate && ` – ${new Date(listing.tourEndDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                   </span>
                 )}
               </div>
@@ -923,7 +1173,10 @@ export default function TourDetailPage() {
             {listing.description && (
               <div>
                 <h2 className="text-lg font-bold text-gray-900 mb-3">About this Tour</h2>
-                <p className="text-gray-600 leading-relaxed whitespace-pre-line">{listing.description}</p>
+                <div
+                  className="prose prose-sm max-w-none text-gray-600 prose-headings:text-gray-900 prose-a:text-emerald-700 prose-strong:text-gray-900"
+                  dangerouslySetInnerHTML={{ __html: sanitizeRichText(listing.description) }}
+                />
               </div>
             )}
 
@@ -1047,8 +1300,22 @@ export default function TourDetailPage() {
               </div>
             )}
 
+            {/* Custom Places */}
+            {customPlaces.length > 0 && (
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 mb-3">Places You'll Visit</h2>
+                <div className="flex flex-wrap gap-2">
+                  {customPlaces.map((p: { name: string }, i: number) => (
+                    <span key={i} className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm px-3 py-1.5 rounded-xl">
+                      <MapPin className="w-3.5 h-3.5 text-indigo-400" /> {p.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Pricing */}
-            {(priceLabel || priceTiers.length > 0) && (
+            {(listing.priceType === 'ON_REQUEST' || priceLabel || priceTiers.length > 0) && (
               <div>
                 <h2 className="text-lg font-bold text-gray-900 mb-3">Pricing</h2>
                 {priceTiers.length > 0 ? (
@@ -1079,7 +1346,12 @@ export default function TourDetailPage() {
                     <span className="text-3xl font-black text-indigo-700">{priceLabel}</span>
                     {priceSuffix && <span className="text-sm text-indigo-400 ml-2">{priceSuffix}</span>}
                   </div>
-                ) : null}
+                ) : (
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+                    <p className="text-lg font-bold text-indigo-700">Price on Request</p>
+                    <p className="text-sm text-indigo-400 mt-1">Get a custom quote tailored to your group & dates</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1121,7 +1393,11 @@ export default function TourDetailPage() {
                 <h2 className="text-lg font-bold text-gray-900 mb-3">Pickup Information</h2>
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm text-gray-600 space-y-2">
                   {listing.pickupType && (
-                    <p><span className="font-semibold text-gray-700">Type:</span> {listing.pickupType}</p>
+                    <p><span className="font-semibold text-gray-700">Type:</span> {
+                      listing.pickupType === 'HOTEL_PICKUP' ? 'Hotel Pickup'
+                      : listing.pickupType === 'FIXED_POINT' ? 'Fixed Meeting Point'
+                      : listing.pickupType
+                    }</p>
                   )}
                   {listing.meetingPoint && (
                     <p><span className="font-semibold text-gray-700">Meeting Point:</span> {listing.meetingPoint}</p>

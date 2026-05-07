@@ -38,7 +38,7 @@ export default function VendorWanderQuoteDetailPage() {
   async function fetchRequest() {
     setLoading(true);
     try {
-      const res = await fetch(`/api/vendor/wander/quotes?status=all`);
+      const res = await fetch(`/api/vendor/wander/quotes?status=all&type=all`);
       const data = await res.json();
       const found = (data.requests || []).find((r) => r.id === id);
       if (found) {

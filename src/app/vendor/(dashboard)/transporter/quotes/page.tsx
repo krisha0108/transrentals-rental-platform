@@ -27,6 +27,7 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import { TRANSPORTER_CONFIG } from '@/lib/quote-services';
+import QuoteShareButton from '@/components/vendor/QuoteShareButton';
 
 interface Quote {
   id: string;
@@ -470,6 +471,13 @@ export default function VendorTransporterQuotesPage() {
                       View Quote Details
                       <ChevronRight className="w-3 h-3 ml-auto opacity-50" />
                     </Link>
+                    <QuoteShareButton
+                      quoteUrl={`/vendor/transporter/quotes/${quote.id}`}
+                      quoteNumber={quote.quoteNumber}
+                      customerName={quote.request?.customerName || ''}
+                      amount={quote.totalAmount}
+                      serviceName="Transporter"
+                    />
                     {quote.status === 'WITHDRAWN' && ['PENDING', 'QUOTES_RECEIVED'].includes(quote.request?.status) && (
                       <Link
                         href={`/vendor/transporter/requests/${quote.request.id}/quote`}

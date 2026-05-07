@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../contexts/AuthContext';
-import { getAvailableBookings, getMyBookings, getDriverNotifications, getEarnings } from '../api/client';
+import { getAvailableBookings, getMyBookings, getDriverNotifications, getEarnings, getDriverChatList } from '../api/client';
 import moment from 'moment';
 
 const C = {
@@ -189,22 +189,26 @@ export default function DashboardScreen({ navigation }) {
   const [monthEarnings, setMonthEarnings] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
 
   const isVendorStaff = driver?.userType === 'vendor_staff';
 
   const loadData = useCallback(async () => {
     try {
-      const [myRes, notifRes, earningsRes, availRes] = await Promise.all([
+      const [myRes, notifRes, earningsRes, availRes, chatRes] = await Promise.all([
         getMyBookings('active').catch(() => ({ data: { bookings: [] } })),
         getDriverNotifications().catch(() => ({ data: { alerts: [] } })),
         getEarnings('month').catch(() => ({ data: { stats: null, earnings: null } })),
         getAvailableBookings().catch(() => ({ data: { bookings: [] } })),
+        getDriverChatList().catch(() => ({ data: { conversations: [] } })),
       ]);
       setActiveBookings(myRes.data.bookings || []);
       setAlerts(notifRes.data.alerts || []);
       setStats(earningsRes.data.stats || null);
       setMonthEarnings(earningsRes.data.earnings?.total || 0);
       setAvailableBookings(availRes.data.bookings || []);
+      const totalUnread = (chatRes.data.conversations || []).reduce((s, c) => s + (c.unreadCount || 0), 0);
+      setChatUnread(totalUnread);
     } catch {}
     setLoading(false);
     setRefreshing(false);
@@ -420,6 +424,20 @@ export default function DashboardScreen({ navigation }) {
 
         <View style={{ height: 28 }} />
       </ScrollView>
+
+      {/* Floating chat button */}
+      <TouchableOpacity
+        style={styles.chatFab}
+        onPress={() => navigation.navigate('ChatList')}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="chatbubble-ellipses" size={22} color="#fff" />
+        {chatUnread > 0 && (
+          <View style={styles.chatFabBadge}>
+            <Text style={styles.chatFabBadgeText}>{chatUnread > 9 ? '9+' : chatUnread}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -601,4 +619,23 @@ const styles = StyleSheet.create({
     marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border,
   },
   acceptText: { fontSize: 12, color: C.primary, fontWeight: '600' },
+
+  // Floating chat button
+  chatFab: {
+    position: 'absolute', bottom: 20, right: 20,
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: C.primary,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4, shadowRadius: 10, elevation: 10,
+  },
+  chatFabBadge: {
+    position: 'absolute', top: -2, right: -2,
+    minWidth: 18, height: 18, borderRadius: 9,
+    backgroundColor: '#EF4444',
+    justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 4, borderWidth: 2, borderColor: '#fff',
+  },
+  chatFabBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
 });

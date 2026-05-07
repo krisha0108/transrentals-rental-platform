@@ -5,10 +5,18 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
-import { formatPriceHighlight } from '@/lib/utils';
 import { getServiceLocations } from '@/lib/services/service-locations';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { CITY_SEO } from '@/data/city-seo-content';
+
+const TEMPO_FALLBACK_FAQS = [
+  { q: 'What is the cost of Tempo Traveller rental per km?', a: 'Tempo Traveller rental starts from ₹18/km for a 12-seater non-AC vehicle. AC 12-seater starts from ₹22/km. 17-seater AC starts from ₹28/km. Local city packages (8 hrs/80 km) start from ₹2,500. Rates vary by city — get a free quote on TransRentals for exact pricing.' },
+  { q: 'What is the seating capacity of a Tempo Traveller?', a: 'Tempo Travellers are available in 9-seater, 12-seater, 14-seater, 17-seater, and 20-seater configurations. For comfortable travel with luggage, plan for 1–2 fewer passengers than the stated capacity — a 17-seater comfortably carries 14–15 passengers on long trips.' },
+  { q: 'What is included in the Tempo Traveller booking price?', a: 'Standard inclusions: vehicle + driver + driver\'s basic allowance. Extra charges typically apply for: toll charges, state permits for interstate travel, night halt charges (₹250–₹500/night), and fuel if crossing the included km limit. Confirm all inclusions with the vendor before booking.' },
+  { q: 'Is driver included in Tempo Traveller rental?', a: 'Yes, all Tempo Traveller rentals on TransRentals include a professional driver. For outstation trips, driver allowance (₹300–₹500/day) may be charged separately. Drivers are verified and experienced on the relevant routes.' },
+  { q: 'How far in advance should I book a Tempo Traveller?', a: 'For regular trips, 48–72 hours notice is sufficient. During peak seasons — Navratri, Diwali, long weekends, and Char Dham season (May–June) — book at least 1–2 weeks in advance. For pilgrimages, book 3–4 weeks ahead for best availability.' },
+];
 import { TempoFleetSection } from '@/components/tempo-traveller/TempoFleetSection';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
@@ -45,8 +53,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const _seoDb = await resolvePageMeta(`tempo-traveller:${params.location}`);
   return {
-    title: _seoDb?.metaTitle || formatPriceHighlight(`Tempo Traveller ${locationName} | 12-17 Seater @₹18/Km | Force Traveller`),
-    description: _seoDb?.metaDescription || formatPriceHighlight(`Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC tempo. Group travel, family trips, corporate events. Book online @₹18/km.`),
+    title: _seoDb?.metaTitle || `Tempo Traveller in ${locationName} | Starting ₹18/km | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC/Non-AC available for pilgrimages, family trips, and corporate events. Verified drivers.`,
     keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `tempo traveller ${locationName.toLowerCase()}`,
       `12 seater tempo ${locationName.toLowerCase()}`,
@@ -60,8 +68,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ...(city.keywords || []).map(k => `tempo traveller ${k}`),
     ],
     openGraph: {
-      title: formatPriceHighlight(`Tempo Traveller in ${locationName} - 12-17 Seater @₹18/Km`),
-      description: formatPriceHighlight(`Book Tempo Traveller in ${locationName}. AC vehicles for group travel and outstation trips.`),
+      title: `Tempo Traveller in ${locationName} | 12-17 Seater | TransRentals`,
+      description: `Book Tempo Traveller in ${locationName}. AC/Non-AC vehicles for pilgrimages, family trips, and corporate events.`,
       url: `https://transrentals.in/tempo-traveller/${params.location}`,
     },
     alternates: {
@@ -70,7 +78,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     twitter: {
       card: 'summary_large_image' as const,
       title: `Tempo Traveller in ${locationName} | TransRentals`,
-      description: `Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC tempo for group travel @₹18/km.`,
+      description: `Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC tempo travellers for group travel, tours & pilgrimages.`,
     },
   };
 }
@@ -110,12 +118,8 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
   const city = pageContext.city;
   const locationName = city.name;
 
-  const pageFaqs = [
-    { question: 'What sizes of tempo traveller are available for rent?', answer: 'We offer 9, 12, 14, 17, and 20-seater tempo travellers — AC and non-AC — suitable for group sizes of all kinds.' },
-    { question: 'What is the per-km rate for tempo traveller rental?', answer: 'Tempo traveller rental starts from ₹18/km for 12-seater non-AC to ₹28/km for 20-seater AC. Driver bata is included.' },
-    { question: 'Is the tempo traveller available for multi-day outstation trips?', answer: 'Yes, tempo travellers are available for pilgrimages, hill station trips, and multi-city tours. Minimum 2-day booking for outstation.' },
-    { question: 'Does the tempo traveller have a music system and push-back seats?', answer: 'Yes, all our AC tempo travellers come with a music system, push-back seats, curtains, and ample overhead luggage space.' },
-  ];
+  const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['tempo-traveller'] || [];
+  const displayFAQs = cityFAQs.length > 0 ? cityFAQs : TEMPO_FALLBACK_FAQS;
 
   const [seoData, tempoFleet] = await Promise.all([
     resolvePageMeta(`tempo-traveller:${params.location}`),
@@ -151,7 +155,7 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
         pageDescription={seoData?.pageDescription || undefined}
         badge={`Tempo Traveller in ${locationName}`}
         title="Tempo Traveller Rental"
-        titleHighlight="12-20 Seater @₹18/Km"
+        titleHighlight="12-20 Seater | AC & Non-AC"
         description={`Book comfortable AC Tempo Traveller in ${locationName}. Perfect for group travel, family trips, corporate events, and pilgrimages.`}
         features={[
           { icon: 'star', text: '4.7/5 Rating', color: 'text-amber-500' },
@@ -326,31 +330,10 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
       <section className="py-16">
         <div className="container-custom max-w-4xl">
           <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions
+            Tempo Traveller in {locationName} — Frequently Asked Questions
           </h2>
           <div className="space-y-6">
-            {[
-              {
-                q: `How much does tempo traveller cost in ${locationName}?`,
-                a: `Tempo traveller in ${locationName} costs ₹18-35/km for outstation. Local packages start from ₹2500 for 8 hours.`,
-              },
-              {
-                q: `Which tempo travellers are available in ${locationName}?`,
-                a: `We have 12 seater, 14 seater, 17 seater, 20 seater, and luxury tempo travellers in ${locationName}.`,
-              },
-              {
-                q: `Is driver included in tempo rental in ${locationName}?`,
-                a: `Yes, experienced driver is included. For outstation trips from ${locationName}, driver allowance is extra.`,
-              },
-              {
-                q: `Can I book tempo for outstation from ${locationName}?`,
-                a: `Yes! You can book tempo traveller from ${locationName} for any outstation destination across India.`,
-              },
-              {
-                q: `How to book tempo traveller in ${locationName}?`,
-                a: `You can book online on our website. Select ${locationName}, choose vehicle type, dates and complete booking.`,
-              },
-            ].map((faq, idx) => (
+            {displayFAQs.map((faq, idx) => (
               <div key={idx} className="bg-gray-50 p-6 rounded-lg">
                 <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
                 <p className="text-gray-600">{faq.a}</p>
@@ -368,27 +351,33 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
         stateCode={city?.stateCode}
       />
 
-      {/* Schema Markup */}
+      {/* LocalBusiness Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
-            name: `Tempo Traveller in ${locationName}`,
-            description: `Rent tempo traveller in ${locationName}. 12-20 seater AC vehicles for group travel.`,
-            offers: {
-              '@type': 'AggregateOffer',
-              priceCurrency: 'INR',
-              lowPrice: '18',
-              highPrice: '35',
-              priceSuffix: '/km',
-            },
-            provider: {
-              '@type': 'Organization',
-              name: 'TransRentals',
-              url: 'https://transrentals.in',
-            },
+            '@type': 'LocalBusiness',
+            name: `Tempo Traveller in ${locationName} — TransRentals`,
+            description: `Rent 12 to 17 seater AC Tempo Travellers in ${locationName} for group travel, pilgrimages, corporate outings, and weddings. Verified drivers included.`,
+            url: `https://transrentals.in/tempo-traveller/${params.location}`,
+            areaServed: { '@type': 'City', name: locationName },
+            provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
+            priceRange: '₹₹',
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: displayFAQs.map((faq) => ({
+              '@type': 'Question',
+              name: faq.q,
+              acceptedAnswer: { '@type': 'Answer', text: faq.a },
+            })),
           }),
         }}
       />

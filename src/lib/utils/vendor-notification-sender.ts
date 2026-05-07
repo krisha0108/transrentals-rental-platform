@@ -65,7 +65,7 @@ export async function sendQuoteRequestNotificationToVendors(
           { name: { equals: locationId, mode: 'insensitive' } },
         ],
         isActive: true,
-        type: { in: ['CITY', 'UNION_TERRITORY', 'AREA', 'AIRPORT'] },
+        type: { in: ['CITY', 'UNION_TERRITORY', 'AREA', 'AIRPORT', 'VILLAGE'] },
       },
       select: { id: true },
     });

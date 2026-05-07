@@ -25,7 +25,15 @@ export async function GET(
     }
 
     if (!existsSync(fullPath)) {
-      return NextResponse.json({ error: 'File not found' }, { status: 404 });
+      const placeholder = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+        <rect width="400" height="300" fill="#f1f5f9"/>
+        <rect x="150" y="100" width="100" height="80" rx="8" fill="#cbd5e1"/>
+        <circle cx="175" cy="125" r="12" fill="#94a3b8"/>
+        <path d="M150 165 L175 140 L195 155 L215 135 L250 165Z" fill="#94a3b8"/>
+      </svg>`;
+      return new NextResponse(placeholder, {
+        headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'no-cache' },
+      });
     }
 
     const file = await readFile(fullPath);

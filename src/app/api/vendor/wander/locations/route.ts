@@ -16,35 +16,38 @@ export async function GET(request: NextRequest) {
 
     if (search.length < 2) return NextResponse.json([]);
 
-    const locations = await prisma.locations.findMany({
-      where: {
-        isActive: true,
-        type: { in: ['CITY', 'STATE', 'AREA', 'UNION_TERRITORY'] },
-        name: { contains: search },
-      },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        locations: {          // parent (state/country)
-          select: { name: true, type: true },
-        },
-      },
-      orderBy: [
-        { type: 'asc' },     // AREA → CITY → STATE
-        { name: 'asc' },
-      ],
-      take: 12,
-    });
+    const select = {
+      id: true, name: true, type: true,
+      locations: { select: { name: true, type: true } },
+    };
+    const baseWhere = {
+      isActive: true,
+      type: { in: ['CITY', 'STATE', 'AREA', 'UNION_TERRITORY', 'VILLAGE'] },
+    };
 
-    // Format for display: "Goa, India" or "Shimla, Himachal Pradesh"
-    const formatted = locations.map((loc) => {
+    // Run prefix (fast, index-friendly) and contains (broader) in parallel
+    const [prefix, contains] = await Promise.all([
+      prisma.locations.findMany({
+        where: { ...baseWhere, name: { startsWith: search } },
+        select, orderBy: [{ type: 'asc' }, { name: 'asc' }], take: 10,
+      }),
+      prisma.locations.findMany({
+        where: { ...baseWhere, name: { contains: search } },
+        select, orderBy: [{ type: 'asc' }, { name: 'asc' }], take: 10,
+      }),
+    ]);
+
+    // Merge: prefix first, then any contains-only results not already included
+    const seen = new Set(prefix.map((l) => l.id));
+    const merged = [...prefix, ...contains.filter((l) => !seen.has(l.id))].slice(0, 12);
+
+    const formatted = merged.map((loc) => {
       const parent = loc.locations;
       let displayName = loc.name;
       if (parent && parent.type !== 'COUNTRY') {
         displayName = `${loc.name}, ${parent.name}`;
       } else if (parent && parent.type === 'COUNTRY') {
-        displayName = loc.name; // don't show "India" for state-level
+        displayName = loc.name;
       }
       return {
         id: loc.id,

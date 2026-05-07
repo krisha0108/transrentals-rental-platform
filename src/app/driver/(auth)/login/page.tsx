@@ -31,13 +31,16 @@ export default function DriverLoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Store token in localStorage as backup
+      // Store token and driver info in localStorage
       if (data.token) {
         localStorage.setItem('driver-token', data.token);
       }
+      if (data.driver) {
+        localStorage.setItem('driver', JSON.stringify(data.driver));
+      }
 
       // Redirect to dashboard
-      router.push('/driver');
+      router.push('/driver/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {

@@ -55,12 +55,18 @@ export async function POST(request: NextRequest) {
       images, pickupType, meetingPoint, guideLanguages, availableDays,
       advanceNoticeHours, cancellationPolicy, cancellationNotes,
       tourStartDate, tourEndDate,
+      requireAdvancePayment, advancePaymentType, advancePaymentValue,
+      createMode,
     } = body;
+    const safeCreateMode = createMode === 'QUICK' ? 'QUICK' : 'DETAILED';
 
     if (!categoryId) return NextResponse.json({ error: 'Category is required' }, { status: 400 });
-    if (!mainLocationId) return NextResponse.json({ error: 'Main location is required' }, { status: 400 });
     if (!title?.trim()) return NextResponse.json({ error: 'Tour title is required' }, { status: 400 });
-    if (!duration?.trim()) return NextResponse.json({ error: 'Duration is required' }, { status: 400 });
+    // For publishing, require location and duration
+    if (body.publish) {
+      if (!mainLocationId) return NextResponse.json({ error: 'Main location is required to publish' }, { status: 400 });
+      if (!duration?.trim()) return NextResponse.json({ error: 'Duration is required to publish' }, { status: 400 });
+    }
 
     // Generate listingId + slug
     const count = await (prisma as any).wander_listings.count({ where: { vendorId: auth.vendorId } });
@@ -74,44 +80,53 @@ export async function POST(request: NextRequest) {
     const slugHash = Math.random().toString(36).substring(2, 7);
     const slug = `${slugBase}-${slugHash}`;
 
-    const listing = await (prisma as any).wander_listings.create({
-      data: {
-        listingId,
-        slug,
-        vendorId: auth.vendorId,
-        categoryId,
-        subCategoryId: subCategoryId || null,
-        experienceId: experienceId || null,
-        mainLocationId,
-        title: title.trim(),
-        shortDescription: shortDescription?.trim() || null,
-        description: description?.trim() || null,
-        duration: duration.trim(),
-        highlights: highlights ? JSON.stringify(highlights) : null,
-        basePrice: basePrice ? parseFloat(basePrice) : null,
-        priceType: priceType || 'ON_REQUEST',
-        minGroupSize: minGroupSize ? parseInt(minGroupSize) : 1,
-        maxGroupSize: maxGroupSize ? parseInt(maxGroupSize) : null,
-        customPlaces: customPlaces ? JSON.stringify(customPlaces) : null,
-        itinerary: itinerary ? JSON.stringify(itinerary) : null,
-        priceTiers: priceTiers ? JSON.stringify(priceTiers) : null,
-        vehicleOptions: vehicleOptions ? JSON.stringify(vehicleOptions) : null,
-        inclusions: inclusions ? JSON.stringify(inclusions) : null,
-        exclusions: exclusions ? JSON.stringify(exclusions) : null,
-        images: images ? JSON.stringify(images) : null,
-        pickupType: pickupType || null,
-        meetingPoint: meetingPoint?.trim() || null,
-        guideLanguages: guideLanguages ? JSON.stringify(guideLanguages) : null,
-        availableDays: availableDays ? JSON.stringify(availableDays) : null,
-        advanceNoticeHours: advanceNoticeHours ? parseInt(advanceNoticeHours) : 24,
-        cancellationPolicy: cancellationPolicy || 'MODERATE',
-        cancellationNotes: cancellationNotes?.trim() || null,
-        tourStartDate: tourStartDate ? new Date(tourStartDate) : null,
-        tourEndDate: tourEndDate ? new Date(tourEndDate) : null,
-        status: body.publish ? 'ACTIVE' : 'DRAFT',
-      },
-    });
+    // Use raw SQL to bypass stale Prisma client DLL validation for nullable fields
+    const newId = 'c' + require('crypto').randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+    const now = new Date();
+    await (prisma as any).$executeRawUnsafe(
+      `INSERT INTO wander_listings (
+        id, listingId, slug, vendorId, categoryId, subCategoryId, experienceId,
+        mainLocationId, title, shortDescription, description, duration,
+        highlights, basePrice, priceType, minGroupSize, maxGroupSize,
+        customPlaces, itinerary, priceTiers, vehicleOptions, inclusions, exclusions,
+        images, pickupType, meetingPoint, guideLanguages, availableDays,
+        advanceNoticeHours, cancellationPolicy, cancellationNotes,
+        requireAdvancePayment, advancePaymentType, advancePaymentValue,
+        tourStartDate, tourEndDate, createMode, rating, totalRatings, totalBookings, status, createdAt, updatedAt
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,0,0,?,?,?)`,
+      newId, listingId, slug, auth.vendorId, categoryId,
+      subCategoryId || null, experienceId || null, mainLocationId || null,
+      title.trim(), shortDescription?.trim() || null, description?.trim() || null,
+      duration?.trim() || null,
+      highlights ? JSON.stringify(highlights) : null,
+      basePrice ? parseFloat(basePrice) : null,
+      priceType || 'ON_REQUEST',
+      minGroupSize ? parseInt(minGroupSize) : 1,
+      maxGroupSize ? parseInt(maxGroupSize) : null,
+      customPlaces ? JSON.stringify(customPlaces) : null,
+      itinerary ? JSON.stringify(itinerary) : null,
+      priceTiers ? JSON.stringify(priceTiers) : null,
+      vehicleOptions ? JSON.stringify(vehicleOptions) : null,
+      inclusions ? JSON.stringify(inclusions) : null,
+      exclusions ? JSON.stringify(exclusions) : null,
+      images ? JSON.stringify(images) : null,
+      pickupType || null, meetingPoint?.trim() || null,
+      guideLanguages ? JSON.stringify(guideLanguages) : null,
+      availableDays ? JSON.stringify(availableDays) : null,
+      advanceNoticeHours ? parseInt(advanceNoticeHours) : 24,
+      cancellationPolicy || 'MODERATE',
+      cancellationNotes?.trim() || null,
+      requireAdvancePayment === true ? 1 : 0,
+      requireAdvancePayment ? (advancePaymentType || null) : null,
+      requireAdvancePayment && advancePaymentValue ? parseFloat(advancePaymentValue) : null,
+      tourStartDate ? new Date(tourStartDate) : null,
+      tourEndDate ? new Date(tourEndDate) : null,
+      safeCreateMode,
+      body.publish ? 'ACTIVE' : 'DRAFT',
+      now, now
+    );
 
+    const listing = await (prisma as any).wander_listings.findUnique({ where: { listingId } });
     return NextResponse.json(listing, { status: 201 });
   } catch (error) {
     console.error('[Vendor Wander Listings POST]', error);

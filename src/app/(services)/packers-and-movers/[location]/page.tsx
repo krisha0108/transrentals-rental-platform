@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -10,20 +9,42 @@ import { permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';
-import { getCachedServiceBySlug } from '@/lib/services/cached-service-lookups';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
-import { prisma } from '@/lib/db/prisma';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { CITY_SEO } from '@/data/city-seo-content';
 
 const COMING_SOON_SLUGS = new Set([
   'okhla',
   'panihati',
   'yapral',
 ]);
+
+const PACKERS_FALLBACK_FAQS = [
+  {
+    question: 'What is the cost of packers and movers in India?',
+    answer: 'Packers and movers costs depend on home size, distance, and goods volume. Local shifts (1BHK) start from ₹3,999 and 2BHK intercity moves from ₹8,000–₹15,000. Get free quotes from verified movers on TransRentals to compare prices for your specific shift.',
+  },
+  {
+    question: 'How long does it take to shift a 2BHK house?',
+    answer: 'A professional team of 3–4 people takes 6–10 hours for a 2BHK intra-city shift including packing, loading, transit, and unloading. Intercity moves add 1–7 days transit time depending on distance.',
+  },
+  {
+    question: 'Is transit insurance available for household shifting?',
+    answer: 'Yes, all TransRentals-listed movers offer optional transit insurance at 0.5–1% of declared goods value. Strongly recommended for electronics, appliances, and high-value items. Confirm insurance coverage before booking.',
+  },
+  {
+    question: 'Do movers disassemble and reassemble furniture?',
+    answer: 'Yes, professional movers include dismantling and reassembly of beds, wardrobes, and modular furniture as a standard service. Always confirm this is included in your quote before booking.',
+  },
+  {
+    question: 'How far in advance should I book packers and movers?',
+    answer: 'Book at least 5–7 days in advance for month-end dates (28th–2nd), which are the busiest. Mid-month weekdays are easier to schedule and often priced lower. During peak transfer season (March–June) book 2–3 weeks ahead.',
+  },
+];
 
 interface PageProps {
   params: {
@@ -49,22 +70,34 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const _seoDb = await resolvePageMeta(`packers-and-movers:${params.location}`);
   return {
-    title: _seoDb?.metaTitle || `Packers and Movers in ${locationName} | Starting @₹4999 | TransRentals`,
-    description: _seoDb?.metaDescription || `Professional packers and movers in ${locationName}. Local & intercity relocation, office shifting. Insured and reliable service. Book now!`,
+    title: _seoDb?.metaTitle || `Packers and Movers in ${locationName} | Starting from ₹3,999 | TransRentals`,
+    description: _seoDb?.metaDescription || `Verified packers and movers in ${locationName}. Local & intercity home shifting, office relocation. IBA-approved, insured moving teams. Get free quotes and book online.`,
     keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `packers and movers in ${locationName}`,
       `movers and packers ${locationName}`,
-      `${locationName} relocation services`,
       `home shifting ${locationName}`,
       `office relocation ${locationName}`,
+      `${locationName} relocation services`,
+      `household shifting ${locationName}`,
+      `intercity movers ${locationName}`,
     ],
     alternates: {
       canonical: `https://transrentals.in/packers-and-movers/${params.location}`,
     },
     openGraph: {
-      title: `Packers and Movers in ${locationName} - TransRentals`,
-      description: `Professional relocation services in ${locationName} starting @₹4999. Insured moves.`,
+      title: `Packers and Movers in ${locationName} | TransRentals`,
+      description: `Verified packers and movers in ${locationName}. Home shifting, office relocation, intercity moves. IBA-approved and insured. Get free quotes.`,
+      type: 'website',
+      url: `https://transrentals.in/packers-and-movers/${params.location}`,
+      locale: 'en_IN',
+      siteName: 'TransRentals',
     },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Packers and Movers in ${locationName} | TransRentals`,
+      description: `Verified packers and movers in ${locationName}. IBA-approved and insured. Home shifting, office relocation, intercity moves.`,
+    },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
   };
 }
 
@@ -135,123 +168,8 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
   const cityData = getCityBySlug(params.location);
 
-  // Fetch admin vehicle models for this location (cached)
-  const service = await getCachedServiceBySlug('packers-and-movers');
-
-  const location = await prisma.locations.findFirst({
-    where: {
-      OR: [
-        { slug: params.location },
-        { name: locationName },
-      ],
-      isActive: true,
-    },
-  });
-
-  let vehicles: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    brand?: string;
-    image: string;
-    price: number;
-    rating: number;
-    specs?: Record<string, string>;
-  }> = [];
-
-  if (service && location) {
-    const vehicleModels = await prisma.vehicle_models.findMany({
-      where: {
-        serviceId: service.id,
-        isActive: true,
-        AND: [
-          {
-            OR: [
-              { brandId: null },
-              { brands: { isActive: true } },
-            ],
-          },
-          {
-            OR: [
-              { vehicleCategoryId: null },
-              { chauffeur_vehicle_categories: { isActive: true } },
-            ],
-          },
-          {
-            OR: [
-              { subServiceId: null },
-              { services_vehicle_models_subServiceIdToservices: { isActive: true } },
-            ],
-          },
-        ],
-        vehicle_model_locations: {
-          some: {
-            locationId: location.id,
-            isActive: true,
-          },
-        },
-      },
-      include: {
-        brands: {
-          select: { name: true },
-        },
-        vehicle_model_locations: {
-          where: {
-            locationId: location.id,
-            isActive: true,
-          },
-          select: { basePricePerDay: true },
-        },
-      },
-      orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
-      take: 12,
-    });
-
-    vehicles = vehicleModels.map((model) => {
-      const locationPricing = model.vehicle_model_locations?.[0]?.basePricePerDay;
-      const price = locationPricing || model.basePricePerDay || 14999;
-
-      return {
-        id: model.id,
-        name: model.name,
-        slug: model.slug,
-        brand: model.brands?.name || undefined,
-        image: model.sideImage || '/images/packers/default.jpg',
-        price: price,
-        rating: model.rating || 4.7,
-        specs: {
-          ...(model.loadCapacity ? { capacity: `${model.loadCapacity} Tons` } : {}),
-          ...(model.bodyType ? { body: model.bodyType } : {}),
-          ...(model.wheels ? { wheels: model.wheels } : {}),
-        },
-      };
-    });
-  }
-
-  const pageData = {
-    location: {
-      name: locationName,
-      slug: params.location,
-      state: cityData?.state || 'India',
-    },
-    service: {
-      name: 'Packers and Movers',
-      slug: 'packers-and-movers',
-    },
-    hero: {
-      title: `Packers and Movers in ${locationName}`,
-      subtitle: `Professional and reliable packing and moving services for stress-free relocation in ${locationName}`,
-      image: '/images/locations/default.jpg',
-    },
-    vehicles,
-    nearbyLocations: [
-      { name: 'Nearby City 1', slug: 'nearby-city-1' },
-      { name: 'Nearby City 2', slug: 'nearby-city-2' },
-    ],
-  };
-
   const seoData = await resolvePageMeta(`packers-and-movers:${params.location}`);
-
+  const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['packers-and-movers'] || [];
 
   return (
     <div className="flex flex-col">
@@ -277,7 +195,7 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
         pageDescription={seoData?.pageDescription || undefined}
         badge={`Packers and Movers in ${locationName}`}
         title="Professional Moving Services"
-        titleHighlight="Insured Relocation @₹4999"
+        titleHighlight="Trusted & Insured Relocation"
         description={`Reliable packers and movers in ${locationName}. Local & intercity relocation, office shifting, household moving. Insured and professional service.`}
         features={[
           { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
@@ -288,11 +206,6 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
         gradientTo="cyan-50"
       />
 
-      <VehicleGrid
-        vehicles={pageData.vehicles}
-        title={`Available Packages in ${locationName}`}
-      />
-
       <WhyRentHere locationName={locationName} />
 
       <PopularRoutes
@@ -301,7 +214,7 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
         serviceSlug="packers-and-movers"
       />
 
-      <FAQSection service="packers-and-movers" location={locationName} />
+      {cityFAQs.length === 0 && <FAQSection service="packers-and-movers" location={locationName} customFaqs={PACKERS_FALLBACK_FAQS} />}
 
       <NearbyLocations
         locationSlug={params.location}
@@ -315,25 +228,65 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
         stateCode={cityData?.stateCode}
       />
 
-      {/* Schema Markup for SEO */}
+      {/* MovingCompany Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
-            name: `Packers and Movers in ${locationName}`,
-            description: `Professional packing and moving services in ${locationName} starting at ₹4999`,
-            offers: {
-              '@type': 'AggregateOffer',
-              lowPrice: '4999',
-              priceCurrency: 'INR',
-              availability: 'https://schema.org/InStock',
+            '@type': 'MovingCompany',
+            name: `Packers and Movers in ${locationName} — TransRentals`,
+            description: `Verified packers and movers in ${locationName}. Local and intercity home shifting, office relocation, and vehicle transport. IBA-approved, insured moving teams.`,
+            url: `https://transrentals.in/packers-and-movers/${params.location}`,
+            areaServed: { '@type': 'City', name: locationName },
+            provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
+            priceRange: '₹₹',
+            hasOfferCatalog: {
+              '@type': 'OfferCatalog',
+              name: 'Packers and Movers Services',
+              itemListElement: [
+                { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Home Shifting' } },
+                { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Office Relocation' } },
+                { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Intercity Moving' } },
+                { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Vehicle Transport' } },
+              ],
             },
-            provider: {
-              '@type': 'Organization',
-              name: 'TransRentals',
-            },
+          }),
+        }}
+      />
+      {/* FAQPage Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: cityFAQs.length > 0
+              ? cityFAQs.map((faq) => ({
+                  '@type': 'Question',
+                  name: faq.q,
+                  acceptedAnswer: { '@type': 'Answer', text: faq.a },
+                }))
+              : PACKERS_FALLBACK_FAQS.map((faq) => ({
+                  '@type': 'Question',
+                  name: faq.question,
+                  acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+                })),
+          }),
+        }}
+      />
+      {/* BreadcrumbList Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
+              { '@type': 'ListItem', position: 2, name: 'Packers and Movers', item: 'https://transrentals.in/packers-and-movers' },
+              { '@type': 'ListItem', position: 3, name: `Packers and Movers in ${locationName}`, item: `https://transrentals.in/packers-and-movers/${params.location}` },
+            ],
           }),
         }}
       />

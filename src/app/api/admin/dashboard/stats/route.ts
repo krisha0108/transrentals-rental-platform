@@ -157,14 +157,14 @@ export async function GET(request: Request) {
     };
 
     // Fetch services and locations counts (no date filter needed)
-    // For locations, only count CITY and UNION_TERRITORY (exclude STATE, COUNTRY, AREA, AIRPORT)
+    // For locations, count places where services operate (CITY, UNION_TERRITORY, VILLAGE)
     const [totalServices, totalLocations] = await Promise.all([
       prisma.services.count({ where: { isActive: true } }),
       prisma.locations.count({
         where: {
           isActive: true,
           type: {
-            in: ['CITY', 'UNION_TERRITORY']
+            in: ['CITY', 'UNION_TERRITORY', 'VILLAGE']
           }
         }
       }),

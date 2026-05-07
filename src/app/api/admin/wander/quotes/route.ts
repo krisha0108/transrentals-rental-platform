@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         include: {
           listing: {
             select: {
-              id: true, title: true, listingId: true,
+              id: true, title: true, listingId: true, vendorId: true,
               vendor: { select: { id: true, businessName: true } },
               category: { select: { name: true, icon: true } },
             },

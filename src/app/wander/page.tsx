@@ -146,7 +146,7 @@ function ExperienceCard({ exp }: { exp: any }) {
 /* ─── TourCard ─────────────────────────────────────── */
 function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; isWishlisted?: boolean; onToggleWishlist?: (id: string) => void }) {
   const [vendorLogoError, setVendorLogoError] = useState(false);
-  const images: string[] = (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
+  const images: string[] = Array.isArray(listing.images) ? listing.images : (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
   const coverImg = images[0] || null;
 
   // Parse priceTiers for GROUP_BASED pricing
@@ -155,7 +155,7 @@ function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; i
   })();
   const minTierPrice = priceTiers.length > 0 ? Math.min(...priceTiers.map((t: any) => Number(t.price))) : null;
 
-  const isGroupBased = listing.priceType === 'GROUP_BASED';
+  const isGroupBased = listing.priceType === 'PER_GROUP';
   const isOnRequest = listing.priceType === 'ON_REQUEST';
 
   let priceLabel: string;
@@ -180,44 +180,47 @@ function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; i
   return (
     <Link
       href={`/wander/${listing.slug || listing.id}`}
-      className="group relative bg-white rounded-3xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_48px_rgba(79,70,229,0.12),0_4px_16px_rgba(0,0,0,0.08)] transition-all duration-500 border border-gray-100 hover:border-indigo-100 hover:-translate-y-2 flex flex-col"
+      className="group relative bg-white rounded-3xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_20px_60px_rgba(79,70,229,0.15),0_8px_24px_rgba(0,0,0,0.1)] transition-all duration-500 border border-gray-100/80 hover:border-indigo-200/60 hover:-translate-y-2 flex flex-col"
     >
       {/* Image */}
-      <div className="relative h-64 bg-gradient-to-br from-slate-100 to-indigo-50 overflow-hidden flex-shrink-0">
+      <div className="relative h-56 bg-gradient-to-br from-slate-800 to-indigo-900 overflow-hidden flex-shrink-0">
         {coverImg ? (
           <img
             src={coverImg}
             alt={listing.title}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out opacity-90 group-hover:opacity-100"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50">
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900">
             <span className="text-8xl opacity-20">{listing.category?.icon || '🗺️'}</span>
           </div>
         )}
-        {/* Gradient overlay — stronger at bottom */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
 
-        {/* Top bar: Category + Wishlist */}
+        {/* Strong multi-stop gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
+        {/* Side vignette */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/20" />
+
+        {/* Top bar: Category + Wishlist + Hot badge */}
         <div className="absolute top-0 left-0 right-0 p-3.5 flex items-start justify-between">
           {listing.category && (
-            <span className="inline-flex items-center gap-1.5 bg-white/95 backdrop-blur-md text-[11px] font-bold text-gray-800 px-3 py-1.5 rounded-xl shadow-sm">
+            <span className="inline-flex items-center gap-1.5 bg-black/40 backdrop-blur-md text-[11px] font-bold text-white px-3 py-1.5 rounded-xl border border-white/10">
               {listing.category.icon} {listing.category.name}
             </span>
           )}
           <div className="flex items-center gap-1.5">
             {popular && (
-              <div className="bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl flex items-center gap-1 shadow-sm">
+              <div className="bg-gradient-to-r from-orange-500 to-rose-500 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-xl flex items-center gap-1 shadow-lg">
                 <TrendingUp className="w-2.5 h-2.5" /> Hot
               </div>
             )}
             {onToggleWishlist && (
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleWishlist(listing.id); }}
-                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shadow-sm backdrop-blur-md ${
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shadow-sm backdrop-blur-md border ${
                   isWishlisted
-                    ? 'bg-red-500 text-white scale-105'
-                    : 'bg-white/85 text-gray-500 hover:text-red-500 hover:bg-white hover:scale-105'
+                    ? 'bg-red-500 text-white border-red-400 scale-105'
+                    : 'bg-black/30 text-white/80 border-white/10 hover:text-red-400 hover:bg-black/50 hover:scale-105'
                 }`}
               >
                 <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-white' : ''}`} />
@@ -226,37 +229,40 @@ function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; i
           </div>
         </div>
 
-        {/* Bottom bar on image: Location + Rating + Duration */}
-        <div className="absolute bottom-0 left-0 right-0 px-3.5 pb-3.5 pt-8">
-          <div className="flex items-end justify-between">
-            <div className="space-y-1.5">
+        {/* Bottom text on image: Title + Location + Duration + Rating */}
+        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-10">
+          {/* Title on image */}
+          <h3 className="font-black text-white text-base leading-snug mb-2 line-clamp-2 drop-shadow-lg group-hover:text-indigo-200 transition-colors">
+            {listing.title}
+          </h3>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
               {listing.mainLocation?.name && (
-                <span className="flex items-center gap-1.5 text-white text-xs font-medium drop-shadow-sm">
-                  <MapPin className="w-3.5 h-3.5 text-white/80" /> {listing.mainLocation.name}
+                <span className="flex items-center gap-1 text-white/80 text-xs font-medium">
+                  <MapPin className="w-3 h-3 text-indigo-300" /> {listing.mainLocation.name}
                 </span>
               )}
               {listing.duration && (
-                <span className="flex items-center gap-1.5 text-white/80 text-[11px]">
+                <span className="flex items-center gap-1 text-white/70 text-[11px]">
                   <Clock className="w-3 h-3" /> {listing.duration}
                 </span>
               )}
             </div>
             {listing.rating > 0 && (
-              <span className="inline-flex items-center gap-1 bg-amber-400 text-gray-900 text-[11px] font-bold px-2.5 py-1.5 rounded-xl shadow-sm">
+              <span className="inline-flex items-center gap-1 bg-amber-400 text-gray-900 text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md">
                 <Star className="w-3 h-3 fill-gray-900" />
                 {listing.rating}
-                <span className="text-gray-700 font-normal text-[10px]">({listing.totalRatings})</span>
               </span>
             )}
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-5 flex flex-col flex-1">
+      {/* Content below image */}
+      <div className="p-4 flex flex-col flex-1">
         {/* Vendor */}
         {listing.vendor?.businessName && (
-          <div className="flex items-center gap-2 mb-2.5">
+          <div className="flex items-center gap-2 mb-3">
             {listing.vendor.logo && !vendorLogoError ? (
               <img src={listing.vendor.logo} alt="" onError={() => setVendorLogoError(true)} className="w-5 h-5 rounded-full object-cover flex-shrink-0 ring-1 ring-gray-200" />
             ) : (
@@ -265,18 +271,14 @@ function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; i
               </span>
             )}
             <span className="text-xs text-gray-400 truncate">{listing.vendor.businessName}</span>
+            <span className="ml-auto text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex-shrink-0">✓ Verified</span>
           </div>
         )}
-
-        {/* Title */}
-        <h3 className="font-bold text-gray-900 text-base leading-snug mb-2 line-clamp-2 group-hover:text-indigo-600 transition-colors">
-          {listing.title}
-        </h3>
 
         {/* Tour dates if available */}
         {listing.tourStartDate && (
           <div className="flex items-center gap-1.5 mb-3">
-            <span className="inline-flex items-center gap-1 text-[11px] text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg font-medium">
+            <span className="inline-flex items-center gap-1 text-[11px] text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg font-medium border border-indigo-100/60">
               <Calendar className="w-3 h-3" />
               {new Date(listing.tourStartDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
               {listing.tourEndDate && listing.tourEndDate !== listing.tourStartDate && (
@@ -287,7 +289,7 @@ function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; i
         )}
 
         {/* Price bar */}
-        <div className="flex items-center justify-between pt-3.5 mt-auto border-t border-gray-100">
+        <div className="flex items-center justify-between pt-3 mt-auto border-t border-gray-100">
           {showCustomQuote ? (
             <div>
               <span className="text-[10px] text-gray-400 block mb-0.5">Price on request</span>
@@ -302,8 +304,8 @@ function TourCard({ listing, isWishlisted, onToggleWishlist }: { listing: any; i
               </div>
             </div>
           )}
-          <span className="w-9 h-9 bg-indigo-50 group-hover:bg-gradient-to-r group-hover:from-indigo-600 group-hover:to-violet-600 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:shadow-lg group-hover:shadow-indigo-500/25 group-hover:scale-110">
-            <ArrowRight className="w-4 h-4 text-indigo-400 group-hover:text-white transition-colors" />
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 group-hover:bg-gradient-to-r group-hover:from-indigo-600 group-hover:to-violet-600 group-hover:text-white px-3 py-2 rounded-xl transition-all duration-300 group-hover:shadow-md group-hover:shadow-indigo-500/25">
+            View Tour <ArrowRight className="w-3.5 h-3.5" />
           </span>
         </div>
       </div>
@@ -1047,7 +1049,7 @@ export default function WanderHomePage() {
                           </div>
                           <div className="space-y-3">
                             {monthListings.map((listing: any) => {
-                              const images: string[] = (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
+                              const images: string[] = Array.isArray(listing.images) ? listing.images : (() => { try { return JSON.parse(listing.images || '[]'); } catch { return []; } })();
                               const startD = new Date(listing.tourStartDate);
                               const endD = listing.tourEndDate ? new Date(listing.tourEndDate) : null;
                               return (

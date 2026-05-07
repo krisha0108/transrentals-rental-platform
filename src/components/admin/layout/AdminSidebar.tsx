@@ -390,6 +390,11 @@ const adminItems: NavItem[] = [
     ],
   },
   {
+    name: 'Customers',
+    href: '/admin/customers',
+    icon: Users,
+  },
+  {
     name: 'Social Network',
     href: '/admin/social/categories',
     icon: Smile,
@@ -709,6 +714,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                     { name: 'Categories', href: '/admin/wander/categories', icon: Layers },
                     { name: 'Experiences', href: '/admin/wander/experiences', icon: Compass },
                     { name: 'Listings', href: '/admin/wander/listings', icon: List },
+                    { name: 'Add Tour', href: '/admin/wander/listings?addMode=open', icon: PlusCircle },
                     { name: 'Quote Requests', href: '/admin/wander/quotes', icon: MessageSquare },
                   ],
                 })}

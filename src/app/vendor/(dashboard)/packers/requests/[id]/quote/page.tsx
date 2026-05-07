@@ -26,6 +26,7 @@ import {
   Star,
   Truck,
 } from 'lucide-react';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 interface PackersQuoteRequest {
   id: string;
@@ -555,7 +556,7 @@ export default function SendPackersQuotePage() {
             <Users className="w-5 h-5 text-cyan-600 mt-0.5" />
             <div>
               <p className="font-medium text-gray-900">{request.customerName}</p>
-              <p className="text-sm text-gray-600">{request.customerPhone}</p>
+              <VendorCallButton phone={request.customerPhone} bookingType="packers_quote_request" bookingId={request.id} size="sm" />
             </div>
           </div>
         </div>

@@ -83,46 +83,34 @@ export const getCachedServiceLocations = unstable_cache(
 export const getCachedRoutePackages = unstable_cache(
   async () => {
     if (process.env.SKIP_DATABASE_CALLS === '1') return { city: [], airport: [] };
-    const [city, airport] = await Promise.all([
-      prisma.chauffeur_route_packages.findMany({
-        where: {
-          isActive: true,
-          AND: [
-            { locations_chauffeur_route_packages_fromLocationIdTolocations: { type: { not: 'AIRPORT' } } },
-            { locations_chauffeur_route_packages_toLocationIdTolocations: { type: { not: 'AIRPORT' } } },
-          ],
+
+    // Fetch all active routes with include (not select+distinct+nested-where which causes 0 results in MySQL)
+    // Filter by type in JS after fetch to avoid Prisma's distinct+nested-relation bug
+    const all = await prisma.chauffeur_route_packages.findMany({
+      where: { isActive: true },
+      include: {
+        locations_chauffeur_route_packages_fromLocationIdTolocations: {
+          select: { slug: true, name: true, type: true, locations: { select: { name: true } } },
         },
-        select: {
-          locations_chauffeur_route_packages_fromLocationIdTolocations: { select: { slug: true } },
-          locations_chauffeur_route_packages_toLocationIdTolocations: { select: { slug: true } },
+        locations_chauffeur_route_packages_toLocationIdTolocations: {
+          select: { slug: true, name: true, type: true, locations: { select: { name: true } } },
         },
-        distinct: ['fromLocationId', 'toLocationId'],
-      }),
-      prisma.chauffeur_route_packages.findMany({
-        where: {
-          isActive: true,
-          OR: [
-            { locations_chauffeur_route_packages_fromLocationIdTolocations: { type: 'AIRPORT' } },
-            { locations_chauffeur_route_packages_toLocationIdTolocations: { type: 'AIRPORT' } },
-          ],
-        },
-        select: {
-          locations_chauffeur_route_packages_fromLocationIdTolocations: {
-            select: {
-              slug: true, name: true, type: true,
-              locations: { select: { name: true } },
-            },
-          },
-          locations_chauffeur_route_packages_toLocationIdTolocations: {
-            select: {
-              slug: true, name: true, type: true,
-              locations: { select: { name: true } },
-            },
-          },
-        },
-        distinct: ['fromLocationId', 'toLocationId'],
-      }),
-    ]);
+      },
+      distinct: ['fromLocationId', 'toLocationId'],
+    });
+
+    const city = all.filter(
+      (r) =>
+        r.locations_chauffeur_route_packages_fromLocationIdTolocations.type !== 'AIRPORT' &&
+        r.locations_chauffeur_route_packages_toLocationIdTolocations.type !== 'AIRPORT'
+    );
+
+    const airport = all.filter(
+      (r) =>
+        r.locations_chauffeur_route_packages_fromLocationIdTolocations.type === 'AIRPORT' ||
+        r.locations_chauffeur_route_packages_toLocationIdTolocations.type === 'AIRPORT'
+    );
+
     return { city, airport };
   },
   ['sitemap-route-packages'],

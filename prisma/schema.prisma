@@ -746,7 +746,10 @@ model car_bookings {
 model chat_conversations {
   id              String          @id
   customerId      String?
-  vendorId        String
+  vendorId        String?
+  driverId        String?
+  staffDriverId   String?
+  participantType String          @default("vendor")
   bookingType     String
   bookingId       String?
   quoteId         String?
@@ -754,18 +757,24 @@ model chat_conversations {
   status          String          @default("ACTIVE")
   customerUnread  Int             @default(0)
   vendorUnread    Int             @default(0)
+  driverUnread    Int             @default(0)
   lastMessageAt   DateTime?
   lastMessageText String?         @db.Text
   lastSenderType  String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   customers       customers?      @relation(fields: [customerId], references: [id])
-  vendors         vendors         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendors         vendors?        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  drivers         drivers?        @relation(fields: [driverId], references: [id])
   chat_messages   chat_messages[]
 
   @@unique([customerId, vendorId, bookingType, bookingId])
+  @@unique([customerId, driverId, bookingType, bookingId])
+  @@unique([customerId, staffDriverId, bookingType, bookingId])
   @@index([bookingType])
   @@index([customerId])
+  @@index([driverId])
+  @@index([staffDriverId])
   @@index([lastMessageAt])
   @@index([status])
   @@index([vendorId])
@@ -3789,6 +3798,7 @@ model vendors {
   wander_quotes                                                   wander_quotes[]
 
   vendor_bank_accounts                                            vendor_bank_accounts[]
+  vendor_call_logs                                                vendor_call_logs[]
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
   @@index([email])
@@ -4652,15 +4662,15 @@ model wander_listings {
   id                 String                     @id @default(cuid())
   listingId          String                     @unique
   slug               String?                    @unique
-  vendorId           String
+  vendorId           String?
   experienceId       String?
   categoryId         String
   subCategoryId      String?
-  mainLocationId     String
+  mainLocationId     String?
   title              String
   shortDescription   String?
   description        String?                    @db.Text
-  duration           String
+  duration           String?
   highlights         String?                    @db.Text
   basePrice          Float?
   priceType          wander_price_type          @default(ON_REQUEST)
@@ -4692,13 +4702,14 @@ model wander_listings {
   ogImage            String?
   tourStartDate      DateTime?                  @db.Date
   tourEndDate        DateTime?                  @db.Date
+  createMode         wander_create_mode         @default(DETAILED)
   status             wander_listing_status      @default(DRAFT)
   createdAt          DateTime                   @default(now())
   updatedAt          DateTime                   @updatedAt
   category           wander_categories          @relation("CategoryListings", fields: [categoryId], references: [id])
   subCategory        wander_categories?         @relation("SubCategoryListings", fields: [subCategoryId], references: [id])
-  mainLocation       locations                  @relation(fields: [mainLocationId], references: [id])
-  vendor             vendors                    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  mainLocation       locations?                 @relation(fields: [mainLocationId], references: [id])
+  vendor             vendors?                   @relation(fields: [vendorId], references: [id], onDelete: SetNull)
   experience         wander_experiences?        @relation(fields: [experienceId], references: [id])
   quoteRequests      wander_quote_requests[]
   reviews            wander_reviews[]
@@ -4727,6 +4738,7 @@ model wander_quote_requests {
   status          wander_quote_request_status @default(PENDING)
   droppedAt       DateTime?
   dropReason      String?                     @db.Text
+  broadcastedAt   DateTime?
   createdAt       DateTime                    @default(now())
   updatedAt       DateTime                    @updatedAt
   booking         wander_bookings?
@@ -4915,6 +4927,7 @@ enum locations_type {
   CITY
   AREA
   AIRPORT
+  VILLAGE
 }
 
 enum redirects_type {
@@ -5508,6 +5521,11 @@ enum wander_listing_status {
   INACTIVE
 }
 
+enum wander_create_mode {
+  QUICK
+  DETAILED
+}
+
 enum wander_cancellation_policy {
   FLEXIBLE
   MODERATE
@@ -6003,6 +6021,7 @@ model drivers {
 
   chauffeur_bookings  chauffeur_bookings[]
   driver_vehicles     driver_vehicles[]
+  chat_conversations  chat_conversations[]
 
   @@index([email])
   @@index([phone])
@@ -6678,4 +6697,24 @@ model travel_agent_chat_messages {
   @@index([conversationId])
   @@index([senderType])
   @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VENDOR CALL LOGS — track customer-initiated call clicks per vendor
+// ─────────────────────────────────────────────────────────────────────────────
+
+model vendor_call_logs {
+  id          String   @id @default(cuid())
+  vendorId    String?
+  bookingType String
+  bookingId   String
+  source      String   @default("web")
+  callerType  String   @default("vendor")
+  callerId    String?
+  clickedAt   DateTime @default(now())
+  vendors     vendors? @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+  @@index([bookingId])
+  @@index([bookingType, bookingId])
 }

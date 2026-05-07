@@ -15,6 +15,7 @@ import {
   Loader2,
   TrendingUp,
   Bell,
+  MessageCircle,
 } from 'lucide-react';
 import { useDriverWebNotifications } from '@/hooks/useDriverWebNotifications';
 
@@ -175,11 +176,10 @@ export default function DriverDashboardLayout({
   const isIndependent = driver?.userType === 'independent';
 
   const navItems = [
-    { href: '/driver', icon: Home, label: 'Dashboard' },
+    { href: '/driver/dashboard', icon: Home, label: 'Dashboard' },
     { href: '/driver/bookings', icon: Calendar, label: 'My Trips' },
     { href: '/driver/fleet', icon: Car, label: 'Fleet' },
     { href: '/driver/earnings', icon: TrendingUp, label: 'Earnings' },
-    { href: '/driver/profile', icon: User, label: 'Profile' },
   ];
 
   if (isLoading) {
@@ -226,7 +226,7 @@ export default function DriverDashboardLayout({
 
       {/* Header */}
       <header className="bg-emerald-600 text-white sticky top-0 z-50 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo & Menu Toggle */}
             <div className="flex items-center gap-3">
@@ -236,7 +236,7 @@ export default function DriverDashboardLayout({
               >
                 {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
-              <Link href="/driver" className="flex items-center gap-2">
+              <Link href="/driver/dashboard" className="flex items-center gap-2">
                 <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center">
                   <Car className="w-5 h-5 text-emerald-600" />
                 </div>
@@ -250,10 +250,10 @@ export default function DriverDashboardLayout({
             </div>
 
             {/* Desktop Nav */}
-            <nav className="hidden lg:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-2">
               {navItems.map((item) => {
                 const isActive = pathname === item.href ||
-                  (item.href !== '/driver' && pathname.startsWith(item.href));
+                  (item.href !== '/driver/dashboard' && pathname.startsWith(item.href));
                 return (
                   <Link
                     key={item.href}
@@ -278,8 +278,12 @@ export default function DriverDashboardLayout({
 
             {/* User Menu */}
             <div className="flex items-center gap-2">
+              {/* Chat Icon */}
+              <Link href="/driver/chat" className={`relative p-2 hover:bg-emerald-700 rounded-lg ${pathname.startsWith('/driver/chat') ? 'bg-emerald-700' : ''}`}>
+                <MessageCircle className="w-5 h-5" />
+              </Link>
               {/* Notification Bell */}
-              <Link href="/driver/notifications" className="relative p-2 hover:bg-emerald-700 rounded-lg">
+              <Link href="/driver/notifications" className={`relative p-2 hover:bg-emerald-700 rounded-lg ${pathname === '/driver/notifications' ? 'bg-emerald-700' : ''}`}>
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
                   <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center leading-none">
@@ -302,9 +306,13 @@ export default function DriverDashboardLayout({
                 <p className="font-medium text-sm">{driver.name}</p>
                 <p className="text-emerald-200 text-xs">{driver.phone}</p>
               </div>
-              <div className="w-10 h-10 bg-emerald-700 rounded-full flex items-center justify-center font-bold">
+              <Link
+                href="/driver/profile"
+                className="w-10 h-10 bg-emerald-700 hover:bg-emerald-800 rounded-full flex items-center justify-center font-bold transition"
+                title="My Profile"
+              >
                 {driver.name.charAt(0).toUpperCase()}
-              </div>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="p-2 hover:bg-emerald-700 rounded-lg"
@@ -322,7 +330,7 @@ export default function DriverDashboardLayout({
             <nav className="px-4 py-2 space-y-1">
               {navItems.map((item) => {
                 const isActive = pathname === item.href ||
-                  (item.href !== '/driver' && pathname.startsWith(item.href));
+                  (item.href !== '/driver/dashboard' && pathname.startsWith(item.href));
                 return (
                   <Link
                     key={item.href}
@@ -339,6 +347,30 @@ export default function DriverDashboardLayout({
                   </Link>
                 );
               })}
+              <Link
+                href="/driver/chat"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                  pathname.startsWith('/driver/chat')
+                    ? 'bg-emerald-800 text-white'
+                    : 'text-emerald-100 hover:bg-emerald-800'
+                }`}
+              >
+                <MessageCircle className="w-5 h-5" />
+                Messages
+              </Link>
+              <Link
+                href="/driver/profile"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+                  pathname === '/driver/profile'
+                    ? 'bg-emerald-800 text-white'
+                    : 'text-emerald-100 hover:bg-emerald-800'
+                }`}
+              >
+                <User className="w-5 h-5" />
+                Profile
+              </Link>
               {/* Install option in mobile menu */}
               {installPrompt && !isInstalled && (
                 <button
@@ -371,7 +403,7 @@ export default function DriverDashboardLayout({
         <div className="flex justify-around">
           {navItems.map((item) => {
             const isActive = pathname === item.href ||
-              (item.href !== '/driver' && pathname.startsWith(item.href));
+              (item.href !== '/driver/dashboard' && pathname.startsWith(item.href));
             return (
               <Link
                 key={item.href}

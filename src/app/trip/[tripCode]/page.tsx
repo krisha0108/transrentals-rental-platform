@@ -376,7 +376,7 @@ export default function TripPage() {
                   <div className={`w-2.5 h-2.5 rounded-full ${entry.color}`} />
                   <span className="text-sm text-gray-700 flex-1">{entry.label}</span>
                   <span className="text-sm text-gray-500 font-mono">
-                    {new Date(entry.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(entry.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
                   </span>
                 </div>
               ))}

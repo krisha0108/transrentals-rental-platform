@@ -24,7 +24,7 @@ const skipTypeCheck = true;  // ENABLE type checking
 const skipLint = true;        // ENABLE linting
 
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   eslint: {
     ignoreDuringBuilds: skipLint,
   },
@@ -108,6 +108,17 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+  async rewrites() {
+    return {
+      fallback: [
+        {
+          source: '/uploads/:path*',
+          destination: '/api/uploads/:path*',
+        },
+      ],
+    };
+  },
+
   async redirects() {
     return [
       // ============================================
