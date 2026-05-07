@@ -115,7 +115,16 @@ export default function BookingDetailPage() {
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [callLogs, setCallLogs] = useState<any[]>([]);
   const printRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    fetch(`/api/vendor/call-log?bookingId=${id}`)
+      .then(r => r.ok ? r.json() : { logs: [] })
+      .then(d => setCallLogs(d.logs || []))
+      .catch(() => {});
+  }, [id]);
 
   useEffect(() => {
     const fetchBookingDetails = async () => {
@@ -804,6 +813,45 @@ export default function BookingDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Call Logs */}
+      {callLogs.length > 0 && (
+        <div className="bg-white rounded-xl p-6 border shadow-sm no-print">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Phone className="w-5 h-5 text-emerald-600" />
+            Vendor Call Logs
+            <span className="ml-auto text-sm font-normal text-gray-500">{callLogs.length} call{callLogs.length !== 1 ? 's' : ''}</span>
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left py-2 px-3 font-medium text-gray-600 rounded-l-lg">Vendor</th>
+                  <th className="text-left py-2 px-3 font-medium text-gray-600">Type</th>
+                  <th className="text-left py-2 px-3 font-medium text-gray-600">Time</th>
+                  <th className="text-left py-2 px-3 font-medium text-gray-600 rounded-r-lg">Source</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {callLogs.map((log: any) => (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="py-2.5 px-3 font-medium text-gray-900">
+                      {log.vendors?.businessName || log.vendors?.ownerName || '—'}
+                    </td>
+                    <td className="py-2.5 px-3 text-gray-500 text-xs">{log.bookingType}</td>
+                    <td className="py-2.5 px-3 text-gray-600">{formatDateTime(log.clickedAt)}</td>
+                    <td className="py-2.5 px-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                        log.source === 'app' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                      }`}>{log.source}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Quote Details Modal */}
       {showQuoteModal && selectedQuote && (

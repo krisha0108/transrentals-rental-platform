@@ -24,6 +24,7 @@ import {
   Printer,
   MoreVertical,
 } from 'lucide-react';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 // Mock contracts data
 const contractsData = [
@@ -459,7 +460,7 @@ export default function ContractsPage() {
                   </h3>
                   <p className="font-medium text-gray-900">{selectedContract.customerName}</p>
                   <p className="text-sm text-gray-600">{selectedContract.customerContact}</p>
-                  <p className="text-sm text-gray-600">{selectedContract.customerPhone}</p>
+                  <VendorCallButton phone={selectedContract.customerPhone} bookingType="contract" bookingId={selectedContract.id} size="sm" />
                   <p className="text-sm text-gray-600">{selectedContract.customerEmail}</p>
                   <span className="inline-block mt-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
                     {selectedContract.customerType}

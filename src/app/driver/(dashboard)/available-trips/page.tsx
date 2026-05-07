@@ -121,10 +121,10 @@ export default function AvailableTripsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Radio className="w-5 h-5 text-blue-600" /> Available Trips
+          <h1 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <Radio className="w-4 h-4 text-blue-600" /> Available Trips
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">{filtered.length} trip{filtered.length !== 1 ? 's' : ''} available</p>
+          <p className="text-xs text-gray-500 mt-0.5">{filtered.length} trip{filtered.length !== 1 ? 's' : ''} available</p>
         </div>
         <button
           onClick={() => fetchBookings()}

@@ -23,6 +23,7 @@ import {
   RefreshCw,
   XCircle,
 } from 'lucide-react';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 interface QuoteRequest {
   id: string;
@@ -288,10 +289,7 @@ export default function VendorTruckRequestsPage() {
                       {request.customerName}
                     </div>
                     {request.customerPhone && (
-                      <a href={`tel:${request.customerPhone}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
-                        <Phone className="w-3.5 h-3.5" />
-                        {request.customerPhone}
-                      </a>
+                      <VendorCallButton phone={request.customerPhone} bookingType="truck_quote_request" bookingId={request.id} variant="blue" />
                     )}
                     {request.customerEmail && (
                       <a href={`mailto:${request.customerEmail}`} className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline">

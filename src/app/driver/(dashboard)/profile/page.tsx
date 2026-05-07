@@ -114,8 +114,8 @@ export default function DriverProfilePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-gray-600">View your profile information</p>
+          <h1 className="text-base font-semibold text-gray-900">My Profile</h1>
+          <p className="text-xs text-gray-500">View your profile information</p>
         </div>
         <Link
           href="/driver/profile/edit"

@@ -69,6 +69,7 @@ interface Booking {
   estimatedVolume?: string | null;
   pickupPincode?: string | null;
   dropPincode?: string | null;
+  callsCount?: number;
 }
 
 const SERVICE_ICONS: Record<string, React.ElementType> = {
@@ -565,6 +566,12 @@ export default function ManagerBookingsPage() {
                             Vendor: <span className="font-medium text-gray-700">{booking.vendorName}</span>
                           </span>
                         )}
+                        <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          (booking.callsCount ?? 0) > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'
+                        }`}>
+                          <Phone className="w-3 h-3" />
+                          {booking.callsCount ?? 0} {(booking.callsCount ?? 0) === 1 ? 'call' : 'calls'}
+                        </span>
                       </div>
                     </div>
 

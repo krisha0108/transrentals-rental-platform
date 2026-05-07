@@ -37,6 +37,7 @@ import {
   Send,
 } from 'lucide-react';
 import VehicleImageGallery from '@/components/customer/VehicleImageGallery';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 interface Booking {
   id: string;
@@ -808,9 +809,7 @@ export default function VendorSelfDriveQuoteDetailPage() {
               <div className="flex flex-wrap gap-1.5">
                 {quote.request.customerPhone && (
                   <>
-                    <a href={`tel:${quote.request.customerPhone}`} className="flex-1 flex items-center justify-center gap-1 text-xs font-bold px-2.5 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-all border border-emerald-100 active:scale-95">
-                      <Phone className="w-3 h-3" /> Call
-                    </a>
+                    <VendorCallButton phone={quote.request.customerPhone} bookingType="self_drive_quote" bookingId={quote.id} />
                     <a href={`https://wa.me/${quote.request.customerPhone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-1 text-xs font-bold px-2.5 py-2 rounded-lg bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] transition-all border border-[#25D366]/20 active:scale-95">
                       <MessageCircle className="w-3 h-3" /> WhatsApp
                     </a>

@@ -222,7 +222,7 @@ export default function VehicleDetailPage() {
               {isVendor ? <Building2 className="w-7 h-7 text-white" /> : <Car className="w-7 h-7 text-white" />}
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white leading-tight">{vehicle.make} {vehicle.model}</h1>
+              <h1 className="text-lg font-bold text-white leading-tight">{vehicle.make} {vehicle.model}</h1>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 {vehicle.registrationNo && (
                   <span className="text-xs font-bold bg-white/25 text-white px-2.5 py-1 rounded-lg tracking-wider">{vehicle.registrationNo}</span>

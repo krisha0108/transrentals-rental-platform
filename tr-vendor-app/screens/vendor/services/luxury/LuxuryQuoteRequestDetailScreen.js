@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, StatusBar,
+  RefreshControl, StatusBar, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getQuoteRequestById } from '../../../api/client';
+import { getQuoteRequestById, getBaseURL, getSessionToken } from '../../../api/client';
 import { showError, showInfo } from '../../../../services/alertService';
 
 const C = {
@@ -202,7 +202,23 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
   const budgetMax           = request.budgetMax;
   const requestNumber       = request.requestNumber || (request.id || request._id)?.toString().slice(-8);
   const notes               = request.customerNotes || request.notes || request.requirements;
-  const customerName        = request.customerName || 'Customer';
+  const customerName  = request.customerName || 'Customer';
+  const customerPhone = request.customerPhone || request.customer_phone;
+
+  const handleCallCustomer = () => {
+    if (!customerPhone) return;
+    (async () => {
+      try {
+        const [baseURL, token] = await Promise.all([getBaseURL(), getSessionToken()]);
+        fetch(`${baseURL}/api/vendor/call-log`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ bookingType: 'luxury_quote_request', bookingId: request.id, source: 'app' }),
+        }).catch(() => {});
+      } catch {}
+    })();
+    Linking.openURL(`tel:${customerPhone}`);
+  };
 
   const canSendQuote = !request.hasQuoted && (status === 'PENDING' || status === 'QUOTES_RECEIVED');
 
@@ -263,6 +279,15 @@ export default function LuxuryQuoteRequestDetailScreen({ route, navigation }) {
         {/* 1. Customer Info */}
         <Section iconName="person-circle-outline" iconColor={C.blue} title="Customer">
           <InfoRow label="Name" value={customerName} icon="person-outline" iconColor={C.blue} />
+          {customerPhone ? (
+            <TouchableOpacity
+              onPress={handleCallCustomer}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 4 }}
+            >
+              <Ionicons name="call" size={16} color={C.g600} />
+              <Text style={{ color: C.g600, fontWeight: '700', fontSize: 14 }}>Call Customer</Text>
+            </TouchableOpacity>
+          ) : null}
         </Section>
 
         {/* 2. Vehicle Preference */}

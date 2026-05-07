@@ -484,8 +484,8 @@ export default function DriverBookingDetailPage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{getPageTitle()}</h1>
-          <p className="text-gray-500">#{booking.bookingNumber}</p>
+          <h1 className="text-base font-semibold text-gray-900">{getPageTitle()}</h1>
+          <p className="text-xs text-gray-500">#{booking.bookingNumber}</p>
         </div>
       </div>
 
@@ -510,7 +510,7 @@ export default function DriverBookingDetailPage() {
             </div>
             <div>
               <p className={`text-sm ${statusConfig.color}`}>Status</p>
-              <p className={`text-2xl font-bold ${statusConfig.color}`}>
+              <p className={`text-lg font-bold ${statusConfig.color}`}>
                 {statusConfig.label}
               </p>
               {isTruck && booking.goodsType && (
@@ -585,7 +585,7 @@ export default function DriverBookingDetailPage() {
               You have arrived. The customer has received the OTP. Ask them to share it with you to start the trip.
             </p>
           </div>
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Play className="w-5 h-5 text-emerald-600" />
             Enter OTP from Customer
           </h2>
@@ -626,7 +626,7 @@ export default function DriverBookingDetailPage() {
       {/* Assign Vehicle — independent driver, status ACCEPTED */}
       {booking.status === 'ACCEPTED' && !isBus && !isTruck && !isPackers && !isEquipment && !isLuxury && !isB2B && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-1 flex items-center gap-2">
             <Car className="w-5 h-5 text-emerald-600" /> Assign a Vehicle
           </h2>
           <p className="text-sm text-gray-500 mb-4">Select a vehicle from your fleet or enter details manually to assign to this trip.</p>
@@ -715,7 +715,7 @@ export default function DriverBookingDetailPage() {
       {/* Action Buttons - Generic Car/Bus/Truck (NOT luxury or B2B arrived - they have own flows) */}
       {(booking.status === 'DRIVER_ASSIGNED' || booking.status === 'VEHICLE_ASSIGNED') && !isLuxury && !(isB2B && booking.b2bStatus === 'DRIVER_ARRIVED') && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             {isTruck ? <Package className="w-5 h-5 text-indigo-600" /> : <Play className="w-5 h-5 text-emerald-600" />}
             {isB2B ? 'Mark Arrival' : isTruck ? 'Start Loading' : 'Start Trip'}
           </h2>
@@ -823,7 +823,7 @@ export default function DriverBookingDetailPage() {
       {/* Truck Loading Status - Complete Loading and Start Transit */}
       {isTruck && booking.status === 'LOADING' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Truck className="w-5 h-5 text-purple-600" />
             Loading Complete?
           </h2>
@@ -863,7 +863,7 @@ export default function DriverBookingDetailPage() {
       {/* Truck In Transit - Arrived at destination */}
       {isTruck && booking.status === 'IN_TRANSIT' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <PackageCheck className="w-5 h-5 text-orange-600" />
             Arrived at Destination?
           </h2>
@@ -966,7 +966,7 @@ export default function DriverBookingDetailPage() {
       {/* Truck Unloading - Complete Delivery */}
       {isTruck && booking.status === 'UNLOADING' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
             Complete Delivery
           </h2>
@@ -1009,7 +1009,7 @@ export default function DriverBookingDetailPage() {
       {/* Packers - Team Assigned - Start Packing */}
       {isPackers && booking.status === 'TEAM_ASSIGNED' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Boxes className="w-5 h-5 text-cyan-600" />
             Start Packing
           </h2>
@@ -1112,7 +1112,7 @@ export default function DriverBookingDetailPage() {
       {/* Packers - Packing - Complete Packing & Start Loading (with OTP) */}
       {isPackers && booking.status === 'PACKING' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Package className="w-5 h-5 text-blue-600" />
             Packing Complete?
           </h2>
@@ -1215,7 +1215,7 @@ export default function DriverBookingDetailPage() {
       {/* Packers - Loading - Complete Loading & Start Transit */}
       {isPackers && booking.status === 'LOADING' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Navigation className="w-5 h-5 text-purple-600" />
             Loading Complete?
           </h2>
@@ -1255,7 +1255,7 @@ export default function DriverBookingDetailPage() {
       {/* Packers - In Transit - Arrived at destination, Start Unloading */}
       {isPackers && booking.status === 'IN_TRANSIT' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Home className="w-5 h-5 text-orange-600" />
             Arrived at Destination?
           </h2>
@@ -1358,7 +1358,7 @@ export default function DriverBookingDetailPage() {
       {/* Packers - Unloading - Complete Unloading & Start Unpacking */}
       {isPackers && booking.status === 'UNLOADING' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <PackageOpen className="w-5 h-5 text-teal-600" />
             Unloading Complete?
           </h2>
@@ -1398,7 +1398,7 @@ export default function DriverBookingDetailPage() {
       {/* Packers - Unpacking - Complete Job */}
       {isPackers && booking.status === 'UNPACKING' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
             Unpacking & Arrangement Complete?
           </h2>
@@ -1441,7 +1441,7 @@ export default function DriverBookingDetailPage() {
       {/* Equipment - Confirmed - Mark Delivered */}
       {isEquipment && booking.status === 'CONFIRMED' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Truck className="w-5 h-5 text-amber-600" />
             Deliver Equipment
           </h2>
@@ -1544,7 +1544,7 @@ export default function DriverBookingDetailPage() {
       {/* Equipment - Delivered - Start Use */}
       {isEquipment && booking.status === 'DELIVERED' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Wrench className="w-5 h-5 text-blue-600" />
             Equipment Setup Complete?
           </h2>
@@ -1584,7 +1584,7 @@ export default function DriverBookingDetailPage() {
       {/* Equipment - In Use - Schedule Pickup */}
       {isEquipment && booking.status === 'IN_USE' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <RotateCcw className="w-5 h-5 text-purple-600" />
             Ready for Pickup?
           </h2>
@@ -1624,7 +1624,7 @@ export default function DriverBookingDetailPage() {
       {/* Equipment - Pickup Scheduled - Confirm Return */}
       {isEquipment && booking.status === 'PICKUP_SCHEDULED' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <PackageCheck className="w-5 h-5 text-orange-600" />
             Equipment Collected?
           </h2>
@@ -1727,7 +1727,7 @@ export default function DriverBookingDetailPage() {
       {/* Equipment - Returned - Complete Rental */}
       {isEquipment && booking.status === 'RETURNED' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
             Equipment Checked?
           </h2>
@@ -1770,7 +1770,7 @@ export default function DriverBookingDetailPage() {
       {/* Luxury - Driver Assigned - Generate OTP to start */}
       {isLuxury && booking.status === 'DRIVER_ASSIGNED' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Crown className="w-5 h-5 text-purple-600" />
             Start Luxury Trip
           </h2>
@@ -1916,7 +1916,7 @@ export default function DriverBookingDetailPage() {
       {/* Luxury - In Progress - Complete Trip */}
       {isLuxury && booking.status === 'IN_PROGRESS' && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
             Complete Luxury Trip
           </h2>
@@ -1958,7 +1958,7 @@ export default function DriverBookingDetailPage() {
 
       {booking.status === 'IN_PROGRESS' && !isLuxury && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <Square className="w-5 h-5 text-red-600" />
             Complete Trip
           </h2>
@@ -2054,7 +2054,7 @@ export default function DriverBookingDetailPage() {
 
       {/* Trip/Job/Rental Details */}
       <div className="bg-white rounded-xl border p-6">
-        <h2 className="font-bold text-gray-900 mb-4">
+        <h2 className="text-base font-semibold text-gray-900 mb-3">
           {isPackers ? 'Job Information' : isEquipment ? 'Rental Information' : 'Trip Information'}
         </h2>
 
@@ -2200,7 +2200,7 @@ export default function DriverBookingDetailPage() {
 
       {/* Customer Details */}
       <div className="bg-white rounded-xl border p-6">
-        <h2 className="font-bold text-gray-900 mb-4">Customer Details</h2>
+        <h2 className="text-base font-semibold text-gray-900 mb-3">Customer Details</h2>
 
         <div className="space-y-4">
           <div className="flex items-center gap-3">
@@ -2248,7 +2248,7 @@ export default function DriverBookingDetailPage() {
       {/* Vehicle Details */}
       {booking.vehicleNumber && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4">Vehicle Details</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-3">Vehicle Details</h2>
           <div className="flex items-center gap-3">
             <Car className="w-5 h-5 text-emerald-600" />
             <div>
@@ -2264,7 +2264,7 @@ export default function DriverBookingDetailPage() {
       {/* Trip Timestamps */}
       {(booking.tripStartedAt || booking.tripEndedAt) && (
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold text-gray-900 mb-4">Trip Timeline</h2>
+          <h2 className="text-base font-semibold text-gray-900 mb-3">Trip Timeline</h2>
           <div className="space-y-3">
             {booking.tripStartedAt && (
               <div className="flex items-center gap-3">

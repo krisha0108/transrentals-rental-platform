@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
-  Plus, Search, Phone, Calendar, Car,
+  Plus, Search, Calendar, Car,
   ChevronRight, BookOpen, CheckCircle2,
   XCircle, AlertCircle, PlayCircle,
   Link2, SlidersHorizontal, X, MapPin,
@@ -441,13 +441,8 @@ export default function DirectBookingsPage() {
                             )}
                           </div>
 
-                          {/* Row 2: Phone + service + vehicle */}
+                          {/* Row 2: service + vehicle */}
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
-                            <span className="flex items-center gap-1 font-medium text-gray-700">
-                              <Phone className="w-3 h-3 text-gray-400" />
-                              {b.customerPhone}
-                            </span>
-                            <span className="text-gray-300">·</span>
                             <span className="font-medium">{SERVICE_LABELS[b.serviceType] ?? b.serviceType}</span>
                             {b.vehicleType && (
                               <>

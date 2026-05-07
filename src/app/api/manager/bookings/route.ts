@@ -476,6 +476,23 @@ export async function GET(request: NextRequest) {
     // Sort by creation date (newest first)
     allBookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+    // Fetch call counts for all booking IDs in one query
+    const allIds = allBookings.map((b: any) => b.id);
+    const callCountRows = allIds.length > 0
+      ? await prisma.vendor_call_logs.groupBy({
+          by: ['bookingId'],
+          where: { bookingId: { in: allIds } },
+          _count: { bookingId: true },
+        }).catch(() => [])
+      : [];
+    const callCountMap: Record<string, number> = {};
+    for (const row of callCountRows) {
+      callCountMap[row.bookingId] = row._count.bookingId;
+    }
+    for (const booking of allBookings) {
+      booking.callsCount = callCountMap[booking.id] || 0;
+    }
+
     // Create unique service list based on main service names
     const serviceMap = new Map();
     const mainServices = [

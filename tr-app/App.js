@@ -23,6 +23,8 @@ import PackersQuoteRequestDetailScreen from './screens/customer/booking/PackersQ
 import EquipmentBookingDetailScreen from './screens/customer/booking/EquipmentBookingDetailScreen';
 import EquipmentQuoteRequestDetailScreen from './screens/customer/booking/EquipmentQuoteRequestDetailScreen';
 import BookingChatScreen from './screens/customer/booking/BookingChatScreen';
+import DriverChatListScreen from './screens/customer/booking/DriverChatListScreen';
+import DriverChatScreen from './screens/customer/booking/DriverChatScreen';
 import MyBikeBookingsScreen from './screens/customer/booking/MyBikeBookingsScreen';
 import BikeQuoteRequestDetailScreen from './screens/customer/booking/BikeQuoteRequestDetailScreen';
 import PaymentScreen from './screens/customer/booking/PaymentScreen';
@@ -665,6 +667,8 @@ function AppContent() {
         <Stack.Screen name="EquipmentBookingDetail" component={EquipmentBookingDetailScreen} />
         <Stack.Screen name="EquipmentQuoteRequestDetail" component={EquipmentQuoteRequestDetailScreen} />
         <Stack.Screen name="BookingChat" component={BookingChatScreen} />
+        <Stack.Screen name="DriverChatList" component={DriverChatListScreen} />
+        <Stack.Screen name="DriverChat" component={DriverChatScreen} />
         <Stack.Screen name="MyBikeBookings" component={MyBikeBookingsScreen} />
         <Stack.Screen name="BikeQuoteRequestDetail" component={BikeQuoteRequestDetailScreen} />
         <Stack.Screen name="PaymentScreen" component={PaymentScreen} />

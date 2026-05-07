@@ -92,10 +92,20 @@ export default function CustomerChatPage() {
   const [showMobileSidebar, setShowMobileSidebar] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [chatMode, setChatMode] = useState<'vendor' | 'driver'>('vendor');
+  const [driverConversations, setDriverConversations] = useState<any[]>([]);
+  const [selectedDriverConvId, setSelectedDriverConvId] = useState<string | null>(null);
+  const [driverMessages, setDriverMessages] = useState<any[]>([]);
+  const [driverTotalUnread, setDriverTotalUnread] = useState(0);
+  const [isLoadingDriverMsgs, setIsLoadingDriverMsgs] = useState(false);
+  const [driverLastSince, setDriverLastSince] = useState<string | null>(null);
+  const [driverNewMsg, setDriverNewMsg] = useState('');
+  const [isDriverSending, setIsDriverSending] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const driverPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiRef = useRef<HTMLDivElement>(null);
 
@@ -157,6 +167,73 @@ export default function CustomerChatPage() {
       setIsLoadingMessages(false);
     }
   }, [selectedConversation]);
+
+  // ── Driver chat fetch functions ──
+  const fetchDriverConversations = useCallback(async () => {
+    if (!customer) return;
+    const param = customer.phone ? `phone=${customer.phone}` : customer.email ? `email=${customer.email}` : '';
+    if (!param) return;
+    try {
+      const res = await fetch(`/api/customer/driver-chat?${param}`);
+      const data = await res.json();
+      if (data.success) {
+        setDriverConversations(data.conversations || []);
+        setDriverTotalUnread(data.totalUnread || 0);
+      }
+    } catch {}
+  }, [customer]);
+
+  const fetchDriverMessages = useCallback(async (since?: string | null) => {
+    if (!selectedDriverConvId) return;
+    try {
+      const qs = since ? `?since=${encodeURIComponent(since)}` : '';
+      const res = await fetch(`/api/customer/driver-chat/${selectedDriverConvId}/messages${qs}`);
+      const data = await res.json();
+      if (data.success) {
+        const newMsgs = data.messages || [];
+        if (since) {
+          setDriverMessages(prev => {
+            const ids = new Set(prev.map((m: any) => m.id));
+            const fresh = newMsgs.filter((m: any) => !ids.has(m.id));
+            return fresh.length > 0 ? [...prev, ...fresh] : prev;
+          });
+        } else {
+          setDriverMessages(newMsgs);
+        }
+        if (newMsgs.length > 0) setDriverLastSince(newMsgs[newMsgs.length - 1].createdAt);
+      }
+    } catch {}
+    setIsLoadingDriverMsgs(false);
+  }, [selectedDriverConvId]);
+
+  const sendDriverMessage = async () => {
+    if (!driverNewMsg.trim() || !selectedDriverConvId || isDriverSending) return;
+    const text = driverNewMsg.trim();
+    setDriverNewMsg('');
+    setIsDriverSending(true);
+    const tempId = `temp-${Date.now()}`;
+    setDriverMessages(prev => [...prev, { id: tempId, senderType: 'customer', content: text, createdAt: new Date().toISOString(), status: 'SENT' }]);
+    try {
+      const res = await fetch(`/api/customer/driver-chat/${selectedDriverConvId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: text, senderName: customer?.name || 'Customer' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDriverMessages(prev => prev.map(m => m.id === tempId ? data.message : m));
+        setDriverLastSince(data.message.createdAt);
+      } else {
+        setDriverMessages(prev => prev.filter(m => m.id !== tempId));
+        setDriverNewMsg(text);
+      }
+    } catch {
+      setDriverMessages(prev => prev.filter(m => m.id !== tempId));
+      setDriverNewMsg(text);
+    } finally {
+      setIsDriverSending(false);
+    }
+  };
 
   // ── Send message ──
   const sendMessage = async (content: string) => {
@@ -282,6 +359,24 @@ export default function CustomerChatPage() {
     const interval = setInterval(fetchConversations, 10000);
     return () => clearInterval(interval);
   }, [fetchConversations, customer]);
+
+  // ── Fetch driver conversations ──
+  useEffect(() => {
+    if (customer && chatMode === 'driver') fetchDriverConversations();
+  }, [customer, chatMode, fetchDriverConversations]);
+
+  // ── Driver messages polling ──
+  useEffect(() => {
+    if (chatMode !== 'driver' || !selectedDriverConvId) return;
+    setIsLoadingDriverMsgs(true);
+    setDriverMessages([]);
+    setDriverLastSince(null);
+    fetchDriverMessages(null);
+    driverPollRef.current = setInterval(() => {
+      setDriverLastSince(prev => { fetchDriverMessages(prev); return prev; });
+    }, 3000);
+    return () => { if (driverPollRef.current) clearInterval(driverPollRef.current); };
+  }, [selectedDriverConvId, chatMode]);
 
   // ── Helpers ──
   const formatTime = (d: string) => {
@@ -410,9 +505,27 @@ export default function CustomerChatPage() {
                 <p className="text-[11px] text-gray-400 mt-0.5">{customer?.name || 'Customer'}</p>
               </div>
               <div className="flex items-center gap-1.5">
-                {totalUnread > 0 && <span className="bg-teal-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">{totalUnread}</span>}
-                <button onClick={fetchConversations} className="p-1.5 hover:bg-teal-50 rounded-lg transition-colors group"><RefreshCw className="w-3.5 h-3.5 text-gray-400 group-hover:text-teal-600 transition-colors" /></button>
+                {(chatMode === 'vendor' ? totalUnread : driverTotalUnread) > 0 && (
+                  <span className="bg-teal-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
+                    {chatMode === 'vendor' ? totalUnread : driverTotalUnread}
+                  </span>
+                )}
+                <button onClick={chatMode === 'vendor' ? fetchConversations : fetchDriverConversations} className="p-1.5 hover:bg-teal-50 rounded-lg transition-colors group">
+                  <RefreshCw className="w-3.5 h-3.5 text-gray-400 group-hover:text-teal-600 transition-colors" />
+                </button>
               </div>
+            </div>
+            {/* Mode toggle */}
+            <div className="flex gap-1 mb-2.5">
+              <button onClick={() => { setChatMode('vendor'); setSelectedDriverConvId(null); }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${chatMode === 'vendor' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-teal-50 hover:text-teal-700'}`}>
+                Vendor Chats
+              </button>
+              <button onClick={() => { setChatMode('driver'); setSelectedVendorGroup(null); setActiveConvId(null); fetchDriverConversations(); }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1 ${chatMode === 'driver' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'}`}>
+                Driver Chats
+                {driverTotalUnread > 0 && <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{driverTotalUnread}</span>}
+              </button>
             </div>
 
             <div className="relative mb-2.5">
@@ -433,7 +546,43 @@ export default function CustomerChatPage() {
 
           {/* List */}
           <div className="flex-1 overflow-y-auto px-2 pt-1">
-            {isLoading ? (
+            {chatMode === 'driver' ? (
+              /* Driver conversations list */
+              driverConversations.length === 0 ? (
+                <div className="text-center py-14 fade-in-up">
+                  <Car className="w-8 h-8 text-emerald-200 mx-auto mb-2" />
+                  <p className="text-xs text-gray-400 font-medium">No driver chats</p>
+                  <p className="text-[11px] text-gray-300 mt-1">Driver chats appear after booking acceptance</p>
+                </div>
+              ) : (
+                <div className="pb-1 pt-1">
+                  {driverConversations.map(conv => {
+                    const isActive = selectedDriverConvId === conv.id;
+                    const driverName = conv.driver?.name || 'Driver';
+                    return (
+                      <button key={conv.id}
+                        onClick={() => setSelectedDriverConvId(conv.id)}
+                        className={`w-full p-2.5 text-left rounded-xl flex items-center gap-3 mb-0.5 transition-all ${isActive ? 'bg-emerald-50 border border-emerald-200/60' : 'hover:bg-emerald-50/40 border border-transparent'}`}>
+                        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-sm flex-shrink-0">
+                          {driverName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-center gap-1">
+                            <span className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-600'}`}>{driverName}</span>
+                            <span className="text-xs text-gray-400 flex-shrink-0">{conv.lastMessageAt ? new Date(conv.lastMessageAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : ''}</span>
+                          </div>
+                          <div className="flex justify-between items-center mt-0.5">
+                            <p className="text-[13px] text-gray-400 truncate">{conv.lastMessage?.content || 'No messages'}</p>
+                            {conv.unreadCount > 0 && <span className="bg-emerald-600 text-white text-xs font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center ml-1">{conv.unreadCount}</span>}
+                          </div>
+                          <p className="text-[10px] text-gray-300 mt-0.5">Chauffeur booking</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+            ) : isLoading ? (
               <div className="p-1">{[...Array(6)].map((_, i) => (
                 <div key={i} className="flex items-center gap-3 p-2.5">
                   <div className="w-10 h-10 shimmer-teal rounded-full flex-shrink-0" />
@@ -507,8 +656,111 @@ export default function CustomerChatPage() {
         </div>
 
         {/* ══════ CHAT AREA ══════ */}
-        <div className={`flex-1 flex flex-col min-w-0 ${showMobileSidebar && !selectedVendorGroup ? 'hidden lg:flex' : 'flex'}`}>
-          {!selectedVendorGroup ? (
+        <div className={`flex-1 flex flex-col min-w-0 ${showMobileSidebar && !selectedVendorGroup && !selectedDriverConvId ? 'hidden lg:flex' : 'flex'}`}>
+          {chatMode === 'driver' && !selectedDriverConvId ? (
+            <div className="flex-1 flex items-center justify-center chat-bg">
+              <div className="text-center bg-white/80 backdrop-blur-md rounded-3xl px-10 py-8 shadow-sm fade-in-up">
+                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Car className="w-7 h-7 text-emerald-500" />
+                </div>
+                <h2 className="text-base font-bold text-gray-600 mb-0.5">Select a driver conversation</h2>
+                <p className="text-sm text-gray-400">Choose a driver to view messages</p>
+              </div>
+            </div>
+          ) : chatMode === 'driver' && selectedDriverConvId ? (
+            /* Driver chat area */
+            <>
+              {/* Driver chat header */}
+              {(() => {
+                const conv = driverConversations.find(c => c.id === selectedDriverConvId);
+                const driverName = conv?.driver?.name || 'Driver';
+                return (
+                  <div className="bg-white px-5 py-3 flex items-center justify-between border-b border-gray-200 flex-shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => { setSelectedDriverConvId(null); setShowMobileSidebar(true); }} className="p-1.5 hover:bg-emerald-50 rounded-lg lg:hidden transition-colors">
+                        <ArrowLeft className="w-4 h-4 text-gray-500" />
+                      </button>
+                      <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-base flex-shrink-0">
+                        {driverName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-bold text-gray-900">{driverName}</h2>
+                        <p className="text-xs text-gray-400">Driver • Chauffeur booking</p>
+                      </div>
+                    </div>
+                    {conv?.driver?.phone && (
+                      <a href={`tel:${conv.driver.phone}`} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors text-emerald-700 text-xs font-semibold">
+                        <Phone className="w-3.5 h-3.5" />Call
+                      </a>
+                    )}
+                  </div>
+                );
+              })()}
+              {/* Driver messages */}
+              <div className="flex-1 overflow-y-auto chat-bg">
+                <div className="px-3 py-3">
+                  {isLoadingDriverMsgs ? (
+                    <div className="flex items-center justify-center h-32"><div className="animate-spin w-5 h-5 border-[3px] border-emerald-100 border-t-emerald-600 rounded-full" /></div>
+                  ) : driverMessages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-[50vh]">
+                      <div className="bg-white/80 rounded-2xl px-6 py-5 text-center shadow-sm">
+                        <p className="text-sm text-gray-400">No messages yet. Start the conversation!</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {driverMessages.map((msg: any, idx: number) => {
+                        const isCustomer = msg.senderType === 'customer';
+                        const showDate = idx === 0 || new Date(msg.createdAt).toDateString() !== new Date(driverMessages[idx - 1].createdAt).toDateString();
+                        return (
+                          <div key={msg.id} className="msg-in">
+                            {showDate && (
+                              <div className="flex justify-center my-3">
+                                <span className="bg-white/90 text-gray-500 text-xs font-medium px-3 py-1 rounded-md shadow-sm">
+                                  {new Date(msg.createdAt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                </span>
+                              </div>
+                            )}
+                            <div className={`flex ${isCustomer ? 'justify-end' : 'justify-start'} mt-2`}>
+                              {!isCustomer && (
+                                <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center mr-1.5 mt-auto flex-shrink-0">
+                                  <Car className="w-3.5 h-3.5 text-emerald-600" />
+                                </div>
+                              )}
+                              <div className={`max-w-[68%] px-3 py-[7px] ${isCustomer ? 'bg-teal-600 text-white rounded-2xl rounded-br-md' : 'bg-white text-gray-800 border border-gray-100 shadow-sm rounded-2xl rounded-bl-md'}`}>
+                                <p className="text-sm leading-[1.5] whitespace-pre-wrap break-words">{msg.content}</p>
+                                <div className={`flex items-center justify-end gap-0.5 mt-[2px] ${isCustomer ? 'text-white/50' : 'text-gray-300'}`}>
+                                  <span className="text-xs">{new Date(msg.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+                                  {isCustomer && <Check className="w-3 h-3" />}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div ref={messagesEndRef} />
+                    </>
+                  )}
+                </div>
+              </div>
+              {/* Driver message input */}
+              <div className="bg-white border-t border-gray-200 px-4 py-2.5 flex-shrink-0">
+                <form onSubmit={e => { e.preventDefault(); sendDriverMessage(); }} className="flex items-end gap-2">
+                  <div className="flex-1 flex items-end bg-gray-50 rounded-2xl px-4 py-1 border border-gray-200 focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-500/10 focus-within:bg-white transition-all">
+                    <textarea value={driverNewMsg} onChange={e => setDriverNewMsg(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDriverMessage(); } }}
+                      placeholder="Type a message..." rows={1}
+                      className="flex-1 py-2 bg-transparent resize-none text-sm focus:outline-none placeholder:text-gray-400 leading-[1.4]"
+                      style={{ maxHeight: '80px' }} />
+                  </div>
+                  <button type="submit" disabled={!driverNewMsg.trim() || isDriverSending}
+                    className="h-10 w-10 bg-emerald-600 text-white rounded-xl disabled:opacity-40 hover:bg-emerald-700 transition-all shadow-md flex items-center justify-center flex-shrink-0">
+                    {isDriverSending ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="w-[18px] h-[18px]" />}
+                  </button>
+                </form>
+              </div>
+            </>
+          ) : !selectedVendorGroup ? (
             <div className="flex-1 flex items-center justify-center chat-bg">
               <div className="text-center bg-white/80 backdrop-blur-md rounded-3xl px-10 py-8 shadow-sm fade-in-up">
                 <div className="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-3 pulse-ring">

@@ -21,12 +21,12 @@ import {
   IndianRupee,
   Calendar,
   User,
-  Phone,
   ArrowRight,
   MoreVertical,
   Printer,
   Share2,
 } from 'lucide-react';
+import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 // Mock quotations data
 const quotationsData = [
@@ -326,7 +326,7 @@ export default function QuotationsPage() {
                   <td className="px-4 py-3">
                     <div>
                       <p className="font-medium text-gray-900">{quote.customerName}</p>
-                      <p className="text-sm text-gray-500">{quote.customerPhone}</p>
+                      <VendorCallButton phone={quote.customerPhone} bookingType="quotation" bookingId={quote.id} size="sm" />
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-700">{quote.service}</td>
@@ -435,7 +435,7 @@ export default function QuotationsPage() {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="text-sm font-medium text-gray-500 mb-2">BILL TO</h3>
                   <p className="font-medium text-gray-900">{selectedQuote.customerName}</p>
-                  <p className="text-sm text-gray-600">{selectedQuote.customerPhone}</p>
+                  <VendorCallButton phone={selectedQuote.customerPhone} bookingType="quotation" bookingId={selectedQuote.id} size="sm" />
                   <p className="text-sm text-gray-600">{selectedQuote.customerEmail}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">

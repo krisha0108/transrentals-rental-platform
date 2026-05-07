@@ -1071,6 +1071,24 @@ export async function GET(
       endDate
     );
 
+    // Add callsCount to each booking in one query
+    const pageIds = bookings.map((b: any) => b.id);
+    const callCountRows = pageIds.length > 0
+      ? await prisma.vendor_call_logs.groupBy({
+          by: ['bookingId'],
+          where: { bookingId: { in: pageIds } },
+          _count: { bookingId: true },
+        }).catch(() => [])
+      : [];
+    const callCountMap: Record<string, number> = {};
+    for (const row of callCountRows) {
+      callCountMap[row.bookingId] = row._count.bookingId;
+    }
+    const bookingsWithCalls = bookings.map((b: any) => ({
+      ...b,
+      callsCount: callCountMap[b.id] || 0,
+    }));
+
     return NextResponse.json({
       success: true,
       service: {
@@ -1078,7 +1096,7 @@ export async function GET(
         name: service.name,
         slug: service.slug,
       },
-      bookings,
+      bookings: bookingsWithCalls,
       stats: {
         total,
         pending: bookings.filter(b => ['PENDING', 'PENDING_VENDOR', 'BROADCASTED'].includes(b.status)).length,

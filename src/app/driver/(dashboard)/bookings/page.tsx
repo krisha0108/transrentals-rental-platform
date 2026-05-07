@@ -198,8 +198,8 @@ export default function DriverBookingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Trips</h1>
-          <p className="text-gray-600">Your bookings & available trips</p>
+          <h1 className="text-base font-semibold text-gray-900">Trips</h1>
+          <p className="text-xs text-gray-500">Your bookings & available trips</p>
         </div>
         <button
           onClick={tab === 'available' ? fetchAvailable : fetchBookings}

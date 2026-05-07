@@ -63,8 +63,8 @@ export default function TripHistoryPage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Trip History</h1>
-          <p className="text-sm text-gray-500">{trips.length} completed trips</p>
+          <h1 className="text-base font-semibold text-gray-900">Trip History</h1>
+          <p className="text-xs text-gray-500">{trips.length} completed trips</p>
         </div>
       </div>
 
