@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { DriverChatWithCustomer } from '@/components/driver/DriverChatWithCustomer';
 import {
   ArrowLeft,
   Car,
@@ -2206,14 +2207,23 @@ export default function DriverBookingDetailPage() {
           )}
         </div>
 
-        {/* Call Button */}
-        <a
-          href={`tel:${booking.customerPhone}`}
-          className="mt-4 w-full py-3 bg-emerald-100 text-emerald-700 rounded-xl font-medium flex items-center justify-center gap-2"
-        >
-          <Phone className="w-5 h-5" />
-          Call Customer
-        </a>
+        {/* Call + Chat Buttons */}
+        <div className="mt-4 flex flex-col gap-2">
+          <a
+            href={`tel:${booking.customerPhone}`}
+            className="w-full py-3 bg-emerald-100 text-emerald-700 rounded-xl font-medium flex items-center justify-center gap-2"
+          >
+            <Phone className="w-5 h-5" />
+            Call Customer
+          </a>
+          {['ACCEPTED', 'DRIVER_ASSIGNED', 'VEHICLE_ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) && (
+            <DriverChatWithCustomer
+              bookingId={booking.id}
+              bookingType="chauffeur"
+              customerName={booking.customerName}
+            />
+          )}
+        </div>
       </div>
 
       {/* Vehicle Details */}

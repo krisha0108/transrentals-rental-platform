@@ -33,6 +33,7 @@ import {
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
 import api, { BASE_URL, IMAGE_BASE_URL } from '../../api';
+import chatService from '../../services/chatService';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 
 const { width } = Dimensions.get('window');
@@ -51,6 +52,7 @@ const BookingDetails = () => {
   const [sortedQuotations, setSortedQuotations] = useState([]);
   const [assignedVehicle, setAssignedVehicle] = useState(null);
   const [assignedDriver, setAssignedDriver] = useState(null);
+  const [chatLoading, setChatLoading] = useState(false);
   const mapTripType = (code) => {
     switch (code) {
       case '1': return 'Oneway';
@@ -186,6 +188,8 @@ const BookingDetails = () => {
             tripStartOtp: carBooking.tripStartOtp,
             driverName: carBooking.driverName,
             driverPhone: carBooking.driverPhone,
+            acceptedDriverId: carBooking.acceptedDriverId,
+            acceptedStaffId: carBooking.acceptedStaffId,
             vehicleNumber: carBooking.vehicleNumber,
             vehicleModel: carBooking.vehicleModel,
             created_at: carBooking.createdAt,
@@ -393,6 +397,32 @@ const BookingDetails = () => {
         console.log('Error calling driver:', err);
         Alert.alert('Error', 'Failed to open phone dialer');
       });
+  };
+
+  const handleDriverChat = async () => {
+    if (!booking?.id || (!booking?.acceptedDriverId && !booking?.acceptedStaffId)) {
+      Alert.alert('Chat unavailable', 'Driver not yet assigned to this booking.');
+      return;
+    }
+    try {
+      setChatLoading(true);
+      const result = await chatService.startDriverConversation(
+        booking.id,
+        booking.acceptedDriverId || null,
+        booking.acceptedStaffId || null,
+      );
+      if (result?.conversation) {
+        navigation.navigate('DriverChat', {
+          conversationId: result.conversation.id,
+          driverName: booking.driverName || 'Driver',
+        });
+      }
+    } catch (e) {
+      console.log('Driver chat error:', e);
+      Alert.alert('Error', 'Could not open chat. Please try again.');
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   const handleShare = async () => {
@@ -1234,6 +1264,18 @@ const BookingDetails = () => {
                       >
                         <LinearGradient colors={[TEAL_MID, '#059669']} style={redesignStyles.callBtnGradient}>
                           <Ionicons name="call" size={wp('5%')} color="#fff" />
+                        </LinearGradient>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[redesignStyles.callBtn, { marginLeft: wp('2%') }]}
+                        onPress={handleDriverChat}
+                        disabled={chatLoading}
+                      >
+                        <LinearGradient colors={['#0D7377', '#14A085']} style={redesignStyles.callBtnGradient}>
+                          {chatLoading
+                            ? <ActivityIndicator size="small" color="#fff" />
+                            : <Ionicons name="chatbubble-ellipses" size={wp('5%')} color="#fff" />
+                          }
                         </LinearGradient>
                       </TouchableOpacity>
                     </View>

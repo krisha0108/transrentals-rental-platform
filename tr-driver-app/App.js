@@ -262,6 +262,11 @@ function navigateFromNotification(data) {
     const type = data?.type;
     if (type === 'new_available_booking') {
       navigationRef.navigate('AvailableBookings');
+    } else if (type === 'driver_chat' && data?.conversationId) {
+      navigationRef.navigate('DriverChat', {
+        conversationId: data.conversationId,
+        customerName: data.customerName || 'Customer',
+      });
     } else {
       navigationRef.navigate('Notifications');
     }

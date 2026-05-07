@@ -23,6 +23,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { BikeBookingChat } from '@/components/bike/BikeBookingChat';
+import { DriverBookingChat } from '@/components/driver/DriverBookingChat';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import CustomerHeader from '@/components/customer/CustomerHeader';
@@ -63,8 +64,8 @@ interface BookingDetails {
   driverPhone?: string;
   driverEmail?: string;
   driverPhoto?: string;
-  acceptedDriverId?: string;
-  acceptedStaffId?: string;
+  acceptedDriverId?: string | null;
+  acceptedStaffId?: string | null;
   vehicleNumber?: string;
   vehicleModel?: string;
   vehicleColor?: string;
@@ -295,8 +296,8 @@ export default function CarRentalBookingDetailPage() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* Vendor Card (if vendor accepted from dashboard — not driver/staff app) */}
-            {booking.vendor && !booking.acceptedDriverId && !booking.acceptedStaffId && !['COMPLETED', 'CANCELLED'].includes(booking.status) && (
+            {/* Vendor Card — vendor accepted from dashboard, no driver/staff involved */}
+            {booking.vendor && !booking.acceptedDriverId && !booking.acceptedStaffId && (
               <div className="bg-white rounded-xl shadow-sm border p-4">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Service Provider</p>
                 <div className="flex items-center gap-3">
@@ -418,10 +419,12 @@ export default function CarRentalBookingDetailPage() {
               </div>
             )}
 
-            {/* Direct Driver Card (driver or vendor_staff accepted via driver app) */}
-            {(booking.acceptedDriverId || booking.acceptedStaffId || (!booking.vendor && booking.driverName)) && !['COMPLETED', 'CANCELLED'].includes(booking.status) && (
+            {/* Direct Driver Card — independent driver OR vendor's staff driver via driver app */}
+            {(booking.acceptedDriverId || booking.acceptedStaffId) && (
               <div className="bg-white rounded-xl shadow-sm border p-4">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Service Provider</p>
+
+                {/* Driver info */}
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
                     {booking.driverPhoto
@@ -442,6 +445,26 @@ export default function CarRentalBookingDetailPage() {
                     </a>
                   )}
                 </div>
+
+                {/* Vehicle info (assigned by driver) */}
+                {(booking.vehicleNumber || booking.vehicleModel) && (
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Assigned Vehicle</p>
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <Car className="w-5 h-5 text-gray-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {booking.vehicleModel && (
+                          <p className="text-sm font-semibold text-gray-900">{booking.vehicleModel}</p>
+                        )}
+                        {booking.vehicleNumber && (
+                          <span className="font-mono bg-gray-100 px-2 py-0.5 rounded text-xs text-gray-700 mt-1 inline-block">{booking.vehicleNumber}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -799,15 +822,31 @@ export default function CarRentalBookingDetailPage() {
                 Need Help?
               </button>
 
-              {/* Chat — rendered inline, has its own button+modal */}
-              {booking.acceptedVendorId && ['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) && customer && (
-                <BikeBookingChat
-                  bookingId={booking.id}
-                  vendorId={booking.acceptedVendorId}
-                  vendorName={booking.vendor?.businessName || 'Vendor'}
-                  customerId={String(customer.id)}
-                  customerName={customer.name || customer.phone || 'Customer'}
-                />
+              {/* Chat */}
+              {['ACCEPTED', 'DRIVER_ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) && booking.customerId && (
+                <>
+                  {/* Driver accepted via driver app → customer↔driver chat */}
+                  {(booking.acceptedDriverId || booking.acceptedStaffId) && (
+                    <DriverBookingChat
+                      bookingId={booking.id}
+                      driverId={booking.acceptedDriverId || undefined}
+                      staffDriverId={booking.acceptedStaffId || undefined}
+                      driverName={booking.driverName || 'Driver'}
+                      customerId={String(booking.customerId)}
+                      customerName={customer?.name || customer?.phone || 'Customer'}
+                    />
+                  )}
+                  {/* Vendor accepted from dashboard (no driver) → customer↔vendor chat */}
+                  {booking.acceptedVendorId && !booking.acceptedDriverId && !booking.acceptedStaffId && (
+                    <BikeBookingChat
+                      bookingId={booking.id}
+                      vendorId={booking.acceptedVendorId}
+                      vendorName={booking.vendor?.businessName || 'Vendor'}
+                      customerId={String(booking.customerId)}
+                      customerName={customer?.name || customer?.phone || 'Customer'}
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>

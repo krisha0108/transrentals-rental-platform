@@ -6,8 +6,16 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import chatService from '../../services/chatService';
-import moment from 'moment';
 import { TEAL_DEEP, TEAL, TEAL_LIGHT } from '../../../theme';
+
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
 
 export default function DriverChatListScreen() {
   const navigation = useNavigation();
@@ -37,7 +45,7 @@ export default function DriverChatListScreen() {
     const driverName = item.driver?.name || 'Driver';
     const initial = driverName.charAt(0).toUpperCase();
     const lastMsg = item.lastMessage?.content || 'No messages yet';
-    const time = item.lastMessageAt ? moment(item.lastMessageAt).fromNow() : '';
+    const time = item.lastMessageAt ? timeAgo(item.lastMessageAt) : '';
     const unread = item.unreadCount || 0;
 
     return (
