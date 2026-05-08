@@ -101,14 +101,22 @@ export function ChatBookingHero({
           const customer = JSON.parse(customerData);
           setIsLoggedIn(true);
           setLoggedInCustomer(customer);
+          // Strip travel-agent shadow placeholder phone (`ta-<id>`) — invalid
+          // for booking validation. The profile-API call below will heal it
+          // by fetching the agent's real phone if available.
+          const safePhone =
+            typeof customer.phone === 'string' && customer.phone.startsWith('ta-')
+              ? ''
+              : (customer.phone || '');
           // Pre-fill booking data with customer info
           setBookingData((prev: any) => ({
             ...prev,
             name: customer.name || '',
             email: customer.email || '',
-            phone: customer.phone || '',
+            phone: safePhone,
           }));
-          // Check B2B status
+          // Check B2B status + auto-heal phone if user is a travel agent
+          // whose shadow customer carries a placeholder phone.
           const params = new URLSearchParams();
           if (customer.id) params.set('customer_id', String(customer.id));
           if (customer.email) params.set('email', customer.email);
@@ -116,6 +124,27 @@ export function ChatBookingHero({
             fetch(`/api/customer/b2b-status?${params.toString()}`)
               .then(res => res.json())
               .then(data => { if (data.isB2B) setIsB2B(true); })
+              .catch(() => {});
+          }
+          if (customer.id) {
+            fetch(`/api/customer/profile?customer_id=${customer.id}`)
+              .then(r => r.json())
+              .then(d => {
+                const agentPhone = d?.customers?.linkedAgentPhone || null;
+                if (agentPhone) {
+                  setBookingData((prev: any) => ({
+                    ...prev,
+                    phone: prev.phone || agentPhone,
+                  }));
+                  // Also patch localStorage for other pages.
+                  try {
+                    const stored = JSON.parse(localStorage.getItem('customer') || '{}');
+                    if (typeof stored.phone !== 'string' || stored.phone.startsWith('ta-')) {
+                      localStorage.setItem('customer', JSON.stringify({ ...stored, phone: agentPhone }));
+                    }
+                  } catch { /* ignore */ }
+                }
+              })
               .catch(() => {});
           }
         } catch (e) {
@@ -2247,9 +2276,14 @@ export function ChatBookingHero({
     );
 
     try {
-      // Check if customer is logged in and B2B approved
+      // Check if customer is logged in and B2B approved (or a linked travel
+      // agent — they're allowed to make Corporate bookings on their agency's
+      // behalf even though they aren't a regular B2B account).
       const customerData = loggedInCustomer;
-      if (!customerData || !customerData.isB2B || customerData.b2bStatus !== 'APPROVED') {
+      const isLinkedTravelAgent = !!customerData?.linkedTravelAgentId;
+      const isApprovedB2B =
+        customerData?.isB2B && customerData?.b2bStatus === 'APPROVED';
+      if (!customerData || (!isApprovedB2B && !isLinkedTravelAgent)) {
         // Not a B2B customer - show message and redirect to B2B registration or submit as regular
         addShiviMessage(
           '⚠️ Corporate bookings require a B2B account.\n\n' +
@@ -2272,13 +2306,53 @@ export function ChatBookingHero({
       const returnDate = bookingData.returnDateTime ? new Date(bookingData.returnDateTime).toISOString().split('T')[0] : null;
       const returnTime = bookingData.returnDateTime ? new Date(bookingData.returnDateTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }) : null;
 
+      // Detect the service so we route the b2b row with the correct
+      // serviceType + display labels. Defaults to 'bus' for unknown types.
+      const stLower = (serviceType || '').toLowerCase();
+      let b2bServiceType: string;
+      let b2bServiceDisplay: string;
+      let b2bServiceEmoji: string;
+      if (stLower.includes('bike') || stLower.includes('activa') || stLower.includes('royal-enfield')) {
+        b2bServiceType = 'bike';        b2bServiceDisplay = 'Bike Rental';
+        b2bServiceEmoji = '🏍️';
+      } else if (stLower.includes('truck') || stLower.includes('transport')) {
+        b2bServiceType = 'truck';
+        b2bServiceDisplay = 'Truck Rental';
+        b2bServiceEmoji = '🚚';
+      } else if (stLower.includes('packer') || stLower.includes('mover')) {
+        b2bServiceType = 'packers';
+        b2bServiceDisplay = 'Packers & Movers';
+        b2bServiceEmoji = '📦';
+      } else if (stLower.includes('equipment') || stLower.includes('crane') || stLower.includes('jcb')) {
+        b2bServiceType = 'equipment';
+        b2bServiceDisplay = 'Equipment Rental';
+        b2bServiceEmoji = '🏗️';
+      } else if (stLower.includes('luxury')) {
+        b2bServiceType = 'luxury';
+        b2bServiceDisplay = 'Luxury Car';
+        b2bServiceEmoji = '✨';
+      } else if (stLower.includes('self-drive') || stLower.includes('self_drive') || stLower.includes('selfdrive')) {
+        b2bServiceType = 'self-drive';
+        b2bServiceDisplay = 'Self-Drive Car';
+        b2bServiceEmoji = '🚗';
+      } else if (stLower.includes('car') || stLower.includes('cab')) {
+        b2bServiceType = 'car';
+        b2bServiceDisplay = 'Car Rental';
+        b2bServiceEmoji = '🚗';
+      } else {
+        b2bServiceType = 'bus';
+        b2bServiceDisplay = 'Bus Rental';
+        b2bServiceEmoji = '🚌';
+      }
+      const isBikeServiceB2B = b2bServiceType === 'bike';
+
       // Determine trip type
       const tripType = bookingData.busTripType === 'local' ? 'HOURLY' :
         (returnDate ? 'ROUND_TRIP' : 'ONE_WAY');
 
-      const b2bPayload = {
+      const b2bPayload: any = {
         customerId: String(customerData.id),
-        serviceType: 'bus',
+        serviceType: b2bServiceType,
         vehiclesRequired: parseInt(bookingData.vehiclesRequired) || 1,
         passengerCount: parseInt(bookingData.passengers) || 1,
         vehicleCategory: bookingData.subService || 'standard',
@@ -2291,6 +2365,11 @@ export function ChatBookingHero({
         returnTime,
         specialNotes: bookingData.additionalDetails || '',
       };
+      // Travel-agent COMPANY booking — backend uses this to tag the b2b row
+      // with travelAgentId + bookingMode='COMPANY' (no agency-side B2B check).
+      if (isLinkedTravelAgent) {
+        b2bPayload.taBookingMode = 'COMPANY';
+      }
 
       const response = await fetch('/api/b2b/bookings', {
         method: 'POST',
@@ -2305,8 +2384,8 @@ export function ChatBookingHero({
         addShiviMessage(
           `🎉 Corporate Booking Created, ${firstName}!\n\n` +
           `📋 Booking ID: ${result.booking.bookingNumber}\n` +
-          `🚌 Service: Bus Rental\n` +
-          `👥 Passengers: ${bookingData.passengers}\n` +
+          `${b2bServiceEmoji} Service: ${b2bServiceDisplay}\n` +
+          (isBikeServiceB2B ? '' : `👥 Passengers: ${bookingData.passengers}\n`) +
           `📍 ${bookingData.pickupLocation}${bookingData.destination ? ' → ' + bookingData.destination : ''}\n\n` +
           `Your request is now live! Vendors will send their quotes shortly.\n\n` +
           `Track your booking on the B2B Dashboard.`,
@@ -2322,7 +2401,7 @@ export function ChatBookingHero({
         throw new Error(result.error || 'Failed to create B2B booking');
       }
     } catch (error: any) {
-      console.error('B2B Bus Submit Error:', error);
+      console.error('B2B Submit Error:', error);
       addShiviMessage(
         `❌ ${error.message || 'Something went wrong.'}\n\nLet me submit this as a regular quote request instead.`,
         undefined,
@@ -2726,6 +2805,17 @@ export function ChatBookingHero({
         webBookingPayload.fuel_type = bookingData.fuelType || '2';
         webBookingPayload.doorstep_delivery = bookingData.doorstepDelivery || '0';
         webBookingPayload.other_info = bookingData.additionalDetails || '';
+      }
+
+      // Forward the user's Personal / Company choice + vehicle count so the
+      // backend can route travel-agent COMPANY bookings into b2b_bookings.
+      if (bookingData.bookingPurpose) {
+        webBookingPayload.bookingPurpose = bookingData.bookingPurpose;
+        webBookingPayload.taBookingMode =
+          bookingData.bookingPurpose === 'company' ? 'COMPANY' : 'PERSONAL';
+      }
+      if (bookingData.numberOfVehicles) {
+        webBookingPayload.numberOfVehicles = bookingData.numberOfVehicles;
       }
 
       // Prepare unified booking payload for local API
@@ -3556,26 +3646,43 @@ export function ChatBookingHero({
     } else if (action === 'skip-additional-details') {
       addUserMessage('Skip');
       setBookingData((prev: any) => ({ ...prev, additionalDetails: '' }));
-      // For bus services, ask if personal or company booking
+      // For bus + bike (B2B-fleet services available to everyone) AND
+      // ALWAYS for travel agents (any service), ask Personal/Company so
+      // corporate trips route into the b2b_bookings manager queue.
       const isBusForPurposeSkip = serviceType.includes('bus') || serviceType.includes('tempo');
-      if (isBusForPurposeSkip) {
+      const isBikeForPurposeSkip = serviceType.includes('bike') || serviceType.includes('activa') || serviceType.includes('royal-enfield');
+      const isAgentForPurpose = !!loggedInCustomer?.linkedTravelAgentId;
+      if (isBusForPurposeSkip || isBikeForPurposeSkip || isAgentForPurpose) {
         askForBookingPurpose();
       } else {
         setIsTyping(true);
         setTimeout(() => showSummary(), 800);
       }
     } else if (action === 'booking-purpose') {
+      const stP = (serviceType || '').toLowerCase();
+      let countPrompt = 'How many vehicles do you need? 🚐\n(Enter number of vehicles required)';
+      if (stP.includes('bike') || stP.includes('activa') || stP.includes('royal-enfield'))
+        countPrompt = 'How many bikes/vehicles do you need? 🏍️\n(Enter number of vehicles required)';
+      else if (stP.includes('truck') || stP.includes('transport'))
+        countPrompt = 'How many trucks do you need? 🚚\n(Enter number of vehicles required)';
+      else if (stP.includes('packer') || stP.includes('mover'))
+        countPrompt = 'How many vehicles/loads do you need? 📦\n(Enter number required)';
+      else if (stP.includes('equipment') || stP.includes('crane') || stP.includes('jcb'))
+        countPrompt = 'How many machines do you need? 🏗️\n(Enter number required)';
+      else if (stP.includes('luxury'))
+        countPrompt = 'How many luxury cars do you need? ✨\n(Enter number required)';
+      else if (stP.includes('self-drive') || stP.includes('self_drive') || stP.includes('selfdrive'))
+        countPrompt = 'How many self-drive cars do you need? 🚗\n(Enter number required)';
+      else if (stP.includes('car') || stP.includes('cab'))
+        countPrompt = 'How many cars do you need? 🚗\n(Enter number required)';
+      else
+        countPrompt = 'How many buses/vehicles do you need? 🚌\n(Enter number of vehicles required)';
+
       if (value === 'company') {
         addUserMessage('Company / Corporate');
         setBookingData((prev: any) => ({ ...prev, bookingPurpose: 'company' }));
         // Ask for number of vehicles before submitting B2B booking
-        addShiviMessage(
-          'How many buses/vehicles do you need? 🚌\n(Enter number of vehicles required)',
-          undefined,
-          500,
-          'text',
-          'e.g., 1, 2, 3'
-        );
+        addShiviMessage(countPrompt, undefined, 500, 'text', 'e.g., 1, 2, 3');
         setCurrentStep('b2b-vehicles');
       } else {
         addUserMessage('Personal');
@@ -4203,9 +4310,12 @@ export function ChatBookingHero({
       // Save additional details
       setBookingData((prev: any) => ({ ...prev, additionalDetails: inputValue }));
       setInputValue('');
-      // For bus services, ask if personal or company booking
+      // For bus + bike (B2B-fleet services available to everyone) AND
+      // ALWAYS for travel agents (any service), ask Personal/Company.
       const isBusForPurpose = serviceType.includes('bus') || serviceType.includes('tempo');
-      if (isBusForPurpose) {
+      const isBikeForPurpose = serviceType.includes('bike') || serviceType.includes('activa') || serviceType.includes('royal-enfield');
+      const isAgentForPurpose = !!loggedInCustomer?.linkedTravelAgentId;
+      if (isBusForPurpose || isBikeForPurpose || isAgentForPurpose) {
         askForBookingPurpose();
       } else {
         setIsTyping(true);

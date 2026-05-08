@@ -37,6 +37,50 @@ function generateOTP(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
+// Travel-agent PERSONAL tagging — looks up the linkedTravelAgentId for the
+// given customer and (if set) writes travelAgentId + bookingMode='PERSONAL'
+// onto a freshly-created booking/quote row. ALSO swaps customerPhone for
+// the agent's real phone if the row currently holds a `ta-<id>` placeholder.
+// Uses raw SQL so it survives Prisma client cache lag with the new columns.
+// Non-fatal: failures are logged but never block the booking.
+async function tagTaPersonalBooking(
+  tableName: string,
+  rowId: string,
+  customerId: string,
+): Promise<void> {
+  try {
+    const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+      `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`,
+      customerId,
+    );
+    const agentId = linkRows[0]?.linkedTravelAgentId || null;
+    if (!agentId) return;
+    await (prisma as any).$executeRawUnsafe(
+      `UPDATE \`${tableName}\` SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+      agentId,
+      'PERSONAL',
+      rowId,
+    );
+    // Patch the stored customerPhone if it's a `ta-` placeholder — replace
+    // with the agent's real phone so reports/dashboards show a usable number.
+    try {
+      const ag: any = await (prisma as any).travel_agents.findUnique({
+        where: { id: agentId },
+        select: { phone: true },
+      });
+      if (ag?.phone) {
+        await (prisma as any).$executeRawUnsafe(
+          `UPDATE \`${tableName}\` SET customerPhone = ? WHERE id = ? AND customerPhone LIKE 'ta-%'`,
+          ag.phone,
+          rowId,
+        );
+      }
+    } catch { /* non-fatal */ }
+  } catch (e) {
+    console.error(`[tagTaPersonalBooking:${tableName}] failed`, e);
+  }
+}
+
 // Get or create customer in local DB
 async function getOrCreateCustomer(customerInfo: { name: string; email: string; phone: string; password?: string }) {
   let customer = await prisma.customers.findFirst({
@@ -287,7 +331,7 @@ async function handleBikeBooking(customerInfo: { name: string; email: string; ph
 
   // IMPORTANT: Always start with PENDING_PAYMENT status
   // Flow: PENDING_PAYMENT → PAYMENT_SUBMITTED → PAYMENT_VERIFIED → BROADCASTED/PENDING_VENDOR → ACCEPTED
-  const booking = await prisma.bike_bookings.create({
+  const booking: any = await (prisma as any).bike_bookings.create({
     data: {
       bookingNumber,
       customerId: customer.id,
@@ -328,6 +372,8 @@ async function handleBikeBooking(customerInfo: { name: string; email: string; ph
       customerNotes: bookingData.other_info as string || null,
     },
   });
+
+  await tagTaPersonalBooking('bike_bookings', booking.id, customer.id);
 
   // Message guides customer to payment step (or confirms for B2B)
   const message = isB2B
@@ -389,7 +435,7 @@ async function handleCarBooking(customerInfo: { name: string; email: string; pho
     ? Math.max(1, Math.ceil((returnDate.getTime() - pickupDate.getTime()) / (24 * 60 * 60 * 1000)))
     : 1;
 
-  const booking = await prisma.car_bookings.create({
+  const booking: any = await (prisma as any).car_bookings.create({
     data: {
       bookingNumber,
       customerId: customer.id,
@@ -416,6 +462,8 @@ async function handleCarBooking(customerInfo: { name: string; email: string; pho
       customerNotes: bookingData.other_info as string || null,
     },
   });
+
+  await tagTaPersonalBooking('car_bookings', booking.id, customer.id);
 
   return {
     success: true,
@@ -564,7 +612,7 @@ async function handleSelfDriveBooking(customerInfo: { name: string; email: strin
     ? [assignedVendorId!]
     : notifiedVendorIds;
 
-  const booking = await prisma.car_bookings.create({
+  const booking: any = await (prisma as any).car_bookings.create({
     data: {
       bookingNumber,
       customerId: customer.id,
@@ -607,6 +655,8 @@ async function handleSelfDriveBooking(customerInfo: { name: string; email: strin
       version: 0,
     },
   });
+
+  await tagTaPersonalBooking('car_bookings', booking.id, customer.id);
 
   return {
     success: true,
@@ -742,6 +792,8 @@ async function handleTruckQuoteRequest(customerInfo: { name: string; email: stri
     },
   });
 
+  await tagTaPersonalBooking('truck_quote_requests', quoteRequest.id, customer.id);
+
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,
     requestNumber: quoteRequest.requestNumber,
@@ -849,6 +901,8 @@ async function handlePackersQuoteRequest(customerInfo: { name: string; email: st
     },
   });
 
+  await tagTaPersonalBooking('packers_quote_requests', quoteRequest.id, customer.id);
+
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,
     requestNumber: quoteRequest.requestNumber,
@@ -898,7 +952,7 @@ async function handleEquipmentQuoteRequest(customerInfo: { name: string; email: 
   const startDate = bookingData.journey_datetime ? new Date(bookingData.journey_datetime as string) : new Date();
   const endDate = new Date(startDate.getTime() + durationInfo.days * 24 * 60 * 60 * 1000);
 
-  const quoteRequest = await prisma.equipment_quote_requests.create({
+  const quoteRequest: any = await (prisma as any).equipment_quote_requests.create({
     data: {
       requestNumber,
       customerId: customer.id,
@@ -922,6 +976,8 @@ async function handleEquipmentQuoteRequest(customerInfo: { name: string; email: 
       quotesOpenTill,
     },
   });
+
+  await tagTaPersonalBooking('equipment_quote_requests', quoteRequest.id, customer.id);
 
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,
@@ -987,6 +1043,8 @@ async function handleBusQuoteRequest(customerInfo: { name: string; email: string
       quotesOpenTill,
     },
   });
+
+  await tagTaPersonalBooking('bus_quote_requests', quoteRequest.id, customer.id);
 
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,
@@ -1094,6 +1152,8 @@ async function handleLuxuryQuoteRequest(customerInfo: { name: string; email: str
     },
   });
 
+  await tagTaPersonalBooking('luxury_quote_requests', quoteRequest.id, customer.id);
+
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,
     requestNumber: quoteRequest.requestNumber,
@@ -1143,7 +1203,7 @@ async function handleLuxuryBooking(customerInfo: { name: string; email: string; 
     '4': 'airport',
   };
 
-  const booking = await prisma.luxury_bookings.create({
+  const booking: any = await (prisma as any).luxury_bookings.create({
     data: {
       bookingNumber,
       customerId: customer.id,
@@ -1173,6 +1233,8 @@ async function handleLuxuryBooking(customerInfo: { name: string; email: string; 
       tripEndOtp: generateOTP(),
     },
   });
+
+  await tagTaPersonalBooking('luxury_bookings', booking.id, customer.id);
 
   return {
     success: true,
@@ -1235,7 +1297,7 @@ async function handleBikeQuoteRequest(customerInfo: { name: string; email: strin
   const quotesOpenTill = new Date();
   quotesOpenTill.setHours(quotesOpenTill.getHours() + 48);
 
-  const quoteRequest = await prisma.bike_quote_requests.create({
+  const quoteRequest: any = await (prisma as any).bike_quote_requests.create({
     data: {
       requestNumber,
       customerId: customer.id,
@@ -1260,6 +1322,8 @@ async function handleBikeQuoteRequest(customerInfo: { name: string; email: strin
       quotesOpenTill,
     },
   });
+
+  await tagTaPersonalBooking('bike_quote_requests', quoteRequest.id, customer.id);
 
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,
@@ -1328,7 +1392,7 @@ async function handleSelfDriveQuoteRequest(customerInfo: { name: string; email: 
   const quotesOpenTill = new Date();
   quotesOpenTill.setHours(quotesOpenTill.getHours() + 48);
 
-  const quoteRequest = await prisma.self_drive_quote_requests.create({
+  const quoteRequest: any = await (prisma as any).self_drive_quote_requests.create({
     data: {
       requestNumber,
       customerId: customer.id,
@@ -1355,6 +1419,8 @@ async function handleSelfDriveQuoteRequest(customerInfo: { name: string; email: 
       quotesOpenTill,
     },
   });
+
+  await tagTaPersonalBooking('self_drive_quote_requests', quoteRequest.id, customer.id);
 
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,

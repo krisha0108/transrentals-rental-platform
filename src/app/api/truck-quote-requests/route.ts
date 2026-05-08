@@ -77,7 +77,16 @@ export async function POST(request: NextRequest) {
     dropCity = sanitizeInput(dropCity);
     dropAddress = sanitizeInput(dropAddress);
     requirements = sanitizeInput(requirements);
-    customerPhone = sanitizePhone(customerPhone);
+    // TA shadow placeholder phone (`ta-<id>`) — keep as-is, skip sanitize/validate.
+    let isTaPlaceholderPhone = false;
+    if (typeof customerPhone === 'string' && customerPhone.startsWith('ta-')) {
+      isTaPlaceholderPhone = true;
+      try {
+        const ag: any = await (prisma as any).travel_agents.findUnique({ where: { id: customerPhone.slice(3) } });
+        if (ag?.phone) { customerPhone = ag.phone; isTaPlaceholderPhone = false; }
+      } catch { /* keep placeholder */ }
+    }
+    if (!isTaPlaceholderPhone) customerPhone = sanitizePhone(customerPhone);
 
     if (!customerName || !customerEmail || !customerPhone) {
       return NextResponse.json({ error: 'Customer details are required' }, { status: 400 });
@@ -88,7 +97,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
-    if (customerPhone && !isValidPhone(customerPhone)) {
+    if (!isTaPlaceholderPhone && customerPhone && !isValidPhone(customerPhone)) {
       return NextResponse.json({ error: 'Invalid phone number. Must be 10 digits starting with 6-9' }, { status: 400 });
     }
     if (!pickupCity || !dropCity || !pickupDate || !vehicle_category || !goodsType) {
@@ -184,6 +193,37 @@ export async function POST(request: NextRequest) {
         source: body.source || 'web',
       },
     });
+
+    // Travel-agent PERSONAL tagging — resolve customer (id → email → phone)
+    // and write travelAgentId + bookingMode='PERSONAL' if the customer is
+    // linked to a travel agent.
+    try {
+      let lookupId: string | null = customerId || null;
+      if (!lookupId && customerEmail) {
+        const c = await prisma.customers.findFirst({
+          where: { email: String(customerEmail).toLowerCase() }, select: { id: true },
+        });
+        if (c) lookupId = c.id;
+      }
+      if (!lookupId && customerPhone) {
+        const c = await prisma.customers.findFirst({
+          where: { phone: String(customerPhone) }, select: { id: true },
+        });
+        if (c) lookupId = c.id;
+      }
+      if (lookupId) {
+        const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+          `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`, lookupId,
+        );
+        const agentId = linkRows[0]?.linkedTravelAgentId || null;
+        if (agentId) {
+          await (prisma as any).$executeRawUnsafe(
+            `UPDATE truck_quote_requests SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+            agentId, 'PERSONAL', quoteRequest.id,
+          );
+        }
+      }
+    } catch (e) { console.error('[truck-quote-requests] TA tag failed', e); }
 
     // Non-blocking vendor notification
     sendQuoteRequestNotificationToVendors({

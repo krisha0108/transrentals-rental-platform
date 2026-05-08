@@ -151,6 +151,37 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Travel-agent PERSONAL tagging — resolve customer (id → email → phone)
+    // and write travelAgentId + bookingMode='PERSONAL' if the customer is
+    // linked to a travel agent.
+    try {
+      let lookupId: string | null = customerId || null;
+      if (!lookupId && customerEmail) {
+        const c = await prisma.customers.findFirst({
+          where: { email: String(customerEmail).toLowerCase() }, select: { id: true },
+        });
+        if (c) lookupId = c.id;
+      }
+      if (!lookupId && customerPhone) {
+        const c = await prisma.customers.findFirst({
+          where: { phone: String(customerPhone) }, select: { id: true },
+        });
+        if (c) lookupId = c.id;
+      }
+      if (lookupId) {
+        const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+          `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`, lookupId,
+        );
+        const agentId = linkRows[0]?.linkedTravelAgentId || null;
+        if (agentId) {
+          await (prisma as any).$executeRawUnsafe(
+            `UPDATE luxury_quote_requests SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+            agentId, 'PERSONAL', quoteRequest.id,
+          );
+        }
+      }
+    } catch (e) { console.error('[luxury-quote-requests] TA tag failed', e); }
+
     // Non-blocking vendor notification
     sendQuoteRequestNotificationToVendors({
       requestId: quoteRequest.id,

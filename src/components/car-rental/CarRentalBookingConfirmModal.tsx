@@ -181,11 +181,16 @@ export function CarRentalBookingConfirmModal({
           try {
             const customer = JSON.parse(storedCustomer);
             setExistingCustomer(customer);
+            // Strip TA shadow placeholder phone — auto-healed below.
+            const safePhone =
+              typeof customer.phone === 'string' && customer.phone.startsWith('ta-')
+                ? ''
+                : (customer.phone || '');
             setFormData(prev => ({
               ...prev,
               name: customer.name || '',
               email: customer.email || '',
-              phone: customer.phone || '',
+              phone: safePhone,
             }));
 
             // Detect Travel Agent (linked customer) — from localStorage first
@@ -215,12 +220,23 @@ export function CarRentalBookingConfirmModal({
                   if (data?.customers?.linkedTravelAgentId) {
                     setIsTravelAgent(true);
                     setBookingPurpose((p) => p ?? 'personal');
-                    // Sync localStorage so future loads have the field
+                    // Auto-heal phone: if the agent has a real phone in their
+                    // TA profile, populate the form + localStorage.
+                    const agentPhone = data?.customers?.linkedAgentPhone || null;
+                    if (agentPhone) {
+                      setFormData(prev => ({
+                        ...prev,
+                        phone: prev.phone || agentPhone,
+                      }));
+                    }
                     try {
-                      const merged = {
+                      const merged: any = {
                         ...customer,
                         linkedTravelAgentId: data.customers.linkedTravelAgentId,
                       };
+                      if (agentPhone && (typeof customer.phone !== 'string' || customer.phone.startsWith('ta-'))) {
+                        merged.phone = agentPhone;
+                      }
                       localStorage.setItem('customer', JSON.stringify(merged));
                     } catch { /* ignore */ }
                   }

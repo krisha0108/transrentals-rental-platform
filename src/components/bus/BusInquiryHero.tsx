@@ -84,7 +84,10 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
       const customer = JSON.parse(storedCustomer);
       if (customer.name) setCustomerName(customer.name);
       if (customer.email) setCustomerEmail(customer.email);
-      if (customer.phone) setCustomerPhone(customer.phone);
+      // Strip TA shadow placeholder phone — auto-healed below.
+      if (customer.phone && !String(customer.phone).startsWith('ta-')) {
+        setCustomerPhone(customer.phone);
+      }
       if (customer.linkedTravelAgentId) {
         setIsTravelAgent(true);
         setAgentName(customer.name || '');
@@ -96,11 +99,19 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
             if (d?.customers?.linkedTravelAgentId) {
               setIsTravelAgent(true);
               setAgentName(d.customers.name || customer.name || '');
+              const agentPhone = d?.customers?.linkedAgentPhone || null;
+              if (agentPhone) {
+                setCustomerPhone(prev => prev || agentPhone);
+              }
               try {
-                localStorage.setItem(
-                  'customer',
-                  JSON.stringify({ ...customer, linkedTravelAgentId: d.customers.linkedTravelAgentId }),
-                );
+                const merged: any = {
+                  ...customer,
+                  linkedTravelAgentId: d.customers.linkedTravelAgentId,
+                };
+                if (agentPhone && (typeof customer.phone !== 'string' || customer.phone.startsWith('ta-'))) {
+                  merged.phone = agentPhone;
+                }
+                localStorage.setItem('customer', JSON.stringify(merged));
               } catch { /* ignore */ }
             }
           })

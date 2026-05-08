@@ -115,6 +115,22 @@ export async function POST(request: NextRequest) {
       taBookingMode,    // 'PERSONAL' | 'COMPANY'
     } = body;
 
+    // ===== TRAVEL-AGENT PLACEHOLDER PHONE =====
+    // Detect `ta-<agentId>` BEFORE sanitization (sanitizePhone strips
+    // non-digits, which would mangle the placeholder past recognition).
+    let isTaPlaceholderPhone = false;
+    if (typeof customerPhone === 'string' && customerPhone.startsWith('ta-')) {
+      isTaPlaceholderPhone = true;
+      try {
+        const agentId = customerPhone.slice(3);
+        const ag: any = await (prisma as any).travel_agents.findUnique({ where: { id: agentId } });
+        if (ag?.phone) {
+          customerPhone = ag.phone;
+          isTaPlaceholderPhone = false;
+        }
+      } catch { /* keep placeholder, skip validation */ }
+    }
+
     // ===== INPUT SANITIZATION (XSS Protection) =====
     customerName = sanitizeInput(customerName);
     vehicleCategoryName = sanitizeInput(vehicleCategoryName);
@@ -124,7 +140,9 @@ export async function POST(request: NextRequest) {
     dropAddress = sanitizeInput(dropAddress);
     routeDetails = sanitizeInput(routeDetails);
     requirements = sanitizeInput(requirements);
-    customerPhone = sanitizePhone(customerPhone);
+    if (!isTaPlaceholderPhone) {
+      customerPhone = sanitizePhone(customerPhone);
+    }
 
     // Validate required fields
     if (!customerName || !customerEmail || !customerPhone) {
@@ -140,7 +158,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
-    if (customerPhone && !isValidPhone(customerPhone)) {
+    if (!isTaPlaceholderPhone && customerPhone && !isValidPhone(customerPhone)) {
       return NextResponse.json({ error: 'Invalid phone number. Must be 10 digits starting with 6-9' }, { status: 400 });
     }
 
@@ -179,10 +197,11 @@ export async function POST(request: NextRequest) {
     }
 
     // ============ TRAVEL AGENT FLOW ============
-    // If the submitting customer is linked to a travel agent and has chosen
-    // a TA booking mode, route the request into b2b_bookings for the manager
-    // queue. No advance, monthly invoice for company bookings.
-    if (taBookingMode === 'PERSONAL' || taBookingMode === 'COMPANY') {
+    // Only COMPANY-mode TA bookings route into b2b_bookings (manager queue).
+    // PERSONAL-mode bookings fall through to the normal quote-request flow
+    // — for travel agents this means their personal trips behave exactly
+    // like a regular customer's bus booking (vendors quote directly).
+    if (taBookingMode === 'COMPANY') {
       // Find / resolve the customer
       let taCustomer: any = null;
       if (customerId) {
@@ -207,18 +226,28 @@ export async function POST(request: NextRequest) {
 
         if (linkedTravelAgentId) {
           const vehiclesReq =
-            taBookingMode === 'COMPANY' && numberOfVehicles && parseInt(numberOfVehicles) > 0
+            numberOfVehicles && parseInt(numberOfVehicles) > 0
               ? parseInt(numberOfVehicles)
               : 1;
 
           const agentRows: any[] = await (prisma as any).$queryRawUnsafe(
-            `SELECT agencyName, ownerName FROM travel_agents WHERE id = ? LIMIT 1`,
+            `SELECT agencyName, ownerName, phone FROM travel_agents WHERE id = ? LIMIT 1`,
             linkedTravelAgentId,
           );
           const agencyName = agentRows[0]?.agencyName || taCustomer.name;
+          // Prefer the agent's real phone over the shadow customer's `ta-<id>`
+          // placeholder when storing on the b2b row.
+          const agentPhone: string | null = agentRows[0]?.phone || null;
+          let resolvedCustomerPhone: string = taCustomer.phone;
+          if (
+            agentPhone &&
+            (typeof resolvedCustomerPhone !== 'string' || resolvedCustomerPhone.startsWith('ta-'))
+          ) {
+            resolvedCustomerPhone = agentPhone;
+          }
 
           const taBookingId = generateB2BId();
-          const taBookingNumber = `TA-${taBookingMode === 'COMPANY' ? 'CO' : 'PR'}-${new Date()
+          const taBookingNumber = `TA-CO-${new Date()
             .getFullYear()}-${Math.floor(Math.random() * 100000)
             .toString()
             .padStart(5, '0')}`;
@@ -240,7 +269,7 @@ export async function POST(request: NextRequest) {
               customerId: taCustomer.id,
               customerName: taCustomer.name,
               customerEmail: taCustomer.email,
-              customerPhone: taCustomer.phone,
+              customerPhone: resolvedCustomerPhone,
               companyName: agencyName,
               serviceType: 'bus',
               vehiclesRequired: vehiclesReq,
@@ -269,10 +298,7 @@ export async function POST(request: NextRequest) {
             success: true,
             isTravelAgent: true,
             bookingMode: taBookingMode,
-            message:
-              taBookingMode === 'COMPANY'
-                ? 'Company bus booking sent to manager. Quote will be shared shortly.'
-                : 'Personal bus booking sent to manager. Quote will be shared shortly.',
+            message: 'Company bus booking sent to manager. Quote will be shared shortly.',
             booking: {
               id: taBooking.id,
               bookingNumber: taBooking.bookingNumber,
@@ -405,10 +431,45 @@ export async function POST(request: NextRequest) {
       calculatedTripDays = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
     }
 
+    // Always check whether the submitting customer is linked to a travel
+    // agent — if yes, tag this row as PERSONAL TA booking. We don't rely on
+    // the front-end sending `taBookingMode` because some modals may forget
+    // to forward it; the customer→agent link in the DB is the source of
+    // truth.
+    let personalTaAgentId: string | null = null;
+    try {
+      const normalizedEmail = customerEmail
+        ? String(customerEmail).trim().toLowerCase()
+        : null;
+      const normalizedPhone = customerPhone ? String(customerPhone).trim() : null;
+      // Single raw query — most reliable across Prisma client regen states.
+      const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+        `SELECT linkedTravelAgentId FROM customers
+         WHERE (? IS NOT NULL AND id = ?)
+            OR (? IS NOT NULL AND email = ?)
+            OR (? IS NOT NULL AND phone = ?)
+         ORDER BY linkedTravelAgentId IS NULL ASC
+         LIMIT 1`,
+        customerId || null, customerId || null,
+        normalizedEmail, normalizedEmail,
+        normalizedPhone, normalizedPhone,
+      );
+      personalTaAgentId = linkRows[0]?.linkedTravelAgentId || null;
+      console.log('[bus-quote-requests] TA tagging lookup', {
+        customerId,
+        normalizedEmail,
+        normalizedPhone,
+        foundAgentId: personalTaAgentId,
+      });
+    } catch (e) {
+      console.error('[bus-quote-requests] TA lookup failed', e);
+    }
+    const isTaPersonal = !!personalTaAgentId;
+
     // Create the quote request
     let quoteRequest;
     try {
-      quoteRequest = await prisma.bus_quote_requests.create({
+      quoteRequest = await (prisma as any).bus_quote_requests.create({
         data: {
           requestNumber,
           customerId: customerId || null,
@@ -443,6 +504,26 @@ export async function POST(request: NextRequest) {
           source: body.source || 'web',
         },
       });
+
+      // Tag with TA fields via raw SQL — bypasses any Prisma-client cache
+      // issues with the new columns (more reliable than spreading into the
+      // create above).
+      if (isTaPersonal && quoteRequest?.id) {
+        try {
+          await (prisma as any).$executeRawUnsafe(
+            `UPDATE bus_quote_requests SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+            personalTaAgentId,
+            'PERSONAL',
+            quoteRequest.id,
+          );
+          console.log('[bus-quote-requests] TA tag applied', {
+            id: quoteRequest.id,
+            travelAgentId: personalTaAgentId,
+          });
+        } catch (e) {
+          console.error('[bus-quote-requests] TA tag UPDATE failed', e);
+        }
+      }
     } catch (dbError: any) {
       logger.error('Database error creating bus quote request', {
         error: dbError?.message,

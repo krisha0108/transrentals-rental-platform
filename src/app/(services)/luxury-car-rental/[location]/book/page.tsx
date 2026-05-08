@@ -157,7 +157,13 @@ function LuxuryBookingContent({ location }: { location: string }) {
     if (isLocalAuth && localCustomer) {
       setCustomerName(prev => prev || localCustomer.name || '');
       setCustomerEmail(prev => prev || localCustomer.email || '');
-      setCustomerPhone(prev => prev || localCustomer.phone || '');
+      // Strip travel-agent shadow placeholder phone (`ta-<id>`) — invalid for
+      // booking validation. User must enter their real number.
+      const safePhone =
+        typeof localCustomer.phone === 'string' && localCustomer.phone.startsWith('ta-')
+          ? ''
+          : (localCustomer.phone || '');
+      setCustomerPhone(prev => prev || safePhone);
       setB2bCustomerId(String(localCustomer.id));
 
       // Detect Travel Agent from localStorage immediately
@@ -183,8 +189,22 @@ function LuxuryBookingContent({ location }: { location: string }) {
             if (d?.customers?.linkedTravelAgentId) {
               setIsTravelAgent(true);
               setAgentName(d.customers.name || localCustomer.name || '');
+              // If the form has no phone (or the placeholder was stripped),
+              // and the agent has a real phone in their TA profile, use it.
+              const agentPhone = d?.customers?.linkedAgentPhone || null;
+              if (agentPhone) {
+                setCustomerPhone(prev => prev || agentPhone);
+              }
               try {
-                const merged = { ...localCustomer, linkedTravelAgentId: d.customers.linkedTravelAgentId };
+                const merged = {
+                  ...localCustomer,
+                  linkedTravelAgentId: d.customers.linkedTravelAgentId,
+                  // Also patch localStorage so other modals/pages get the
+                  // real phone next time without an extra API hop.
+                  ...(agentPhone && (typeof localCustomer.phone !== 'string' || localCustomer.phone.startsWith('ta-'))
+                    ? { phone: agentPhone }
+                    : {}),
+                };
                 localStorage.setItem('customer', JSON.stringify(merged));
               } catch { /* ignore */ }
             }
@@ -328,15 +348,19 @@ function LuxuryBookingContent({ location }: { location: string }) {
       return;
     }
 
-    // Travel Agent flow → always routes to b2b_bookings (manager queue), no advance
+    // Travel Agent flow:
+    //  - COMPANY → routes to b2b_bookings manager queue (TA-CO booking, no advance)
+    //  - PERSONAL → normal customer luxury quote-request flow with regular tagging
     if (isTravelAgent) {
-      const taMode = bookingPurpose === 'company' ? 'COMPANY' : 'PERSONAL';
-      if (taMode === 'COMPANY' && (!numberOfVehicles || parseInt(numberOfVehicles) < 1)) {
-        alert('Please enter number of vehicles for company booking');
+      if (bookingPurpose === 'company') {
+        if (!numberOfVehicles || parseInt(numberOfVehicles) < 1) {
+          alert('Please enter number of vehicles for company booking');
+          return;
+        }
+        await submitB2BBooking('COMPANY');
         return;
       }
-      await submitB2BBooking(taMode);
-      return;
+      // PERSONAL → fall through to the normal quote-request flow below
     }
 
     // B2B Company booking → goes to B2B module
