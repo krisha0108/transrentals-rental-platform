@@ -1,5 +1,5 @@
-import { Metadata } from 'next';
-import { permanentRedirect } from 'next/navigation';
+﻿import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
@@ -71,7 +71,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function MonthlyCarRentalLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('monthly-car-rental', params.location);
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') notFound();
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="monthly-car-rental" serviceName="Monthly Car Rental" />;
   const city = pageContext.city;
   // Fallback: getAllCities().find(c => c.slug === params.location);

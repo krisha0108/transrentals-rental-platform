@@ -1,7 +1,7 @@
-import React from 'react';
+﻿import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { permanentRedirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';
@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function HourlyCarLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('hourly-car-rental', params.location);
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') notFound();
   if (pageContext.type === 'state') return (
     <StateServicePage
       state={pageContext.state}
@@ -89,7 +89,7 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
               <h3 className="font-bold">Daily Self-Drive</h3>
               <p className="text-sm text-gray-600 mt-2">From ₹799/day</p>
             </Link>
-            <Link href={`/airport-transfer/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href="/airport-transfer" className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">Airport Transfer</h3>
               <p className="text-sm text-gray-600 mt-2">From ₹499</p>
             </Link>
@@ -97,7 +97,7 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
               <h3 className="font-bold">Outstation</h3>
               <p className="text-sm text-gray-600 mt-2">From ₹12/km</p>
             </Link>
-            <Link href={`/one-way-cab/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href="/one-way-cab" className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">One Way Cab</h3>
               <p className="text-sm text-gray-600 mt-2">Fixed fare</p>
             </Link>

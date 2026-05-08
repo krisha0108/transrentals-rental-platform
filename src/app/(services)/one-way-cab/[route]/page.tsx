@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { permanentRedirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { OneWayRouteBookingHero } from '@/components/one-way-cab/OneWayRouteBookingHero';
@@ -484,7 +484,7 @@ export default async function OneWayCabRoutePage({ params }: PageProps) {
     if (COMING_SOON_SLUGS.has(params.route)) {
       return <OneWayCabComingSoon label={routeSlugToLabel(params.route)} slug={params.route} />;
     }
-    permanentRedirect('/one-way-cab');
+    notFound();
   }
 
   const routeData = await getRouteData(parsed.from, parsed.to);
@@ -494,7 +494,7 @@ export default async function OneWayCabRoutePage({ params }: PageProps) {
     if (COMING_SOON_SLUGS.has(params.route)) {
       return <OneWayCabComingSoon label={routeSlugToLabel(params.route)} slug={params.route} />;
     }
-    permanentRedirect('/one-way-cab');
+    notFound();
   }
 
   const { from, to, packages } = routeData;
@@ -526,7 +526,7 @@ export default async function OneWayCabRoutePage({ params }: PageProps) {
             <span className="mx-2">/</span>
             <a href="/one-way-cab" className="hover:text-primary">One Way Cab</a>
             <span className="mx-2">/</span>
-            <a href={`/one-way-cab/${from.slug}`} className="hover:text-primary">{from.name}</a>
+            <span className="text-gray-600">{from.name}</span>
             <span className="mx-2">/</span>
             <span className="text-gray-900 font-medium">{to.name}</span>
           </nav>

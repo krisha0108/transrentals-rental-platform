@@ -1,5 +1,5 @@
-import { Metadata } from 'next';
-import { permanentRedirect } from 'next/navigation';
+﻿import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { prisma } from '@/lib/db/prisma';
 import { CarSearchHero } from '@/components/car';
@@ -111,7 +111,7 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
         </>
       );
     }
-    permanentRedirect(pageContext.to);
+    notFound();
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="self-drive-car-rentals" serviceName="Self Drive Car Rentals" />;
 

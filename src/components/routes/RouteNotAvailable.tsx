@@ -47,7 +47,7 @@ export function RouteNotAvailable({
           {/* CTA Buttons */}
           <div className="flex flex-wrap gap-4 justify-center mb-8">
             <a
-              href={`/contact?from=${fromSlug}&to=${toSlug}&service=one-way-cab`}
+              href={fromSlug && toSlug ? `/contact?from=${fromSlug}&to=${toSlug}&service=one-way-cab` : `/contact`}
               className="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-emerald-700 transition"
             >
               📝 Request Custom Quote
