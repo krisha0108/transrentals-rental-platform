@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { CarSubServicesGrid } from '@/components/services/CarSubServicesGrid';
 import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
-import { HowToSchema, FAQSchema, BreadcrumbSchema } from '@/components/seo/schemas';
+import { HowToSchema, FAQSchema, BreadcrumbSchema, ItemListSchema } from '@/components/seo/schemas';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 
 const CAR_RENTAL_FAQS = [
@@ -100,6 +100,16 @@ export default function CarRentalPage() {
         ]}
       />
       <FAQSchema faqs={CAR_RENTAL_FAQS.map(f => ({ question: f.q, answer: f.a }))} />
+      <ItemListSchema
+        name="Car Rental in Top Cities - TransRentals"
+        description="Rent cars in top Indian cities — self-drive and chauffeur-driven available."
+        url="https://transrentals.in/car-rental"
+        items={TOP_CITIES.map(city => ({
+          name: `Car Rental in ${city.name}`,
+          url: `https://transrentals.in/car-rental/${city.slug}`,
+          description: `Book self-drive and chauffeur-driven cars in ${city.name} starting ₹999/day.`,
+        }))}
+      />
       {/* Service Schema */}
       <script
         type="application/ld+json"

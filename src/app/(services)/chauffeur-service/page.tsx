@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { HowToSchema, FAQSchema, BreadcrumbSchema } from '@/components/seo/schemas';
 import { getCitiesByPriority } from '@/data/indian-cities';
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
 import { prisma } from '@/lib/db/prisma';
@@ -63,6 +64,36 @@ export default async function ChauffeurServicePage() {
 
   return (
     <>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://transrentals.in' },
+        { name: 'Chauffeur Service', url: 'https://transrentals.in/chauffeur-service' },
+      ]} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Service',
+          name: 'Chauffeur Service India',
+          description: 'Hire professional chauffeur for your car. Experienced, verified drivers for outstation, daily use, events.',
+          url: 'https://transrentals.in/chauffeur-service',
+          serviceType: 'Chauffeur Service',
+          provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
+          areaServed: { '@type': 'Country', name: 'India' },
+          offers: { '@type': 'AggregateOffer', priceCurrency: 'INR', lowPrice: '599', highPrice: '2500' },
+          aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '3200', bestRating: '5' },
+        }) }}
+      />
+      <HowToSchema
+        name="How to Hire a Chauffeur on TransRentals"
+        description="Book a professional driver for your car in simple steps."
+        totalTime="PT5M"
+        steps={[
+          { name: 'Select Service Type', text: 'Choose from local packages (4hr/8hr), outstation, or monthly driver hire.' },
+          { name: 'Pick Your City & Date', text: 'Enter your pickup city and start date. Chauffeur available 24/7 across 150+ cities.' },
+          { name: 'Choose Vehicle Category', text: 'Hatchback, Sedan, or SUV driver — pick based on your car type.' },
+          { name: 'Confirm & Driver Arrives', text: 'Pay online and receive driver details. Professional chauffeur arrives at your doorstep.' },
+        ]}
+      />
       {/* Booking Hero - Same as Car Rental */}
       <CarRentalBookingHero
         city=""

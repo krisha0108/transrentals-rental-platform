@@ -3,6 +3,7 @@ import { Crown, Star, Shield, Car, MapPin, Clock } from 'lucide-react';
 import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { HowToSchema, BreadcrumbSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Luxury Car Rental - BMW, Mercedes, Audi, Ferrari, Lamborghini | TransRentals',
@@ -30,6 +31,36 @@ export const metadata: Metadata = {
 export default function LuxuryCarRentalPage() {
   return (
     <>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://transrentals.in' },
+        { name: 'Luxury Car Rental', url: 'https://transrentals.in/luxury-car-rental' },
+      ]} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Service',
+          name: 'Luxury & Exotic Car Rental India',
+          description: 'Rent luxury cars — Rolls-Royce, Bentley, Ferrari, Lamborghini, Porsche, BMW, Mercedes, Audi across India.',
+          url: 'https://transrentals.in/luxury-car-rental',
+          serviceType: 'Luxury Car Rental',
+          provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
+          areaServed: { '@type': 'Country', name: 'India' },
+          offers: { '@type': 'AggregateOffer', priceCurrency: 'INR', lowPrice: '8000', highPrice: '200000' },
+          aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '850', bestRating: '5' },
+        }) }}
+      />
+      <HowToSchema
+        name="How to Book a Luxury Car Rental on TransRentals"
+        description="Rent exotic and luxury cars in India — BMW, Mercedes, Ferrari, Rolls-Royce."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Browse the Fleet', text: 'Explore 20+ luxury & exotic cars — Rolls-Royce, Ferrari, Lamborghini, Porsche, BMW, and Mercedes.' },
+          { name: 'Select City & Dates', text: 'Pick your city, rental start date and end date. Chauffeur-driven and self-drive options available.' },
+          { name: 'Confirm Booking', text: 'Choose your preferred car, confirm pricing, and pay securely online.' },
+          { name: 'Enjoy the Experience', text: 'Your luxury car arrives ready for you — fully fuelled, sanitised, and with a professional driver if opted.' },
+        ]}
+      />
       {/* Hero Section */}
       <SimpleServiceHero
         badge="Premium Collection"

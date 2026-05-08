@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { LocationProvider } from '@/contexts/LocationContext';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 import VisitorTracker from '@/components/analytics/VisitorTracker';
-import TrackingScripts from '@/components/analytics/TrackingScripts';
+import TrackingScripts, { getVerificationCodes } from '@/components/analytics/TrackingScripts';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 import PageViewTracker from '@/components/analytics/PageViewTracker';
 // import dynamic from 'next/dynamic';
@@ -31,7 +31,7 @@ const poppins = Poppins({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
+const BASE_METADATA: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://transrentals.in'),
   title: {
     default: 'TransRentals - India\'s Largest Vehicle Rental Marketplace',
@@ -95,7 +95,6 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  // google: 'ADD_FROM_SEARCH_CONSOLE' — get from Google Search Console → Settings → Ownership verification
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -115,6 +114,17 @@ export const metadata: Metadata = {
     'mobile-web-app-capable': 'yes',
   },
 };
+
+// generateMetadata fetches verification codes from DB so admin can set them without code changes
+export async function generateMetadata(): Promise<Metadata> {
+  const codes = await getVerificationCodes();
+  return {
+    ...BASE_METADATA,
+    ...(codes.googleVerificationCode && {
+      verification: { google: codes.googleVerificationCode },
+    }),
+  };
+}
 
 export default function RootLayout({
   children,
