@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { DynamicServicePage } from '@/components/services/DynamicServicePage';
 import { BikeTypesCards } from '@/components/services/BikeTypesCards';
 import { BikeFleetShowcase } from '@/components/services/BikeFleetShowcase';
-import { BikeServiceSchema } from '@/components/seo/schemas';
+import { BikeServiceSchema, HowToSchema } from '@/components/seo/schemas';
 import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
@@ -131,6 +131,17 @@ export default function BikeRentalPage() {
         priceRange={{ min: 299, max: 1499 }}
         rating={4.6}
         reviewCount={2850}
+      />
+      <HowToSchema
+        name="How to Rent a Bike on TransRentals"
+        description="Book a bike rental in 4 simple steps on TransRentals across 150+ cities in India."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Select Your City', text: 'Choose your pickup city from 150+ available locations across India.' },
+          { name: 'Pick Your Bike', text: 'Browse available bikes — Royal Enfield, KTM, Honda, Yamaha & more. Filter by type, price, and brand.' },
+          { name: 'Book Online', text: 'Complete your booking with secure online payment. Instant confirmation.' },
+          { name: 'Ride Away', text: 'Pick up your bike from the vendor location with your licence and ID proof. Enjoy your ride!' },
+        ]}
       />
 
       {/* Hero Section */}

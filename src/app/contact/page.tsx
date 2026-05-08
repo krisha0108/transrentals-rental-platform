@@ -7,6 +7,7 @@ import {
   WHATSAPP_LINK,
 } from '@/lib/contact';
 import { Phone, Mail, MapPin, MessageCircle, Clock } from 'lucide-react';
+import { WebPageSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Contact Us - Get in Touch | TransRentals',
@@ -57,9 +58,41 @@ const contactMethods = [
   },
 ];
 
+const contactSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'ContactPage',
+  name: 'Contact TransRentals',
+  description: 'Contact TransRentals for vehicle rental queries and support.',
+  url: 'https://transrentals.in/contact',
+  mainEntity: {
+    '@type': 'Organization',
+    name: 'TransRentals',
+    telephone: '+91-9737965551',
+    email: 'book@transrentals.in',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: '215, Galaxy Business, 2nd Floor, SP Ring Road',
+      addressLocality: 'Ahmedabad',
+      addressRegion: 'Gujarat',
+      postalCode: '382350',
+      addressCountry: 'IN',
+    },
+    openingHoursSpecification: {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      opens: '00:00',
+      closes: '23:59',
+    },
+  },
+};
+
 export default function ContactPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(contactSchema) }}
+      />
       <Header />
 
       {/* Hero Section */}

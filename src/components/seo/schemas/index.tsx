@@ -1,26 +1,36 @@
-/**
- * SEO Schema Components
- * JSON-LD structured data for better search engine visibility
- */
-
 import React from 'react';
 
-// Base organization info used across all schemas
 const ORGANIZATION = {
   '@type': 'Organization',
   name: 'TransRentals',
   url: 'https://transrentals.in',
-  logo: 'https://transrentals.in/images/logo.png',
+  logo: {
+    '@type': 'ImageObject',
+    url: 'https://transrentals.in/images/logo.png',
+    width: 200,
+    height: 60,
+  },
   contactPoint: {
     '@type': 'ContactPoint',
-    telephone: '+91-9999999999',
+    telephone: '+91-9737965551',
+    email: 'book@transrentals.in',
     contactType: 'customer service',
+    areaServed: 'IN',
     availableLanguage: ['English', 'Hindi'],
   },
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: '215, Galaxy Business, 2nd Floor, SP Ring Road',
+    addressLocality: 'Ahmedabad',
+    addressRegion: 'Gujarat',
+    postalCode: '382350',
+    addressCountry: 'IN',
+  },
   sameAs: [
-    'https://facebook.com/transrentals',
-    'https://instagram.com/transrentals',
+    'https://www.facebook.com/transrentals',
+    'https://www.instagram.com/transrentals',
     'https://twitter.com/transrentals',
+    'https://www.linkedin.com/company/transrentals',
   ],
 };
 
@@ -37,6 +47,7 @@ interface LocalBusinessSchemaProps {
   rating?: number;
   reviewCount?: number;
   geo?: { lat: number; lng: number };
+  serviceSlug?: string;
 }
 
 export function LocalBusinessSchema({
@@ -45,23 +56,25 @@ export function LocalBusinessSchema({
   city,
   state = '',
   address,
-  telephone = '+91-9999999999',
+  telephone = '+91-9737965551',
   priceRange = '₹₹',
   image,
   rating,
   reviewCount,
   geo,
+  serviceSlug = 'bike-on-rent',
 }: LocalBusinessSchemaProps) {
+  const citySlug = city.toLowerCase().replace(/\s+/g, '-');
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
-    '@id': `https://transrentals.in/#${city.toLowerCase().replace(/\s+/g, '-')}`,
+    '@id': `https://transrentals.in/#${citySlug}`,
     name,
     description,
-    url: `https://transrentals.in/bike-on-rent/${city.toLowerCase().replace(/\s+/g, '-')}`,
+    url: `https://transrentals.in/${serviceSlug}/${citySlug}`,
     telephone,
     priceRange,
-    image: image || 'https://transrentals.in/images/bike-rental-hero.jpg',
+    image: image || 'https://transrentals.in/images/og-image.jpg',
     address: {
       '@type': 'PostalAddress',
       addressLocality: city,
@@ -109,6 +122,7 @@ interface VehicleRentalSchemaProps {
   serviceName: string;
   description: string;
   city?: string;
+  serviceSlug?: string;
   vehicles?: Array<{
     name: string;
     brand: string;
@@ -116,18 +130,24 @@ interface VehicleRentalSchemaProps {
     image?: string;
   }>;
   priceRange?: { min: number; max: number };
+  rating?: number;
+  reviewCount?: number;
 }
 
 export function VehicleRentalSchema({
   serviceName,
   description,
   city,
+  serviceSlug = 'bike-on-rent',
   vehicles = [],
   priceRange,
+  rating,
+  reviewCount,
 }: VehicleRentalSchemaProps) {
-  const baseUrl = city
-    ? `https://transrentals.in/bike-on-rent/${city.toLowerCase().replace(/\s+/g, '-')}`
-    : 'https://transrentals.in/bike-on-rent';
+  const citySlug = city ? city.toLowerCase().replace(/\s+/g, '-') : null;
+  const baseUrl = citySlug
+    ? `https://transrentals.in/${serviceSlug}/${citySlug}`
+    : `https://transrentals.in/${serviceSlug}`;
 
   const schema = {
     '@context': 'https://schema.org',
@@ -147,6 +167,15 @@ export function VehicleRentalSchema({
         highPrice: priceRange.max,
         priceCurrency: 'INR',
         offerCount: vehicles.length || 50,
+      },
+    }),
+    ...(rating && reviewCount && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: rating,
+        reviewCount: reviewCount,
+        bestRating: 5,
+        worstRating: 1,
       },
     }),
     ...(vehicles.length > 0 && {
@@ -240,7 +269,7 @@ export function BreadcrumbSchema({ items }: BreadcrumbSchemaProps) {
   );
 }
 
-// ============= PRODUCT SCHEMA (for individual bikes) =============
+// ============= PRODUCT SCHEMA =============
 interface ProductSchemaProps {
   name: string;
   brand: string;
@@ -327,6 +356,203 @@ export function WebsiteSchema() {
   );
 }
 
+// ============= HOW TO SCHEMA =============
+interface HowToSchemaProps {
+  name: string;
+  description?: string;
+  steps: Array<{
+    name: string;
+    text: string;
+    image?: string;
+  }>;
+  totalTime?: string;
+}
+
+export function HowToSchema({ name, description, steps, totalTime }: HowToSchemaProps) {
+  if (!steps || steps.length === 0) return null;
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name,
+    ...(description && { description }),
+    ...(totalTime && { totalTime }),
+    step: steps.map((step, index) => ({
+      '@type': 'HowToStep',
+      position: index + 1,
+      name: step.name,
+      text: step.text,
+      ...(step.image && { image: step.image }),
+    })),
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+
+// ============= ARTICLE SCHEMA =============
+interface ArticleSchemaProps {
+  title: string;
+  description: string;
+  url: string;
+  image: string;
+  datePublished: string;
+  dateModified: string;
+  authorName: string;
+  publisherName?: string;
+  publisherLogo?: string;
+  keywords?: string[];
+}
+
+export function ArticleSchema({
+  title,
+  description,
+  url,
+  image,
+  datePublished,
+  dateModified,
+  authorName,
+  publisherName = 'TransRentals',
+  publisherLogo = 'https://transrentals.in/images/logo.png',
+  keywords = [],
+}: ArticleSchemaProps) {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: title,
+    description,
+    url,
+    image: {
+      '@type': 'ImageObject',
+      url: image,
+      width: 1200,
+      height: 630,
+    },
+    datePublished,
+    dateModified,
+    author: {
+      '@type': 'Person',
+      name: authorName,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: publisherName,
+      logo: {
+        '@type': 'ImageObject',
+        url: publisherLogo,
+        width: 200,
+        height: 60,
+      },
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': url,
+    },
+    ...(keywords.length > 0 && { keywords: keywords.join(', ') }),
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+
+// ============= WEB PAGE SCHEMA =============
+interface WebPageSchemaProps {
+  name: string;
+  description: string;
+  url: string;
+  type?: 'WebPage' | 'AboutPage' | 'ContactPage' | 'FAQPage' | 'CollectionPage';
+  breadcrumbs?: Array<{ name: string; url: string }>;
+}
+
+export function WebPageSchema({
+  name,
+  description,
+  url,
+  type = 'WebPage',
+  breadcrumbs,
+}: WebPageSchemaProps) {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': type,
+    name,
+    description,
+    url,
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'TransRentals',
+      url: 'https://transrentals.in',
+    },
+    publisher: ORGANIZATION,
+    ...(breadcrumbs && breadcrumbs.length > 0 && {
+      breadcrumb: {
+        '@type': 'BreadcrumbList',
+        itemListElement: breadcrumbs.map((b, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: b.name,
+          item: b.url,
+        })),
+      },
+    }),
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+
+// ============= ITEM LIST SCHEMA =============
+interface ItemListSchemaProps {
+  name: string;
+  description?: string;
+  url: string;
+  items: Array<{
+    name: string;
+    url: string;
+    image?: string;
+    description?: string;
+  }>;
+}
+
+export function ItemListSchema({ name, description, url, items }: ItemListSchemaProps) {
+  if (!items || items.length === 0) return null;
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name,
+    ...(description && { description }),
+    url,
+    numberOfItems: items.length,
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      url: item.url,
+      ...(item.image && { image: item.image }),
+      ...(item.description && { description: item.description }),
+    })),
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+
 // ============= COMBINED BIKE SERVICE SCHEMA =============
 interface BikeServiceSchemaProps {
   serviceName: string;
@@ -355,7 +581,6 @@ export function BikeServiceSchema({
 }: BikeServiceSchemaProps) {
   const baseUrl = 'https://transrentals.in';
 
-  // Build breadcrumbs
   const breadcrumbs = [
     { name: 'Home', url: baseUrl },
     { name: serviceName, url: `${baseUrl}/${serviceSlug}` },
@@ -374,14 +599,18 @@ export function BikeServiceSchema({
         serviceName={city ? `${serviceName} in ${city}` : serviceName}
         description={description}
         city={city}
+        serviceSlug={serviceSlug}
         vehicles={vehicles}
         priceRange={priceRange}
+        rating={rating}
+        reviewCount={reviewCount}
       />
       {city && (
         <LocalBusinessSchema
           name={`TransRentals ${serviceName} - ${city}`}
           description={description}
           city={city}
+          serviceSlug={serviceSlug}
           rating={rating}
           reviewCount={reviewCount}
         />
