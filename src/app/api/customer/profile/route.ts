@@ -58,12 +58,23 @@ export async function GET(request: NextRequest) {
 
     // Enrich with linkedTravelAgentId via raw SQL (column not in generated Prisma client yet)
     let linkedTravelAgentId: string | null = null;
+    let linkedAgentPhone: string | null = null;
     try {
       const rows: any[] = await (prisma as any).$queryRawUnsafe(
         `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`,
         customer.id,
       );
       linkedTravelAgentId = rows[0]?.linkedTravelAgentId || null;
+
+      // If linked to a TA, fetch the agent's real phone — booking forms use
+      // this when the shadow customer's phone is a `ta-<id>` placeholder.
+      if (linkedTravelAgentId) {
+        const ag: any = await (prisma as any).travel_agents.findUnique({
+          where: { id: linkedTravelAgentId },
+          select: { phone: true },
+        });
+        linkedAgentPhone = ag?.phone || null;
+      }
     } catch {
       /* column may not exist in older deployments */
     }
@@ -74,6 +85,7 @@ export async function GET(request: NextRequest) {
         ...customer,
         image: customer.avatar,
         linkedTravelAgentId,
+        linkedAgentPhone,
       },
     });
   } catch (error) {

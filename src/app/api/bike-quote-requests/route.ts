@@ -134,8 +134,25 @@ export async function POST(request: NextRequest) {
     const totalDays = duration.totalDays;
     const totalHours = duration.totalHours;
 
+    // Resolve customer for TA tagging — find by id, then email, then phone.
+    let resolvedCustomerId: string | null = validCustomerId;
+    if (!resolvedCustomerId && customerEmail) {
+      const c = await prisma.customers.findFirst({
+        where: { email: String(customerEmail).toLowerCase() },
+        select: { id: true },
+      });
+      if (c) resolvedCustomerId = c.id;
+    }
+    if (!resolvedCustomerId && customerPhone) {
+      const c = await prisma.customers.findFirst({
+        where: { phone: String(customerPhone) },
+        select: { id: true },
+      });
+      if (c) resolvedCustomerId = c.id;
+    }
+
     // Create the quote request
-    const quoteRequest = await prisma.bike_quote_requests.create({
+    const quoteRequest: any = await (prisma as any).bike_quote_requests.create({
       data: {
         requestNumber,
         customerId: validCustomerId,
@@ -166,6 +183,28 @@ export async function POST(request: NextRequest) {
         source: body.source || 'web',
       },
     });
+
+    // Travel-agent PERSONAL tagging — if the resolved customer is linked
+    // to a TA, mark the quote-request row.
+    if (resolvedCustomerId) {
+      try {
+        const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+          `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`,
+          resolvedCustomerId,
+        );
+        const agentId = linkRows[0]?.linkedTravelAgentId || null;
+        if (agentId) {
+          await (prisma as any).$executeRawUnsafe(
+            `UPDATE bike_quote_requests SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+            agentId,
+            'PERSONAL',
+            quoteRequest.id,
+          );
+        }
+      } catch (e) {
+        console.error('[bike-quote-requests] TA tag failed', e);
+      }
+    }
 
     // Non-blocking vendor notification
     sendQuoteRequestNotificationToVendors({

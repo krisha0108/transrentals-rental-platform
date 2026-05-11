@@ -95,6 +95,9 @@ export function SelfDriveQuoteRequestModal({
   const [bookingPurpose, setBookingPurpose] = useState<'personal' | 'company' | null>(null);
   const [numberOfVehicles, setNumberOfVehicles] = useState('');
   const [numberOfPersons, setNumberOfPersons] = useState('');
+  // Travel-agent linkage — agent can pick PERSONAL (their own trip) or
+  // COMPANY (their agency's fleet booking, routes to b2b_bookings).
+  const [isTravelAgent, setIsTravelAgent] = useState(false);
 
   // Check if user is already logged in on mount
   React.useEffect(() => {
@@ -109,9 +112,16 @@ export function SelfDriveQuoteRequestModal({
             setIsLoggedIn(true);
             setCustomerName(parsedCustomer.name || '');
             setCustomerEmail(parsedCustomer.email || '');
-            setCustomerPhone(parsedCustomer.phone || '');
+            // Strip TA shadow placeholder phone — auto-healed below.
+            const safePhone =
+              typeof parsedCustomer.phone === 'string' && parsedCustomer.phone.startsWith('ta-')
+                ? ''
+                : (parsedCustomer.phone || '');
+            setCustomerPhone(safePhone);
+            // Travel-agent linkage from localStorage
+            if (parsedCustomer.linkedTravelAgentId) setIsTravelAgent(true);
 
-            // Check B2B status
+            // Check B2B status + auto-heal phone via profile API
             const params = new URLSearchParams();
             if (parsedCustomer.id) params.set('customer_id', String(parsedCustomer.id));
             if (parsedCustomer.email) params.set('email', parsedCustomer.email);
@@ -119,6 +129,22 @@ export function SelfDriveQuoteRequestModal({
               fetch(`/api/customer/b2b-status?${params.toString()}`)
                 .then(res => res.json())
                 .then(data => { if (data.isB2B) setIsB2BCustomer(true); })
+                .catch(() => {});
+              fetch(`/api/customer/profile?customer_id=${parsedCustomer.id}`)
+                .then(r => r.json())
+                .then(d => {
+                  if (d?.customers?.linkedTravelAgentId) setIsTravelAgent(true);
+                  const agentPhone = d?.customers?.linkedAgentPhone || null;
+                  if (agentPhone) {
+                    setCustomerPhone(prev => prev || agentPhone);
+                    try {
+                      const stored = JSON.parse(localStorage.getItem('customer') || '{}');
+                      if (typeof stored.phone !== 'string' || stored.phone.startsWith('ta-')) {
+                        localStorage.setItem('customer', JSON.stringify({ ...stored, phone: agentPhone }));
+                      }
+                    } catch { /* ignore */ }
+                  }
+                })
                 .catch(() => {});
             }
           } catch (e) {
@@ -202,6 +228,11 @@ export function SelfDriveQuoteRequestModal({
         ...(bookingPurpose === 'company' && {
           isB2B: true,
           numberOfPersons: numberOfPersons ? parseInt(numberOfPersons) : undefined,
+        }),
+        // Travel-agent COMPANY booking — backend uses this to tag the b2b row
+        // with travelAgentId + bookingMode='COMPANY' (no agency-side B2B check).
+        ...(isTravelAgent && bookingPurpose === 'company' && {
+          taBookingMode: 'COMPANY',
         }),
       };
 
@@ -579,7 +610,7 @@ export function SelfDriveQuoteRequestModal({
                 </div>
 
                 {/* Booking Purpose Toggle - Personal or Company */}
-                {isB2BCustomer && (
+                {(isB2BCustomer || isTravelAgent) && (
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3 mb-4">
                     <p className="text-sm font-semibold text-gray-800">This booking is for:</p>
                     <div className="grid grid-cols-2 gap-3">

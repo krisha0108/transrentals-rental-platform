@@ -74,7 +74,7 @@ const approvedNavigationItems: NavItem[] = [
     icon: Compass,
     children: [
       { name: 'My Tours', href: '/travel-agent/tours', icon: Compass },
-      { name: 'Add Tour', href: '/travel-agent/tours/add', icon: Plus },
+      { name: 'Add Tour', href: '/travel-agent/tours?addMode=open', icon: Plus },
     ],
   },
   {
@@ -137,7 +137,7 @@ const pendingNavigationItems: NavItem[] = [
     icon: Compass,
     children: [
       { name: 'My Tours', href: '/travel-agent/tours', icon: Compass },
-      { name: 'Add Tour', href: '/travel-agent/tours/add', icon: Plus },
+      { name: 'Add Tour', href: '/travel-agent/tours?addMode=open', icon: Plus },
     ],
   },
   {

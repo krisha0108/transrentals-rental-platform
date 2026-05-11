@@ -153,8 +153,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Account is suspended' }, { status: 403 });
     }
 
+    // Only COMPANY-mode TA bookings belong in b2b_bookings. PERSONAL TA
+    // bookings should be routed to the normal customer flow (per service)
+    // — reject them here so a misconfigured caller can't dump them into the
+    // manager queue.
+    if (taBookingMode === 'PERSONAL') {
+      return NextResponse.json(
+        { error: 'PERSONAL travel-agent bookings are not accepted here. Use the regular service quote-request endpoint instead.' },
+        { status: 400 },
+      );
+    }
+
     let linkedTravelAgentId: string | null = null;
-    if (taBookingMode === 'PERSONAL' || taBookingMode === 'COMPANY') {
+    if (taBookingMode === 'COMPANY') {
       const linkedRows: any[] = await (prisma as any).$queryRawUnsafe(
         `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`,
         customer.id,
@@ -162,7 +173,7 @@ export async function POST(request: NextRequest) {
       linkedTravelAgentId = linkedRows[0]?.linkedTravelAgentId || null;
     }
 
-    // Allow if either: (a) classic B2B-approved customer, or (b) linked TA
+    // Allow if either: (a) classic B2B-approved customer, or (b) linked TA (COMPANY)
     if (!linkedTravelAgentId && (!customer.isB2B || customer.b2bStatus !== 'APPROVED')) {
       return NextResponse.json({ error: 'B2B access not approved. Please wait for admin approval.' }, { status: 403 });
     }
@@ -170,14 +181,24 @@ export async function POST(request: NextRequest) {
     const bookingId = generateId();
     let companyName = customer.companyName || customer.name;
     let bookingNumber = generateBookingNumber();
+    // For travel-agent COMPANY bookings, prefer the agent's real phone over
+    // the shadow customer's placeholder (`ta-<id>`).
+    let resolvedCustomerPhone: string = customer.phone;
     if (linkedTravelAgentId) {
-      // Use agency name + TA-prefixed booking number
+      // Use agency name + TA-CO prefix (only COMPANY reaches this path)
       const agentRows: any[] = await (prisma as any).$queryRawUnsafe(
-        `SELECT agencyName FROM travel_agents WHERE id = ? LIMIT 1`,
+        `SELECT agencyName, phone FROM travel_agents WHERE id = ? LIMIT 1`,
         linkedTravelAgentId,
       );
       if (agentRows[0]?.agencyName) companyName = agentRows[0].agencyName;
-      bookingNumber = `TA-${taBookingMode === 'COMPANY' ? 'CO' : 'PR'}-${new Date()
+      const agentPhone: string | null = agentRows[0]?.phone || null;
+      if (
+        agentPhone &&
+        (typeof resolvedCustomerPhone !== 'string' || resolvedCustomerPhone.startsWith('ta-'))
+      ) {
+        resolvedCustomerPhone = agentPhone;
+      }
+      bookingNumber = `TA-CO-${new Date()
         .getFullYear()}-${Math.floor(Math.random() * 100000)
         .toString()
         .padStart(5, '0')}`;
@@ -190,7 +211,7 @@ export async function POST(request: NextRequest) {
         customerId,
         customerName: customer.name,
         customerEmail: customer.email,
-        customerPhone: customer.phone,
+        customerPhone: resolvedCustomerPhone,
         companyName,
         serviceType,
         vehiclesRequired: parseInt(vehiclesRequired),

@@ -134,7 +134,18 @@ async function tryTravelAgentLogin(
       id: shadowCustomer.id,
       name: shadowCustomer.name,
       email: shadowCustomer.email,
-      phone: shadowCustomer.phone,
+      // Always surface the agent's REAL phone to the client. The shadow
+      // customer's DB row may carry a `ta-<id>` placeholder (when the
+      // agent's actual phone collided with another customer at shadow
+      // creation time) — that placeholder fails Indian-mobile validation
+      // in booking endpoints. Prefer agent.phone; if agent has no phone
+      // either, send empty string so booking forms render a blank input
+      // (never the `ta-<id>` placeholder).
+      phone:
+        agent.phone ||
+        (typeof shadowCustomer.phone === 'string' && shadowCustomer.phone.startsWith('ta-')
+          ? ''
+          : shadowCustomer.phone || ''),
       avatar: shadowCustomer.avatar || null,
       isB2B: false,
       companyName: null,
@@ -287,7 +298,7 @@ export async function POST(request: NextRequest) {
         response = await handleLogin(body, ip, request);
         break;
       case 'register':
-        response = await handleRegister(body, ip);
+        response = await handleRegister(body, ip, request);
         break;
       case 'check-exists':
         response = await handleCheckExists(body);
@@ -465,6 +476,25 @@ async function handleLogin(
 
   logger.info('Customer login successful', { customerId: customer.id });
 
+  // If this customer is a shadow for a travel agent with a `ta-<id>`
+  // placeholder phone, surface the agent's real phone for the client.
+  // If the agent also has no phone, return empty (never the placeholder).
+  let surfacedPhone: string = customer.phone;
+  let linkedAgentId: string | null = null;
+  try {
+    const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+      `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`,
+      customer.id,
+    );
+    linkedAgentId = linkRows[0]?.linkedTravelAgentId || null;
+    if (linkedAgentId && (!surfacedPhone || surfacedPhone.startsWith('ta-'))) {
+      const linkedAgent: any = await (prisma as any).travel_agents.findUnique({
+        where: { id: linkedAgentId },
+      });
+      surfacedPhone = linkedAgent?.phone || '';
+    }
+  } catch { /* non-fatal */ }
+
   return NextResponse.json({
     status: 'success',
     message: 'Login successful',
@@ -475,11 +505,12 @@ async function handleLogin(
       id: customer.id,
       name: customer.name,
       email: customer.email,
-      phone: customer.phone,
+      phone: surfacedPhone,
       avatar: customer.avatar || null,
       isB2B: customer.isB2B || false,
       companyName: customer.companyName || null,
       b2bStatus: customer.b2bStatus || null,
+      ...(linkedAgentId ? { linkedTravelAgentId: linkedAgentId } : {}),
     },
   });
 }
@@ -531,6 +562,32 @@ async function handleCheckExists(body: { phone?: string; email?: string }): Prom
     });
   }
 
+  // Also surface travel-agent accounts as "existing" so booking modals open the
+  // login (password) step instead of the register flow. handleLogin has a TA
+  // fallback that authenticates the agent and provisions a shadow customer.
+  const agentConditions: { phone?: string; email?: string }[] = [];
+  if (phone) agentConditions.push({ phone: phone.trim() });
+  if (email) agentConditions.push({ email: email.toLowerCase().trim() });
+
+  const agent: any = await (prisma as any).travel_agents.findFirst({
+    where: { OR: agentConditions },
+  });
+
+  if (agent) {
+    return NextResponse.json({
+      status: 'success',
+      exists: true,
+      customers: {
+        id: agent.id,
+        name: agent.ownerName || agent.agencyName || agent.email,
+        email: agent.email,
+        phone: agent.phone || '',
+        hasPassword: !!agent.password,
+      },
+      isTravelAgent: true,
+    });
+  }
+
   return NextResponse.json({
     status: 'success',
     exists: false,
@@ -540,7 +597,8 @@ async function handleCheckExists(body: { phone?: string; email?: string }): Prom
 // Handle customer registration
 async function handleRegister(
   body: { name: string; email: string; phone: string; password: string; address?: string; city?: string; state?: string; pincode?: string; isB2B?: boolean; companyName?: string; gstin?: string; businessType?: string; companyAddress?: string; companyPhone?: string; companyEmail?: string },
-  ip: string
+  ip: string,
+  request?: NextRequest
 ): Promise<NextResponse> {
   const { name, email, phone, password, address, city, state, pincode, isB2B, companyName, gstin, businessType, companyAddress, companyPhone, companyEmail } = body;
 
@@ -581,14 +639,104 @@ async function handleRegister(
 
   if (existingCustomer) {
     if (existingCustomer.email === normalizedEmail) {
+      // Email is already in the system. If the password the user typed matches
+      // the existing customer (or the matching travel agent), treat this as a
+      // login so the booking flow can proceed instead of bailing with an error.
+      if (existingCustomer.password) {
+        const passOk = await bcrypt.compare(password, existingCustomer.password);
+        if (passOk) {
+          if (existingCustomer.isBanned) {
+            return NextResponse.json(
+              { status: 'error', message: 'Your account has been suspended. Please contact support.' },
+              { status: 403 }
+            );
+          }
+          const fingerprint = generateFingerprint(
+            request?.headers.get('user-agent') || undefined,
+            ip
+          );
+          const { token, expiresAt, expiresIn } = await createAccessToken(
+            existingCustomer.id,
+            fingerprint
+          );
+          await prisma.customers
+            .update({ where: { id: existingCustomer.id }, data: { lastLoginAt: new Date() } })
+            .catch(() => {});
+          // If this customer is a shadow for a travel agent and carries a
+          // placeholder `ta-<id>` phone, surface the agent's real phone so
+          // booking forms validate correctly. Empty out the placeholder if
+          // neither has a usable phone.
+          let surfacedPhone: string = existingCustomer.phone;
+          let linkedAgentId: string | null = null;
+          try {
+            const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+              `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`,
+              existingCustomer.id,
+            );
+            linkedAgentId = linkRows[0]?.linkedTravelAgentId || null;
+            if (linkedAgentId && (!surfacedPhone || surfacedPhone.startsWith('ta-'))) {
+              const linkedAgent: any = await (prisma as any).travel_agents.findUnique({
+                where: { id: linkedAgentId },
+              });
+              surfacedPhone = linkedAgent?.phone || '';
+            }
+          } catch { /* non-fatal */ }
+          logger.info('Customer login via register fallback', { customerId: existingCustomer.id });
+          return NextResponse.json({
+            status: 'success',
+            message: 'Login successful',
+            token,
+            expiresAt: expiresAt.toISOString(),
+            expiresIn,
+            customers: {
+              id: existingCustomer.id,
+              name: existingCustomer.name,
+              email: existingCustomer.email,
+              phone: surfacedPhone,
+              avatar: existingCustomer.avatar || null,
+              isB2B: existingCustomer.isB2B || false,
+              companyName: existingCustomer.companyName || null,
+              b2bStatus: existingCustomer.b2bStatus || null,
+              ...(linkedAgentId ? { linkedTravelAgentId: linkedAgentId } : {}),
+            },
+          });
+        }
+      }
+      // Password didn't match an existing customer — try as a travel agent.
+      // Travel agents log in with the same form on the booking modal; their
+      // customer-shaped payload triggers a shadow-customer for the booking.
+      if (request) {
+        const taResponse = await tryTravelAgentLogin(normalizedEmail, password, request, ip);
+        if (taResponse) return taResponse;
+      }
       return NextResponse.json(
-        { status: 'error', message: 'Email already registered' },
+        { status: 'error', message: 'Email already registered. Please use your existing password.' },
         { status: 400 }
       );
     }
     if (existingCustomer.phone === normalizedPhone) {
       return NextResponse.json(
         { status: 'error', message: 'Phone number already registered' },
+        { status: 400 }
+      );
+    }
+  }
+
+  // No customer collision, but the email/phone might belong to a travel agent
+  // that has never logged in as a customer (so no shadow customer exists yet).
+  // Authenticate them as a TA — that creates the shadow and returns the same
+  // customer-shaped payload booking flows expect.
+  if (request) {
+    const agent: any = await (prisma as any).travel_agents.findFirst({
+      where: {
+        OR: [{ email: normalizedEmail }, { phone: normalizedPhone }],
+      },
+    });
+    if (agent) {
+      const taResponse = await tryTravelAgentLogin(normalizedEmail, password, request, ip);
+      if (taResponse) return taResponse;
+      return NextResponse.json(
+        { status: 'error', message: 'Email already registered. Please use your existing password.' },
         { status: 400 }
       );
     }
