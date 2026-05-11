@@ -30,7 +30,9 @@ interface QuoteRequest {
   quantity: number;
   rentalDuration: number;
   durationUnit: string;
-  city: string;
+  city?: string;
+  deliveryCity?: string;
+  deliveryAddress?: string;
   startDate: string;
   status: string;
   totalQuotesReceived: number;
@@ -303,9 +305,14 @@ export default function CustomerEquipmentQuotesPage() {
 
                     {/* Details */}
                     <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4 text-amber-500" />
-                        {request.city}
+                      <div className="flex items-start gap-1.5">
+                        <MapPin className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div>{request.deliveryCity || request.city}</div>
+                          {request.deliveryAddress && (
+                            <p className="text-xs text-gray-500 mt-0.5">{request.deliveryAddress}</p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-4 h-4 text-amber-500" />

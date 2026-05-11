@@ -45,6 +45,19 @@ interface Booking {
   driverBatta?: number;
   serviceType?: 'car' | 'bus' | 'truck' | 'packers' | 'equipment' | 'luxury';
   passengers?: number;
+  // Truck-specific list fields (surfaced from quote request)
+  truckBodyType?: string;
+  tripDirection?: string;
+  estimatedVolume?: string;
+  pickupPincode?: string;
+  dropPincode?: string;
+  hasPickupLift?: boolean;
+  hasDropLift?: boolean;
+  requiresLabour?: boolean;
+  hasMultipleStops?: boolean;
+  receiverName?: string;
+  receiverPhone?: string;
+  requiresPOD?: boolean;
 }
 
 interface Stats {
@@ -66,6 +79,7 @@ interface AvailableBooking {
   pickupCity: string;
   dropCity?: string;
   pickupAddress?: string;
+  dropAddress?: string;
   pickupDate: string;
   pickupTime: string;
   estimatedDistance?: number;
@@ -351,7 +365,13 @@ export default function DriverBookingsPage() {
                       {booking.pickupAddress && (
                         <div className="col-span-2 flex items-start gap-2">
                           <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                          <p className="text-gray-700 text-sm">{booking.pickupAddress}</p>
+                          <p className="text-gray-700 text-sm"><span className="text-gray-500 mr-1">Pickup:</span>{booking.pickupAddress}</p>
+                        </div>
+                      )}
+                      {booking.dropAddress && (
+                        <div className="col-span-2 flex items-start gap-2">
+                          <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                          <p className="text-gray-700 text-sm"><span className="text-gray-500 mr-1">Drop:</span>{booking.dropAddress}</p>
                         </div>
                       )}
                     </div>
@@ -600,6 +620,13 @@ export default function DriverBookingsPage() {
                             ? `${booking.pickupCity} → ${booking.dropCity}`
                             : booking.pickupCity}
                         </p>
+                        {(booking.pickupAddress || booking.dropAddress) && (
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {booking.pickupAddress}
+                            {booking.pickupAddress && booking.dropAddress && ' → '}
+                            {booking.dropAddress}
+                          </p>
+                        )}
                       </div>
                     </div>
 

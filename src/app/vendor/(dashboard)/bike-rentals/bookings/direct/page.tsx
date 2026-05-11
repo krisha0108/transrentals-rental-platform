@@ -46,6 +46,8 @@ interface DirectBooking {
   dropDate: string;
   dropTime: string;
   totalDays: number;
+  numberOfVehicles?: number;
+  pickupAddress?: string;
   dailyRate: number;
   totalAmount: number;
   gstAmount: number;
@@ -329,7 +331,7 @@ export default function VendorDirectRequestsPage() {
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-500 mb-4">
                     <span className="flex items-center gap-1 font-medium text-gray-700"><User className="w-3 h-3 text-gray-400" /> {booking.customerName}</span>
                     <span className="text-gray-300">·</span>
-                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-gray-400" /> {booking.locationName}</span>
+                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-gray-400" /> {booking.locationName}{booking.numberOfVehicles && booking.numberOfVehicles > 1 ? ` · × ${booking.numberOfVehicles}` : ''}</span>
                     <span className="text-gray-300">·</span>
                     <span className="flex items-center gap-1">
                       <CalendarCheck className="w-3 h-3 text-gray-400" />
@@ -337,6 +339,11 @@ export default function VendorDirectRequestsPage() {
                     </span>
                     <span className="font-semibold text-orange-600">({booking.totalDays}d)</span>
                   </div>
+                  {booking.pickupAddress && (
+                    <div className="text-xs text-gray-500 mb-3 -mt-1.5 ml-4 truncate" title={booking.pickupAddress}>
+                      Pickup: {booking.pickupAddress}
+                    </div>
+                  )}
 
                   {/* Customer Notes */}
                   {booking.customerNotes && (

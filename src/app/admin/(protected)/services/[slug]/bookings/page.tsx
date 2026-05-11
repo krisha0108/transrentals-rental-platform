@@ -305,11 +305,16 @@ export default function ServiceBookingsPage() {
             statuses: data.bookings.map((b: any) => b.status),
             pagination: data.pagination
           });
+          const safeDate = (v: any) => {
+            if (!v) return '';
+            const d = new Date(v);
+            return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0];
+          };
           setBookings(data.bookings.map((b: any) => ({
             ...b,
-            startDate: new Date(b.startDate).toISOString().split('T')[0],
-            endDate: new Date(b.endDate).toISOString().split('T')[0],
-            createdAt: new Date(b.createdAt).toISOString().split('T')[0],
+            startDate: safeDate(b.startDate),
+            endDate: safeDate(b.endDate),
+            createdAt: safeDate(b.createdAt),
           })));
           // Don't update stats - keep them fixed
           setPagination(data.pagination);

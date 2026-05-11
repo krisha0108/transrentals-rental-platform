@@ -55,11 +55,14 @@ export async function POST(request: NextRequest) {
     let {
       customerName, customerEmail, customerPhone, customerId,
       serviceType, vehicle_category, vehicleCategoryName,
+      truckBodyType, tripDirection,
       goodsType, goodsDescription, estimatedWeight, estimatedVolume,
       requiresLabour, labourCount,
-      pickupCity, pickupAddress, pickupFloor, hasPickupLift,
-      dropCity, dropAddress, dropFloor, hasDropLift, estimatedDistance,
-      pickupDate, pickupTime, isFlexibleDate,
+      pickupCity, pickupAddress, pickupPincode, pickupFloor, hasPickupLift,
+      dropCity, dropAddress, dropPincode, dropFloor, hasDropLift, estimatedDistance,
+      pickupDate, pickupTime, expectedDeliveryDate, expectedDeliveryTime,
+      isFlexibleDate, hasMultipleStops, multipleStopsDetails,
+      receiverName, receiverPhone, requiresPOD,
       requirements, needInsurance, needPackaging,
       budgetMin, budgetMax,
     } = body;
@@ -74,7 +77,16 @@ export async function POST(request: NextRequest) {
     dropCity = sanitizeInput(dropCity);
     dropAddress = sanitizeInput(dropAddress);
     requirements = sanitizeInput(requirements);
-    customerPhone = sanitizePhone(customerPhone);
+    // TA shadow placeholder phone (`ta-<id>`) — keep as-is, skip sanitize/validate.
+    let isTaPlaceholderPhone = false;
+    if (typeof customerPhone === 'string' && customerPhone.startsWith('ta-')) {
+      isTaPlaceholderPhone = true;
+      try {
+        const ag: any = await (prisma as any).travel_agents.findUnique({ where: { id: customerPhone.slice(3) } });
+        if (ag?.phone) { customerPhone = ag.phone; isTaPlaceholderPhone = false; }
+      } catch { /* keep placeholder */ }
+    }
+    if (!isTaPlaceholderPhone) customerPhone = sanitizePhone(customerPhone);
 
     if (!customerName || !customerEmail || !customerPhone) {
       return NextResponse.json({ error: 'Customer details are required' }, { status: 400 });
@@ -85,7 +97,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
-    if (customerPhone && !isValidPhone(customerPhone)) {
+    if (!isTaPlaceholderPhone && customerPhone && !isValidPhone(customerPhone)) {
       return NextResponse.json({ error: 'Invalid phone number. Must be 10 digits starting with 6-9' }, { status: 400 });
     }
     if (!pickupCity || !dropCity || !pickupDate || !vehicle_category || !goodsType) {
@@ -121,7 +133,18 @@ export async function POST(request: NextRequest) {
     const quotesOpenTill = new Date();
     quotesOpenTill.setHours(quotesOpenTill.getHours() + 48);
 
-    const quoteRequest = await prisma.truck_quote_requests.create({
+    const validBodyTypes = ['OPEN', 'CLOSED_BODY', 'CONTAINER', 'TRAILER', 'LCV', 'REFRIGERATED', 'FLATBED', 'OTHER'];
+    const validTripDirections = ['ONE_WAY', 'ROUND_TRIP'];
+    const safeBodyType = truckBodyType && validBodyTypes.includes(truckBodyType) ? truckBodyType : null;
+    const safeTripDirection = tripDirection && validTripDirections.includes(tripDirection) ? tripDirection : 'ONE_WAY';
+    const parsedExpectedDelivery = expectedDeliveryDate
+      ? (() => {
+          const d = new Date(expectedDeliveryDate);
+          return isNaN(d.getTime()) ? null : d;
+        })()
+      : null;
+
+    const quoteRequest = await (prisma as any).truck_quote_requests.create({
       data: {
         requestNumber,
         customerId: customerId || null,
@@ -129,6 +152,8 @@ export async function POST(request: NextRequest) {
         serviceType: serviceType || 'intercity',
         vehicleCategory: vehicle_category,
         vehicleCategoryName: vehicleCategoryName || vehicle_category,
+        truckBodyType: safeBodyType,
+        tripDirection: safeTripDirection,
         goodsType,
         goodsDescription: goodsDescription || null,
         estimatedWeight: estimatedWeight || null,
@@ -137,16 +162,25 @@ export async function POST(request: NextRequest) {
         labourCount: labourCount || null,
         pickupCity,
         pickupAddress: pickupAddress || null,
+        pickupPincode: pickupPincode || null,
         pickupFloor: pickupFloor || null,
         hasPickupLift: hasPickupLift || false,
         dropCity,
         dropAddress: dropAddress || null,
+        dropPincode: dropPincode || null,
         dropFloor: dropFloor || null,
         hasDropLift: hasDropLift || false,
         estimatedDistance: estimatedDistance || null,
         pickupDate: new Date(pickupDate),
         pickupTime: pickupTime || '08:00',
+        expectedDeliveryDate: parsedExpectedDelivery,
+        expectedDeliveryTime: expectedDeliveryTime || null,
         isFlexibleDate: isFlexibleDate || false,
+        hasMultipleStops: hasMultipleStops || false,
+        multipleStopsDetails: multipleStopsDetails || null,
+        receiverName: receiverName || null,
+        receiverPhone: receiverPhone || null,
+        requiresPOD: requiresPOD || false,
         requirements: requirements || null,
         needInsurance: needInsurance || false,
         needPackaging: needPackaging || false,
@@ -159,6 +193,37 @@ export async function POST(request: NextRequest) {
         source: body.source || 'web',
       },
     });
+
+    // Travel-agent PERSONAL tagging — resolve customer (id → email → phone)
+    // and write travelAgentId + bookingMode='PERSONAL' if the customer is
+    // linked to a travel agent.
+    try {
+      let lookupId: string | null = customerId || null;
+      if (!lookupId && customerEmail) {
+        const c = await prisma.customers.findFirst({
+          where: { email: String(customerEmail).toLowerCase() }, select: { id: true },
+        });
+        if (c) lookupId = c.id;
+      }
+      if (!lookupId && customerPhone) {
+        const c = await prisma.customers.findFirst({
+          where: { phone: String(customerPhone) }, select: { id: true },
+        });
+        if (c) lookupId = c.id;
+      }
+      if (lookupId) {
+        const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+          `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`, lookupId,
+        );
+        const agentId = linkRows[0]?.linkedTravelAgentId || null;
+        if (agentId) {
+          await (prisma as any).$executeRawUnsafe(
+            `UPDATE truck_quote_requests SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+            agentId, 'PERSONAL', quoteRequest.id,
+          );
+        }
+      }
+    } catch (e) { console.error('[truck-quote-requests] TA tag failed', e); }
 
     // Non-blocking vendor notification
     sendQuoteRequestNotificationToVendors({
@@ -181,7 +246,9 @@ export async function POST(request: NextRequest) {
         chauffeur_vehicle_categories: quoteRequest.vehicleCategoryName,
         goodsType: quoteRequest.goodsType,
         pickupCity: quoteRequest.pickupCity,
+        pickupAddress: quoteRequest.pickupAddress,
         dropCity: quoteRequest.dropCity,
+        dropAddress: quoteRequest.dropAddress,
         pickupDate: quoteRequest.pickupDate,
         expiresAt: quoteRequest.expiresAt,
       },
@@ -230,10 +297,41 @@ export async function GET(request: NextRequest) {
         requestNumber: r.requestNumber,
         serviceType: r.serviceType,
         chauffeur_vehicle_categories: r.vehicleCategoryName,
+        vehicleCategory: r.vehicleCategory,
+        vehicleCategoryName: r.vehicleCategoryName,
+        truckBodyType: r.truckBodyType,
+        tripDirection: r.tripDirection,
         goodsType: r.goodsType,
+        goodsDescription: r.goodsDescription,
+        estimatedWeight: r.estimatedWeight,
+        estimatedVolume: r.estimatedVolume,
         pickupCity: r.pickupCity,
+        pickupAddress: r.pickupAddress,
+        pickupPincode: r.pickupPincode,
+        pickupFloor: r.pickupFloor,
+        hasPickupLift: r.hasPickupLift,
         dropCity: r.dropCity,
+        dropAddress: r.dropAddress,
+        dropPincode: r.dropPincode,
+        dropFloor: r.dropFloor,
+        hasDropLift: r.hasDropLift,
         pickupDate: r.pickupDate,
+        pickupTime: r.pickupTime,
+        expectedDeliveryDate: r.expectedDeliveryDate,
+        expectedDeliveryTime: r.expectedDeliveryTime,
+        requiresLabour: r.requiresLabour,
+        labourCount: r.labourCount,
+        hasMultipleStops: r.hasMultipleStops,
+        multipleStopsDetails: r.multipleStopsDetails,
+        receiverName: r.receiverName,
+        receiverPhone: r.receiverPhone,
+        requiresPOD: r.requiresPOD,
+        isFlexibleDate: r.isFlexibleDate,
+        needInsurance: r.needInsurance,
+        needPackaging: r.needPackaging,
+        budgetMin: r.budgetMin,
+        budgetMax: r.budgetMax,
+        requirements: r.requirements,
         status: r.status,
         totalQuotesReceived: r.totalQuotesReceived,
         quotes: r.truck_quotes,

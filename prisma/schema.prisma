@@ -57,6 +57,9 @@ model admin_users {
   vendor_payout_batches     vendor_payout_batches[]
   vendor_service_requests   vendor_service_requests[]
   vendors                   vendors[]
+  travel_agents             travel_agents[]
+  travel_agent_documents_uploaded travel_agent_documents[] @relation("travel_agent_documents_uploadedBy")
+  travel_agent_documents          travel_agent_documents[] @relation("travel_agent_documents_verifiedBy")
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -237,6 +240,10 @@ model bike_bookings {
   review                                          String?                     @db.Text
   driverRating                                    Int?
   vehicleRating                                   Int?
+  // Travel-agent originated PERSONAL bookings — when an agent books for
+  // themselves (linked customer flow). COMPANY bookings live in b2b_bookings.
+  travelAgentId                                   String?
+  bookingMode                                     String?                     // PERSONAL | null
   bike_quotes                                     bike_quotes?                @relation(fields: [acceptedQuoteId], references: [id])
   vendors_bike_bookings_acceptedVendorIdTovendors vendors?                    @relation("bike_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
   vendors_bike_bookings_assignedVendorIdTovendors vendors?                    @relation("bike_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])
@@ -257,6 +264,7 @@ model bike_bookings {
   @@index([requestedModelId])
   @@index([status])
   @@index([version])
+  @@index([travelAgentId])
 }
 
 model bike_quote_requests {
@@ -271,10 +279,12 @@ model bike_quote_requests {
   customerName                                                 String
   customerNotes                                                String?                    @db.Text
   customerPhone                                                String
+  pickupAddress                                                String?                    @db.Text
   dropDate                                                     DateTime
   dropTime                                                     String
   expiresAt                                                    DateTime
   helmetsRequired                                              Int                        @default(1)
+  numberOfVehicles                                             Int                        @default(1)
   locationId                                                   String
   locationName                                                 String
   pickupDate                                                   DateTime
@@ -291,6 +301,9 @@ model bike_quote_requests {
   vehicleModelId                                               String?
   vehicleModelName                                             String?
   source                                                       String?                    @db.VarChar(20) @default("web")
+  // Travel-agent originated PERSONAL bookings.
+  travelAgentId                                                String?
+  bookingMode                                                  String?                    // PERSONAL | null
   bike_bookings                                                bike_bookings?
   bike_quotes_bike_quote_requests_acceptedQuoteIdTobike_quotes bike_quotes?               @relation("bike_quote_requests_acceptedQuoteIdTobike_quotes", fields: [acceptedQuoteId], references: [id])
   customers                                                    customers?                 @relation(fields: [customerId], references: [id])
@@ -305,6 +318,7 @@ model bike_quote_requests {
   @@index([pickupDate])
   @@index([status])
   @@index([vehicleModelId])
+  @@index([travelAgentId])
 }
 
 model bike_quotes {
@@ -552,6 +566,10 @@ model bus_quote_requests {
   quotesViewed                                              Int                       @default(0)
   acceptedQuoteId                                           String?
   source                                                    String?                   @db.VarChar(20) @default("web")
+  // Travel-agent originated PERSONAL bookings — when an agent submits a bus
+  // quote request for themselves. COMPANY bookings live in b2b_bookings.
+  travelAgentId                                             String?
+  bookingMode                                               String?                   // PERSONAL | null
   createdAt                                                 DateTime                  @default(now())
   updatedAt                                                 DateTime                  @updatedAt
   bus_bookings                                              bus_bookings?
@@ -568,6 +586,7 @@ model bus_quote_requests {
   @@index([status])
   @@index([tripType])
   @@index([vehicleCategory])
+  @@index([travelAgentId])
 }
 
 model bus_quotes {
@@ -721,6 +740,9 @@ model car_bookings {
   quoteRequestId                                 String?                    @unique
   droppedAt                                      DateTime?
   dropReason                                     String?                    @db.Text
+  // Travel-agent originated PERSONAL bookings.
+  travelAgentId                                  String?
+  bookingMode                                    String?                    // PERSONAL | null
   self_drive_quotes                              self_drive_quotes?         @relation(fields: [acceptedQuoteId], references: [id])
   vendors_car_bookings_acceptedVendorIdTovendors vendors?                   @relation("car_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
   vendors_car_bookings_assignedVendorIdTovendors vendors?                   @relation("car_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])
@@ -738,6 +760,7 @@ model car_bookings {
   @@index([locationId])
   @@index([pickupDate])
   @@index([status])
+  @@index([travelAgentId])
 }
 
 model chat_conversations {
@@ -947,6 +970,10 @@ model chauffeur_bookings {
   numberOfVehicles                                     Int?
   droppedAt                                            DateTime?
   dropReason                                           String?                          @db.Text
+  // Travel-agent originated PERSONAL bookings — when an agent books for
+  // themselves (linked customer flow). COMPANY bookings live in b2b_bookings.
+  travelAgentId                                        String?
+  bookingMode                                          String?                          // PERSONAL | null
   vendors_chauffeur_bookings_acceptedVendorIdTovendors vendors?                         @relation("chauffeur_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
   vendors_chauffeur_bookings_assignedVendorIdTovendors vendors?                         @relation("chauffeur_bookings_assignedVendorIdTovendors", fields: [assignedVendorId], references: [id])
   customers                                            customers?                       @relation(fields: [customerId], references: [id])
@@ -968,6 +995,7 @@ model chauffeur_bookings {
   @@index([pickupDate])
   @@index([status])
   @@index([tripType])
+  @@index([travelAgentId])
 }
 
 model chauffeur_city_pricing {
@@ -1259,6 +1287,7 @@ model customers {
   companyEmail              String?
   companyPhone              String?
   companyAddress            String?                     @db.Text
+  linkedTravelAgentId       String?                     // links a customer record to a travel_agents row when the same person operates as both
   b2b_bookings              b2b_bookings[]
   bike_bookings             bike_bookings[]
   bike_quote_requests       bike_quote_requests[]
@@ -1289,6 +1318,7 @@ model customers {
   @@index([email])
   @@index([isActive])
   @@index([phone])
+  @@index([linkedTravelAgentId])
 }
 
 model notifications {
@@ -1454,6 +1484,9 @@ model equipment_quote_requests {
   quotesViewed        Int                             @default(0)
   acceptedQuoteId     String?
   source              String?                         @db.VarChar(20) @default("web")
+  // Travel-agent originated PERSONAL bookings.
+  travelAgentId       String?
+  bookingMode         String?                         // PERSONAL | null
   createdAt           DateTime                        @default(now())
   updatedAt           DateTime                        @updatedAt
   equipment_bookings  equipment_bookings?
@@ -1465,6 +1498,7 @@ model equipment_quote_requests {
   @@index([locationId])
   @@index([startDate])
   @@index([status])
+  @@index([travelAgentId])
 }
 
 model equipment_quotes {
@@ -1977,6 +2011,9 @@ model luxury_bookings {
   refundAmount                                      Float?
   droppedAt                                         DateTime?
   dropReason                                        String?                       @db.Text
+  // Travel-agent originated PERSONAL bookings.
+  travelAgentId                                     String?
+  bookingMode                                       String?                       // PERSONAL | null
   luxury_bids                                       luxury_bids[]
   luxury_quotes                                     luxury_quotes?                @relation(fields: [acceptedQuoteId], references: [id])
   vendors_luxury_bookings_acceptedVendorIdTovendors vendors?                      @relation("luxury_bookings_acceptedVendorIdTovendors", fields: [acceptedVendorId], references: [id])
@@ -1992,6 +2029,7 @@ model luxury_bookings {
   @@index([pickupDate])
   @@index([quoteRequestId])
   @@index([status])
+  @@index([travelAgentId])
 }
 
 model luxury_quote_requests {
@@ -2033,6 +2071,9 @@ model luxury_quote_requests {
   quotesViewed        Int                          @default(0)
   acceptedQuoteId     String?                      @unique
   source              String?                      @db.VarChar(20) @default("web")
+  // Travel-agent originated PERSONAL bookings.
+  travelAgentId       String?
+  bookingMode         String?                      // PERSONAL | null
   createdAt           DateTime                     @default(now())
   updatedAt           DateTime                     @updatedAt
   luxury_bookings     luxury_bookings?
@@ -2047,6 +2088,7 @@ model luxury_quote_requests {
   @@index([locationId])
   @@index([pickupDate])
   @@index([status])
+  @@index([travelAgentId])
 }
 
 model luxury_quotes {
@@ -2313,6 +2355,25 @@ model packers_quote_requests {
   preferredDate       DateTime
   isFlexibleDate      Boolean                       @default(false)
   flexibleDateRange   String?
+  expectedDeliveryDate DateTime?
+  expectedDeliveryTime String?
+  shiftingScope       packers_shifting_scope        @default(LOCAL)
+  pickupPincode       String?
+  dropPincode         String?
+  receiverName        String?
+  receiverPhone       String?
+  vehicleType         packers_vehicle_type          @default(DEDICATED)
+  partLoadAccepted    Boolean                       @default(false)
+  needLoading         Boolean                       @default(true)
+  needUnloading       Boolean                       @default(true)
+  labourCount         Int?
+  boxesCount          Int?
+  bagsCount           Int?
+  estimatedWeight     Float?
+  estimatedVolumeCubFt Float?
+  hasMultipleStops    Boolean                       @default(false)
+  multipleStopsDetails String?                      @db.Text
+  requiresPOD         Boolean                       @default(false)
   needPacking         Boolean                       @default(true)
   needUnpacking       Boolean                       @default(false)
   needStorage         Boolean                       @default(false)
@@ -2330,6 +2391,9 @@ model packers_quote_requests {
   quotesViewed        Int                           @default(0)
   acceptedQuoteId     String?
   source              String?                       @db.VarChar(20) @default("web")
+  // Travel-agent originated PERSONAL bookings.
+  travelAgentId       String?
+  bookingMode         String?                       // PERSONAL | null
   createdAt           DateTime                      @default(now())
   updatedAt           DateTime                      @updatedAt
   packers_bookings    packers_bookings?
@@ -2341,6 +2405,7 @@ model packers_quote_requests {
   @@index([locationId])
   @@index([preferredDate])
   @@index([status])
+  @@index([travelAgentId])
 }
 
 model packers_quotes {
@@ -2599,6 +2664,7 @@ model self_drive_quote_requests {
   locationId                                                                     String
   locationName                                                                   String
   minSeats                                                                       Int?
+  numberOfVehicles                                                               Int                              @default(1)
   pickupAddress                                                                  String?                          @db.Text
   pickupDate                                                                     DateTime
   pickupTime                                                                     String
@@ -2615,6 +2681,9 @@ model self_drive_quote_requests {
   vehicleModelName                                                               String?
   vehicleType                                                                    String?
   source                                                                         String?                          @db.VarChar(20) @default("web")
+  // Travel-agent originated PERSONAL bookings.
+  travelAgentId                                                                  String?
+  bookingMode                                                                    String?                          // PERSONAL | null
   car_bookings                                                                   car_bookings?
   self_drive_quotes_self_drive_quote_requests_acceptedQuoteIdToself_drive_quotes self_drive_quotes?               @relation("self_drive_quote_requests_acceptedQuoteIdToself_drive_quotes", fields: [acceptedQuoteId], references: [id])
   customers                                                                      customers?                       @relation(fields: [customerId], references: [id])
@@ -2629,6 +2698,7 @@ model self_drive_quote_requests {
   @@index([pickupDate])
   @@index([status])
   @@index([vehicleModelId])
+  @@index([travelAgentId])
 }
 
 model self_drive_quotes {
@@ -3023,15 +3093,26 @@ model truck_quote_requests {
   labourCount         Int?
   pickupCity          String
   pickupAddress       String?                     @db.Text
+  pickupPincode       String?
   pickupFloor         Int?
   hasPickupLift       Boolean                     @default(false)
   dropCity            String
   dropAddress         String?                     @db.Text
+  dropPincode         String?
   dropFloor           Int?
   hasDropLift         Boolean                     @default(false)
   estimatedDistance   Float?
   pickupDate          DateTime
   pickupTime          String
+  expectedDeliveryDate DateTime?
+  expectedDeliveryTime String?
+  truckBodyType       truck_body_type?
+  tripDirection       truck_trip_direction        @default(ONE_WAY)
+  hasMultipleStops    Boolean                     @default(false)
+  multipleStopsDetails String?                    @db.Text
+  receiverName        String?
+  receiverPhone       String?
+  requiresPOD         Boolean                     @default(false)
   isFlexibleDate      Boolean                     @default(false)
   requirements        String?                     @db.Text
   needInsurance       Boolean                     @default(false)
@@ -3046,6 +3127,9 @@ model truck_quote_requests {
   quotesViewed        Int                         @default(0)
   acceptedQuoteId     String?
   source              String?                     @db.VarChar(20) @default("web")
+  // Travel-agent originated PERSONAL bookings.
+  travelAgentId       String?
+  bookingMode         String?                     // PERSONAL | null
   createdAt           DateTime                    @default(now())
   updatedAt           DateTime                    @updatedAt
   truck_bookings      truck_bookings?
@@ -3056,6 +3140,7 @@ model truck_quote_requests {
   @@index([customerId])
   @@index([locationId])
   @@index([pickupDate])
+  @@index([travelAgentId])
   @@index([status])
 }
 
@@ -4396,7 +4481,7 @@ model b2b_bookings {
   customerName         String
   customerEmail        String?
   customerPhone        String
-  companyName          String
+  companyName          String?
   serviceType          String
   vehiclesRequired     Int
   passengerCount       Int?
@@ -4409,6 +4494,9 @@ model b2b_bookings {
   returnDate           DateTime?
   returnTime           String?
   specialNotes         String?             @db.Text
+  // For CUSTOM_BULK serviceType — full multi-day/multi-service event breakdown
+  // JSON: { occasion, days: [{ date, services: [{ serviceType, vehicles: [{ id, name, brand, count }], peopleCount, pickup, drop, time, notes }] }] }
+  bulkBreakdown        String?             @db.LongText
   status               b2b_booking_status  @default(OPEN_FOR_QUOTES)
   totalVehiclesFilled  Int                 @default(0)
   vendorCostTotal      Float?
@@ -4419,6 +4507,12 @@ model b2b_bookings {
   cancelledAt          DateTime?
   cancelledBy          String?
   cancellationReason   String?             @db.Text
+  // Travel-agent originated request — when set, the booking belongs to a TA
+  // using their own account on the customer side. bookingMode tells us if the
+  // TA is booking for themselves (PERSONAL, single vehicle) or on behalf of
+  // their company (COMPANY, multi-vehicle, monthly invoiced).
+  travelAgentId        String?
+  bookingMode          String?             // PERSONAL | COMPANY | null (regular B2B)
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   customer             customers           @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -4431,6 +4525,7 @@ model b2b_bookings {
   @@index([status])
   @@index([scheduledDate])
   @@index([createdAt])
+  @@index([travelAgentId])
 }
 
 model b2b_vendor_quotes {
@@ -5186,6 +5281,22 @@ enum bike_bookings_paymentStatus {
   FAILED
 }
 
+enum truck_body_type {
+  OPEN
+  CLOSED_BODY
+  CONTAINER
+  TRAILER
+  LCV
+  REFRIGERATED
+  FLATBED
+  OTHER
+}
+
+enum truck_trip_direction {
+  ONE_WAY
+  ROUND_TRIP
+}
+
 enum truck_quote_requests_status {
   PENDING
   QUOTES_RECEIVED
@@ -5258,6 +5369,17 @@ enum packers_quote_requests_status {
   CANCELLED
   EXPIRED
   DROPPED
+}
+
+enum packers_shifting_scope {
+  LOCAL
+  DOMESTIC
+  INTERCITY
+}
+
+enum packers_vehicle_type {
+  SHARED
+  DEDICATED
 }
 
 enum packers_bookings_status {
@@ -6128,6 +6250,632 @@ enum drivers_status {
   INACTIVE
   SUSPENDED
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRAVEL AGENTS — parallel user type to vendors
+// ─────────────────────────────────────────────────────────────────────────────
+
+model travel_agents {
+  id                  String                @id
+  email               String                @unique
+  password            String
+  phone               String                @unique
+  agencyName          String
+  ownerName           String
+  agencyType          String?               // SOLO, AGENCY, CORPORATE
+  gstNumber           String?
+  panNumber           String?
+  address             String?               @db.Text
+  city                String?
+  state               String?
+  pincode             String?
+  logo                String?
+  description         String?               @db.Text
+  website             String?
+  bankName            String?
+  accountNumber       String?
+  ifscCode            String?
+  accountHolderName   String?
+  status              travel_agents_status  @default(DOCUMENTS_PENDING)
+  isEmailVerified     Boolean               @default(false)
+  isPhoneVerified     Boolean               @default(false)
+  approvedAt          DateTime?
+  approvedById        String?
+  rejectionReason     String?               @db.Text
+  rating              Float?                @default(0)
+  totalRatings        Int                   @default(0)
+  lastLoginAt         DateTime?
+  fcmToken            String?               @db.Text
+  slug                String?               @unique(map: "travel_agents_slug")
+  commissionRate      Float?                @default(0)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  admin_users                       admin_users?                       @relation(fields: [approvedById], references: [id])
+  travel_agent_documents            travel_agent_documents[]
+  travel_agent_bank_accounts        travel_agent_bank_accounts[]
+  travel_agent_leads                travel_agent_leads[]
+  travel_agent_lead_capture_links   travel_agent_lead_capture_links[]
+  travel_agent_tours                travel_agent_tours[]
+  travel_agent_properties           travel_agent_properties[]
+  travel_agent_bookings             travel_agent_bookings[]
+  travel_agent_fleets               travel_agent_fleets[]
+  travel_agent_chat_conversations   travel_agent_chat_conversations[]
+
+  @@index([approvedById], map: "travel_agents_approvedById_fkey")
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+}
+
+model travel_agent_documents {
+  id              String                                 @id
+  travelAgentId   String
+  documentType    travel_agent_documents_documentType
+  documentName    String
+  documentUrl     String
+  documentNumber  String?
+  status          travel_agent_documents_status          @default(PENDING)
+  verifiedAt      DateTime?
+  verifiedById    String?
+  rejectionReason String?                                @db.Text
+  uploadedById    String?
+  createdAt       DateTime                               @default(now())
+  updatedAt       DateTime                               @updatedAt
+
+  travel_agents     travel_agents @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+  uploadedByAdmin   admin_users?  @relation("travel_agent_documents_uploadedBy", fields: [uploadedById], references: [id])
+  verifiedByAdmin   admin_users?  @relation("travel_agent_documents_verifiedBy", fields: [verifiedById], references: [id])
+
+  @@index([documentType])
+  @@index([status])
+  @@index([travelAgentId])
+  @@index([uploadedById])
+  @@index([verifiedById])
+}
+
+model travel_agent_bank_accounts {
+  id                String   @id @default(cuid())
+  travelAgentId     String
+  bankName          String
+  accountHolderName String
+  accountNumber     String
+  ifscCode          String
+  accountType       String   @default("SAVINGS")
+  branchName        String?
+  upiId             String?
+  isPrimary         Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  travel_agents     travel_agents @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+
+  @@index([travelAgentId])
+  @@index([isPrimary])
+}
+
+model travel_agent_leads {
+  id                  String                          @id @default(cuid())
+  travelAgentId       String
+  customerName        String
+  customerPhone       String
+  customerEmail       String?
+  source              travel_agent_lead_source        @default(MANUAL)
+  captureLinkId       String?
+  tripType            String?                         // ONE_WAY, ROUND_TRIP, TOUR_PACKAGE, ACCOMMODATION
+  pickupLocation      String?
+  dropLocation        String?
+  destination         String?
+  travelDate          DateTime?
+  returnDate          DateTime?
+  passengers          Int?                            @default(1)
+  requirement         String?                         @db.Text
+  estimatedValue      Float?
+  quotedAmount        Float?
+  quoteAdvanceAmount  Float?                          // fixed advance the customer must pay (₹)
+  quoteAdvancePercent Int?                            // OR advance as % of quotedAmount
+  quoteValidUntil     DateTime?                       // quote expiry shown to customer
+  quoteTerms          String?                         @db.Text // payment / cancellation terms
+  quoteSentAt         DateTime?                       // when the quote was last sent
+  customerAcceptedAt  DateTime?                       // when the customer accepted the quote
+  paymentStatus       String?                         // PENDING | SUBMITTED | VERIFIED | REJECTED
+  paymentTxnId        String?                         // UTR / transaction reference shared by customer
+  paymentProofImages  String?                         @db.Text // JSON array of uploaded screenshot URLs
+  paymentNote         String?                         @db.Text // optional customer note with the proof
+  paymentSubmittedAt  DateTime?                       // when the customer submitted the proof
+  paymentVerifiedAt   DateTime?                       // when the agent confirmed receipt
+  paymentRejectReason String?                         @db.Text
+  status              travel_agent_lead_status        @default(NEW)
+  priority            travel_agent_lead_priority      @default(WARM)
+  assignedToName      String?
+  nextFollowUp        DateTime?
+  lastContactAt       DateTime?
+  lostReason          String?                         @db.Text
+  convertedBookingId  String?
+  tourId              String?                         // optional FK to travel_agent_tours when lead came from a tour quote
+  customerId          String?                         // optional link to customers when lead came from a logged-in customer
+  createdAt           DateTime                        @default(now())
+  updatedAt           DateTime                        @updatedAt
+
+  travel_agents               travel_agents                    @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+  capture_link                travel_agent_lead_capture_links? @relation(fields: [captureLinkId], references: [id])
+  travel_agent_lead_notes     travel_agent_lead_notes[]
+
+  @@index([travelAgentId])
+  @@index([status])
+  @@index([priority])
+  @@index([source])
+  @@index([nextFollowUp])
+  @@index([captureLinkId])
+}
+
+model travel_agent_lead_notes {
+  id              String   @id @default(cuid())
+  leadId          String
+  note            String   @db.Text
+  authorName      String?
+  createdAt       DateTime @default(now())
+
+  travel_agent_leads travel_agent_leads @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+}
+
+model travel_agent_lead_capture_links {
+  id              String    @id @default(cuid())
+  travelAgentId   String
+  slug            String    @unique
+  title           String
+  description     String?   @db.Text
+  defaultTripType String?
+  isActive        Boolean   @default(true)
+  totalSubmissions Int      @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  travel_agents       travel_agents        @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+  travel_agent_leads  travel_agent_leads[]
+
+  @@index([travelAgentId])
+  @@index([slug])
+}
+
+model travel_agent_tours {
+  id                    String    @id @default(cuid())
+  travelAgentId         String
+  title                 String
+  slug                  String?
+  shortDescription      String?   @db.VarChar(500)
+  description           String?   @db.Text
+  destination           String
+  // Optional FK to admin-managed locations (mirrors vendor wander pattern)
+  mainLocationId        String?
+  // Optional shared category from admin-managed wander_categories table
+  categoryId            String?
+  subCategoryId         String?
+  experienceId          String?
+  // Free-text legacy category — kept for backward compat
+  category              String?
+  // Day-wise duration preset / display label e.g. "3 Days 2 Nights"
+  duration              String?
+  durationDays          Int       @default(1)
+  durationNights        Int       @default(0)
+  // Pricing (mirrors vendor wander)
+  priceType             travel_agent_tour_price_type @default(ON_REQUEST)
+  basePrice             Float?
+  startingPrice         Float?    // legacy alias kept for backward compat
+  priceTiers            String?   @db.LongText
+  // Cargo / Inclusions / Highlights
+  highlights            String?   @db.LongText
+  customPlaces          String?   @db.LongText
+  inclusions            String?   @db.LongText
+  exclusions            String?   @db.LongText
+  itinerary             String?   @db.LongText
+  termsConditions       String?   @db.LongText
+  // Media
+  coverImage            String?
+  galleryImages         String?   @db.LongText
+  // Vehicles
+  vehicleIds            String?   @db.LongText // JSON array of travel_agent_fleets ids
+  vehicleOptions        String?   @db.Text     // JSON array of generic vehicle types
+  // Logistics
+  pickupType            String?
+  meetingPoint          String?   @db.Text
+  guideLanguages        String?   @db.Text
+  availableDays         String?   @db.Text
+  advanceNoticeHours    Int       @default(24)
+  cancellationPolicy    travel_agent_tour_cancellation_policy @default(MODERATE)
+  cancellationNotes     String?   @db.Text
+  requireAdvancePayment Boolean   @default(false)
+  advancePaymentType    String?
+  advancePaymentValue   Float?
+  // Date range (optional fixed dates)
+  tourStartDate         DateTime? @db.Date
+  tourEndDate           DateTime? @db.Date
+  // Lifecycle
+  status                travel_agent_tour_status @default(DRAFT)
+  createMode            travel_agent_tour_create_mode @default(DETAILED)
+  isActive              Boolean   @default(true)
+  isPublic              Boolean   @default(false)
+  totalBookings         Int       @default(0)
+  rating                Float?    @default(0)
+  totalRatings          Int       @default(0)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  travel_agents travel_agents @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+
+  @@unique([travelAgentId, slug])
+  @@index([travelAgentId])
+  @@index([isActive])
+  @@index([destination])
+  @@index([categoryId])
+  @@index([mainLocationId])
+  @@index([status])
+}
+
+model travel_agent_properties {
+  id              String                            @id @default(cuid())
+  travelAgentId   String
+  name            String
+  slug            String?
+  propertyType    travel_agent_property_type        @default(RESORT)
+  description     String?                           @db.Text
+  address         String?                           @db.Text
+  city            String?
+  state           String?
+  pincode         String?
+  latitude        Float?
+  longitude       Float?
+  totalRooms      Int                               @default(1)
+  startingPrice   Float?
+  amenities       String?                           @db.LongText
+  inclusions      String?                           @db.LongText
+  exclusions      String?                           @db.LongText
+  rules           String?                           @db.LongText
+  checkInTime     String?
+  checkOutTime    String?
+  coverImage      String?
+  galleryImages   String?                           @db.LongText
+  isActive        Boolean                           @default(true)
+  isPublic        Boolean                           @default(false)
+  totalBookings   Int                               @default(0)
+  rating          Float?                            @default(0)
+  totalRatings    Int                               @default(0)
+  createdAt       DateTime                          @default(now())
+  updatedAt       DateTime                          @updatedAt
+
+  travel_agents travel_agents @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+
+  @@unique([travelAgentId, slug])
+  @@index([travelAgentId])
+  @@index([propertyType])
+  @@index([city])
+  @@index([isActive])
+}
+
+model travel_agent_bookings {
+  id              String                          @id @default(cuid())
+  travelAgentId   String
+  bookingNumber   String                          @unique
+  customerName    String
+  customerPhone   String
+  customerEmail   String?
+  bookingType     String                          // TOUR, PROPERTY, TRANSPORT, CUSTOM
+  referenceId     String?                         // tour/property id
+  referenceTitle  String?
+  pickupLocation  String?
+  dropLocation    String?
+  travelDate      DateTime?
+  returnDate      DateTime?
+  checkInDate     DateTime?
+  checkOutDate    DateTime?
+  passengers      Int?                            @default(1)
+  rooms           Int?                            @default(1)
+  totalAmount     Float?                          @default(0)
+  paidAmount      Float?                          @default(0)
+  paymentStatus   String                          @default("PENDING")
+  status          travel_agent_booking_status     @default(DRAFT)
+  shareToken      String?                         @unique
+  shareExpiresAt  DateTime?
+  customerFilledAt DateTime?
+  notes           String?                         @db.Text
+  createdAt       DateTime                        @default(now())
+  updatedAt       DateTime                        @updatedAt
+
+  travel_agents travel_agents @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+
+  @@index([travelAgentId])
+  @@index([status])
+  @@index([bookingNumber])
+  @@index([shareToken])
+}
+
+enum travel_agents_status {
+  PENDING
+  DOCUMENTS_PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+  BLOCKED
+}
+
+enum travel_agent_tour_price_type {
+  PER_PERSON
+  PER_GROUP
+  ON_REQUEST
+}
+
+enum travel_agent_tour_status {
+  DRAFT
+  ACTIVE
+  PAUSED
+  INACTIVE
+}
+
+enum travel_agent_tour_create_mode {
+  QUICK
+  DETAILED
+}
+
+enum travel_agent_tour_cancellation_policy {
+  FLEXIBLE
+  MODERATE
+  STRICT
+}
+
+enum travel_agent_documents_documentType {
+  GST_CERTIFICATE
+  PAN_CARD
+  AGENCY_REGISTRATION
+  IATA_CERTIFICATE
+  TRAVEL_AGENT_LICENSE
+  ADDRESS_PROOF
+  BANK_DETAILS
+  CANCELLED_CHEQUE
+  OWNER_AADHAAR
+  OWNER_PAN
+  OTHER
+}
+
+enum travel_agent_documents_status {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum travel_agent_lead_source {
+  MANUAL
+  CAPTURE_LINK
+  WEBSITE
+  REFERRAL
+  WALK_IN
+  SOCIAL_MEDIA
+  GOOGLE_ADS
+  WHATSAPP
+  OTHER
+}
+
+enum travel_agent_lead_status {
+  NEW
+  CONTACTED
+  INTERESTED
+  QUOTED
+  NEGOTIATING
+  BOOKED
+  LOST
+  COLD
+}
+
+enum travel_agent_lead_priority {
+  HOT
+  WARM
+  COLD
+}
+
+enum travel_agent_property_type {
+  RESORT
+  HOTEL
+  HOMESTAY
+  APARTMENT
+  VILLA
+  GUEST_HOUSE
+  HOSTEL
+  ROOMS
+  OTHER
+}
+
+enum travel_agent_booking_status {
+  DRAFT
+  PENDING_CUSTOMER
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRAVEL AGENT FLEET — self-contained vehicle inventory for tour transport
+// ─────────────────────────────────────────────────────────────────────────────
+
+model travel_agent_fleets {
+  id                  String                              @id @default(cuid())
+  travelAgentId       String
+  vehicleType         travel_agent_fleet_vehicleType      @default(SEDAN)
+  vehicleName         String
+  brand               String?
+  model               String?
+  registrationNumber  String?
+  yearOfManufacture   Int?
+  color               String?
+  fuelType            travel_agent_fleet_fuelType?
+  transmission        String?                             // MANUAL | AUTOMATIC
+  seatingCapacity     Int?
+  luggageCapacity     Int?
+  chauffeurIncluded   Boolean                             @default(true)
+  chauffeurName       String?
+  chauffeurPhone      String?
+  chauffeurLanguages  String?                             @db.Text
+  amenities           String?                             @db.LongText // JSON array of strings
+  baseLocation        String?
+  ratePerDay          Float?
+  ratePerKm           Float?
+  minimumBookingHours Int?
+  description         String?                             @db.Text
+  coverImage          String?
+  galleryImages       String?                             @db.LongText // JSON array of URLs
+  rcImage             String?
+  insuranceImage      String?
+  fitnessImage        String?
+  permitImage         String?
+  insuranceProvider   String?
+  insuranceValidity   DateTime?
+  fitnessValidity     DateTime?
+  permitType          String?
+  isActive            Boolean                             @default(true)
+  isAvailable         Boolean                             @default(true)
+  totalTrips          Int                                 @default(0)
+  rating              Float?                              @default(0)
+  totalRatings        Int                                 @default(0)
+  createdAt           DateTime                            @default(now())
+  updatedAt           DateTime                            @updatedAt
+
+  travel_agents       travel_agents                       @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+  bookings            travel_agent_fleet_bookings[]
+
+  @@unique([travelAgentId, registrationNumber])
+  @@index([travelAgentId])
+  @@index([vehicleType])
+  @@index([isActive])
+  @@index([isAvailable])
+}
+
+model travel_agent_fleet_bookings {
+  id              String                              @id @default(cuid())
+  travelAgentId   String
+  fleetId         String
+  startDate       DateTime
+  endDate         DateTime
+  bookingType     travel_agent_fleet_booking_type     @default(CUSTOMER)
+  status          travel_agent_fleet_booking_status   @default(CONFIRMED)
+  customerName    String?
+  customerPhone   String?
+  pickupLocation  String?
+  dropLocation    String?
+  amount          Float?
+  bookingRefId    String?                             // optional link to travel_agent_bookings.id
+  notes           String?                             @db.Text
+  createdAt       DateTime                            @default(now())
+  updatedAt       DateTime                            @updatedAt
+
+  fleet           travel_agent_fleets                 @relation(fields: [fleetId], references: [id], onDelete: Cascade)
+
+  @@index([travelAgentId])
+  @@index([fleetId])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([status])
+}
+
+enum travel_agent_fleet_booking_type {
+  CUSTOMER
+  MANUAL_BLOCK
+  MAINTENANCE
+  RESERVED
+}
+
+enum travel_agent_fleet_booking_status {
+  CONFIRMED
+  TENTATIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum travel_agent_fleet_vehicleType {
+  SEDAN
+  SUV
+  MUV
+  HATCHBACK
+  TEMPO_TRAVELLER
+  MINI_BUS
+  BUS
+  LUXURY_CAR
+  BIKE
+  SCOOTER
+  CAMPER_VAN
+  OTHER
+}
+
+enum travel_agent_fleet_fuelType {
+  PETROL
+  DIESEL
+  CNG
+  LPG
+  EV
+  HYBRID
+  OTHER
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRAVEL AGENT CHAT — direct messaging between travel agents and customers
+// ─────────────────────────────────────────────────────────────────────────────
+
+model travel_agent_chat_conversations {
+  id              String                          @id @default(cuid())
+  travelAgentId   String
+  customerId      String?
+  customerName    String                          // captured at conversation start, may differ from customers.name
+  customerPhone   String                          // for guest chats without customers row
+  customerEmail   String?
+  leadId          String?                         // optional FK to travel_agent_leads
+  tourId          String?                         // optional FK to travel_agent_tours
+  subject         String?
+  status          String                          @default("ACTIVE") // ACTIVE | ARCHIVED | BLOCKED
+  customerUnread  Int                             @default(0)
+  agentUnread     Int                             @default(0)
+  lastMessageAt   DateTime?
+  lastMessageText String?                         @db.Text
+  lastSenderType  String?                         // 'agent' | 'customer'
+  createdAt       DateTime                        @default(now())
+  updatedAt       DateTime                        @updatedAt
+
+  travel_agents             travel_agents                   @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+  travel_agent_chat_messages travel_agent_chat_messages[]
+
+  @@index([travelAgentId])
+  @@index([customerId])
+  @@index([customerPhone])
+  @@index([leadId])
+  @@index([status])
+  @@index([lastMessageAt])
+}
+
+model travel_agent_chat_messages {
+  id              String                            @id @default(cuid())
+  conversationId  String
+  senderType      String                            // 'agent' | 'customer'
+  senderId        String?
+  senderName      String?
+  messageType     String                            @default("TEXT")
+  content         String                            @db.Text
+  attachmentUrl   String?
+  attachmentName  String?
+  status          String                            @default("SENT") // SENT | DELIVERED | READ
+  readAt          DateTime?
+  createdAt       DateTime                          @default(now())
+
+  travel_agent_chat_conversations travel_agent_chat_conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderType])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VENDOR CALL LOGS — track customer-initiated call clicks per vendor
+// ─────────────────────────────────────────────────────────────────────────────
 
 model vendor_call_logs {
   id          String   @id @default(cuid())

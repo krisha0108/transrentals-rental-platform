@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { CarSubServicesGrid } from '@/components/services/CarSubServicesGrid';
 import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
+import { HowToSchema, FAQSchema, BreadcrumbSchema, ItemListSchema } from '@/components/seo/schemas';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 
 const CAR_RENTAL_FAQS = [
@@ -83,6 +84,32 @@ export const metadata: Metadata = {
 export default function CarRentalPage() {
   return (
     <>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://transrentals.in' },
+        { name: 'Car Rental India', url: 'https://transrentals.in/car-rental' },
+      ]} />
+      <HowToSchema
+        name="How to Rent a Car in India on TransRentals"
+        description="Book a self-drive or chauffeur-driven car in 4 easy steps across 250+ cities."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Choose Trip Type', text: 'Select self-drive or chauffeur-driven. Pick your trip type: local, outstation, or airport transfer.' },
+          { name: 'Select City & Dates', text: 'Choose pickup city from 250+ locations. Set pickup date, time, and drop-off details.' },
+          { name: 'Pick Your Car', text: 'Browse hatchbacks, sedans, SUVs from verified vendors. Compare prices and features.' },
+          { name: 'Confirm & Ride', text: 'Complete booking online. For self-drive: bring your valid DL and ID. For chauffeur: just show up and go.' },
+        ]}
+      />
+      <FAQSchema faqs={CAR_RENTAL_FAQS.map(f => ({ question: f.q, answer: f.a }))} />
+      <ItemListSchema
+        name="Car Rental in Top Cities - TransRentals"
+        description="Rent cars in top Indian cities — self-drive and chauffeur-driven available."
+        url="https://transrentals.in/car-rental"
+        items={TOP_CITIES.map(city => ({
+          name: `Car Rental in ${city.name}`,
+          url: `https://transrentals.in/car-rental/${city.slug}`,
+          description: `Book self-drive and chauffeur-driven cars in ${city.name} starting ₹999/day.`,
+        }))}
+      />
       {/* Service Schema */}
       <script
         type="application/ld+json"

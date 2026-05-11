@@ -27,6 +27,10 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import PackersRequestDetails from '@/components/packers/PackersRequestDetails';
+import { formatShiftingScope } from '@/lib/packers-display';
+import TruckRequestDetails from '@/components/truck/TruckRequestDetails';
+import { formatTruckBodyType, formatTripDirection } from '@/lib/truck-display';
 
 interface Booking {
   id: string;
@@ -528,6 +532,12 @@ export default function ManagerBookingDetailPage() {
           <DetailRow label="Transmission" value={booking.requestedTransmission} />
           <DetailRow label="Fuel Type" value={booking.requestedFuelType} />
           <DetailRow label="Seats" value={booking.requestedSeats} />
+          {booking.numberOfVehicles && booking.numberOfVehicles > 1 && (
+            <DetailRow
+              label={booking.serviceSlug === 'self-drive' ? 'Number of Cars' : 'Number of Bikes'}
+              value={booking.numberOfVehicles}
+            />
+          )}
           <DetailRow label="Helmets Required" value={booking.helmetsRequired} />
           <DetailRow label="Passengers" value={booking.passengers} />
           <DetailRow label="Goods Type" value={booking.goodsType} />
@@ -538,7 +548,7 @@ export default function ManagerBookingDetailPage() {
       </div>
 
       {/* Location Details */}
-      {(booking.pickupAddress || booking.dropAddress || booking.pickupCity || booking.dropCity || booking.airportName || booking.routeDetails || booking.venueName) && (
+      {(booking.pickupAddress || booking.dropAddress || booking.pickupCity || booking.dropCity || booking.deliveryCity || booking.deliveryAddress || booking.airportName || booking.routeDetails || booking.venueName) && (
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Navigation className="w-5 h-5 text-gray-400" />
@@ -551,12 +561,51 @@ export default function ManagerBookingDetailPage() {
             <DetailRow label="Drop City" value={booking.dropCity} />
             <DetailRow label="Drop Address" value={booking.dropAddress} />
             <DetailRow label="Drop Floor" value={booking.dropFloor} />
+            <DetailRow label="Delivery City" value={booking.deliveryCity} />
+            <DetailRow label="Delivery Address" value={booking.deliveryAddress} />
             <DetailRow label="Airport" value={booking.airportName} />
             <DetailRow label="Flight Number" value={booking.flightNumber} />
             <DetailRow label="Terminal" value={booking.terminalNumber} />
             <DetailRow label="Route Details" value={booking.routeDetails} />
             <DetailRow label="Venue" value={booking.venueName} />
           </div>
+        </div>
+      )}
+
+      {/* Packers Move Information */}
+      {(booking.serviceSlug === 'packers-and-movers' || booking.serviceSlug === 'packers-movers') && (
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Truck className="w-5 h-5 text-gray-400" />
+            Move Information
+            {booking.shiftingScope && (
+              <span className="ml-2 px-2 py-0.5 text-xs font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-100">
+                {formatShiftingScope(booking.shiftingScope)}
+              </span>
+            )}
+          </h2>
+          <PackersRequestDetails data={booking as any} hidePropertyType />
+        </div>
+      )}
+
+      {/* Truck Trip Information */}
+      {(booking.serviceSlug === 'truck-transport' || booking.serviceSlug === 'truck-rental' || booking.serviceSlug === 'truck-tempo-rental' || booking.serviceSlug === 'transporter' || booking.serviceSlug === 'mini-truck') && (
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Truck className="w-5 h-5 text-gray-400" />
+            Trip Information
+            {booking.truckBodyType && (
+              <span className="ml-2 px-2 py-0.5 text-xs font-bold rounded bg-emerald-50 text-emerald-700 border border-emerald-100">
+                {formatTruckBodyType(booking.truckBodyType)}
+              </span>
+            )}
+            {booking.tripDirection && (
+              <span className="ml-1 px-2 py-0.5 text-xs font-bold rounded bg-blue-50 text-blue-700 border border-blue-100">
+                {formatTripDirection(booking.tripDirection)}
+              </span>
+            )}
+          </h2>
+          <TruckRequestDetails data={booking as any} hideVehicle />
         </div>
       )}
 

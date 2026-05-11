@@ -9,6 +9,7 @@ import { BlogSortSelect } from '@/components/blog/BlogSortSelect';
 import { Pagination } from '@/components/blog/Pagination';
 import { PopularCategoriesScroller } from '@/components/blog/PopularCategoriesScroller';
 import { Compass, Car, ArrowRight, Globe, Tags } from 'lucide-react';
+import { WebPageSchema } from '@/components/seo/schemas';
 
 // Revalidate blog listing page every 60 seconds (ISR)
 export const revalidate = 60;
@@ -121,6 +122,16 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <WebPageSchema
+        type="CollectionPage"
+        name="Travel Reflection - Road Trip Guides & Car Rental Tips | TransRentals"
+        description="Discover the best travel guides, road trip itineraries, bike trip tips, car rental advice, and destination guides for exploring India."
+        url={`https://transrentals.in/blog${page > 1 ? `?page=${page}` : ''}`}
+        breadcrumbs={[
+          { name: 'Home', url: 'https://transrentals.in' },
+          { name: 'Travel Reflection', url: 'https://transrentals.in/blog' },
+        ]}
+      />
       {/* Compact Hero Section */}
       <div className="relative bg-gradient-to-r from-emerald-600 to-emerald-500 text-white">
         <div className="absolute inset-0">

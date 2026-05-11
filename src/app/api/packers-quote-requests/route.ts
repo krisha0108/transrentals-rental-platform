@@ -73,7 +73,16 @@ export async function POST(request: NextRequest) {
     fragileItemsDesc = sanitizeInput(fragileItemsDesc);
     vehicleDetails = sanitizeInput(vehicleDetails);
     requirements = sanitizeInput(requirements);
-    customerPhone = sanitizePhone(customerPhone);
+    // TA shadow placeholder phone (`ta-<id>`) — keep as-is, skip sanitize/validate.
+    let isTaPlaceholderPhone = false;
+    if (typeof customerPhone === 'string' && customerPhone.startsWith('ta-')) {
+      isTaPlaceholderPhone = true;
+      try {
+        const ag: any = await (prisma as any).travel_agents.findUnique({ where: { id: customerPhone.slice(3) } });
+        if (ag?.phone) { customerPhone = ag.phone; isTaPlaceholderPhone = false; }
+      } catch { /* keep placeholder */ }
+    }
+    if (!isTaPlaceholderPhone) customerPhone = sanitizePhone(customerPhone);
 
     if (!customerName || !customerEmail || !customerPhone) {
       return NextResponse.json({ error: 'Customer details are required' }, { status: 400 });
@@ -84,7 +93,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
-    if (customerPhone && !isValidPhone(customerPhone)) {
+    if (!isTaPlaceholderPhone && customerPhone && !isValidPhone(customerPhone)) {
       return NextResponse.json({ error: 'Invalid phone number. Must be 10 digits starting with 6-9' }, { status: 400 });
     }
     if (!pickupCity || !dropCity || !pickupAddress || !dropAddress || !preferredDate || !shiftingType) {
@@ -160,6 +169,37 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Travel-agent PERSONAL tagging — resolve customer (id → email → phone)
+    // and write travelAgentId + bookingMode='PERSONAL' if the customer is
+    // linked to a travel agent.
+    try {
+      let lookupId: string | null = customerId || null;
+      if (!lookupId && customerEmail) {
+        const c = await prisma.customers.findFirst({
+          where: { email: String(customerEmail).toLowerCase() }, select: { id: true },
+        });
+        if (c) lookupId = c.id;
+      }
+      if (!lookupId && customerPhone) {
+        const c = await prisma.customers.findFirst({
+          where: { phone: String(customerPhone) }, select: { id: true },
+        });
+        if (c) lookupId = c.id;
+      }
+      if (lookupId) {
+        const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+          `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`, lookupId,
+        );
+        const agentId = linkRows[0]?.linkedTravelAgentId || null;
+        if (agentId) {
+          await (prisma as any).$executeRawUnsafe(
+            `UPDATE packers_quote_requests SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+            agentId, 'PERSONAL', quoteRequest.id,
+          );
+        }
+      }
+    } catch (e) { console.error('[packers-quote-requests] TA tag failed', e); }
+
     // Non-blocking vendor notification
     sendQuoteRequestNotificationToVendors({
       requestId: quoteRequest.id,
@@ -180,7 +220,9 @@ export async function POST(request: NextRequest) {
         status: quoteRequest.status,
         shiftingType: quoteRequest.shiftingType,
         pickupCity: quoteRequest.pickupCity,
+        pickupAddress: quoteRequest.pickupAddress,
         dropCity: quoteRequest.dropCity,
+        dropAddress: quoteRequest.dropAddress,
         preferredDate: quoteRequest.preferredDate,
         expiresAt: quoteRequest.expiresAt,
       },
@@ -229,14 +271,27 @@ export async function GET(request: NextRequest) {
         requestNumber: r.requestNumber,
         serviceType: r.serviceType,
         shiftingType: r.shiftingType,
+        propertySize: r.propertySize,
         pickupCity: r.pickupCity,
+        pickupAddress: r.pickupAddress,
         dropCity: r.dropCity,
+        dropAddress: r.dropAddress,
         preferredDate: r.preferredDate,
         status: r.status,
         totalQuotesReceived: r.totalQuotesReceived,
         quotes: r.packers_quotes,
         expiresAt: r.expiresAt,
         createdAt: r.createdAt,
+        // ── Newly-added packers fields (subset most useful for list views) ──
+        shiftingScope: r.shiftingScope,
+        pickupPincode: r.pickupPincode,
+        dropPincode: r.dropPincode,
+        estimatedWeight: r.estimatedWeight,
+        estimatedVolumeCubFt: r.estimatedVolumeCubFt,
+        boxesCount: r.boxesCount,
+        bagsCount: r.bagsCount,
+        vehicleType: r.vehicleType,
+        labourCount: r.labourCount,
       })),
     });
   } catch (error: any) {

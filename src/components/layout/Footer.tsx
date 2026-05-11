@@ -143,6 +143,7 @@ export function Footer() {
     { name: 'About Us', href: '/about' },
     { name: 'Contact Us', href: '/contact' },
     { name: 'Become a Vendor', href: '/vendor' },
+    { name: 'For Travel Agents', href: '/travel-agents' },
     { name: 'Become a Driver', href: '/driver' },
     { name: 'Vendor Guide', href: '/vendor-guide.html', external: true },
     { name: 'Interactive Guide', href: '/guide/vendor' },

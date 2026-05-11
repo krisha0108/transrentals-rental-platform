@@ -24,9 +24,21 @@ export async function verifyDriverToken(request: NextRequest): Promise<DriverPay
     if (!token) return null;
 
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    if (!payload.driverId || payload.role !== 'driver') return null;
+    console.log('[verifyDriverToken] raw payload:', JSON.stringify(payload));
 
-    return payload as unknown as DriverPayload;
+    // Login API uses driverAppId + role:'driver-app'; older/web tokens use driverId + role:'driver'
+    const driverId = (payload.driverId || payload.driverAppId) as string | undefined;
+    const role = payload.role as string;
+    if (!driverId || (role !== 'driver' && role !== 'driver-app')) return null;
+
+    return {
+      driverId,
+      vendorId: payload.vendorId as string | undefined,
+      email: payload.email as string,
+      name: payload.name as string,
+      role: 'driver',
+      userType: payload.userType === 'vendor_staff' ? 'vendor_staff' : 'independent',
+    } as DriverPayload;
   } catch {
     return null;
   }

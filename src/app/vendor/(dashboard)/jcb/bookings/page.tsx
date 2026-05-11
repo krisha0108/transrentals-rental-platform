@@ -199,8 +199,12 @@ export default function VendorJCBBookingsPage() {
                       <div>
                         <h3 className="font-bold text-gray-900">{booking.equipmentType}</h3>
                         <p className="text-sm text-gray-500 capitalize">{booking.workType}</p>
-                        <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-                          <MapPin className="w-4 h-4" />{booking.city}
+                        <div className="flex items-start gap-1 text-sm text-gray-600 mt-1">
+                          <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div>{booking.city}</div>
+                            {booking.siteLocation && <p className="text-xs text-gray-500 mt-0.5">{booking.siteLocation}</p>}
+                          </div>
                         </div>
                       </div>
                     </div>

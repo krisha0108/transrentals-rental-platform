@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     const [bookings, total] = await Promise.all([
       prisma.packers_bookings.findMany({
         where: whereClause,
-        include: { packers_quote_requests: { select: { id: true, requestNumber: true } } },
+        include: { packers_quote_requests: true },
         orderBy: [{ scheduledDate: 'asc' }, { createdAt: 'desc' }],
         skip,
         take: limit,

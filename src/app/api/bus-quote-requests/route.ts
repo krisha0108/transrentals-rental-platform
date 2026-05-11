@@ -111,7 +111,25 @@ export async function POST(request: NextRequest) {
       isB2B,
       numberOfVehicles,
       numberOfPersons,
+      // Travel-agent fields
+      taBookingMode,    // 'PERSONAL' | 'COMPANY'
     } = body;
+
+    // ===== TRAVEL-AGENT PLACEHOLDER PHONE =====
+    // Detect `ta-<agentId>` BEFORE sanitization (sanitizePhone strips
+    // non-digits, which would mangle the placeholder past recognition).
+    let isTaPlaceholderPhone = false;
+    if (typeof customerPhone === 'string' && customerPhone.startsWith('ta-')) {
+      isTaPlaceholderPhone = true;
+      try {
+        const agentId = customerPhone.slice(3);
+        const ag: any = await (prisma as any).travel_agents.findUnique({ where: { id: agentId } });
+        if (ag?.phone) {
+          customerPhone = ag.phone;
+          isTaPlaceholderPhone = false;
+        }
+      } catch { /* keep placeholder, skip validation */ }
+    }
 
     // ===== INPUT SANITIZATION (XSS Protection) =====
     customerName = sanitizeInput(customerName);
@@ -122,7 +140,9 @@ export async function POST(request: NextRequest) {
     dropAddress = sanitizeInput(dropAddress);
     routeDetails = sanitizeInput(routeDetails);
     requirements = sanitizeInput(requirements);
-    customerPhone = sanitizePhone(customerPhone);
+    if (!isTaPlaceholderPhone) {
+      customerPhone = sanitizePhone(customerPhone);
+    }
 
     // Validate required fields
     if (!customerName || !customerEmail || !customerPhone) {
@@ -138,7 +158,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
-    if (customerPhone && !isValidPhone(customerPhone)) {
+    if (!isTaPlaceholderPhone && customerPhone && !isValidPhone(customerPhone)) {
       return NextResponse.json({ error: 'Invalid phone number. Must be 10 digits starting with 6-9' }, { status: 400 });
     }
 
@@ -174,6 +194,121 @@ export async function POST(request: NextRequest) {
         { error: 'Valid trip type is required' },
         { status: 400 }
       );
+    }
+
+    // ============ TRAVEL AGENT FLOW ============
+    // Only COMPANY-mode TA bookings route into b2b_bookings (manager queue).
+    // PERSONAL-mode bookings fall through to the normal quote-request flow
+    // — for travel agents this means their personal trips behave exactly
+    // like a regular customer's bus booking (vendors quote directly).
+    if (taBookingMode === 'COMPANY') {
+      // Find / resolve the customer
+      let taCustomer: any = null;
+      if (customerId) {
+        taCustomer = await prisma.customers.findUnique({ where: { id: customerId } });
+      }
+      if (!taCustomer && customerEmail) {
+        taCustomer = await prisma.customers.findFirst({
+          where: { email: customerEmail.toLowerCase() },
+        });
+      }
+      if (!taCustomer && customerPhone) {
+        taCustomer = await prisma.customers.findFirst({ where: { phone: customerPhone } });
+      }
+
+      if (taCustomer) {
+        const linkedRows: any[] = await (prisma as any).$queryRawUnsafe(
+          `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`,
+          taCustomer.id,
+        );
+        const linkedTravelAgentId: string | null =
+          linkedRows[0]?.linkedTravelAgentId || null;
+
+        if (linkedTravelAgentId) {
+          const vehiclesReq =
+            numberOfVehicles && parseInt(numberOfVehicles) > 0
+              ? parseInt(numberOfVehicles)
+              : 1;
+
+          const agentRows: any[] = await (prisma as any).$queryRawUnsafe(
+            `SELECT agencyName, ownerName, phone FROM travel_agents WHERE id = ? LIMIT 1`,
+            linkedTravelAgentId,
+          );
+          const agencyName = agentRows[0]?.agencyName || taCustomer.name;
+          // Prefer the agent's real phone over the shadow customer's `ta-<id>`
+          // placeholder when storing on the b2b row.
+          const agentPhone: string | null = agentRows[0]?.phone || null;
+          let resolvedCustomerPhone: string = taCustomer.phone;
+          if (
+            agentPhone &&
+            (typeof resolvedCustomerPhone !== 'string' || resolvedCustomerPhone.startsWith('ta-'))
+          ) {
+            resolvedCustomerPhone = agentPhone;
+          }
+
+          const taBookingId = generateB2BId();
+          const taBookingNumber = `TA-CO-${new Date()
+            .getFullYear()}-${Math.floor(Math.random() * 100000)
+            .toString()
+            .padStart(5, '0')}`;
+
+          const busPreference = {
+            vehicleCategoryName: vehicleCategoryName || 'Standard Bus',
+            passengers: passengers ? parseInt(String(passengers)) : null,
+            needAC: needAC === true || needAC === 'true',
+            needLuxury: needLuxury === true || needLuxury === 'true',
+            needSleeper: needSleeper === true || needSleeper === 'true',
+            requirements: requirements || null,
+            routeDetails: routeDetails || null,
+          };
+
+          const taBooking = await prisma.b2b_bookings.create({
+            data: {
+              id: taBookingId,
+              bookingNumber: taBookingNumber,
+              customerId: taCustomer.id,
+              customerName: taCustomer.name,
+              customerEmail: taCustomer.email,
+              customerPhone: resolvedCustomerPhone,
+              companyName: agencyName,
+              serviceType: 'bus',
+              vehiclesRequired: vehiclesReq,
+              passengerCount: passengers ? parseInt(String(passengers)) : null,
+              vehicleCategory: vehicleCategoryName || 'Standard Bus',
+              pickupLocation: pickupCity ? String(pickupCity).trim() : null,
+              dropLocation: dropCity ? String(dropCity).trim() : null,
+              tripType: tripType || 'outstation',
+              scheduledDate: new Date(pickupDate),
+              scheduledTime: pickupTime || '06:00',
+              returnDate: returnDate ? new Date(returnDate) : null,
+              returnTime: returnTime || null,
+              specialNotes: JSON.stringify(busPreference),
+              status: 'OPEN_FOR_QUOTES',
+            },
+          });
+
+          await (prisma as any).$executeRawUnsafe(
+            `UPDATE b2b_bookings SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+            linkedTravelAgentId,
+            taBookingMode,
+            taBooking.id,
+          );
+
+          return NextResponse.json({
+            success: true,
+            isTravelAgent: true,
+            bookingMode: taBookingMode,
+            message: 'Company bus booking sent to manager. Quote will be shared shortly.',
+            booking: {
+              id: taBooking.id,
+              bookingNumber: taBooking.bookingNumber,
+              status: taBooking.status,
+            },
+            redirect_to: `/customer/b2b-bookings/${taBooking.id}?customer_id=${taCustomer.id}`,
+          });
+        }
+      }
+      // If we couldn't link, fall through to normal quote-request flow
     }
 
     // ============ B2B FLOW ============
@@ -296,10 +431,45 @@ export async function POST(request: NextRequest) {
       calculatedTripDays = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
     }
 
+    // Always check whether the submitting customer is linked to a travel
+    // agent — if yes, tag this row as PERSONAL TA booking. We don't rely on
+    // the front-end sending `taBookingMode` because some modals may forget
+    // to forward it; the customer→agent link in the DB is the source of
+    // truth.
+    let personalTaAgentId: string | null = null;
+    try {
+      const normalizedEmail = customerEmail
+        ? String(customerEmail).trim().toLowerCase()
+        : null;
+      const normalizedPhone = customerPhone ? String(customerPhone).trim() : null;
+      // Single raw query — most reliable across Prisma client regen states.
+      const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+        `SELECT linkedTravelAgentId FROM customers
+         WHERE (? IS NOT NULL AND id = ?)
+            OR (? IS NOT NULL AND email = ?)
+            OR (? IS NOT NULL AND phone = ?)
+         ORDER BY linkedTravelAgentId IS NULL ASC
+         LIMIT 1`,
+        customerId || null, customerId || null,
+        normalizedEmail, normalizedEmail,
+        normalizedPhone, normalizedPhone,
+      );
+      personalTaAgentId = linkRows[0]?.linkedTravelAgentId || null;
+      console.log('[bus-quote-requests] TA tagging lookup', {
+        customerId,
+        normalizedEmail,
+        normalizedPhone,
+        foundAgentId: personalTaAgentId,
+      });
+    } catch (e) {
+      console.error('[bus-quote-requests] TA lookup failed', e);
+    }
+    const isTaPersonal = !!personalTaAgentId;
+
     // Create the quote request
     let quoteRequest;
     try {
-      quoteRequest = await prisma.bus_quote_requests.create({
+      quoteRequest = await (prisma as any).bus_quote_requests.create({
         data: {
           requestNumber,
           customerId: customerId || null,
@@ -334,6 +504,26 @@ export async function POST(request: NextRequest) {
           source: body.source || 'web',
         },
       });
+
+      // Tag with TA fields via raw SQL — bypasses any Prisma-client cache
+      // issues with the new columns (more reliable than spreading into the
+      // create above).
+      if (isTaPersonal && quoteRequest?.id) {
+        try {
+          await (prisma as any).$executeRawUnsafe(
+            `UPDATE bus_quote_requests SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+            personalTaAgentId,
+            'PERSONAL',
+            quoteRequest.id,
+          );
+          console.log('[bus-quote-requests] TA tag applied', {
+            id: quoteRequest.id,
+            travelAgentId: personalTaAgentId,
+          });
+        } catch (e) {
+          console.error('[bus-quote-requests] TA tag UPDATE failed', e);
+        }
+      }
     } catch (dbError: any) {
       logger.error('Database error creating bus quote request', {
         error: dbError?.message,
@@ -381,7 +571,9 @@ export async function POST(request: NextRequest) {
         vehicleCategoryName: quoteRequest.vehicleCategoryName,
         passengers: quoteRequest.passengers,
         pickupCity: quoteRequest.pickupCity,
+        pickupAddress: quoteRequest.pickupAddress,
         dropCity: quoteRequest.dropCity,
+        dropAddress: quoteRequest.dropAddress,
         pickupDate: quoteRequest.pickupDate,
         expiresAt: quoteRequest.expiresAt,
       },
@@ -454,7 +646,9 @@ export async function GET(request: NextRequest) {
         vehicleCategoryName: r.vehicleCategoryName,
         passengers: r.passengers,
         pickupCity: r.pickupCity,
+        pickupAddress: r.pickupAddress,
         dropCity: r.dropCity,
+        dropAddress: r.dropAddress,
         pickupDate: r.pickupDate,
         pickupTime: r.pickupTime,
         returnDate: r.returnDate,

@@ -26,6 +26,7 @@ import {
   Fuel,
   Users,
   Truck,
+  Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCustomerAuth } from '@/hooks/useCustomer';
@@ -94,6 +95,9 @@ export function SelfDriveQuoteRequestModal({
   const [bookingPurpose, setBookingPurpose] = useState<'personal' | 'company' | null>(null);
   const [numberOfVehicles, setNumberOfVehicles] = useState('');
   const [numberOfPersons, setNumberOfPersons] = useState('');
+  // Travel-agent linkage — agent can pick PERSONAL (their own trip) or
+  // COMPANY (their agency's fleet booking, routes to b2b_bookings).
+  const [isTravelAgent, setIsTravelAgent] = useState(false);
 
   // Check if user is already logged in on mount
   React.useEffect(() => {
@@ -108,9 +112,16 @@ export function SelfDriveQuoteRequestModal({
             setIsLoggedIn(true);
             setCustomerName(parsedCustomer.name || '');
             setCustomerEmail(parsedCustomer.email || '');
-            setCustomerPhone(parsedCustomer.phone || '');
+            // Strip TA shadow placeholder phone — auto-healed below.
+            const safePhone =
+              typeof parsedCustomer.phone === 'string' && parsedCustomer.phone.startsWith('ta-')
+                ? ''
+                : (parsedCustomer.phone || '');
+            setCustomerPhone(safePhone);
+            // Travel-agent linkage from localStorage
+            if (parsedCustomer.linkedTravelAgentId) setIsTravelAgent(true);
 
-            // Check B2B status
+            // Check B2B status + auto-heal phone via profile API
             const params = new URLSearchParams();
             if (parsedCustomer.id) params.set('customer_id', String(parsedCustomer.id));
             if (parsedCustomer.email) params.set('email', parsedCustomer.email);
@@ -118,6 +129,22 @@ export function SelfDriveQuoteRequestModal({
               fetch(`/api/customer/b2b-status?${params.toString()}`)
                 .then(res => res.json())
                 .then(data => { if (data.isB2B) setIsB2BCustomer(true); })
+                .catch(() => {});
+              fetch(`/api/customer/profile?customer_id=${parsedCustomer.id}`)
+                .then(r => r.json())
+                .then(d => {
+                  if (d?.customers?.linkedTravelAgentId) setIsTravelAgent(true);
+                  const agentPhone = d?.customers?.linkedAgentPhone || null;
+                  if (agentPhone) {
+                    setCustomerPhone(prev => prev || agentPhone);
+                    try {
+                      const stored = JSON.parse(localStorage.getItem('customer') || '{}');
+                      if (typeof stored.phone !== 'string' || stored.phone.startsWith('ta-')) {
+                        localStorage.setItem('customer', JSON.stringify({ ...stored, phone: agentPhone }));
+                      }
+                    } catch { /* ignore */ }
+                  }
+                })
                 .catch(() => {});
             }
           } catch (e) {
@@ -195,12 +222,17 @@ export function SelfDriveQuoteRequestModal({
         // Requirements
         isDeliveryRequested,
         customerNotes: customerNotes.trim() || null,
+        numberOfVehicles: numberOfVehicles ? parseInt(numberOfVehicles) : 1,
 
         // B2B fields
         ...(bookingPurpose === 'company' && {
           isB2B: true,
-          numberOfVehicles: numberOfVehicles ? parseInt(numberOfVehicles) : undefined,
           numberOfPersons: numberOfPersons ? parseInt(numberOfPersons) : undefined,
+        }),
+        // Travel-agent COMPANY booking — backend uses this to tag the b2b row
+        // with travelAgentId + bookingMode='COMPANY' (no agency-side B2B check).
+        ...(isTravelAgent && bookingPurpose === 'company' && {
+          taBookingMode: 'COMPANY',
         }),
       };
 
@@ -578,7 +610,7 @@ export function SelfDriveQuoteRequestModal({
                 </div>
 
                 {/* Booking Purpose Toggle - Personal or Company */}
-                {isB2BCustomer && (
+                {(isB2BCustomer || isTravelAgent) && (
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3 mb-4">
                     <p className="text-sm font-semibold text-gray-800">This booking is for:</p>
                     <div className="grid grid-cols-2 gap-3">
@@ -640,6 +672,22 @@ export function SelfDriveQuoteRequestModal({
                 {/* Requirements */}
                 <div className="space-y-3 mb-6">
                   <h4 className="font-semibold text-gray-900">Requirements</h4>
+
+                  {/* Number of Cars */}
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">
+                      <Hash className="w-4 h-4 inline mr-1" />
+                      Number of Cars
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={numberOfVehicles}
+                      onChange={(e) => setNumberOfVehicles(e.target.value)}
+                      placeholder="e.g., 1"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
 
                   {/* Delivery Option */}
                   <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
@@ -849,6 +897,21 @@ export function SelfDriveQuoteRequestModal({
                     {/* Requirements */}
                     <div className="space-y-3 pt-2">
                       <h4 className="font-semibold text-gray-900">Requirements</h4>
+
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          <Hash className="w-4 h-4 inline mr-1" />
+                          Number of Cars
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={numberOfVehicles}
+                          onChange={(e) => setNumberOfVehicles(e.target.value)}
+                          placeholder="e.g., 1"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
 
                       <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
                         <input

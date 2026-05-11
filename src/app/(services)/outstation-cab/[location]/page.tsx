@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { permanentRedirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
@@ -178,7 +178,7 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
         />
       );
     }
-    permanentRedirect(pageContext.to);
+    notFound();
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="outstation-cab" serviceName="Outstation Cab" />;
   const city = pageContext.city;

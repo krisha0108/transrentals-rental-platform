@@ -35,15 +35,25 @@ const homepageSchema = {
       description: "India's largest vehicle rental marketplace — cars, bikes, buses, equipment across 150+ cities.",
       contactPoint: {
         '@type': 'ContactPoint',
-        telephone: '+91-9999999999',
+        telephone: '+91-9737965551',
+        email: 'book@transrentals.in',
         contactType: 'customer service',
         areaServed: 'IN',
         availableLanguage: ['English', 'Hindi'],
       },
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: '215, Galaxy Business, 2nd Floor, SP Ring Road',
+        addressLocality: 'Ahmedabad',
+        addressRegion: 'Gujarat',
+        postalCode: '382350',
+        addressCountry: 'IN',
+      },
       sameAs: [
-        'https://facebook.com/transrentals',
-        'https://instagram.com/transrentals',
+        'https://www.facebook.com/transrentals',
+        'https://www.instagram.com/transrentals',
         'https://twitter.com/transrentals',
+        'https://www.linkedin.com/company/transrentals',
       ],
     },
     {

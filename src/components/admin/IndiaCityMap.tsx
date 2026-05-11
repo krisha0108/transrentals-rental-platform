@@ -39,12 +39,13 @@ const DATE_FILTERS = [
 const SERVICE_COLORS: Record<string, string> = {
   'Bus Rental': '#3b82f6', 'Luxury Cars': '#a855f7', 'Packers & Movers': '#f97316',
   'Truck Rental': '#eab308', Equipment: '#ef4444', 'Bike Rental': '#14b8a6', 'Self Drive': '#22c55e',
+  'Car Rental': '#ec4899',
 };
 const SERVICE_BG: Record<string, string> = {
   'Bus Rental': 'bg-blue-50 text-blue-700', 'Luxury Cars': 'bg-purple-50 text-purple-700',
   'Packers & Movers': 'bg-orange-50 text-orange-700', 'Truck Rental': 'bg-yellow-50 text-yellow-700',
   Equipment: 'bg-red-50 text-red-700', 'Bike Rental': 'bg-teal-50 text-teal-700',
-  'Self Drive': 'bg-green-50 text-green-700',
+  'Self Drive': 'bg-green-50 text-green-700', 'Car Rental': 'bg-pink-50 text-pink-700',
 };
 
 function findCoords(cityName: string): [number, number] | null {

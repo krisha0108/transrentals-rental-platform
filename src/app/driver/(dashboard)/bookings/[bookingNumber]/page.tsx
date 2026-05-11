@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { DriverChatWithCustomer } from '@/components/driver/DriverChatWithCustomer';
 import {
   ArrowLeft,
   Car,
@@ -32,6 +33,7 @@ import {
   Crown,
   RefreshCw,
 } from 'lucide-react';
+import TruckRequestDetails from '@/components/truck/TruckRequestDetails';
 
 interface Booking {
   id: string;
@@ -84,6 +86,27 @@ interface Booking {
   vehicleFuel?: string;
   // Truck-specific fields
   goodsType?: string;
+  goodsDescription?: string;
+  truckBodyType?: string;
+  tripDirection?: string;
+  estimatedVolume?: string;
+  estimatedWeight?: number;
+  pickupPincode?: string;
+  pickupFloor?: number | null;
+  hasPickupLift?: boolean;
+  dropPincode?: string;
+  dropFloor?: number | null;
+  hasDropLift?: boolean;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
+  requiresLabour?: boolean;
+  labourCount?: number;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  requiresPOD?: boolean;
+  isFlexibleDate?: boolean;
   loadingOtp?: string;
   deliveryOtp?: string;
   loadingStartedAt?: string;
@@ -2166,6 +2189,13 @@ export default function DriverBookingDetailPage() {
               </div>
             </div>
           )}
+
+          {/* Truck-specific extended details */}
+          {isTruck && (
+            <div className="pt-4 border-t border-gray-100">
+              <TruckRequestDetails data={booking as any} hideVehicle />
+            </div>
+          )}
         </div>
       </div>
 
@@ -2206,14 +2236,23 @@ export default function DriverBookingDetailPage() {
           )}
         </div>
 
-        {/* Call Button */}
-        <a
-          href={`tel:${booking.customerPhone}`}
-          className="mt-4 w-full py-3 bg-emerald-100 text-emerald-700 rounded-xl font-medium flex items-center justify-center gap-2"
-        >
-          <Phone className="w-5 h-5" />
-          Call Customer
-        </a>
+        {/* Call + Chat Buttons */}
+        <div className="mt-4 flex flex-col gap-2">
+          <a
+            href={`tel:${booking.customerPhone}`}
+            className="w-full py-3 bg-emerald-100 text-emerald-700 rounded-xl font-medium flex items-center justify-center gap-2"
+          >
+            <Phone className="w-5 h-5" />
+            Call Customer
+          </a>
+          {['ACCEPTED', 'DRIVER_ASSIGNED', 'VEHICLE_ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(booking.status) && (
+            <DriverChatWithCustomer
+              bookingId={booking.id}
+              bookingType="chauffeur"
+              customerName={booking.customerName}
+            />
+          )}
+        </div>
       </div>
 
       {/* Vehicle Details */}

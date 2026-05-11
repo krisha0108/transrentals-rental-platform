@@ -70,3 +70,49 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch driver conversations' }, { status: 500 });
   }
 }
+
+// POST - Find or create a driver conversation (customer initiates)
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { bookingId, bookingType = 'chauffeur', customerId, driverId, staffDriverId } = body;
+
+    if (!bookingId || !customerId || (!driverId && !staffDriverId)) {
+      return NextResponse.json({ error: 'bookingId, customerId, and driverId or staffDriverId required' }, { status: 400 });
+    }
+
+    const isStaff = !!staffDriverId;
+    const driverField = isStaff ? 'staffDriverId' : 'driverId';
+    const driverIdValue = staffDriverId || driverId;
+    const participantType = isStaff ? 'staff_driver' : 'driver';
+
+    const existing = await prisma.chat_conversations.findFirst({
+      where: { [driverField]: driverIdValue, customerId, bookingId, bookingType },
+      include: { drivers: { select: { id: true, name: true, phone: true, profilePhoto: true } } },
+    });
+
+    if (existing) {
+      return NextResponse.json({ success: true, conversation: existing, isNew: false });
+    }
+
+    const id = 'c' + Buffer.from(Math.random().toString()).toString('base64').replace(/[^a-z0-9]/g, '').slice(0, 24);
+
+    const conversation = await prisma.chat_conversations.create({
+      data: {
+        id,
+        customerId,
+        [driverField]: driverIdValue,
+        participantType,
+        bookingType,
+        bookingId,
+        subject: 'Chat with Driver',
+        status: 'ACTIVE',
+      },
+      include: { drivers: { select: { id: true, name: true, phone: true, profilePhoto: true } } },
+    });
+
+    return NextResponse.json({ success: true, conversation, isNew: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: 'Failed to create conversation', details: error?.message }, { status: 500 });
+  }
+}

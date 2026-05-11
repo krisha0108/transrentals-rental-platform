@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       where: { id, vendorId: auth.vendorId },
       include: {
         self_drive_quote_requests_self_drive_quotes_requestIdToself_drive_quote_requests: {
-          select: { id: true, requestNumber: true, customerName: true, customerPhone: true, customerEmail: true, locationName: true, pickupDate: true, pickupTime: true, dropDate: true, dropTime: true, totalDays: true, isDeliveryRequested: true, pickupAddress: true, customerNotes: true, budgetMin: true, budgetMax: true, vehicleCategoryName: true, vehicleBrand: true, transmission: true, fuelType: true, minSeats: true, status: true },
+          select: { id: true, requestNumber: true, customerName: true, customerPhone: true, customerEmail: true, locationName: true, pickupDate: true, pickupTime: true, dropDate: true, dropTime: true, totalDays: true, isDeliveryRequested: true, pickupAddress: true, customerNotes: true, budgetMin: true, budgetMax: true, vehicleCategoryName: true, vehicleBrand: true, transmission: true, fuelType: true, minSeats: true, numberOfVehicles: true, status: true },
         },
         car_bookings: {
           select: { id: true, bookingNumber: true, status: true, paymentStatus: true, tripStartOtp: true, tripStartOtpExpiry: true, tripOtpVerified: true, pickedUpAt: true, returnedAt: true, customerName: true, customerPhone: true },

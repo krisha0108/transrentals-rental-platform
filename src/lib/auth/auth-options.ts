@@ -81,6 +81,69 @@ export const authOptions: NextAuthOptions = {
         }
       },
     }),
+    // Travel agent credentials provider
+    CredentialsProvider({
+      id: 'travel-agent-credentials',
+      name: 'Travel Agent Credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Invalid credentials');
+        }
+
+        if (!prisma) {
+          console.error('[Travel Agent Auth] Database not available');
+          throw new Error('Database service unavailable. Please try again later.');
+        }
+
+        try {
+          const agent = await prisma.travel_agents.findUnique({
+            where: { email: credentials.email.toLowerCase() },
+          });
+
+          if (!agent) {
+            throw new Error('Invalid credentials');
+          }
+
+          if (agent.status === 'BLOCKED') {
+            throw new Error('Your account has been blocked. Please contact support.');
+          }
+          if (agent.status === 'SUSPENDED') {
+            throw new Error('Your account is suspended. Please contact support.');
+          }
+          if (agent.status === 'REJECTED') {
+            throw new Error('Your application was rejected. Please contact support.');
+          }
+
+          const isPasswordValid = await bcrypt.compare(credentials.password, agent.password);
+          if (!isPasswordValid) {
+            throw new Error('Invalid credentials');
+          }
+
+          await prisma.travel_agents.update({
+            where: { id: agent.id },
+            data: { lastLoginAt: new Date() },
+          });
+
+          return {
+            id: agent.id,
+            email: agent.email,
+            name: agent.agencyName,
+            role: 'TRAVEL_AGENT',
+            userType: 'travel_agent',
+            status: agent.status,
+            phone: agent.phone,
+            ownerName: agent.ownerName,
+          } as any;
+        } catch (error: any) {
+          console.error('[Travel Agent Auth] Error:', error.message);
+          throw new Error(error.message || 'Authentication failed');
+        }
+      },
+    }),
     // Vendor credentials provider
     CredentialsProvider({
       id: 'vendor-credentials',

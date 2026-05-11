@@ -51,6 +51,8 @@ interface OpenBooking {
   dropDate: string;
   dropTime: string;
   totalDays: number;
+  numberOfVehicles?: number;
+  pickupAddress?: string;
   dailyRate: number;
   totalAmount: number;
   grandTotal: number;
@@ -420,6 +422,12 @@ export default function VendorOpenRequestsPage() {
                         <div>
                           <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Location</p>
                           <p className="text-sm font-semibold text-slate-900 mt-0.5">{request.locationName}</p>
+                          {request.pickupAddress && (
+                            <p className="text-xs text-slate-500 mt-0.5">{request.pickupAddress}</p>
+                          )}
+                          {request.numberOfVehicles && request.numberOfVehicles > 1 && (
+                            <p className="text-xs text-emerald-600 font-semibold mt-0.5">{request.numberOfVehicles} bikes</p>
+                          )}
                         </div>
                       </div>
                     </div>

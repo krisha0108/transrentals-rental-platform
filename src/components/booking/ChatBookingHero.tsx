@@ -101,14 +101,22 @@ export function ChatBookingHero({
           const customer = JSON.parse(customerData);
           setIsLoggedIn(true);
           setLoggedInCustomer(customer);
+          // Strip travel-agent shadow placeholder phone (`ta-<id>`) — invalid
+          // for booking validation. The profile-API call below will heal it
+          // by fetching the agent's real phone if available.
+          const safePhone =
+            typeof customer.phone === 'string' && customer.phone.startsWith('ta-')
+              ? ''
+              : (customer.phone || '');
           // Pre-fill booking data with customer info
           setBookingData((prev: any) => ({
             ...prev,
             name: customer.name || '',
             email: customer.email || '',
-            phone: customer.phone || '',
+            phone: safePhone,
           }));
-          // Check B2B status
+          // Check B2B status + auto-heal phone if user is a travel agent
+          // whose shadow customer carries a placeholder phone.
           const params = new URLSearchParams();
           if (customer.id) params.set('customer_id', String(customer.id));
           if (customer.email) params.set('email', customer.email);
@@ -116,6 +124,27 @@ export function ChatBookingHero({
             fetch(`/api/customer/b2b-status?${params.toString()}`)
               .then(res => res.json())
               .then(data => { if (data.isB2B) setIsB2B(true); })
+              .catch(() => {});
+          }
+          if (customer.id) {
+            fetch(`/api/customer/profile?customer_id=${customer.id}`)
+              .then(r => r.json())
+              .then(d => {
+                const agentPhone = d?.customers?.linkedAgentPhone || null;
+                if (agentPhone) {
+                  setBookingData((prev: any) => ({
+                    ...prev,
+                    phone: prev.phone || agentPhone,
+                  }));
+                  // Also patch localStorage for other pages.
+                  try {
+                    const stored = JSON.parse(localStorage.getItem('customer') || '{}');
+                    if (typeof stored.phone !== 'string' || stored.phone.startsWith('ta-')) {
+                      localStorage.setItem('customer', JSON.stringify({ ...stored, phone: agentPhone }));
+                    }
+                  } catch { /* ignore */ }
+                }
+              })
               .catch(() => {});
           }
         } catch (e) {
@@ -603,7 +632,7 @@ export function ChatBookingHero({
       addShiviMessage(
         'Select your package 📦',
         [
-          { label: '🏙️ Local (4hr/40km)', action: 'select-luxury-package', value: '1' },
+          { label: '🏙️ Local (8hr/80km)', action: 'select-luxury-package', value: '1' },
           { label: '🛣️ Outstation Trip', action: 'select-luxury-package', value: '3' },
           { label: '✈️ Airport Transfer', action: 'select-luxury-package', value: '4' },
         ],
@@ -730,6 +759,825 @@ export function ChatBookingHero({
     }, 800);
   };
 
+  // ============================================================
+  // PACKERS & MOVERS — Extended quotation field helpers
+  // ============================================================
+
+  const askForShiftingScope = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'What is the scope of your move? 🌍',
+        [
+          { label: '🏙️ Local (within city)', action: 'select-shifting-scope', value: 'LOCAL' },
+          { label: '🛣️ Domestic (within state)', action: 'select-shifting-scope', value: 'DOMESTIC' },
+          { label: '🚛 Intercity (between states)', action: 'select-shifting-scope', value: 'INTERCITY' },
+        ],
+        0
+      );
+      setCurrentStep('shifting-scope');
+    }, 800);
+  };
+
+  const askForOfficeSize = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'What is the size of your office? 🏢',
+        [
+          { label: '1-10 Employees', action: 'select-office-size', value: 'UPTO_10_EMPLOYEES' },
+          { label: '11-50 Employees', action: 'select-office-size', value: 'UPTO_50_EMPLOYEES' },
+          { label: '51-100 Employees', action: 'select-office-size', value: 'UPTO_100_EMPLOYEES' },
+          { label: '100+ Employees', action: 'select-office-size', value: 'MORE_THAN_100_EMPLOYEES' },
+        ],
+        0
+      );
+      setCurrentStep('office-size');
+    }, 800);
+  };
+
+  const askForVehicleSubType = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'What type of vehicle do you need to transport? 🚗',
+        [
+          { label: '🚗 Car', action: 'select-vehicle-subtype', value: 'CAR' },
+          { label: '🏍️ Bike', action: 'select-vehicle-subtype', value: 'BIKE' },
+          { label: '🚗🏍️ Both Car & Bike', action: 'select-vehicle-subtype', value: 'BOTH' },
+        ],
+        0
+      );
+      setCurrentStep('vehicle-subtype');
+    }, 800);
+  };
+
+  const askForPickupPincode = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        "What's your pickup area pincode? 📮 (6 digits)",
+        undefined,
+        0,
+        'text',
+        'e.g., 110001'
+      );
+      setCurrentStep('pickup-pincode');
+    }, 800);
+  };
+
+  const askForDropPincode = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        "What's your drop area pincode? 📮 (6 digits)",
+        undefined,
+        0,
+        'text',
+        'e.g., 400001'
+      );
+      setCurrentStep('drop-pincode');
+    }, 800);
+  };
+
+  const askForPickupFloor = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Which floor at pickup? 🏢\n(Enter 0 for ground floor)',
+        [
+          { label: '⏭️ Skip', action: 'skip-pickup-floor', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 0, 1, 2, 5'
+      );
+      setCurrentStep('pickup-floor');
+    }, 800);
+  };
+
+  const askForPickupLift = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Is there a lift/elevator at pickup? 🛗',
+        [
+          { label: '✅ Yes, lift available', action: 'confirm-pickup-lift', value: 'yes' },
+          { label: '❌ No lift', action: 'confirm-pickup-lift', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('pickup-lift');
+    }, 800);
+  };
+
+  const askForDropFloor = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Which floor at drop? 🏢\n(Enter 0 for ground floor)',
+        [
+          { label: '⏭️ Skip', action: 'skip-drop-floor', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 0, 1, 2, 5'
+      );
+      setCurrentStep('drop-floor');
+    }, 800);
+  };
+
+  const askForDropLift = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Is there a lift/elevator at drop? 🛗',
+        [
+          { label: '✅ Yes, lift available', action: 'confirm-drop-lift', value: 'yes' },
+          { label: '❌ No lift', action: 'confirm-drop-lift', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('drop-lift');
+    }, 800);
+  };
+
+  const askForExpectedDelivery = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'When do you need delivery by? 📦\n(e.g., "2 days", "next week", or a specific date)',
+        [
+          { label: '⏭️ Skip', action: 'skip-expected-delivery', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 2 days, 2026-05-10'
+      );
+      setCurrentStep('expected-delivery');
+    }, 800);
+  };
+
+  const askForDeliveryTime = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Preferred delivery time? 🕐',
+        [
+          { label: '🌅 Morning (8 AM – 12 PM)', action: 'select-delivery-time', value: 'MORNING' },
+          { label: '☀️ Afternoon (12 PM – 4 PM)', action: 'select-delivery-time', value: 'AFTERNOON' },
+          { label: '🌆 Evening (4 PM – 8 PM)', action: 'select-delivery-time', value: 'EVENING' },
+          { label: '🌙 Anytime', action: 'select-delivery-time', value: 'ANYTIME' },
+          { label: '⏭️ Skip', action: 'skip-delivery-time', value: '' },
+        ],
+        0
+      );
+      setCurrentStep('delivery-time');
+    }, 800);
+  };
+
+  const askForInventoryList = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Briefly list main items / rooms 📝\nTap items below to add (you can pick many), or type your own. This helps vendors quote accurately.',
+        [
+          { label: '🛏️ Bedroom set', action: 'add-inventory-item', value: 'Bedroom set' },
+          { label: '🍳 Kitchen items', action: 'add-inventory-item', value: 'Kitchen items' },
+          { label: '🛋️ Sofa', action: 'add-inventory-item', value: 'Sofa' },
+          { label: '🪑 Dining set', action: 'add-inventory-item', value: 'Dining set' },
+          { label: '🧊 Fridge', action: 'add-inventory-item', value: 'Fridge' },
+          { label: '🚪 Almirah / Wardrobe', action: 'add-inventory-item', value: 'Almirah / Wardrobe' },
+          { label: '📺 TV', action: 'add-inventory-item', value: 'TV' },
+          { label: '🧺 Washing machine', action: 'add-inventory-item', value: 'Washing machine' },
+          { label: '⏭️ Skip', action: 'skip-inventory-list', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 2 BHK + sofa + fridge + 3 almirahs'
+      );
+      setCurrentStep('inventory-list');
+    }, 800);
+  };
+
+  const askForEstimatedWeight = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Approximate total weight / volume? ⚖️',
+        [
+          { label: '🪶 Light (< 500 kg)', action: 'select-estimated-weight', value: '300' },
+          { label: '📦 Medium (500 – 1500 kg)', action: 'select-estimated-weight', value: '1000' },
+          { label: '🏋️ Heavy (1500 – 3000 kg)', action: 'select-estimated-weight', value: '2500' },
+          { label: '🚛 Very Heavy (> 3000 kg)', action: 'select-estimated-weight', value: '4000' },
+          { label: '⏭️ Skip', action: 'skip-estimated-weight', value: '' },
+        ],
+        0
+      );
+      setCurrentStep('estimated-weight');
+    }, 800);
+  };
+
+  const askForHeavyItems = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Do you have any heavy items? 🏋️\n(e.g., piano, safe, large appliances)',
+        [
+          { label: '✅ Yes', action: 'confirm-heavy-items', value: 'yes' },
+          { label: '❌ No', action: 'confirm-heavy-items', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('heavy-items-yn');
+    }, 800);
+  };
+
+  const askForHeavyItemsDesc = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Please describe the heavy items 📝',
+        [
+          { label: '⏭️ Skip', action: 'skip-heavy-items-desc', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 1 piano, 1 large safe'
+      );
+      setCurrentStep('heavy-items-desc');
+    }, 800);
+  };
+
+  const askForFragileItems = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Do you have any fragile items? 🔮\n(e.g., glassware, artwork, electronics)',
+        [
+          { label: '✅ Yes', action: 'confirm-fragile-items', value: 'yes' },
+          { label: '❌ No', action: 'confirm-fragile-items', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('fragile-items-yn');
+    }, 800);
+  };
+
+  const askForPackingItemsDetails = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Tell us about your items in one go 📦\nBoxes/cartons, bags/suitcases, and fragile items (TV, glassware, etc.). Tap to add or type.',
+        [
+          { label: '📦 5-10 boxes', action: 'add-packing-detail', value: '5-10 boxes' },
+          { label: '📦 10-30 boxes', action: 'add-packing-detail', value: '10-30 boxes' },
+          { label: '🎒 1-2 bags', action: 'add-packing-detail', value: '1-2 bags' },
+          { label: '🎒 3-5 bags', action: 'add-packing-detail', value: '3-5 bags' },
+          { label: '🪟 Fragile: TV / glassware', action: 'add-packing-detail', value: 'Fragile: TV / glassware' },
+          { label: '⏭️ Skip', action: 'skip-packing-details', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 15 boxes, 5 bags, LED TV'
+      );
+      setCurrentStep('packing-items-details');
+    }, 800);
+  };
+
+  const askForNeedPacking = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Do you need packing service? 📦',
+        [
+          { label: '✅ Yes, please pack', action: 'confirm-need-packing', value: 'yes' },
+          { label: "❌ No, I'll pack myself", action: 'confirm-need-packing', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('need-packing');
+    }, 800);
+  };
+
+  const askForNeedLoading = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Do you need loading help? 💪',
+        [
+          { label: '✅ Yes', action: 'confirm-need-loading', value: 'yes' },
+          { label: '❌ No', action: 'confirm-need-loading', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('need-loading');
+    }, 800);
+  };
+
+  const askForNeedUnloading = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Do you need unloading help? 💪',
+        [
+          { label: '✅ Yes', action: 'confirm-need-unloading', value: 'yes' },
+          { label: '❌ No', action: 'confirm-need-unloading', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('need-unloading');
+    }, 800);
+  };
+
+  const askForLabourCount = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'How many labour workers do you need? 👷',
+        [
+          { label: '⏭️ Skip / Vendor decides', action: 'skip-labour-count', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 2, 4, 6'
+      );
+      setCurrentStep('labour-count');
+    }, 800);
+  };
+
+  const askForVehicleTypeRequirement = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'What type of truck do you prefer? 🚛',
+        [
+          { label: '🚚 Shared truck (cheaper)', action: 'select-vehicle-type-req', value: 'SHARED' },
+          { label: '🚛 Dedicated truck', action: 'select-vehicle-type-req', value: 'DEDICATED' },
+        ],
+        0
+      );
+      setCurrentStep('vehicle-type-req');
+    }, 800);
+  };
+
+  const askForPartLoad = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Are you OK with part-load (sharing truck space)? 📦',
+        [
+          { label: '✅ Yes, part load OK', action: 'select-part-load', value: 'yes' },
+          { label: '❌ No, full load only', action: 'select-part-load', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('part-load');
+    }, 800);
+  };
+
+  const askForNeedInsurance = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Do you need transit insurance for your goods? 🛡️',
+        [
+          { label: '✅ Yes', action: 'confirm-need-insurance', value: 'yes' },
+          { label: '❌ No', action: 'confirm-need-insurance', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('need-insurance');
+    }, 800);
+  };
+
+  const askForInsuranceValue = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'What is the estimated value of goods to insure? 💰\n(in ₹)',
+        [
+          { label: '⏭️ Skip', action: 'skip-insurance-value', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 500000'
+      );
+      setCurrentStep('insurance-value');
+    }, 800);
+  };
+
+  const askForPOD = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Do you need Proof of Delivery (POD)? 📋',
+        [
+          { label: '✅ Yes', action: 'confirm-requires-pod', value: 'yes' },
+          { label: '❌ No', action: 'confirm-requires-pod', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('requires-pod');
+    }, 800);
+  };
+
+  const askForReceiverName = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        "Who will receive the goods at the destination? 👤\n(Receiver's full name)",
+        [
+          { label: '⏭️ Skip', action: 'skip-receiver-name', value: '' },
+        ],
+        0,
+        'text',
+        'Receiver name'
+      );
+      setCurrentStep('receiver-name');
+    }, 800);
+  };
+
+  const askForReceiverPhone = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        "Receiver's phone number? 📱",
+        [
+          { label: '⏭️ Skip', action: 'skip-receiver-phone', value: '' },
+        ],
+        0,
+        'tel',
+        'e.g., 9876543210'
+      );
+      setCurrentStep('receiver-phone');
+    }, 800);
+  };
+
+  const askForMultipleStops = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Will the truck need to stop at multiple locations? 🛑',
+        [
+          { label: '✅ Yes', action: 'confirm-multiple-stops', value: 'yes' },
+          { label: '❌ No', action: 'confirm-multiple-stops', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('multiple-stops-yn');
+    }, 800);
+  };
+
+  const askForMultipleStopsDesc = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Please describe the additional stops 📝',
+        [
+          { label: '⏭️ Skip', action: 'skip-multiple-stops-desc', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 1 pickup at office, 1 drop at storage'
+      );
+      setCurrentStep('multiple-stops-desc');
+    }, 800);
+  };
+
+  // After receiver phone (intercity) or skipping it, continue to multiple-stops.
+  const proceedAfterReceiver = () => {
+    askForMultipleStops();
+  };
+
+  // After multiple stops chain → existing additional-details flow
+  const proceedAfterPackersExtras = () => {
+    askForAdditionalDetails();
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Truck rental extended quotation helpers (mirror packers approach)
+  // ─────────────────────────────────────────────────────────────────────────
+  const askForTruckBodyType = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'What type of truck body do you need? 🚚',
+        [
+          { label: '🛻 Open', action: 'select-truck-body-type', value: 'OPEN' },
+          { label: '🚚 Closed Body', action: 'select-truck-body-type', value: 'CLOSED_BODY' },
+          { label: '📦 Container', action: 'select-truck-body-type', value: 'CONTAINER' },
+          { label: '🚛 Trailer', action: 'select-truck-body-type', value: 'TRAILER' },
+          { label: '🚐 LCV', action: 'select-truck-body-type', value: 'LCV' },
+          { label: '❄️ Refrigerated', action: 'select-truck-body-type', value: 'REFRIGERATED' },
+          { label: '🛏️ Flatbed', action: 'select-truck-body-type', value: 'FLATBED' },
+          { label: '📋 Other', action: 'select-truck-body-type', value: 'OTHER' },
+        ],
+        0
+      );
+      setCurrentStep('truck-body-type');
+    }, 800);
+  };
+
+  const askForMaterialDetails = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Specific items being transported? 📦\nTap one or more items below (they’ll add to your message), edit if needed, then press Send.',
+        [
+          { label: '📦 5-10 boxes', action: 'add-material-detail', value: '5-10 boxes' },
+          { label: '📦 10-30 boxes', action: 'add-material-detail', value: '10-30 boxes' },
+          { label: '🛏️ Bed + cupboard', action: 'add-material-detail', value: 'Bed + cupboard' },
+          { label: '🛋️ Sofa set + dining', action: 'add-material-detail', value: 'Sofa set + dining' },
+          { label: '🏠 Full house (1 BHK)', action: 'add-material-detail', value: 'Full house (1 BHK)' },
+        ],
+        0,
+        'text',
+        'e.g., 10 boxes, 2 beds, 1 sofa'
+      );
+      setCurrentStep('material-details');
+    }, 800);
+  };
+
+  const askForEstimatedVolume = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Approximate volume? 📐',
+        [
+          { label: '🪶 Light (small load)', action: 'select-truck-volume', value: 'LIGHT' },
+          { label: '📦 Medium (canter-load)', action: 'select-truck-volume', value: 'MEDIUM' },
+          { label: '🚛 Large (truck-load)', action: 'select-truck-volume', value: 'LARGE' },
+          { label: '⏭️ Skip', action: 'skip-truck-volume', value: '' },
+        ],
+        0
+      );
+      setCurrentStep('truck-estimated-volume');
+    }, 800);
+  };
+
+  const askForTruckPickupPincode = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        "What's your pickup area pincode? 📮 (6 digits)",
+        [
+          { label: '⏭️ Skip', action: 'skip-truck-pickup-pincode', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 110001'
+      );
+      setCurrentStep('truck-pickup-pincode');
+    }, 800);
+  };
+
+  const askForTruckDropPincode = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        "What's your drop area pincode? 📮 (6 digits)",
+        [
+          { label: '⏭️ Skip', action: 'skip-truck-drop-pincode', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 400001'
+      );
+      setCurrentStep('truck-drop-pincode');
+    }, 800);
+  };
+
+  const askForTruckPickupFloor = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Which floor at pickup? 🏢\nTap a number or type a higher one',
+        [
+          { label: '🏠 Ground (0)', action: 'select-truck-pickup-floor', value: '0' },
+          { label: '1️⃣ 1st Floor', action: 'select-truck-pickup-floor', value: '1' },
+          { label: '2️⃣ 2nd Floor', action: 'select-truck-pickup-floor', value: '2' },
+          { label: '3️⃣ 3rd Floor', action: 'select-truck-pickup-floor', value: '3' },
+          { label: '4️⃣ 4th Floor', action: 'select-truck-pickup-floor', value: '4' },
+          { label: '🏢 5th & Above (type number)', action: 'noop', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 5, 6, 10'
+      );
+      setCurrentStep('truck-pickup-floor');
+    }, 800);
+  };
+
+  const askForTruckPickupLift = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Is there a lift/elevator at pickup? 🛗',
+        [
+          { label: '✅ Yes, lift available', action: 'confirm-truck-pickup-lift', value: 'yes' },
+          { label: '❌ No lift', action: 'confirm-truck-pickup-lift', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('truck-pickup-lift');
+    }, 800);
+  };
+
+  const askForTruckDropFloor = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Which floor at drop? 🏢\nTap a number or type a higher one',
+        [
+          { label: '🏠 Ground (0)', action: 'select-truck-drop-floor', value: '0' },
+          { label: '1️⃣ 1st Floor', action: 'select-truck-drop-floor', value: '1' },
+          { label: '2️⃣ 2nd Floor', action: 'select-truck-drop-floor', value: '2' },
+          { label: '3️⃣ 3rd Floor', action: 'select-truck-drop-floor', value: '3' },
+          { label: '4️⃣ 4th Floor', action: 'select-truck-drop-floor', value: '4' },
+          { label: '🏢 5th & Above (type number)', action: 'noop', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 5, 6, 10'
+      );
+      setCurrentStep('truck-drop-floor');
+    }, 800);
+  };
+
+  const askForTruckDropLift = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Is there a lift/elevator at drop? 🛗',
+        [
+          { label: '✅ Yes, lift available', action: 'confirm-truck-drop-lift', value: 'yes' },
+          { label: '❌ No lift', action: 'confirm-truck-drop-lift', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('truck-drop-lift');
+    }, 800);
+  };
+
+  const askForExpectedTruckDelivery = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'When do you need delivery by? 📦\n(e.g., "2 days", "next week", or a specific date)',
+        [
+          { label: '⏭️ Skip', action: 'skip-truck-expected-delivery', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 2 days, 2026-05-10'
+      );
+      setCurrentStep('truck-expected-delivery');
+    }, 800);
+  };
+
+  const askForTruckDeliveryTime = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Preferred delivery time? 🕐',
+        [
+          { label: '🌅 Morning (8 AM – 12 PM)', action: 'select-truck-delivery-time', value: 'MORNING' },
+          { label: '☀️ Afternoon (12 PM – 4 PM)', action: 'select-truck-delivery-time', value: 'AFTERNOON' },
+          { label: '🌆 Evening (4 PM – 8 PM)', action: 'select-truck-delivery-time', value: 'EVENING' },
+          { label: '🌙 Anytime', action: 'select-truck-delivery-time', value: 'ANYTIME' },
+          { label: '⏭️ Skip', action: 'skip-truck-delivery-time', value: '' },
+        ],
+        0
+      );
+      setCurrentStep('truck-delivery-time');
+    }, 800);
+  };
+
+  const askForTripDirection = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Is this a one-way trip or round trip? 🛣️',
+        [
+          { label: '➡️ One Way', action: 'select-trip-direction', value: 'ONE_WAY' },
+          { label: '🔄 Round Trip', action: 'select-trip-direction', value: 'ROUND_TRIP' },
+        ],
+        0
+      );
+      setCurrentStep('trip-direction');
+    }, 800);
+  };
+
+  const askForLoadingHelp = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Need loading & unloading help? 💪',
+        [
+          { label: '✅ Yes', action: 'confirm-loading-help', value: 'yes' },
+          { label: '❌ No', action: 'confirm-loading-help', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('loading-help');
+    }, 800);
+  };
+
+  const askForTruckLabourCount = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'How many labourers do you need? 👷',
+        [
+          { label: '⏭️ Skip / Vendor decides', action: 'skip-truck-labour-count', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 2, 4, 6'
+      );
+      setCurrentStep('truck-labour-count');
+    }, 800);
+  };
+
+  const askForTruckMultipleStops = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Will the truck need to stop at multiple locations? 🛑',
+        [
+          { label: '✅ Yes', action: 'confirm-truck-multiple-stops', value: 'yes' },
+          { label: '❌ No', action: 'confirm-truck-multiple-stops', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('truck-multiple-stops-yn');
+    }, 800);
+  };
+
+  const askForTruckMultipleStopsDesc = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Please describe the additional stops 📝',
+        [
+          { label: '⏭️ Skip', action: 'skip-truck-multiple-stops-desc', value: '' },
+        ],
+        0,
+        'text',
+        'e.g., 1 pickup at warehouse, 1 drop at storage'
+      );
+      setCurrentStep('truck-multiple-stops-desc');
+    }, 800);
+  };
+
+  const askForTruckReceiverName = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        "Who will receive the goods at the destination? 👤\n(Receiver's full name)",
+        [
+          { label: '⏭️ Skip', action: 'skip-truck-receiver-name', value: '' },
+        ],
+        0,
+        'text',
+        'Receiver name'
+      );
+      setCurrentStep('truck-receiver-name');
+    }, 800);
+  };
+
+  const askForTruckReceiverPhone = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        "Receiver's phone number? 📱",
+        [
+          { label: '⏭️ Skip', action: 'skip-truck-receiver-phone', value: '' },
+        ],
+        0,
+        'tel',
+        'e.g., 9876543210'
+      );
+      setCurrentStep('truck-receiver-phone');
+    }, 800);
+  };
+
+  const askForTruckPOD = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      addShiviMessage(
+        'Do you need Proof of Delivery (POD)? 📋',
+        [
+          { label: '✅ Yes', action: 'confirm-truck-pod', value: 'yes' },
+          { label: '❌ No', action: 'confirm-truck-pod', value: 'no' },
+        ],
+        0
+      );
+      setCurrentStep('truck-pod');
+    }, 800);
+  };
+
   const askForAirportOption = () => {
     setIsTyping(true);
     setTimeout(() => {
@@ -839,10 +1687,93 @@ export function ChatBookingHero({
         undefined,
         0,
         'text',
-        'Enter destination (e.g., Gandhinagar, Kutch)'
+        'Enter destination city/area (e.g., Gandhinagar, Kutch)'
       );
       setCurrentStep('destination');
     }, 800);
+  };
+
+  const askForBikePickupAddress = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      const profileAddress = loggedInCustomer?.address || '';
+      // Pre-fill the input with the customer's profile address (if any) — they can edit.
+      setInputValue(profileAddress);
+      const helper = profileAddress
+        ? '(Pre-filled from your profile — edit if needed for this booking)'
+        : '(Building, Street, Area, Landmark)';
+      addShiviMessage(
+        `📍 Please confirm your pickup address\n${helper}`,
+        undefined,
+        0,
+        'text',
+        'e.g., A-204, Sunset Apartments, MG Road'
+      );
+      setCurrentStep('bike-pickup-address');
+    }, 800);
+  };
+
+  const askForPickupFullAddress = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      const cityHint = bookingData.pickupLocation ? ` in ${bookingData.pickupLocation}` : '';
+      addShiviMessage(
+        `📍 Please share the full pickup address${cityHint}\n(Building, Street, Area, Landmark)`,
+        undefined,
+        0,
+        'text',
+        'e.g., A-204, Sunset Apartments, MG Road, Near City Mall'
+      );
+      setCurrentStep('pickup-full-address');
+    }, 800);
+  };
+
+  const askForDestinationFullAddress = () => {
+    setIsTyping(true);
+    setTimeout(() => {
+      const cityHint = bookingData.destination ? ` in ${bookingData.destination}` : '';
+      addShiviMessage(
+        `📍 Please share the full destination address${cityHint}\n(Building, Street, Area, Landmark)`,
+        undefined,
+        0,
+        'text',
+        'e.g., B-12, Park Street, Sector 17, Near Metro Station'
+      );
+      setCurrentStep('destination-full-address');
+    }, 800);
+  };
+
+  // Routing logic after destination (city or full address) is captured
+  const proceedAfterDestination = () => {
+    const isLuxuryService = serviceType.includes('luxury') || serviceType.includes('wedding-car') || serviceType.includes('vintage') || serviceType.includes('sports-car');
+    const isCarService = isCarWithDriverServiceType(serviceType) && !isLuxuryService;
+    const isSelfDriveService = serviceType.includes('selfdrive') || serviceType.includes('self-drive');
+    const isBikeService = serviceType.includes('bike') || serviceType.includes('activa') || serviceType.includes('royal-enfield');
+    const isBusService = serviceType.includes('bus') || serviceType.includes('tempo');
+    const isTruckService = serviceType.includes('truck') || serviceType.includes('transporter') || serviceType.includes('trailer');
+
+    const fleetVehicleName = bookingData.fleet || vehicleName;
+    const selectedFleetVehicle = fleetVehicleName ? getVehicleByName(fleetVehicleName) : null;
+    const isFleetCar = selectedFleetVehicle?.category === 'car';
+    const isFleetBus = selectedFleetVehicle?.category === 'bus';
+
+    if (isBikeService) {
+      if (bookingData.bikeDuration) {
+        if (!bookingData.pickupFullAddress) askForBikePickupAddress();
+        else askForPickupDateTime();
+      } else askForDuration();
+    } else if (isBusService || isFleetBus) {
+      askForPassengers();
+    } else if (isTruckService) {
+      askForPickupDateTime();
+    } else if (isLuxuryService || isSelfDriveService) {
+      askForPickupDateTime();
+    } else if (isCarService || isFleetCar) {
+      if (!bookingData.subService && !isFleetCar) askForCarType();
+      else askForPassengers();
+    } else {
+      askForPickupDateTime();
+    }
   };
 
   const askForContactInfo = () => {
@@ -991,7 +1922,7 @@ export function ChatBookingHero({
       '3': 'Corporate'
     };
     const luxuryPackageLabels: Record<string, string> = {
-      '1': 'Local (4hr/40km)',
+      '1': 'Local (8hr/80km)',
       '3': 'Outstation Trip',
       '4': 'Airport Transfer'
     };
@@ -1338,9 +2269,14 @@ export function ChatBookingHero({
     );
 
     try {
-      // Check if customer is logged in and B2B approved
+      // Check if customer is logged in and B2B approved (or a linked travel
+      // agent — they're allowed to make Corporate bookings on their agency's
+      // behalf even though they aren't a regular B2B account).
       const customerData = loggedInCustomer;
-      if (!customerData || !customerData.isB2B || customerData.b2bStatus !== 'APPROVED') {
+      const isLinkedTravelAgent = !!customerData?.linkedTravelAgentId;
+      const isApprovedB2B =
+        customerData?.isB2B && customerData?.b2bStatus === 'APPROVED';
+      if (!customerData || (!isApprovedB2B && !isLinkedTravelAgent)) {
         // Not a B2B customer - show message and redirect to B2B registration or submit as regular
         addShiviMessage(
           '⚠️ Corporate bookings require a B2B account.\n\n' +
@@ -1363,13 +2299,53 @@ export function ChatBookingHero({
       const returnDate = bookingData.returnDateTime ? new Date(bookingData.returnDateTime).toISOString().split('T')[0] : null;
       const returnTime = bookingData.returnDateTime ? new Date(bookingData.returnDateTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false }) : null;
 
+      // Detect the service so we route the b2b row with the correct
+      // serviceType + display labels. Defaults to 'bus' for unknown types.
+      const stLower = (serviceType || '').toLowerCase();
+      let b2bServiceType: string;
+      let b2bServiceDisplay: string;
+      let b2bServiceEmoji: string;
+      if (stLower.includes('bike') || stLower.includes('activa') || stLower.includes('royal-enfield')) {
+        b2bServiceType = 'bike';        b2bServiceDisplay = 'Bike Rental';
+        b2bServiceEmoji = '🏍️';
+      } else if (stLower.includes('truck') || stLower.includes('transport')) {
+        b2bServiceType = 'truck';
+        b2bServiceDisplay = 'Truck Rental';
+        b2bServiceEmoji = '🚚';
+      } else if (stLower.includes('packer') || stLower.includes('mover')) {
+        b2bServiceType = 'packers';
+        b2bServiceDisplay = 'Packers & Movers';
+        b2bServiceEmoji = '📦';
+      } else if (stLower.includes('equipment') || stLower.includes('crane') || stLower.includes('jcb')) {
+        b2bServiceType = 'equipment';
+        b2bServiceDisplay = 'Equipment Rental';
+        b2bServiceEmoji = '🏗️';
+      } else if (stLower.includes('luxury')) {
+        b2bServiceType = 'luxury';
+        b2bServiceDisplay = 'Luxury Car';
+        b2bServiceEmoji = '✨';
+      } else if (stLower.includes('self-drive') || stLower.includes('self_drive') || stLower.includes('selfdrive')) {
+        b2bServiceType = 'self-drive';
+        b2bServiceDisplay = 'Self-Drive Car';
+        b2bServiceEmoji = '🚗';
+      } else if (stLower.includes('car') || stLower.includes('cab')) {
+        b2bServiceType = 'car';
+        b2bServiceDisplay = 'Car Rental';
+        b2bServiceEmoji = '🚗';
+      } else {
+        b2bServiceType = 'bus';
+        b2bServiceDisplay = 'Bus Rental';
+        b2bServiceEmoji = '🚌';
+      }
+      const isBikeServiceB2B = b2bServiceType === 'bike';
+
       // Determine trip type
       const tripType = bookingData.busTripType === 'local' ? 'HOURLY' :
         (returnDate ? 'ROUND_TRIP' : 'ONE_WAY');
 
-      const b2bPayload = {
+      const b2bPayload: any = {
         customerId: String(customerData.id),
-        serviceType: 'bus',
+        serviceType: b2bServiceType,
         vehiclesRequired: parseInt(bookingData.vehiclesRequired) || 1,
         passengerCount: parseInt(bookingData.passengers) || 1,
         vehicleCategory: bookingData.subService || 'standard',
@@ -1382,6 +2358,11 @@ export function ChatBookingHero({
         returnTime,
         specialNotes: bookingData.additionalDetails || '',
       };
+      // Travel-agent COMPANY booking — backend uses this to tag the b2b row
+      // with travelAgentId + bookingMode='COMPANY' (no agency-side B2B check).
+      if (isLinkedTravelAgent) {
+        b2bPayload.taBookingMode = 'COMPANY';
+      }
 
       const response = await fetch('/api/b2b/bookings', {
         method: 'POST',
@@ -1396,8 +2377,8 @@ export function ChatBookingHero({
         addShiviMessage(
           `🎉 Corporate Booking Created, ${firstName}!\n\n` +
           `📋 Booking ID: ${result.booking.bookingNumber}\n` +
-          `🚌 Service: Bus Rental\n` +
-          `👥 Passengers: ${bookingData.passengers}\n` +
+          `${b2bServiceEmoji} Service: ${b2bServiceDisplay}\n` +
+          (isBikeServiceB2B ? '' : `👥 Passengers: ${bookingData.passengers}\n`) +
           `📍 ${bookingData.pickupLocation}${bookingData.destination ? ' → ' + bookingData.destination : ''}\n\n` +
           `Your request is now live! Vendors will send their quotes shortly.\n\n` +
           `Track your booking on the B2B Dashboard.`,
@@ -1413,7 +2394,7 @@ export function ChatBookingHero({
         throw new Error(result.error || 'Failed to create B2B booking');
       }
     } catch (error: any) {
-      console.error('B2B Bus Submit Error:', error);
+      console.error('B2B Submit Error:', error);
       addShiviMessage(
         `❌ ${error.message || 'Something went wrong.'}\n\nLet me submit this as a regular quote request instead.`,
         undefined,
@@ -1642,7 +2623,9 @@ export function ChatBookingHero({
         vehicle_model_name: vehicleModelName || '',
         location_id: location?.id || 1,
         location_name: bookingData.pickupLocation || '',
+        pickup_full_address: bookingData.pickupFullAddress || '',
         destination: bookingData.destination || bookingData.pickupLocation || '', // Use pickup if no destination
+        destination_full_address: bookingData.destinationFullAddress || '',
         journey_datetime: formatDateTimeForAPI(bookingData.pickupDateTime) || formatDateTimeForAPI(new Date().toISOString()),
         // Customer info - directly in payload for web API
         name: bookingData.name || '',
@@ -1706,6 +2689,7 @@ export function ChatBookingHero({
       if (isTruckService) {
         webBookingPayload.truck_mode = bookingData.truckMode || '1';
         webBookingPayload.truck_type = bookingData.truckType || '14';
+        webBookingPayload.truck_type_name = bookingData.truckTypeName || null;
 
         // Set goods type based on mode (commercial or personal)
         if (bookingData.truckMode === '2') {
@@ -1713,26 +2697,83 @@ export function ChatBookingHero({
         } else {
           webBookingPayload.personal_good_type = bookingData.goodsType || '12';
         }
+        webBookingPayload.goods_type_name = bookingData.goodsTypeName || null;
 
         // Weight fields - weight_val is the value, weight is the unit (1=KG, 2=TON)
         webBookingPayload.weight_val = bookingData.weightVal || '';
         webBookingPayload.weight = bookingData.weightUnit || '1';
+        webBookingPayload.weight_unit_name = bookingData.weightUnitName || 'KG';
 
         webBookingPayload.return_datetime = bookingData.returnDateTime || null;
+
+        // ── New extended truck quotation fields ──
+        webBookingPayload.truck_body_type = bookingData.truckBodyType || null;
+        webBookingPayload.material_details = bookingData.materialDetails || null;
+        webBookingPayload.truck_estimated_volume = bookingData.truckEstimatedVolume || null;
+        webBookingPayload.truck_pickup_pincode = bookingData.truckPickupPincode || null;
+        webBookingPayload.truck_drop_pincode = bookingData.truckDropPincode || null;
+        webBookingPayload.truck_pickup_floor =
+          bookingData.truckPickupFloor != null ? parseInt(bookingData.truckPickupFloor) : null;
+        webBookingPayload.has_truck_pickup_lift = bookingData.hasTruckPickupLift === true;
+        webBookingPayload.truck_drop_floor =
+          bookingData.truckDropFloor != null ? parseInt(bookingData.truckDropFloor) : null;
+        webBookingPayload.has_truck_drop_lift = bookingData.hasTruckDropLift === true;
+        webBookingPayload.truck_expected_delivery_date = bookingData.truckExpectedDelivery || null;
+        webBookingPayload.truck_expected_delivery_time = bookingData.truckDeliveryTime || null;
+        webBookingPayload.trip_direction = bookingData.tripDirection || 'ONE_WAY';
+        webBookingPayload.requires_labour = bookingData.requiresLabour === true;
+        webBookingPayload.truck_labour_count =
+          bookingData.truckLabourCount != null ? parseInt(bookingData.truckLabourCount) : null;
+        webBookingPayload.truck_has_multiple_stops = bookingData.truckHasMultipleStops === true;
+        webBookingPayload.truck_multiple_stops_details = bookingData.truckMultipleStopsDetails || null;
+        webBookingPayload.truck_receiver_name = bookingData.truckReceiverName || null;
+        webBookingPayload.truck_receiver_phone = bookingData.truckReceiverPhone || null;
+        webBookingPayload.truck_requires_pod = bookingData.truckRequiresPOD === true;
+
         webBookingPayload.other_info = `Truck: ${bookingData.truckTypeName || 'N/A'}, Goods: ${bookingData.goodsTypeName || 'N/A'}, Weight: ${bookingData.weightVal || 'N/A'} ${bookingData.weightUnitName || 'KG'}`;
       }
 
-      // Add packers & movers specific fields
+      // Add packers & movers specific fields (extended quotation form)
       if (isPackersService) {
         webBookingPayload.shifting_type = bookingData.shiftingType || 'Home';
+        webBookingPayload.shifting_scope = bookingData.shiftingScope || 'LOCAL';
         if (bookingData.shiftingType === 'Home') {
           webBookingPayload.home_shifting = bookingData.homeShifting || 'BHK_2';
         } else if (bookingData.shiftingType === 'Office') {
-          webBookingPayload.office_shifting = 'UPTO_10_EMPLOYEES';
+          webBookingPayload.office_shifting = bookingData.officeSize || 'UPTO_10_EMPLOYEES';
         } else if (bookingData.shiftingType === 'Vehicle') {
-          webBookingPayload.vehicle_shifting = 'CAR';
+          webBookingPayload.vehicle_shifting = bookingData.vehicleSubtype || 'CAR';
         }
-        webBookingPayload.other_info = `Shifting Type: ${bookingData.shiftingType}${bookingData.homeShifting ? `, Size: ${bookingData.homeShifting}` : ''}`;
+        webBookingPayload.pickup_pincode = bookingData.pickupPincode || null;
+        webBookingPayload.drop_pincode = bookingData.dropPincode || null;
+        webBookingPayload.expected_delivery_date = bookingData.expectedDeliveryDate || null;
+        webBookingPayload.expected_delivery_time = bookingData.expectedDeliveryTime || null;
+        webBookingPayload.inventory_list = bookingData.inventoryList || null;
+        webBookingPayload.estimated_weight = bookingData.estimatedWeight != null ? parseFloat(bookingData.estimatedWeight) : null;
+        webBookingPayload.pickup_floor = bookingData.pickupFloor != null ? parseInt(bookingData.pickupFloor) : null;
+        webBookingPayload.has_pickup_lift = bookingData.hasPickupLift === true;
+        webBookingPayload.drop_floor = bookingData.dropFloor != null ? parseInt(bookingData.dropFloor) : null;
+        webBookingPayload.has_drop_lift = bookingData.hasDropLift === true;
+        webBookingPayload.has_heavy_items = bookingData.hasHeavyItems === true;
+        webBookingPayload.heavy_items_desc = bookingData.heavyItemsDesc || null;
+        webBookingPayload.has_fragile_items = bookingData.hasFragileItems === true;
+        webBookingPayload.fragile_items_desc = bookingData.fragileItemsDesc || null;
+        webBookingPayload.boxes_count = bookingData.boxesCount != null ? parseInt(bookingData.boxesCount) : null;
+        webBookingPayload.bags_count = bookingData.bagsCount != null ? parseInt(bookingData.bagsCount) : null;
+        webBookingPayload.need_packing = bookingData.needPacking !== false;
+        webBookingPayload.need_loading = bookingData.needLoading !== false;
+        webBookingPayload.need_unloading = bookingData.needUnloading !== false;
+        webBookingPayload.labour_count = bookingData.labourCount != null ? parseInt(bookingData.labourCount) : null;
+        webBookingPayload.vehicle_type_req = bookingData.vehicleTypeReq || 'DEDICATED';
+        webBookingPayload.part_load_accepted = bookingData.partLoadAccepted === true;
+        webBookingPayload.need_insurance = bookingData.needInsurance === true;
+        webBookingPayload.insurance_value = bookingData.insuranceValue != null ? parseFloat(bookingData.insuranceValue) : null;
+        webBookingPayload.requires_pod = bookingData.requiresPOD === true;
+        webBookingPayload.receiver_name = bookingData.receiverName || null;
+        webBookingPayload.receiver_phone = bookingData.receiverPhone || null;
+        webBookingPayload.has_multiple_stops = bookingData.hasMultipleStops === true;
+        webBookingPayload.multiple_stops_details = bookingData.multipleStopsDetails || null;
+        webBookingPayload.other_info = `Scope: ${bookingData.shiftingScope || 'LOCAL'}, Type: ${bookingData.shiftingType || 'Home'}`;
       }
 
       // Add equipment rental specific fields
@@ -1757,6 +2798,17 @@ export function ChatBookingHero({
         webBookingPayload.fuel_type = bookingData.fuelType || '2';
         webBookingPayload.doorstep_delivery = bookingData.doorstepDelivery || '0';
         webBookingPayload.other_info = bookingData.additionalDetails || '';
+      }
+
+      // Forward the user's Personal / Company choice + vehicle count so the
+      // backend can route travel-agent COMPANY bookings into b2b_bookings.
+      if (bookingData.bookingPurpose) {
+        webBookingPayload.bookingPurpose = bookingData.bookingPurpose;
+        webBookingPayload.taBookingMode =
+          bookingData.bookingPurpose === 'company' ? 'COMPANY' : 'PERSONAL';
+      }
+      if (bookingData.numberOfVehicles) {
+        webBookingPayload.numberOfVehicles = bookingData.numberOfVehicles;
       }
 
       // Prepare unified booking payload for local API
@@ -1946,6 +2998,20 @@ export function ChatBookingHero({
       };
       addUserMessage(truckModeLabels[value || '1']);
       setBookingData((prev: any) => ({ ...prev, truckMode: value }));
+      askForTruckBodyType();
+    } else if (action === 'select-truck-body-type') {
+      const bodyTypeLabels: Record<string, string> = {
+        OPEN: 'Open',
+        CLOSED_BODY: 'Closed Body',
+        CONTAINER: 'Container',
+        TRAILER: 'Trailer',
+        LCV: 'LCV',
+        REFRIGERATED: 'Refrigerated',
+        FLATBED: 'Flatbed',
+        OTHER: 'Other',
+      };
+      addUserMessage(bodyTypeLabels[value || 'OPEN']);
+      setBookingData((prev: any) => ({ ...prev, truckBodyType: value || 'OPEN' }));
       askForTruckType();
     } else if (action === 'select-truck-type') {
       const truckTypeLabels: Record<string, string> = {
@@ -2005,8 +3071,32 @@ export function ChatBookingHero({
       };
       addUserMessage(goodsTypeLabels[value || '29']);
       setBookingData((prev: any) => ({ ...prev, goodsType: value, goodsTypeName: goodsTypeLabels[value || '29'] }));
-      // Ask for weight after goods type for truck services
+      // Truck flow: goods-type → material-details → weight
+      askForMaterialDetails();
+    } else if (action === 'skip-material-details') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, materialDetails: null }));
       askForWeight();
+    } else if (action === 'select-material-details') {
+      addUserMessage(value || '');
+      setBookingData((prev: any) => ({ ...prev, materialDetails: value }));
+      askForWeight();
+    } else if (action === 'add-material-detail') {
+      // Append to input field — let the user keep adding items, edit, then press Send
+      const next = (value || '').trim();
+      if (!next) return;
+      setInputValue((prev) => {
+        const trimmed = prev.trim();
+        if (!trimmed) return next;
+        // Avoid duplicate adds of the exact same chip
+        const existing = trimmed.split(',').map((s) => s.trim().toLowerCase());
+        if (existing.includes(next.toLowerCase())) return prev;
+        return `${trimmed}, ${next}`;
+      });
+      // Refocus the text input so the user can edit / continue typing
+      if (inputRef.current) inputRef.current.focus();
+    } else if (action === 'noop') {
+      // hint-only button — no action; user types into the input instead
     } else if (action === 'select-weight-unit') {
       const weightUnitLabels: Record<string, string> = {
         '1': 'KG',
@@ -2014,12 +3104,39 @@ export function ChatBookingHero({
       };
       addUserMessage(weightUnitLabels[value || '1']);
       setBookingData((prev: any) => ({ ...prev, weightUnit: value, weightUnitName: weightUnitLabels[value || '1'] }));
-      // After weight unit, ask for location
+      // For trucks, ask estimated volume next; otherwise go to location
+      const isTruckSvc = serviceType.includes('truck') || serviceType.includes('transporter') || serviceType.includes('trailer');
+      if (isTruckSvc) {
+        askForEstimatedVolume();
+      } else {
+        askForLocation();
+      }
+    } else if (action === 'select-truck-volume') {
+      const labels: Record<string, string> = {
+        LIGHT: '🪶 Light (small load)',
+        MEDIUM: '📦 Medium (canter-load)',
+        LARGE: '🚛 Large (truck-load)',
+      };
+      addUserMessage(labels[value || 'MEDIUM']);
+      setBookingData((prev: any) => ({ ...prev, truckEstimatedVolume: value || null }));
+      askForLocation();
+    } else if (action === 'skip-truck-volume') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, truckEstimatedVolume: null }));
       askForLocation();
     } else if (action === 'show-more-goods') {
       addUserMessage('More Options...');
       const isCommercial = bookingData.truckMode === '2';
       askForMoreGoodsTypes(isCommercial);
+    } else if (action === 'select-shifting-scope') {
+      const scopeLabels: Record<string, string> = {
+        'LOCAL': 'Local (within city)',
+        'DOMESTIC': 'Domestic (within state)',
+        'INTERCITY': 'Intercity (between states)',
+      };
+      addUserMessage(scopeLabels[value || 'LOCAL']);
+      setBookingData((prev: any) => ({ ...prev, shiftingScope: value || 'LOCAL' }));
+      askForShiftingType();
     } else if (action === 'select-shifting-type') {
       const shiftingTypeLabels: Record<string, string> = {
         'Home': 'Home Shifting',
@@ -2028,11 +3145,35 @@ export function ChatBookingHero({
       };
       addUserMessage(shiftingTypeLabels[value || 'Home']);
       setBookingData((prev: any) => ({ ...prev, shiftingType: value }));
+      const isPackersServiceLocal = serviceType.includes('packers') || serviceType.includes('movers');
       if (value === 'Home') {
         askForHomeShiftingSize();
+      } else if (value === 'Office' && isPackersServiceLocal) {
+        askForOfficeSize();
+      } else if (value === 'Vehicle' && isPackersServiceLocal) {
+        askForVehicleSubType();
       } else {
         askForLocation();
       }
+    } else if (action === 'select-office-size') {
+      const officeSizeLabels: Record<string, string> = {
+        'UPTO_10_EMPLOYEES': '1-10 Employees',
+        'UPTO_50_EMPLOYEES': '11-50 Employees',
+        'UPTO_100_EMPLOYEES': '51-100 Employees',
+        'MORE_THAN_100_EMPLOYEES': '100+ Employees',
+      };
+      addUserMessage(officeSizeLabels[value || 'UPTO_10_EMPLOYEES']);
+      setBookingData((prev: any) => ({ ...prev, officeSize: value }));
+      askForLocation();
+    } else if (action === 'select-vehicle-subtype') {
+      const vehicleSubtypeLabels: Record<string, string> = {
+        'CAR': 'Car',
+        'BIKE': 'Bike',
+        'BOTH': 'Car & Bike',
+      };
+      addUserMessage(vehicleSubtypeLabels[value || 'CAR']);
+      setBookingData((prev: any) => ({ ...prev, vehicleSubtype: value }));
+      askForLocation();
     } else if (action === 'select-home-size') {
       const homeSizeLabels: Record<string, string> = {
         'BHK_1': '1 BHK',
@@ -2043,7 +3184,289 @@ export function ChatBookingHero({
       addUserMessage(homeSizeLabels[value || 'BHK_2']);
       setBookingData((prev: any) => ({ ...prev, homeShifting: value }));
       askForLocation();
-    } else if (action === 'select-equipment-type') {
+    } else if (action === 'confirm-pickup-lift') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes, lift available' : 'No lift');
+      setBookingData((prev: any) => ({ ...prev, hasPickupLift: yes }));
+      // Continue packers flow → drop city via askForDestination
+      askForDestination();
+    } else if (action === 'confirm-drop-lift') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes, lift available' : 'No lift');
+      setBookingData((prev: any) => ({ ...prev, hasDropLift: yes }));
+      // Continue packers flow → pickup-datetime
+      askForPickupDateTime();
+    } else if (action === 'skip-pickup-floor') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, pickupFloor: null }));
+      askForPickupLift();
+    } else if (action === 'skip-drop-floor') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, dropFloor: null }));
+      askForDropLift();
+    } else if (action === 'skip-expected-delivery') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, expectedDeliveryDate: null }));
+      askForDeliveryTime();
+    } else if (action === 'select-delivery-time') {
+      const labels: Record<string, string> = {
+        MORNING: '🌅 Morning (8 AM – 12 PM)',
+        AFTERNOON: '☀️ Afternoon (12 PM – 4 PM)',
+        EVENING: '🌆 Evening (4 PM – 8 PM)',
+        ANYTIME: '🌙 Anytime',
+      };
+      addUserMessage(labels[value || 'ANYTIME']);
+      setBookingData((prev: any) => ({ ...prev, expectedDeliveryTime: value || null }));
+      askForInventoryList();
+    } else if (action === 'skip-delivery-time') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, expectedDeliveryTime: null }));
+      askForInventoryList();
+    } else if (action === 'skip-inventory-list') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, inventoryList: null }));
+      askForEstimatedWeight();
+    } else if (action === 'add-inventory-item') {
+      const next = (value || '').trim();
+      if (!next) return;
+      setInputValue((prev) => {
+        const trimmed = prev.trim();
+        if (!trimmed) return next;
+        const existing = trimmed.split(',').map((s) => s.trim().toLowerCase());
+        if (existing.includes(next.toLowerCase())) return prev;
+        return `${trimmed}, ${next}`;
+      });
+      if (inputRef.current) inputRef.current.focus();
+    } else if (action === 'select-estimated-weight') {
+      const labels: Record<string, string> = {
+        '300': '🪶 Light (< 500 kg)',
+        '1000': '📦 Medium (500 – 1500 kg)',
+        '2500': '🏋️ Heavy (1500 – 3000 kg)',
+        '4000': '🚛 Very Heavy (> 3000 kg)',
+      };
+      addUserMessage(labels[value || '1000']);
+      setBookingData((prev: any) => ({ ...prev, estimatedWeight: parseFloat(value || '0') }));
+      askForHeavyItems();
+    } else if (action === 'skip-estimated-weight') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, estimatedWeight: null }));
+      askForHeavyItems();
+    } else if (action === 'confirm-heavy-items') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes' : 'No');
+      setBookingData((prev: any) => ({ ...prev, hasHeavyItems: yes }));
+      if (yes) {
+        askForHeavyItemsDesc();
+      } else {
+        askForFragileItems();
+      }
+    } else if (action === 'skip-heavy-items-desc') {
+      addUserMessage('Skip');
+      askForFragileItems();
+    } else if (action === 'confirm-fragile-items') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes' : 'No');
+      setBookingData((prev: any) => ({ ...prev, hasFragileItems: yes }));
+      askForPackingItemsDetails();
+    } else if (action === 'skip-packing-details') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, fragileItemsDesc: null, boxesCount: null, bagsCount: null }));
+      askForNeedPacking();
+    } else if (action === 'add-packing-detail') {
+      const next = (value || '').trim();
+      if (!next) return;
+      setInputValue((prev) => {
+        const trimmed = prev.trim();
+        if (!trimmed) return next;
+        const existing = trimmed.split(',').map((s) => s.trim().toLowerCase());
+        if (existing.includes(next.toLowerCase())) return prev;
+        return `${trimmed}, ${next}`;
+      });
+      if (inputRef.current) inputRef.current.focus();
+    } else if (action === 'confirm-need-packing') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes, please pack' : "No, I'll pack myself");
+      setBookingData((prev: any) => ({ ...prev, needPacking: yes }));
+      askForNeedLoading();
+    } else if (action === 'confirm-need-loading') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes' : 'No');
+      setBookingData((prev: any) => ({ ...prev, needLoading: yes }));
+      askForNeedUnloading();
+    } else if (action === 'confirm-need-unloading') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes' : 'No');
+      setBookingData((prev: any) => ({ ...prev, needUnloading: yes }));
+      askForLabourCount();
+    } else if (action === 'skip-labour-count') {
+      addUserMessage('Skip / Vendor decides');
+      setBookingData((prev: any) => ({ ...prev, labourCount: null }));
+      askForVehicleTypeRequirement();
+    } else if (action === 'select-vehicle-type-req') {
+      const vtypeLabels: Record<string, string> = {
+        'SHARED': 'Shared truck',
+        'DEDICATED': 'Dedicated truck',
+      };
+      addUserMessage(vtypeLabels[value || 'DEDICATED']);
+      setBookingData((prev: any) => ({ ...prev, vehicleTypeReq: value || 'DEDICATED' }));
+      askForPartLoad();
+    } else if (action === 'select-part-load') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes, part load OK' : 'No, full load only');
+      setBookingData((prev: any) => ({ ...prev, partLoadAccepted: yes }));
+      askForNeedInsurance();
+    } else if (action === 'confirm-need-insurance') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes' : 'No');
+      setBookingData((prev: any) => ({ ...prev, needInsurance: yes }));
+      if (yes) {
+        askForInsuranceValue();
+      } else {
+        askForPOD();
+      }
+    } else if (action === 'skip-insurance-value') {
+      addUserMessage('Skip');
+      askForPOD();
+    } else if (action === 'confirm-requires-pod') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes' : 'No');
+      setBookingData((prev: any) => ({ ...prev, requiresPOD: yes }));
+      // For domestic & intercity moves (different city), ask receiver details next.
+      // For local moves (same city), skip to multiple-stops.
+      const scope = bookingData.shiftingScope;
+      if (scope === 'INTERCITY' || scope === 'DOMESTIC') {
+        askForReceiverName();
+      } else {
+        askForMultipleStops();
+      }
+    } else if (action === 'skip-receiver-name') {
+      addUserMessage('Skip');
+      askForReceiverPhone();
+    } else if (action === 'skip-receiver-phone') {
+      addUserMessage('Skip');
+      proceedAfterReceiver();
+    } else if (action === 'confirm-multiple-stops') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes' : 'No');
+      setBookingData((prev: any) => ({ ...prev, hasMultipleStops: yes }));
+      if (yes) {
+        askForMultipleStopsDesc();
+      } else {
+        proceedAfterPackersExtras();
+      }
+    } else if (action === 'skip-multiple-stops-desc') {
+      addUserMessage('Skip');
+      proceedAfterPackersExtras();
+    }
+    // ─────────────── TRUCK-SPECIFIC HANDLERS ───────────────
+    else if (action === 'skip-truck-pickup-pincode') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, truckPickupPincode: null }));
+      askForTruckPickupFloor();
+    } else if (action === 'skip-truck-pickup-floor') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, truckPickupFloor: null }));
+      askForTruckPickupLift();
+    } else if (action === 'select-truck-pickup-floor') {
+      const floorLabel = value === '0' ? 'Ground (0)' : `${value === '1' ? '1st' : value === '2' ? '2nd' : value === '3' ? '3rd' : `${value}th`} Floor`;
+      addUserMessage(floorLabel);
+      setBookingData((prev: any) => ({ ...prev, truckPickupFloor: parseInt(value || '0') }));
+      askForTruckPickupLift();
+    } else if (action === 'confirm-truck-pickup-lift') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes, lift available' : 'No lift');
+      setBookingData((prev: any) => ({ ...prev, hasTruckPickupLift: yes }));
+      askForDestination();
+    } else if (action === 'skip-truck-pickup-lift') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, hasTruckPickupLift: null }));
+      askForDestination();
+    } else if (action === 'skip-truck-drop-pincode') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, truckDropPincode: null }));
+      askForTruckDropFloor();
+    } else if (action === 'skip-truck-drop-floor') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, truckDropFloor: null }));
+      askForTruckDropLift();
+    } else if (action === 'select-truck-drop-floor') {
+      const floorLabel = value === '0' ? 'Ground (0)' : `${value === '1' ? '1st' : value === '2' ? '2nd' : value === '3' ? '3rd' : `${value}th`} Floor`;
+      addUserMessage(floorLabel);
+      setBookingData((prev: any) => ({ ...prev, truckDropFloor: parseInt(value || '0') }));
+      askForTruckDropLift();
+    } else if (action === 'confirm-truck-drop-lift') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes, lift available' : 'No lift');
+      setBookingData((prev: any) => ({ ...prev, hasTruckDropLift: yes }));
+      askForPickupDateTime();
+    } else if (action === 'skip-truck-drop-lift') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, hasTruckDropLift: null }));
+      askForPickupDateTime();
+    } else if (action === 'skip-truck-expected-delivery') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, truckExpectedDelivery: null }));
+      askForTruckDeliveryTime();
+    } else if (action === 'select-truck-delivery-time') {
+      const labels: Record<string, string> = {
+        MORNING: '🌅 Morning (8 AM – 12 PM)',
+        AFTERNOON: '☀️ Afternoon (12 PM – 4 PM)',
+        EVENING: '🌆 Evening (4 PM – 8 PM)',
+        ANYTIME: '🌙 Anytime',
+      };
+      addUserMessage(labels[value || 'ANYTIME']);
+      setBookingData((prev: any) => ({ ...prev, truckDeliveryTime: value || null }));
+      askForTripDirection();
+    } else if (action === 'skip-truck-delivery-time') {
+      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, truckDeliveryTime: null }));
+      askForTripDirection();
+    } else if (action === 'select-trip-direction') {
+      const labels: Record<string, string> = {
+        ONE_WAY: '➡️ One Way',
+        ROUND_TRIP: '🔄 Round Trip',
+      };
+      addUserMessage(labels[value || 'ONE_WAY']);
+      setBookingData((prev: any) => ({ ...prev, tripDirection: value || 'ONE_WAY' }));
+      askForLoadingHelp();
+    } else if (action === 'confirm-loading-help') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes' : 'No');
+      setBookingData((prev: any) => ({ ...prev, requiresLabour: yes }));
+      if (yes) {
+        askForTruckLabourCount();
+      } else {
+        askForTruckMultipleStops();
+      }
+    } else if (action === 'skip-truck-labour-count') {
+      addUserMessage('Skip / Vendor decides');
+      setBookingData((prev: any) => ({ ...prev, truckLabourCount: null }));
+      askForTruckMultipleStops();
+    } else if (action === 'confirm-truck-multiple-stops') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes' : 'No');
+      setBookingData((prev: any) => ({ ...prev, truckHasMultipleStops: yes }));
+      if (yes) {
+        askForTruckMultipleStopsDesc();
+      } else {
+        askForTruckReceiverName();
+      }
+    } else if (action === 'skip-truck-multiple-stops-desc') {
+      addUserMessage('Skip');
+      askForTruckReceiverName();
+    } else if (action === 'skip-truck-receiver-name') {
+      addUserMessage('Skip');
+      askForTruckReceiverPhone();
+    } else if (action === 'skip-truck-receiver-phone') {
+      addUserMessage('Skip');
+      askForTruckPOD();
+    } else if (action === 'confirm-truck-pod') {
+      const yes = value === 'yes';
+      addUserMessage(yes ? 'Yes' : 'No');
+      setBookingData((prev: any) => ({ ...prev, truckRequiresPOD: yes }));
+      askForAdditionalDetails();
+    }
+    else if (action === 'select-equipment-type') {
       // Equipment machine type selection
       const equipmentTypeLabels: Record<string, string> = {
         '1': 'Grove crane',
@@ -2122,7 +3545,7 @@ export function ChatBookingHero({
       askForLuxuryPackage();
     } else if (action === 'select-luxury-package') {
       const luxuryPackageLabels: Record<string, string> = {
-        '1': 'Local (4hr/40km)',
+        '1': 'Local (8hr/80km)',
         '3': 'Outstation Trip',
         '4': 'Airport Transfer'
       };
@@ -2147,17 +3570,15 @@ export function ChatBookingHero({
       if (vehicleName && !vehicleConfirmed) {
         askForVehicleConfirmation();
       } else {
-        // For equipment services, go directly to pickup datetime (no destination needed)
         const isEquipmentService = serviceType.includes('equipment') || serviceType.includes('jcb');
-        const isBusLocal = (serviceType.includes('bus') || serviceType.includes('tempo')) && bookingData.busTripType === 'local';
-        if (isEquipmentService) {
-          askForPickupDateTime();
-        } else if (isBusLocal) {
-          // For local bus trips, destination = pickup location, skip destination step
-          setBookingData((prev: any) => ({ ...prev, destination: value }));
-          askForPassengers();
+        const isBusService = serviceType.includes('bus') || serviceType.includes('tempo');
+        const isTruckService = serviceType.includes('truck') || serviceType.includes('transporter') || serviceType.includes('trailer');
+        const isPackersService = serviceType.includes('packers') || serviceType.includes('movers');
+        // For bus/transporter/packers/equipment, capture a full pickup address before
+        // proceeding so vendors get an actionable location.
+        if (isEquipmentService || isBusService || isTruckService || isPackersService) {
+          askForPickupFullAddress();
         } else {
-          // Ask for destination after location
           askForDestination();
         }
       }
@@ -2237,8 +3658,12 @@ export function ChatBookingHero({
       };
       addUserMessage(durationLabels[value || '2']);
       setBookingData((prev: any) => ({ ...prev, bikeDuration: value }));
+      const isBikeServiceForFlow = serviceType.includes('bike') || serviceType.includes('activa') || serviceType.includes('royal-enfield');
       // After duration selection, check what's already set to avoid loops
-      if (bookingData.destination) {
+      if (isBikeServiceForFlow && !bookingData.pickupFullAddress && bookingData.pickupLocation) {
+        // For bike, capture full pickup address before pickup datetime
+        askForBikePickupAddress();
+      } else if (bookingData.destination) {
         // Destination already set, go to pickup datetime
         askForPickupDateTime();
       } else if (bookingData.pickupLocation) {
@@ -2257,26 +3682,43 @@ export function ChatBookingHero({
     } else if (action === 'skip-additional-details') {
       addUserMessage('Skip');
       setBookingData((prev: any) => ({ ...prev, additionalDetails: '' }));
-      // For bus services, ask if personal or company booking
+      // For bus + bike (B2B-fleet services available to everyone) AND
+      // ALWAYS for travel agents (any service), ask Personal/Company so
+      // corporate trips route into the b2b_bookings manager queue.
       const isBusForPurposeSkip = serviceType.includes('bus') || serviceType.includes('tempo');
-      if (isBusForPurposeSkip) {
+      const isBikeForPurposeSkip = serviceType.includes('bike') || serviceType.includes('activa') || serviceType.includes('royal-enfield');
+      const isAgentForPurpose = !!loggedInCustomer?.linkedTravelAgentId;
+      if (isBusForPurposeSkip || isBikeForPurposeSkip || isAgentForPurpose) {
         askForBookingPurpose();
       } else {
         setIsTyping(true);
         setTimeout(() => showSummary(), 800);
       }
     } else if (action === 'booking-purpose') {
+      const stP = (serviceType || '').toLowerCase();
+      let countPrompt = 'How many vehicles do you need? 🚐\n(Enter number of vehicles required)';
+      if (stP.includes('bike') || stP.includes('activa') || stP.includes('royal-enfield'))
+        countPrompt = 'How many bikes/vehicles do you need? 🏍️\n(Enter number of vehicles required)';
+      else if (stP.includes('truck') || stP.includes('transport'))
+        countPrompt = 'How many trucks do you need? 🚚\n(Enter number of vehicles required)';
+      else if (stP.includes('packer') || stP.includes('mover'))
+        countPrompt = 'How many vehicles/loads do you need? 📦\n(Enter number required)';
+      else if (stP.includes('equipment') || stP.includes('crane') || stP.includes('jcb'))
+        countPrompt = 'How many machines do you need? 🏗️\n(Enter number required)';
+      else if (stP.includes('luxury'))
+        countPrompt = 'How many luxury cars do you need? ✨\n(Enter number required)';
+      else if (stP.includes('self-drive') || stP.includes('self_drive') || stP.includes('selfdrive'))
+        countPrompt = 'How many self-drive cars do you need? 🚗\n(Enter number required)';
+      else if (stP.includes('car') || stP.includes('cab'))
+        countPrompt = 'How many cars do you need? 🚗\n(Enter number required)';
+      else
+        countPrompt = 'How many buses/vehicles do you need? 🚌\n(Enter number of vehicles required)';
+
       if (value === 'company') {
         addUserMessage('Company / Corporate');
         setBookingData((prev: any) => ({ ...prev, bookingPurpose: 'company' }));
         // Ask for number of vehicles before submitting B2B booking
-        addShiviMessage(
-          'How many buses/vehicles do you need? 🚌\n(Enter number of vehicles required)',
-          undefined,
-          500,
-          'text',
-          'e.g., 1, 2, 3'
-        );
+        addShiviMessage(countPrompt, undefined, 500, 'text', 'e.g., 1, 2, 3');
         setCurrentStep('b2b-vehicles');
       } else {
         addUserMessage('Personal');
@@ -2411,7 +3853,7 @@ export function ChatBookingHero({
           } else if (isTruckService) {
             askForTruckMode();
           } else if (isPackersService) {
-            askForShiftingType();
+            askForShiftingScope();
           } else if (isEquipmentService) {
             askForEquipmentType();
           } else if (subServices && subServices.length > 0) {
@@ -2477,49 +3919,292 @@ export function ChatBookingHero({
         );
         setCurrentStep('location');
       }
+    } else if (currentStep === 'bike-pickup-address') {
+      setBookingData((prev: any) => ({ ...prev, pickupFullAddress: inputValue }));
+      askForPickupDateTime();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'pickup-full-address') {
+      setBookingData((prev: any) => ({ ...prev, pickupFullAddress: inputValue }));
+      const isEquipmentService = serviceType.includes('equipment') || serviceType.includes('jcb');
+      const isBusLocal = (serviceType.includes('bus') || serviceType.includes('tempo')) && bookingData.busTripType === 'local';
+      const isPackersServiceLocal = serviceType.includes('packers') || serviceType.includes('movers');
+      const isTruckServiceLocal = serviceType.includes('truck') || serviceType.includes('transporter') || serviceType.includes('trailer');
+      if (isPackersServiceLocal) {
+        // Packers: pickup-full-address → pickup-pincode → pickup-floor → pickup-lift → destination
+        askForPickupPincode();
+      } else if (isTruckServiceLocal) {
+        // Truck: pickup-full-address → truck-pickup-pincode → truck-pickup-floor → truck-pickup-lift → destination
+        askForTruckPickupPincode();
+      } else if (isEquipmentService) {
+        // Equipment doesn't need a destination — go straight to pickup date/time
+        askForPickupDateTime();
+      } else if (isBusLocal) {
+        // Local bus trips treat pickup as the destination
+        setBookingData((prev: any) => ({ ...prev, destination: inputValue }));
+        askForPassengers();
+      } else {
+        askForDestination();
+      }
+      setInputValue('');
+      return;
+    } else if (currentStep === 'pickup-pincode') {
+      const cleaned = inputValue.replace(/\D/g, '');
+      if (cleaned.length !== 6) {
+        addShiviMessage('Please enter a valid 6-digit pincode 📮', undefined, 500, 'text', 'e.g., 110001');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, pickupPincode: cleaned }));
+      askForPickupFloor();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'pickup-floor') {
+      const floor = parseInt(inputValue);
+      if (isNaN(floor) || floor < 0) {
+        addShiviMessage('Please enter a valid floor number (0 or higher) 🏢', undefined, 500, 'text', 'e.g., 0, 1, 2, 5');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, pickupFloor: floor }));
+      askForPickupLift();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'drop-pincode') {
+      const cleaned = inputValue.replace(/\D/g, '');
+      if (cleaned.length !== 6) {
+        addShiviMessage('Please enter a valid 6-digit pincode 📮', undefined, 500, 'text', 'e.g., 400001');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, dropPincode: cleaned }));
+      askForDropFloor();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'drop-floor') {
+      const floor = parseInt(inputValue);
+      if (isNaN(floor) || floor < 0) {
+        addShiviMessage('Please enter a valid floor number (0 or higher) 🏢', undefined, 500, 'text', 'e.g., 0, 1, 2, 5');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, dropFloor: floor }));
+      askForDropLift();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'expected-delivery') {
+      setBookingData((prev: any) => ({ ...prev, expectedDeliveryDate: inputValue }));
+      askForDeliveryTime();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'inventory-list') {
+      setBookingData((prev: any) => ({ ...prev, inventoryList: inputValue }));
+      askForEstimatedWeight();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'heavy-items-desc') {
+      setBookingData((prev: any) => ({ ...prev, heavyItemsDesc: inputValue }));
+      askForFragileItems();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'packing-items-details') {
+      const text = inputValue.trim();
+      if (!text) {
+        addShiviMessage(
+          'Please add a quick option above or describe your items 📦',
+          undefined,
+          500,
+          'text',
+          'e.g., 15 boxes, 5 bags, LED TV',
+        );
+        setInputValue('');
+        return;
+      }
+      // Parse approximate counts from free text — vendor still gets full description as a note
+      const lower = text.toLowerCase();
+      const boxesMatch = lower.match(/(\d+)\s*(?:-\s*\d+)?\s*box/);
+      const bagsMatch = lower.match(/(\d+)\s*(?:-\s*\d+)?\s*(?:bag|suitcase)/);
+      setBookingData((prev: any) => ({
+        ...prev,
+        fragileItemsDesc: text,
+        boxesCount: boxesMatch ? parseInt(boxesMatch[1]) : null,
+        bagsCount: bagsMatch ? parseInt(bagsMatch[1]) : null,
+      }));
+      askForNeedPacking();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'labour-count') {
+      const n = parseInt(inputValue);
+      if (isNaN(n) || n < 0) {
+        addShiviMessage('Please enter a valid count (0 or higher) 👷', undefined, 500, 'text', 'e.g., 2, 4, 6');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, labourCount: n }));
+      askForVehicleTypeRequirement();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'insurance-value') {
+      const v = parseFloat(inputValue);
+      if (isNaN(v) || v < 0) {
+        addShiviMessage('Please enter a valid amount in ₹', undefined, 500, 'text', 'e.g., 500000');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, insuranceValue: v }));
+      askForPOD();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'receiver-name') {
+      setBookingData((prev: any) => ({ ...prev, receiverName: inputValue }));
+      askForReceiverPhone();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'receiver-phone') {
+      const validation = validatePhone(inputValue);
+      if (!validation.valid) {
+        addShiviMessage(validation.message!, undefined, 500, 'tel', 'e.g., 9876543210');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, receiverPhone: inputValue.replace(/\D/g, '') }));
+      proceedAfterReceiver();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'multiple-stops-desc') {
+      setBookingData((prev: any) => ({ ...prev, multipleStopsDetails: inputValue }));
+      proceedAfterPackersExtras();
+      setInputValue('');
+      return;
+    }
+    // ─────────────── TRUCK-SPECIFIC TEXT INPUT HANDLERS ───────────────
+    else if (currentStep === 'material-details') {
+      if (!inputValue.trim()) {
+        addShiviMessage(
+          'Please describe what you’re moving — pick a quick option above or type your items 📦',
+          undefined,
+          500,
+          'text',
+          'e.g., 10 boxes, 2 beds, 1 sofa',
+        );
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, materialDetails: inputValue.trim() }));
+      askForWeight();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'truck-pickup-pincode') {
+      const cleaned = inputValue.replace(/\D/g, '');
+      if (cleaned.length !== 6) {
+        addShiviMessage('Please enter a valid 6-digit pincode 📮', undefined, 500, 'text', 'e.g., 110001');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, truckPickupPincode: cleaned }));
+      askForTruckPickupFloor();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'truck-pickup-floor') {
+      const floor = parseInt(inputValue);
+      if (isNaN(floor) || floor < 0) {
+        addShiviMessage('Please enter a valid floor number (0 or higher) 🏢', undefined, 500, 'text', 'e.g., 0, 1, 2, 5');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, truckPickupFloor: floor }));
+      askForTruckPickupLift();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'truck-drop-pincode') {
+      const cleaned = inputValue.replace(/\D/g, '');
+      if (cleaned.length !== 6) {
+        addShiviMessage('Please enter a valid 6-digit pincode 📮', undefined, 500, 'text', 'e.g., 400001');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, truckDropPincode: cleaned }));
+      askForTruckDropFloor();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'truck-drop-floor') {
+      const floor = parseInt(inputValue);
+      if (isNaN(floor) || floor < 0) {
+        addShiviMessage('Please enter a valid floor number (0 or higher) 🏢', undefined, 500, 'text', 'e.g., 0, 1, 2, 5');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, truckDropFloor: floor }));
+      askForTruckDropLift();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'truck-expected-delivery') {
+      setBookingData((prev: any) => ({ ...prev, truckExpectedDelivery: inputValue }));
+      askForTruckDeliveryTime();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'truck-labour-count') {
+      const n = parseInt(inputValue);
+      if (isNaN(n) || n < 0) {
+        addShiviMessage('Please enter a valid count (0 or higher) 👷', undefined, 500, 'text', 'e.g., 2, 4, 6');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, truckLabourCount: n }));
+      askForTruckMultipleStops();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'truck-multiple-stops-desc') {
+      setBookingData((prev: any) => ({ ...prev, truckMultipleStopsDetails: inputValue }));
+      askForTruckReceiverName();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'truck-receiver-name') {
+      setBookingData((prev: any) => ({ ...prev, truckReceiverName: inputValue }));
+      askForTruckReceiverPhone();
+      setInputValue('');
+      return;
+    } else if (currentStep === 'truck-receiver-phone') {
+      const validation = validatePhone(inputValue);
+      if (!validation.valid) {
+        addShiviMessage(validation.message!, undefined, 500, 'tel', 'e.g., 9876543210');
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, truckReceiverPhone: inputValue.replace(/\D/g, '') }));
+      askForTruckPOD();
+      setInputValue('');
+      return;
     } else if (currentStep === 'destination') {
       setBookingData((prev: any) => ({ ...prev, destination: inputValue }));
-      const isLuxuryService = serviceType.includes('luxury') || serviceType.includes('wedding-car') || serviceType.includes('vintage') || serviceType.includes('sports-car');
-      const isCarService = isCarWithDriverServiceType(serviceType) && !isLuxuryService;
-      const isSelfDriveService = serviceType.includes('selfdrive') || serviceType.includes('self-drive');
-      const isBikeService = serviceType.includes('bike') || serviceType.includes('activa') || serviceType.includes('royal-enfield');
       const isBusService = serviceType.includes('bus') || serviceType.includes('tempo');
       const isTruckService = serviceType.includes('truck') || serviceType.includes('transporter') || serviceType.includes('trailer');
-
-      // Check if a fleet car was selected (check both vehicleName prop and bookingData.fleet)
-      const fleetVehicleName = bookingData.fleet || vehicleName;
-      const selectedFleetVehicle = fleetVehicleName ? getVehicleByName(fleetVehicleName) : null;
-      const isFleetCar = selectedFleetVehicle?.category === 'car';
-      const isFleetBus = selectedFleetVehicle?.category === 'bus';
-
-      // For bike services, ask duration next (unless already set from fleet flow)
-      if (isBikeService) {
-        if (bookingData.bikeDuration) {
-          // Duration already set (fleet bike flow), go to pickup datetime
-          askForPickupDateTime();
-        } else {
-          askForDuration();
-        }
-      } else if (isBusService || isFleetBus) {
-        // For bus services, ask for passengers after destination
-        askForPassengers();
-      } else if (isTruckService) {
-        // For truck services, go directly to pickup datetime
-        askForPickupDateTime();
-      } else if (isLuxuryService || isSelfDriveService) {
-        // For luxury and self-drive services, go directly to pickup datetime
-        askForPickupDateTime();
-      } else if (isCarService || isFleetCar) {
-        // For car services or fleet car bookings, ask for passengers
-        if (!bookingData.subService && !isFleetCar) {
-          askForCarType();
-        } else {
-          // If sub-service already selected (vehicle type) or fleet car, skip to passengers
-          askForPassengers();
-        }
-      } else {
-        askForPickupDateTime();
+      const isPackersService = serviceType.includes('packers') || serviceType.includes('movers');
+      // For bus/transporter/packers — split destination into city/area + full address
+      if (isBusService || isTruckService || isPackersService) {
+        askForDestinationFullAddress();
+        setInputValue('');
+        return;
       }
+      proceedAfterDestination();
+      setInputValue('');
+    } else if (currentStep === 'destination-full-address') {
+      setBookingData((prev: any) => ({ ...prev, destinationFullAddress: inputValue }));
+      const isPackersServiceLocal2 = serviceType.includes('packers') || serviceType.includes('movers');
+      const isTruckServiceLocal2 = serviceType.includes('truck') || serviceType.includes('transporter') || serviceType.includes('trailer');
+      if (isPackersServiceLocal2) {
+        // Packers: destination-full-address → drop-pincode → drop-floor → drop-lift → pickup-datetime
+        askForDropPincode();
+        setInputValue('');
+        return;
+      }
+      if (isTruckServiceLocal2) {
+        // Truck: destination-full-address → truck-drop-pincode → truck-drop-floor → truck-drop-lift → pickup-datetime
+        askForTruckDropPincode();
+        setInputValue('');
+        return;
+      }
+      proceedAfterDestination();
       setInputValue('');
     } else if (currentStep === 'weight') {
       const weight = parseFloat(inputValue);
@@ -2619,8 +4304,19 @@ export function ChatBookingHero({
         (isLuxuryService && bookingData.luxuryPackage === '3') || // Outstation luxury package
         isSelfDriveService); // Self-drive always needs return date
 
+      const isPackersServiceForFlow = serviceType.includes('packers') || serviceType.includes('movers');
+      const isTruckServiceForFlow = serviceType.includes('truck') || serviceType.includes('transporter') || serviceType.includes('trailer');
+
       if (needsReturnDate) {
         askForReturnDateTime(inputValue);
+      } else if (isPackersServiceForFlow) {
+        // Packers extended flow: pickup-datetime → expected-delivery → many quotation fields
+        askForExpectedDelivery();
+        setInputValue('');
+      } else if (isTruckServiceForFlow) {
+        // Truck extended flow: pickup-datetime → expected-delivery → delivery-time → trip-direction → ...
+        askForExpectedTruckDelivery();
+        setInputValue('');
       } else {
         askForContactInfo();
         setInputValue('');
@@ -2660,9 +4356,12 @@ export function ChatBookingHero({
       // Save additional details
       setBookingData((prev: any) => ({ ...prev, additionalDetails: inputValue }));
       setInputValue('');
-      // For bus services, ask if personal or company booking
+      // For bus + bike (B2B-fleet services available to everyone) AND
+      // ALWAYS for travel agents (any service), ask Personal/Company.
       const isBusForPurpose = serviceType.includes('bus') || serviceType.includes('tempo');
-      if (isBusForPurpose) {
+      const isBikeForPurpose = serviceType.includes('bike') || serviceType.includes('activa') || serviceType.includes('royal-enfield');
+      const isAgentForPurpose = !!loggedInCustomer?.linkedTravelAgentId;
+      if (isBusForPurpose || isBikeForPurpose || isAgentForPurpose) {
         askForBookingPurpose();
       } else {
         setIsTyping(true);

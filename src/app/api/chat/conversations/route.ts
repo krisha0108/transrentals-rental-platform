@@ -59,7 +59,9 @@ export async function GET(request: NextRequest) {
 
     const whereClause: any = {
       status,
-      ...(isVendor ? { vendorId: userId } : { customerId: userId }),
+      ...(isVendor
+        ? { vendorId: userId }
+        : { customerId: userId, participantType: 'vendor' }),
     };
 
     const [conversations, total] = await Promise.all([
@@ -161,10 +163,10 @@ export async function GET(request: NextRequest) {
               phone: conv.customers?.phone,
             }
           : {
-              id: conv.vendors.id,
-              name: conv.vendors.businessName,
-              logo: conv.vendors.logo,
-              phone: conv.vendors.phone,
+              id: conv.vendors?.id,
+              name: conv.vendors?.businessName || 'Vendor',
+              logo: conv.vendors?.logo,
+              phone: conv.vendors?.phone,
             },
         createdAt: conv.createdAt,
       })),

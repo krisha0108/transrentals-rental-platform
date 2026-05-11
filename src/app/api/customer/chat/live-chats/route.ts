@@ -47,6 +47,12 @@ export async function GET(request: NextRequest) {
             logo: true,
           },
         },
+        drivers: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: {
         lastMessageAt: 'desc',
@@ -55,15 +61,23 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform to expected format
-    const liveChats = conversations.map((conv) => ({
-      vendor_id: conv.vendorId,
-      vendor_name: conv.vendors?.businessName || 'Vendor',
-      booking_id: conv.bookingId || conv.id,
-      service_name: conv.bookingType ? formatServiceName(conv.bookingType) : 'Chat',
-      last_message: conv.lastMessageText || 'No messages yet',
-      unread_count: conv.customerUnread || 0,
-      conversation_id: conv.id,
-    }));
+    const liveChats = conversations.map((conv) => {
+      const isDriver = conv.participantType === 'driver' || conv.participantType === 'staff_driver';
+      const participantName = isDriver
+        ? (conv.drivers?.name || conv.subject?.replace('Chat with ', '') || 'Driver')
+        : (conv.vendors?.businessName || 'Vendor');
+
+      return {
+        vendor_id: conv.vendorId || conv.driverId || conv.staffDriverId,
+        vendor_name: participantName,
+        booking_id: conv.bookingId || conv.id,
+        service_name: conv.bookingType ? formatServiceName(conv.bookingType) : 'Chat',
+        last_message: conv.lastMessageText || 'No messages yet',
+        unread_count: conv.customerUnread || 0,
+        conversation_id: conv.id,
+        participant_type: conv.participantType || 'vendor',
+      };
+    });
 
     return NextResponse.json(liveChats);
   } catch (error) {

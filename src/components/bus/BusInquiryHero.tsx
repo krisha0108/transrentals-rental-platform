@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -68,6 +68,60 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
 
+  // Travel Agent flow
+  const [isTravelAgent, setIsTravelAgent] = useState(false);
+  const [agentName, setAgentName] = useState('');
+  const [taBookingMode, setTaBookingMode] = useState<'PERSONAL' | 'COMPANY'>('PERSONAL');
+  const [numberOfVehicles, setNumberOfVehicles] = useState('1');
+
+  // Auto-detect logged-in customer + travel-agent link from localStorage,
+  // and verify against the profile API (handles stale localStorage).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storedCustomer = localStorage.getItem('customer');
+    if (!storedCustomer) return;
+    try {
+      const customer = JSON.parse(storedCustomer);
+      if (customer.name) setCustomerName(customer.name);
+      if (customer.email) setCustomerEmail(customer.email);
+      // Strip TA shadow placeholder phone — auto-healed below.
+      if (customer.phone && !String(customer.phone).startsWith('ta-')) {
+        setCustomerPhone(customer.phone);
+      }
+      if (customer.linkedTravelAgentId) {
+        setIsTravelAgent(true);
+        setAgentName(customer.name || '');
+      }
+      if (customer.id) {
+        fetch(`/api/customer/profile?customer_id=${customer.id}`)
+          .then((r) => r.json())
+          .then((d) => {
+            if (d?.customers?.linkedTravelAgentId) {
+              setIsTravelAgent(true);
+              setAgentName(d.customers.name || customer.name || '');
+              const agentPhone = d?.customers?.linkedAgentPhone || null;
+              if (agentPhone) {
+                setCustomerPhone(prev => prev || agentPhone);
+              }
+              try {
+                const merged: any = {
+                  ...customer,
+                  linkedTravelAgentId: d.customers.linkedTravelAgentId,
+                };
+                if (agentPhone && (typeof customer.phone !== 'string' || customer.phone.startsWith('ta-'))) {
+                  merged.phone = agentPhone;
+                }
+                localStorage.setItem('customer', JSON.stringify(merged));
+              } catch { /* ignore */ }
+            }
+          })
+          .catch(() => {});
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   // UI State
   const [step, setStep] = useState(1); // 1: Trip Details, 2: Vehicle & Contact
 
@@ -115,7 +169,7 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
     setIsSubmitting(true);
 
     try {
-      const requestData = {
+      const requestData: any = {
         tripType,
         vehicle_category: vehicleCategory,
         vehicleCategoryName: selectedCategory?.name || vehicleCategory,
@@ -137,6 +191,13 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
         locationSlug,
       };
 
+      // Travel-agent: route into b2b_bookings via taBookingMode
+      if (isTravelAgent) {
+        requestData.taBookingMode = taBookingMode;
+        requestData.numberOfVehicles =
+          taBookingMode === 'COMPANY' ? parseInt(numberOfVehicles) || 1 : 1;
+      }
+
       const response = await fetch('/api/bus-quote-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -147,9 +208,13 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
 
       if (result.success) {
         setShowSuccess(true);
-        // Redirect after showing success
+        // TA flow returns redirect_to (manager queue tracking page); regular
+        // flow uses customer/bus-quotes path
+        const target = result.redirect_to
+          ? result.redirect_to
+          : `/customer/bus-quotes/${result.request?.id}`;
         setTimeout(() => {
-          router.push(`/customer/bus-quotes/${result.request.id}`);
+          router.push(target);
         }, 2000);
       } else {
         alert(result.error || 'Failed to submit request');
@@ -555,6 +620,67 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
                       />
                     </div>
 
+                    {/* ── Travel Agent mode (only when linked) ── */}
+                    {isTravelAgent && (
+                      <div className="border-t pt-4">
+                        <div className="bg-gradient-to-br from-indigo-50 via-emerald-50 to-teal-50 border border-indigo-200 rounded-lg p-3 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-indigo-600" />
+                            <p className="text-sm font-bold text-indigo-900">
+                              Travel Agent — {agentName || 'request to manager (no advance)'}
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setTaBookingMode('PERSONAL')}
+                              className={`p-2.5 rounded-lg border-2 text-xs font-semibold transition ${
+                                taBookingMode === 'PERSONAL'
+                                  ? 'bg-white border-indigo-500 text-indigo-700 ring-2 ring-indigo-200'
+                                  : 'bg-white/60 border-gray-200 text-gray-600 hover:border-indigo-300'
+                              }`}
+                            >
+                              👤 Personal
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setTaBookingMode('COMPANY')}
+                              className={`p-2.5 rounded-lg border-2 text-xs font-semibold transition ${
+                                taBookingMode === 'COMPANY'
+                                  ? 'bg-white border-indigo-500 text-indigo-700 ring-2 ring-indigo-200'
+                                  : 'bg-white/60 border-gray-200 text-gray-600 hover:border-indigo-300'
+                              }`}
+                            >
+                              🏢 Company
+                            </button>
+                          </div>
+                          {taBookingMode === 'COMPANY' && (
+                            <div>
+                              <label className="block text-xs font-semibold text-indigo-900 mb-1">
+                                # of Vehicles *
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                value={numberOfVehicles}
+                                onChange={(e) => setNumberOfVehicles(e.target.value)}
+                                className="w-full px-3 py-2 border border-indigo-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-400 bg-white text-gray-900"
+                                required
+                              />
+                              <p className="text-[10px] text-indigo-700 mt-1">
+                                Manager will quote, monthly invoiced. No advance.
+                              </p>
+                            </div>
+                          )}
+                          {taBookingMode === 'PERSONAL' && (
+                            <p className="text-[11px] text-indigo-700">
+                              Personal booking — single vehicle, manager review, quote sent. No advance.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Divider */}
                     <div className="border-t pt-4">
                       <p className="text-sm font-medium text-gray-700 mb-3">Your Contact Details</p>
@@ -622,6 +748,11 @@ export function BusInquiryHero({ location = 'India', locationSlug }: BusInquiryH
                           <>
                             <span className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
                             Submitting...
+                          </>
+                        ) : isTravelAgent ? (
+                          <>
+                            <Send className="w-5 h-5" />
+                            Submit Request to Manager
                           </>
                         ) : (
                           <>

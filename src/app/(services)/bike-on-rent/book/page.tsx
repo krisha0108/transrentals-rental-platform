@@ -206,6 +206,24 @@ function BikeBookingPageContent() {
                 </div>
               )}
 
+              {/* TA notice — full Personal/Company toggle is on Car Rental only.
+                   Bike bookings work as standard customer flow for TAs and still
+                   appear in their /travel-agent/bookings Self-Bookings list. */}
+              {isAuthenticated && (customer as any)?.linkedTravelAgentId && (
+                <div className="mb-6 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-lg text-xs text-indigo-800">
+                  <p className="font-bold flex items-center gap-1">
+                    🌟 Travel Agent — Standard Booking
+                  </p>
+                  <p className="mt-1 leading-relaxed">
+                    For Personal vs Company booking modes (manager review, multi-vehicle),
+                    use the <a href="/car-rental" className="underline font-semibold">Car Rental</a> flow.
+                    This bike booking will be processed as a regular customer booking and
+                    will still appear in your{' '}
+                    <a href="/travel-agent/bookings" className="underline font-semibold">agent dashboard</a>.
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

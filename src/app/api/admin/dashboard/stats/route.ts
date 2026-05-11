@@ -1,9 +1,54 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 
 export const dynamic = 'force-dynamic';
+
+// Each quote-request table uses its own pickup-date column name.
+const QUOTE_REQUEST_TABLES = {
+  bike_quote_requests: 'pickupDate',
+  bus_quote_requests: 'pickupDate',
+  equipment_quote_requests: 'startDate',
+  luxury_quote_requests: 'pickupDate',
+  packers_quote_requests: 'preferredDate',
+  self_drive_quote_requests: 'pickupDate',
+  truck_quote_requests: 'pickupDate',
+} as const;
+type QuoteRequestTable = keyof typeof QUOTE_REQUEST_TABLES;
+
+// Same person + same pickup date + same service = 1 quote request
+// (collapses multi-vehicle requests by one customer for one trip).
+async function countDistinctQuoteRequests(
+  table: QuoteRequestTable,
+  dateFilter: { gte?: Date; lt?: Date; lte?: Date },
+): Promise<number> {
+  const dateColumn = QUOTE_REQUEST_TABLES[table];
+  if (!dateColumn) {
+    throw new Error(`Invalid quote request table: ${table}`);
+  }
+
+  const conditions: Prisma.Sql[] = [];
+  if (dateFilter.gte !== undefined) conditions.push(Prisma.sql`createdAt >= ${dateFilter.gte}`);
+  if (dateFilter.lt !== undefined) conditions.push(Prisma.sql`createdAt < ${dateFilter.lt}`);
+  if (dateFilter.lte !== undefined) conditions.push(Prisma.sql`createdAt <= ${dateFilter.lte}`);
+
+  const whereClause = conditions.length > 0
+    ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+    : Prisma.empty;
+
+  const tableSql = Prisma.raw(`\`${table}\``);
+  const dateColSql = Prisma.raw(`\`${dateColumn}\``);
+
+  const rows = await prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
+    SELECT COUNT(DISTINCT CONCAT(customerPhone, '|', DATE(${dateColSql}))) AS count
+    FROM ${tableSql}
+    ${whereClause}
+  `);
+
+  return Number(rows[0]?.count ?? 0);
+}
 
 // Helper function to get date ranges based on filter
 function getDateRange(filter: string) {
@@ -77,13 +122,13 @@ export async function GET(request: Request) {
       selfDriveQuotes,
       truckQuotes,
     ] = await Promise.all([
-      prisma.bike_quote_requests.count({ where: { createdAt: dateFilter } }),
-      prisma.bus_quote_requests.count({ where: { createdAt: dateFilter } }),
-      prisma.equipment_quote_requests.count({ where: { createdAt: dateFilter } }),
-      prisma.luxury_quote_requests.count({ where: { createdAt: dateFilter } }),
-      prisma.packers_quote_requests.count({ where: { createdAt: dateFilter } }),
-      prisma.self_drive_quote_requests.count({ where: { createdAt: dateFilter } }),
-      prisma.truck_quote_requests.count({ where: { createdAt: dateFilter } }),
+      countDistinctQuoteRequests('bike_quote_requests', dateFilter),
+      countDistinctQuoteRequests('bus_quote_requests', dateFilter),
+      countDistinctQuoteRequests('equipment_quote_requests', dateFilter),
+      countDistinctQuoteRequests('luxury_quote_requests', dateFilter),
+      countDistinctQuoteRequests('packers_quote_requests', dateFilter),
+      countDistinctQuoteRequests('self_drive_quote_requests', dateFilter),
+      countDistinctQuoteRequests('truck_quote_requests', dateFilter),
     ]);
 
     const totalQuotes = bikeQuotes + busQuotes + equipmentQuotes + luxuryQuotes +

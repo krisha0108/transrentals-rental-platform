@@ -27,12 +27,14 @@ interface CustomerHeaderProps {
 }
 
 interface ChatBooking {
-  vendor_id: number;
+  vendor_id: string | number;
   vendor_name: string;
-  booking_id: number;
+  booking_id: string | number;
   service_name?: string;
   last_message?: string;
   unread_count?: number;
+  conversation_id?: string;
+  participant_type?: string;
 }
 
 export default function CustomerHeader({
@@ -174,7 +176,7 @@ export default function CustomerHeader({
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                       <div>
                         <p className="font-semibold text-gray-900 text-sm">Messages</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Vendor conversations</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Vendor & driver chats</p>
                       </div>
                       {totalUnreadChats > 0 && (
                         <span className="bg-[#09B368] text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
@@ -189,10 +191,14 @@ export default function CustomerHeader({
                           <p className="text-sm text-gray-500">No messages yet</p>
                         </div>
                       ) : (
-                        chatBookings.map((chat) => (
+                        chatBookings.map((chat) => {
+                          const isDriver = chat.participant_type === 'driver' || chat.participant_type === 'staff_driver';
+                          const mode = isDriver ? 'driver' : 'vendor';
+                          const chatHref = `/customer/chat?mode=${mode}&conv=${chat.conversation_id}`;
+                          return (
                           <Link
-                            key={`${chat.vendor_id}-${chat.booking_id}`}
-                            href={`/customer/booking/${chat.booking_id}`}
+                            key={`${chat.vendor_id}-${chat.booking_id}-${chat.conversation_id}`}
+                            href={chatHref}
                             onClick={() => setShowChatDropdown(false)}
                             className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition border-b border-gray-50 last:border-0"
                           >
@@ -208,11 +214,22 @@ export default function CustomerHeader({
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-gray-400 truncate mt-0.5">{chat.last_message || 'Tap to view conversation'}</p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isDriver ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                                  {isDriver ? 'Driver' : 'Vendor'}
+                                </span>
+                                <p className="text-xs text-gray-400 truncate">{chat.last_message || 'Tap to view'}</p>
+                              </div>
                             </div>
                           </Link>
-                        ))
+                          );
+                        })
                       )}
+                    </div>
+                    <div className="border-t border-gray-100 px-4 py-2.5">
+                      <Link href="/customer/chat" onClick={() => setShowChatDropdown(false)} className="text-xs font-semibold text-[#09B368] hover:underline">
+                        View all messages →
+                      </Link>
                     </div>
                   </div>
                 </>

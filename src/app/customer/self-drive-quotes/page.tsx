@@ -35,6 +35,7 @@ interface QuoteRequest {
   transmission?: string;
   fuelType?: string;
   minSeats?: number;
+  numberOfVehicles?: number;
   locationId: string;
   locationName: string;
   pickupDate: string;
@@ -289,6 +290,9 @@ export default function CustomerSelfDriveQuotesPage() {
                         <div>
                           <h3 className="font-bold text-gray-900">
                             {request.vehicle_modelsName || request.vehicleCategoryName || 'Any Car'}
+                            {request.numberOfVehicles && request.numberOfVehicles > 1 && (
+                              <span className="ml-1 text-xs text-gray-500">× {request.numberOfVehicles}</span>
+                            )}
                           </h3>
                           <p className="text-sm text-gray-500">
                             {request.vehicleBrand && `${request.vehicleBrand} • `}

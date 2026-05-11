@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import CustomerHeader from '@/components/customer/CustomerHeader';
 import {
   MessageCircle, Send, Search, CheckCheck, Check, RefreshCw,
   ArrowLeft, Smile, Paperclip, X, Zap, FileIcon, Download,
@@ -98,6 +99,7 @@ export default function CustomerChatPage() {
   const [driverMessages, setDriverMessages] = useState<any[]>([]);
   const [driverTotalUnread, setDriverTotalUnread] = useState(0);
   const [isLoadingDriverMsgs, setIsLoadingDriverMsgs] = useState(false);
+  const [isLoadingDriverConvs, setIsLoadingDriverConvs] = useState(false);
   const [driverLastSince, setDriverLastSince] = useState<string | null>(null);
   const [driverNewMsg, setDriverNewMsg] = useState('');
   const [isDriverSending, setIsDriverSending] = useState(false);
@@ -139,8 +141,36 @@ export default function CustomerChatPage() {
       const res = await fetch(`/api/chat/conversations?userType=customer&${param}`);
       const data = await res.json();
       if (data.success) {
-        setConversations(data.conversations || []);
+        const convs: Conversation[] = data.conversations || [];
+        setConversations(convs);
         setTotalUnread(data.totalUnread || 0);
+
+        // Auto-select vendor conversation from URL params (only on first load)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlConvId = urlParams.get('conv');
+        const urlMode = urlParams.get('mode');
+        if (urlConvId && urlMode === 'vendor') {
+          const target = convs.find(c => c.id === urlConvId);
+          if (target) {
+            const vendorId = target.participant.id;
+            const group: VendorGroup = {
+              vendorId,
+              vendorName: target.participant.name,
+              logo: target.participant.logo,
+              phone: target.participant.phone,
+              conversations: convs.filter(c => c.participant.id === vendorId),
+              totalUnread: 0,
+              lastMessageAt: target.lastMessageAt,
+              lastMessage: target.lastMessage,
+            };
+            group.totalUnread = group.conversations.reduce((s, c) => s + c.unreadCount, 0);
+            setSelectedVendorGroup(group);
+            setActiveConvId(urlConvId);
+            setShowMobileSidebar(false);
+            // Clear params so polls don't re-select on every tick
+            window.history.replaceState({}, '', '/customer/chat');
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to fetch conversations:', err);
@@ -173,6 +203,7 @@ export default function CustomerChatPage() {
     if (!customer) return;
     const param = customer.phone ? `phone=${customer.phone}` : customer.email ? `email=${customer.email}` : '';
     if (!param) return;
+    setIsLoadingDriverConvs(true);
     try {
       const res = await fetch(`/api/customer/driver-chat?${param}`);
       const data = await res.json();
@@ -181,6 +212,7 @@ export default function CustomerChatPage() {
         setDriverTotalUnread(data.totalUnread || 0);
       }
     } catch {}
+    setIsLoadingDriverConvs(false);
   }, [customer]);
 
   const fetchDriverMessages = useCallback(async (since?: string | null) => {
@@ -328,6 +360,27 @@ export default function CustomerChatPage() {
     if (customer) fetchConversations();
   }, [customer, fetchConversations]);
 
+  // ── Auto-select conversation from URL query params ──
+  useEffect(() => {
+    if (!customer) return;
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+    const convId = params.get('conv');
+    if (!convId) return;
+
+    if (mode === 'driver') {
+      setChatMode('driver');
+      setSelectedDriverConvId(convId);
+      setShowMobileSidebar(false);
+      fetchDriverConversations();
+      window.history.replaceState({}, '', '/customer/chat');
+    } else if (mode === 'vendor') {
+      setChatMode('vendor');
+      setShowMobileSidebar(false);
+      // fetchConversations handles vendor auto-select via window.location.search
+    }
+  }, [customer, fetchDriverConversations]);
+
   // ── Load messages + polling ──
   useEffect(() => {
     if (selectedConversation) {
@@ -464,19 +517,25 @@ export default function CustomerChatPage() {
   // ── Not logged in ──
   if (!isLoading && !customer) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-80px)]">
-        <div className="text-center bg-white rounded-2xl shadow p-10">
-          <MessageCircle className="w-10 h-10 text-teal-300 mx-auto mb-3" />
-          <h2 className="text-base font-bold text-gray-700 mb-1">Please log in</h2>
-          <p className="text-sm text-gray-400">Login to view your chats with vendors</p>
-          <Link href="/customer/login" className="mt-4 inline-block px-5 py-2 bg-teal-600 text-white text-sm font-semibold rounded-xl hover:bg-teal-700 transition-colors">Go to Login</Link>
+      <>
+        <CustomerHeader showBackButton backHref="/" title="Messages" />
+        <div className="flex items-center justify-center h-screen pt-16">
+          <div className="text-center bg-white rounded-2xl shadow p-10">
+            <MessageCircle className="w-10 h-10 text-teal-300 mx-auto mb-3" />
+            <h2 className="text-base font-bold text-gray-700 mb-1">Please log in</h2>
+            <p className="text-sm text-gray-400">Login to view your chats with vendors</p>
+            <Link href="/customer/login" className="mt-4 inline-block px-5 py-2 bg-teal-600 text-white text-sm font-semibold rounded-xl hover:bg-teal-700 transition-colors">Go to Login</Link>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] flex flex-col rounded-2xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-200/60 bg-[#F9FAFB]">
+    <>
+    <CustomerHeader showBackButton backHref="/customer/dashboard" title="Messages" />
+    <div className="pt-16 h-screen flex flex-col px-4 pb-4 bg-gray-50">
+    <div className="flex-1 flex flex-col rounded-2xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-gray-200/60 bg-[#F9FAFB] min-h-0">
 
       <style jsx>{`
         @keyframes msgIn { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:translateY(0) } }
@@ -548,7 +607,17 @@ export default function CustomerChatPage() {
           <div className="flex-1 overflow-y-auto px-2 pt-1">
             {chatMode === 'driver' ? (
               /* Driver conversations list */
-              driverConversations.length === 0 ? (
+              isLoadingDriverConvs ? (
+                <div className="p-1">{[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 p-2.5">
+                    <div className="w-10 h-10 shimmer-teal rounded-full flex-shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 shimmer-teal rounded w-24" />
+                      <div className="h-2 shimmer-teal rounded w-32" />
+                    </div>
+                  </div>
+                ))}</div>
+              ) : driverConversations.length === 0 ? (
                 <div className="text-center py-14 fade-in-up">
                   <Car className="w-8 h-8 text-emerald-200 mx-auto mb-2" />
                   <p className="text-xs text-gray-400 font-medium">No driver chats</p>
@@ -995,5 +1064,7 @@ export default function CustomerChatPage() {
         </div>
       </div>
     </div>
+    </div>
+    </>
   );
 }

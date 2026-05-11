@@ -17,6 +17,7 @@ const STORAGE_CONFIG = {
   baseDir: process.env.PRIVATE_STORAGE_PATH || path.join(process.cwd(), 'storage', 'private'),
   // Subdirectories
   vendorDocuments: 'vendor-documents',
+  travelAgentDocuments: 'travel-agent-documents',
   tempFiles: 'temp',
 };
 
@@ -27,6 +28,7 @@ export async function initializeStorage(): Promise<void> {
   const directories = [
     STORAGE_CONFIG.baseDir,
     path.join(STORAGE_CONFIG.baseDir, STORAGE_CONFIG.vendorDocuments),
+    path.join(STORAGE_CONFIG.baseDir, STORAGE_CONFIG.travelAgentDocuments),
     path.join(STORAGE_CONFIG.baseDir, STORAGE_CONFIG.tempFiles),
   ];
 
@@ -292,6 +294,129 @@ export function validateFileAccessToken(
     return { valid: true, vendorId, filename };
   } catch {
     return { valid: false, error: 'Token parsing failed' };
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// TRAVEL AGENT DOCUMENT STORAGE — mirrors the vendor functions above
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get the full path for a travel agent document
+ */
+export function getTravelAgentDocumentPath(travelAgentId: string, filename: string): string {
+  const agentDir = path.join(
+    STORAGE_CONFIG.baseDir,
+    STORAGE_CONFIG.travelAgentDocuments,
+    travelAgentId,
+  );
+  return path.join(agentDir, filename);
+}
+
+/**
+ * Save a file to private travel agent document storage
+ */
+export async function saveTravelAgentDocument(
+  travelAgentId: string,
+  file: File,
+  customFilename?: string,
+): Promise<{ filename: string; path: string; size: number }> {
+  const agentDir = path.join(
+    STORAGE_CONFIG.baseDir,
+    STORAGE_CONFIG.travelAgentDocuments,
+    travelAgentId,
+  );
+
+  if (!existsSync(agentDir)) {
+    await mkdir(agentDir, { recursive: true });
+  }
+
+  const filename = customFilename || generateSecureFilename(file.name);
+  const filePath = path.join(agentDir, filename);
+
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  await writeFile(filePath, buffer);
+
+  logger.info('Saved travel agent document to private storage', {
+    travelAgentId,
+    filename,
+    size: buffer.length,
+  });
+
+  return { filename, path: filePath, size: buffer.length };
+}
+
+/**
+ * Read a file from private travel agent document storage
+ */
+export async function readTravelAgentDocument(
+  travelAgentId: string,
+  filename: string,
+): Promise<Buffer | null> {
+  const filePath = getTravelAgentDocumentPath(travelAgentId, filename);
+
+  // Security: prevent path traversal
+  const agentDir = path.join(
+    STORAGE_CONFIG.baseDir,
+    STORAGE_CONFIG.travelAgentDocuments,
+    travelAgentId,
+  );
+  const normalizedPath = path.normalize(filePath);
+  if (!normalizedPath.startsWith(agentDir)) {
+    logger.logSecurityEvent('Path traversal attempt in travel-agent storage', 'high', {
+      travelAgentId,
+      filename,
+      attemptedPath: filePath,
+    });
+    return null;
+  }
+
+  if (!existsSync(filePath)) return null;
+
+  try {
+    return await readFile(filePath);
+  } catch (error) {
+    logger.error('Error reading travel agent document', { travelAgentId, filename, error });
+    return null;
+  }
+}
+
+/**
+ * Delete a file from private travel agent document storage
+ */
+export async function deleteTravelAgentDocument(
+  travelAgentId: string,
+  filename: string,
+): Promise<boolean> {
+  const filePath = getTravelAgentDocumentPath(travelAgentId, filename);
+
+  const agentDir = path.join(
+    STORAGE_CONFIG.baseDir,
+    STORAGE_CONFIG.travelAgentDocuments,
+    travelAgentId,
+  );
+  const normalizedPath = path.normalize(filePath);
+  if (!normalizedPath.startsWith(agentDir)) {
+    logger.logSecurityEvent('Path traversal attempt in travel-agent delete', 'high', {
+      travelAgentId,
+      filename,
+    });
+    return false;
+  }
+
+  if (!existsSync(filePath)) return false;
+
+  try {
+    await unlink(filePath);
+    logger.info('Deleted travel agent document from private storage', {
+      travelAgentId,
+      filename,
+    });
+    return true;
+  } catch (error) {
+    logger.error('Error deleting travel agent document', { travelAgentId, filename, error });
+    return false;
   }
 }
 

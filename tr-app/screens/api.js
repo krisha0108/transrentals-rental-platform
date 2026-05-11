@@ -2,15 +2,15 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const dev = false; // 🏠 LOCAL DEV MODE - App will call local backend
+const dev = true; // 🏠 LOCAL DEV MODE - App will call local backend
 
 // For Android Emulator: Use 10.0.2.2 (this is the host machine's localhost)
 // For Physical Device: Use your computer's IP address
 // To find your IP: Run "ipconfig" in CMD and look for IPv4 Address
 
 // CHANGE THIS BASED ON YOUR SETUP:
-const LOCAL_HOST = '192.168.29.58'; // Physical Device -> Your PC's WiFi IP Address ✅
-// const LOCAL_HOST = 'localhost'; // Physical Device -> Your PC's WiFi IP Address
+// const LOCAL_HOST = '192.168.29.58'; // Physical Device -> Your PC's WiFi IP Address ✅
+const LOCAL_HOST = 'localhost'; // Physical Device -> Your PC's WiFi IP Address
 // const LOCAL_HOST = '10.0.2.2'; // Android Emulator -> Use this for emulator
 const LOCAL_PORT = 3000; // Next.js dev server port
 

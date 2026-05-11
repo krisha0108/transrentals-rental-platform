@@ -46,6 +46,8 @@ interface Booking {
   dropDate: string;
   dropTime: string;
   totalDays: number;
+  numberOfVehicles?: number;
+  pickupAddress?: string;
   dailyRate: number;
   totalAmount: number;
   grandTotal: number;
@@ -521,10 +523,13 @@ export default function VendorBikeBookingsPage() {
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                         <span className="flex items-center gap-1 font-medium text-gray-700"><User className="w-3 h-3 text-gray-400" /> {booking.customerName}</span>
                         <span className="text-gray-300">·</span>
-                        <span className="flex items-center gap-1"><Bike className="w-3 h-3 text-gray-400" /> {booking.vehicleName}</span>
+                        <span className="flex items-center gap-1"><Bike className="w-3 h-3 text-gray-400" /> {booking.vehicleName}{booking.numberOfVehicles && booking.numberOfVehicles > 1 ? ` × ${booking.numberOfVehicles}` : ''}</span>
                         <span className="text-gray-300">·</span>
                         <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-gray-400" /> {booking.locationName}</span>
                       </div>
+                      {booking.pickupAddress && (
+                        <div className="text-[11px] text-gray-400 mt-0.5 truncate" title={booking.pickupAddress}>{booking.pickupAddress}</div>
+                      )}
 
                       <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-400">
                         <span className="flex items-center gap-1">

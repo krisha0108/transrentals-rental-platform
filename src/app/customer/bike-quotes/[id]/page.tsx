@@ -40,6 +40,8 @@ interface QuoteRequest {
   dropTime?: string;
   totalDays: number;
   helmetsRequired?: number;
+  numberOfVehicles?: number;
+  pickupAddress?: string;
   customerNotes?: string;
   status: string;
 }
@@ -341,9 +343,14 @@ export default function CustomerBikeQuoteDetailPage() {
                 {request.vehicleBrand && ` (${request.vehicleBrand})`}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-emerald-500" />
-              <span>{request.locationName}</span>
+            <div className="flex items-start gap-2 text-sm">
+              <MapPin className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+              <div className="min-w-0">
+                <span>{request.locationName}</span>
+                {request.pickupAddress && (
+                  <p className="text-xs text-gray-500 mt-0.5">{request.pickupAddress}</p>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="w-4 h-4 text-emerald-500" />
@@ -370,6 +377,12 @@ export default function CustomerBikeQuoteDetailPage() {
               <div className="flex items-center gap-2 text-sm">
                 <HardHat className="w-4 h-4 text-emerald-500" />
                 <span>{request.helmetsRequired} helmet(s) required</span>
+              </div>
+            )}
+            {request.numberOfVehicles && request.numberOfVehicles > 1 && (
+              <div className="flex items-center gap-2 text-sm">
+                <Bike className="w-4 h-4 text-emerald-500" />
+                <span>{request.numberOfVehicles} bikes required</span>
               </div>
             )}
           </div>

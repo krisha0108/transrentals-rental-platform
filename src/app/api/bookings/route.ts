@@ -8,6 +8,7 @@ import {
   logger,
 } from '@/lib/security';
 import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
+import { onB2BBookingCreated } from '@/lib/utils/b2b-notification-helper';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,50 @@ function generateBookingNumber(prefix: string): string {
 
 function generateOTP(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
+// Travel-agent PERSONAL tagging — looks up the linkedTravelAgentId for the
+// given customer and (if set) writes travelAgentId + bookingMode='PERSONAL'
+// onto a freshly-created booking/quote row. ALSO swaps customerPhone for
+// the agent's real phone if the row currently holds a `ta-<id>` placeholder.
+// Uses raw SQL so it survives Prisma client cache lag with the new columns.
+// Non-fatal: failures are logged but never block the booking.
+async function tagTaPersonalBooking(
+  tableName: string,
+  rowId: string,
+  customerId: string,
+): Promise<void> {
+  try {
+    const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+      `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`,
+      customerId,
+    );
+    const agentId = linkRows[0]?.linkedTravelAgentId || null;
+    if (!agentId) return;
+    await (prisma as any).$executeRawUnsafe(
+      `UPDATE \`${tableName}\` SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+      agentId,
+      'PERSONAL',
+      rowId,
+    );
+    // Patch the stored customerPhone if it's a `ta-` placeholder — replace
+    // with the agent's real phone so reports/dashboards show a usable number.
+    try {
+      const ag: any = await (prisma as any).travel_agents.findUnique({
+        where: { id: agentId },
+        select: { phone: true },
+      });
+      if (ag?.phone) {
+        await (prisma as any).$executeRawUnsafe(
+          `UPDATE \`${tableName}\` SET customerPhone = ? WHERE id = ? AND customerPhone LIKE 'ta-%'`,
+          ag.phone,
+          rowId,
+        );
+      }
+    } catch { /* non-fatal */ }
+  } catch (e) {
+    console.error(`[tagTaPersonalBooking:${tableName}] failed`, e);
+  }
 }
 
 // Get or create customer in local DB
@@ -287,7 +332,7 @@ async function handleBikeBooking(customerInfo: { name: string; email: string; ph
 
   // IMPORTANT: Always start with PENDING_PAYMENT status
   // Flow: PENDING_PAYMENT → PAYMENT_SUBMITTED → PAYMENT_VERIFIED → BROADCASTED/PENDING_VENDOR → ACCEPTED
-  const booking = await prisma.bike_bookings.create({
+  const booking: any = await (prisma as any).bike_bookings.create({
     data: {
       bookingNumber,
       customerId: customer.id,
@@ -328,6 +373,8 @@ async function handleBikeBooking(customerInfo: { name: string; email: string; ph
       customerNotes: bookingData.other_info as string || null,
     },
   });
+
+  await tagTaPersonalBooking('bike_bookings', booking.id, customer.id);
 
   // Message guides customer to payment step (or confirms for B2B)
   const message = isB2B
@@ -389,7 +436,7 @@ async function handleCarBooking(customerInfo: { name: string; email: string; pho
     ? Math.max(1, Math.ceil((returnDate.getTime() - pickupDate.getTime()) / (24 * 60 * 60 * 1000)))
     : 1;
 
-  const booking = await prisma.car_bookings.create({
+  const booking: any = await (prisma as any).car_bookings.create({
     data: {
       bookingNumber,
       customerId: customer.id,
@@ -416,6 +463,8 @@ async function handleCarBooking(customerInfo: { name: string; email: string; pho
       customerNotes: bookingData.other_info as string || null,
     },
   });
+
+  await tagTaPersonalBooking('car_bookings', booking.id, customer.id);
 
   return {
     success: true,
@@ -564,7 +613,7 @@ async function handleSelfDriveBooking(customerInfo: { name: string; email: strin
     ? [assignedVendorId!]
     : notifiedVendorIds;
 
-  const booking = await prisma.car_bookings.create({
+  const booking: any = await (prisma as any).car_bookings.create({
     data: {
       bookingNumber,
       customerId: customer.id,
@@ -608,6 +657,8 @@ async function handleSelfDriveBooking(customerInfo: { name: string; email: strin
     },
   });
 
+  await tagTaPersonalBooking('car_bookings', booking.id, customer.id);
+
   return {
     success: true,
     message: isB2B
@@ -647,13 +698,42 @@ async function handleTruckQuoteRequest(customerInfo: { name: string; email: stri
   const goodsType = (bookingData.personal_good_type as string) || (bookingData.commercial_good_type as string) || (bookingData.goodsType as string) || 'household';
   const goodsTypeName = (bookingData.personal_good_type_name as string) || (bookingData.commercial_good_type_name as string) || (bookingData.goodsTypeName as string) || 'Household Items';
   const weightVal = (bookingData.weight_val as string) || (bookingData.weightVal as string);
-  const weightUnit = (bookingData.weight_unit as string) || (bookingData.weightUnit as string) || 'KG';
   const weightUnitName = (bookingData.weight_unit_name as string) || (bookingData.weightUnitName as string) || 'KG';
+  const materialDetails = (bookingData.material_details as string) || null;
 
   const requirements = (bookingData.other_info as string) ||
     `Truck: ${truckTypeName}, Goods: ${goodsTypeName}, Weight: ${weightVal || 'N/A'} ${weightUnitName}`;
 
-  const quoteRequest = await prisma.truck_quote_requests.create({
+  // Helper: parse expected delivery (string from chat → DateTime|null)
+  const parseExpectedDelivery = (val: unknown): Date | null => {
+    if (!val) return null;
+    const s = String(val).trim();
+    if (!s) return null;
+    const m = s.match(/^(\d+)\s*(day|days|week|weeks)$/i);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      const unitDays = /week/i.test(m[2]) ? 7 : 1;
+      return new Date(Date.now() + n * unitDays * 24 * 60 * 60 * 1000);
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  // Validate truck body type enum (fall back to null if not recognised)
+  const validBodyTypes = ['OPEN', 'CLOSED_BODY', 'CONTAINER', 'TRAILER', 'LCV', 'REFRIGERATED', 'FLATBED', 'OTHER'];
+  const rawBodyType = (bookingData.truck_body_type as string) || null;
+  const truckBodyType = rawBodyType && validBodyTypes.includes(rawBodyType) ? rawBodyType : null;
+
+  const validTripDirections = ['ONE_WAY', 'ROUND_TRIP'];
+  const rawTripDirection = (bookingData.trip_direction as string) || 'ONE_WAY';
+  const tripDirection = validTripDirections.includes(rawTripDirection) ? rawTripDirection : 'ONE_WAY';
+
+  // goodsDescription combines goodsTypeName and material details when provided
+  const goodsDescription = materialDetails
+    ? `${goodsTypeName} – ${materialDetails}`
+    : goodsTypeName;
+
+  const quoteRequest = await (prisma as any).truck_quote_requests.create({
     data: {
       requestNumber,
       customerId: customer.id,
@@ -664,14 +744,47 @@ async function handleTruckQuoteRequest(customerInfo: { name: string; email: stri
       vehicleCategory: truckType,
       vehicleCategoryName: truckTypeName,
       goodsType: goodsType,
-      goodsDescription: goodsTypeName,
+      goodsDescription: goodsDescription,
       estimatedWeight: weightVal ? parseFloat(weightVal) : null,
+      estimatedVolume: (bookingData.truck_estimated_volume as string) || null,
+      requiresLabour: bookingData.requires_labour === true,
+      labourCount: bookingData.truck_labour_count != null
+        ? parseInt(bookingData.truck_labour_count as string)
+        : null,
       pickupCity: (bookingData.location_name as string) || (bookingData.pickupLocation as string) || 'Not specified',
-      pickupAddress: (bookingData.location_name as string) || (bookingData.pickupLocation as string) || null,
+      pickupAddress: (bookingData.pickup_full_address as string) || (bookingData.location_name as string) || (bookingData.pickupLocation as string) || null,
+      pickupPincode: (bookingData.truck_pickup_pincode as string) || null,
+      pickupFloor: bookingData.truck_pickup_floor != null
+        ? parseInt(bookingData.truck_pickup_floor as string)
+        : null,
+      hasPickupLift: bookingData.has_truck_pickup_lift === true,
       dropCity: (bookingData.destination as string) || 'Not specified',
-      dropAddress: (bookingData.destination as string) || null,
+      dropAddress: (bookingData.destination_full_address as string) || (bookingData.destination as string) || null,
+      dropPincode: (bookingData.truck_drop_pincode as string) || null,
+      dropFloor: bookingData.truck_drop_floor != null
+        ? parseInt(bookingData.truck_drop_floor as string)
+        : null,
+      hasDropLift: bookingData.has_truck_drop_lift === true,
       pickupDate: pickupDateTime,
       pickupTime: pickupDateTime.toTimeString().slice(0, 5),
+      expectedDeliveryDate: parseExpectedDelivery(bookingData.truck_expected_delivery_date),
+      expectedDeliveryTime: (bookingData.truck_expected_delivery_time as string) || null,
+      truckBodyType: truckBodyType,
+      tripDirection: tripDirection,
+      hasMultipleStops: bookingData.truck_has_multiple_stops === true,
+      multipleStopsDetails: (bookingData.truck_multiple_stops_details as string) || null,
+      receiverName: (bookingData.truck_receiver_name as string) || null,
+      receiverPhone: (bookingData.truck_receiver_phone as string) || null,
+      requiresPOD: bookingData.truck_requires_pod === true,
+      isFlexibleDate: bookingData.is_flexible_date === true,
+      needInsurance: bookingData.need_insurance === true,
+      needPackaging: bookingData.need_packaging === true,
+      budgetMin: bookingData.budget_min != null
+        ? parseFloat(bookingData.budget_min as string)
+        : null,
+      budgetMax: bookingData.budget_max != null
+        ? parseFloat(bookingData.budget_max as string)
+        : null,
       requirements: requirements,
       locationId: pickupLocation?.id || 'default_loc',
       status: 'PENDING',
@@ -679,6 +792,8 @@ async function handleTruckQuoteRequest(customerInfo: { name: string; email: stri
       quotesOpenTill,
     },
   });
+
+  await tagTaPersonalBooking('truck_quote_requests', quoteRequest.id, customer.id);
 
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,
@@ -717,7 +832,23 @@ async function handlePackersQuoteRequest(customerInfo: { name: string; email: st
   const quotesOpenTill = new Date();
   quotesOpenTill.setHours(quotesOpenTill.getHours() + 48);
 
-  const quoteRequest = await prisma.packers_quote_requests.create({
+  // Helper: best-effort parse of expected delivery (string from chat → DateTime|null)
+  const parseExpectedDelivery = (val: unknown): Date | null => {
+    if (!val) return null;
+    const s = String(val).trim();
+    if (!s) return null;
+    // Match "N day(s)", "N week(s)" relative spec
+    const m = s.match(/^(\d+)\s*(day|days|week|weeks)$/i);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      const unitDays = /week/i.test(m[2]) ? 7 : 1;
+      return new Date(Date.now() + n * unitDays * 24 * 60 * 60 * 1000);
+    }
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const quoteRequest = await (prisma as any).packers_quote_requests.create({
     data: {
       requestNumber,
       customerId: customer.id,
@@ -726,14 +857,43 @@ async function handlePackersQuoteRequest(customerInfo: { name: string; email: st
       customerPhone: customerInfo.phone,
       serviceType: 'full-service',
       shiftingType: (bookingData.shifting_type as string) || 'Home',
-      propertySize: (bookingData.home_shifting as string) || (bookingData.specific_type as string) || null,
+      shiftingScope: (bookingData.shifting_scope as string) || 'LOCAL',
+      propertySize: (bookingData.home_shifting as string) || (bookingData.office_shifting as string) || (bookingData.vehicle_shifting as string) || null,
       pickupCity: bookingData.location_name as string,
-      pickupAddress: bookingData.location_name as string,
+      pickupAddress: (bookingData.pickup_full_address as string) || (bookingData.location_name as string),
+      pickupPincode: (bookingData.pickup_pincode as string) || null,
+      pickupFloor: bookingData.pickup_floor != null ? parseInt(bookingData.pickup_floor as string) : null,
+      hasPickupLift: bookingData.has_pickup_lift === true,
       dropCity: bookingData.destination as string,
-      dropAddress: bookingData.destination as string,
+      dropAddress: (bookingData.destination_full_address as string) || (bookingData.destination as string),
+      dropPincode: (bookingData.drop_pincode as string) || null,
+      dropFloor: bookingData.drop_floor != null ? parseInt(bookingData.drop_floor as string) : null,
+      hasDropLift: bookingData.has_drop_lift === true,
       preferredDate: bookingData.journey_datetime ? new Date(bookingData.journey_datetime as string) : new Date(),
-      needPacking: true,
-      needUnpacking: true,
+      expectedDeliveryDate: parseExpectedDelivery(bookingData.expected_delivery_date),
+      expectedDeliveryTime: (bookingData.expected_delivery_time as string) || null,
+      inventoryList: (bookingData.inventory_list as string) || null,
+      estimatedWeight: bookingData.estimated_weight != null ? parseFloat(bookingData.estimated_weight as string) : null,
+      hasHeavyItems: bookingData.has_heavy_items === true,
+      heavyItemsDesc: (bookingData.heavy_items_desc as string) || null,
+      hasFragileItems: bookingData.has_fragile_items === true,
+      fragileItemsDesc: (bookingData.fragile_items_desc as string) || null,
+      boxesCount: bookingData.boxes_count != null ? parseInt(bookingData.boxes_count as string) : null,
+      bagsCount: bookingData.bags_count != null ? parseInt(bookingData.bags_count as string) : null,
+      needPacking: bookingData.need_packing !== false,
+      needLoading: bookingData.need_loading !== false,
+      needUnloading: bookingData.need_unloading !== false,
+      needUnpacking: bookingData.need_unpacking === true,
+      labourCount: bookingData.labour_count != null ? parseInt(bookingData.labour_count as string) : null,
+      vehicleType: (bookingData.vehicle_type_req as string) || 'DEDICATED',
+      partLoadAccepted: bookingData.part_load_accepted === true,
+      needInsurance: bookingData.need_insurance === true,
+      insuranceValue: bookingData.insurance_value != null ? parseFloat(bookingData.insurance_value as string) : null,
+      requiresPOD: bookingData.requires_pod === true,
+      receiverName: (bookingData.receiver_name as string) || null,
+      receiverPhone: (bookingData.receiver_phone as string) || null,
+      hasMultipleStops: bookingData.has_multiple_stops === true,
+      multipleStopsDetails: (bookingData.multiple_stops_details as string) || null,
       requirements: (bookingData.other_info as string) || null,
       locationId: pickupLocation?.id || null,
       status: 'PENDING',
@@ -741,6 +901,8 @@ async function handlePackersQuoteRequest(customerInfo: { name: string; email: st
       quotesOpenTill,
     },
   });
+
+  await tagTaPersonalBooking('packers_quote_requests', quoteRequest.id, customer.id);
 
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,
@@ -791,7 +953,7 @@ async function handleEquipmentQuoteRequest(customerInfo: { name: string; email: 
   const startDate = bookingData.journey_datetime ? new Date(bookingData.journey_datetime as string) : new Date();
   const endDate = new Date(startDate.getTime() + durationInfo.days * 24 * 60 * 60 * 1000);
 
-  const quoteRequest = await prisma.equipment_quote_requests.create({
+  const quoteRequest: any = await (prisma as any).equipment_quote_requests.create({
     data: {
       requestNumber,
       customerId: customer.id,
@@ -804,7 +966,7 @@ async function handleEquipmentQuoteRequest(customerInfo: { name: string; email: 
       rentalDuration: durationInfo.type,
       rentalDays: durationInfo.days,
       deliveryCity: (bookingData.location_name as string) || 'Not specified',
-      deliveryAddress: (bookingData.location_name as string) || 'Not specified',
+      deliveryAddress: (bookingData.pickup_full_address as string) || (bookingData.location_name as string) || 'Not specified',
       startDate,
       endDate,
       needOperator: true,
@@ -815,6 +977,8 @@ async function handleEquipmentQuoteRequest(customerInfo: { name: string; email: 
       quotesOpenTill,
     },
   });
+
+  await tagTaPersonalBooking('equipment_quote_requests', quoteRequest.id, customer.id);
 
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,
@@ -867,9 +1031,9 @@ async function handleBusQuoteRequest(customerInfo: { name: string; email: string
       vehicleCategoryName: 'Bus',
       passengers: parseInt(bookingData.total_passangers as string) || 20,
       pickupCity: bookingData.location_name as string,
-      pickupAddress: bookingData.location_name as string,
+      pickupAddress: (bookingData.pickup_full_address as string) || (bookingData.location_name as string),
       dropCity: (bookingData.destination as string) || null,
-      dropAddress: (bookingData.destination as string) || null,
+      dropAddress: (bookingData.destination_full_address as string) || (bookingData.destination as string) || null,
       pickupDate: pickupDateTime,
       pickupTime: pickupDateTime.toTimeString().slice(0, 5),
       returnDate: bookingData.return_datetime ? new Date(bookingData.return_datetime as string) : null,
@@ -880,6 +1044,8 @@ async function handleBusQuoteRequest(customerInfo: { name: string; email: string
       quotesOpenTill,
     },
   });
+
+  await tagTaPersonalBooking('bus_quote_requests', quoteRequest.id, customer.id);
 
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,
@@ -905,6 +1071,117 @@ async function handleBusQuoteRequest(customerInfo: { name: string; email: string
       phone: customer.phone,
     },
     redirect_to: `/customer/bus-quotes/${quoteRequest.id}`,
+  };
+}
+
+// ============= CUSTOM BULK (MULTI-DAY EVENT) HANDLER =============
+// Reuses the existing B2B booking infrastructure: vendors quote on available
+// vehicles, manager combines into a super quote, customer accepts, payment is
+// post-paid via b2b_invoices. The full multi-day breakdown is stored as JSON
+// in b2b_bookings.bulkBreakdown so vendors and managers can see the event plan.
+
+async function handleCustomBulkRequest(
+  customerInfo: { name: string; email: string; phone: string; password?: string },
+  bookingData: Record<string, unknown>
+) {
+  const { customer } = await getOrCreateCustomer(customerInfo);
+
+  const baseLocationName = (bookingData.base_location as string) || '';
+  const pickupLocation = await findLocation(baseLocationName);
+
+  const bookingNumber = generateBookingNumber('CB');
+
+  // Aggregate totals + service types from the days[] structure
+  const days: any[] = Array.isArray(bookingData.days) ? (bookingData.days as any[]) : [];
+  const serviceTypes = new Set<string>();
+  let computedVehicles = 0;
+  for (const day of days) {
+    for (const svc of (day?.services || [])) {
+      if (svc.service_type) serviceTypes.add(String(svc.service_type));
+      const vehicles = Array.isArray(svc.vehicles) ? svc.vehicles : [];
+      for (const v of vehicles) {
+        const c = parseInt(String(v?.count ?? 0), 10);
+        if (!isNaN(c)) computedVehicles += c;
+      }
+    }
+  }
+  const totalVehicles = (bookingData.total_vehicles as number) || computedVehicles || 0;
+  const serviceTypeList = Array.from(serviceTypes).join(',') || 'mixed';
+
+  // Date / time parsing
+  const startDate = bookingData.start_date ? new Date(bookingData.start_date as string) : new Date();
+  const endDate = bookingData.end_date ? new Date(bookingData.end_date as string) : startDate;
+  const startTime = (bookingData.start_time as string) || '09:00';
+  const endTime = (bookingData.end_time as string) || '18:00';
+
+  // Full event payload — vendors and managers read this to understand the request
+  const bulkBreakdown = JSON.stringify({
+    occasion_type: bookingData.occasion_type ?? null,
+    occasion_name: bookingData.occasion_name ?? null,
+    total_days: bookingData.total_days ?? null,
+    total_people: bookingData.total_people ?? null,
+    base_location: bookingData.base_location ?? null,
+    base_location_id: bookingData.base_location_id ?? null,
+    base_location_slug: bookingData.base_location_slug ?? null,
+    services_used: Array.from(serviceTypes),
+    start_datetime: bookingData.start_datetime ?? null,
+    end_datetime: bookingData.end_datetime ?? null,
+    days,
+  });
+
+  // Cast to any so the new optional fields (companyName nullable + bulkBreakdown
+  // LongText) work both before and after `prisma generate` regenerates types.
+  const booking = await (prisma as any).b2b_bookings.create({
+    data: {
+      bookingNumber,
+      customerId: customer.id,
+      customerName: customerInfo.name,
+      customerEmail: customerInfo.email,
+      customerPhone: customerInfo.phone,
+      // Custom-bulk requesters are usually individuals (event organisers, families,
+      // wedding planners) — companyName is optional for this serviceType.
+      companyName: (bookingData.company_name as string) || null,
+      serviceType: 'CUSTOM_BULK',
+      vehiclesRequired: totalVehicles,
+      passengerCount: (bookingData.total_people as number) || null,
+      vehicleCategory: serviceTypeList, // comma-separated list of services involved
+      pickupLocation: baseLocationName || 'Not specified',
+      tripType: 'EVENT',
+      scheduledDate: startDate,
+      scheduledTime: startTime,
+      returnDate: endDate,
+      returnTime: endTime,
+      specialNotes: (bookingData.special_requirements as string) || null,
+      bulkBreakdown,
+      status: 'OPEN_FOR_QUOTES',
+    },
+  });
+
+  // Notify vendors approved for the base city — same path as regular B2B bookings.
+  // Each vendor sees the event plan in their dashboard and quotes only the
+  // vehicles they can supply. The manager later combines those into a super quote.
+  onB2BBookingCreated({
+    id: booking.id,
+    bookingNumber: booking.bookingNumber,
+    serviceType: 'CUSTOM_BULK',
+    pickupLocation: pickupLocation?.name || baseLocationName,
+    companyName: (booking.companyName || (bookingData.occasion_name as string) || customerInfo.name) as string,
+    vehiclesRequired: totalVehicles,
+  }).catch((err: any) => console.error('[Notification] CustomBulk failed:', err));
+
+  return {
+    success: true,
+    message: 'Event request submitted! Our team will review and share a consolidated quote shortly.',
+    booking_id: booking.id,
+    booking_number: booking.bookingNumber,
+    customer_id: customer.id,
+    customer: {
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+    },
+    redirect_to: `/customer/b2b-bookings/${booking.id}`,
   };
 }
 
@@ -987,6 +1264,8 @@ async function handleLuxuryQuoteRequest(customerInfo: { name: string; email: str
     },
   });
 
+  await tagTaPersonalBooking('luxury_quote_requests', quoteRequest.id, customer.id);
+
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,
     requestNumber: quoteRequest.requestNumber,
@@ -1036,7 +1315,7 @@ async function handleLuxuryBooking(customerInfo: { name: string; email: string; 
     '4': 'airport',
   };
 
-  const booking = await prisma.luxury_bookings.create({
+  const booking: any = await (prisma as any).luxury_bookings.create({
     data: {
       bookingNumber,
       customerId: customer.id,
@@ -1066,6 +1345,8 @@ async function handleLuxuryBooking(customerInfo: { name: string; email: string; 
       tripEndOtp: generateOTP(),
     },
   });
+
+  await tagTaPersonalBooking('luxury_bookings', booking.id, customer.id);
 
   return {
     success: true,
@@ -1128,7 +1409,7 @@ async function handleBikeQuoteRequest(customerInfo: { name: string; email: strin
   const quotesOpenTill = new Date();
   quotesOpenTill.setHours(quotesOpenTill.getHours() + 48);
 
-  const quoteRequest = await prisma.bike_quote_requests.create({
+  const quoteRequest: any = await (prisma as any).bike_quote_requests.create({
     data: {
       requestNumber,
       customerId: customer.id,
@@ -1140,6 +1421,7 @@ async function handleBikeQuoteRequest(customerInfo: { name: string; email: strin
       vehicleCategoryName: vehicleCategory, // human-readable for display only
       locationId: location?.id || 'default_loc',
       locationName: (bookingData.location_name as string) || location?.name || 'Not specified',
+      pickupAddress: (bookingData.pickup_full_address as string) || null,
       pickupDate,
       pickupTime: pickupDate.toTimeString().slice(0, 5),
       dropDate: returnDate,
@@ -1152,6 +1434,8 @@ async function handleBikeQuoteRequest(customerInfo: { name: string; email: strin
       quotesOpenTill,
     },
   });
+
+  await tagTaPersonalBooking('bike_quote_requests', quoteRequest.id, customer.id);
 
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,
@@ -1220,7 +1504,7 @@ async function handleSelfDriveQuoteRequest(customerInfo: { name: string; email: 
   const quotesOpenTill = new Date();
   quotesOpenTill.setHours(quotesOpenTill.getHours() + 48);
 
-  const quoteRequest = await prisma.self_drive_quote_requests.create({
+  const quoteRequest: any = await (prisma as any).self_drive_quote_requests.create({
     data: {
       requestNumber,
       customerId: customer.id,
@@ -1247,6 +1531,8 @@ async function handleSelfDriveQuoteRequest(customerInfo: { name: string; email: 
       quotesOpenTill,
     },
   });
+
+  await tagTaPersonalBooking('self_drive_quote_requests', quoteRequest.id, customer.id);
 
   sendQuoteRequestNotificationToVendors({
     requestId: quoteRequest.id,
@@ -1325,8 +1611,12 @@ export async function POST(request: NextRequest) {
     let result;
 
     // Route to appropriate handler based on booking type
+    // CUSTOM BULK (multi-day, multi-service event request — flows through B2B infrastructure)
+    if (bookingType === 'custom-bulk' || bookingType === 'custom') {
+      result = await handleCustomBulkRequest(customerInfo, bookingData);
+    }
     // BIKE QUOTE REQUEST (BROWSE_FIRST: non-fleet bike → quote request flow)
-    if (bookingType === 'bike-quote-request') {
+    else if (bookingType === 'bike-quote-request') {
       result = await handleBikeQuoteRequest(customerInfo, bookingData);
     }
     // SELF-DRIVE QUOTE REQUEST (BROWSE_FIRST: non-fleet self-drive → quote request flow)

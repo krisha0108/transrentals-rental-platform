@@ -135,6 +135,10 @@ function LuxuryBookingContent({ location }: { location: string }) {
   const [numberOfPersons, setNumberOfPersons] = useState('');
   const [b2bCustomerId, setB2bCustomerId] = useState<string | null>(null);
 
+  // Travel Agent state
+  const [isTravelAgent, setIsTravelAgent] = useState(false);
+  const [agentName, setAgentName] = useState('');
+
   // Customer is logged in via next-auth (admin/manager) OR localStorage (regular/B2B customer)
   const isNextAuthLoggedIn = status === 'authenticated' && session?.user?.role === 'customer';
   const isCustomerLoggedIn = isNextAuthLoggedIn || isLocalAuth;
@@ -148,14 +152,28 @@ function LuxuryBookingContent({ location }: { location: string }) {
     }
   }, [isNextAuthLoggedIn, session]);
 
-  // Auto-fill from localStorage customer (regular + B2B customers)
+  // Auto-fill from localStorage customer (regular + B2B customers + Travel Agents)
   useEffect(() => {
     if (isLocalAuth && localCustomer) {
       setCustomerName(prev => prev || localCustomer.name || '');
       setCustomerEmail(prev => prev || localCustomer.email || '');
-      setCustomerPhone(prev => prev || localCustomer.phone || '');
+      // Strip travel-agent shadow placeholder phone (`ta-<id>`) — invalid for
+      // booking validation. User must enter their real number.
+      const safePhone =
+        typeof localCustomer.phone === 'string' && localCustomer.phone.startsWith('ta-')
+          ? ''
+          : (localCustomer.phone || '');
+      setCustomerPhone(prev => prev || safePhone);
       setB2bCustomerId(String(localCustomer.id));
-      // Check B2B status
+
+      // Detect Travel Agent from localStorage immediately
+      if ((localCustomer as any).linkedTravelAgentId) {
+        setIsTravelAgent(true);
+        setAgentName(localCustomer.name || '');
+      }
+
+      // Check B2B status + verify TA status against the profile API (handles
+      // stale localStorage)
       const params = new URLSearchParams();
       if (localCustomer.id) params.set('customer_id', String(localCustomer.id));
       if (localCustomer.email) params.set('email', localCustomer.email);
@@ -163,6 +181,36 @@ function LuxuryBookingContent({ location }: { location: string }) {
         .then(res => res.json())
         .then(data => { if (data.isB2B) setIsB2B(true); })
         .catch(() => {});
+
+      if (localCustomer.id) {
+        fetch(`/api/customer/profile?customer_id=${localCustomer.id}`)
+          .then((r) => r.json())
+          .then((d) => {
+            if (d?.customers?.linkedTravelAgentId) {
+              setIsTravelAgent(true);
+              setAgentName(d.customers.name || localCustomer.name || '');
+              // If the form has no phone (or the placeholder was stripped),
+              // and the agent has a real phone in their TA profile, use it.
+              const agentPhone = d?.customers?.linkedAgentPhone || null;
+              if (agentPhone) {
+                setCustomerPhone(prev => prev || agentPhone);
+              }
+              try {
+                const merged = {
+                  ...localCustomer,
+                  linkedTravelAgentId: d.customers.linkedTravelAgentId,
+                  // Also patch localStorage so other modals/pages get the
+                  // real phone next time without an extra API hop.
+                  ...(agentPhone && (typeof localCustomer.phone !== 'string' || localCustomer.phone.startsWith('ta-'))
+                    ? { phone: agentPhone }
+                    : {}),
+                };
+                localStorage.setItem('customer', JSON.stringify(merged));
+              } catch { /* ignore */ }
+            }
+          })
+          .catch(() => {});
+      }
     }
   }, [isLocalAuth, localCustomer]);
 
@@ -213,18 +261,20 @@ function LuxuryBookingContent({ location }: { location: string }) {
     };
   };
 
-  // Submit as B2B booking (when Company purpose selected)
-  const submitB2BBooking = async () => {
+  // Submit as B2B booking (Company B2B) or TA booking (Personal/Company TA)
+  const submitB2BBooking = async (taMode?: 'PERSONAL' | 'COMPANY') => {
     if (!b2bCustomerId) {
-      alert('B2B customer ID not found. Please login again.');
+      alert('Customer ID not found. Please login again.');
       return;
     }
     setIsSubmitting(true);
     try {
-      const b2bData = {
+      const vehiclesReq =
+        taMode === 'PERSONAL' ? 1 : parseInt(numberOfVehicles) || 1;
+      const b2bData: any = {
         customerId: b2bCustomerId,
         serviceType: 'luxury',
-        vehiclesRequired: parseInt(numberOfVehicles) || 1,
+        vehiclesRequired: vehiclesReq,
         passengerCount: parseInt(numberOfPersons) || undefined,
         vehicleCategory: carName,
         pickupLocation: `${pickupCity}${pickupAddress ? ', ' + pickupAddress : ''}`,
@@ -235,6 +285,7 @@ function LuxuryBookingContent({ location }: { location: string }) {
         returnDate: returnDate || undefined,
         specialNotes: `Luxury Car: ${carName}${selectedModel ? ' - ' + selectedModel : ''}${occasion ? ' | Occasion: ' + occasion : ''}${specialRequests ? ' | ' + specialRequests : ''}`,
       };
+      if (taMode) b2bData.taBookingMode = taMode;
       const res = await fetch('/api/b2b/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -244,7 +295,7 @@ function LuxuryBookingContent({ location }: { location: string }) {
       if (data.status === 'success') {
         router.push(`/customer/b2b-bookings/${data.booking.id}?customer_id=${b2bCustomerId}`);
       } else {
-        alert(data.error || 'Failed to create B2B booking');
+        alert(data.error || 'Failed to create booking');
       }
     } catch (error) {
       alert('Failed to submit booking. Please try again.');
@@ -295,6 +346,21 @@ function LuxuryBookingContent({ location }: { location: string }) {
     if (!agreeTerms) {
       alert('Please agree to the terms and conditions');
       return;
+    }
+
+    // Travel Agent flow:
+    //  - COMPANY → routes to b2b_bookings manager queue (TA-CO booking, no advance)
+    //  - PERSONAL → normal customer luxury quote-request flow with regular tagging
+    if (isTravelAgent) {
+      if (bookingPurpose === 'company') {
+        if (!numberOfVehicles || parseInt(numberOfVehicles) < 1) {
+          alert('Please enter number of vehicles for company booking');
+          return;
+        }
+        await submitB2BBooking('COMPANY');
+        return;
+      }
+      // PERSONAL → fall through to the normal quote-request flow below
     }
 
     // B2B Company booking → goes to B2B module
@@ -838,19 +904,35 @@ function LuxuryBookingContent({ location }: { location: string }) {
                 )}
               </motion.div>
 
-              {/* B2B Booking Purpose */}
-              {isB2B && (
+              {/* Booking Purpose — B2B customers OR Travel Agents */}
+              {(isB2B || isTravelAgent) && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.28 }}
-                  className="bg-white rounded-2xl shadow-lg p-6 border border-teal-100"
+                  className={`rounded-2xl shadow-lg p-6 border ${
+                    isTravelAgent
+                      ? 'bg-gradient-to-br from-indigo-50 via-emerald-50 to-teal-50 border-indigo-200'
+                      : 'bg-white border-teal-100'
+                  }`}
                 >
+                  {isTravelAgent && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-base">🌟</span>
+                      <p className="text-xs font-bold text-indigo-900 uppercase tracking-wide">
+                        Travel Agent — {agentName} (manager review, no advance)
+                      </p>
+                    </div>
+                  )}
                   <h2 className="font-semibold text-lg mb-1 flex items-center gap-2">
                     <Building2 className="w-5 h-5 text-teal-600" />
                     Booking Purpose
                   </h2>
-                  <p className="text-sm text-gray-500 mb-4">Is this booking for personal use or on behalf of your company?</p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    {isTravelAgent
+                      ? 'Is this for your personal use or for your travel agency?'
+                      : 'Is this booking for personal use or on behalf of your company?'}
+                  </p>
 
                   <div className="grid grid-cols-2 gap-3 mb-4">
                     <button
@@ -1143,6 +1225,11 @@ function LuxuryBookingContent({ location }: { location: string }) {
                     <>
                       <span className="animate-spin w-5 h-5 border-2 border-gray-900 border-t-transparent rounded-full" />
                       Submitting...
+                    </>
+                  ) : isTravelAgent ? (
+                    <>
+                      <Send className="w-5 h-5" />
+                      Submit Request to Manager
                     </>
                   ) : (
                     <>

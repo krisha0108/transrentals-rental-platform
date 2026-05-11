@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import type { Metadata } from 'next';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { prisma } from '@/lib/db/prisma';
@@ -6,7 +6,7 @@ import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { OutstationCabSection } from '@/components/outstation-cab/OutstationCabSection';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { permanentRedirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
@@ -98,7 +98,7 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
         </>
       );
     }
-    permanentRedirect(pageContext.to);
+    notFound();
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="outstation-car-rental" serviceName="Outstation Car Rental" />;
   const city = pageContext.city;

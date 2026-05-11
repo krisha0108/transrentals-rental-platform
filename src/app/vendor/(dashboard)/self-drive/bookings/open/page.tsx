@@ -30,6 +30,7 @@ interface Booking {
   requestedSeats: number;
   requestedTransmission: string;
   requestedFuelType: string;
+  numberOfVehicles?: number;
   pickupDate: string;
   pickupTime: string;
   dropDate: string;
@@ -222,6 +223,12 @@ export default function VendorSelfDriveOpenRequestsPage() {
                         <p className="text-xs text-gray-500">Daily Rate</p>
                         <p className="font-semibold text-gray-900">₹{booking.dailyRate?.toLocaleString() || 'TBD'}</p>
                       </div>
+                      {booking.numberOfVehicles && booking.numberOfVehicles > 1 && (
+                        <div className="bg-emerald-50 rounded-lg p-3">
+                          <p className="text-xs text-gray-500">Number of Cars</p>
+                          <p className="font-semibold text-gray-900">{booking.numberOfVehicles}</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Vehicle Preferences */}

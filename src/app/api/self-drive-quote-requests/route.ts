@@ -74,6 +74,8 @@ export async function POST(request: NextRequest) {
       isB2B,
       numberOfVehicles,
       numberOfPersons,
+      // Travel-agent fields
+      taBookingMode, // 'PERSONAL' | 'COMPANY' (only COMPANY routes to b2b)
     } = body;
 
     // Validate required fields
@@ -104,20 +106,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ============ B2B FLOW ============
-    // If B2B customer, create a b2b_bookings entry instead of self-drive quote request
-    if (isB2B && customerId) {
+    // ============ B2B / TRAVEL-AGENT COMPANY FLOW ============
+    // Approved B2B customers OR travel agents picking COMPANY mode route into
+    // b2b_bookings (manager queue, no upfront payment).
+    if ((isB2B || taBookingMode === 'COMPANY') && customerId) {
       const customer = await prisma.customers.findUnique({
         where: { id: customerId },
         select: { id: true, name: true, email: true, phone: true, companyName: true, isB2B: true, b2bStatus: true },
       });
 
-      if (!customer || !customer.isB2B || customer.b2bStatus !== 'APPROVED') {
+      // Resolve linked travel agent (raw SQL — column may not be in client cache)
+      let linkedTravelAgentId: string | null = null;
+      if (customer?.id) {
+        try {
+          const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+            `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`, customer.id,
+          );
+          linkedTravelAgentId = linkRows[0]?.linkedTravelAgentId || null;
+        } catch { /* non-fatal */ }
+      }
+
+      const isApprovedB2B = customer?.isB2B && customer?.b2bStatus === 'APPROVED';
+      const isLinkedTaCompany = !!linkedTravelAgentId && taBookingMode === 'COMPANY';
+      if (!customer || (!isApprovedB2B && !isLinkedTaCompany)) {
         return NextResponse.json({ error: 'B2B access not approved' }, { status: 403 });
       }
 
       const bookingId = generateB2BId();
-      const bookingNumber = generateB2BBookingNumber();
+      // For travel-agent COMPANY booking, prefix the booking number with TA-CO.
+      const bookingNumber = isLinkedTaCompany
+        ? `TA-CO-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`
+        : generateB2BBookingNumber();
 
       // Build vehicle preference JSON for specialNotes
       const vehiclePreference = {
@@ -133,6 +152,25 @@ export async function POST(request: NextRequest) {
         customerNotes: customerNotes || null,
       };
 
+      // For TA bookings, fetch agency name + agent phone to display.
+      let companyName: string = customer.companyName || customer.name;
+      let resolvedCustomerPhone: string = customer.phone;
+      if (isLinkedTaCompany && linkedTravelAgentId) {
+        try {
+          const agentRows: any[] = await (prisma as any).$queryRawUnsafe(
+            `SELECT agencyName, phone FROM travel_agents WHERE id = ? LIMIT 1`, linkedTravelAgentId,
+          );
+          if (agentRows[0]?.agencyName) companyName = agentRows[0].agencyName;
+          const agentPhone: string | null = agentRows[0]?.phone || null;
+          if (
+            agentPhone &&
+            (typeof resolvedCustomerPhone !== 'string' || resolvedCustomerPhone.startsWith('ta-'))
+          ) {
+            resolvedCustomerPhone = agentPhone;
+          }
+        } catch { /* fall back */ }
+      }
+
       const booking = await prisma.b2b_bookings.create({
         data: {
           id: bookingId,
@@ -140,8 +178,8 @@ export async function POST(request: NextRequest) {
           customerId: customer.id,
           customerName: customer.name,
           customerEmail: customer.email,
-          customerPhone: customer.phone,
-          companyName: customer.companyName || customer.name,
+          customerPhone: resolvedCustomerPhone,
+          companyName,
           serviceType: 'self-drive',
           vehiclesRequired: numberOfVehicles ? parseInt(numberOfVehicles) : 1,
           passengerCount: numberOfPersons ? parseInt(numberOfPersons) : null,
@@ -158,10 +196,23 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Tag the b2b row for travel-agent COMPANY bookings.
+      if (isLinkedTaCompany && linkedTravelAgentId) {
+        try {
+          await (prisma as any).$executeRawUnsafe(
+            `UPDATE b2b_bookings SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+            linkedTravelAgentId, 'COMPANY', booking.id,
+          );
+        } catch (e) { console.error('[self-drive-quote-requests] TA b2b tag failed', e); }
+      }
+
       return NextResponse.json({
         success: true,
         isB2B: true,
-        message: 'B2B self-drive booking created. Vendors will be notified.',
+        ...(isLinkedTaCompany && { isTravelAgent: true, bookingMode: 'COMPANY' }),
+        message: isLinkedTaCompany
+          ? 'Company self-drive booking sent to manager. Quote will be shared shortly.'
+          : 'B2B self-drive booking created. Vendors will be notified.',
         booking: {
           id: booking.id,
           bookingNumber: booking.bookingNumber,
@@ -222,6 +273,7 @@ export async function POST(request: NextRequest) {
         transmission: transmission || null,
         fuelType: fuelType || null,
         minSeats: minSeats || null,
+        numberOfVehicles: numberOfVehicles ? Math.max(1, parseInt(numberOfVehicles)) : 1,
         locationId: location.id,
         locationName: location.name,
         pickupAddress: pickupAddress || null,
@@ -242,6 +294,37 @@ export async function POST(request: NextRequest) {
         source: body.source || 'web',
       },
     });
+
+    // Travel-agent PERSONAL tagging — resolve customer (id → email → phone)
+    // and write travelAgentId + bookingMode='PERSONAL' if the customer is
+    // linked to a travel agent.
+    try {
+      let lookupId: string | null = customerId || null;
+      if (!lookupId && customerEmail) {
+        const c = await prisma.customers.findFirst({
+          where: { email: String(customerEmail).toLowerCase() }, select: { id: true },
+        });
+        if (c) lookupId = c.id;
+      }
+      if (!lookupId && customerPhone) {
+        const c = await prisma.customers.findFirst({
+          where: { phone: String(customerPhone) }, select: { id: true },
+        });
+        if (c) lookupId = c.id;
+      }
+      if (lookupId) {
+        const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+          `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`, lookupId,
+        );
+        const agentId = linkRows[0]?.linkedTravelAgentId || null;
+        if (agentId) {
+          await (prisma as any).$executeRawUnsafe(
+            `UPDATE self_drive_quote_requests SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+            agentId, 'PERSONAL', quoteRequest.id,
+          );
+        }
+      }
+    } catch (e) { console.error('[self-drive-quote-requests] TA tag failed', e); }
 
     // Non-blocking vendor notification
     sendQuoteRequestNotificationToVendors({
@@ -372,6 +455,7 @@ export async function GET(request: NextRequest) {
         vehicleType: r.vehicleType,
         transmission: r.transmission,
         fuelType: r.fuelType,
+        numberOfVehicles: r.numberOfVehicles,
         locationId: r.locationId,
         locationName: r.locationName,
         pickupDate: r.pickupDate,

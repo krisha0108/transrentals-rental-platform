@@ -1,4 +1,4 @@
-import { permanentRedirect } from 'next/navigation';
+﻿import { notFound } from 'next/navigation';
 import { LocationHighlights } from '@/components/location/LocationHighlights';
 import { cities } from '@/data/cities';
 import type { Metadata } from 'next';
@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function TrailerLocationPage({ params }: Props) {
   const pageContext = await resolveServicePage('trailer-on-rent', params.location);
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') notFound();
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="trailer-on-rent" serviceName="Trailer on Rent" />;
   const city = pageContext.city;
 

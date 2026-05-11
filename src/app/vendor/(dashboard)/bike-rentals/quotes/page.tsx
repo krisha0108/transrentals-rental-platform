@@ -52,6 +52,8 @@ interface Quote {
     customerName: string;
     vehicleCategoryName?: string;
     locationName: string;
+    pickupAddress?: string;
+    numberOfVehicles?: number;
     pickupDate: string;
     dropDate: string;
     totalDays: number;
@@ -614,6 +616,12 @@ export default function VendorBikeQuotesPage() {
                         <span className="text-[9px] font-bold uppercase tracking-wider">Location</span>
                       </div>
                       <p className="text-[11px] font-bold text-gray-700 truncate">{quote.request?.locationName}</p>
+                      {quote.request?.pickupAddress && (
+                        <p className="text-[10px] text-gray-500 truncate" title={quote.request.pickupAddress}>{quote.request.pickupAddress}</p>
+                      )}
+                      {quote.request?.numberOfVehicles && quote.request.numberOfVehicles > 1 && (
+                        <p className="text-[10px] text-emerald-600 font-semibold">× {quote.request.numberOfVehicles} bikes</p>
+                      )}
                     </div>
                     <div className="bg-gradient-to-br from-emerald-50/50 to-white border border-emerald-100/50 rounded-xl px-3 py-2">
                       <div className="flex items-center gap-1 text-emerald-400 mb-0.5">

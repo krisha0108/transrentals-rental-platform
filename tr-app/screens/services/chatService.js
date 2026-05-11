@@ -170,6 +170,22 @@ const chatService = {
   },
 
   /**
+   * Start or get existing driver conversation (customer initiates from booking detail)
+   */
+  startDriverConversation: async (bookingId, driverId = null, staffDriverId = null) => {
+    const customerData = await AsyncStorage.getItem('customer');
+    const customer = JSON.parse(customerData);
+    const response = await api.post('/customer/driver-chat', {
+      bookingId,
+      bookingType: 'chauffeur',
+      customerId: customer?.id,
+      driverId,
+      staffDriverId,
+    });
+    return response.data;
+  },
+
+  /**
    * Get driver chat conversations for customer
    */
   getDriverConversations: async () => {

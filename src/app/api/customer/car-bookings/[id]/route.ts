@@ -58,6 +58,11 @@ export async function GET(
             vendorMessage: true,
           },
         },
+        self_drive_quote_requests: {
+          select: {
+            numberOfVehicles: true,
+          },
+        },
       },
     });
 
@@ -86,6 +91,7 @@ export async function GET(
         requestedTransmission: booking.requestedTransmission,
         requestedFuelType: booking.requestedFuelType,
         requestedSeats: booking.requestedSeats,
+        numberOfVehicles: booking.self_drive_quote_requests?.numberOfVehicles ?? null,
         // Trip details
         pickupDate: booking.pickupDate,
         pickupTime: booking.pickupTime,

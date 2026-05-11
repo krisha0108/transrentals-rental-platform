@@ -393,6 +393,14 @@ function AppContent() {
         badgeCount += 1;
         await notifee.setBadgeCount(badgeCount);
 
+        // Check if user is actively on a chat screen — suppress custom in-app banner only
+        let isOnChatScreen = false;
+        try {
+          const navState = navigation.getState();
+          const activeRouteName = navState?.routes?.[navState.index]?.name;
+          isOnChatScreen = activeRouteName === 'DriverChat' || activeRouteName === 'BookingChat';
+        } catch (_) {}
+
         // Show in-app notification (faded overlay style)
         const notificationData = {
           title: remoteMessage.notification?.title || 'New Notification',
@@ -404,7 +412,7 @@ function AppContent() {
           data: remoteMessage.data,
         };
 
-        showNotification(notificationData);
+        if (!isOnChatScreen) showNotification(notificationData);
 
         // ALSO display Android system notification using notifee
         try {
@@ -488,6 +496,15 @@ function AppContent() {
           } else {
             navigation.navigate('WanderGroup');
           }
+          return;
+        }
+
+        // Driver chat notification — open DriverChat screen directly
+        if (notifType === 'driver_chat' && data.conversationId) {
+          navigation.navigate('DriverChat', {
+            conversationId: data.conversationId,
+            driverName: data.driverName || 'Driver',
+          });
           return;
         }
 

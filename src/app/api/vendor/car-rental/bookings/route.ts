@@ -25,12 +25,8 @@ export async function GET(request: NextRequest) {
     const dateFilter: any = {};
     if (startDate || endDate) {
       dateFilter.createdAt = {};
-      if (startDate) dateFilter.createdAt.gte = new Date(startDate);
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        dateFilter.createdAt.lte = end;
-      }
+      if (startDate) dateFilter.createdAt.gte = new Date(`${startDate}T00:00:00+05:30`);
+      if (endDate)   dateFilter.createdAt.lte = new Date(`${endDate}T23:59:59.999+05:30`);
     }
 
     const availableCondition: any = {

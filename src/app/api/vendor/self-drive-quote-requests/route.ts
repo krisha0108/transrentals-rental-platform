@@ -183,6 +183,7 @@ export async function GET(request: NextRequest) {
         transmission: r.transmission,
         fuelType: r.fuelType,
         minSeats: r.minSeats,
+        numberOfVehicles: r.numberOfVehicles,
         customerName: r.customerName,
         customerPhone: r.customerPhone,
         customerEmail: r.customerEmail,

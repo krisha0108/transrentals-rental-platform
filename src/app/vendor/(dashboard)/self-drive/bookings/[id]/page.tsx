@@ -44,6 +44,7 @@ interface Booking {
   requestedTransmission: string;
   requestedFuelType: string;
   requestedSeats: number;
+  numberOfVehicles?: number;
   locationName: string;
   pickupAddress: string;
   pickupDate: string;
@@ -418,7 +419,12 @@ export default function VendorBookingDetailPage() {
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-[0.24em] text-white/60 mb-1">Premium booking</p>
-                <h2 className="text-2xl font-extrabold text-white">{booking.requestedVehicleName}</h2>
+                <h2 className="text-2xl font-extrabold text-white">
+                  {booking.requestedVehicleName}
+                  {booking.numberOfVehicles && booking.numberOfVehicles > 1 && (
+                    <span className="ml-2 text-base font-bold text-white/80">× {booking.numberOfVehicles}</span>
+                  )}
+                </h2>
                 <p className="text-sm text-white/70 mt-1">{booking.requestedBrand} · {booking.requestedCategory}</p>
               </div>
             </div>

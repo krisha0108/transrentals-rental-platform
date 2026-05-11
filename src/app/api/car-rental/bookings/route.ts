@@ -88,6 +88,9 @@ export async function POST(request: NextRequest) {
       mode,              // modal sends outstationMode as 'mode'
       numberOfVehicles,
       numberOfEmployees,
+      // Travel-agent fields (forwarded from the booking page when the customer
+      // is linked to a travel agent — see customers.linkedTravelAgentId).
+      taBookingMode,    // 'PERSONAL' | 'COMPANY'
     } = body;
 
     // modal sends outstationMode as 'mode' and airportName as 'airport'
@@ -113,13 +116,31 @@ export async function POST(request: NextRequest) {
     else if (tripType === 'OUTSTATION_ROUND') tripType = 'OUTSTATION_ROUNDTRIP';
     else tripType = tripType.toUpperCase();
 
+    // ===== TRAVEL-AGENT PLACEHOLDER PHONE =====
+    // Detect `ta-<agentId>` BEFORE input sanitization (sanitizePhone strips
+    // non-digits, which would mangle the placeholder past recognition).
+    let isTaPlaceholderPhone = false;
+    if (typeof customerPhone === 'string' && customerPhone.startsWith('ta-')) {
+      isTaPlaceholderPhone = true;
+      try {
+        const agentId = customerPhone.slice(3);
+        const ag: any = await (prisma as any).travel_agents.findUnique({ where: { id: agentId } });
+        if (ag?.phone) {
+          customerPhone = ag.phone; // swap to real phone — sanitization below will keep digits
+          isTaPlaceholderPhone = false;
+        }
+      } catch { /* keep placeholder, skip validation */ }
+    }
+
     // ===== INPUT SANITIZATION =====
     customerName    = sanitizeInput(customerName);
     pickupCity      = sanitizeInput(pickupCity);
     pickupAddress   = sanitizeInput(pickupAddress);
     dropAddress     = sanitizeInput(dropAddress);
     customerNotes   = sanitizeInput(customerNotes);
-    customerPhone   = sanitizePhone(customerPhone);
+    if (!isTaPlaceholderPhone) {
+      customerPhone = sanitizePhone(customerPhone);
+    }
     carCategoryName = sanitizeInput(carCategoryName);
 
     // ===== VALIDATION =====
@@ -129,7 +150,7 @@ export async function POST(request: NextRequest) {
     if (!isValidEmail(customerEmail)) {
       return NextResponse.json({ success: false, error: 'Invalid email format' }, { status: 400 });
     }
-    if (!isValidPhone(customerPhone)) {
+    if (!isTaPlaceholderPhone && !isValidPhone(customerPhone)) {
       return NextResponse.json({ success: false, error: 'Invalid phone number. Must be 10 digits starting with 6-9' }, { status: 400 });
     }
     if (!pickupCity || !pickupDate || !pickupTime) {
@@ -183,6 +204,110 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // ===== TRAVEL AGENT FLOW =====
+    // Only COMPANY-mode travel-agent bookings route into the shared
+    // b2b_bookings manager queue (no upfront payment). PERSONAL-mode bookings
+    // follow the normal customer flow with the regular payment dialog — for
+    // travel agents this means they pay just like any other customer for
+    // their own personal trips.
+    const linkedTaRows: any[] = await (prisma as any).$queryRawUnsafe(
+      `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`,
+      customer.id,
+    );
+    const linkedTravelAgentId: string | null = linkedTaRows[0]?.linkedTravelAgentId || null;
+    const taMode: 'COMPANY' | null =
+      linkedTravelAgentId && taBookingMode === 'COMPANY' ? 'COMPANY' : null;
+
+    if (taMode) {
+      const vehiclesReq =
+        numberOfVehicles && parseInt(numberOfVehicles) > 0
+          ? parseInt(numberOfVehicles)
+          : 1;
+
+      const taBookingNumber = `TA-CO-${new Date()
+        .getFullYear()}-${Math.floor(Math.random() * 100000)
+        .toString()
+        .padStart(5, '0')}`;
+
+      // Fetch agent for companyName/agencyName + real phone (for the b2b row)
+      const agentRows: any[] = await (prisma as any).$queryRawUnsafe(
+        `SELECT agencyName, ownerName, phone FROM travel_agents WHERE id = ? LIMIT 1`,
+        linkedTravelAgentId,
+      );
+      const agencyName = agentRows[0]?.agencyName || customer.name;
+      // Prefer the agent's real phone over the shadow customer's `ta-<id>` placeholder.
+      const agentPhone: string | null = agentRows[0]?.phone || null;
+      let resolvedCustomerPhone: string = customer.phone;
+      if (
+        agentPhone &&
+        (typeof resolvedCustomerPhone !== 'string' || resolvedCustomerPhone.startsWith('ta-'))
+      ) {
+        resolvedCustomerPhone = agentPhone;
+      }
+
+      const taBooking = await prisma.b2b_bookings.create({
+        data: {
+          bookingNumber: taBookingNumber,
+          customerId: customer.id,
+          customerName: customer.name,
+          customerEmail: customer.email,
+          customerPhone: resolvedCustomerPhone,
+          companyName: agencyName,
+          serviceType: 'car',
+          vehiclesRequired: vehiclesReq,
+          passengerCount: numberOfEmployees ? parseInt(numberOfEmployees) : null,
+          vehicleCategory: carCategoryName || null,
+          pickupLocation: pickupCity,
+          dropLocation: dropCity || null,
+          tripType: tripType,
+          scheduledDate: pickup,
+          scheduledTime: pickupTime,
+          returnDate: ret,
+          returnTime: returnTime || null,
+          specialNotes: customerNotes || null,
+          status: 'OPEN_FOR_QUOTES',
+        },
+      });
+
+      // Set TA fields via raw SQL (columns not in generated client yet)
+      await (prisma as any).$executeRawUnsafe(
+        `UPDATE b2b_bookings SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+        linkedTravelAgentId,
+        taMode,
+        taBooking.id,
+      );
+
+      const token = await new SignJWT({
+        customerId: customer.id,
+        email: customer.email,
+        phone: customer.phone,
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('30d')
+        .sign(JWT_SECRET);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Company booking request sent to manager. You will receive a quote shortly.',
+        booking: {
+          id: taBooking.id,
+          bookingNumber: taBooking.bookingNumber,
+          status: taBooking.status,
+        },
+        customer: {
+          id: customer.id,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+        },
+        token,
+        isTravelAgent: true,
+        bookingMode: taMode,
+        redirect_to: `/customer/b2b-bookings/${taBooking.id}?customer_id=${customer.id}`,
+      });
+    }
+
     // ===== B2B FLOW =====
     const isB2B = customer.isB2B && customer.b2bStatus === 'APPROVED';
     if (isB2B && numberOfVehicles && parseInt(numberOfVehicles) > 0) {
@@ -222,9 +347,14 @@ export async function POST(request: NextRequest) {
     }
 
     // ===== NORMAL FLOW: chauffeur_bookings =====
+    // If the resolved customer is linked to a travel agent, tag this row as
+    // PERSONAL TA booking. We don't depend on the front-end sending
+    // `taBookingMode` — the customer→agent link in the DB is the source
+    // of truth.
+    const isTaPersonal = !!linkedTravelAgentId;
     const bookingNumber = generateBookingNumber();
 
-    const booking = await prisma.chauffeur_bookings.create({
+    const booking = await (prisma as any).chauffeur_bookings.create({
       data: {
         bookingNumber,
         customerId:          customer.id,
@@ -267,6 +397,40 @@ export async function POST(request: NextRequest) {
         source:              body.source || 'web',
       },
     });
+
+    // Tag with TA fields via raw SQL — bypasses any Prisma-client cache
+    // issues with the new columns (more reliable than the create-time spread).
+    if (isTaPersonal) {
+      try {
+        await (prisma as any).$executeRawUnsafe(
+          `UPDATE chauffeur_bookings SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+          linkedTravelAgentId,
+          'PERSONAL',
+          booking.id,
+        );
+        // Patch customerPhone if it's a `ta-<id>` placeholder — replace with
+        // the agent's real phone so downstream reports/displays look clean.
+        try {
+          const ag: any = await (prisma as any).travel_agents.findUnique({
+            where: { id: linkedTravelAgentId! },
+            select: { phone: true },
+          });
+          if (ag?.phone) {
+            await (prisma as any).$executeRawUnsafe(
+              `UPDATE chauffeur_bookings SET customerPhone = ? WHERE id = ? AND customerPhone LIKE 'ta-%'`,
+              ag.phone,
+              booking.id,
+            );
+          }
+        } catch { /* non-fatal */ }
+        console.log('[car-rental/bookings] TA tag applied', {
+          id: booking.id,
+          travelAgentId: linkedTravelAgentId,
+        });
+      } catch (e) {
+        console.error('[car-rental/bookings] TA tag UPDATE failed', e);
+      }
+    }
 
     const token = await new SignJWT({ customerId: customer.id, email: customer.email, phone: customer.phone })
       .setProtectedHeader({ alg: 'HS256' }).setIssuedAt().setExpirationTime('30d').sign(JWT_SECRET);

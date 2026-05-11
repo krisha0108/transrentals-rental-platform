@@ -381,6 +381,15 @@ const adminItems: NavItem[] = [
     ],
   },
   {
+    name: 'Travel Agents',
+    href: '/admin/travel-agents',
+    icon: Plane,
+    children: [
+      { name: 'All Travel Agents', href: '/admin/travel-agents', icon: Plane },
+      { name: 'Pending Approval', href: '/admin/travel-agents/pending', icon: Clock },
+    ],
+  },
+  {
     name: 'Customers',
     href: '/admin/customers',
     icon: Users,

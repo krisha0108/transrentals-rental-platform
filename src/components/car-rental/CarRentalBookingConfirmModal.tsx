@@ -146,6 +146,7 @@ export function CarRentalBookingConfirmModal({
 
   // B2B state
   const [isB2BCustomer, setIsB2BCustomer] = useState(false);
+  const [isTravelAgent, setIsTravelAgent] = useState(false);
   const [bookingPurpose, setBookingPurpose] = useState<'personal' | 'company' | null>(null);
 
   // Form data
@@ -167,6 +168,7 @@ export function CarRentalBookingConfirmModal({
       setAuthMode('check');
       setError('');
       setIsB2BCustomer(false);
+      setIsTravelAgent(false);
       setBookingPurpose(null);
       setFormData({ name: '', email: '', phone: '', password: '', pickupAddress: '', dropAddress: '', numberOfVehicles: '', numberOfEmployees: '' });
       setExistingCustomer(null);
@@ -179,14 +181,27 @@ export function CarRentalBookingConfirmModal({
           try {
             const customer = JSON.parse(storedCustomer);
             setExistingCustomer(customer);
+            // Strip TA shadow placeholder phone — auto-healed below.
+            const safePhone =
+              typeof customer.phone === 'string' && customer.phone.startsWith('ta-')
+                ? ''
+                : (customer.phone || '');
             setFormData(prev => ({
               ...prev,
               name: customer.name || '',
               email: customer.email || '',
-              phone: customer.phone || '',
+              phone: safePhone,
             }));
 
-            // Check B2B status
+            // Detect Travel Agent (linked customer) — from localStorage first
+            if (customer.linkedTravelAgentId) {
+              setIsTravelAgent(true);
+              // Default purpose to "personal" so TAs can submit immediately
+              setBookingPurpose('personal');
+            }
+
+            // Check B2B status + refresh TA status from server (in case
+            // localStorage is stale from an earlier session)
             const params = new URLSearchParams();
             if (customer.id) params.set('customer_id', String(customer.id));
             if (customer.email) params.set('email', customer.email);
@@ -195,6 +210,36 @@ export function CarRentalBookingConfirmModal({
                 .then(res => res.json())
                 .then(data => {
                   if (data.isB2B) setIsB2BCustomer(true);
+                })
+                .catch(() => {});
+
+              // Authoritative TA detection from the profile API
+              fetch(`/api/customer/profile?customer_id=${customer.id}`)
+                .then((res) => res.json())
+                .then((data) => {
+                  if (data?.customers?.linkedTravelAgentId) {
+                    setIsTravelAgent(true);
+                    setBookingPurpose((p) => p ?? 'personal');
+                    // Auto-heal phone: if the agent has a real phone in their
+                    // TA profile, populate the form + localStorage.
+                    const agentPhone = data?.customers?.linkedAgentPhone || null;
+                    if (agentPhone) {
+                      setFormData(prev => ({
+                        ...prev,
+                        phone: prev.phone || agentPhone,
+                      }));
+                    }
+                    try {
+                      const merged: any = {
+                        ...customer,
+                        linkedTravelAgentId: data.customers.linkedTravelAgentId,
+                      };
+                      if (agentPhone && (typeof customer.phone !== 'string' || customer.phone.startsWith('ta-'))) {
+                        merged.phone = agentPhone;
+                      }
+                      localStorage.setItem('customer', JSON.stringify(merged));
+                    } catch { /* ignore */ }
+                  }
                 })
                 .catch(() => {});
             }
@@ -427,9 +472,14 @@ export function CarRentalBookingConfirmModal({
         customerEmail: customer.email,
         customerPhone: customer.phone,
         ...(bookingPurpose === 'company' && {
-          isB2B: true,
+          isB2B: !isTravelAgent, // TA company bookings aren't real B2B
           numberOfVehicles: formData.numberOfVehicles ? parseInt(formData.numberOfVehicles) : undefined,
           numberOfEmployees: formData.numberOfEmployees ? parseInt(formData.numberOfEmployees) : undefined,
+        }),
+        // Travel agent: forward booking mode so the API routes to b2b_bookings
+        ...(isTravelAgent && bookingPurpose && {
+          taBookingMode: bookingPurpose === 'company' ? 'COMPANY' : 'PERSONAL',
+          ...(bookingPurpose === 'personal' && { numberOfVehicles: 1 }),
         }),
       };
 
@@ -601,9 +651,21 @@ export function CarRentalBookingConfirmModal({
         )}
       </div>
 
-      {/* Booking Purpose - Personal or Company (only for B2B customers) */}
-      {isB2BCustomer && (
-        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+      {/* Booking Purpose - Personal or Company (B2B customers OR Travel Agents) */}
+      {(isB2BCustomer || isTravelAgent) && (
+        <div className={`border rounded-xl p-4 space-y-3 ${
+          isTravelAgent
+            ? 'bg-gradient-to-br from-indigo-50 via-emerald-50 to-teal-50 border-indigo-200'
+            : 'bg-gray-50 border-gray-200'
+        }`}>
+          {isTravelAgent && (
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-base">🌟</span>
+              <p className="text-sm font-bold text-indigo-900">
+                Travel Agent — booking goes to manager (no advance)
+              </p>
+            </div>
+          )}
           <p className="text-sm font-semibold text-gray-800">This booking is for:</p>
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -628,7 +690,7 @@ export function CarRentalBookingConfirmModal({
             </button>
           </div>
 
-          {/* B2B Corporate Fields */}
+          {/* Corporate / TA Company Fields */}
           {bookingPurpose === 'company' && (
             <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 space-y-3 mt-2">
               <div className="grid grid-cols-2 gap-3">
@@ -656,8 +718,18 @@ export function CarRentalBookingConfirmModal({
                   />
                 </div>
               </div>
-              <p className="text-xs text-teal-600">No advance payment required. Post-trip corporate billing.</p>
+              <p className="text-xs text-teal-600">
+                {isTravelAgent
+                  ? 'No advance payment. Manager will review and send a quote. Monthly invoiced.'
+                  : 'No advance payment required. Post-trip corporate billing.'}
+              </p>
             </div>
+          )}
+
+          {isTravelAgent && bookingPurpose === 'personal' && (
+            <p className="text-xs text-indigo-700">
+              Personal booking — single vehicle, manager review, quote sent to you. No advance.
+            </p>
           )}
         </div>
       )}
@@ -726,10 +798,17 @@ export function CarRentalBookingConfirmModal({
             <span className="font-semibold text-gray-900">Total Fare</span>
             <span className={`font-bold ${clr.totalFare} text-lg`}>₹{pricing.grandTotal.toLocaleString()}</span>
           </div>
-          {bookingPurpose === 'company' ? (
+          {isTravelAgent && bookingPurpose === 'personal' ? (
+            <div className="flex justify-between text-indigo-700 bg-indigo-50 p-2 rounded-lg mt-2">
+              <span className="font-medium">Payment Mode</span>
+              <span className="font-bold">Manager Quote — No Advance</span>
+            </div>
+          ) : bookingPurpose === 'company' ? (
             <div className="flex justify-between text-teal-700 bg-teal-50 p-2 rounded-lg mt-2">
               <span className="font-medium">Payment Mode</span>
-              <span className="font-bold">Corporate Post-Paid</span>
+              <span className="font-bold">
+                {isTravelAgent ? 'Manager Quote — Monthly Invoice' : 'Corporate Post-Paid'}
+              </span>
             </div>
           ) : (
             <div className={`flex justify-between ${clr.advance} p-2 rounded-lg mt-2`}>
@@ -1112,7 +1191,11 @@ export function CarRentalBookingConfirmModal({
                   {existingCustomer ? (
                     <>
                       <Check className="w-5 h-5 mr-2" />
-                      {bookingPurpose === 'company' ? 'Confirm B2B Booking' : 'Confirm Booking'}
+                      {isTravelAgent
+                        ? 'Submit Request to Manager'
+                        : bookingPurpose === 'company'
+                          ? 'Confirm B2B Booking'
+                          : 'Confirm Booking'}
                     </>
                   ) : (
                     <>

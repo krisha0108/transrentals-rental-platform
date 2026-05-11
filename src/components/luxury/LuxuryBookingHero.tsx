@@ -50,7 +50,6 @@ type AirportMode = 'pickup' | 'drop';
 
 // Local packages for luxury
 const LOCAL_PACKAGES = [
-  { id: '4hr-40km', hours: 4, km: 40, label: '4 Hrs / 40 Km' },
   { id: '8hr-80km', hours: 8, km: 80, label: '8 Hrs / 80 Km' },
   { id: '12hr-120km', hours: 12, km: 120, label: '12 Hrs / 120 Km' },
 ];
@@ -92,7 +91,7 @@ export function LuxuryBookingHero({ city, citySlug }: LuxuryBookingHeroProps) {
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('10:00');
   const [returnDate, setReturnDate] = useState('');
-  const [localPackage, setLocalPackage] = useState(LOCAL_PACKAGES[1].id);
+  const [localPackage, setLocalPackage] = useState(LOCAL_PACKAGES[0].id);
 
 
   // City/Location specific
@@ -403,19 +402,22 @@ export function LuxuryBookingHero({ city, citySlug }: LuxuryBookingHeroProps) {
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Select Package</label>
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className={`grid gap-2 ${LOCAL_PACKAGES.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                             {LOCAL_PACKAGES.map((pkg) => (
                               <button
                                 key={pkg.id}
                                 onClick={() => setLocalPackage(pkg.id)}
-                                className={`p-3 rounded-lg border-2 text-center transition ${
+                                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border-2 transition ${
                                   localPackage === pkg.id
-                                    ? 'border-amber-500 bg-amber-50'
-                                    : 'border-gray-200 hover:border-amber-200'
+                                    ? 'border-amber-500 bg-amber-50 shadow-sm'
+                                    : 'border-gray-200 hover:border-amber-300 bg-white'
                                 }`}
                               >
-                                <div className="font-semibold text-gray-900">{pkg.hours} Hrs</div>
-                                <div className="text-xs text-gray-500">{pkg.km} Km</div>
+                                <Clock className={`w-4 h-4 ${localPackage === pkg.id ? 'text-amber-600' : 'text-gray-400'}`} />
+                                <div className="text-left">
+                                  <div className="font-semibold text-sm text-gray-900 leading-tight">{pkg.hours} Hrs</div>
+                                  <div className="text-[11px] text-gray-500 leading-tight">{pkg.km} Km</div>
+                                </div>
                               </button>
                             ))}
                           </div>

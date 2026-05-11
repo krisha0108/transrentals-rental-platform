@@ -27,12 +27,28 @@ interface QuoteRequest {
   requestNumber: string;
   truckMode: string;
   truckType: string;
+  vehicleCategoryName?: string;
+  truckBodyType?: string;
+  tripDirection?: string;
   goodsType: string;
+  goodsDescription?: string;
   weight: number;
   weightUnit: string;
+  estimatedWeight?: number;
+  estimatedVolume?: string;
   pickupCity: string;
+  pickupAddress?: string;
+  pickupPincode?: string;
   dropCity: string;
+  dropAddress?: string;
+  dropPincode?: string;
   preferredDate: string;
+  pickupDate?: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
+  requiresPOD?: boolean;
+  requiresLabour?: boolean;
+  hasMultipleStops?: boolean;
   status: string;
   totalQuotesReceived: number;
   quotes: { id: string; totalAmount: number }[];
@@ -287,9 +303,18 @@ function TruckQuotesContent() {
 
                     {/* Trip Details */}
                     <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4 text-blue-500" />
-                        {request.pickupCity} → {request.dropCity}
+                      <div className="flex items-start gap-1.5">
+                        <MapPin className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div>{request.pickupCity} → {request.dropCity}</div>
+                          {(request.pickupAddress || request.dropAddress) && (
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {request.pickupAddress && <span>{request.pickupAddress}</span>}
+                              {request.pickupAddress && request.dropAddress && <span> → </span>}
+                              {request.dropAddress && <span>{request.dropAddress}</span>}
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-4 h-4 text-blue-500" />
@@ -304,6 +329,47 @@ function TruckQuotesContent() {
                           <Weight className="w-4 h-4 text-blue-500" />
                           {request.weight} {request.weightUnit}
                         </div>
+                      )}
+                    </div>
+
+                    {/* Extended truck attribute chips */}
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {request.truckBodyType && (
+                        <span className="px-2 py-0.5 text-[11px] rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                          {(() => {
+                            const m: Record<string, string> = {
+                              OPEN: 'Open Truck',
+                              CLOSED_BODY: 'Closed Body',
+                              CONTAINER: 'Container',
+                              TRAILER: 'Trailer',
+                              LCV: 'LCV',
+                              REFRIGERATED: 'Refrigerated',
+                              FLATBED: 'Flatbed',
+                              OTHER: 'Other',
+                            };
+                            return m[request.truckBodyType!] || request.truckBodyType;
+                          })()}
+                        </span>
+                      )}
+                      {request.tripDirection && (
+                        <span className="px-2 py-0.5 text-[11px] rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                          {request.tripDirection === 'ROUND_TRIP' ? 'Round Trip' : 'One Way'}
+                        </span>
+                      )}
+                      {request.requiresLabour && (
+                        <span className="px-2 py-0.5 text-[11px] rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+                          Labour
+                        </span>
+                      )}
+                      {request.hasMultipleStops && (
+                        <span className="px-2 py-0.5 text-[11px] rounded-full bg-violet-50 text-violet-700 border border-violet-100">
+                          Multi-stop
+                        </span>
+                      )}
+                      {request.requiresPOD && (
+                        <span className="px-2 py-0.5 text-[11px] rounded-full bg-pink-50 text-pink-700 border border-pink-100">
+                          POD
+                        </span>
                       )}
                     </div>
 

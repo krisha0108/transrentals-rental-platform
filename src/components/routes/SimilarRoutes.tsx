@@ -80,10 +80,10 @@ export function SimilarRoutes({
 
             <div className="text-center mt-8">
               <Link
-                href={`/one-way-cab/${fromSlug}`}
+                href="/one-way-cab"
                 className="inline-flex items-center gap-2 text-emerald-600 font-semibold hover:gap-3 transition-all"
               >
-                View all routes from {fromCity}
+                View all one-way cab routes
                 <ArrowRight className="w-5 h-5" />
               </Link>
             </div>
@@ -138,10 +138,10 @@ export function SimilarRoutes({
 
             <div className="text-center mt-8">
               <Link
-                href={`/one-way-cab/to-${toSlug}`}
+                href="/one-way-cab"
                 className="inline-flex items-center gap-2 text-blue-600 font-semibold hover:gap-3 transition-all"
               >
-                View all routes to {toCity}
+                View all one-way cab routes
                 <ArrowRight className="w-5 h-5" />
               </Link>
             </div>

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import TruckRequestDetails from '@/components/truck/TruckRequestDetails';
 import VendorCallButton from '@/components/vendor/VendorCallButton';
 
 interface Booking {
@@ -36,18 +37,30 @@ interface Booking {
   serviceType: string;
   vehicleCategory: string;
   vehicleName: string;
+  truckBodyType?: string;
+  tripDirection?: string;
   goodsType: string;
   goodsDescription?: string;
+  estimatedVolume?: string;
+  estimatedWeight?: number;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
   pickupCity: string;
   pickupAddress?: string;
+  pickupPincode?: string;
+  pickupFloor?: number | null;
+  hasPickupLift?: boolean;
   dropCity: string;
   dropAddress?: string;
+  dropPincode?: string;
+  dropFloor?: number | null;
+  hasDropLift?: boolean;
   estimatedDistance?: number;
   pickupDate: string;
   pickupTime: string;
+  expectedDeliveryDate?: string;
+  expectedDeliveryTime?: string;
   totalAmount: number;
   advanceAmount: number;
   advancePaid: number;
@@ -59,6 +72,19 @@ interface Booking {
   vehicleNumber?: string;
   loadingOtp?: string;
   deliveryOtp?: string;
+  requiresLabour?: boolean;
+  labourCount?: number;
+  hasMultipleStops?: boolean;
+  multipleStopsDetails?: string;
+  receiverName?: string;
+  receiverPhone?: string;
+  requiresPOD?: boolean;
+  isFlexibleDate?: boolean;
+  needInsurance?: boolean;
+  needPackaging?: boolean;
+  budgetMin?: number;
+  budgetMax?: number;
+  requirements?: string;
   assignedDriver?: { id: string; name: string; phone: string; licenseNumber?: string };
   assignedVehicle?: { id: string; registrationNumber?: string; vehicle_model?: { name: string } };
   quoteRequest?: any;
@@ -459,6 +485,11 @@ export default function VendorTruckBookingDetailPage() {
                   <p className="text-xs text-gray-700 mt-0.5 leading-relaxed">{booking.goodsDescription}</p>
                 </div>
               )}
+            </div>
+
+            {/* Extended truck details */}
+            <div className="mt-4">
+              <TruckRequestDetails data={booking as any} hideVehicle />
             </div>
           </div>
 

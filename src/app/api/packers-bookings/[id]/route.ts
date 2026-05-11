@@ -16,7 +16,7 @@ export async function GET(
 
     const includeOptions = {
       vendors: { select: { id: true, businessName: true, phone: true, rating: true } },
-      packers_quote_requests: { select: { id: true, requestNumber: true } },
+      packers_quote_requests: true,
       packers_quotes: {
         select: {
           id: true,

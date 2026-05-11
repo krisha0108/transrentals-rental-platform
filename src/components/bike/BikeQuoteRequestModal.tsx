@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   Loader2,
   ChevronRight,
+  Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCustomerAuth } from '@/hooks/useCustomer';
@@ -73,6 +74,8 @@ export function BikeQuoteRequestModal({
   const [customerPhone, setCustomerPhone] = useState(customer?.phone || '');
   const [password, setPassword] = useState('');
   const [helmetsRequired, setHelmetsRequired] = useState(1);
+  const [numberOfVehicles, setNumberOfVehicles] = useState(1);
+  const [pickupAddress, setPickupAddress] = useState((customer as any)?.address || '');
   const [customerNotes, setCustomerNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -84,6 +87,10 @@ export function BikeQuoteRequestModal({
   const [existingCustomer, setExistingCustomer] = useState<any>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isB2B, setIsB2B] = useState(false);
+  // Travel-agent flow — agent can pick PERSONAL (their own ride, normal quote
+  // request) or COMPANY (their agency's fleet booking, routes to b2b_bookings).
+  const [isTravelAgent, setIsTravelAgent] = useState(false);
+  const [bookingPurpose, setBookingPurpose] = useState<'PERSONAL' | 'COMPANY'>('PERSONAL');
 
   // Check if user is already logged in on mount
   React.useEffect(() => {
@@ -99,8 +106,15 @@ export function BikeQuoteRequestModal({
             setIsLoggedIn(true);
             setCustomerName(parsedCustomer.name || '');
             setCustomerEmail(parsedCustomer.email || '');
-            setCustomerPhone(parsedCustomer.phone || '');
-            // Check B2B status
+            // Strip TA shadow placeholder phone — auto-healed below.
+            const safePhone =
+              typeof parsedCustomer.phone === 'string' && parsedCustomer.phone.startsWith('ta-')
+                ? ''
+                : (parsedCustomer.phone || '');
+            setCustomerPhone(safePhone);
+            // Travel-agent linkage from localStorage (customers.linkedTravelAgentId)
+            if (parsedCustomer.linkedTravelAgentId) setIsTravelAgent(true);
+            // Check B2B status + auto-heal phone via profile API
             const params = new URLSearchParams();
             if (parsedCustomer.id) params.set('customer_id', String(parsedCustomer.id));
             if (parsedCustomer.email) params.set('email', parsedCustomer.email);
@@ -108,6 +122,22 @@ export function BikeQuoteRequestModal({
               fetch(`/api/customer/b2b-status?${params.toString()}`)
                 .then(res => res.json())
                 .then(data => { if (data.isB2B) setIsB2B(true); })
+                .catch(() => {});
+              fetch(`/api/customer/profile?customer_id=${parsedCustomer.id}`)
+                .then(r => r.json())
+                .then(d => {
+                  if (d?.customers?.linkedTravelAgentId) setIsTravelAgent(true);
+                  const agentPhone = d?.customers?.linkedAgentPhone || null;
+                  if (agentPhone) {
+                    setCustomerPhone(prev => prev || agentPhone);
+                    try {
+                      const stored = JSON.parse(localStorage.getItem('customer') || '{}');
+                      if (typeof stored.phone !== 'string' || stored.phone.startsWith('ta-')) {
+                        localStorage.setItem('customer', JSON.stringify({ ...stored, phone: agentPhone }));
+                      }
+                    } catch { /* ignore */ }
+                  }
+                })
                 .catch(() => {});
             }
           } catch (e) {
@@ -127,6 +157,7 @@ export function BikeQuoteRequestModal({
       setCustomerName(customer.name || '');
       setCustomerEmail(customer.email || '');
       setCustomerPhone(customer.phone || '');
+      setPickupAddress((customer as any).address || '');
     }
   }, [customer]);
 
@@ -136,12 +167,14 @@ export function BikeQuoteRequestModal({
       setSubmitted(false);
       setError(null);
       setCustomerNotes('');
+      setPickupAddress((customer as any)?.address || '');
       setHelmetsRequired(1);
+      setNumberOfVehicles(1);
       setPassword('');
       setAuthMode('check');
       setShowPassword(false);
     }
-  }, [isOpen]);
+  }, [isOpen, customer]);
 
   // Submit quote request
   const submitQuoteRequest = async (customerId?: string) => {
@@ -149,12 +182,56 @@ export function BikeQuoteRequestModal({
     setError(null);
 
     try {
+      const resolvedCustomerId =
+        customerId || existingCustomer?.id || customer?.id || null;
+
+      // Travel-agent COMPANY booking — route into the shared b2b_bookings
+      // manager queue (no upfront payment, monthly invoicing). The
+      // /api/b2b/bookings endpoint is already TA-aware and tags the row
+      // with travelAgentId + bookingMode='COMPANY'.
+      if (isTravelAgent && bookingPurpose === 'COMPANY' && resolvedCustomerId) {
+        const tripDays = Math.max(1, rentalDays || 1);
+        const tripType = tripDays > 1 ? 'ROUND_TRIP' : 'ONE_WAY';
+        const b2bPayload: any = {
+          customerId: String(resolvedCustomerId),
+          serviceType: 'bike',
+          vehiclesRequired: numberOfVehicles || 1,
+          passengerCount: null,
+          vehicleCategory: bikeDetails?.categoryName || bikeDetails?.categoryId || 'standard',
+          pickupLocation: location.name,
+          dropLocation: '',
+          tripType,
+          scheduledDate: pickupDate,
+          scheduledTime: pickupTime,
+          returnDate: dropDate || null,
+          returnTime: dropTime || null,
+          specialNotes: customerNotes.trim() || null,
+          taBookingMode: 'COMPANY',
+        };
+
+        const taResp = await fetch('/api/b2b/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(b2bPayload),
+        });
+        const taData = await taResp.json();
+
+        if (taResp.ok && taData.status === 'success') {
+          setRequestNumber(taData.booking?.bookingNumber || '');
+          setRequestId(taData.booking?.id || '');
+          setSubmitted(true);
+        } else {
+          setError(taData.error || taData.message || 'Failed to submit corporate booking');
+        }
+        return;
+      }
+
       const requestData = {
         // Customer details
         customerName,
         customerEmail,
         customerPhone,
-        customerId: customerId || existingCustomer?.id || customer?.id || null,
+        customerId: resolvedCustomerId,
 
         // Vehicle preference
         vehicleModelId: bikeDetails?.id,
@@ -174,6 +251,8 @@ export function BikeQuoteRequestModal({
         dropTime,
 
         // Requirements
+        pickupAddress: pickupAddress.trim() || null,
+        numberOfVehicles,
         helmetsRequired,
         customerNotes: customerNotes.trim() || null,
       };
@@ -535,6 +614,79 @@ export function BikeQuoteRequestModal({
 
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">
+                      <MapPin className="w-4 h-4 inline mr-1" />
+                      Pickup Address
+                    </label>
+                    <textarea
+                      value={pickupAddress}
+                      onChange={(e) => setPickupAddress(e.target.value)}
+                      placeholder="Building, Street, Area, Landmark"
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+                    />
+                    {(customer as any)?.address && (
+                      <p className="text-[11px] text-gray-500 mt-1">Pre-filled from your profile — edit if needed for this booking.</p>
+                    )}
+                  </div>
+
+                  {/* Travel-agent only: PERSONAL vs COMPANY toggle */}
+                  {isTravelAgent && (
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                      <p className="text-sm font-medium text-gray-800 mb-2">
+                        Booking Type
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setBookingPurpose('PERSONAL')}
+                          className={`px-3 py-2 rounded-md text-sm font-medium transition ${
+                            bookingPurpose === 'PERSONAL'
+                              ? 'bg-emerald-600 text-white shadow'
+                              : 'bg-white text-gray-700 border border-gray-200'
+                          }`}
+                        >
+                          🧍 Personal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBookingPurpose('COMPANY')}
+                          className={`px-3 py-2 rounded-md text-sm font-medium transition ${
+                            bookingPurpose === 'COMPANY'
+                              ? 'bg-emerald-600 text-white shadow'
+                              : 'bg-white text-gray-700 border border-gray-200'
+                          }`}
+                        >
+                          🏢 Company / Corporate
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-gray-600 mt-2">
+                        {bookingPurpose === 'COMPANY'
+                          ? 'Routed to your manager queue. No upfront payment — monthly invoicing.'
+                          : 'Personal trip — vendors will quote for your individual rental.'}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">
+                      <Hash className="w-4 h-4 inline mr-1" />
+                      Number of Vehicles
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={numberOfVehicles}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        setNumberOfVehicles(isNaN(val) || val < 1 ? 1 : val);
+                      }}
+                      placeholder="e.g., 1"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">
                       <HardHat className="w-4 h-4 inline mr-1" />
                       Helmets Required
                     </label>
@@ -545,6 +697,8 @@ export function BikeQuoteRequestModal({
                     >
                       <option value={1}>1 Helmet</option>
                       <option value={2}>2 Helmets</option>
+                      <option value={3}>3 Helmets</option>
+                      <option value={4}>4 Helmets</option>
                     </select>
                   </div>
 
@@ -663,6 +817,20 @@ export function BikeQuoteRequestModal({
                     {/* Requirements */}
                     <div className="space-y-3 pt-2">
                       <h4 className="font-semibold text-gray-900">Requirements</h4>
+
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          <MapPin className="w-4 h-4 inline mr-1" />
+                          Pickup Address
+                        </label>
+                        <textarea
+                          value={pickupAddress}
+                          onChange={(e) => setPickupAddress(e.target.value)}
+                          placeholder="Building, Street, Area, Landmark"
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 resize-none"
+                        />
+                      </div>
 
                       <div>
                         <label className="block text-sm text-gray-600 mb-1">

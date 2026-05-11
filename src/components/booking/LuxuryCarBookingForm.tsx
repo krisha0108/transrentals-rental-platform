@@ -17,7 +17,7 @@ const BOOKING_TYPES = [
 
 // Packages with IDs matching backend (1=Local, 3=Outstation, 4=Airport)
 const PACKAGES = [
-  { id: '1', name: 'Local 4hr/40km', icon: '🏙️', description: 'City rides' },
+  { id: '1', name: 'Local 8hr/80km', icon: '🏙️', description: 'City rides' },
   { id: '3', name: 'Outstation Trip', icon: '🛣️', description: 'Long distance' },
   { id: '4', name: 'Airport Transfer', icon: '✈️', description: 'Airport transfers' },
 ];

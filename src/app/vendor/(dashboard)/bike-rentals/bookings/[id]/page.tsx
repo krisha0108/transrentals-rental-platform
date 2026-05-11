@@ -46,6 +46,8 @@ interface BookingDetails {
   dropDate: string;
   dropTime: string;
   totalDays: number;
+  numberOfVehicles?: number;
+  pickupAddress?: string;
   dailyRate: number;
   totalAmount: number;
   gstAmount: number;
@@ -557,6 +559,12 @@ export default function VendorBookingDetailPage() {
             <div>
               <h2 className="text-lg font-bold text-gray-900">{booking.requestedVehicleName}</h2>
               <p className="text-xs text-gray-400">{[booking.requestedBrand, booking.requestedCategory].filter(Boolean).join(' · ')}</p>
+              {booking.numberOfVehicles && booking.numberOfVehicles > 1 && (
+                <p className="text-xs text-emerald-600 font-semibold mt-0.5">{booking.numberOfVehicles} bikes required</p>
+              )}
+              {booking.pickupAddress && (
+                <p className="text-xs text-gray-500 mt-0.5">Pickup: {booking.pickupAddress}</p>
+              )}
               {booking.acceptedVehicleName && (
                 <p className="text-xs text-emerald-600 font-medium mt-0.5">Assigned: {booking.acceptedVehicleName}</p>
               )}

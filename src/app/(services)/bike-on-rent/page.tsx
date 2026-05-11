@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { DynamicServicePage } from '@/components/services/DynamicServicePage';
 import { BikeTypesCards } from '@/components/services/BikeTypesCards';
 import { BikeFleetShowcase } from '@/components/services/BikeFleetShowcase';
-import { BikeServiceSchema } from '@/components/seo/schemas';
+import { BikeServiceSchema, HowToSchema, ItemListSchema } from '@/components/seo/schemas';
 import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
@@ -132,6 +132,17 @@ export default function BikeRentalPage() {
         rating={4.6}
         reviewCount={2850}
       />
+      <HowToSchema
+        name="How to Rent a Bike on TransRentals"
+        description="Book a bike rental in 4 simple steps on TransRentals across 150+ cities in India."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Select Your City', text: 'Choose your pickup city from 150+ available locations across India.' },
+          { name: 'Pick Your Bike', text: 'Browse available bikes — Royal Enfield, KTM, Honda, Yamaha & more. Filter by type, price, and brand.' },
+          { name: 'Book Online', text: 'Complete your booking with secure online payment. Instant confirmation.' },
+          { name: 'Ride Away', text: 'Pick up your bike from the vendor location with your licence and ID proof. Enjoy your ride!' },
+        ]}
+      />
 
       {/* Hero Section */}
       <SimpleServiceHero
@@ -157,6 +168,25 @@ export default function BikeRentalPage() {
         priceUnit="/day"
       />
 
+      <ItemListSchema
+        name="Bike Rental in Top Indian Cities"
+        description="Rent bikes — Royal Enfield, KTM, Honda, Yamaha — across top cities in India."
+        url="https://transrentals.in/bike-on-rent"
+        items={[
+          { name: 'Bike Rental in Goa', url: 'https://transrentals.in/bike-on-rent/goa', description: 'Rent bikes in Goa from ₹399/day. Royal Enfield, Activa, KTM available.' },
+          { name: 'Bike Rental in Manali', url: 'https://transrentals.in/bike-on-rent/manali', description: 'Rent bikes in Manali for Leh-Ladakh road trips from ₹599/day.' },
+          { name: 'Bike Rental in Delhi', url: 'https://transrentals.in/bike-on-rent/delhi', description: 'Rent bikes in Delhi from ₹399/day. Self-drive available.' },
+          { name: 'Bike Rental in Bangalore', url: 'https://transrentals.in/bike-on-rent/bangalore', description: 'Rent bikes in Bangalore from ₹299/day. Daily & monthly rentals.' },
+          { name: 'Bike Rental in Mumbai', url: 'https://transrentals.in/bike-on-rent/mumbai', description: 'Rent bikes in Mumbai from ₹399/day. Activa, Pulsar, Royal Enfield.' },
+          { name: 'Bike Rental in Jaipur', url: 'https://transrentals.in/bike-on-rent/jaipur', description: 'Rent bikes in Jaipur from ₹349/day. Explore Rajasthan on two wheels.' },
+          { name: 'Bike Rental in Leh', url: 'https://transrentals.in/bike-on-rent/leh', description: 'Rent bikes in Leh for Ladakh road trips. Royal Enfield from ₹999/day.' },
+          { name: 'Bike Rental in Hyderabad', url: 'https://transrentals.in/bike-on-rent/hyderabad', description: 'Rent bikes in Hyderabad from ₹299/day.' },
+          { name: 'Bike Rental in Chennai', url: 'https://transrentals.in/bike-on-rent/chennai', description: 'Rent bikes in Chennai from ₹299/day.' },
+          { name: 'Bike Rental in Pune', url: 'https://transrentals.in/bike-on-rent/pune', description: 'Rent bikes in Pune from ₹349/day.' },
+          { name: 'Bike Rental in Rishikesh', url: 'https://transrentals.in/bike-on-rent/rishikesh', description: 'Rent bikes in Rishikesh for Uttarakhand adventures from ₹499/day.' },
+          { name: 'Bike Rental in Ooty', url: 'https://transrentals.in/bike-on-rent/ooty', description: 'Rent bikes in Ooty from ₹399/day.' },
+        ]}
+      />
       {/* Locations from Database */}
       <ServiceLocationsGrid
         serviceSlug="bike-on-rent"

@@ -54,6 +54,7 @@ export async function GET(
             advancePercent: true,
           },
         },
+        bike_quote_requests: { select: { pickupAddress: true, numberOfVehicles: true } },
       },
     });
 
@@ -136,6 +137,8 @@ export async function GET(
         advanceAmount: booking.advanceAmount,
         advancePercentage: booking.advancePercentage,
         helmetsRequired: booking.helmetsRequired,
+        numberOfVehicles: booking.bike_quote_requests?.numberOfVehicles || null,
+        pickupAddress: booking.bike_quote_requests?.pickupAddress || null,
         addons: booking.addons,
         customerNotes: booking.customerNotes,
         vendorNotes: booking.vendorNotes,
