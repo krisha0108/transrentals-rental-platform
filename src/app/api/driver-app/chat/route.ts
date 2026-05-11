@@ -14,12 +14,14 @@ function generateId(): string {
 export async function GET(request: NextRequest) {
   try {
     const payload = await verifyDriverToken(request);
+    console.log('[driver-chat GET] payload:', JSON.stringify(payload));
     if (!payload) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const isVendorStaff = payload.userType === 'vendor_staff';
     const driverId = payload.driverId;
 
     const whereClause = isVendorStaff ? { staffDriverId: driverId } : { driverId };
+    console.log('[driver-chat GET] whereClause:', JSON.stringify(whereClause));
 
     const conversations = await prisma.chat_conversations.findMany({
       where: whereClause,
@@ -35,12 +37,28 @@ export async function GET(request: NextRequest) {
       take: 50,
     });
 
+    // Batch-fetch bookingNumbers for chauffeur conversations
+    const chauffeurIds = conversations
+      .filter(c => c.bookingType === 'chauffeur' && c.bookingId)
+      .map(c => c.bookingId as string);
+
+    const bookingNumberMap: Record<string, string> = {};
+    if (chauffeurIds.length > 0) {
+      const bookings = await prisma.chauffeur_bookings.findMany({
+        where: { id: { in: chauffeurIds } },
+        select: { id: true, bookingNumber: true },
+      });
+      bookings.forEach(b => { bookingNumberMap[b.id] = b.bookingNumber; });
+    }
+
+    console.log('[driver-chat GET] found conversations count:', conversations.length);
     return NextResponse.json({
       success: true,
       conversations: conversations.map(conv => ({
         id: conv.id,
         bookingType: conv.bookingType,
         bookingId: conv.bookingId,
+        bookingNumber: conv.bookingId ? (bookingNumberMap[conv.bookingId] || null) : null,
         subject: conv.subject,
         status: conv.status,
         unreadCount: conv.driverUnread,

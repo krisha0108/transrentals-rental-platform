@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import { generateAirportSEOSlug } from '@/lib/airports/slug-utils';
 import { blogPosts } from '@/data/blog-posts';
 import { blogCategories } from '@/data/blog-categories';
 import { blogAuthors } from '@/data/blog-authors';
@@ -652,10 +653,10 @@ async function generateRoundTripAirportSitemap(currentDate: string): Promise<Sit
       },
       include: {
         locations_chauffeur_route_packages_fromLocationIdTolocations: {
-          select: { slug: true, type: true, isActive: true },
+          select: { slug: true, name: true, type: true, isActive: true, locations: { select: { name: true } } },
         },
         locations_chauffeur_route_packages_toLocationIdTolocations: {
-          select: { slug: true, type: true, isActive: true },
+          select: { slug: true, name: true, type: true, isActive: true, locations: { select: { name: true } } },
         },
       },
     });
@@ -677,16 +678,10 @@ async function generateRoundTripAirportSitemap(currentDate: string): Promise<Sit
         toLocation.slug.includes('airport');
 
       if (isAirportRoute) {
-        // Generate airport route slug
-        let airportSlug = '';
-
-        if (fromLocation.type === 'AIRPORT' || fromLocation.slug.includes('airport')) {
-          // Airport pickup
-          airportSlug = `${fromLocation.slug}-to-${toLocation.slug}`;
-        } else if (toLocation.type === 'AIRPORT' || toLocation.slug.includes('airport')) {
-          // Airport drop
-          airportSlug = `${fromLocation.slug}-to-${toLocation.slug}`;
-        }
+        const airportSlug = generateAirportSEOSlug(
+          { name: fromLocation.name, slug: fromLocation.slug, type: fromLocation.type, parentCityName: fromLocation.locations?.name },
+          { name: toLocation.name, slug: toLocation.slug, type: toLocation.type, parentCityName: toLocation.locations?.name }
+        );
 
         if (airportSlug) {
           const priority = route.isPopular ? 0.8 : 0.7;

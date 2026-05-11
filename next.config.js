@@ -518,6 +518,22 @@ const nextConfig = {
       // NOTE: State-level slugs (e.g. /bike-on-rent/gujarat) are now handled
       // by the StateServicePage component via resolveServicePage() and are
       // intentionally NOT redirected. The old redirect block was removed.
+
+      // ============================================
+      // WANDER WEB STORIES - Genuine content migration
+      // Old WordPress /wander/web-stories/[slug] → new /stories/[slug]
+      // Only valid redirect: content actually exists at new URL
+      // ============================================
+      {
+        source: '/wander/web-stories/:slug',
+        destination: '/stories/:slug',
+        permanent: true,
+      },
+      {
+        source: '/wander/web-stories',
+        destination: '/stories',
+        permanent: true,
+      },
     ];
   },
   async headers() {

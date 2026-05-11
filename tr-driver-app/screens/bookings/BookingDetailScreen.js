@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { acceptBooking } from '../api/client';
+import { acceptBooking, getOrCreateDriverChat } from '../api/client';
 import moment from 'moment';
 
 const C = {
@@ -270,6 +270,7 @@ export default function BookingDetailScreen({ route, navigation }) {
   const { booking, isAvailable, isDirect } = route.params;
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
 
   const sc  = getStatus(booking.status);
   const svc = SVC_STYLE[booking.source] || SVC_STYLE.direct;
@@ -292,6 +293,26 @@ export default function BookingDetailScreen({ route, navigation }) {
 
   function callCustomer() {
     if (booking.customerPhone) Linking.openURL(`tel:${booking.customerPhone}`);
+  }
+
+  async function openChat() {
+    try {
+      setChatLoading(true);
+      const res = await getOrCreateDriverChat(booking.id, booking.source === 'chauffeur' ? 'chauffeur' : booking.source);
+      if (res.data?.conversation) {
+        navigation.navigate('DriverChat', {
+          conversationId: res.data.conversation.id,
+          customerName: booking.customerName || 'Customer',
+          bookingId: booking.id,
+          bookingType: booking.source || 'chauffeur',
+          bookingNumber: booking.bookingNumber,
+        });
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Could not open chat. Please try again.');
+    } finally {
+      setChatLoading(false);
+    }
   }
 
   function openMaps() {
@@ -415,6 +436,14 @@ export default function BookingDetailScreen({ route, navigation }) {
                 <TouchableOpacity onPress={callCustomer} style={styles.callBtn}>
                   <Ionicons name="call" size={13} color="#fff" />
                   <Text style={styles.callBtnText}>Call</Text>
+                </TouchableOpacity>
+              ) : null}
+              {!isAvailable ? (
+                <TouchableOpacity onPress={openChat} style={[styles.callBtn, { backgroundColor: '#0369A1' }]} disabled={chatLoading}>
+                  {chatLoading
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <><Ionicons name="chatbubble-ellipses" size={13} color="#fff" /><Text style={styles.callBtnText}>Chat</Text></>
+                  }
                 </TouchableOpacity>
               ) : null}
             </View>

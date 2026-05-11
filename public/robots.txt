@@ -34,7 +34,8 @@ Disallow: /vendor/
 Disallow: /vendor
 
 # Block customer private areas
-Disallow: /customer/dashboard
+# Note: /customer/dashboard intentionally NOT blocked here — noindex is set via layout.tsx
+# so Google can crawl it, see noindex, and de-index it. Other paths blocked to save crawl budget.
 Disallow: /customer/booking/
 Disallow: /customer/bookings/
 Disallow: /customer/profile
@@ -69,9 +70,11 @@ Disallow: /_vercel/
 Disallow: /actions/
 
 # Allow booking and vehicle listing subpages (for SEO)
-Allow: /*/book
 Allow: /*/cars
 Allow: /*/bikes
+
+# Block luxury-car-rental booking pages (250+ city duplicates, no unique content)
+Disallow: /luxury-car-rental/*/book
 
 # Block query parameters that create duplicate content
 Disallow: /*?preview=
@@ -80,6 +83,84 @@ Disallow: /*?ref=
 Disallow: /*?utm_*
 Disallow: /*?fbclid=
 Disallow: /*?gclid=
+Disallow: /*?taxonomy=
+Disallow: /*?location_id=
+Disallow: /*?pick-up-time=
+Disallow: /contact?
+Disallow: /wander?
+Disallow: /?s=
+Disallow: /?location_name
+
+# Block blog pagination and category filter variants (duplicate content)
+Disallow: /blog?
+Disallow: /blog/service/*?
+
+# =============================================================================
+# OLD WORDPRESS PATHS - These pages no longer exist (migrated to Next.js)
+# Blocking saves crawl budget; 404s will de-index naturally over time
+# =============================================================================
+
+# Route-review pages from old WordPress site (~19,000+ dead URLs)
+Disallow: /reviews/
+
+# Individual fleet listing sub-pages (root /fleet redirects to /car-rental)
+Disallow: /fleet/
+
+# Old WordPress wander sub-sections (author, tour, things-to-do, self-drive)
+Disallow: /wander/author/
+Disallow: /wander/tour/
+Disallow: /wander/things-to-do/
+Disallow: /wander/self-drive/
+Disallow: /wander/tour-search-sidebar
+Disallow: /wander/feed
+Disallow: /wander/search/
+Disallow: /wander/function-partner-page/
+Disallow: /wander/fleet-search-sidebar/
+Disallow: /wander/memberpackage/
+Disallow: /wander/*-sitemap
+Disallow: /wander/post-sitemap
+Disallow: /wander/page-sitemap
+
+# Old WordPress blog archive pages (tags, categories)
+Disallow: /blog/tag/
+Disallow: /blog/category/
+
+# Old taxi route booking pages
+Disallow: /book-taxi/
+
+# Old WordPress sitemap files (not valid in new site)
+Disallow: /page-sitemap
+Disallow: /post-sitemap
+Disallow: /web-story-sitemap
+Disallow: /bike-on-rent/*-sitemap
+Disallow: /bus-rental/*-sitemap
+Disallow: /equipment-rental/*-sitemap
+Disallow: /taxi-service/*-sitemap
+
+# Old URL formats / dead sections
+Disallow: /taxi-service/
+Disallow: /taxi-service-in-*/
+Disallow: /tempo-traveller-rental/
+Disallow: /bike-tours/
+Disallow: /stories/*/amp
+Disallow: /luxury-car-rental-in-*/
+Disallow: /car-rental-in-*/
+Disallow: /one-way-taxi-cab/
+Disallow: /airport-taxi/
+Disallow: /locations/
+Disallow: /wander/web-stories/
+Disallow: /wander/about/
+Disallow: /self-drive-car-rentals/self-drive-car-in-*/
+
+# App manifest files (not indexable pages)
+Disallow: /manifest.json
+Disallow: /driver-manifest.json
+
+# Block /uploads/ from being crawled as HTML pages (Googlebot-Image still allowed below)
+Disallow: /uploads/
+
+# App-generated bug URLs where city slug is "undefined"
+Disallow: /*/undefined/
 
 # =============================================================================
 # GOOGLEBOT - Specific Rules
@@ -95,12 +176,66 @@ Allow: /sitemap.xml
 Disallow: /admin/
 Disallow: /api/
 Disallow: /vendor/
-Disallow: /customer/dashboard
 Disallow: /customer/booking/
 Disallow: /customer/login
 Disallow: /_next/
 Disallow: /pay/
 Disallow: /checkout/
+
+# Old WordPress dead paths - stop wasting crawl budget
+Disallow: /reviews/
+Disallow: /fleet/
+Disallow: /wander/author/
+Disallow: /wander/tour/
+Disallow: /wander/things-to-do/
+Disallow: /wander/self-drive/
+Disallow: /wander/tour-search-sidebar
+Disallow: /wander/feed
+Disallow: /wander/search/
+Disallow: /wander/function-partner-page/
+Disallow: /wander/fleet-search-sidebar/
+Disallow: /wander/memberpackage/
+Disallow: /wander/*-sitemap
+Disallow: /wander/post-sitemap
+Disallow: /wander/page-sitemap
+Disallow: /blog/tag/
+Disallow: /blog/category/
+Disallow: /book-taxi/
+Disallow: /page-sitemap
+Disallow: /post-sitemap
+Disallow: /web-story-sitemap
+Disallow: /bike-on-rent/*-sitemap
+Disallow: /bus-rental/*-sitemap
+Disallow: /equipment-rental/*-sitemap
+Disallow: /taxi-service/*-sitemap
+Disallow: /taxi-service/
+Disallow: /taxi-service-in-*/
+Disallow: /tempo-traveller-rental/
+Disallow: /bike-tours/
+Disallow: /stories/*/amp
+Disallow: /luxury-car-rental-in-*/
+Disallow: /car-rental-in-*/
+Disallow: /one-way-taxi-cab/
+Disallow: /airport-taxi/
+Disallow: /locations/
+Disallow: /wander/web-stories/
+Disallow: /wander/about/
+Disallow: /self-drive-car-rentals/self-drive-car-in-*/
+Disallow: /manifest.json
+Disallow: /driver-manifest.json
+Disallow: /*/undefined/
+
+# Duplicate content - booking forms and parameterised pages
+Disallow: /luxury-car-rental/*/book
+Disallow: /*?taxonomy=
+Disallow: /*?location_id=
+Disallow: /*?pick-up-time=
+Disallow: /contact?
+Disallow: /wander?
+Disallow: /?s=
+Disallow: /?location_name
+Disallow: /blog?
+Disallow: /blog/service/*?
 
 # =============================================================================
 # GOOGLEBOT IMAGE - Allow image crawling
@@ -123,7 +258,6 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 Disallow: /vendor/
-Disallow: /customer/dashboard
 Disallow: /customer/booking/
 Disallow: /_next/
 

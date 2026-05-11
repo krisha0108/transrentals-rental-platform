@@ -329,7 +329,9 @@ export async function GET(
     const publisherName = story.publisherName || 'TransRentals';
     const description   = (story as any).metaDescription || story.description
       || `${story.title} — Read on ${publisherName}`;
-    const canonicalUrl  = `${siteUrl}/stories/${slug}`;
+    // Web Stories must use a self-canonical URL — the canonical must contain <amp-story>.
+    // Pointing to the React viewer page causes "amp-story canonical error" in Search Console.
+    const canonicalUrl  = `${siteUrl}/stories/${slug}/amp`;
     const publishedAt   = story.publishedAt?.toISOString() || new Date().toISOString();
 
     // Schema.org Article
@@ -347,7 +349,7 @@ export async function GET(
         name:    publisherName,
         logo:    { '@type': 'ImageObject', url: publisherLogo },
       },
-      mainEntityOfPage: { '@type': 'WebPage', '@id': `${siteUrl}/stories/${slug}` },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
     });
 
     // Bookend JSON (safe for <script type="application/json">)
@@ -406,8 +408,8 @@ amp-img{display:block}
   title="${esc(story.title)}"
   publisher="${esc(publisherName)}"
   publisher-logo-src="${esc(publisherLogo)}"
-  ${coverImage  ? `poster-portrait-src="${esc(coverImage)}"` : ''}
-  ${coverSquare ? `poster-square-src="${esc(coverSquare)}"` : ''}
+  poster-portrait-src="${esc(coverImage || `${siteUrl}/images/og-image.jpg`)}"
+  ${coverSquare ? `poster-square-src="${esc(coverSquare)}"` : `poster-square-src="${esc(coverImage || `${siteUrl}/images/og-image.jpg`)}"`}
   supports-landscape>
 
 ${slidesHtml}

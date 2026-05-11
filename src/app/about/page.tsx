@@ -1,11 +1,18 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { Users, Target, Award, TrendingUp } from 'lucide-react';
+import { WebPageSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
-  title: 'About Us - India&apos;s #1 Vehicle Rental Marketplace | TransRentals',
-  description:
-    'TransRentals is India&apos;s largest vehicle rental marketplace connecting customers with verified vendors across 150+ cities. Learn about our mission and values.',
+  title: "About TransRentals - India's #1 Vehicle Rental Marketplace",
+  description: "TransRentals is India's largest vehicle rental marketplace connecting customers with verified vendors across 150+ cities. Learn about our mission, values, and the team building the future of vehicle rental in India.",
+  alternates: { canonical: 'https://transrentals.in/about' },
+  openGraph: {
+    title: "About TransRentals - India's #1 Vehicle Rental Marketplace",
+    description: "India's largest vehicle rental marketplace. 50K+ customers, 500+ verified vendors, 150+ cities.",
+    type: 'website',
+    url: 'https://transrentals.in/about',
+  },
 };
 
 export default function AboutPage() {
@@ -18,6 +25,16 @@ export default function AboutPage() {
 
   return (
     <>
+      <WebPageSchema
+        type="AboutPage"
+        name="About TransRentals - India's #1 Vehicle Rental Marketplace"
+        description="TransRentals is India's largest vehicle rental marketplace connecting customers with verified vendors across 150+ cities. Learn about our mission and values."
+        url="https://transrentals.in/about"
+        breadcrumbs={[
+          { name: 'Home', url: 'https://transrentals.in' },
+          { name: 'About Us', url: 'https://transrentals.in/about' },
+        ]}
+      />
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 text-white py-20">
         <div className="container-custom">

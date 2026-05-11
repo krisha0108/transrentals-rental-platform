@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
-import { permanentRedirect } from 'next/navigation';
+import { permanentRedirect, notFound } from 'next/navigation';
 import { prisma } from '@/lib/db/prisma';
 import { AirportRouteBookingHero } from '@/components/airport-transfer/AirportRouteBookingHero';
 import { AirportRouteComingSoon } from '@/components/airport-transfer/AirportRouteComingSoon';
@@ -758,7 +758,7 @@ export default async function AirportTransferRoutePage({ params }: PageProps) {
       const parts = params.slug.split('-to-');
       return <AirportRouteComingSoon fromLabel={slugToLabel(parts[0])} toLabel={slugToLabel(parts[1] ?? '')} slug={params.slug} />;
     }
-    permanentRedirect('/airport-transfer');
+    notFound();
   }
 
   const routeData = await getRouteData(parsed.from, parsed.to, parsed.isCityGeneric);
@@ -774,7 +774,7 @@ export default async function AirportTransferRoutePage({ params }: PageProps) {
         />
       );
     }
-    permanentRedirect('/airport-transfer');
+    notFound();
   }
 
   const { from, to, packages, isAirportPickup } = routeData;

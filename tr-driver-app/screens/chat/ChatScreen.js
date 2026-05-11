@@ -6,48 +6,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { getDriverChatMessages, sendDriverChatMessage } from '../api/client';
+import LinearGradient from 'react-native-linear-gradient';
+import { getDriverChatMessages, sendDriverChatMessage, getBookingById } from '../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import moment from 'moment';
 
 const C = {
-  primary: '#16A34A', bg: '#F0F4F8', card: '#FFFFFF',
+  primary: '#16A34A', dark: '#043927', bg: '#ECF0F1', card: '#FFFFFF',
   border: '#E2EAF4', text: '#0F172A', sub: '#64748B',
 };
 
 const POLL_INTERVAL = 3000;
-
-function MessageBubble({ msg, isDriver }) {
-  const time = moment(msg.createdAt).format('h:mm A');
-
-  return (
-    <View style={[styles.bubbleWrap, isDriver ? styles.bubbleRight : styles.bubbleLeft]}>
-      {!isDriver && (
-        <View style={styles.bubbleAvatar}>
-          <Ionicons name="person" size={14} color={C.sub} />
-        </View>
-      )}
-      <View style={[styles.bubble, isDriver ? styles.bubbleDriver : styles.bubbleCustomer]}>
-        <Text style={[styles.bubbleText, isDriver ? styles.bubbleTextDriver : styles.bubbleTextCustomer]}>
-          {msg.content}
-        </Text>
-        <Text style={[styles.bubbleTime, isDriver ? styles.bubbleTimeDriver : styles.bubbleTimeCustomer]}>
-          {time}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function DateSeparator({ date }) {
-  return (
-    <View style={styles.dateSep}>
-      <View style={styles.dateSepLine} />
-      <Text style={styles.dateSepText}>{date}</Text>
-      <View style={styles.dateSepLine} />
-    </View>
-  );
-}
 
 function groupByDate(messages) {
   const groups = [];
@@ -63,8 +32,51 @@ function groupByDate(messages) {
   return groups;
 }
 
+function DateSeparator({ date }) {
+  return (
+    <View style={styles.dateSep}>
+      <View style={styles.dateLine} />
+      <View style={styles.datePill}>
+        <Text style={styles.datePillText}>{date}</Text>
+      </View>
+      <View style={styles.dateLine} />
+    </View>
+  );
+}
+
+function MessageBubble({ msg, isDriver, customerInitial }) {
+  const time = moment(msg.createdAt).format('h:mm A');
+
+  return (
+    <View style={[styles.bubbleRow, isDriver ? styles.bubbleRowRight : styles.bubbleRowLeft]}>
+      {!isDriver && (
+        <View style={styles.customerAvatar}>
+          <Text style={styles.customerAvatarText}>{customerInitial}</Text>
+        </View>
+      )}
+
+      <View style={[styles.bubbleOuter, isDriver ? styles.bubbleOuterRight : styles.bubbleOuterLeft]}>
+        <View style={[styles.bubble, isDriver ? styles.bubbleDriver : styles.bubbleCustomer]}>
+          <Text style={[styles.bubbleText, isDriver && styles.bubbleTextDriver]}>{msg.content}</Text>
+          <View style={styles.bubbleMeta}>
+            <Text style={[styles.bubbleTime, isDriver && styles.bubbleTimeDriver]}>{time}</Text>
+            {isDriver && (
+              <Ionicons
+                name={msg.status === 'READ' ? 'checkmark-done' : 'checkmark'}
+                size={13}
+                color={msg.status === 'READ' ? '#86EFAC' : 'rgba(255,255,255,0.6)'}
+                style={{ marginLeft: 3 }}
+              />
+            )}
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export default function ChatScreen({ navigation, route }) {
-  const { conversationId, customerName = 'Customer' } = route.params || {};
+  const { conversationId, customerName = 'Customer', bookingId, bookingType = 'chauffeur', bookingNumber } = route.params || {};
   const { driver } = useAuth();
 
   const [messages, setMessages] = useState([]);
@@ -72,6 +84,7 @@ export default function ChatScreen({ navigation, route }) {
   const [sending, setSending] = useState(false);
   const [text, setText] = useState('');
   const [lastSince, setLastSince] = useState(null);
+  const [viewingBooking, setViewingBooking] = useState(false);
 
   const listRef = useRef(null);
   const pollRef = useRef(null);
@@ -85,17 +98,15 @@ export default function ChatScreen({ navigation, route }) {
         if (since) {
           if (newMsgs.length > 0) {
             setMessages(prev => {
-              const existingIds = new Set(prev.map(m => m.id));
-              const fresh = newMsgs.filter(m => !existingIds.has(m.id));
+              const ids = new Set(prev.map(m => m.id));
+              const fresh = newMsgs.filter(m => !ids.has(m.id));
               return fresh.length > 0 ? [...prev, ...fresh] : prev;
             });
           }
         } else {
           setMessages(newMsgs);
         }
-        if (newMsgs.length > 0) {
-          setLastSince(newMsgs[newMsgs.length - 1].createdAt);
-        }
+        if (newMsgs.length > 0) setLastSince(newMsgs[newMsgs.length - 1].createdAt);
       }
     } catch {}
     setLoading(false);
@@ -104,29 +115,33 @@ export default function ChatScreen({ navigation, route }) {
   useEffect(() => {
     fetchMessages(null);
     pollRef.current = setInterval(() => {
-      setLastSince(prev => {
-        fetchMessages(prev);
-        return prev;
-      });
+      setLastSince(prev => { fetchMessages(prev); return prev; });
     }, POLL_INTERVAL);
     return () => clearInterval(pollRef.current);
   }, [fetchMessages]);
 
-  // Scroll to bottom when new messages arrive
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     }
   }, [messages.length]);
 
+  const handleViewBooking = async () => {
+    if (!bookingId || viewingBooking) return;
+    try {
+      setViewingBooking(true);
+      const res = await getBookingById(bookingId, bookingType);
+      if (res.data?.booking) navigation.navigate('BookingDetail', { booking: res.data.booking });
+    } catch {}
+    finally { setViewingBooking(false); }
+  };
+
   const handleSend = async () => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
-
     setText('');
     setSending(true);
     Keyboard.dismiss();
-
     try {
       const res = await sendDriverChatMessage(conversationId, trimmed);
       if (res.data?.success) {
@@ -140,6 +155,7 @@ export default function ChatScreen({ navigation, route }) {
   };
 
   const grouped = groupByDate(messages);
+  const customerInitial = customerName.charAt(0).toUpperCase();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -148,76 +164,93 @@ export default function ChatScreen({ navigation, route }) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        {/* Header */}
-        <View style={styles.header}>
+        {/* Gradient Header */}
+        <LinearGradient colors={['#043927', '#065F46', '#16A34A']} style={styles.header} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color="#fff" />
+            <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
+
           <View style={styles.headerInfo}>
-            <View style={styles.headerAvatar}>
-              <Text style={styles.headerAvatarText}>{customerName.charAt(0).toUpperCase()}</Text>
-            </View>
+            <LinearGradient colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.15)']} style={styles.headerAvatar}>
+              <Text style={styles.headerAvatarText}>{customerInitial}</Text>
+            </LinearGradient>
             <View>
               <Text style={styles.headerName}>{customerName}</Text>
-              <Text style={styles.headerSub}>Customer</Text>
+              {(bookingNumber || bookingId) && (
+                <Text style={styles.headerSub}>{bookingNumber || bookingId.slice(-8).toUpperCase()}</Text>
+              )}
             </View>
           </View>
-          <View style={{ width: 36 }} />
-        </View>
 
-        {/* Messages */}
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={C.primary} />
-          </View>
-        ) : (
-          <FlatList
-            ref={listRef}
-            data={grouped}
-            keyExtractor={item => item.id}
-            contentContainerStyle={styles.msgList}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => {
-              if (item.type === 'date') {
-                return <DateSeparator date={item.date} />;
+          {bookingId && (
+            <TouchableOpacity style={styles.viewBookingBtn} onPress={handleViewBooking} disabled={viewingBooking}>
+              {viewingBooking
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <>
+                    <Ionicons name="receipt-outline" size={13} color="#fff" />
+                    <Text style={styles.viewBookingText}>Booking</Text>
+                  </>
               }
-              const isDriver = item.senderType === 'driver';
-              return <MessageBubble msg={item} isDriver={isDriver} />;
-            }}
-            ListEmptyComponent={
-              <View style={styles.emptyWrap}>
-                <Ionicons name="chatbubble-outline" size={40} color="#CBD5E1" />
-                <Text style={styles.emptyText}>No messages yet</Text>
-                <Text style={styles.emptySub}>Start the conversation!</Text>
-              </View>
-            }
-          />
-        )}
+            </TouchableOpacity>
+          )}
+        </LinearGradient>
+
+        {/* Chat background */}
+        <View style={styles.chatBg}>
+          {loading ? (
+            <View style={styles.center}>
+              <ActivityIndicator size="large" color={C.primary} />
+            </View>
+          ) : (
+            <FlatList
+              ref={listRef}
+              data={grouped}
+              keyExtractor={item => item.id}
+              contentContainerStyle={styles.msgList}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => {
+                if (item.type === 'date') return <DateSeparator date={item.date} />;
+                const isDriver = item.senderType === 'driver';
+                return <MessageBubble msg={item} isDriver={isDriver} customerInitial={customerInitial} />;
+              }}
+              ListEmptyComponent={
+                <View style={styles.emptyWrap}>
+                  <View style={styles.emptyIconBg}>
+                    <Ionicons name="chatbubble-outline" size={36} color={C.primary} />
+                  </View>
+                  <Text style={styles.emptyTitle}>No messages yet</Text>
+                  <Text style={styles.emptySub}>Start the conversation!</Text>
+                </View>
+              }
+            />
+          )}
+        </View>
 
         {/* Input bar */}
         <View style={styles.inputBar}>
-          <TextInput
-            ref={inputRef}
-            style={styles.input}
-            value={text}
-            onChangeText={setText}
-            placeholder="Type a message..."
-            placeholderTextColor={C.sub}
-            multiline
-            maxLength={1000}
-            returnKeyType="default"
-          />
+          <View style={styles.inputWrap}>
+            <TextInput
+              ref={inputRef}
+              style={styles.input}
+              value={text}
+              onChangeText={setText}
+              placeholder="Type a message..."
+              placeholderTextColor="#94A3B8"
+              multiline
+              maxLength={1000}
+              returnKeyType="default"
+            />
+          </View>
           <TouchableOpacity
             style={[styles.sendBtn, (!text.trim() || sending) && styles.sendBtnDisabled]}
             onPress={handleSend}
             disabled={!text.trim() || sending}
             activeOpacity={0.8}
           >
-            {sending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="send" size={18} color="#fff" />
-            )}
+            {sending
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Ionicons name="send" size={17} color="#fff" style={{ marginLeft: 2 }} />
+            }
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -226,85 +259,84 @@ export default function ChatScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
+  safe: { flex: 1, backgroundColor: C.dark },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  // Header
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#043927', paddingHorizontal: 16, paddingVertical: 12,
-    gap: 10,
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center', alignItems: 'center',
-  },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
+  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
   headerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerAvatar: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#DCFCE7', justifyContent: 'center', alignItems: 'center',
-  },
-  headerAvatarText: { fontSize: 15, fontWeight: '800', color: C.primary },
+  headerAvatar: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center' },
+  headerAvatarText: { fontSize: 16, fontWeight: '900', color: '#fff' },
   headerName: { fontSize: 15, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
-
-  // Messages list
-  msgList: { paddingHorizontal: 14, paddingVertical: 12, gap: 4 },
-
-  // Date separator
-  dateSep: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 12,
+  onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 },
+  onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#86EFAC' },
+  headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.65)', fontWeight: '600', letterSpacing: 0.5, marginTop: 1 },
+  viewBookingBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 10,
+    paddingHorizontal: 10, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
   },
-  dateSepLine: { flex: 1, height: 1, backgroundColor: C.border },
-  dateSepText: { fontSize: 11, color: C.sub, fontWeight: '600' },
+  viewBookingText: { fontSize: 11, fontWeight: '700', color: '#fff' },
 
-  // Bubbles
-  bubbleWrap: { flexDirection: 'row', alignItems: 'flex-end', marginVertical: 2 },
-  bubbleLeft: { justifyContent: 'flex-start' },
-  bubbleRight: { justifyContent: 'flex-end' },
-  bubbleAvatar: {
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center',
-    marginRight: 6, marginBottom: 2,
+  chatBg: { flex: 1, backgroundColor: '#E8EDD5' },
+
+  msgList: { paddingHorizontal: 12, paddingVertical: 14, gap: 2 },
+
+  dateSep: { flexDirection: 'row', alignItems: 'center', marginVertical: 14, gap: 10 },
+  dateLine: { flex: 1, height: 1, backgroundColor: 'rgba(0,0,0,0.08)' },
+  datePill: { backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 4 },
+  datePillText: { fontSize: 11, color: '#64748B', fontWeight: '600' },
+
+  bubbleRow: { flexDirection: 'row', alignItems: 'flex-end', marginVertical: 2 },
+  bubbleRowLeft: { justifyContent: 'flex-start' },
+  bubbleRowRight: { justifyContent: 'flex-end' },
+
+  customerAvatar: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: '#16A34A', justifyContent: 'center', alignItems: 'center',
+    marginRight: 6, marginBottom: 2, flexShrink: 0,
   },
-  bubble: {
-    maxWidth: '75%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10,
-  },
+  customerAvatarText: { fontSize: 12, fontWeight: '800', color: '#fff' },
+
+  bubbleOuter: { maxWidth: '78%' },
+  bubbleOuterLeft: { alignItems: 'flex-start' },
+  bubbleOuterRight: { alignItems: 'flex-end' },
+
+  bubble: { borderRadius: 18, paddingHorizontal: 13, paddingVertical: 9 },
   bubbleCustomer: {
-    backgroundColor: C.card, borderTopLeftRadius: 4,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    backgroundColor: '#fff', borderTopLeftRadius: 4,
+    shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2,
   },
   bubbleDriver: {
-    backgroundColor: C.primary, borderTopRightRadius: 4,
+    backgroundColor: '#16A34A', borderTopRightRadius: 4,
+    shadowColor: '#16A34A', shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3,
   },
-  bubbleText: { fontSize: 14, lineHeight: 20 },
-  bubbleTextCustomer: { color: C.text },
+  bubbleText: { fontSize: 14, lineHeight: 21, color: C.text },
   bubbleTextDriver: { color: '#fff' },
-  bubbleTime: { fontSize: 10, marginTop: 4, fontWeight: '500' },
-  bubbleTimeCustomer: { color: C.sub },
-  bubbleTimeDriver: { color: 'rgba(255,255,255,0.7)' },
+  bubbleMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', marginTop: 4, gap: 2 },
+  bubbleTime: { fontSize: 10, fontWeight: '500', color: '#94A3B8' },
+  bubbleTimeDriver: { color: 'rgba(255,255,255,0.65)' },
 
-  // Input
   inputBar: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,
-    paddingHorizontal: 14, paddingVertical: 10,
-    backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border,
+    paddingHorizontal: 12, paddingVertical: 10,
+    backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: C.border,
   },
-  input: {
-    flex: 1, minHeight: 42, maxHeight: 120,
-    backgroundColor: '#F8FAFC', borderRadius: 21, borderWidth: 1, borderColor: C.border,
-    paddingHorizontal: 16, paddingVertical: 10,
-    fontSize: 14, color: C.text, lineHeight: 20,
+  inputWrap: {
+    flex: 1, backgroundColor: '#F8FAFC', borderRadius: 24,
+    borderWidth: 1, borderColor: C.border,
+    paddingHorizontal: 16, paddingVertical: 8, minHeight: 44,
   },
+  input: { fontSize: 14, color: C.text, lineHeight: 20, maxHeight: 120, padding: 0 },
   sendBtn: {
-    width: 42, height: 42, borderRadius: 21, backgroundColor: C.primary,
+    width: 44, height: 44, borderRadius: 22, backgroundColor: C.primary,
     justifyContent: 'center', alignItems: 'center',
+    shadowColor: C.primary, shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 4,
   },
-  sendBtnDisabled: { backgroundColor: '#CBD5E1' },
+  sendBtnDisabled: { backgroundColor: '#CBD5E1', shadowOpacity: 0 },
 
-  // Empty
-  emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8, paddingTop: 60 },
-  emptyText: { fontSize: 16, fontWeight: '700', color: C.text },
-  emptySub: { fontSize: 13, color: C.sub },
+  emptyWrap: { flex: 1, alignItems: 'center', paddingTop: 80, gap: 10 },
+  emptyIconBg: { width: 72, height: 72, borderRadius: 20, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: '#475569' },
+  emptySub: { fontSize: 13, color: '#94A3B8' },
 });

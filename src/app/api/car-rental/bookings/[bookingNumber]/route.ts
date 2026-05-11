@@ -20,6 +20,9 @@ export async function GET(
         vendors_chauffeur_bookings_acceptedVendorIdTovendors: {
           select: { id: true, businessName: true, ownerName: true, phone: true, logo: true, city: true, rating: true },
         },
+        accepted_driver: {
+          select: { id: true, name: true, phone: true, profilePhoto: true },
+        },
       },
     });
 
@@ -28,6 +31,12 @@ export async function GET(
     }
 
     const acceptedVendor = (booking as any).vendors_chauffeur_bookings_acceptedVendorIdTovendors;
+    const acceptedDriver = (booking as any).accepted_driver;
+
+    // Driver name/phone: prefer drivers table (independent driver), fallback to booking fields (staff driver)
+    const resolvedDriverName  = acceptedDriver?.name  ?? booking.driverName  ?? null;
+    const resolvedDriverPhone = acceptedDriver?.phone ?? booking.driverPhone ?? null;
+    const resolvedDriverPhoto = acceptedDriver?.profilePhoto ?? null;
 
     return NextResponse.json({
       success: true,
@@ -41,7 +50,6 @@ export async function GET(
         tripType:        booking.tripType,
         carCategory:     booking.carCategory,
         carCategoryName: booking.carCategoryName,
-        // Legacy compat fields for pay page
         pickupCity:      booking.pickupCity,
         dropCity:        booking.dropCity,
         pickupDate:      booking.pickupDate,
@@ -64,11 +72,14 @@ export async function GET(
         paymentMethod:   booking.paymentMethod,
         transactionId:   booking.transactionId,
         status:          booking.status,
-        driverName:      booking.driverName,
-        driverPhone:     booking.driverPhone,
+        acceptedDriverId:  booking.acceptedDriverId,
+        acceptedStaffId:   booking.acceptedStaffId,
+        acceptedVendorId:  booking.acceptedVendorId,
+        driverName:        resolvedDriverName,
+        driverPhone:       resolvedDriverPhone,
+        driverPhoto:       resolvedDriverPhoto,
         vehicleNumber:   booking.vehicleNumber,
         vehicleModel:    booking.vehicleModel,
-        acceptedVendorId: booking.acceptedVendorId,
         tripStartOtp:    booking.tripStartOtp,
         customerNotes:   booking.customerNotes,
         vendorNotes:     booking.vendorNotes,
@@ -80,11 +91,14 @@ export async function GET(
         rating:          booking.rating,
         review:          booking.review,
         location:        booking.locations,
-        vendor:          acceptedVendor ? {
+        vendor: (acceptedVendor && !booking.acceptedDriverId && !booking.acceptedStaffId) ? {
           id: acceptedVendor.id,
           businessName: acceptedVendor.businessName,
+          ownerName: acceptedVendor.ownerName,
           phone: acceptedVendor.phone,
           logo: acceptedVendor.logo,
+          city: acceptedVendor.city,
+          rating: acceptedVendor.rating,
         } : null,
         createdAt:       booking.createdAt,
         updatedAt:       booking.updatedAt,

@@ -11,6 +11,7 @@ import { TableOfContents } from '@/components/blog/TableOfContents';
 import { renderBlogContent } from '@/lib/markdown';
 import { resolveAssetUrl } from '@/lib/utils';
 import { Calendar, Clock, Eye, ArrowLeft, Tag, ChevronRight, Bookmark, Heart } from 'lucide-react';
+import { ArticleSchema, BreadcrumbSchema } from '@/components/seo/schemas';
 
 
 interface BlogPostPageProps {
@@ -115,6 +116,23 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Structured Data */}
+      <ArticleSchema
+        title={post.seo.title || post.title}
+        description={post.seo.description || post.excerpt || ''}
+        url={`https://transrentals.in/blog/${post.slug}`}
+        image={featuredImageUrl || 'https://transrentals.in/images/og-image.jpg'}
+        datePublished={post.publishedAt}
+        dateModified={post.updatedAt}
+        authorName={post.author.name}
+        keywords={Array.isArray(post.seo.keywords) ? post.seo.keywords : []}
+      />
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://transrentals.in' },
+        { name: 'Reflections', url: 'https://transrentals.in/blog' },
+        { name: post.category.name, url: `https://transrentals.in/blog/category/${post.category.slug}` },
+        { name: post.title, url: `https://transrentals.in/blog/${post.slug}` },
+      ]} />
       {/* Hero Section */}
       <div className="relative">
         {/* Featured Image Hero */}

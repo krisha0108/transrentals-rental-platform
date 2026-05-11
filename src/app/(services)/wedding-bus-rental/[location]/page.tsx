@@ -1,10 +1,10 @@
-import React from 'react';
+﻿import React from 'react';
 import type { Metadata } from 'next';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { permanentRedirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations } from '@/lib/services/service-locations';;
@@ -64,7 +64,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function WeddingBusLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('wedding-bus-rental', params.location);
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') notFound();
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="wedding-bus-rental" serviceName="Wedding Bus Rental" />;
   const city = pageContext.city;
 

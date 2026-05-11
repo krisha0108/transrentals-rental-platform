@@ -1,11 +1,11 @@
-import React from 'react';
+﻿import React from 'react';
 import type { Metadata } from 'next';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { permanentRedirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
@@ -112,7 +112,7 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
         </>
       );
     }
-    permanentRedirect(pageContext.to);
+    notFound();
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="equipment-rental" serviceName="Equipment Rental" />;
   if (pageContext.type === 'coming-soon') {

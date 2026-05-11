@@ -1,10 +1,10 @@
-import React from 'react';
+﻿import React from 'react';
 import type { Metadata } from 'next';
 import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { permanentRedirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getServiceLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
@@ -65,7 +65,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function MiniTruckLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('mini-truck-rental', params.location);
-  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
+  if (pageContext.type === 'redirect') notFound();
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="mini-truck-rental" serviceName="Mini Truck Rental" />;
   const city = pageContext.city;
 
