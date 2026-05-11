@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Building2, Car, Users, MapPin, Calendar, Plus, Trash2, Send, ArrowLeft,
@@ -204,6 +204,9 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
   const bookingId = params.id;
   const { isApproved, openVerificationModal } = useVendorVerification();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editQuoteId = searchParams?.get('edit') || '';
+  const isEditMode = !!editQuoteId;
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [fleet, setFleet] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
@@ -242,6 +245,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
   // Set default inclusions/exclusions/terms based on service type
   useEffect(() => {
     if (!booking) return;
+    if (isEditMode) return; // edit prefill effect handles inclusions/exclusions/terms
     if (inclusions.length > 0) return; // already set (don't override on re-render)
     if (booking.serviceType === 'self-drive') {
       setInclusions(SD_DEFAULT_INCLUSIONS);
@@ -252,7 +256,97 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
       setExclusions(CR_DEFAULT_EXCLUSIONS);
       setTermsConditions(CR_DEFAULT_TERMS);
     }
-  }, [booking]);
+  }, [booking, isEditMode]);
+
+  // Prefill state from an existing quote when editing.
+  // Runs once booking is loaded so isSelfDrive is known.
+  useEffect(() => {
+    if (!isEditMode || !booking) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/vendor/b2b-quotes/${editQuoteId}`);
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.status !== 'success' || !data.quote) {
+          setError(data.error || 'Could not load the quote for editing');
+          return;
+        }
+        const q = data.quote;
+        if (!['SUBMITTED', 'UNDER_REVIEW'].includes(q.status)) {
+          setError(`Quote cannot be edited once it is ${q.status}`);
+          return;
+        }
+
+        // Parse stored notes JSON (carries inclusions/exclusions/terms and self-drive details)
+        let parsedNotes: any = null;
+        if (q.notes) {
+          try { parsedNotes = JSON.parse(q.notes); } catch { parsedNotes = null; }
+        }
+        if (parsedNotes?.inclusions) setInclusions(parsedNotes.inclusions);
+        if (parsedNotes?.exclusions) setExclusions(parsedNotes.exclusions);
+        if (parsedNotes?.termsConditions) setTermsConditions(parsedNotes.termsConditions);
+        setNotes(parsedNotes?.vendorMessage || (typeof q.notes === 'string' && !parsedNotes ? q.notes : ''));
+
+        const qVehicles = q.quoteVehicles || [];
+
+        if (booking.serviceType === 'self-drive') {
+          // Self-drive prefill
+          if (parsedNotes?.securityDeposit != null) setSdSecurityDeposit(String(parsedNotes.securityDeposit));
+          if (parsedNotes?.kmLimitPerDay != null) setSdKmLimitPerDay(String(parsedNotes.kmLimitPerDay));
+          if (parsedNotes?.extraKmRate != null) setSdExtraKmRate(String(parsedNotes.extraKmRate));
+          if (parsedNotes?.deliveryCharges != null) setSdDeliveryCharges(String(parsedNotes.deliveryCharges));
+          if (parsedNotes?.pickupCharges != null) setSdPickupCharges(String(parsedNotes.pickupCharges));
+          if (parsedNotes?.advancePercent != null) setSdAdvancePercent(String(parsedNotes.advancePercent));
+          if (parsedNotes?.validityDays != null) setSdValidityDays(String(parsedNotes.validityDays));
+          if (parsedNotes?.pricePerVehicle != null) setSdTotalPrice(String(parsedNotes.pricePerVehicle));
+
+          setSdVehicles(
+            qVehicles.length > 0
+              ? qVehicles.map((qv: any) => ({
+                  vendorFleetId: qv.vendorFleetId || qv.vehicle?.id || '',
+                  totalPrice: qv.basePrice != null ? String(qv.basePrice) : '',
+                }))
+              : [{ vendorFleetId: '', totalPrice: '' }]
+          );
+        } else {
+          // Non-self-drive prefill
+          const op: OverallPricing = { ...EMPTY_PRICING };
+          if (parsedNotes) {
+            if (parsedNotes.basePrice != null) op.basePrice = String(parsedNotes.basePrice);
+            if (parsedNotes.perKmRate != null) op.perKmRate = String(parsedNotes.perKmRate);
+            if (parsedNotes.perDayRate != null) op.perDayRate = String(parsedNotes.perDayRate);
+            if (parsedNotes.driverAllowance != null) op.driverAllowance = String(parsedNotes.driverAllowance);
+            if (parsedNotes.nightCharges != null) op.nightCharges = String(parsedNotes.nightCharges);
+            if (parsedNotes.extraKmCharge != null) op.extraKmCharge = String(parsedNotes.extraKmCharge);
+          }
+          setOverallPricing(op);
+
+          setVehicles(
+            qVehicles.length > 0
+              ? qVehicles.map((qv: any) => ({
+                  vendorFleetId: qv.vendorFleetId || qv.vehicle?.id || '',
+                  driverStaffId: qv.driverStaffId || qv.driver?.id || '',
+                  useCustomPrice: false,
+                  basePrice: qv.basePrice != null ? String(qv.basePrice) : '',
+                  perKmRate: qv.perKmRate != null ? String(qv.perKmRate) : '',
+                  perHourRate: qv.perHourRate != null ? String(qv.perHourRate) : '',
+                  perDayRate: qv.perDayRate != null ? String(qv.perDayRate) : '',
+                  driverAllowance: qv.driverAllowance != null ? String(qv.driverAllowance) : '',
+                  nightCharges: qv.nightCharges != null ? String(qv.nightCharges) : '',
+                  extraKmCharge: qv.extraKmCharge != null ? String(qv.extraKmCharge) : '',
+                  extraHourCharge: qv.extraHourCharge != null ? String(qv.extraHourCharge) : '',
+                }))
+              : [{ ...EMPTY_VEHICLE }]
+          );
+        }
+      } catch (e) {
+        console.error('Failed to load quote for edit:', e);
+        if (!cancelled) setError('Failed to load quote for editing');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isEditMode, editQuoteId, booking]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -495,11 +589,15 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
         };
       });
 
-      const response = await fetch('/api/vendor/b2b-quotes', {
-        method: 'POST',
+      const endpoint = isEditMode
+        ? `/api/vendor/b2b-quotes/${editQuoteId}`
+        : '/api/vendor/b2b-quotes';
+      const method = isEditMode ? 'PUT' : 'POST';
+      const response = await fetch(endpoint, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          bookingId,
+          ...(isEditMode ? {} : { bookingId }),
           vehicles: sdValidVehicles.map(v => ({
             vendorFleetId: v.vendorFleetId,
             driverStaffId: null,
@@ -577,11 +675,15 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
         vendorMessage: notes || null,
       };
 
-      const response = await fetch('/api/vendor/b2b-quotes', {
-        method: 'POST',
+      const endpoint = isEditMode
+        ? `/api/vendor/b2b-quotes/${editQuoteId}`
+        : '/api/vendor/b2b-quotes';
+      const method = isEditMode ? 'PUT' : 'POST';
+      const response = await fetch(endpoint, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          bookingId,
+          ...(isEditMode ? {} : { bookingId }),
           vehicles: validVehicles.map(v => ({
             vendorFleetId: v.vendorFleetId,
             driverStaffId: v.driverStaffId || null,
@@ -627,9 +729,9 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
       <div className="max-w-lg mx-auto mt-20 text-center">
         <div className="bg-green-50 rounded-2xl p-8 border border-green-200">
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-green-800">Quote Submitted!</h2>
+          <h2 className="text-2xl font-bold text-green-800">{isEditMode ? 'Quote Updated!' : 'Quote Submitted!'}</h2>
           <p className="text-green-600 mt-2">
-            Your quote with {isSelfDrive ? sdValidVehicles.length : vehicles.filter(v => v.vendorFleetId).length} vehicles has been submitted.
+            Your quote with {isSelfDrive ? sdValidVehicles.length : vehicles.filter(v => v.vendorFleetId).length} vehicles has been {isEditMode ? 'updated' : 'submitted'}.
             The manager will review and include it in the super quote.
           </p>
         </div>
@@ -1203,7 +1305,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
               className="flex-1 flex items-center justify-center gap-3 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-bold text-lg rounded-xl transition disabled:opacity-50 shadow-lg"
             >
               {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              {isSubmitting ? 'Submitting...' : `Send Quote — Rs. ${sdGrandTotal.toLocaleString('en-IN')}`}
+              {isSubmitting ? (isEditMode ? 'Updating...' : 'Submitting...') : `${isEditMode ? 'Update' : 'Send'} Quote — Rs. ${sdGrandTotal.toLocaleString('en-IN')}`}
             </button>
           </div>
         </>
@@ -1543,7 +1645,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
               className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-bold text-lg rounded-xl transition disabled:opacity-50 shadow-lg"
             >
               {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              {isSubmitting ? 'Submitting...' : `Submit Quote — Rs. ${grandTotal.toLocaleString('en-IN')}`}
+              {isSubmitting ? (isEditMode ? 'Updating...' : 'Submitting...') : `${isEditMode ? 'Update' : 'Submit'} Quote — Rs. ${grandTotal.toLocaleString('en-IN')}`}
             </button>
           </div>
         </>

@@ -8,7 +8,7 @@ import {
   Building2, Car, Users, MapPin, Calendar, ArrowLeft, AlertCircle,
   Loader2, IndianRupee, Route, Phone, User, Shield, Clock, Fuel,
   CheckCircle, ChevronDown, ChevronUp, Truck, Send, KeyRound, Play,
-  Flag, XCircle, MessageCircle,
+  Flag, XCircle, MessageCircle, Edit3,
 } from 'lucide-react';
 import VendorBookingChat from '@/components/vendor/VendorBookingChat';
 import { useVendorVerification } from '@/contexts/VendorVerificationContext';
@@ -463,6 +463,8 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
               );
             }
 
+            const isEditable = ['SUBMITTED', 'UNDER_REVIEW'].includes(quote.status);
+
             return (
             <div key={quote.id} className="bg-white rounded-2xl border-2 overflow-hidden border-green-200">
               {/* Quote Header */}
@@ -481,12 +483,23 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                       {quote.vehicleCount} vehicles assigned
                     </p>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-500">Total Quote</div>
-                    <div className="text-2xl font-bold text-green-700">₹{quote.totalPrice?.toLocaleString('en-IN')}</div>
-                    {quote.pricePerVehicle > 0 && (
-                      <div className="text-xs text-gray-400">Avg ₹{Math.round(quote.pricePerVehicle).toLocaleString('en-IN')}/vehicle</div>
+                  <div className="flex items-start gap-3">
+                    {isEditable && (
+                      <Link
+                        href={`/vendor/b2b-bookings/${bookingId}/quote?edit=${quote.id}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-green-300 text-green-700 hover:bg-green-100 rounded-lg text-sm font-medium transition"
+                        title="Edit your quote before the customer accepts it"
+                      >
+                        <Edit3 className="w-4 h-4" /> Edit Quote
+                      </Link>
                     )}
+                    <div className="text-right">
+                      <div className="text-sm text-gray-500">Total Quote</div>
+                      <div className="text-2xl font-bold text-green-700">₹{quote.totalPrice?.toLocaleString('en-IN')}</div>
+                      {quote.pricePerVehicle > 0 && (
+                        <div className="text-xs text-gray-400">Avg ₹{Math.round(quote.pricePerVehicle).toLocaleString('en-IN')}/vehicle</div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {/* Self-drive quote details or regular notes */}

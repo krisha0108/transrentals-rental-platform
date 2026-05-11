@@ -911,8 +911,16 @@ export function ChatBookingHero({
     setIsTyping(true);
     setTimeout(() => {
       addShiviMessage(
-        'Briefly list main items / rooms 📝\n(e.g., "Bedroom set, kitchen, sofa, fridge, 3 almirahs")\n\nThis helps vendors quote accurately.',
+        'Briefly list main items / rooms 📝\nTap items below to add (you can pick many), or type your own. This helps vendors quote accurately.',
         [
+          { label: '🛏️ Bedroom set', action: 'add-inventory-item', value: 'Bedroom set' },
+          { label: '🍳 Kitchen items', action: 'add-inventory-item', value: 'Kitchen items' },
+          { label: '🛋️ Sofa', action: 'add-inventory-item', value: 'Sofa' },
+          { label: '🪑 Dining set', action: 'add-inventory-item', value: 'Dining set' },
+          { label: '🧊 Fridge', action: 'add-inventory-item', value: 'Fridge' },
+          { label: '🚪 Almirah / Wardrobe', action: 'add-inventory-item', value: 'Almirah / Wardrobe' },
+          { label: '📺 TV', action: 'add-inventory-item', value: 'TV' },
+          { label: '🧺 Washing machine', action: 'add-inventory-item', value: 'Washing machine' },
           { label: '⏭️ Skip', action: 'skip-inventory-list', value: '' },
         ],
         0,
@@ -987,51 +995,24 @@ export function ChatBookingHero({
     }, 800);
   };
 
-  const askForFragileItemsDesc = () => {
+  const askForPackingItemsDetails = () => {
     setIsTyping(true);
     setTimeout(() => {
       addShiviMessage(
-        'Please describe the fragile items 📝',
+        'Tell us about your items in one go 📦\nBoxes/cartons, bags/suitcases, and fragile items (TV, glassware, etc.). Tap to add or type.',
         [
-          { label: '⏭️ Skip', action: 'skip-fragile-items-desc', value: '' },
+          { label: '📦 5-10 boxes', action: 'add-packing-detail', value: '5-10 boxes' },
+          { label: '📦 10-30 boxes', action: 'add-packing-detail', value: '10-30 boxes' },
+          { label: '🎒 1-2 bags', action: 'add-packing-detail', value: '1-2 bags' },
+          { label: '🎒 3-5 bags', action: 'add-packing-detail', value: '3-5 bags' },
+          { label: '🪟 Fragile: TV / glassware', action: 'add-packing-detail', value: 'Fragile: TV / glassware' },
+          { label: '⏭️ Skip', action: 'skip-packing-details', value: '' },
         ],
         0,
         'text',
-        'e.g., LED TV, framed paintings'
+        'e.g., 15 boxes, 5 bags, LED TV'
       );
-      setCurrentStep('fragile-items-desc');
-    }, 800);
-  };
-
-  const askForBoxesCount = () => {
-    setIsTyping(true);
-    setTimeout(() => {
-      addShiviMessage(
-        'Approximately how many boxes/cartons? 📦',
-        [
-          { label: '⏭️ Skip', action: 'skip-boxes-count', value: '' },
-        ],
-        0,
-        'text',
-        'e.g., 10, 20, 50'
-      );
-      setCurrentStep('boxes-count');
-    }, 800);
-  };
-
-  const askForBagsCount = () => {
-    setIsTyping(true);
-    setTimeout(() => {
-      addShiviMessage(
-        'Approximately how many bags/suitcases? 🎒',
-        [
-          { label: '⏭️ Skip', action: 'skip-bags-count', value: '' },
-        ],
-        0,
-        'text',
-        'e.g., 5, 10, 15'
-      );
-      setCurrentStep('bags-count');
+      setCurrentStep('packing-items-details');
     }, 800);
   };
 
@@ -1273,13 +1254,17 @@ export function ChatBookingHero({
     setIsTyping(true);
     setTimeout(() => {
       addShiviMessage(
-        'Specific items being transported? 📦\n(e.g., 50 sofa sets, marble slabs, electronic goods)',
+        'Specific items being transported? 📦\nTap one or more items below (they’ll add to your message), edit if needed, then press Send.',
         [
-          { label: '⏭️ Skip', action: 'skip-material-details', value: '' },
+          { label: '📦 5-10 boxes', action: 'add-material-detail', value: '5-10 boxes' },
+          { label: '📦 10-30 boxes', action: 'add-material-detail', value: '10-30 boxes' },
+          { label: '🛏️ Bed + cupboard', action: 'add-material-detail', value: 'Bed + cupboard' },
+          { label: '🛋️ Sofa set + dining', action: 'add-material-detail', value: 'Sofa set + dining' },
+          { label: '🏠 Full house (1 BHK)', action: 'add-material-detail', value: 'Full house (1 BHK)' },
         ],
         0,
         'text',
-        'e.g., 50 sofa sets, marble slabs'
+        'e.g., 10 boxes, 2 beds, 1 sofa'
       );
       setCurrentStep('material-details');
     }, 800);
@@ -1338,13 +1323,18 @@ export function ChatBookingHero({
     setIsTyping(true);
     setTimeout(() => {
       addShiviMessage(
-        'Which floor at pickup? 🏢\n(Enter 0 for ground floor)',
+        'Which floor at pickup? 🏢\nTap a number or type a higher one',
         [
-          { label: '⏭️ Skip', action: 'skip-truck-pickup-floor', value: '' },
+          { label: '🏠 Ground (0)', action: 'select-truck-pickup-floor', value: '0' },
+          { label: '1️⃣ 1st Floor', action: 'select-truck-pickup-floor', value: '1' },
+          { label: '2️⃣ 2nd Floor', action: 'select-truck-pickup-floor', value: '2' },
+          { label: '3️⃣ 3rd Floor', action: 'select-truck-pickup-floor', value: '3' },
+          { label: '4️⃣ 4th Floor', action: 'select-truck-pickup-floor', value: '4' },
+          { label: '🏢 5th & Above (type number)', action: 'noop', value: '' },
         ],
         0,
         'text',
-        'e.g., 0, 1, 2, 5'
+        'e.g., 5, 6, 10'
       );
       setCurrentStep('truck-pickup-floor');
     }, 800);
@@ -1358,7 +1348,6 @@ export function ChatBookingHero({
         [
           { label: '✅ Yes, lift available', action: 'confirm-truck-pickup-lift', value: 'yes' },
           { label: '❌ No lift', action: 'confirm-truck-pickup-lift', value: 'no' },
-          { label: '⏭️ Skip', action: 'skip-truck-pickup-lift', value: '' },
         ],
         0
       );
@@ -1370,13 +1359,18 @@ export function ChatBookingHero({
     setIsTyping(true);
     setTimeout(() => {
       addShiviMessage(
-        'Which floor at drop? 🏢\n(Enter 0 for ground floor)',
+        'Which floor at drop? 🏢\nTap a number or type a higher one',
         [
-          { label: '⏭️ Skip', action: 'skip-truck-drop-floor', value: '' },
+          { label: '🏠 Ground (0)', action: 'select-truck-drop-floor', value: '0' },
+          { label: '1️⃣ 1st Floor', action: 'select-truck-drop-floor', value: '1' },
+          { label: '2️⃣ 2nd Floor', action: 'select-truck-drop-floor', value: '2' },
+          { label: '3️⃣ 3rd Floor', action: 'select-truck-drop-floor', value: '3' },
+          { label: '4️⃣ 4th Floor', action: 'select-truck-drop-floor', value: '4' },
+          { label: '🏢 5th & Above (type number)', action: 'noop', value: '' },
         ],
         0,
         'text',
-        'e.g., 0, 1, 2, 5'
+        'e.g., 5, 6, 10'
       );
       setCurrentStep('truck-drop-floor');
     }, 800);
@@ -1390,7 +1384,6 @@ export function ChatBookingHero({
         [
           { label: '✅ Yes, lift available', action: 'confirm-truck-drop-lift', value: 'yes' },
           { label: '❌ No lift', action: 'confirm-truck-drop-lift', value: 'no' },
-          { label: '⏭️ Skip', action: 'skip-truck-drop-lift', value: '' },
         ],
         0
       );
@@ -2994,6 +2987,26 @@ export function ChatBookingHero({
       addUserMessage('Skip');
       setBookingData((prev: any) => ({ ...prev, materialDetails: null }));
       askForWeight();
+    } else if (action === 'select-material-details') {
+      addUserMessage(value || '');
+      setBookingData((prev: any) => ({ ...prev, materialDetails: value }));
+      askForWeight();
+    } else if (action === 'add-material-detail') {
+      // Append to input field — let the user keep adding items, edit, then press Send
+      const next = (value || '').trim();
+      if (!next) return;
+      setInputValue((prev) => {
+        const trimmed = prev.trim();
+        if (!trimmed) return next;
+        // Avoid duplicate adds of the exact same chip
+        const existing = trimmed.split(',').map((s) => s.trim().toLowerCase());
+        if (existing.includes(next.toLowerCase())) return prev;
+        return `${trimmed}, ${next}`;
+      });
+      // Refocus the text input so the user can edit / continue typing
+      if (inputRef.current) inputRef.current.focus();
+    } else if (action === 'noop') {
+      // hint-only button — no action; user types into the input instead
     } else if (action === 'select-weight-unit') {
       const weightUnitLabels: Record<string, string> = {
         '1': 'KG',
@@ -3123,6 +3136,17 @@ export function ChatBookingHero({
       addUserMessage('Skip');
       setBookingData((prev: any) => ({ ...prev, inventoryList: null }));
       askForEstimatedWeight();
+    } else if (action === 'add-inventory-item') {
+      const next = (value || '').trim();
+      if (!next) return;
+      setInputValue((prev) => {
+        const trimmed = prev.trim();
+        if (!trimmed) return next;
+        const existing = trimmed.split(',').map((s) => s.trim().toLowerCase());
+        if (existing.includes(next.toLowerCase())) return prev;
+        return `${trimmed}, ${next}`;
+      });
+      if (inputRef.current) inputRef.current.focus();
     } else if (action === 'select-estimated-weight') {
       const labels: Record<string, string> = {
         '300': '🪶 Light (< 500 kg)',
@@ -3153,20 +3177,22 @@ export function ChatBookingHero({
       const yes = value === 'yes';
       addUserMessage(yes ? 'Yes' : 'No');
       setBookingData((prev: any) => ({ ...prev, hasFragileItems: yes }));
-      if (yes) {
-        askForFragileItemsDesc();
-      } else {
-        askForBoxesCount();
-      }
-    } else if (action === 'skip-fragile-items-desc') {
+      askForPackingItemsDetails();
+    } else if (action === 'skip-packing-details') {
       addUserMessage('Skip');
-      askForBoxesCount();
-    } else if (action === 'skip-boxes-count') {
-      addUserMessage('Skip');
-      askForBagsCount();
-    } else if (action === 'skip-bags-count') {
-      addUserMessage('Skip');
+      setBookingData((prev: any) => ({ ...prev, fragileItemsDesc: null, boxesCount: null, bagsCount: null }));
       askForNeedPacking();
+    } else if (action === 'add-packing-detail') {
+      const next = (value || '').trim();
+      if (!next) return;
+      setInputValue((prev) => {
+        const trimmed = prev.trim();
+        if (!trimmed) return next;
+        const existing = trimmed.split(',').map((s) => s.trim().toLowerCase());
+        if (existing.includes(next.toLowerCase())) return prev;
+        return `${trimmed}, ${next}`;
+      });
+      if (inputRef.current) inputRef.current.focus();
     } else if (action === 'confirm-need-packing') {
       const yes = value === 'yes';
       addUserMessage(yes ? 'Yes, please pack' : "No, I'll pack myself");
@@ -3251,6 +3277,11 @@ export function ChatBookingHero({
       addUserMessage('Skip');
       setBookingData((prev: any) => ({ ...prev, truckPickupFloor: null }));
       askForTruckPickupLift();
+    } else if (action === 'select-truck-pickup-floor') {
+      const floorLabel = value === '0' ? 'Ground (0)' : `${value === '1' ? '1st' : value === '2' ? '2nd' : value === '3' ? '3rd' : `${value}th`} Floor`;
+      addUserMessage(floorLabel);
+      setBookingData((prev: any) => ({ ...prev, truckPickupFloor: parseInt(value || '0') }));
+      askForTruckPickupLift();
     } else if (action === 'confirm-truck-pickup-lift') {
       const yes = value === 'yes';
       addUserMessage(yes ? 'Yes, lift available' : 'No lift');
@@ -3267,6 +3298,11 @@ export function ChatBookingHero({
     } else if (action === 'skip-truck-drop-floor') {
       addUserMessage('Skip');
       setBookingData((prev: any) => ({ ...prev, truckDropFloor: null }));
+      askForTruckDropLift();
+    } else if (action === 'select-truck-drop-floor') {
+      const floorLabel = value === '0' ? 'Ground (0)' : `${value === '1' ? '1st' : value === '2' ? '2nd' : value === '3' ? '3rd' : `${value}th`} Floor`;
+      addUserMessage(floorLabel);
+      setBookingData((prev: any) => ({ ...prev, truckDropFloor: parseInt(value || '0') }));
       askForTruckDropLift();
     } else if (action === 'confirm-truck-drop-lift') {
       const yes = value === 'yes';
@@ -3864,30 +3900,29 @@ export function ChatBookingHero({
       askForFragileItems();
       setInputValue('');
       return;
-    } else if (currentStep === 'fragile-items-desc') {
-      setBookingData((prev: any) => ({ ...prev, fragileItemsDesc: inputValue }));
-      askForBoxesCount();
-      setInputValue('');
-      return;
-    } else if (currentStep === 'boxes-count') {
-      const n = parseInt(inputValue);
-      if (isNaN(n) || n < 0) {
-        addShiviMessage('Please enter a valid count (0 or higher) 📦', undefined, 500, 'text', 'e.g., 10, 20, 50');
+    } else if (currentStep === 'packing-items-details') {
+      const text = inputValue.trim();
+      if (!text) {
+        addShiviMessage(
+          'Please add a quick option above or describe your items 📦',
+          undefined,
+          500,
+          'text',
+          'e.g., 15 boxes, 5 bags, LED TV',
+        );
         setInputValue('');
         return;
       }
-      setBookingData((prev: any) => ({ ...prev, boxesCount: n }));
-      askForBagsCount();
-      setInputValue('');
-      return;
-    } else if (currentStep === 'bags-count') {
-      const n = parseInt(inputValue);
-      if (isNaN(n) || n < 0) {
-        addShiviMessage('Please enter a valid count (0 or higher) 🎒', undefined, 500, 'text', 'e.g., 5, 10, 15');
-        setInputValue('');
-        return;
-      }
-      setBookingData((prev: any) => ({ ...prev, bagsCount: n }));
+      // Parse approximate counts from free text — vendor still gets full description as a note
+      const lower = text.toLowerCase();
+      const boxesMatch = lower.match(/(\d+)\s*(?:-\s*\d+)?\s*box/);
+      const bagsMatch = lower.match(/(\d+)\s*(?:-\s*\d+)?\s*(?:bag|suitcase)/);
+      setBookingData((prev: any) => ({
+        ...prev,
+        fragileItemsDesc: text,
+        boxesCount: boxesMatch ? parseInt(boxesMatch[1]) : null,
+        bagsCount: bagsMatch ? parseInt(bagsMatch[1]) : null,
+      }));
       askForNeedPacking();
       setInputValue('');
       return;
@@ -3937,7 +3972,18 @@ export function ChatBookingHero({
     }
     // ─────────────── TRUCK-SPECIFIC TEXT INPUT HANDLERS ───────────────
     else if (currentStep === 'material-details') {
-      setBookingData((prev: any) => ({ ...prev, materialDetails: inputValue }));
+      if (!inputValue.trim()) {
+        addShiviMessage(
+          'Please describe what you’re moving — pick a quick option above or type your items 📦',
+          undefined,
+          500,
+          'text',
+          'e.g., 10 boxes, 2 beds, 1 sofa',
+        );
+        setInputValue('');
+        return;
+      }
+      setBookingData((prev: any) => ({ ...prev, materialDetails: inputValue.trim() }));
       askForWeight();
       setInputValue('');
       return;

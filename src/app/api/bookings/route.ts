@@ -8,6 +8,7 @@ import {
   logger,
 } from '@/lib/security';
 import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
+import { onB2BBookingCreated } from '@/lib/utils/b2b-notification-helper';
 
 export const dynamic = 'force-dynamic';
 
@@ -1015,6 +1016,117 @@ async function handleBusQuoteRequest(customerInfo: { name: string; email: string
   };
 }
 
+// ============= CUSTOM BULK (MULTI-DAY EVENT) HANDLER =============
+// Reuses the existing B2B booking infrastructure: vendors quote on available
+// vehicles, manager combines into a super quote, customer accepts, payment is
+// post-paid via b2b_invoices. The full multi-day breakdown is stored as JSON
+// in b2b_bookings.bulkBreakdown so vendors and managers can see the event plan.
+
+async function handleCustomBulkRequest(
+  customerInfo: { name: string; email: string; phone: string; password?: string },
+  bookingData: Record<string, unknown>
+) {
+  const { customer } = await getOrCreateCustomer(customerInfo);
+
+  const baseLocationName = (bookingData.base_location as string) || '';
+  const pickupLocation = await findLocation(baseLocationName);
+
+  const bookingNumber = generateBookingNumber('CB');
+
+  // Aggregate totals + service types from the days[] structure
+  const days: any[] = Array.isArray(bookingData.days) ? (bookingData.days as any[]) : [];
+  const serviceTypes = new Set<string>();
+  let computedVehicles = 0;
+  for (const day of days) {
+    for (const svc of (day?.services || [])) {
+      if (svc.service_type) serviceTypes.add(String(svc.service_type));
+      const vehicles = Array.isArray(svc.vehicles) ? svc.vehicles : [];
+      for (const v of vehicles) {
+        const c = parseInt(String(v?.count ?? 0), 10);
+        if (!isNaN(c)) computedVehicles += c;
+      }
+    }
+  }
+  const totalVehicles = (bookingData.total_vehicles as number) || computedVehicles || 0;
+  const serviceTypeList = Array.from(serviceTypes).join(',') || 'mixed';
+
+  // Date / time parsing
+  const startDate = bookingData.start_date ? new Date(bookingData.start_date as string) : new Date();
+  const endDate = bookingData.end_date ? new Date(bookingData.end_date as string) : startDate;
+  const startTime = (bookingData.start_time as string) || '09:00';
+  const endTime = (bookingData.end_time as string) || '18:00';
+
+  // Full event payload — vendors and managers read this to understand the request
+  const bulkBreakdown = JSON.stringify({
+    occasion_type: bookingData.occasion_type ?? null,
+    occasion_name: bookingData.occasion_name ?? null,
+    total_days: bookingData.total_days ?? null,
+    total_people: bookingData.total_people ?? null,
+    base_location: bookingData.base_location ?? null,
+    base_location_id: bookingData.base_location_id ?? null,
+    base_location_slug: bookingData.base_location_slug ?? null,
+    services_used: Array.from(serviceTypes),
+    start_datetime: bookingData.start_datetime ?? null,
+    end_datetime: bookingData.end_datetime ?? null,
+    days,
+  });
+
+  // Cast to any so the new optional fields (companyName nullable + bulkBreakdown
+  // LongText) work both before and after `prisma generate` regenerates types.
+  const booking = await (prisma as any).b2b_bookings.create({
+    data: {
+      bookingNumber,
+      customerId: customer.id,
+      customerName: customerInfo.name,
+      customerEmail: customerInfo.email,
+      customerPhone: customerInfo.phone,
+      // Custom-bulk requesters are usually individuals (event organisers, families,
+      // wedding planners) — companyName is optional for this serviceType.
+      companyName: (bookingData.company_name as string) || null,
+      serviceType: 'CUSTOM_BULK',
+      vehiclesRequired: totalVehicles,
+      passengerCount: (bookingData.total_people as number) || null,
+      vehicleCategory: serviceTypeList, // comma-separated list of services involved
+      pickupLocation: baseLocationName || 'Not specified',
+      tripType: 'EVENT',
+      scheduledDate: startDate,
+      scheduledTime: startTime,
+      returnDate: endDate,
+      returnTime: endTime,
+      specialNotes: (bookingData.special_requirements as string) || null,
+      bulkBreakdown,
+      status: 'OPEN_FOR_QUOTES',
+    },
+  });
+
+  // Notify vendors approved for the base city — same path as regular B2B bookings.
+  // Each vendor sees the event plan in their dashboard and quotes only the
+  // vehicles they can supply. The manager later combines those into a super quote.
+  onB2BBookingCreated({
+    id: booking.id,
+    bookingNumber: booking.bookingNumber,
+    serviceType: 'CUSTOM_BULK',
+    pickupLocation: pickupLocation?.name || baseLocationName,
+    companyName: (booking.companyName || (bookingData.occasion_name as string) || customerInfo.name) as string,
+    vehiclesRequired: totalVehicles,
+  }).catch((err: any) => console.error('[Notification] CustomBulk failed:', err));
+
+  return {
+    success: true,
+    message: 'Event request submitted! Our team will review and share a consolidated quote shortly.',
+    booking_id: booking.id,
+    booking_number: booking.bookingNumber,
+    customer_id: customer.id,
+    customer: {
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      phone: customer.phone,
+    },
+    redirect_to: `/customer/b2b-bookings/${booking.id}`,
+  };
+}
+
 // ============= LUXURY QUOTE REQUEST HANDLER =============
 
 async function handleLuxuryQuoteRequest(customerInfo: { name: string; email: string; phone: string; password?: string }, bookingData: Record<string, unknown>) {
@@ -1433,8 +1545,12 @@ export async function POST(request: NextRequest) {
     let result;
 
     // Route to appropriate handler based on booking type
+    // CUSTOM BULK (multi-day, multi-service event request — flows through B2B infrastructure)
+    if (bookingType === 'custom-bulk' || bookingType === 'custom') {
+      result = await handleCustomBulkRequest(customerInfo, bookingData);
+    }
     // BIKE QUOTE REQUEST (BROWSE_FIRST: non-fleet bike → quote request flow)
-    if (bookingType === 'bike-quote-request') {
+    else if (bookingType === 'bike-quote-request') {
       result = await handleBikeQuoteRequest(customerInfo, bookingData);
     }
     // SELF-DRIVE QUOTE REQUEST (BROWSE_FIRST: non-fleet self-drive → quote request flow)

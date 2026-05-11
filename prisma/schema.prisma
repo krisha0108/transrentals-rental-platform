@@ -4434,7 +4434,7 @@ model b2b_bookings {
   customerName         String
   customerEmail        String?
   customerPhone        String
-  companyName          String
+  companyName          String?
   serviceType          String
   vehiclesRequired     Int
   passengerCount       Int?
@@ -4447,6 +4447,9 @@ model b2b_bookings {
   returnDate           DateTime?
   returnTime           String?
   specialNotes         String?             @db.Text
+  // For CUSTOM_BULK serviceType — full multi-day/multi-service event breakdown
+  // JSON: { occasion, days: [{ date, services: [{ serviceType, vehicles: [{ id, name, brand, count }], peopleCount, pickup, drop, time, notes }] }] }
+  bulkBreakdown        String?             @db.LongText
   status               b2b_booking_status  @default(OPEN_FOR_QUOTES)
   totalVehiclesFilled  Int                 @default(0)
   vendorCostTotal      Float?
