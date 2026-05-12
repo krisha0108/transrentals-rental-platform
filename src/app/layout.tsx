@@ -126,6 +126,77 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+const GLOBAL_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://transrentals.in/#organization',
+      name: 'TransRentals',
+      alternateName: ['Trans Rentals', 'TransRentals.in'],
+      description: "TransRentals is India's vehicle rental marketplace offering car rental, self-drive cars, bike rental, bus rental, tempo traveller, mini truck rental, packers and movers, equipment rental (JCB, crane, excavator, hydra crane), and generator rental across 250+ cities in India.",
+      url: 'https://transrentals.in',
+      foundingDate: '2022',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://transrentals.in/images/logo.png',
+        width: 200,
+        height: 60,
+      },
+      contactPoint: {
+        '@type': 'ContactPoint',
+        telephone: '+91-9737965551',
+        email: 'book@transrentals.in',
+        contactType: 'customer service',
+        areaServed: 'IN',
+        availableLanguage: ['English', 'Hindi'],
+      },
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: '215, Galaxy Business, 2nd Floor, SP Ring Road',
+        addressLocality: 'Ahmedabad',
+        addressRegion: 'Gujarat',
+        postalCode: '382350',
+        addressCountry: 'IN',
+      },
+      areaServed: { '@type': 'Country', name: 'India' },
+      hasOfferCatalog: {
+        '@type': 'OfferCatalog',
+        name: 'Vehicle and Equipment Rental Services',
+        itemListElement: [
+          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Car Rental', description: 'Self-drive and chauffeur-driven car rental across India' } },
+          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Bike Rental', description: 'Honda Activa, Royal Enfield, KTM and all bikes on rent' } },
+          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Bus Rental', description: 'Mini bus, tempo traveller and luxury bus rental for group travel' } },
+          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Mini Truck Rental', description: 'Tata Ace and mini truck rental for goods transport and house shifting' } },
+          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Packers and Movers', description: 'House shifting and relocation services across India' } },
+          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Equipment Rental', description: 'JCB, crane, excavator, hydra crane and construction equipment rental' } },
+          { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Generator Rental', description: 'Diesel generator and DG set rental for events, construction and industrial use' } },
+        ],
+      },
+      sameAs: [
+        'https://www.facebook.com/transrentals',
+        'https://www.instagram.com/transrentals',
+        'https://twitter.com/transrentals',
+        'https://www.linkedin.com/company/transrentals',
+      ],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://transrentals.in/#website',
+      url: 'https://transrentals.in',
+      name: 'TransRentals',
+      description: "India's vehicle rental marketplace — car, bike, bus, truck, equipment and more",
+      publisher: { '@id': 'https://transrentals.in/#organization' },
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: { '@type': 'EntryPoint', urlTemplate: 'https://transrentals.in/search?q={search_term_string}' },
+        'query-input': 'required name=search_term_string',
+      },
+      inLanguage: 'en-IN',
+    },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -136,6 +207,10 @@ export default function RootLayout({
       <head>
         {/* Google Analytics 4 - Hardcoded with correct Measurement ID */}
         <GoogleAnalytics />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(GLOBAL_SCHEMA) }}
+        />
       </head>
       <body className="font-sans antialiased">
         <LocationProvider>

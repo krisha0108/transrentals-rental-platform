@@ -1,9 +1,18 @@
 import React from 'react';
 
 const ORGANIZATION = {
+  '@context': 'https://schema.org',
   '@type': 'Organization',
+  '@id': 'https://transrentals.in/#organization',
   name: 'TransRentals',
+  alternateName: ['Trans Rentals', 'TransRentals.in', 'Transrentals'],
+  description: 'TransRentals is India\'s vehicle rental marketplace offering car rental, self-drive cars, bike rental, bus rental, tempo traveller rental, mini truck rental, packers and movers, equipment rental (JCB, crane, excavator, hydra), and generator rental across 250+ cities in India.',
   url: 'https://transrentals.in',
+  foundingDate: '2022',
+  areaServed: {
+    '@type': 'Country',
+    name: 'India',
+  },
   logo: {
     '@type': 'ImageObject',
     url: 'https://transrentals.in/images/logo.png',
@@ -25,6 +34,19 @@ const ORGANIZATION = {
     addressRegion: 'Gujarat',
     postalCode: '382350',
     addressCountry: 'IN',
+  },
+  hasOfferCatalog: {
+    '@type': 'OfferCatalog',
+    name: 'Vehicle and Equipment Rental Services',
+    itemListElement: [
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Car Rental', description: 'Self-drive and chauffeur-driven car rental across India' } },
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Bike Rental', description: 'Honda Activa, Royal Enfield, KTM and all bikes on rent' } },
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Bus Rental', description: 'Mini bus, tempo traveller and luxury bus rental for group travel' } },
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Mini Truck Rental', description: 'Tata Ace and mini truck rental for goods transport and house shifting' } },
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Packers and Movers', description: 'House shifting and relocation services across India' } },
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Equipment Rental', description: 'JCB, crane, excavator, hydra crane and construction equipment rental' } },
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Generator Rental', description: 'Diesel generator and DG set rental for events and construction' } },
+    ],
   },
   sameAs: [
     'https://www.facebook.com/transrentals',
