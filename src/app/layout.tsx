@@ -35,7 +35,7 @@ const BASE_METADATA: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://transrentals.in'),
   title: {
     default: 'TransRentals - India\'s Largest Vehicle Rental Marketplace',
-    template: '%s | TransRentals',
+    template: '%s',
   },
   description:
     'Rent bikes, cars, buses, trucks & equipment across 150+ cities in India. Best prices guaranteed. Book now with TransRentals - India\'s trusted vehicle rental marketplace.',

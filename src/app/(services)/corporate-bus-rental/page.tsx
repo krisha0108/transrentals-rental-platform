@@ -6,6 +6,7 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { BusFleetGrid } from '@/components/corporate-bus-rental/BusFleetGrid';
 import { prisma } from '@/lib/db/prisma';
 import { getBusRentalServiceId } from '@/lib/db/build-cache';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Corporate Bus Rental - Employee Transport & Office Events @₹4999 | TransRentals',
@@ -39,6 +40,17 @@ export default async function CorporateBusRentalPage() {
 
   return (
     <div className="flex flex-col">
+      <HowToSchema
+        name="How to Book Corporate Bus Rental on TransRentals"
+        description="Book corporate bus or employee transport in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Submit Requirements', text: 'Enter number of employees, pickup/drop locations, shift timings, and travel frequency (daily/weekly).' },
+          { name: 'Choose Bus Type', text: 'Select from mini buses (12–20 seater) to full-size coaches (45–50 seater). AC buses available for executive travel.' },
+          { name: 'Get Corporate Quote', text: 'Receive quotes from verified corporate transport vendors. Compare rates for daily, monthly, or annual contracts.' },
+          { name: 'Finalize Contract & Start', text: 'Sign the transport contract, share employee lists and routes. Service starts on agreed date with GPS-tracked buses.' },
+        ]}
+      />
       <CorporateBusRentalServiceHero />
 
       {/* Use Cases */}

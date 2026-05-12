@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Sports Car Rental | Supercar Hire @₹25000/Day | Ferrari Lamborghini India'),
@@ -32,6 +33,17 @@ export default function SportsCarRentalPage() {
 
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Sports Car on TransRentals"
+        description="Book a sports car or supercar rental in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Choose City & Date', text: 'Select your city and rental date. Sports cars available for day, weekend, or special event packages.' },
+          { name: 'Pick Your Dream Car', text: 'Choose from Ferrari, Lamborghini, Porsche, or other luxury sports cars. Self-drive and chauffeur options available.' },
+          { name: 'Complete Premium KYC', text: 'Submit DL, Aadhaar, and PAN. Pay higher security deposit for supercar category. Personal interview may be required.' },
+          { name: 'Drive in Style', text: 'Collect car at designated location. Enjoy professional handover with complete walkthrough of features.' },
+        ]}
+      />
       <SpecialtyCarBookingHero service="sports" />
 
 

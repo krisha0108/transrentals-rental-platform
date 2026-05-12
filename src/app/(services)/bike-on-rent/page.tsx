@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { DynamicServicePage } from '@/components/services/DynamicServicePage';
 import { BikeTypesCards } from '@/components/services/BikeTypesCards';
 import { BikeFleetShowcase } from '@/components/services/BikeFleetShowcase';
-import { BikeServiceSchema, HowToSchema, ItemListSchema } from '@/components/seo/schemas';
+import { BikeServiceSchema, HowToSchema, ItemListSchema, BreadcrumbSchema } from '@/components/seo/schemas';
 import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     url: 'https://transrentals.in/bike-on-rent',
     images: [
       {
-        url: 'https://transrentals.in/images/og/bike-rental.jpg',
+        url: 'https://transrentals.in/api/og?service=bike-on-rent',
         width: 1200,
         height: 630,
         alt: 'Bike Rental Services - TransRentals',
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: formatPriceHighlight('Bike on Rent - Starting @₹399/Day | TransRentals'),
     description: formatPriceHighlight('Rent bikes across 150+ cities in India. Royal Enfield, KTM, Honda & more.'),
-    images: ['https://transrentals.in/images/og/bike-rental.jpg'],
+    images: ['https://transrentals.in/api/og?service=bike-on-rent'],
   },
   alternates: {
     canonical: 'https://transrentals.in/bike-on-rent',
@@ -85,6 +85,9 @@ const fallbackContent = {
     { id: '3', question: 'What is the minimum age for bike rental?', answer: 'You must be at least 18 years old with a valid driving license to rent a bike.' },
     { id: '4', question: 'Can I take the bike to another city?', answer: 'Inter-city travel is allowed with prior approval. Additional charges may apply for one-way trips.' },
     { id: '5', question: 'What if the bike breaks down during my rental?', answer: 'We provide 24/7 roadside assistance. Contact our support and we\'ll arrange for help or a replacement bike.' },
+    { id: '6', question: 'What is the rental cost for a Royal Enfield?', answer: 'Royal Enfield Classic 350 and Bullet 350 rent for ₹499–₹699/day. The Himalayan 411 is ₹699–₹899/day. For longer trips, weekly rates offer 20–30% savings over daily rates.' },
+    { id: '7', question: 'Can I rent a bike in Goa without a driving license?', answer: 'No. A valid driving license with MCWG endorsement is legally required to ride any motorbike in India, including Goa. Riding without a license risks fines, accidents, and insurance complications. All TransRentals vendors require licence verification before handover.' },
+    { id: '8', question: 'Is monthly bike rental available?', answer: 'Yes, monthly bike rentals are available in major cities like Bangalore, Hyderabad, Pune, and Delhi. Monthly plans start from ₹3,500/month for scooters and ₹7,000/month for Royal Enfield. Monthly plans save 40–50% vs daily rates and are popular with working professionals.' },
   ],
   faqsTitle: 'Frequently Asked Questions',
   faqsVisible: true,
@@ -108,6 +111,9 @@ const schemaFaqs = [
   { question: 'What is the minimum age for bike rental?', answer: 'You must be at least 18 years old with a valid driving license to rent a bike.' },
   { question: 'Can I take the bike to another city?', answer: 'Inter-city travel is allowed with prior approval. Additional charges may apply for one-way trips.' },
   { question: 'What if the bike breaks down during my rental?', answer: 'We provide 24/7 roadside assistance. Contact our support and we will arrange for help or a replacement bike.' },
+  { question: 'What is the rental cost for a Royal Enfield?', answer: 'Royal Enfield Classic 350 and Bullet 350 rent for ₹499–₹699/day. The Himalayan 411 is ₹699–₹899/day. Weekly rates offer 20–30% savings over daily rates.' },
+  { question: 'Can I rent a bike in Goa without a driving license?', answer: 'No. A valid driving license with MCWG endorsement is legally required to ride any motorbike in India, including Goa. All TransRentals vendors require licence verification before handover.' },
+  { question: 'Is monthly bike rental available?', answer: 'Yes, monthly bike rentals are available in major cities. Monthly plans start from ₹3,500/month for scooters and ₹7,000/month for Royal Enfield — saving 40–50% vs daily rates.' },
 ];
 
 const schemaVehicles = [
@@ -121,6 +127,10 @@ const schemaVehicles = [
 export default function BikeRentalPage() {
   return (
     <>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://transrentals.in' },
+        { name: 'Bike on Rent', url: 'https://transrentals.in/bike-on-rent' },
+      ]} />
       {/* Schema Markup for SEO */}
       <BikeServiceSchema
         serviceName="Bike on Rent"

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { EquipmentTypesCards } from '@/components/services/EquipmentTypesCards';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { HowToSchema, BreadcrumbSchema } from '@/components/seo/schemas';
 
 const EQUIPMENT_FAQS = [
   {
@@ -74,7 +75,7 @@ export const metadata: Metadata = {
     description: 'Rent construction equipment across India. JCB, cranes, excavators, generators with certified operators. 500+ verified vendors.',
     type: 'website',
     url: 'https://transrentals.in/equipment-rental',
-    images: [{ url: 'https://transrentals.in/images/og/equipment-rental.jpg', width: 1200, height: 630, alt: 'Equipment Rental - TransRentals' }],
+    images: [{ url: 'https://transrentals.in/api/og?service=equipment-rental', width: 1200, height: 630, alt: 'Equipment Rental - TransRentals' }],
     locale: 'en_IN',
     siteName: 'TransRentals',
   },
@@ -82,7 +83,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Equipment Rental India | JCB, Crane, Excavator | TransRentals',
     description: 'Rent construction equipment across India. Certified operators included.',
-    images: ['https://transrentals.in/images/og/equipment-rental.jpg'],
+    images: ['https://transrentals.in/api/og?service=equipment-rental'],
   },
   alternates: { canonical: 'https://transrentals.in/equipment-rental' },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
@@ -120,6 +121,31 @@ export default function EquipmentRentalPage() {
             areaServed: { '@type': 'Country', name: 'India' },
           }),
         }}
+      />
+      {/* BreadcrumbList Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
+              { '@type': 'ListItem', position: 2, name: 'Equipment Rental', item: 'https://transrentals.in/equipment-rental' },
+            ],
+          }),
+        }}
+      />
+      <HowToSchema
+        name="How to Book Construction Equipment Rental on TransRentals"
+        description="Rent JCB, cranes, excavators, generators and more with certified operators across India."
+        totalTime="PT15M"
+        steps={[
+          { name: 'Select Equipment Type', text: 'Choose from JCB backhoe loaders, excavators, cranes, tipper trucks, road rollers, or generators based on your project need.' },
+          { name: 'Enter Site Location & Dates', text: 'Provide your construction site address and rental start date. Specify project duration for better pricing.' },
+          { name: 'Compare Vendor Quotes', text: 'Get quotes from multiple TransRentals-verified equipment vendors. Compare rates, equipment models, and availability.' },
+          { name: 'Confirm & Deploy', text: 'Confirm your booking with advance payment. The certified operator and equipment arrive at your site on the scheduled date.' },
+        ]}
       />
 
       <ServiceHeroWithChat

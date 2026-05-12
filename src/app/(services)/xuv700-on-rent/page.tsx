@@ -4,6 +4,7 @@ import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('XUV700 on Rent Without Driver | Self Drive @₹2999/Day | TransRentals'),
@@ -18,6 +19,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function XUV700OnRentPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Mahindra XUV700 on TransRentals"
+        description="Book XUV700 self-drive rental in 4 simple steps."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Select City & Duration', text: 'Choose pickup city and rental dates. XUV700 available for day, weekend, and extended trips.' },
+          { name: 'Choose XUV700 Configuration', text: 'Select 5-seater or 7-seater XUV700. Check ADAS features and panoramic sunroof availability.' },
+          { name: 'Complete KYC', text: 'Upload DL, Aadhaar, and PAN. Pay premium security deposit for luxury SUV category. Instant confirmation.' },
+          { name: 'Collect & Drive', text: 'Pick up XUV700 at vendor location. Enjoy the ADAS-equipped premium SUV experience.' },
+        ]}
+      />
       <SwiftRentalTypeHero vehicleName="Mahindra XUV700" selfDrivePrice="₹2999" />
 
       <section className="relative bg-gradient-to-br from-red-700 to-rose-800 text-white py-16">

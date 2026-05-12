@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('One Way Car Rental - Drop at Different City @₹1299 | TransRentals'),
@@ -19,6 +20,17 @@ export default function OneWayCarRentalPage() {
 
   return (
     <>
+      <HowToSchema
+        name="How to Book One-Way Car Rental on TransRentals"
+        description="Rent a car for one-way intercity travel in 4 simple steps."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Enter Route Details', text: 'Enter pickup city, drop city, and travel date. One-way rentals available across 250+ city pairs.' },
+          { name: 'Choose Car Category', text: 'Select from hatchback, sedan, SUV, or luxury car. All with experienced intercity drivers.' },
+          { name: 'Review One-Way Fare', text: 'Pay only for the one-way journey. No return charge. Pricing includes driver allowance and fuel.' },
+          { name: 'Confirm & Travel', text: 'Pay advance to confirm. Driver picks up from your location and drops at the destination city.' },
+        ]}
+      />
       {/* Hero with booking form */}
       <SpecialtyCarBookingHero service="one-way" />
 

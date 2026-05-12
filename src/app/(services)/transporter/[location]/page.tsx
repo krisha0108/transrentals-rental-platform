@@ -26,7 +26,7 @@ const TRANSPORTER_FALLBACK_FAQS = [
   { question: 'Is goods insurance available for truck rentals?', answer: 'Yes, transit insurance for goods is available at 0.5–1% of declared goods value. All vehicles have mandatory third-party insurance. For valuable or fragile cargo, always opt for goods-in-transit insurance before booking.' },
 ];
 import { getCachedServiceBySlug } from '@/lib/services/cached-service-lookups';
-import { getServiceLocations } from '@/lib/services/service-locations';
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
 
 const COMING_SOON_SLUGS = new Set([
   'logistics-company-in-bhiwandi',
@@ -48,7 +48,7 @@ interface PageProps {
 
 // Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  return getServiceLocations('transporter');
+  return getAllCityLocations();
 }
 
 // Enable ISR - Revalidate every hour

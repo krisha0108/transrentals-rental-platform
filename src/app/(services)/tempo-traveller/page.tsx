@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { HowToSchema } from '@/components/seo/schemas';
 
 const TEMPO_FAQS = [
   {
@@ -100,6 +101,17 @@ export default function TempoTravellerPage() {
 
   return (
     <>
+      <HowToSchema
+        name="How to Book a Tempo Traveller on TransRentals"
+        description="Rent a tempo traveller for group travel in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Enter Trip Details', text: 'Enter pickup city, destination, travel date, and number of passengers. Choose between AC and non-AC.' },
+          { name: 'Choose Seater Capacity', text: 'Select 9-seater, 12-seater, 14-seater, or 17-seater Tempo Traveller based on group size and luggage.' },
+          { name: 'Compare Vendor Quotes', text: 'Review per-km rates from verified operators. Check inclusions — driver allowance, toll charges, and state permit.' },
+          { name: 'Confirm & Travel', text: 'Pay advance to confirm booking. Driver arrives at pickup point on travel date with a well-maintained vehicle.' },
+        ]}
+      />
       {/* Hero with Chat Booking System */}
       <ServiceHeroWithChat
         badge="Tempo Traveller Rental"

@@ -4,6 +4,7 @@ import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Self Drive Sedan Rental India | Rent Sedan Without Driver @₹1299/Day | TransRentals'),
@@ -32,6 +33,17 @@ const topCities = ALL_CITIES.slice(0, 60);
 export default function SelfDriveSedanRentalPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Self-Drive Sedan on TransRentals"
+        description="Rent a sedan without driver for business or leisure travel in 4 steps."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Choose City & Dates', text: 'Select pickup city, rental start and end dates. Compare daily vs weekly sedan rates.' },
+          { name: 'Select Sedan Model', text: 'Choose from Honda City, Hyundai Verna, Maruti Ciaz, or Skoda Slavia. Automatic or manual available.' },
+          { name: 'Verify & Pay Deposit', text: 'Upload driving licence and Aadhaar. Pay security deposit online to confirm reservation.' },
+          { name: 'Collect & Drive', text: 'Pick up sedan from vendor showroom or opt for doorstep delivery. Do walk-around inspection before driving.' },
+        ]}
+      />
       <SwiftRentalTypeHero
         vehicleName="Self Drive Sedan"
         selfDrivePrice="₹1,299"

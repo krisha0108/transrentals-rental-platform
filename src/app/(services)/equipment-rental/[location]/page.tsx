@@ -27,7 +27,10 @@ const EQUIPMENT_FALLBACK_FAQS = [
 ];
 import { B2BServiceNote } from '@/components/common/B2BServiceNote';
 import { getCachedServiceBySlug, getCachedSubServices } from '@/lib/services/cached-service-lookups';
-import { getServiceLocations } from '@/lib/services/service-locations';
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
+import { RelatedServices } from '@/components/services/RelatedServices';
+import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
+import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 
 function parseJsonField<T>(value: unknown, defaultValue: T): T {
   if (value === null || value === undefined) return defaultValue;
@@ -51,7 +54,7 @@ interface PageProps {
 
 // Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  return getServiceLocations('equipment-rental');
+  return getAllCityLocations();
 }
 
 // Enable ISR - Revalidate every hour
@@ -78,10 +81,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `crane rental ${locationName}`,
       `generator rental ${locationName}`,
     ],
+    alternates: { canonical: `https://transrentals.in/equipment-rental/${params.location}` },
     openGraph: {
-      title: `Equipment Rental in ${locationName} - TransRentals`,
+      title: `Equipment Rental in ${locationName} | TransRentals`,
       description: `Rent construction and event equipment in ${locationName}. Excavators, cranes, generators, DJ systems. Verified operators available.`,
+      type: 'website',
+      url: `https://transrentals.in/equipment-rental/${params.location}`,
+      images: [{ url: `https://transrentals.in/api/og?service=equipment-rental&location=${encodeURIComponent(locationName)}`, width: 1200, height: 630, alt: `Equipment Rental in ${locationName}` }],
+      locale: 'en_IN',
+      siteName: 'TransRentals',
     },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Equipment Rental in ${locationName} | TransRentals`,
+      description: `Rent construction and event equipment in ${locationName}. Excavators, cranes, generators. Certified operators available.`,
+      images: [`https://transrentals.in/api/og?service=equipment-rental&location=${encodeURIComponent(locationName)}`],
+    },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
   };
 }
 
@@ -326,6 +342,23 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
           customFaqs={EQUIPMENT_FALLBACK_FAQS}
         />
       )}
+      {cityFAQs.length > 0 && (
+        <section className="py-16 bg-white">
+          <div className="container-custom max-w-3xl">
+            <h2 className="text-3xl font-bold text-gray-900 mb-10 text-center">
+              Frequently Asked Questions — Equipment Rental in {locationName}
+            </h2>
+            <div className="space-y-6">
+              {cityFAQs.map((faq) => (
+                <div key={faq.q} className="bg-gray-50 p-6 rounded-xl">
+                  <h3 className="font-semibold text-gray-900 mb-2">{faq.q}</h3>
+                  <p className="text-gray-600">{faq.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <NearbyLocations
         locationSlug={params.location}
@@ -340,6 +373,30 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
         stateCode={city?.stateCode}
       />
 
+      <ServiceAreasSection
+        serviceSlug="equipment-rental"
+        citySlug={params.location}
+        cityName={locationName}
+        serviceName="Equipment Rental"
+      />
+
+      <CrossServiceLinks
+        citySlug={params.location}
+        cityName={locationName}
+        currentServiceSlug="equipment-rental"
+      />
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="equipment-rental"
+        parentName="Equipment Rental"
+        currentSlug="equipment-rental"
+        siblings={[
+          { slug: 'mini-truck-rental', name: 'Mini Truck Rental' },
+          { slug: 'trailer-on-rent', name: 'Trailer on Rent' },
+        ]}
+      />
+
       {/* LocalBusiness Schema */}
       <script
         type="application/ld+json"
@@ -350,12 +407,22 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
             name: `Equipment Rental in ${locationName} — TransRentals`,
             description: `Construction and heavy equipment rental in ${locationName}. JCB, cranes, excavators, generators with certified operators.`,
             url: `https://transrentals.in/equipment-rental/${params.location}`,
-            areaServed: { '@type': 'City', name: locationName },
+            areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
             provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
             priceRange: '₹₹',
           }),
         }}
       />
+      {/* BreadcrumbList Schema */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
+          { '@type': 'ListItem', position: 2, name: 'Equipment Rental', item: 'https://transrentals.in/equipment-rental' },
+          { '@type': 'ListItem', position: 3, name: `Equipment Rental in ${locationName}`, item: `https://transrentals.in/equipment-rental/${params.location}` },
+        ],
+      })}} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

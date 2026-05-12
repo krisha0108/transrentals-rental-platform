@@ -126,14 +126,9 @@ export default function CarRentalPage() {
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',
-              lowPrice: '999',
-              highPrice: '9999',
-            },
-            aggregateRating: {
-              '@type': 'AggregateRating',
-              ratingValue: '4.8',
-              reviewCount: '10000',
-              bestRating: '5',
+              lowPrice: 999,
+              highPrice: 9999,
+              offerCount: 50,
             },
           }),
         }}

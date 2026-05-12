@@ -6,7 +6,7 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { notFound } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
-import { getServiceLocations } from '@/lib/services/service-locations';;
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -14,8 +14,9 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import { getTransporterServiceId, getLocationId } from '@/lib/db/build-cache';
-import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
+import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 
 interface PageProps {
   params: {
@@ -26,7 +27,7 @@ interface PageProps {
 // Generate static params for ALL locations - GOD LEVEL SEO
 // Generate static params from DATABASE - Only locations where transporter is available
 export async function generateStaticParams() {
-  return getServiceLocations('transporter');
+  return getAllCityLocations();
 }
 
 // Enable ISR - Revalidate every hour
@@ -50,16 +51,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `chhota hathi rental ${locationName}`,
       `goods carrier ${locationName}`,
     ],
-    openGraph: {
-      title: `Mini Truck Rental in ${locationName} - TransRentals`,
-      description: `Rent Tata Ace and mini trucks in ${locationName} for deliveries, house shifting & goods transport.`,
-    },
     alternates: { canonical: `https://transrentals.in/mini-truck-rental/${params.location}` },
+    openGraph: {
+      title: `Mini Truck Rental in ${locationName} | TransRentals`,
+      description: `Rent Tata Ace and mini trucks in ${locationName} for deliveries, house shifting & goods transport.`,
+      type: 'website',
+      url: `https://transrentals.in/mini-truck-rental/${params.location}`,
+      images: [{ url: `https://transrentals.in/api/og?service=mini-truck-rental&location=${encodeURIComponent(locationName)}`, width: 1200, height: 630, alt: `Mini Truck Rental in ${locationName}` }],
+      locale: 'en_IN',
+      siteName: 'TransRentals',
+    },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Mini Truck Rental in ${locationName} | TransRentals`,
       description: `Rent Tata Ace and mini trucks in ${locationName}. Driver included. Book for deliveries, house shifting & goods transport.`,
+      images: [`https://transrentals.in/api/og?service=mini-truck-rental&location=${encodeURIComponent(locationName)}`],
     },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
   };
 }
 
@@ -201,22 +209,60 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
         cityName={locationName}
         stateCode={city?.stateCode}
       />
-      <BikeServiceSchema
-        serviceName="Mini Truck Rental"
+
+      <ServiceAreasSection
         serviceSlug="mini-truck-rental"
-        description={`Rent Tata Ace and mini trucks in ${locationName} for deliveries, house shifting & goods transport. Driver included.`}
-        city={locationName}
         citySlug={params.location}
-        faqs={pageFaqs}
+        cityName={locationName}
+        serviceName="Mini Truck Rental"
       />
+
+      <CrossServiceLinks
+        citySlug={params.location}
+        cityName={locationName}
+        currentServiceSlug="mini-truck-rental"
+      />
+
+      {/* LocalBusiness Schema */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'LocalBusiness',
+        name: `Mini Truck Rental in ${locationName} — TransRentals`,
+        description: `Rent Tata Ace and mini trucks in ${locationName} for local deliveries, house shifting & goods transport. Driver included.`,
+        url: `https://transrentals.in/mini-truck-rental/${params.location}`,
+        areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
+        provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
+        priceRange: '₹₹',
+      })}} />
+      {/* BreadcrumbList Schema */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
+          { '@type': 'ListItem', position: 2, name: 'Mini Truck Rental', item: 'https://transrentals.in/mini-truck-rental' },
+          { '@type': 'ListItem', position: 3, name: `Mini Truck Rental in ${locationName}`, item: `https://transrentals.in/mini-truck-rental/${params.location}` },
+        ],
+      })}} />
+      {/* FAQPage Schema */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: pageFaqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+        })),
+      })}} />
       <RelatedServices
         locationSlug={params.location}
-        parentSlug="transporter"
-        parentName="Truck & Tempo Rental"
+        parentSlug="mini-truck-rental"
+        parentName="Mini Truck Rental"
         currentSlug="mini-truck-rental"
         siblings={[
-          { slug: 'mini-truck-rental', name: 'Mini Truck Rental' },
+          { slug: 'bus-rental', name: 'Bus Rental' },
           { slug: 'trailer-on-rent', name: 'Trailer on Rent' },
+          { slug: 'packers-and-movers', name: 'Packers & Movers' },
         ]}
       />
     </div>

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
-import { getServiceLocations } from '@/lib/services/service-locations';;
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
@@ -22,7 +22,7 @@ interface PageProps {
 
 // Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
-  return getServiceLocations('car-rental');
+  return getAllCityLocations();
 }
 
 // Enable ISR - Revalidate every hour

@@ -4,7 +4,7 @@ import { getCitiesByPriority } from '@/data/indian-cities';
 import { BikeHeroWithLocation } from '@/components/bike/BikeHeroWithLocation';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
-import { BikeServiceSchema } from '@/components/seo/schemas';
+import { BikeServiceSchema, HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Electric Scooter Rental | EV Bike on Rent @₹399/Day | Ola, Ather, TVS iQube | TransRentals',
@@ -70,6 +70,17 @@ export default function ElectricScooterRentalPage() {
 
   return (
     <>
+      <HowToSchema
+        name="How to Rent an Electric Scooter on TransRentals"
+        description="Book an EV scooter rental in 4 simple steps across India."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Select City & Dates', text: 'Choose your city and rental period. Electric scooters available for daily and monthly rental plans.' },
+          { name: 'Choose EV Model', text: 'Pick from Ola S1, Ather 450X, TVS iQube, or Bajaj Chetak based on range requirements and availability.' },
+          { name: 'Review Charging Policy', text: 'Check charging infrastructure details, range per charge, and whether charging cost is included.' },
+          { name: 'Book & Ride Emission-Free', text: 'Submit licence and ID, pay deposit. Pick up your electric scooter and enjoy zero fuel cost riding.' },
+        ]}
+      />
       {/* Schema Markup */}
       <BikeServiceSchema
         serviceName="Electric Scooter Rental"

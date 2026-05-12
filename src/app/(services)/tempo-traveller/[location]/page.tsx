@@ -5,7 +5,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { prisma } from '@/lib/db/prisma';
-import { getServiceLocations } from '@/lib/services/service-locations';
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { CITY_SEO } from '@/data/city-seo-content';
@@ -31,9 +31,17 @@ interface PageProps {
   };
 }
 
-// Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  return getServiceLocations('tempo-traveller');
+  if (process.env.SKIP_DATABASE_CALLS === '1') return [];
+  try {
+    const locations = await prisma.locations.findMany({
+      where: { type: { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] }, isActive: true },
+      select: { slug: true },
+    });
+    return locations.map((loc) => ({ location: loc.slug }));
+  } catch {
+    return getServiceLocations('tempo-traveller');
+  }
 }
 
 // Enable ISR - Revalidate every hour
@@ -70,7 +78,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `Tempo Traveller in ${locationName} | 12-17 Seater | TransRentals`,
       description: `Book Tempo Traveller in ${locationName}. AC/Non-AC vehicles for pilgrimages, family trips, and corporate events.`,
+      type: 'website',
       url: `https://transrentals.in/tempo-traveller/${params.location}`,
+      images: [
+        {
+          url: 'https://transrentals.in/images/og/tempo-traveller.jpg',
+          width: 1200,
+          height: 630,
+          alt: `Tempo Traveller Rental in ${locationName} - TransRentals`,
+        },
+      ],
+      locale: 'en_IN',
+      siteName: 'TransRentals',
     },
     alternates: {
       canonical: `https://transrentals.in/tempo-traveller/${params.location}`,
@@ -79,6 +98,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       card: 'summary_large_image' as const,
       title: `Tempo Traveller in ${locationName} | TransRentals`,
       description: `Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC tempo travellers for group travel, tours & pilgrimages.`,
+      images: ['https://transrentals.in/images/og/tempo-traveller.jpg'],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 },
     },
   };
 }
@@ -350,6 +375,38 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
         cityName={locationName}
         stateCode={city?.stateCode}
       />
+
+      {/* SEO Content Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="container-custom">
+          <div className="max-w-4xl mx-auto prose prose-lg">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">
+              Tempo Traveller Rental in {locationName}
+            </h2>
+            {CITY_SEO[params.location]?.serviceIntros?.['tempo-traveller'] ? (
+              <p className="text-gray-600">{CITY_SEO[params.location].serviceIntros['tempo-traveller']}</p>
+            ) : (
+              <p className="text-gray-600">
+                TransRentals offers the best Tempo Traveller rental services in {locationName}. Whether you need
+                a 12-seater for a family outing, a 17-seater for a corporate event, or a 20-seater for a
+                pilgrimage group, our verified vendors in {locationName} provide comfortable AC Tempo Travellers
+                with professional drivers at the best prices.
+              </p>
+            )}
+            <h3 className="text-2xl font-bold text-gray-900 mt-8 mb-4">
+              Why Book Tempo Traveller from TransRentals in {locationName}?
+            </h3>
+            <ul className="text-gray-600 space-y-2">
+              <li><strong>Multiple Seating Options:</strong> 9, 12, 14, 17, and 20-seater available</li>
+              <li><strong>AC & Non-AC:</strong> Both air-conditioned and non-AC variants for every budget</li>
+              <li><strong>Best Rates:</strong> Local packages from ₹2,500 and outstation from ₹18/km</li>
+              <li><strong>Expert Drivers:</strong> Verified drivers experienced on {locationName} routes</li>
+              <li><strong>Outstation Trips:</strong> Multi-day and multi-city packages available</li>
+              <li><strong>24/7 Support:</strong> Round-the-clock assistance throughout your trip</li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
       {/* LocalBusiness Schema */}
       <script

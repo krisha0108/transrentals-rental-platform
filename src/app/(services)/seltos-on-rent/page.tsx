@@ -4,6 +4,7 @@ import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Seltos on Rent Without Driver | Self Drive Seltos @₹1899/Day | TransRentals'),
@@ -21,6 +22,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function SeltosOnRentPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Kia Seltos on TransRentals"
+        description="Book Seltos self-drive rental in 4 simple steps."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Enter City & Rental Period', text: 'Select your city and rental dates. Kia Seltos available for day trips, weekends, and weekly rentals.' },
+          { name: 'Choose Seltos Variant', text: 'Pick from HTK, HTX, or GTX variants. Check petrol vs diesel fuel type and automatic transmission.' },
+          { name: 'Submit KYC & Deposit', text: 'Upload driving licence and Aadhaar. Pay security deposit online. Instant booking confirmation.' },
+          { name: 'Collect & Drive', text: 'Pick up Seltos at vendor location or home delivery available. Enjoy the premium SUV experience.' },
+        ]}
+      />
       <SwiftRentalTypeHero vehicleName="Kia Seltos" selfDrivePrice="₹1899" />
 
       <section className="relative bg-gradient-to-br from-red-600 to-orange-600 text-white py-16">

@@ -68,7 +68,7 @@ export function LocalBusinessSchema({
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
-    '@id': `https://transrentals.in/#${citySlug}`,
+    '@id': `https://transrentals.in/${serviceSlug}/${citySlug}/#localbusiness`,
     name,
     description,
     url: `https://transrentals.in/${serviceSlug}/${citySlug}`,
@@ -182,18 +182,18 @@ export function VehicleRentalSchema({
       hasOfferCatalog: {
         '@type': 'OfferCatalog',
         name: `${serviceName} - Available Vehicles`,
-        itemListElement: vehicles.slice(0, 10).map((vehicle, index) => ({
-          '@type': 'Offer',
-          itemOffered: {
-            '@type': 'Product',
-            name: vehicle.name,
-            brand: { '@type': 'Brand', name: vehicle.brand },
-            image: vehicle.image,
+        itemListElement: vehicles.slice(0, 10).map((vehicle) => ({
+          '@type': 'Product',
+          name: vehicle.name,
+          brand: { '@type': 'Brand', name: vehicle.brand },
+          ...(vehicle.image && { image: vehicle.image }),
+          offers: {
+            '@type': 'Offer',
+            price: vehicle.price,
+            priceCurrency: 'INR',
+            availability: 'https://schema.org/InStock',
+            seller: ORGANIZATION,
           },
-          price: vehicle.price,
-          priceCurrency: 'INR',
-          availability: 'https://schema.org/InStock',
-          position: index + 1,
         })),
       },
     }),
@@ -403,6 +403,7 @@ interface ArticleSchemaProps {
   datePublished: string;
   dateModified: string;
   authorName: string;
+  authorUrl?: string;
   publisherName?: string;
   publisherLogo?: string;
   keywords?: string[];
@@ -416,6 +417,7 @@ export function ArticleSchema({
   datePublished,
   dateModified,
   authorName,
+  authorUrl,
   publisherName = 'TransRentals',
   publisherLogo = 'https://transrentals.in/images/logo.png',
   keywords = [],
@@ -437,6 +439,7 @@ export function ArticleSchema({
     author: {
       '@type': 'Person',
       name: authorName,
+      ...(authorUrl && { url: authorUrl }),
     },
     publisher: {
       '@type': 'Organization',
@@ -576,8 +579,8 @@ export function BikeServiceSchema({
   faqs = [],
   vehicles = [],
   priceRange = { min: 299, max: 1499 },
-  rating = 4.5,
-  reviewCount = 1250,
+  rating,
+  reviewCount,
 }: BikeServiceSchemaProps) {
   const baseUrl = 'https://transrentals.in';
 
@@ -617,5 +620,154 @@ export function BikeServiceSchema({
       )}
       {faqs.length > 0 && <FAQSchema faqs={faqs} />}
     </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RouteSchema — Trip structured data for one-way-cab and airport-transfer pages
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface RouteSchemaProps {
+  fromCity: string;
+  toCity: string;
+  distance?: number;
+  estimatedTime?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  pageUrl: string;
+  serviceType?: 'one-way-cab' | 'airport-transfer' | 'round-trip';
+}
+
+export function RouteSchema({
+  fromCity,
+  toCity,
+  distance,
+  estimatedTime,
+  minPrice,
+  maxPrice,
+  pageUrl,
+  serviceType = 'one-way-cab',
+}: RouteSchemaProps) {
+  const serviceLabel =
+    serviceType === 'airport-transfer'
+      ? 'Airport Transfer'
+      : serviceType === 'round-trip'
+      ? 'Round Trip Cab'
+      : 'One Way Cab';
+
+  const descParts = [`${serviceLabel} from ${fromCity} to ${toCity}`];
+  if (distance) descParts.push(`${distance} km`);
+  if (estimatedTime) descParts.push(estimatedTime);
+  if (minPrice) descParts.push(`starting from ₹${minPrice}`);
+
+  const schema: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Trip',
+    name: `${fromCity} to ${toCity} ${serviceLabel}`,
+    description: descParts.join('. '),
+    departureLocation: {
+      '@type': 'Place',
+      name: fromCity,
+      address: { '@type': 'PostalAddress', addressCountry: 'IN' },
+    },
+    arrivalLocation: {
+      '@type': 'Place',
+      name: toCity,
+      address: { '@type': 'PostalAddress', addressCountry: 'IN' },
+    },
+    provider: ORGANIZATION,
+  };
+
+  if (minPrice) {
+    schema.offers = {
+      '@type': 'AggregateOffer',
+      lowPrice: minPrice,
+      ...(maxPrice ? { highPrice: maxPrice } : {}),
+      priceCurrency: 'INR',
+      availability: 'https://schema.org/InStock',
+      url: pageUrl,
+    };
+  }
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AutoRentalSchema — schema.org/AutoRental (subtype of LocalBusiness)
+// No Indian car-rental competitor uses this type — first-mover rich-result advantage
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface AutoRentalSchemaProps {
+  name: string;
+  description: string;
+  city: string;
+  citySlug: string;
+  serviceSlug?: string;
+  vehicleTypes?: string[];
+  priceRange?: string;
+  rating?: number;
+  reviewCount?: number;
+}
+
+export function AutoRentalSchema({
+  name,
+  description,
+  city,
+  citySlug,
+  serviceSlug = 'car-rental',
+  vehicleTypes = ['Car', 'SUV', 'Hatchback', 'Sedan'],
+  priceRange = '₹₹',
+  rating,
+  reviewCount,
+}: AutoRentalSchemaProps) {
+  const offerLowPrice = serviceSlug === 'self-drive-car-rentals' ? 899 : 999;
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'AutoRental',
+    name,
+    description,
+    url: `https://transrentals.in/${serviceSlug}/${citySlug}`,
+    priceRange,
+    areaServed: { '@type': 'City', name: city, addressCountry: 'IN' },
+    provider: ORGANIZATION,
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'INR',
+      lowPrice: offerLowPrice,
+      highPrice: 9999,
+      offerCount: vehicleTypes.length * 10,
+    },
+    ...(rating && reviewCount && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: rating,
+        reviewCount,
+        bestRating: 5,
+        worstRating: 1,
+      },
+    }),
+    vehicleType: vehicleTypes.join(', '),
+    openingHoursSpecification: [
+      {
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        opens: '06:00',
+        closes: '23:00',
+      },
+    ],
+    parentOrganization: ORGANIZATION,
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
   );
 }

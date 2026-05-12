@@ -4,6 +4,7 @@ import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Self Drive Hatchback Rental India | Rent Hatchback @₹899/Day | TransRentals'),
@@ -32,6 +33,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function SelfDriveHatchbackRentalPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Self-Drive Hatchback on TransRentals"
+        description="Book a hatchback without driver in 4 simple steps."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Select City & Rental Period', text: 'Choose city, pickup date, and return date. Hatchbacks available for 1-day to monthly rentals.' },
+          { name: 'Pick a Hatchback Model', text: 'Choose from Maruti Swift, Hyundai i20, Tata Tiago, or Baleno. Check fuel type and AC availability.' },
+          { name: 'Complete KYC Verification', text: 'Submit driving licence and government ID online. Pay refundable security deposit to confirm booking.' },
+          { name: 'Pick Up & Drive', text: 'Collect key at vendor location or opt for home delivery (select cities). Inspect car and start driving.' },
+        ]}
+      />
       <ServiceHeroWithChat
         badge="Self Drive Hatchback Rental"
         title="Rent Hatchback Without Driver"

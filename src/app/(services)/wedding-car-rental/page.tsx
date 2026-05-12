@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Wedding Car Rental | Shadi Car on Rent @₹2999/Day | Baraat Car Hire'),
@@ -31,6 +32,17 @@ export default function WeddingCarRentalPage() {
 
   return (
     <>
+      <HowToSchema
+        name="How to Book a Wedding Car on TransRentals"
+        description="Book a decorated wedding car for your special day in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Enter Wedding Details', text: 'Share wedding date, venue location, required timing, and number of cars needed for the event.' },
+          { name: 'Choose Car Type', text: 'Select luxury sedan, SUV, vintage car, or convertible. Specify if car decoration is required.' },
+          { name: 'Review Package', text: 'Check package hours, included km, decoration charges, and chauffeur dress code.' },
+          { name: 'Confirm & Celebrate', text: 'Pay advance to book. Decorated wedding car arrives at your venue on schedule. Complimentary flower decoration available.' },
+        ]}
+      />
       <SpecialtyCarBookingHero service="wedding" />
 
       {/* Why Wedding Car Rental */}

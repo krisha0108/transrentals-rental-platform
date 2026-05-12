@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   CheckCircle, Phone, MapPin, Calendar, Car, User, Mail,
@@ -292,7 +293,7 @@ export default function VendorBookingFormClient({ vendorSlug, serviceType, servi
           <div className="fade-up w-full max-w-sm mb-8">
             <div className="flex flex-col items-center gap-3">
               {vendor.logo
-                ? <img src={vendor.logo} alt={vendor.businessName} className="w-16 h-16 rounded-2xl object-cover ring-2 ring-white/20 shadow-xl" />
+                ? <Image src={vendor.logo} alt={vendor.businessName} width={64} height={64} className="rounded-2xl object-cover ring-2 ring-white/20 shadow-xl" />
                 : <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-xl ring-2 ring-white/10">{initials}</div>
               }
               <div className="text-center">
@@ -378,7 +379,7 @@ export default function VendorBookingFormClient({ vendorSlug, serviceType, servi
               {/* Logo + name */}
               <div className="flex items-center gap-4 mb-5">
                 {vendor.logo
-                  ? <img src={vendor.logo} alt={vendor.businessName} className="w-14 h-14 rounded-2xl object-cover ring-2 ring-white/20" />
+                  ? <Image src={vendor.logo} alt={vendor.businessName} width={56} height={56} className="rounded-2xl object-cover ring-2 ring-white/20" />
                   : <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 to-blue-600 flex items-center justify-center text-white font-bold text-xl ring-2 ring-white/10">{initials}</div>
                 }
                 <div>
