@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RouteOverview } from '@/components/routes/RouteOverview';
 import { RouteFAQs } from '@/components/routes/RouteFAQs';
+import { RouteSchema } from '@/components/seo/schemas';
 import { RouteNotAvailable } from '@/components/routes/RouteNotAvailable';
 import { RoundTripRouteBookingHeroWithForm } from '@/components/round-trip/RoundTripRouteBookingHeroWithForm';
 
@@ -461,6 +462,17 @@ export default async function RoundTripRoutePage({ params }: PageProps) {
           routeType="round-trip"
         />
 
+        {/* Trip Schema — route structured data */}
+        <RouteSchema
+          fromCity={fromLocation.name}
+          toCity={toLocation.name}
+          distance={routePackage.estimatedKm * 2}
+          estimatedTime={routePackage.estimatedDuration}
+          minPrice={roundTripPrice}
+          pageUrl={`https://transrentals.in/round-trip/${params.route}`}
+          serviceType="round-trip"
+        />
+
         {/* Schema Markup - Multiple schemas for better SEO */}
 
         {/* 1. Service Schema with AggregateRating */}
@@ -501,13 +513,6 @@ export default async function RoundTripRoutePage({ params }: PageProps) {
                 availability: 'https://schema.org/InStock',
                 url: `https://transrentals.in/round-trip/${params.route}`,
                 priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-              },
-              aggregateRating: {
-                '@type': 'AggregateRating',
-                ratingValue: '4.8',
-                reviewCount: '2847',
-                bestRating: '5',
-                worstRating: '1',
               },
             }),
           }}

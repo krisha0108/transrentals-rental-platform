@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { prisma } from '@/lib/db/prisma';
 
 export const metadata: Metadata = {
   title: 'Wander Experiences - Curated Travel & Adventure Tours | TransRentals',
@@ -34,9 +35,23 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
 };
 
-const wanderSchema = {
-  '@context': 'https://schema.org',
-  '@graph': [
+export default async function WanderLayout({ children }: { children: React.ReactNode }) {
+  // Fetch top active listings for ItemList schema — real URLs, not filter params
+  let listings: Array<{ slug: string | null; title: string; shortDescription: string | null }> = [];
+  try {
+    if (process.env.SKIP_DATABASE_CALLS !== '1') {
+      listings = await prisma.wander_listings.findMany({
+        where: { status: 'ACTIVE' },
+        select: { slug: true, title: true, shortDescription: true },
+        orderBy: { totalBookings: 'desc' },
+        take: 8,
+      });
+    }
+  } catch {
+    // DB unavailable at build time — schema rendered without ItemList
+  }
+
+  const graphNodes: object[] = [
     {
       '@type': 'CollectionPage',
       name: 'Wander Experiences - Curated Travel & Adventure Tours',
@@ -55,23 +70,28 @@ const wanderSchema = {
         { '@type': 'ListItem', position: 2, name: 'Wander Experiences', item: 'https://transrentals.in/wander' },
       ],
     },
-    {
+  ];
+
+  if (listings.length > 0) {
+    graphNodes.push({
       '@type': 'ItemList',
       name: 'Popular Wander Experiences in India',
       url: 'https://transrentals.in/wander',
-      itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Adventure Experiences', url: 'https://transrentals.in/wander?category=adventure' },
-        { '@type': 'ListItem', position: 2, name: 'Beach & Coastal Trips', url: 'https://transrentals.in/wander?category=beach' },
-        { '@type': 'ListItem', position: 3, name: 'Pilgrimage Tours', url: 'https://transrentals.in/wander?category=pilgrimage' },
-        { '@type': 'ListItem', position: 4, name: 'Heritage & Culture', url: 'https://transrentals.in/wander?category=heritage' },
-        { '@type': 'ListItem', position: 5, name: 'Wildlife Tours', url: 'https://transrentals.in/wander?category=wildlife' },
-        { '@type': 'ListItem', position: 6, name: 'Hill Station Getaways', url: 'https://transrentals.in/wander?category=hills' },
-      ],
-    },
-  ],
-};
+      numberOfItems: listings.length,
+      itemListElement: listings.map((l, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: l.title,
+        url: l.slug
+          ? `https://transrentals.in/wander/${l.slug}`
+          : 'https://transrentals.in/wander',
+        ...(l.shortDescription && { description: l.shortDescription }),
+      })),
+    });
+  }
 
-export default function WanderLayout({ children }: { children: React.ReactNode }) {
+  const wanderSchema = { '@context': 'https://schema.org', '@graph': graphNodes };
+
   return (
     <>
       <script

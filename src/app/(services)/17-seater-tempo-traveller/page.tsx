@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: '17 Seater Tempo Traveller on Rent | Hire @₹20/km | TransRentals',
@@ -21,6 +22,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function SeventeenSeaterTempoTravellerPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Book a 17-Seater Tempo Traveller on TransRentals"
+        description="Book a 17-seater tempo traveller for large group travel in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Enter Trip & Group Details', text: 'Enter pickup city, destination, date, and confirm 15–17 passengers requiring the larger 17-seater vehicle.' },
+          { name: 'Select Vehicle Type', text: 'Choose AC or non-AC 17-seater Force Traveller. Confirm luggage boot size for outstation trips.' },
+          { name: 'Get & Compare Quotes', text: 'Review per-km or package quotes from verified bus operators. Check driver allowance and state permit.' },
+          { name: 'Book & Confirm', text: 'Pay booking advance. Receive driver contact details. Meet driver at pickup on travel date.' },
+        ]}
+      />
       <ServiceHeroWithChat
         badge="Perfect for 15-17 People"
         title="17 Seater Tempo Traveller"

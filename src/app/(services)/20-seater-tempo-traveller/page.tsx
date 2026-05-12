@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: '20 Seater Tempo Traveller on Rent | Hire @₹22/km | TransRentals',
@@ -20,6 +21,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function TwentySeaterTempoTravellerPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Book a 20-Seater Tempo Traveller on TransRentals"
+        description="Book a 20-seater tempo traveller for large group journeys in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Enter Route & Passenger Count', text: 'Provide departure city, destination, travel date, and confirm group of 18–20 passengers.' },
+          { name: 'Choose Vehicle Configuration', text: 'Select AC 20-seater for comfortable long-haul trips. Check seat layout and luggage capacity.' },
+          { name: 'Request & Compare Quotes', text: 'Get quotes from verified vendors. Compare per-km rates, toll inclusions, and driver allowance.' },
+          { name: 'Confirm & Coordinate', text: 'Pay advance to confirm. Get driver contact. Coordinate pickup time and meet at departure point.' },
+        ]}
+      />
       <ServiceHeroWithChat
         badge="Perfect for 18-20 People"
         title="20 Seater Tempo Traveller"

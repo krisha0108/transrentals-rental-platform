@@ -5,6 +5,7 @@ import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBoo
 import { prisma } from '@/lib/db/prisma';
 import { getCarRentalServiceId } from '@/lib/db/build-cache';
 import { LocalTaxiPackages } from '@/components/local-taxi/LocalTaxiPackages';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Local Taxi | Hourly Cab @₹399 | 4 Hour 8 Hour Taxi Package India',
@@ -67,6 +68,17 @@ export default async function LocalTaxiPage() {
 
   return (
     <>
+      <HowToSchema
+        name="How to Book a Local Taxi on TransRentals"
+        description="Book a local cab or hourly taxi in 4 simple steps."
+        totalTime="PT5M"
+        steps={[
+          { name: 'Choose City & Package', text: 'Select your city and choose a package: 4 hours/40 km, 8 hours/80 km, or 12 hours/120 km.' },
+          { name: 'Pick Car Type', text: 'Choose a hatchback, sedan, or SUV for your local travel needs. All AC cabs with experienced drivers.' },
+          { name: 'Review Inclusions', text: 'Package includes driver, fuel for included kms. Extra km and extra hour charges apply beyond package limits.' },
+          { name: 'Confirm & Use for Day', text: 'Pay advance to confirm. Driver reports at your location at the scheduled time for the full package duration.' },
+        ]}
+      />
       {/* Hero with booking form */}
       <SpecialtyCarBookingHero service="local-taxi" />
 

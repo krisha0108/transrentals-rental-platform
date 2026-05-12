@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Creta on Rent Without Driver | Self Drive Creta @₹1999/Day | TransRentals',
@@ -31,6 +32,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function CretaOnRentPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Hyundai Creta on TransRentals"
+        description="Book Creta self-drive rental in 4 simple steps."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Enter City & Dates', text: 'Choose pickup city, rental dates, and whether you need self-drive or a chauffeur-driven Creta.' },
+          { name: 'Select Creta Variant', text: 'Choose between Creta petrol, diesel, or turbo. Check sunroof availability for a better travel experience.' },
+          { name: 'Upload Documents', text: 'Submit DL and Aadhaar/Voter ID. Pay security deposit online. Booking confirmed after verification.' },
+          { name: 'Drive Your Creta', text: 'Pick up Creta at vendor or get doorstep delivery. Inspect the car and enjoy your drive.' },
+        ]}
+      />
       <SpecialtyCarBookingHero service="creta" />
 
       {/* Hero */}

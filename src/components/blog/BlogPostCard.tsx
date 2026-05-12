@@ -11,6 +11,7 @@ interface BlogPostCardProps {
   post: BlogPost;
   featured?: boolean;
   variant?: 'default' | 'featured' | 'compact';
+  priority?: boolean;
 }
 
 function CategoryPlaceholder({ color, icon }: { color: string; icon: string }) {
@@ -39,7 +40,7 @@ function CompactPlaceholder({ color, icon }: { color: string; icon: string }) {
   );
 }
 
-export function BlogPostCard({ post, featured = false, variant = 'default' }: BlogPostCardProps) {
+export function BlogPostCard({ post, featured = false, variant = 'default', priority = false }: BlogPostCardProps) {
   const categoryColor = post.category.color || '#10B981';
   const categoryIcon = post.category.icon || DEFAULT_ICON;
   const formattedDate = new Date(post.publishedAt).toLocaleDateString('en-IN', {
@@ -55,7 +56,7 @@ export function BlogPostCard({ post, featured = false, variant = 'default' }: Bl
         className="group relative block h-80 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300"
       >
         {post.featuredImage ? (
-          <img src={post.featuredImage} alt={post.title} className="absolute inset-0 w-full h-full object-cover" />
+          <Image src={post.featuredImage} alt={post.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={priority} />
         ) : (
           <CategoryPlaceholder color={categoryColor} icon={categoryIcon} />
         )}
@@ -94,7 +95,7 @@ export function BlogPostCard({ post, featured = false, variant = 'default' }: Bl
       >
         {post.featuredImage ? (
           <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-            <img src={post.featuredImage} alt={post.title} className="w-full h-full object-cover" />
+            <Image src={post.featuredImage} alt={post.title} fill className="object-cover" sizes="64px" />
           </div>
         ) : (
           <CompactPlaceholder color={categoryColor} icon={categoryIcon} />
@@ -116,7 +117,7 @@ export function BlogPostCard({ post, featured = false, variant = 'default' }: Bl
     >
       {post.featuredImage ? (
         <div className="relative h-44 overflow-hidden">
-          <img src={post.featuredImage} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          <Image src={post.featuredImage} alt={post.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="(max-width: 768px) 100vw, 33vw" />
         </div>
       ) : (
         <CategoryPlaceholder color={categoryColor} icon={categoryIcon} />

@@ -9,6 +9,7 @@ import { RoutePricing } from '@/components/routes/RoutePricing';
 import { RouteReviews } from '@/components/routes/RouteReviews';
 import { RouteFAQs } from '@/components/routes/RouteFAQs';
 import { TravelerTips } from '@/components/routes/TravelerTips';
+import { RouteSchema } from '@/components/seo/schemas';
 
 // Slugs that are not yet in the DB — show Coming Soon instead of redirecting
 const COMING_SOON_SLUGS = new Set([
@@ -1017,6 +1018,18 @@ export default async function AirportTransferRoutePage({ params }: PageProps) {
         tollCharges={avgToll}
       />
 
+      {/* Trip Schema — route structured data */}
+      <RouteSchema
+        fromCity={from.name}
+        toCity={to.name}
+        distance={avgDistance}
+        estimatedTime={avgTime}
+        minPrice={minPrice}
+        maxPrice={maxPrice}
+        pageUrl={`https://transrentals.in/airport-transfer/${params.slug}`}
+        serviceType="airport-transfer"
+      />
+
       {/* Schema Markup for SEO - Multiple schemas for rich snippets */}
 
       {/* 1. Service Schema with AggregateRating */}
@@ -1046,19 +1059,13 @@ export default async function AirportTransferRoutePage({ params }: PageProps) {
             },
             offers: {
               '@type': 'AggregateOffer',
-              lowPrice: minPrice.toString(),
-              highPrice: maxPrice.toString(),
+              lowPrice: minPrice,
+              highPrice: maxPrice,
               priceCurrency: 'INR',
+              offerCount: 30,
               availability: 'https://schema.org/InStock',
               url: `https://transrentals.in/airport-transfer/${params.slug}`,
               priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            },
-            aggregateRating: {
-              '@type': 'AggregateRating',
-              ratingValue: '4.8',
-              reviewCount: '2847',
-              bestRating: '5',
-              worstRating: '1',
             },
           }),
         }}

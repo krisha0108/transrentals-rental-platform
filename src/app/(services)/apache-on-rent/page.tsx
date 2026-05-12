@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Apache on Rent in India | TVS Apache Rental @₹499/Day | TransRentals',
@@ -46,6 +47,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function ApacheRentalPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a TVS Apache on TransRentals"
+        description="Book TVS Apache bike rental in 4 simple steps."
+        totalTime="PT7M"
+        steps={[
+          { name: 'Select City & Dates', text: 'Choose your city and rental period. Apache RTR 160, 180, 200, and RR 310 available for daily rent.' },
+          { name: 'Choose Apache Variant', text: 'Pick Apache RTR for sporty street riding or Apache RR 310 for track-focused performance.' },
+          { name: 'Submit Documents', text: 'Upload two-wheeler DL and Aadhaar. Pay security deposit. Booking confirmed after document verification.' },
+          { name: 'Collect & Ride', text: 'Pick up Apache at vendor location. Inspect bike before taking delivery. Wear full protective gear.' },
+        ]}
+      />
       <BikeSearchHero />
 
       {/* Hero Section */}

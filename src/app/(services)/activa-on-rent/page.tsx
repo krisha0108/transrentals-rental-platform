@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
 import { BikeHeroWithLocation } from '@/components/bike/BikeHeroWithLocation';
-import { BikeServiceSchema } from '@/components/seo/schemas';
+import { BikeServiceSchema, HowToSchema } from '@/components/seo/schemas';
 import { formatPriceHighlight } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -67,6 +67,17 @@ const schemaVehicles = [
 export default function ActivaOnRentPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent an Activa or Scooty on TransRentals"
+        description="Book Honda Activa, TVS Jupiter, or any scooty rental in 4 simple steps."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Select City & Rental Period', text: 'Enter your city and choose rental duration — 1 day, weekly, or monthly scooty subscription.' },
+          { name: 'Choose Scooter Model', text: 'Pick from Honda Activa, TVS Jupiter, Suzuki Access, or Yamaha Fascino based on availability and preference.' },
+          { name: 'Check Pricing & Terms', text: 'Review daily or monthly rate, security deposit amount, fuel policy (self-fuel), and helmet availability.' },
+          { name: 'Submit Documents & Pick Up', text: 'Upload driving licence and ID proof. Pay deposit and ride away from the vendor pickup point.' },
+        ]}
+      />
       {/* Schema Markup for SEO */}
       <BikeServiceSchema
         serviceName="Activa on Rent"

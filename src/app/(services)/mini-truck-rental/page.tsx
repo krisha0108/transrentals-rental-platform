@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { HowToSchema, BreadcrumbSchema } from '@/components/seo/schemas';
 
 const MINI_TRUCK_FAQS = [
   {
@@ -73,7 +74,7 @@ export const metadata: Metadata = {
     description: 'Rent Tata Ace and mini trucks across 250+ Indian cities. Driver included. House shifting, delivery, goods transport.',
     type: 'website',
     url: 'https://transrentals.in/mini-truck-rental',
-    images: [{ url: 'https://transrentals.in/images/og/mini-truck-rental.jpg', width: 1200, height: 630, alt: 'Mini Truck Rental - TransRentals' }],
+    images: [{ url: 'https://transrentals.in/api/og?service=mini-truck-rental', width: 1200, height: 630, alt: 'Mini Truck Rental - TransRentals' }],
     locale: 'en_IN',
     siteName: 'TransRentals',
   },
@@ -81,7 +82,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Mini Truck Rental | Tata Ace on Rent | Starting ₹1,499/Day | TransRentals',
     description: 'Rent Tata Ace and mini trucks across 250+ Indian cities. Driver included. House shifting, delivery, goods transport.',
-    images: ['https://transrentals.in/images/og/mini-truck-rental.jpg'],
+    images: ['https://transrentals.in/api/og?service=mini-truck-rental'],
   },
   alternates: { canonical: 'https://transrentals.in/mini-truck-rental' },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
@@ -119,6 +120,31 @@ export default function MiniTruckRentalPage() {
             areaServed: { '@type': 'Country', name: 'India' },
           }),
         }}
+      />
+      {/* BreadcrumbList Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
+              { '@type': 'ListItem', position: 2, name: 'Mini Truck Rental', item: 'https://transrentals.in/mini-truck-rental' },
+            ],
+          }),
+        }}
+      />
+      <HowToSchema
+        name="How to Book a Mini Truck Rental on TransRentals"
+        description="Rent Tata Ace and mini trucks across 250+ Indian cities with driver included."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Select Your City', text: 'Choose your city from 250+ locations. Enter pickup and drop address for your delivery or shifting job.' },
+          { name: 'Choose Vehicle Size', text: 'Pick Tata Ace (750 kg) for small shifts and deliveries, or Bolero Pickup (1.5 tonne) for heavier loads.' },
+          { name: 'Book by Hour or Day', text: 'Select a 4-hour, full-day, or multi-day package. Driver is included in all packages.' },
+          { name: 'Get Your Load Moved', text: 'The driver arrives at your location at the scheduled time. Loading assistance available as add-on.' },
+        ]}
       />
 
       <ServiceHeroWithChat

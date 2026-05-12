@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { BikeHeroWithLocation } from '@/components/bike/BikeHeroWithLocation';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Himalayan on Rent | Royal Enfield Himalayan @₹1499/Day | TransRentals',
@@ -17,6 +18,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function HimalayanOnRentPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent Royal Enfield Himalayan on TransRentals"
+        description="Book Royal Enfield Himalayan for adventure tours in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Choose Pickup City & Dates', text: 'Select your city and rental period. Himalayan available in Manali, Leh, Delhi, Shimla, and more.' },
+          { name: 'Check Model & Add-ons', text: 'Confirm Himalayan 411cc availability. Ask about panniers, crash guards, and USB charger fitment.' },
+          { name: 'Submit Documents', text: 'Upload DL (with motorcycle class), Aadhaar/PAN. Pay deposit and advance for multi-day adventure tours.' },
+          { name: 'Receive Bike & Ride', text: 'Collect Himalayan at vendor. Do inspection with checklist. Begin your mountain adventure safely.' },
+        ]}
+      />
       <BikeHeroWithLocation />
 
       <section className="relative bg-white text-gray-900 py-16">

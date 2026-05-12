@@ -78,6 +78,24 @@ export async function getServiceLocations(serviceSlug: string) {
 }
 
 /**
+ * Get all active city/town locations — used by generateStaticParams for service pages
+ * that should be pre-built for every city (not just service-enabled ones)
+ */
+export async function getAllCityLocations() {
+  try {
+    if (process.env.SKIP_DATABASE_CALLS === '1') return [];
+    const locations = await prisma.locations.findMany({
+      where: { type: { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] }, isActive: true },
+      select: { slug: true },
+    });
+    return locations.map((loc) => ({ location: loc.slug }));
+  } catch (error) {
+    console.error('[locations] Error fetching city locations:', error);
+    return [];
+  }
+}
+
+/**
  * Get all active locations from database (for services without specific service mapping)
  * Useful for generic vehicle-specific pages that should be available wherever parent service is available
  */

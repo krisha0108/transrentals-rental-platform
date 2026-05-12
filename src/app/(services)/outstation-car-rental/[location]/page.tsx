@@ -9,7 +9,7 @@ import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { notFound } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
-import { getServiceLocations } from '@/lib/services/service-locations';;
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { OutstationBookingHero } from '@/components/outstation-car-rental/OutstationBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -32,7 +32,7 @@ interface PageProps {
 // Generate static params for ALL locations - GOD LEVEL SEO
 // Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
-  return getServiceLocations('car-rental');
+  return getAllCityLocations();
 }
 
 // Enable ISR - Revalidate every hour
@@ -338,6 +338,8 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location}
         faqs={[]}
+        rating={4.7}
+        reviewCount={1589}
       />
       <RelatedServices
         locationSlug={params.location}

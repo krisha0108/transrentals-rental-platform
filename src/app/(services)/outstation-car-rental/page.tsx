@@ -4,6 +4,7 @@ import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBoo
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Outstation Car Rental - Intercity Car Hire Starting @₹10/km | TransRentals'),
@@ -27,6 +28,17 @@ export const metadata: Metadata = {
 export default function OutstationCarRentalPage() {
   return (
     <div className="flex flex-col">
+      <HowToSchema
+        name="How to Book Outstation Car Rental on TransRentals"
+        description="Book a car for outstation travel in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Enter Trip Details', text: 'Enter pickup city, destination, travel date, and trip type — one-way or round trip.' },
+          { name: 'Choose Car Category', text: 'Select hatchback, sedan, SUV, or luxury car based on group size and comfort preference.' },
+          { name: 'Compare Driver Quotes', text: 'Review quotes from verified drivers. Check rates per km, driver allowance, and toll inclusions.' },
+          { name: 'Book & Travel', text: 'Confirm booking with advance payment. Driver reports at pickup location at scheduled time.' },
+        ]}
+      />
       {/* Hero with booking form */}
       <SpecialtyCarBookingHero service="outstation" />
 

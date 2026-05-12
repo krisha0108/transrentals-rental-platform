@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { JCBRentalServiceHero } from '@/components/services/JCBRentalServiceHero';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { HowToSchema } from '@/components/seo/schemas';
 
 const JCB_FAQS = [
   {
@@ -91,6 +92,17 @@ export const metadata: Metadata = {
 export default function JCBOnRentPage() {
   return (
     <div className="flex flex-col">
+      <HowToSchema
+        name="How to Rent a JCB or Excavator on TransRentals"
+        description="Book a JCB backhoe loader or excavator with certified operator in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Describe Your Project', text: 'Enter project location, type of work (excavation, trenching, demolition), required machine type, and duration.' },
+          { name: 'Select Machine & Attachments', text: 'Choose JCB 3DX backhoe loader, mini excavator, or tipper-mounted JCB. Select attachments if needed — rock breaker, auger, or compactor.' },
+          { name: 'Get Vendor Quotes', text: 'Receive quotes from verified equipment vendors with certified operators. Compare daily rates and shift options.' },
+          { name: 'Confirm & Deploy', text: 'Pay advance to confirm booking. Machine and operator arrive at your site on scheduled date.' },
+        ]}
+      />
       {/* FAQPage Schema */}
       <script
         type="application/ld+json"

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
 import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
-import { BikeServiceSchema } from '@/components/seo/schemas';
+import { BikeServiceSchema, HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Royal Enfield on Rent - Classic 350, Himalayan & More @₹599/Day | TransRentals',
@@ -65,6 +65,17 @@ const schemaVehicles = [
 export default function RoyalEnfieldOnRentPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Royal Enfield on TransRentals"
+        description="Book a Royal Enfield Classic, Himalayan, or Meteor rental in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Enter City & Dates', text: 'Select your city, pickup date, and rental duration — daily, weekly, or monthly options available.' },
+          { name: 'Choose Your Model', text: 'Pick from Royal Enfield Classic 350, Himalayan, Meteor 350, or Hunter 350 based on your trip type.' },
+          { name: 'Review & Compare', text: 'Compare prices from verified vendors. Check security deposit, fuel policy, and helmet inclusions.' },
+          { name: 'Book & Ride', text: 'Submit your DL and ID, pay deposit online. Pick up the bike from vendor location and start riding.' },
+        ]}
+      />
       {/* Schema Markup for SEO */}
       <BikeServiceSchema
         serviceName="Royal Enfield on Rent"

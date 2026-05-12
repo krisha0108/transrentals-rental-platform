@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { OneWayRouteBookingHero } from '@/components/one-way-cab/OneWayRouteBookingHero';
 import { OneWayCabComingSoon } from '@/components/one-way-cab/OneWayCabComingSoon';
+import { RouteSchema } from '@/components/seo/schemas';
 import { RouteOverview } from '@/components/routes/RouteOverview';
 import { RoutePricing } from '@/components/routes/RoutePricing';
 import { SimilarRoutes } from '@/components/routes/SimilarRoutes';
@@ -657,6 +658,18 @@ export default async function OneWayCabRoutePage({ params }: PageProps) {
         tollCharges={avgToll}
       />
 
+      {/* Trip Schema — route structured data */}
+      <RouteSchema
+        fromCity={from.name}
+        toCity={to.name}
+        distance={avgDistance}
+        estimatedTime={avgTime}
+        minPrice={minPrice}
+        maxPrice={maxPrice}
+        pageUrl={`https://transrentals.in/one-way-cab/${params.route}`}
+        serviceType="one-way-cab"
+      />
+
       {/* Schema Markup for SEO - Multiple schemas for rich snippets */}
 
       {/* 1. Service Schema with AggregateRating */}
@@ -692,19 +705,13 @@ export default async function OneWayCabRoutePage({ params }: PageProps) {
             ],
             offers: {
               '@type': 'AggregateOffer',
-              lowPrice: minPrice.toString(),
-              highPrice: maxPrice.toString(),
+              lowPrice: minPrice,
+              highPrice: maxPrice,
               priceCurrency: 'INR',
+              offerCount: 20,
               availability: 'https://schema.org/InStock',
               url: `https://transrentals.in/one-way-cab/${params.route}`,
               priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            },
-            aggregateRating: {
-              '@type': 'AggregateRating',
-              ratingValue: '4.8',
-              reviewCount: '2847',
-              bestRating: '5',
-              worstRating: '1',
             },
           }),
         }}

@@ -1,7 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
-import { MapPin, ArrowRight, Building2 } from 'lucide-react';
+import { MapPin, ArrowRight, Building2, Lightbulb } from 'lucide-react';
 import type { IndianState } from '@/data/indian-cities';
+import { STATE_SEO } from '@/data/city-seo-content';
 
 interface StateServicePageProps {
   state: IndianState;
@@ -145,16 +146,45 @@ export function StateServicePage({ state, activeCities, serviceSlug, serviceName
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               About {serviceName} in {state.name}
             </h2>
-            <p className="text-gray-600 leading-relaxed mb-4">
-              {serviceName} in {state.name} is available across {count} {count === 1 ? 'city' : 'cities'}.
-              Choose your city below to see prices, packages, and book instantly.
-              TransRentals partners with verified operators across {state.name} to ensure reliable,
-              affordable service wherever you need it.
-            </p>
-            <p className="text-gray-600 leading-relaxed">
-              Currently serving: {cityNames}.
-              We are continuously expanding our network across {state.name} — check back soon for more cities.
-            </p>
+            {STATE_SEO[state.code] ? (
+              <>
+                <p className="text-gray-600 leading-relaxed mb-4">
+                  {STATE_SEO[state.code].intro}
+                </p>
+                <p className="text-gray-600 leading-relaxed mb-6">
+                  {serviceName} is currently available in {count} {count === 1 ? 'city' : 'cities'} across {state.name}: {cityNames}.
+                  TransRentals partners with verified operators to ensure reliable, affordable service wherever you need it.
+                </p>
+                {STATE_SEO[state.code].tips.length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Lightbulb className="w-5 h-5 text-amber-500" />
+                      <h3 className="font-semibold text-gray-900">Travel Tips for {state.name}</h3>
+                    </div>
+                    <ul className="space-y-2">
+                      {STATE_SEO[state.code].tips.map((tip, i) => (
+                        <li key={i} className="flex items-start gap-2 text-gray-600 text-sm">
+                          <span className="text-amber-500 mt-0.5 flex-shrink-0">›</span>
+                          {tip}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-gray-600 leading-relaxed mb-4">
+                  {serviceName} in {state.name} is available across {count} {count === 1 ? 'city' : 'cities'}.
+                  Choose your city below to see prices, packages, and book instantly.
+                  TransRentals partners with verified operators across {state.name} to ensure reliable, affordable service wherever you need it.
+                </p>
+                <p className="text-gray-600 leading-relaxed">
+                  Currently serving: {cityNames}.
+                  We are continuously expanding our network across {state.name} — check back soon for more cities.
+                </p>
+              </>
+            )}
           </div>
         </section>
 

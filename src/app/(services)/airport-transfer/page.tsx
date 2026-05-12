@@ -5,6 +5,7 @@ import { AirportRoutesGrid } from '@/components/services/AirportRoutesGrid';
 import Link from 'next/link';
 import { Plane, IndianRupee, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { CarRentalBookingHero } from '@/components/car-rental/CarRentalBookingHero';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Airport Transfer - Cab Service Starting @₹499 | TransRentals',
@@ -120,6 +121,17 @@ export default async function AirportTransferPage() {
 
   return (
     <>
+      <HowToSchema
+        name="How to Book Airport Transfer on TransRentals"
+        description="Book airport pickup or drop cab in 4 simple steps."
+        totalTime="PT5M"
+        steps={[
+          { name: 'Enter Flight & Airport Details', text: 'Enter airport name, flight number, arrival/departure time, and pickup/drop address.' },
+          { name: 'Choose Cab Type', text: 'Select hatchback, sedan, SUV, or luxury cab based on passenger count and luggage.' },
+          { name: 'Review Fixed Price', text: 'Airport transfers are priced as fixed fares. No surge pricing. Includes driver, waiting time for arrivals.' },
+          { name: 'Confirm & Relax', text: 'Pay advance to confirm. Driver tracks your flight. Meets you with name board at the arrival gate.' },
+        ]}
+      />
       <CarRentalBookingHero
         serviceSlug="car-rental"
         serviceTitle="Airport Transfer"
@@ -394,8 +406,9 @@ export default async function AirportTransferPage() {
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',
-              lowPrice: '499',
-              highPrice: '5000',
+              lowPrice: 499,
+              highPrice: 5000,
+              offerCount: 50,
             },
           }),
         }}

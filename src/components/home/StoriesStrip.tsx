@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Play, Zap, ArrowRight } from 'lucide-react';
 
 interface Story {
@@ -24,7 +25,7 @@ function StoryCard({ story }: { story: Story }) {
         style={{ aspectRatio: '9/16' }}
       >
         {cover ? (
-          <img src={cover} alt={story.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+          <Image src={cover} alt={story.title} fill className="object-cover transition-transform duration-500 group-hover:scale-110" sizes="200px" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-[#09B368] via-[#065f35] to-[#022c1a] flex items-center justify-center">
             <Play className="w-10 h-10 text-white/30" />

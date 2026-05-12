@@ -52,3 +52,52 @@ export const getCachedSubServices = unstable_cache(
   ['sub-services-by-parent'],
   { revalidate: 3600, tags: ['services'] }
 );
+
+/**
+ * Compute weighted-average AggregateRating for a service+location from vendor data.
+ * Returns null if no vendor data — callers should fall back to static defaults.
+ * Cached 1hr per service+location pair.
+ */
+export const getServiceLocationRating = unstable_cache(
+  async (serviceSlug: string, locationSlug: string) => {
+    try {
+      const [service, location] = await Promise.all([
+        prisma.services.findFirst({ where: { slug: serviceSlug }, select: { id: true } }),
+        prisma.locations.findFirst({ where: { slug: locationSlug, isActive: true }, select: { id: true } }),
+      ]);
+
+      if (!service || !location) return null;
+
+      const vendors = await prisma.vendors.findMany({
+        where: {
+          vendor_approved_services: { some: { serviceId: service.id } },
+          vendor_approved_locations: { some: { locationId: location.id, isActive: true } },
+          totalRatings: { gt: 0 },
+        },
+        select: { rating: true, totalRatings: true },
+      });
+
+      if (vendors.length === 0) return null;
+
+      let weightedSum = 0;
+      let totalReviews = 0;
+      for (const v of vendors) {
+        if (v.rating && v.totalRatings) {
+          weightedSum += v.rating * v.totalRatings;
+          totalReviews += v.totalRatings;
+        }
+      }
+
+      if (totalReviews === 0) return null;
+
+      return {
+        ratingValue: Math.round((weightedSum / totalReviews) * 10) / 10,
+        reviewCount: totalReviews,
+      };
+    } catch {
+      return null;
+    }
+  },
+  ['vendor-service-location-rating'],
+  { revalidate: 3600, tags: ['vendors', 'services', 'locations'] }
+);

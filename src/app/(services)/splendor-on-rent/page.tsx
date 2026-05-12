@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Splendor on Rent in India | Hero Splendor Rental @₹299/Day | TransRentals',
@@ -46,6 +47,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function SplendorRentalPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Hero Splendor on TransRentals"
+        description="Book Hero Splendor rental for daily commuting in 4 simple steps."
+        totalTime="PT7M"
+        steps={[
+          { name: 'Select City & Duration', text: 'Enter city and choose rental period. Splendor Plus, iSmart, and Super Splendor available for daily and monthly rental.' },
+          { name: 'Choose Variant', text: 'Select Splendor Plus for basic commuting or Super Splendor for slightly more power. Both offer great fuel economy.' },
+          { name: 'Upload DL & Pay Deposit', text: 'Submit driving licence with two-wheeler class and Aadhaar. Pay minimal deposit for this commuter segment.' },
+          { name: 'Pick Up & Commute', text: 'Collect Splendor at vendor location. Perfect for daily office commute with excellent mileage.' },
+        ]}
+      />
       <BikeSearchHero />
 
       {/* Hero Section */}

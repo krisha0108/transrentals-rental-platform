@@ -4,6 +4,7 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { HourlyPopularPackages } from '@/components/hourly-car-rental/HourlyPopularPackages';
 import { HourlyBookingHeroAuto } from '@/components/hourly-car-rental/HourlyBookingHeroAuto';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Hourly Car Rental | Rent Car by Hour @₹149/hr | TransRentals',
@@ -22,6 +23,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function HourlyCarRentalPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Book Hourly Car Rental on TransRentals"
+        description="Rent a car by the hour in 4 simple steps."
+        totalTime="PT5M"
+        steps={[
+          { name: 'Choose City & Package', text: 'Select your city and hourly package — 2 hours, 4 hours, or 8 hours with included km limit.' },
+          { name: 'Pick Car Type', text: 'Choose from hatchback, sedan, or SUV for your short-trip needs. All self-drive options available.' },
+          { name: 'Verify & Book', text: 'Upload DL and complete KYC. Pay only for the hours needed. Instant booking confirmation.' },
+          { name: 'Drive & Return', text: 'Pick up at vendor location or home delivery. Return car within the booked time to avoid extra charges.' },
+        ]}
+      />
       <HourlyBookingHeroAuto />
 
       <section className="py-12 bg-white">

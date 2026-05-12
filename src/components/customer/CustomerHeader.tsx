@@ -247,7 +247,7 @@ export default function CustomerHeader({
               >
                 <div className="w-8 h-8 rounded-full overflow-hidden bg-[#09B368] flex items-center justify-center flex-shrink-0 shadow-sm">
                   {customer?.image ? (
-                    <img src={customer.image} alt={customer?.name} className="w-full h-full object-cover" />
+                    <Image src={customer.image} alt={customer?.name || ''} width={32} height={32} className="object-cover" />
                   ) : (
                     <span className="text-sm font-bold text-white">{initial}</span>
                   )}
