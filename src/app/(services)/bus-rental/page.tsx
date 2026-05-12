@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Bus Rental in India | Tempo Traveller Hire | Starting ₹18/km | TransRentals',
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
     description: 'Hire buses and tempo travellers across 50+ Indian cities. 12-seater to 50-seater AC/Non-AC buses for pilgrimages, weddings, and corporate events. 500+ verified operators.',
     type: 'website',
     url: 'https://transrentals.in/bus-rental',
-    images: [{ url: 'https://transrentals.in/images/og/bus-rental.jpg', width: 1200, height: 630, alt: 'Bus Rental in India - TransRentals' }],
+    images: [{ url: 'https://transrentals.in/api/og?service=bus-rental', width: 1200, height: 630, alt: 'Bus Rental in India - TransRentals' }],
     locale: 'en_IN',
     siteName: 'TransRentals',
   },
@@ -52,7 +53,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Bus Rental in India | Tempo Traveller Hire | Starting ₹18/km | TransRentals',
     description: 'Hire buses and tempo travellers across 50+ Indian cities. IBA-approved, verified operators.',
-    images: ['https://transrentals.in/images/og/bus-rental.jpg'],
+    images: ['https://transrentals.in/api/og?service=bus-rental'],
   },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
 };
@@ -234,6 +235,17 @@ const FAQS = [
 export default function BusRentalPage() {
   return (
     <div className="min-h-screen">
+      <HowToSchema
+        name="How to Book a Bus Rental on TransRentals"
+        description="Book a bus or tempo traveller in 4 simple steps across 50+ Indian cities."
+        totalTime="PT15M"
+        steps={[
+          { name: 'Select Route & Date', text: 'Enter your starting city, destination, and travel date. Choose from routes across 50+ Indian cities.' },
+          { name: 'Choose Bus Type & Capacity', text: 'Select the right bus — 12-seater Tempo Traveller, 17-seater, 20-seater, 32-seater, or 50-seater Volvo. AC and non-AC options available.' },
+          { name: 'Compare Operator Quotes', text: 'Review quotes from 500+ verified bus operators. Check inclusions — driver, fuel, toll, and GST charges.' },
+          { name: 'Confirm Booking & Travel', text: 'Pay advance to confirm booking. Driver arrives at your pickup point on the travel date.' },
+        ]}
+      />
       {/* Enhanced FAQ Schema */}
       <script
         type="application/ld+json"

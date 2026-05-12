@@ -6,7 +6,7 @@ import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { notFound } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
-import { getServiceLocations } from '@/lib/services/service-locations';;
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -26,7 +26,7 @@ interface PageProps {
 // Generate static params for ALL locations - GOD LEVEL SEO
 // Generate static params from DATABASE - Only locations where bus-rental is available
 export async function generateStaticParams() {
-  return getServiceLocations('bus-rental');
+  return getAllCityLocations();
 }
 
 // Enable ISR - Revalidate every hour

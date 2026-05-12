@@ -8,6 +8,30 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
+const PENDING_STATUSES = ['PENDING', 'PENDING_VENDOR', 'BROADCASTED'];
+const ADVANCE_PAID_STATUSES = [
+  'ADVANCE_PAID', 'DRIVER_ASSIGNED', 'VEHICLE_ASSIGNED',
+  'READY_FOR_TRIP', 'TRIP_READY', 'READY',
+  'ONGOING', 'IN_PROGRESS', 'TRIP_STARTED',
+];
+const CANCELLED_STATUSES = ['CANCELLED', 'REJECTED', 'EXPIRED'];
+
+// Compute stat-card numbers from the full filtered record set (pre-pagination)
+// so the cards reflect the date/status filter, not just the visible page.
+function buildBookingStats(records: Array<{ status?: string; paymentStatus?: string; totalAmount?: number }>) {
+  return {
+    total: records.length,
+    pending: records.filter(r => r.status && PENDING_STATUSES.includes(r.status)).length,
+    quotesReceived: records.filter(r => r.status === 'QUOTES_RECEIVED').length,
+    advancePaid: records.filter(r => r.status && ADVANCE_PAID_STATUSES.includes(r.status)).length,
+    completed: records.filter(r => r.status === 'COMPLETED').length,
+    cancelled: records.filter(r => r.status && CANCELLED_STATUSES.includes(r.status)).length,
+    totalRevenue: records
+      .filter(r => r.paymentStatus === 'PAID')
+      .reduce((sum, r) => sum + (r.totalAmount || 0), 0),
+  };
+}
+
 // Helper to calculate date range based on filter
 function getDateRange(dateFilter: string, customStart?: string, customEnd?: string): { startDate: Date | null; endDate: Date | null } {
   const now = new Date();
@@ -242,6 +266,7 @@ async function getBookingsForService(
       return {
         bookings: paginatedBookings,
         total,
+        stats: buildBookingStats(allBookings),
       };
     }
 
@@ -367,6 +392,7 @@ async function getBookingsForService(
       return {
         bookings: paginatedBookings,
         total,
+        stats: buildBookingStats(allBookings),
       };
     }
 
@@ -392,7 +418,7 @@ async function getBookingsForService(
         if (endDate) where.createdAt.lte = endDate;
       }
 
-      const [bookings, total] = await Promise.all([
+      const [bookings, total, statusGroups, paidRevenue] = await Promise.all([
         prisma.chauffeur_bookings.findMany({
           where,
           include: {
@@ -404,7 +430,24 @@ async function getBookingsForService(
           take: limit,
         }),
         prisma.chauffeur_bookings.count({ where }),
+        // Status breakdown over the full filtered set (not just the visible page).
+        prisma.chauffeur_bookings.groupBy({
+          by: ['status'],
+          where,
+          _count: { _all: true },
+        }),
+        prisma.chauffeur_bookings.aggregate({
+          where: { ...where, paymentStatus: 'PAID' },
+          _sum: { grandTotal: true },
+        }),
       ]);
+
+      const statusCounts: Record<string, number> = {};
+      for (const g of statusGroups) {
+        if (g.status) statusCounts[g.status] = g._count._all;
+      }
+      const sumStatuses = (keys: string[]) =>
+        keys.reduce((s, k) => s + (statusCounts[k] || 0), 0);
 
       return {
         bookings: bookings.map((b) => ({
@@ -428,6 +471,15 @@ async function getBookingsForService(
           vehicleImage: '/images/fleet/default-car.jpg',
         })),
         total,
+        stats: {
+          total,
+          pending: sumStatuses(PENDING_STATUSES),
+          quotesReceived: statusCounts['QUOTES_RECEIVED'] || 0,
+          advancePaid: sumStatuses(ADVANCE_PAID_STATUSES),
+          completed: statusCounts['COMPLETED'] || 0,
+          cancelled: sumStatuses(CANCELLED_STATUSES),
+          totalRevenue: paidRevenue._sum.grandTotal || 0,
+        },
       };
     }
 
@@ -546,6 +598,7 @@ async function getBookingsForService(
       return {
         bookings: paginatedBookings,
         total,
+        stats: buildBookingStats(allBookings),
       };
     }
 
@@ -665,6 +718,7 @@ async function getBookingsForService(
       return {
         bookings: paginatedBookings,
         total,
+        stats: buildBookingStats(allBookings),
       };
     }
 
@@ -783,6 +837,7 @@ async function getBookingsForService(
       return {
         bookings: paginatedBookings,
         total,
+        stats: buildBookingStats(allBookings),
       };
     }
 
@@ -901,6 +956,7 @@ async function getBookingsForService(
       return {
         bookings: paginatedBookings,
         total,
+        stats: buildBookingStats(allBookings),
       };
     }
 
@@ -1016,6 +1072,7 @@ async function getBookingsForService(
       return {
         bookings: paginatedBookings,
         total,
+        stats: buildBookingStats(allBookings),
       };
     }
 
@@ -1061,7 +1118,7 @@ export async function GET(
     }
 
     // Get bookings based on service type
-    const { bookings, total } = await getBookingsForService(
+    const { bookings, total, stats } = await getBookingsForService(
       slug,
       page,
       limit,
@@ -1097,14 +1154,14 @@ export async function GET(
         slug: service.slug,
       },
       bookings: bookingsWithCalls,
-      stats: {
+      stats: stats ?? {
         total,
-        pending: bookings.filter(b => ['PENDING', 'PENDING_VENDOR', 'BROADCASTED'].includes(b.status)).length,
-        quotesReceived: bookings.filter(b => b.status === 'QUOTES_RECEIVED').length,
-        advancePaid: bookings.filter(b => ['ADVANCE_PAID', 'DRIVER_ASSIGNED', 'VEHICLE_ASSIGNED', 'READY_FOR_TRIP', 'TRIP_READY', 'READY', 'ONGOING', 'IN_PROGRESS', 'TRIP_STARTED'].includes(b.status)).length,
-        completed: bookings.filter(b => b.status === 'COMPLETED').length,
-        cancelled: bookings.filter(b => ['CANCELLED', 'REJECTED', 'EXPIRED'].includes(b.status)).length,
-        totalRevenue: bookings.filter(b => b.paymentStatus === 'PAID').reduce((sum, b) => sum + (b.totalAmount || 0), 0),
+        pending: 0,
+        quotesReceived: 0,
+        advancePaid: 0,
+        completed: 0,
+        cancelled: 0,
+        totalRevenue: 0,
       },
       pagination: {
         page,

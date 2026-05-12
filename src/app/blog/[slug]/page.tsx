@@ -12,6 +12,13 @@ import { renderBlogContent } from '@/lib/markdown';
 import { resolveAssetUrl } from '@/lib/utils';
 import { Calendar, Clock, Eye, ArrowLeft, Tag, ChevronRight, Bookmark, Heart } from 'lucide-react';
 import { ArticleSchema, BreadcrumbSchema } from '@/components/seo/schemas';
+import { SERVICES } from '@/lib/constants/services';
+
+const FEATURED_SERVICE_SLUGS = [
+  'one-way-cab', 'airport-transfer', 'car-rental',
+  'bike-on-rent', 'tempo-traveller', 'bus-rental',
+];
+const FEATURED_SERVICES = SERVICES.filter(s => FEATURED_SERVICE_SLUGS.includes(s.slug));
 
 
 interface BlogPostPageProps {
@@ -328,19 +335,37 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
 
 
-              {/* CTA Card - Before Related Posts */}
-<div className="my-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
-  <h3 className="text-xl font-bold mb-2">Start Your Journey Today!</h3>
-  <p className="text-blue-100 text-sm mb-4">
-    Get the best rental deals for your next trip with TransRentals
-  </p>
-  <Link
-    href="/services"
-    className="inline-block bg-white text-blue-600 font-semibold py-2 px-6 rounded-lg hover:bg-blue-50 transition-colors"
-  >
-    Book Your Vehicle
-  </Link>
-</div>
+              {/* Explore Our Services */}
+              <div className="my-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Explore Our Services</h3>
+                    <p className="text-sm text-gray-500 mt-0.5">Book your vehicle for any occasion across India</p>
+                  </div>
+                  <Link
+                    href="/services"
+                    className="text-sm font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1 shrink-0"
+                  >
+                    View all
+                    <ChevronRight size={14} />
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-gray-100">
+                  {FEATURED_SERVICES.map((service) => (
+                    <Link
+                      key={service.slug}
+                      href={service.base_url}
+                      className="group bg-white p-4 hover:bg-emerald-50 transition-colors"
+                    >
+                      <div className="text-2xl mb-2">{service.icon}</div>
+                      <div className="font-semibold text-sm text-gray-900 group-hover:text-emerald-700 transition-colors leading-tight">
+                        {service.name}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{service.description}</div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
 
               {/* Related Posts */}
               {/* <RelatedPosts posts={relatedPosts} /> */}

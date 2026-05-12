@@ -5,6 +5,7 @@ import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Wedding Bus Rental - Luxury Buses for Marriage Starting @₹3999 | TransRentals'),
@@ -28,6 +29,17 @@ export const metadata: Metadata = {
 export default function WeddingBusRentalPage() {
   return (
     <div className="flex flex-col">
+      <HowToSchema
+        name="How to Book a Wedding Bus Rental on TransRentals"
+        description="Book decorated buses for wedding ceremonies in 4 simple steps."
+        totalTime="PT15M"
+        steps={[
+          { name: 'Enter Wedding Details', text: 'Share wedding date, guest count, pickup and drop locations. Mention if you need decorated or luxury AC buses.' },
+          { name: 'Choose Bus Size', text: 'Select from 20-seater mini buses to 50-seater Volvo coaches based on guest count. Luxury and decorated options available.' },
+          { name: 'Compare Vendor Quotes', text: 'Get quotes from verified wedding transport vendors. Check decorations, driver attire, and inclusions.' },
+          { name: 'Confirm & Coordinate', text: 'Pay advance to confirm. Share final guest list and pickup schedule. Vendor coordinates logistics on wedding day.' },
+        ]}
+      />
       <ServiceHeroWithChat
         badge="Wedding Bus Services in 250+ Cities"
         title="Wedding Bus Rental | Baraat Bus Hire"

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Fortuner on Rent Without Driver | Self Drive Fortuner @₹4999/Day | TransRentals',
@@ -31,6 +32,17 @@ const topCities = ALL_CITIES.slice(0, 60);
 export default function FortunerOnRentPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Toyota Fortuner on TransRentals"
+        description="Book Fortuner self-drive or with chauffeur in 4 simple steps."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Choose City & Dates', text: 'Enter your city, rental start date, and duration. Fortuner available for day, weekend, and weekly rentals.' },
+          { name: 'Confirm Rental Type', text: 'Choose self-drive Fortuner or with driver for VIP/wedding use. Confirm 7-seater 4WD requirement.' },
+          { name: 'Verify & Pay Deposit', text: 'Submit DL and government ID for KYC. Pay higher security deposit applicable for premium SUV category.' },
+          { name: 'Pick Up Premium SUV', text: 'Collect keys at vendor or doorstep delivery (select cities). Inspect and start your premium journey.' },
+        ]}
+      />
       <SwiftRentalTypeHero
         vehicleName="Toyota Fortuner"
         selfDrivePrice="₹4,999"

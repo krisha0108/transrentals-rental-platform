@@ -24,13 +24,16 @@ export async function GET() {
       const key = `${from}-${to}`;
       if (seenRoutes.has(key)) continue;
       seenRoutes.add(key);
+      const routeLastMod = r.updatedAt ?? r.createdAt ?? new Date();
       entries.push({
         url: `${BASE_URL}/one-way-cab/${from}-to-${to}`,
+        lastModified: routeLastMod,
         changeFrequency: 'weekly',
         priority: 0.75,
       });
       entries.push({
         url: `${BASE_URL}/round-trip/${from}-to-${to}-round-trip`,
+        lastModified: routeLastMod,
         changeFrequency: 'weekly',
         priority: 0.7,
       });
@@ -46,6 +49,7 @@ export async function GET() {
       );
       entries.push({
         url: `${BASE_URL}/airport-transfer/${seoSlug}`,
+        lastModified: r.updatedAt ?? r.createdAt ?? new Date(),
         changeFrequency: 'weekly',
         priority: 0.75,
       });

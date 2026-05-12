@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: '26 Seater Bus on Rent | Mini Bus Hire @₹28/km | TransRentals',
@@ -20,6 +21,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function TwentySixSeaterBusPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Book a 26-Seater Mini Bus on TransRentals"
+        description="Hire a 26-seater mini bus for events and group travel in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Share Event Details', text: 'Enter pickup city, event date, route, and group size (up to 26 passengers). Mention event type — wedding, corporate, or school trip.' },
+          { name: 'Select Bus Configuration', text: 'Choose AC or non-AC 26-seater. Confirm if push-back seats or standard seats are required.' },
+          { name: 'Compare Operator Quotes', text: 'Review quotes from verified bus operators. Check rates, driver allowance, and state permit charges.' },
+          { name: 'Confirm & Schedule', text: 'Pay advance deposit to confirm. Share final pickup schedule and itinerary with the operator.' },
+        ]}
+      />
       <ServiceHeroWithChat
         badge="Mini Bus for Large Groups"
         title="26 Seater Bus on Rent"

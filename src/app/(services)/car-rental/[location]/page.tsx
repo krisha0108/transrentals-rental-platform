@@ -11,12 +11,17 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { prisma } from '@/lib/db/prisma';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { getCachedServiceBySlug } from '@/lib/services/cached-service-lookups';
-import { getServiceLocations } from '@/lib/services/service-locations';
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
+import { getServiceLocationRating } from '@/lib/services/cached-service-lookups';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { CITY_SEO } from '@/data/city-seo-content';
+import { RelatedServices } from '@/components/services/RelatedServices';
+import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
+import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
+import { AutoRentalSchema } from '@/components/seo/schemas';
 
 const CAR_RENTAL_FALLBACK_FAQS = [
   { question: 'What is the cost of car rental per day?', answer: 'Self-drive hatchback rentals start from ₹999/day. Chauffeur-driven sedans start from ₹1,500/day. SUVs start from ₹2,500/day. Outstation trips are charged per km (₹12–18/km). Rates vary by vehicle type and city — get a free quote on TransRentals for exact pricing.' },
@@ -36,9 +41,18 @@ interface PageProps {
   };
 }
 
-// Generate static params from DATABASE - Only enabled locations
+// Generate static params for ALL active cities (not just service-enabled ones)
 export async function generateStaticParams() {
-  return getServiceLocations('car-rental');
+  if (process.env.SKIP_DATABASE_CALLS === '1') return [];
+  try {
+    const locations = await prisma.locations.findMany({
+      where: { type: { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] }, isActive: true },
+      select: { slug: true },
+    });
+    return locations.map((loc) => ({ location: loc.slug }));
+  } catch {
+    return getServiceLocations('car-rental');
+  }
 }
 
 // Enable ISR - Revalidate every hour
@@ -61,23 +75,58 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const _seoDb = await resolvePageMeta(`car-rental:${params.location}`);
   return {
-    title: _seoDb?.metaTitle || `Car Rental in ${locationName} | Starting ₹999/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent cars in ${locationName}. Self-drive cars, SUVs, sedans, hatchbacks available. Book online. Best prices guaranteed. 24/7 support. Verified vendors.`,
+    title: _seoDb?.metaTitle || `Car Rental in ${locationName} | With Driver Starting ₹999/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Hire a car with driver in ${locationName} starting ₹999/day. Swift, Innova, Creta, Ertiga & more. Local, outstation & airport transfers available. Chauffeur-driven cars with doorstep pickup. Book car rental in ${locationName} now!`,
     keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `car rental ${locationName.toLowerCase()}`,
+      `car rental in ${locationName.toLowerCase()}`,
       `car on rent in ${locationName.toLowerCase()}`,
-      `self drive car ${locationName.toLowerCase()}`,
       `rent a car ${locationName.toLowerCase()}`,
       `car hire ${locationName.toLowerCase()}`,
+      `cab service ${locationName.toLowerCase()}`,
+      `taxi rental ${locationName.toLowerCase()}`,
+      `outstation cab ${locationName.toLowerCase()}`,
+      `innova on rent ${locationName.toLowerCase()}`,
+      `creta on rent ${locationName.toLowerCase()}`,
+      `swift on rent ${locationName.toLowerCase()}`,
+      `cab rental ${locationName.toLowerCase()}`,
       ...(city.keywords || []).map(k => `car rental ${k}`),
     ],
     openGraph: {
-      title: `Car Rental in ${locationName} - Starting ₹999/Day`,
-      description: `Book self-drive cars in ${locationName}. Wide range of hatchbacks, sedans, SUVs, and luxury cars. Instant booking.`,
+      title: `Car Rental in ${locationName} - With Driver | Starting ₹999/Day | TransRentals`,
+      description: `Hire cars with driver in ${locationName} starting ₹999/day. Swift, Innova, Creta, Ertiga & more. Local, outstation & airport transfers. Best prices guaranteed.`,
+      type: 'website',
       url: `https://transrentals.in/car-rental/${params.location}`,
+      images: [
+        {
+          url: 'https://transrentals.in/images/og/car-rental.jpg',
+          width: 1200,
+          height: 630,
+          alt: `Car Rental in ${locationName} - TransRentals`,
+        },
+      ],
+      locale: 'en_IN',
+      siteName: 'TransRentals',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Car Rental in ${locationName} - TransRentals`,
+      description: `Rent cars in ${locationName} starting ₹999/day. Swift, Innova, Creta & more. Best prices guaranteed.`,
+      images: ['https://transrentals.in/images/og/car-rental.jpg'],
     },
     alternates: {
       canonical: `https://transrentals.in/car-rental/${params.location}`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
   };
 }
@@ -227,8 +276,11 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city.name;
 
-  // Fetch packages from database
-  const categories = await getPackagesForLocation(params.location);
+  // Fetch packages and real vendor rating from database
+  const [categories, liveRating] = await Promise.all([
+    getPackagesForLocation(params.location),
+    getServiceLocationRating('car-rental', params.location),
+  ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['car-rental'] || [];
 
   return (
@@ -251,6 +303,8 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
         citySlug={params.location}
         serviceSlug="car-rental"
         serviceTitle="Car Rental"
+        headingLine1="Car Rental in"
+        headingLine2={locationName}
       />
 
       {/* Packages Grid - Fetched from Database */}
@@ -271,12 +325,30 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
         serviceSlug="car-rental"
       />
 
+      {/* FAQs — city-specific if available, generic fallback otherwise */}
       {cityFAQs.length === 0 && (
         <FAQSection
           service="car-rental"
           location={locationName}
           customFaqs={CAR_RENTAL_FALLBACK_FAQS}
         />
+      )}
+      {cityFAQs.length > 0 && (
+        <section className="py-16 bg-white">
+          <div className="container-custom max-w-3xl">
+            <h2 className="text-3xl font-bold text-gray-900 mb-10 text-center">
+              Frequently Asked Questions — Car Rental in {locationName}
+            </h2>
+            <div className="space-y-6">
+              {cityFAQs.map((faq) => (
+                <div key={faq.q} className="bg-gray-50 p-6 rounded-xl">
+                  <h3 className="font-semibold text-gray-900 mb-2">{faq.q}</h3>
+                  <p className="text-gray-600">{faq.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
       <NearbyLocations
@@ -291,21 +363,94 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
         stateCode={city.stateCode}
       />
 
-      {/* LocalBusiness Schema */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'LocalBusiness',
-            name: `Car Rental in ${locationName} — TransRentals`,
-            description: `Rent cars in ${locationName}. Self-drive and chauffeur-driven options for local, outstation, and corporate travel.`,
-            url: `https://transrentals.in/car-rental/${params.location}`,
-            areaServed: { '@type': 'City', name: locationName },
-            provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
-            priceRange: '₹₹',
-          }),
-        }}
+      <ServiceAreasSection
+        serviceSlug="car-rental"
+        citySlug={params.location}
+        cityName={locationName}
+        serviceName="Car Rental"
+      />
+
+      <CrossServiceLinks
+        citySlug={params.location}
+        cityName={locationName}
+        currentServiceSlug="car-rental"
+      />
+
+      {/* SEO Content Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="container-custom">
+          <div className="max-w-4xl mx-auto prose prose-lg">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">
+              Car Rental Services in {locationName}
+            </h2>
+            {CITY_SEO[params.location]?.serviceIntros?.['car-rental'] ? (
+              <p className="text-gray-600">{CITY_SEO[params.location].serviceIntros['car-rental']}</p>
+            ) : (
+              <p className="text-gray-600">
+                TransRentals offers the best car rental services in {locationName}. Whether you need a hatchback
+                for city commuting, an SUV for a family trip, or a chauffeur-driven sedan for corporate travel,
+                we have you covered. Our verified vendor network in {locationName} ensures well-maintained
+                vehicles from top brands like Maruti Swift, Toyota Innova, Hyundai Creta, Maruti Ertiga, and more.
+              </p>
+            )}
+            <h3 className="text-2xl font-bold text-gray-900 mt-8 mb-4">
+              Why Choose TransRentals for Car Rental in {locationName}?
+            </h3>
+            <ul className="text-gray-600 space-y-2">
+              <li><strong>Wide Fleet:</strong> Hatchbacks, sedans, SUVs, luxury cars & tempo travellers</li>
+              <li><strong>Professional Drivers:</strong> Experienced, verified chauffeurs for local & outstation trips</li>
+              <li><strong>Best Prices:</strong> Chauffeur-driven cars starting from just ₹999/day</li>
+              <li><strong>Flexible Trips:</strong> Local city rides, outstation, airport transfers, corporate travel</li>
+              <li><strong>Easy Booking:</strong> Book online in minutes with instant confirmation</li>
+              <li><strong>24/7 Support:</strong> Round-the-clock roadside assistance and customer support</li>
+              <li><strong>Verified Vendors:</strong> All car rental partners in {locationName} are background-checked</li>
+            </ul>
+            <h3 className="text-2xl font-bold text-gray-900 mt-8 mb-4">
+              Popular Cars for Hire in {locationName}
+            </h3>
+            <ul className="text-gray-600 space-y-2">
+              <li><strong>Hatchbacks:</strong> Maruti Swift, Hyundai i20, Tata Tiago (₹999–₹1,499/day with driver)</li>
+              <li><strong>Sedans:</strong> Honda City, Maruti Ciaz, Hyundai Verna (₹1,499–₹2,499/day with driver)</li>
+              <li><strong>SUVs:</strong> Hyundai Creta, Kia Seltos, Maruti Ertiga (₹2,000–₹3,500/day with driver)</li>
+              <li><strong>Premium SUVs:</strong> Toyota Innova, Toyota Fortuner, Mahindra Scorpio (₹3,000–₹5,000/day with driver)</li>
+              <li><strong>Tempo Travellers:</strong> 12–17 seater for group travel (₹4,500–₹8,000/day)</li>
+            </ul>
+            <h3 className="text-2xl font-bold text-gray-900 mt-8 mb-4">
+              Car Rental Services Available in {locationName}
+            </h3>
+            <ul className="text-gray-600 space-y-2">
+              <li><strong>Local Car Rental:</strong> 4hr, 8hr, 12hr packages for city commute and local errands</li>
+              <li><strong>Outstation Car Rental:</strong> One-way and round-trip intercity travel with driver</li>
+              <li><strong>Airport Transfer:</strong> On-time pickup and drop to/from {locationName} airport</li>
+              <li><strong>Corporate Car Rental:</strong> Monthly driver packages for employees and business travel</li>
+              <li><strong>Wedding Car Rental:</strong> Decorated luxury cars for weddings and special events</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="car-rental"
+        parentName="Car Rental"
+        currentSlug="car-rental"
+        siblings={[
+          { slug: 'self-drive-car-rentals', name: 'Self Drive' },
+          { slug: 'luxury-car-rental', name: 'Luxury Cars' },
+          { slug: 'hourly-car-rental', name: 'Hourly Rental' },
+          { slug: 'one-way-cab', name: 'One Way Cab' },
+        ]}
+      />
+
+      {/* AutoRental Schema — schema.org/AutoRental subtype; no Indian competitor uses this */}
+      <AutoRentalSchema
+        name={`Car Rental in ${locationName} — TransRentals`}
+        description={`Rent cars in ${locationName}. Self-drive and chauffeur-driven options for local, outstation, and corporate travel.`}
+        city={locationName}
+        citySlug={params.location}
+        serviceSlug="car-rental"
+        rating={liveRating?.ratingValue}
+        reviewCount={liveRating?.reviewCount}
       />
       <script
         type="application/ld+json"

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import {
   X, Compass, ChevronRight, MapPin, Clock, Calendar,
   ChevronLeft as Prev, ChevronRight as Next,
@@ -37,7 +38,7 @@ function Gallery({ images, title }: { images: string[]; title: string }) {
 
   return (
     <div className="relative w-full h-64 md:h-[400px] rounded-2xl overflow-hidden bg-gray-100">
-      <img src={current} alt={title} className="w-full h-full object-cover" />
+      <Image src={current} alt={title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 600px" />
       {images.length > 1 && (
         <>
           <button

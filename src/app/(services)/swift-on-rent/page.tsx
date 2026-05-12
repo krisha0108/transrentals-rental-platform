@@ -4,6 +4,7 @@ import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Swift on Rent Without Driver | Self Drive Swift @₹899/Day | TransRentals'),
@@ -32,6 +33,17 @@ const topCities = ALL_CITIES.slice(0, 60);
 export default function SwiftOnRentPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Maruti Swift on TransRentals"
+        description="Book Swift self-drive rental in 4 simple steps."
+        totalTime="PT7M"
+        steps={[
+          { name: 'Choose City & Dates', text: 'Select your city and rental period. Swift available for 1 day, weekend, or weekly self-drive packages.' },
+          { name: 'Confirm Swift Variant', text: 'Choose Swift petrol or diesel. Check if automatic transmission is required for city driving.' },
+          { name: 'KYC & Payment', text: 'Upload DL and Aadhaar/PAN online. Pay security deposit to instantly confirm your Swift booking.' },
+          { name: 'Pick Up & Drive', text: 'Collect Swift keys at vendor or request home delivery. Do pre-rental inspection and start your trip.' },
+        ]}
+      />
       <SwiftRentalTypeHero
         vehicleName="Maruti Swift"
         selfDrivePrice="₹899"

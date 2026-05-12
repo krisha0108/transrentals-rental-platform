@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Star, Loader2, ChevronDown, User } from 'lucide-react';
 
 interface ReviewsSectionProps {
@@ -81,7 +82,7 @@ export default function ReviewsSection({ listingId }: ReviewsSectionProps) {
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="flex items-center gap-2.5">
                   {r.customer?.avatar ? (
-                    <img src={r.customer.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+                    <Image src={r.customer.avatar} alt="" width={32} height={32} className="rounded-full object-cover" />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
                       <User className="w-4 h-4 text-indigo-500" />
@@ -108,7 +109,7 @@ export default function ReviewsSection({ listingId }: ReviewsSectionProps) {
               {images.length > 0 && (
                 <div className="flex gap-2 mt-3 overflow-x-auto">
                   {images.map((img: string, i: number) => (
-                    <img key={i} src={img} alt="" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+                    <Image key={i} src={img} alt="" width={64} height={64} className="rounded-lg object-cover flex-shrink-0" />
                   ))}
                 </div>
               )}

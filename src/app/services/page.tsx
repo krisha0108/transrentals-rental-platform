@@ -58,6 +58,25 @@ const serviceCategories = [
   },
 ];
 
+const BASE_URL = 'https://transrentals.in';
+
+const servicesItemListSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Vehicle Rental Services — TransRentals',
+  description: 'Complete range of vehicle rental and transportation services across India',
+  url: `${BASE_URL}/services`,
+  itemListElement: serviceCategories.flatMap((cat, catIndex) =>
+    cat.services.map((s, i) => ({
+      '@type': 'ListItem',
+      position: catIndex * 10 + i + 1,
+      name: s.name,
+      url: `${BASE_URL}${s.base_url}`,
+      description: s.description,
+    }))
+  ),
+};
+
 export default function ServicesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
@@ -71,7 +90,12 @@ export default function ServicesPage() {
     : [];
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(servicesItemListSchema) }}
+      />
+      <main className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-green-600 via-emerald-600 to-teal-600 text-white py-16 md:py-24">
         <div className="container mx-auto px-4 max-w-6xl">
@@ -222,6 +246,7 @@ export default function ServicesPage() {
           </div>
         </div>
       </section>
-    </main>
+      </main>
+    </>
   );
 }

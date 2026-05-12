@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
 import { FAQSection } from '@/components/services/FAQSection';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Guided Bike Tours India | Leh Ladakh, Spiti, Rajasthan Motorcycle Tours | TransRentals',
@@ -53,6 +54,17 @@ const inclusions = [
 export default function BikeToursPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Book a Guided Bike Tour on TransRentals"
+        description="Join a guided motorcycle tour across India in 4 simple steps."
+        totalTime="PT15M"
+        steps={[
+          { name: 'Choose Tour Destination', text: 'Select from Leh Ladakh, Spiti Valley, Rajasthan, or Goa guided bike tours. Check best season for each route.' },
+          { name: 'Pick Tour Package', text: 'Choose group or private tour. Select bike type — Royal Enfield Himalayan or Classic 350. Check if gear is included.' },
+          { name: 'Register & Pay Advance', text: 'Fill rider registration form with DL details. Pay advance to secure your spot. Group size limited.' },
+          { name: 'Gear Up & Ride', text: 'Report at start city on tour date. Receive riding gear and bike. Ride captain leads the group throughout the tour.' },
+        ]}
+      />
       <BikeTourHero
         badge="Guided Motorcycle Tours"
         title="Bike Tours India"

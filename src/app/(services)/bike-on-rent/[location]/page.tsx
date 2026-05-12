@@ -17,6 +17,9 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { CITY_SEO } from '@/data/city-seo-content';
+import { RelatedServices } from '@/components/services/RelatedServices';
+import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
+import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 
 const COMING_SOON_SLUGS = new Set([
   'chidambaram',
@@ -90,7 +93,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       url: `https://transrentals.in/bike-on-rent/${locationSlug}`,
       images: [
         {
-          url: 'https://transrentals.in/images/og/bike-rental.jpg',
+          url: `https://transrentals.in/api/og?service=bike-on-rent&location=${encodeURIComponent(locationName)}`,
           width: 1200,
           height: 630,
           alt: `Bike Rental in ${locationName} - TransRentals`,
@@ -103,7 +106,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       card: 'summary_large_image',
       title: `Bike on Rent in ${locationName} - TransRentals`,
       description: `Rent bikes in ${locationName} starting @₹299/day. Best prices guaranteed.`,
-      images: ['https://transrentals.in/images/og/bike-rental.jpg'],
+      images: [`https://transrentals.in/api/og?service=bike-on-rent&location=${encodeURIComponent(locationName)}`],
     },
     alternates: {
       canonical: `https://transrentals.in/bike-on-rent/${locationSlug}`,
@@ -397,6 +400,23 @@ export default async function BikeLocationPage({ params }: PageProps) {
 
       {/* FAQs */}
       {cityFAQs.length === 0 && <FAQSection service="bike-on-rent" location={locationName} />}
+      {cityFAQs.length > 0 && (
+        <section className="py-16 bg-white">
+          <div className="container-custom max-w-3xl">
+            <h2 className="text-3xl font-bold text-gray-900 mb-10 text-center">
+              Frequently Asked Questions — Bike Rental in {locationName}
+            </h2>
+            <div className="space-y-6">
+              {cityFAQs.map((faq) => (
+                <div key={faq.q} className="bg-gray-50 p-6 rounded-xl">
+                  <h3 className="font-semibold text-gray-900 mb-2">{faq.q}</h3>
+                  <p className="text-gray-600">{faq.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Nearby Locations */}
       <NearbyLocations locationSlug={params.location} service="bike-on-rent" />
@@ -406,6 +426,19 @@ export default async function BikeLocationPage({ params }: PageProps) {
         serviceSlug="bike-on-rent"
         cityName={locationName}
         stateCode={pageContext.city.stateCode}
+      />
+
+      <ServiceAreasSection
+        serviceSlug="bike-on-rent"
+        citySlug={params.location}
+        cityName={locationName}
+        serviceName="Bike Rental"
+      />
+
+      <CrossServiceLinks
+        citySlug={params.location}
+        cityName={locationName}
+        currentServiceSlug="bike-on-rent"
       />
 
       {cityFAQs.length > 0 && (
@@ -424,6 +457,44 @@ export default async function BikeLocationPage({ params }: PageProps) {
           }}
         />
       )}
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bike-on-rent"
+        parentName="Bike Rental"
+        currentSlug="bike-on-rent"
+        siblings={[
+          { slug: 'activa-on-rent', name: 'Activa on Rent' },
+          { slug: 'royal-enfield-on-rent', name: 'Royal Enfield' },
+          { slug: 'monthly-bike-rental', name: 'Monthly Bike Rental' },
+        ]}
+      />
+
+      {/* Browse by Brand */}
+      <section className="py-10 bg-white border-t border-gray-100">
+        <div className="container-custom max-w-4xl">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">Browse Bikes by Brand in {locationName}</h2>
+          <div className="flex flex-wrap gap-3">
+            {[
+              { slug: 'royal-enfield', label: 'Royal Enfield', from: '₹649/day' },
+              { slug: 'honda', label: 'Honda', from: '₹299/day' },
+              { slug: 'ktm', label: 'KTM', from: '₹899/day' },
+              { slug: 'yamaha', label: 'Yamaha', from: '₹349/day' },
+              { slug: 'bajaj', label: 'Bajaj', from: '₹449/day' },
+              { slug: 'tvs', label: 'TVS', from: '₹349/day' },
+            ].map((brand) => (
+              <a
+                key={brand.slug}
+                href={`/bike-on-rent/${params.location}/${brand.slug}`}
+                className="inline-flex flex-col items-center px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
+              >
+                <span className="font-bold">{brand.label}</span>
+                <span className="text-xs text-gray-400 mt-0.5">{brand.from}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* SEO Content */}
       <section className="py-16 bg-gray-50">

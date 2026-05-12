@@ -2629,6 +2629,1358 @@ export const CITY_SEO: Record<string, CitySEO> = {
       ],
     },
   },
+
+  surat: {
+    intro:
+      "Surat, Gujarat's second-largest city and the world's diamond polishing capital with 70 lakh residents, has one of India's fastest-growing vehicle rental markets. The textile and diamond industries anchor corporate demand, while pilgrimage routes to Udvada, Dumas Beach, and Dandi drive leisure travel. The Surat-Mumbai NH48 corridor is one of the busiest commercial highways in western India. TransRentals covers all major Surat zones — Adajan, Vesu, Athwa Lines, Ring Road, and the Surat Airport area.",
+    routes: [
+      { to: 'Mumbai', distance: '290 km', duration: '5 hrs', via: 'NH48' },
+      { to: 'Ahmedabad', distance: '270 km', duration: '4.5 hrs', via: 'NH48' },
+      { to: 'Vadodara', distance: '160 km', duration: '3 hrs', via: 'NH48' },
+      { to: 'Daman', distance: '130 km', duration: '2.5 hrs', via: 'NH48' },
+      { to: 'Navsari', distance: '40 km', duration: '45 min', via: 'NH48' },
+      { to: 'Saputara', distance: '155 km', duration: '3.5 hrs', via: 'NH48 then SH177' },
+    ],
+    tips: [
+      'Ring Road and Majura Gate face peak congestion 9–10 AM and 6–8 PM on weekdays — plan pickups accordingly',
+      'NH48 (Surat-Mumbai) is a 6-lane expressway — excellent for outstation trips but toll-heavy; carry adequate cash or FASTag',
+      'Saputara hill station (155 km) is best visited October–February; monsoon roads can be challenging',
+      'Gujarat dry state: Alcohol not available; Daman (130 km) is the nearest non-prohibition zone for guests',
+    ],
+    stats: { population: '70 Lakh', knownFor: 'Diamond Polishing Capital, Textile Hub, Ghari & Locho, Fastest Growing City', airport: 'Surat Airport STV — 12 km from city center' },
+    serviceIntros: {
+      'car-rental':
+        "Surat's diamond and textile industries generate high weekday corporate demand for airport transfers and inter-city trips to Ahmedabad and Mumbai. Innova Crysta and Swift Dzire lead bookings. Adajan, Vesu, and Athwa Lines are the busiest pickup zones. TransRentals has 80+ verified Surat vendors offering same-day bookings across all city zones.",
+      'bike-on-rent':
+        "Surat's flat terrain and dense residential zones make two-wheelers highly popular. Diamond traders and textile workers in Ring Road and Udhna areas rely on scooters for daily commuting. Honda Activa dominates city rentals. Royal Enfield is popular for Saputara and Daman weekend rides. TransRentals has bike rentals across Adajan, Vesu, Katargam, and Ring Road areas.",
+      'bus-rental':
+        "Surat's large diamond and textile worker community drives massive bus demand for group outings and pilgrimages. Udvada Atash Behram (Parsi fire temple, 50 km), Ambaji (250 km), and Somnath (350 km) pilgrimages are popular. Corporate team outings from SEZ and GIDC companies are a major segment. TransRentals offers 12-seater to 50-seater AC buses from Surat.",
+      'packers-and-movers':
+        "Surat's explosive growth — from 45 lakh in 2011 to over 70 lakh today — has created one of Gujarat's highest relocation volumes, driven by constant in-migration of diamond workers from Saurashtra and textile professionals from Rajasthan and UP. The most active move corridors are Katargam to Adajan, Udhna to Vesu, and Ring Road to Piplod, reflecting population shifts from industrial zones to newer residential townships. Peak shifting months are April–June (financial year-end, Gujarat government transfers) and September–October (post-monsoon new starts). Summer heat (43–45°C) demands early-morning loading (before 9 AM) to protect electronics and wooden furniture. Intercity moves to Ahmedabad (270 km), Vadodara (160 km), Mumbai (290 km), and Rajkot (250 km) are consistently active. TransRentals-verified movers cover Adajan, Vesu, Piplod, Althan, Pal, Dumas Road, Athwa Lines, Ghod Dod Road, Ring Road, Katargam, Udhna, Pandesara GIDC, Sachin GIDC, Kim, and Hazira. Get a free quote and book insured movers instantly.",
+      'transporter':
+        "Surat's massive Sachin GIDC, Hazira petrochemical belt, and the world's largest diamond processing industry generate constant commercial transport demand. Textile bales, diamond rough, petrochemical goods, and e-commerce last-mile from Surat's large fulfillment centers all require daily truck movement. TransRentals provides verified transporters from Tata Ace to 40-ft container trucks across Surat.",
+      'jcb-on-rent':
+        "Surat's rapid infrastructure expansion — metro rail project, Surat Diamond Bourse complex, and massive new residential developments in Vesu and Piplod — drives consistent JCB and excavator demand. Hazira port and industrial area construction are major users. TransRentals provides JCB 3DX backhoe loaders and excavators for construction projects across Surat.",
+      'mini-truck-rental':
+        "Surat's Ring Road textile market and Mahidharpura diamond market require constant Tata Ace and Bolero Pickup movement for goods delivery. Household shifting in high-density residential areas like Katargam and Adajan is another high-demand segment. TransRentals has same-day mini-truck bookings with verified drivers across all Surat zones.",
+      'tempo-traveller':
+        "Surat's diamond and textile worker community organizes frequent group pilgrimages to Ambaji (250 km), Somnath (350 km), and Dwarka (500 km). Corporate team outings from Hazira ONGC and SEZ companies to Saputara and Daman are popular. TransRentals offers AC 12–17 seater Tempo Travellers with Gujarat-experienced drivers from Surat.",
+      'outstation-car-rental':
+        "Outstation cabs from Surat cover Mumbai (290 km), Ahmedabad (270 km), Vadodara (160 km), Daman (130 km), Navsari (40 km), and Saputara (155 km). TransRentals per-km pricing with no hidden charges — available from all Surat zones with instant online booking.",
+      'one-way-car-rental':
+        "Surat's most popular one-way cab routes: Surat to Mumbai (290 km), Surat to Ahmedabad (270 km), Surat to Vadodara (160 km). No return charges on TransRentals one-way bookings — transparent pricing with toll and driver allowance included.",
+      'airport-transfer':
+        "Surat Airport (STV) is 12 km from Athwa Lines and 15 km from Adajan. TransRentals airport transfers offer fixed pre-booked pricing across all Surat zones. Airport to Ring Road starting from ₹500 for a sedan. 24/7 service, no surge pricing, flight-tracking for arrivals.",
+      'self-drive-car-rentals':
+        "Surat's excellent NH48 connectivity to Vadodara (160 km), Ahmedabad (270 km), and Mumbai (290 km) makes it a strong self-drive hub. Weekend self-drives to Saputara (155 km via SH177) and Daman (130 km via NH48) are popular. TransRentals lists verified self-drive vendors in Adajan, Vesu, Athwa Lines, and near Surat Airport. Note: Gujarat is a dry state — no alcohol available; Daman is the nearest union territory where alcohol is permitted. Hatchbacks to SUVs available on daily and weekly plans.",
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the best car for a Surat to Mumbai trip?', a: 'NH48 (Surat-Mumbai, 290 km, ~5 hrs) is a 6-lane expressway — a sedan (Honda City, Swift Dzire) is comfortable and fuel-efficient. For families of 5–6, book an Ertiga or Innova Crysta.' },
+        { q: 'Is self-drive car rental available in Surat?', a: 'Yes, self-drive cars are available in Surat. You need a valid DL (min 1 year old), Aadhaar, and security deposit. Main vendors are in Adajan, Vesu, and Athwa Lines. NH48 outstation trips to Vadodara and Ahmedabad are commonly allowed.' },
+        { q: 'What is the cab fare from Surat to Ahmedabad?', a: 'One-way cab from Surat to Ahmedabad (270 km via NH48, ~4.5 hrs) starts from ₹2,500 for a sedan. NH48 is smooth and toll-maintained — a comfortable half-day drive.' },
+        { q: 'Are car rentals available in Surat during Navratri and Diwali?', a: 'Yes, but demand spikes significantly. Book at least 5–7 days in advance during Navratri (October) and Diwali. Diamond and textile businesses close, creating a surge in outstation travel to Ahmedabad and Mumbai.' },
+      ],
+      'bus-rental': [
+        { q: 'What is the cost of hiring a bus in Surat?', a: 'A 12-seater AC Tempo Traveller in Surat starts from ₹5,000+/day. A 20-seater mini bus for Ambaji (250 km, ~4.5 hrs) starts from ₹11,000+/day. For Somnath pilgrimages (350 km, ~6 hrs), 40-seater AC buses are available from ₹18,000+/day. Corporate group outings to Saputara (155 km) in a Tempo Traveller start from ₹7,500/day.' },
+        { q: 'Which bus routes are most popular from Surat?', a: "Surat to Ambaji (250 km, ~4.5 hrs) is the most popular pilgrimage group route for Surat's large Gujarati community. Surat to Saputara (155 km, ~3.5 hrs) is the top leisure group route — Gujarat's only hill station. Surat to Somnath (350 km, ~6 hrs) is a high-demand pilgrimage route. Surat to Daman (130 km, ~2.5 hrs) is popular for corporate recreational trips." },
+        { q: 'Can I hire a bus for a corporate outing or wedding in Surat?', a: "Yes, 20–50 seater AC buses are available for Surat corporate events and Gujarati weddings. Hazira ONGC, L&T, and Reliance petrochemical companies regularly book corporate outing buses. Gujarati wedding processions feature grand baraat buses starting from ₹15,000/day. Book 2–3 weeks in advance during Diwali wedding season (Oct–Nov)." },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Surat do TransRentals movers cover?', a: 'TransRentals-verified movers cover all Surat localities — Adajan, Vesu, Piplod, Althan, Pal, Dumas Road, Athwa Lines, Ghod Dod Road, Ring Road, Katargam, Udhna, Pandesara GIDC, Sachin GIDC, Kim, Hazira, Amroli, Limbayat, Varachha, and Kamrej. Intercity moves to Ahmedabad, Vadodara, Mumbai, and Rajkot are available.' },
+        { q: 'What is the most active move corridor in Surat?', a: "Katargam to Adajan is Surat's busiest move corridor, reflecting diamond workers upgrading from industrial-area housing to Adajan's modern residential zones. The Udhna–Vesu route is second — textile workers moving to newer Piplod and Vesu townships. Surat's rapidly expanding periphery means cross-city distances of 20–30 km are common, but Ring Road connectivity keeps transit times manageable at 35–60 minutes." },
+        { q: 'When is the best time to shift house in Surat?', a: 'October–February is ideal — post-monsoon, cooler temperatures, stable business activity. Avoid April–June (extreme heat, government transfers). Diwali week in October–November sees city-wide activity pause — avoid scheduling moves on Diwali main day. Mid-month weekdays are consistently the most affordable and available slots.' },
+        { q: 'How does Surat\'s migration-driven population growth affect moving demand?', a: 'Surat absorbs approximately 2–3 lakh new in-migrants annually, primarily from Saurashtra, Rajasthan, UP, and Bihar — diamond cutters, weavers, traders. This constant inflow creates sustained demand for furnished room-to-room micro-moves and small 1BHK shifts in Katargam, Udhna, and Varachha that is unlike any other Gujarat city. TransRentals movers handle these budget moves as efficiently as full household relocations.' },
+        { q: 'How long does a 2BHK shift take within Surat?', a: "A standard 2BHK intra-Surat shift (packing + loading + transit + unloading) takes 6–9 hours with a 3-person team. Short same-zone moves (Adajan to Pal, or Vesu to Althan) take 5–7 hours. Cross-city moves (Katargam to Piplod, or Varachha to Dumas Road) can take 9–12 hours depending on Ring Road congestion." },
+        { q: 'Can I move intercity from Surat to Ahmedabad, Mumbai, or Vadodara?', a: 'Yes — Surat to Ahmedabad (270 km via NH48, ~5 hrs truck), Surat to Vadodara (160 km via NH48, ~3 hrs), and Surat to Mumbai (290 km via NH48, ~5.5 hrs) are all popular intercity moves. NH48 is excellent — same-day Vadodara delivery is standard. Get a free quote on TransRentals for full household intercity pricing.' },
+      ],
+      'transporter': [
+        { q: 'What goods are commonly transported by trucks in Surat?', a: "Surat's Sachin GIDC textile goods (synthetic fabrics, sarees), rough and polished diamonds from Mahidharpura and Varachha, and Hazira belt petrochemicals are the city's three largest truck cargo categories. E-commerce fulfillment from Surat's large logistics parks also drives significant Tata Ace and medium truck demand." },
+        { q: 'What is the truck rental cost in Surat per day?', a: 'Tata Ace (1T) starts from ₹2,500/day. Tata 407 (5T) starts from ₹5,500/day. Container trucks for long-haul to Mumbai or Ahmedabad are quoted per trip based on route and load.' },
+        { q: 'Is Sachin GIDC the main truck hub in Surat?', a: "Yes, Sachin GIDC and Pandesara GIDC are Surat's primary commercial truck hubs — hundreds of textile and chemical trucks depart daily. Hazira's port and LNG terminal add port-logistics demand. TransRentals has strong vendor coverage in both GIDC zones." },
+      ],
+      'tempo-traveller': [
+        { q: 'What is the Tempo Traveller cost from Surat to Saputara?', a: 'AC 12-seater Tempo Traveller from Surat to Saputara (155 km, ~3.5 hrs via SH177) starts from ₹7,000 one-way. Popular for corporate team outings and family weekend trips. Best October–February.' },
+        { q: 'Can I book a Tempo Traveller from Surat to Somnath?', a: 'Yes, Surat to Somnath (350 km, ~6 hrs) Tempo Traveller is popular for pilgrimage groups. A 12-seater AC vehicle for the one-way trip starts from ₹11,000. Round-trip Somnath-Dwaraka packages from Surat are available for 2-day circuits.' },
+        { q: 'How many people can a Tempo Traveller carry in Surat?', a: '9, 12, 14, or 17-seater AC options are available in Surat. The 12-seater is most popular for Saputara corporate outings and pilgrimage circuits. The 17-seater suits large Hazira or SEZ corporate team groups. All intercity bookings include Gujarat-highway-experienced drivers.' },
+      ],
+      'airport-transfer': [
+        { q: 'How much is a cab from Surat Airport to Adajan?', a: 'Pre-booked cab from Surat Airport (STV) to Adajan (14 km) starts from ₹450 on TransRentals. Fixed pricing — no surge even during late-night arrivals.' },
+        { q: 'How long does it take from Surat Airport to Vesu?', a: 'Surat Airport to Vesu is 16–20 km and takes 30–45 minutes in normal traffic. Allow 60 minutes during peak evening hours (5–8 PM). Ring Road connects airport to Vesu efficiently.' },
+      ],
+      'self-drive-car-rentals': [
+        { q: 'What is the cost of self-drive car rental in Surat per day?', a: 'Hatchback self-drive in Surat starts from ₹849/day. Sedans (Honda City, Dzire) start from ₹1,099/day. SUVs (Creta, Brezza) start from ₹1,599/day. Packages include 150–200 km; extra km at ₹12–15/km.' },
+        { q: 'Can I take a self-drive car from Surat to Mumbai or Vadodara?', a: 'Yes, NH48 allows outstation travel with most vendors. Vadodara (160 km, ~3 hrs) and Mumbai (290 km, ~5 hrs) are the most popular self-drive routes from Surat. Always confirm outstation permission at booking.' },
+        { q: 'What documents are required for self-drive car rental in Surat?', a: 'Original DL (minimum 1 year old), Aadhaar Card or Passport, and a refundable security deposit (₹2,000–₹5,000). FASTag is strongly recommended for NH48 travel. Note: Gujarat is a dry state — no alcohol in rental vehicles.' },
+      ],
+    },
+  },
+
+  goa: {
+    intro:
+      "Goa, India's smallest state and top tourist destination with 15 lakh residents, has one of India's highest per-capita vehicle rental rates. The coastal highway network — NH66 and NH748 — connects all beaches from Querim in the north to Palolem in the south. December–February is peak season with tourist arrivals exceeding 7 lakh per month. TransRentals covers all Goa zones — North Goa (Panaji, Calangute, Baga, Anjuna), South Goa (Margao, Colva, Palolem), and the Goa International Airport area at Dabolim.",
+    routes: [
+      { to: 'Mumbai', distance: '600 km', duration: '10 hrs', via: 'NH66 Coastal' },
+      { to: 'Pune', distance: '450 km', duration: '8 hrs', via: 'NH748 via Kolhapur' },
+      { to: 'Bangalore', distance: '560 km', duration: '9 hrs', via: 'NH748' },
+      { to: 'Hampi', distance: '340 km', duration: '6 hrs', via: 'NH67' },
+      { to: 'Mangalore', distance: '350 km', duration: '6 hrs', via: 'NH66' },
+      { to: 'Dudhsagar Falls', distance: '60 km', duration: '2 hrs', via: 'NH748' },
+    ],
+    tips: [
+      'December–February peak season: Book rental vehicles at least 2–3 weeks in advance — availability tightens rapidly',
+      'Avoid renting scooters without proper DL — traffic police conduct regular checks, especially on NH66',
+      'Beach roads in North Goa (Calangute, Baga) are congested after 10 AM — plan morning drives for best experience',
+      'For Dudhsagar Falls, book an SUV — the road beyond Kulem is unpaved and requires ground clearance',
+    ],
+    stats: { population: '15 Lakh', knownFor: 'Beaches, Portuguese Heritage, Carnival, Seafood, Nightlife', airport: 'Goa Intl GOI (Dabolim) — 30 km from Panaji' },
+    serviceIntros: {
+      'car-rental':
+        "Goa's booming tourism economy makes it one of India's most active car rental markets year-round. Airport transfers from Dabolim and the Mopa airport (North Goa) are the highest-demand bookings. Innova Crysta and Ertiga dominate group travel; hatchbacks and compact SUVs serve couples and solo travelers. TransRentals covers all of North and South Goa with 60+ verified vendors for same-day bookings.",
+      'bike-on-rent':
+        "Goa is India's undisputed capital of scooter tourism — over 1 lakh two-wheelers are rented annually to domestic and foreign tourists. Scooters (Activa, Dio, Maestro) are the classic Goa beach-hopping vehicle. Royal Enfield and KTM are popular for rides to Dudhsagar, Hampi, and the coastal highway. TransRentals connects you to verified bike rental shops across Calangute, Baga, Anjuna, Panjim, and Margao.",
+      'bus-rental':
+        "Goa's high-volume tourism creates massive group bus demand for MICE events, incentive tours, and corporate off-sites. Wedding groups from Mumbai, Pune, and Delhi frequently hire luxury buses for destination weddings at Goa's beach resorts. School and college trips from Karnataka and Maharashtra are a major segment. TransRentals offers AC mini buses to 50-seater luxury coaches across all Goa zones.",
+      'packers-and-movers':
+        "Goa's relocation market is unique — driven by IT professionals from Bangalore and Mumbai relocating for remote work lifestyle, returning NRIs settling in Goa for retirement, and inter-state moves of hospitality workers. North Goa's Porvorim, Mapusa, and Candolim see the highest in-migration from tech hubs. Intra-Goa moves between North and South Goa (Panaji to Margao corridor) are common for government employees. TransRentals connects you with insured, verified movers across Panaji, Mapusa, Margao, Vasco, Porvorim, Candolim, Calangute, and all Goa localities.",
+      'transporter':
+        "Goa's Vasco da Gama port, Mormugao harbour, and the restaurant and hospitality supply chain generate commercial transport demand. Construction materials for Goa's booming luxury villa market and food/beverage distribution to beach shacks also drive daily truck movement. TransRentals provides verified transporters across Goa.",
+      'tempo-traveller':
+        "Goa's destination wedding industry and MICE tourism make tempo travellers essential for guest transfers between airports, hotels, and beach venues. North Goa sightseeing circuits — Old Goa churches, Aguada Fort, Calangute Beach, Anjuna Flea Market — are popular one-day group routes. TransRentals offers AC 9–17 seater Tempo Travellers with local Goa drivers.",
+      'outstation-car-rental':
+        "Outstation cabs from Goa cover Dudhsagar Falls (60 km), Hampi (340 km), Mangalore (350 km), Pune (450 km), and Mumbai (600 km via NH66). TransRentals per-km pricing with transparent billing — available from all Goa pickup points including both airports.",
+      'one-way-car-rental':
+        "Goa's most popular one-way routes: Goa to Bangalore (560 km via NH748), Goa to Mumbai (600 km via NH66), Goa to Pune (450 km). Pay only for the one-way trip — ideal for tourists flying in and returning by a different transport. Transparent pricing on TransRentals.",
+      'airport-transfer':
+        "Goa International Airport (GOI, Dabolim) is 30 km from Panaji and 4 km from Vasco. The new Mopa International Airport (GOX) serves North Goa, 35 km from Calangute. TransRentals airport transfers cover both airports with fixed pre-booked pricing to all Goa hotels and areas. Starting from ₹799 for a sedan. No surge pricing, 24/7 service, flight-tracking.",
+      'self-drive-car-rentals':
+        "Goa's compact geography and scenic coastal roads make self-drive one of the most liberating travel experiences in India. NH66 runs along the coast connecting all beaches — a single day's drive can cover Querim, Arambol, Vagator, Anjuna, Calangute, Baga, and Candolim. TransRentals lists verified self-drive vendors in Panaji, Calangute, Margao, and near Dabolim Airport. Scooters and bikes can also be self-driven with a valid DL. December–February: book at least 5–7 days in advance due to peak tourist demand.",
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'Which is the best pickup zone for car rental in Goa?', a: 'Dabolim Airport, Panaji (Panjim), Calangute, and Margao are the main rental pickup hubs. For North Goa beach tourism, Calangute is most convenient. For South Goa, Margao is the base. Airport delivery is available from both Dabolim and Mopa airports.' },
+        { q: 'What is the best way to explore both North and South Goa in 3 days?', a: 'Day 1: North Goa — Calangute, Baga, Anjuna, Vagator, Chapora Fort. Day 2: Old Goa Churches, Panjim Latin Quarter, Fort Aguada. Day 3: South Goa — Colva, Benaulim, Palolem. An Innova Crysta or Ertiga covers all zones comfortably.' },
+        { q: 'Can I rent a car in Goa and drive to Bangalore or Mumbai?', a: 'Yes, intercity rentals to Bangalore (560 km via NH748) and Mumbai (600 km via NH66) are available. Both are scenic coastal and ghat highways but require 9–10 hours of driving. Confirm intercity permission with the vendor before booking.' },
+        { q: 'Is it safe to drive in Goa at night?', a: 'Main roads (NH66, NH748, and state highways) are well-lit and safe at night. Be cautious on narrow village roads after dark. Do not drink and drive — Goa traffic police are strict, especially during Christmas and New Year period.' },
+      ],
+      'bike-on-rent': [
+        { q: 'Which scooter is best for Goa tourism?', a: 'Honda Activa (110cc) and Honda Dio are the most popular and reliable scooters for Goa beach hopping. Durable, fuel-efficient, and easy to park on narrow beach access roads. Royal Enfield Classic 350 is ideal for longer coastal highway rides to Arambol or Palolem.' },
+        { q: 'Is a DL required to rent a bike in Goa?', a: 'Yes, a valid Indian DL (minimum 1 year old) is mandatory to legally ride a rental bike in Goa. Traffic police conduct frequent checks on NH66 and beach roads. Foreign tourists need an IDP (International Driving Permit) valid for India.' },
+        { q: 'What is the cost of scooter rental in Goa per day?', a: 'Scooters (Activa/Dio) in Goa start from ₹400–600/day during off-season (April–September) and ₹600–900/day during peak season (October–March). Royal Enfield rentals start from ₹1,200/day. Book in advance for December–January.' },
+      ],
+      'bus-rental': [
+        { q: 'What is the cost of hiring a bus for a Goa destination wedding?', a: 'A 12-seater AC Tempo Traveller for wedding guest transfers in Goa starts from ₹5,000+/day. A 20-seater luxury mini bus starts from ₹10,000+/day. 40–50 seater AC coaches for wedding group airport pickup start from ₹18,000/day. Book 3–4 weeks in advance for peak Dec–Feb season.' },
+        { q: 'Can I hire a bus for a corporate incentive trip in Goa?', a: 'Yes, Goa is India\'s #1 MICE destination. AC coaches (20–50 seater) for incentive group transfers from Dabolim airport to North Goa beach resorts start from ₹8,000+ per trip. TransRentals handles entire fleet requirements for large corporate events.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Goa do TransRentals movers cover?', a: 'TransRentals-verified movers cover all Goa localities — Panaji, Mapusa, Calangute, Candolim, Porvorim, Anjuna, Vagator, Vasco da Gama, Margao, Colva, Benaulim, Palolem, Quepem, Ponda, Bicholim, and Pernem. Intercity moves to Mumbai, Pune, Bangalore, and Hyderabad are also available.' },
+        { q: 'What makes Goa\'s relocation market unique compared to other cities?', a: "Goa attracts a very specific relocation profile — remote-working IT professionals from Bangalore and Mumbai seeking lifestyle upgrades, NRIs returning from the Gulf and Europe for retirement, and hospitality industry workers from other states. The city's small size means many relocations are apartment-to-villa upgrades rather than the typical job-transfer moves common elsewhere." },
+        { q: 'When is the best time to shift house in Goa?', a: 'April–September (off-season) is ideal — roads are quiet, rental rates are lower, and movers have better availability. The December–February peak season is the worst time to move — tourist traffic on all main roads causes massive delays and mover availability is minimal. Monsoon (June–September) brings heavy rain but road access is generally fine except for some interior village roads.' },
+      ],
+      'self-drive-car-rentals': [
+        { q: 'What is the cost of self-drive car rental in Goa per day?', a: 'Hatchback self-drive in Goa starts from ₹999/day in off-season and ₹1,499/day in peak season. SUVs (Creta, Brezza) from ₹1,799/day. Weekly packages available for longer stays. Most vendors are in Panaji, Calangute, and near Dabolim Airport.' },
+        { q: 'Can I explore all Goa beaches in a self-drive car in 2–3 days?', a: 'Yes, Goa is compact — under 100 km from north to south. A self-drive hatchback can cover the full coastal stretch from Arambol (north) to Palolem (south) in 3 leisurely days. Rent from Panaji for the most central starting point.' },
+        { q: 'What documents are needed for self-drive in Goa?', a: 'Original DL (minimum 1 year old), valid photo ID (Aadhaar/Passport), and refundable security deposit (₹2,000–₹5,000). For foreign nationals, an IDP (International Driving Permit) endorsed for India is required. Peak season (Dec–Feb) vendors are strict on documentation — carry originals, not photocopies.' },
+      ],
+      'tempo-traveller': [
+        { q: 'What is the Tempo Traveller cost in Goa for a full-day sightseeing trip?', a: 'AC 12-seater Tempo Traveller in Goa for a full-day (8 hrs/80 km) North Goa sightseeing starts from ₹5,500/day. South Goa circuits start from ₹4,500/day. Full Goa coverage (both north + south) in a day starts from ₹7,500.' },
+        { q: 'Can I book a Tempo Traveller from Goa Airport for a wedding group?', a: 'Yes, wedding group airport pickups from Dabolim and Mopa airports are the most common Tempo Traveller bookings in Goa. Pre-book at least 2 weeks in advance for December–February peak wedding season. AC 12–17 seater with a professional driver available.' },
+      ],
+      'airport-transfer': [
+        { q: 'How much is a cab from Goa Airport (Dabolim) to Calangute?', a: 'Pre-booked cab from Dabolim Airport to Calangute (42 km, ~1 hr) starts from ₹900 for a sedan on TransRentals. Fixed pricing — no surge even during midnight arrivals.' },
+        { q: 'How long does it take from Dabolim Airport to North Goa beaches?', a: 'Dabolim to Calangute/Baga is 42–48 km and takes 55–75 minutes via NH66. To Anjuna or Vagator, add another 10–15 minutes. Traffic near Panaji bridge can add 20 minutes during peak hours.' },
+      ],
+    },
+  },
+
+  patna: {
+    intro:
+      "Patna, Bihar's capital and one of the world's oldest continuously inhabited cities with 25 lakh residents, is the commercial and administrative hub for India's third most populous state. As the gateway to the Buddhist circuit — Bodh Gaya, Rajgir, Nalanda, and Vaishali — Patna sees substantial domestic and international tourist traffic. The NH19 (Patna-Kolkata) and NH30 (Patna-Ranchi) are key arteries. TransRentals covers all Patna zones — Boring Road, Bailey Road, Kankarbagh, Rajendra Nagar, Patna Sahib, and the Jay Prakash Narayan Airport area.",
+    routes: [
+      { to: 'Bodh Gaya', distance: '115 km', duration: '2.5 hrs', via: 'NH139' },
+      { to: 'Rajgir', distance: '100 km', duration: '2.5 hrs', via: 'NH82' },
+      { to: 'Nalanda', distance: '90 km', duration: '2 hrs', via: 'NH82' },
+      { to: 'Varanasi', distance: '250 km', duration: '5 hrs', via: 'NH19' },
+      { to: 'Kolkata', distance: '590 km', duration: '10 hrs', via: 'NH19' },
+      { to: 'Vaishali', distance: '55 km', duration: '1.5 hrs', via: 'NH22' },
+    ],
+    tips: [
+      'Bodh Gaya is 115 km from Patna via NH139 — an easy 2.5-hour drive, perfect for a day trip',
+      'Patna Sahib Gurudwara and Mahavir temple are major pilgrimage sites within the city — morning traffic is heavy',
+      'November–February is Bihar\'s best travel season for the Buddhist circuit — book vehicles in advance',
+      'Ganges-river fog (December–January) can reduce highway visibility significantly — plan for extra journey time',
+    ],
+    stats: { population: '25 Lakh', knownFor: 'Ancient Pataliputra, Buddhist Circuit Gateway, Ganga Ghats, Patna Sahib', airport: 'Jay Prakash Narayan PAT — 6 km from city center' },
+    serviceIntros: {
+      'car-rental':
+        "Patna is Bihar's administrative and commercial nerve center, with strong demand for airport transfers, inter-city government travel, and Buddhist circuit tours. Innova Crysta and Swift Dzire lead bookings. Boring Road and Bailey Road are the primary pickup zones. TransRentals has verified Patna vendors covering all city zones including Patna Sahib and the airport area.",
+      'bike-on-rent':
+        "Patna's dense urban lanes and growing youth culture make two-wheelers popular for daily commuting. Scooters (Activa, Jupiter) are the mainstay for city riding. Royal Enfield is available for intercity rides to Bodh Gaya and Rajgir. TransRentals has bike rentals across Boring Road, Kankarbagh, and Rajendra Nagar areas.",
+      'bus-rental':
+        "Patna serves as the launch point for Bihar's Buddhist and Hindu pilgrimage circuits. Group buses to Bodh Gaya (115 km), Rajgir–Nalanda (100 km), and Vaishali (55 km) are the most popular bookings. Government department annual outings and school excursions are also a major segment. TransRentals offers AC Tempo Travellers and buses from Patna.",
+      'packers-and-movers':
+        "Patna's relocation market is driven by Bihar government transfers (the largest employer), bank and PSU postings, and a growing private sector. Government residential colonies in Kankarbagh, Rajendra Nagar, and Bailey Road generate the highest move volume during the April–June transfer cycle. Corporate and IT professionals in Patna's emerging tech zones on Boring Road and Moin ul Haq Stadium area are also an active segment. Key intercity moves: Patna to Delhi (1,000 km via NH19), Patna to Kolkata (590 km via NH19), Patna to Ranchi (330 km via NH139), and Patna to Varanasi (250 km via NH19). Bihar's road quality has improved significantly in recent years but some district routes can be challenging. TransRentals-verified movers cover Boring Road, Bailey Road, Kankarbagh, Rajendra Nagar, Patna Sahib, Digha, Anisabad, Phulwari Sharif, Danapur, Bankipur, Ashok Rajpath, and Fraser Road. Book insured movers and get a free quote online.",
+      'transporter':
+        "Patna's APMC grain market, Patliputra Industrial Area, and distribution role for all of Bihar generate substantial commercial transport demand. Agricultural goods, FMCG products, and construction materials move daily from Patna to Bihar's 38 districts. TransRentals offers mini trucks to large commercial vehicles for intra-city and inter-district freight from Patna.",
+      'jcb-on-rent':
+        "Patna's rapid infrastructure expansion — Patna Metro construction, Ganga bridge projects, and Bihar government smart city initiatives — drives JCB and excavator demand. New township development in Danapur and Phulwari Sharif are active zones. TransRentals provides JCB 3DX and excavators for construction projects across Patna.",
+      'mini-truck-rental':
+        "Tata Ace and Bolero Pickup serve Patna's Patna City market deliveries and household shifting across all city zones. Intra-city moves between Kankarbagh and Bailey Road are the most common bookings. TransRentals has same-day mini-truck bookings with verified drivers across Patna.",
+      'tempo-traveller':
+        "Patna is the natural base for Bihar's Buddhist circuit — group tours to Bodh Gaya (115 km), Rajgir (100 km), Nalanda (90 km), and Vaishali (55 km) are extremely popular among domestic and international pilgrims. TransRentals offers AC 9–17 seater Tempo Travellers with Bihar-experienced drivers from Patna.",
+      'outstation-car-rental':
+        "Outstation cabs from Patna cover the full Buddhist circuit: Bodh Gaya (115 km), Nalanda (90 km), Rajgir (100 km), Vaishali (55 km), and farther destinations like Varanasi (250 km) and Ranchi (330 km). TransRentals offers transparent per-km pricing with verified drivers and instant online booking.",
+      'one-way-car-rental':
+        "Patna's popular one-way routes: Patna to Bodh Gaya (115 km), Patna to Varanasi (250 km), Patna to Ranchi (330 km), Patna to Kolkata (590 km). Transparent pricing on TransRentals — toll and driver allowance included.",
+      'airport-transfer':
+        "Jay Prakash Narayan Airport (PAT) is just 6 km from the city center — one of India's closest major airports to city center. TransRentals airport transfers cover all Patna zones at fixed pre-booked prices. Airport to Boring Road starting from ₹350 for a sedan. 24/7 service, no surge pricing.",
+      'self-drive-car-rentals':
+        "Patna's improving road network and the excellent NH139 to Bodh Gaya (115 km) make self-drive a viable and popular option for independent travelers exploring the Buddhist circuit. NH19 to Varanasi (250 km) is also popular. TransRentals lists verified self-drive vendors in Boring Road, Bailey Road, and near Patna Airport. Hatchbacks to SUVs available on daily plans.",
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the best way to cover the Buddhist circuit from Patna?', a: 'Book a 2-day taxi package: Day 1 — Patna to Bodh Gaya (115 km, ~2.5 hrs) via Nalanda (90 km). Day 2 — Rajgir (100 km from Patna), Vaishali (55 km). An Innova Crysta or Ertiga is ideal for a group of 4–6. TransRentals offers guided Buddhist circuit packages.' },
+        { q: 'What is the cab cost from Patna to Bodh Gaya?', a: 'One-way cab from Patna to Bodh Gaya (115 km via NH139, ~2.5 hrs) starts from ₹1,200 for a sedan. Bodh Gaya is an ideal day trip from Patna — return journey adds ₹1,000–₹1,200 more.' },
+        { q: 'Is airport transfer available from Patna Airport?', a: 'Yes, Patna Airport (PAT) is just 6 km from the city center. Pre-booked TransRentals airport cabs offer fixed pricing. Airport to Boring Road/Bailey Road starts from ₹350 for a sedan. No surge on pre-booked rides.' },
+        { q: 'What road conditions should I expect on the Buddhist circuit?', a: 'NH139 (Patna to Bodh Gaya) and NH82 (Patna to Rajgir-Nalanda) are in good condition — well-maintained national highways. Some stretches through Gaya district have ongoing widening work that may cause 30–45 minute delays. Allow extra time during Bihar bandh days.' },
+      ],
+      'bus-rental': [
+        { q: 'What is the cost of hiring a bus in Patna?', a: 'A 12-seater AC Tempo Traveller in Patna starts from ₹4,500+/day. A 20-seater bus for Bodh Gaya (115 km) starts from ₹8,000+/day for a group trip. For a full Buddhist circuit (Bodh Gaya + Rajgir + Nalanda, 2-day), a 20-seater AC bus is available from ₹15,000+. Vaishali day trip (55 km) in a Tempo Traveller starts from ₹4,000.' },
+        { q: 'Which group travel routes are most popular from Patna?', a: 'Patna to Bodh Gaya (115 km, ~2.5 hrs) is the most popular group travel route — international Buddhist pilgrims from Japan, Sri Lanka, Thailand, and Myanmar travel in groups. Rajgir–Nalanda circuit (100 km, ~2.5 hrs) is second most popular. Vaishali (55 km, ~1.5 hrs) — birthplace of Buddhism and Jainism — is a popular half-day group excursion.' },
+        { q: 'Can I hire a bus for a government department outing or school trip in Patna?', a: 'Yes, Bihar government departments and Patna schools regularly book AC buses for annual outings. 20–45 seater AC buses are available for Rajgir Nature safari, Bodh Gaya, and Vaishali circuits. Book 5–7 days in advance for large groups.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Patna do TransRentals movers cover?', a: 'TransRentals-verified movers cover all Patna localities — Boring Road, Bailey Road, Kankarbagh, Rajendra Nagar, Patna Sahib, Digha, Anisabad, Phulwari Sharif, Danapur, Bankipur, Ashok Rajpath, Fraser Road, Gardanibagh, Mithapur, Khajpura, and the entire Patna Urban Agglomeration. Intercity moves to Delhi, Kolkata, Ranchi, and Varanasi are available.' },
+        { q: 'When is the Bihar government transfer season and how does it affect moving demand?', a: 'Bihar government transfers peak in April–June — IAS, IPS, district administration, and state government services issue annual posting orders simultaneously. This creates the highest moving demand in Patna, with all slots for trucks and movers booking out fast. Book at least 2 weeks in advance if your move falls in April or May. The second demand spike is August–September (judicial and educational transfers).' },
+        { q: 'What is the most common move corridor in Patna?', a: "Kankarbagh to Bailey Road and Rajendra Nagar to Boring Road are Patna's busiest intra-city corridors, reflecting government employees moving from older colony zones to newer residential areas. The Phulwari Sharif and Danapur suburban zones are the fastest-growing destinations as Patna expands westward along the Patna-Ara bypass." },
+        { q: 'How long does a 2BHK shift take within Patna?', a: "A standard 2BHK intra-Patna shift takes 6–9 hours with a 3-person team. Short same-zone moves (Boring Road to Bailey Road) take 5–7 hours. Patna's dense colony areas can have narrow gali access — always specify your colony name and lane width when booking so the right vehicle size is deployed." },
+        { q: 'Can I move intercity from Patna to Delhi, Kolkata, or Ranchi?', a: 'Yes — Patna to Delhi (1,000 km via NH19, ~18 hrs truck), Patna to Kolkata (590 km via NH19, ~10 hrs), and Patna to Ranchi (330 km via NH139, ~6 hrs) are all available. Bihar-to-Delhi moves are among the most common inter-state relocations in eastern India. Get a free quote on TransRentals.' },
+      ],
+      'tempo-traveller': [
+        { q: 'What is the Tempo Traveller cost for the Buddhist circuit from Patna?', a: 'AC 12-seater Tempo Traveller for Bodh Gaya + Nalanda + Rajgir (2-day circuit) from Patna starts from ₹12,000 for the full trip. Single-day Bodh Gaya visit starts from ₹5,000.' },
+        { q: 'Can I book a Tempo Traveller for a Vaishali day trip from Patna?', a: 'Yes, Vaishali (55 km, ~1.5 hrs via NH22) is an easy Tempo Traveller half-day trip from Patna. The 12-seater round trip including waiting time starts from ₹4,000.' },
+      ],
+      'self-drive-car-rentals': [
+        { q: 'What is the cost of self-drive car rental in Patna per day?', a: 'Hatchback self-drive in Patna starts from ₹799/day. Sedans start from ₹999/day. Packages include 150–200 km. NH139 (Patna to Bodh Gaya) is in good condition and ideal for self-drive day trips.' },
+        { q: 'What documents are needed for self-drive in Patna?', a: 'Original DL (minimum 1 year old), Aadhaar Card, and a security deposit of ₹2,000–₹3,000. Bihar police checkposts are common on intercity routes — always carry RC and insurance documents along with your DL.' },
+      ],
+    },
+  },
+
+  bhubaneswar: {
+    intro:
+      "Bhubaneswar, Odisha's capital and the 'Temple City of India' with 10 lakh residents, is a rapidly growing smart city that balances ancient heritage with modern infrastructure. Home to over 700 ancient temples, the Puri-Konark-Bhubaneswar Golden Triangle is one of India's most iconic tourism circuits. IT parks at Infocity and Chandrasekharpur, new townships in Patia and Nayapalli, and the Biju Patnaik International Airport anchor the economy. TransRentals covers all Bhubaneswar zones — Saheed Nagar, Nayapalli, Chandrasekharpur, Infocity, Patia, and the Airport area.",
+    routes: [
+      { to: 'Puri', distance: '60 km', duration: '1.5 hrs', via: 'NH316' },
+      { to: 'Konark', distance: '65 km', duration: '1.5 hrs', via: 'NH316 then Marine Drive' },
+      { to: 'Cuttack', distance: '30 km', duration: '45 min', via: 'NH16' },
+      { to: 'Chilika Lake', distance: '100 km', duration: '2.5 hrs', via: 'NH316' },
+      { to: 'Kolkata', distance: '440 km', duration: '7.5 hrs', via: 'NH16' },
+      { to: 'Visakhapatnam', distance: '450 km', duration: '7.5 hrs', via: 'NH16' },
+    ],
+    tips: [
+      'Puri, Konark, and Bhubaneswar Golden Triangle can be covered in a single day — start by 6 AM',
+      'Chilika Lake boat rides (Satpada and Rambha entry points) are best October–February for Irrawaddy dolphins',
+      'Rath Yatra in Puri (June–July) draws 10–15 lakh pilgrims — book vehicles weeks in advance',
+      'NH16 to Kolkata and Visakhapatnam is a well-maintained expressway — smooth highway driving',
+    ],
+    stats: { population: '10 Lakh', knownFor: 'Temple City of India, Golden Triangle, Smart City, IT Hub', airport: 'Biju Patnaik BBI — 5 km from city center' },
+    serviceIntros: {
+      'car-rental':
+        "Bhubaneswar's position at the center of Odisha's Golden Triangle (Puri, 60 km; Konark, 65 km) makes it one of eastern India's busiest tourist car rental hubs. IT professionals at Infocity and government workers are the largest weekday rental segments. TransRentals has verified Bhubaneswar vendors covering Saheed Nagar, Nayapalli, Chandrasekharpur, and the Airport zone.",
+      'bike-on-rent':
+        "Bhubaneswar's wide, clean roads and grid-pattern smart city layout make it one of eastern India's most bike-friendly cities. IT professionals in Infocity and Chandrasekharpur are the biggest daily rental users. Royal Enfield is popular for rides to Puri and Konark. TransRentals has bike rentals across all Bhubaneswar localities.",
+      'bus-rental':
+        "Bhubaneswar serves as the hub for Odisha's extensive temple and wildlife tourism. Group buses for the Puri-Konark circuit, Chilika Lake, and Simlipal Tiger Reserve (300 km) are in high demand. Government department outings and IT company team trips are active segments. TransRentals offers AC Tempo Travellers and buses from Bhubaneswar.",
+      'packers-and-movers':
+        "Bhubaneswar's rapid transformation from state capital to a full-fledged IT and smart city hub has significantly accelerated relocation demand. Odisha government transfers peak in April–June, moving civil servants between the major residential colonies — IRC Village, Nayapalli, Saheed Nagar, and Acharya Vihar. IT professionals at Infocity (Tata Consultancy, Infosys, Tech Mahindra) moving to new Patia and Chandrasekharpur townships account for the fastest-growing relocation segment. Common move corridors: Cuttack to Bhubaneswar (30 km, most common cross-city move in Odisha), Saheed Nagar to Patia, and Nayapalli to Chandrasekharpur. Intercity moves: Bhubaneswar to Kolkata (440 km), Bhubaneswar to Visakhapatnam (450 km), and Bhubaneswar to Raipur (380 km). TransRentals-verified movers cover Saheed Nagar, Nayapalli, IRC Village, Acharya Vihar, Patia, Chandrasekharpur, Infocity, Khandagiri, Mancheswar, Rasulgarh, Damana, Old Town, and Cuttack. Book insured movers and get a free quote online.",
+      'transporter':
+        "Bhubaneswar's Mancheswar and Rasulgarh industrial areas, IDCO (Odisha Industrial Infrastructure Development Corporation) zones, and active construction boom generate commercial transport demand. E-commerce last-mile distribution for all of coastal Odisha runs out of Bhubaneswar logistics hubs. TransRentals offers mini trucks to container vehicles for freight movement across Odisha.",
+      'jcb-on-rent':
+        "Bhubaneswar's Smart City Mission projects, metro rail construction, and massive new township development in Patia and Damana drive consistent JCB demand. Nava Bharat Nagar residential projects and AIIMS Bhubaneswar campus expansion are major construction users. TransRentals provides JCB 3DX and excavators for all Bhubaneswar construction zones.",
+      'mini-truck-rental':
+        "Tata Ace and Bolero Pickup serve Bhubaneswar's Unit 1 and Master Canteen market deliveries and household shifting across all zones. Cuttack-to-Bhubaneswar moves are the single most frequent mini-truck route in Odisha. TransRentals has same-day mini-truck bookings with verified drivers across Bhubaneswar.",
+      'tempo-traveller':
+        "Bhubaneswar is the launch base for Odisha's most popular group travel circuits — Puri-Konark Golden Triangle, Chilika Lake, and Simlipal Tiger Reserve. Jagannath Rath Yatra pilgrimage group buses from Bhubaneswar to Puri are extremely popular. TransRentals offers AC 9–17 seater Tempo Travellers with Odisha-experienced drivers.",
+      'outstation-car-rental':
+        "Outstation cabs from Bhubaneswar cover Puri (60 km), Konark (65 km), Cuttack (30 km), Chilika Lake (100 km), Kolkata (440 km), and Visakhapatnam (450 km). TransRentals per-km pricing with no hidden charges — available from all Bhubaneswar zones with instant online booking.",
+      'one-way-car-rental':
+        "Bhubaneswar's most popular one-way cab routes: Bhubaneswar to Puri (60 km), Bhubaneswar to Kolkata (440 km), Bhubaneswar to Visakhapatnam (450 km). Transparent pricing on TransRentals.",
+      'airport-transfer':
+        "Biju Patnaik International Airport (BBI) is just 5 km from the city center — among India's most centrally located airports. TransRentals airport transfers cover all Bhubaneswar zones at fixed prices. Airport to Saheed Nagar starting from ₹350 for a sedan. 24/7 service, flight-tracking for arrivals.",
+      'self-drive-car-rentals':
+        "Bhubaneswar's well-planned grid road network, smart city infrastructure, and excellent NH16 and NH316 highways make it ideal for self-drive. The Puri-Konark Marine Drive — one of India's most scenic coastal roads — is a top self-drive experience. TransRentals lists verified self-drive vendors in Nayapalli, Saheed Nagar, Chandrasekharpur, and near Biju Patnaik Airport. Hatchbacks to SUVs available on daily plans.",
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'Can I cover Puri, Konark, and Bhubaneswar temples in a single day?', a: 'Yes, the Golden Triangle circuit is ideal for a day trip: Start at Bhubaneswar temples (Lingaraj, Mukteshwar, Rajarani) by 7 AM, drive to Konark (65 km) by 9 AM, then Puri Beach and Jagannath Temple by noon. Return to Bhubaneswar by 6 PM. Book a sedan or SUV with TransRentals.' },
+        { q: 'What is the cab cost from Bhubaneswar to Puri?', a: 'One-way cab from Bhubaneswar to Puri (60 km via NH316, ~1.5 hrs) starts from ₹800 for a sedan. Round-trip Puri day trip starts from ₹1,500. Booking in advance ensures driver availability.' },
+        { q: 'Is airport transfer available from Biju Patnaik Airport, Bhubaneswar?', a: 'Yes, TransRentals offers pre-booked airport pickups from BBI (just 5 km from city). Airport to Nayapalli/Saheed Nagar starts from ₹350 for a sedan. Fixed pricing, 24/7 service.' },
+        { q: 'What is the best car for a trip to Chilika Lake from Bhubaneswar?', a: 'A sedan or SUV works well for the Bhubaneswar to Chilika Lake trip (100 km via NH316, ~2.5 hrs). For Satpada entry point (boat ride for Irrawaddy dolphins), a standard sedan is perfectly adequate.' },
+      ],
+      'bus-rental': [
+        { q: 'What is the cost of hiring a bus in Bhubaneswar?', a: 'A 12-seater AC Tempo Traveller in Bhubaneswar starts from ₹4,500+/day. A 20-seater mini bus for Puri–Konark day circuit starts from ₹8,000+/day. For Simlipal Tiger Reserve (300 km, ~6 hrs), 20-seater AC buses start from ₹14,000+/day. Chilika Lake group trip (100 km) in a Tempo Traveller starts from ₹5,000/day.' },
+        { q: 'Can I book a bus for Jagannath Rath Yatra pilgrimage from Bhubaneswar to Puri?', a: 'Yes, Rath Yatra (June–July) sees massive group movement from Bhubaneswar to Puri (60 km). 20–50 seater AC and non-AC buses are available. Book 3–4 weeks in advance — slots fill very quickly. The Bhubaneswar-Puri NH316 is widened and managed for Rath Yatra traffic.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Bhubaneswar do TransRentals movers cover?', a: 'TransRentals-verified movers cover all Bhubaneswar and greater Cuttack localities — Saheed Nagar, Nayapalli, IRC Village, Acharya Vihar, Patia, Chandrasekharpur, Infocity, Khandagiri, Mancheswar, Rasulgarh, Damana, Old Town, Unit 1–9, Jayadev Vihar, Bomikhal, CDA Colony, and all sectors of Bhubaneswar Development Authority (BDA) zones. Intercity moves to Cuttack, Kolkata, Visakhapatnam, and Raipur are available.' },
+        { q: 'What is the most common move corridor in Bhubaneswar?', a: 'Cuttack to Bhubaneswar is the single most active move corridor in Odisha — as Bhubaneswar has grown from a planned capital to a full commercial city, thousands of Cuttack residents and government officers have relocated annually. Within Bhubaneswar, the Saheed Nagar/Nayapalli to Patia and Chandrasekharpur IT corridor is the busiest intra-city move route, driven by IT professionals relocating to be closer to Infocity.' },
+        { q: 'When is the Odisha government transfer season?', a: 'Odisha government annual transfers are issued March–May, with the actual movement happening April–June. IAS, IPS, Odisha Civil Service, and state secretariat postings all move during this window. This is the peak shifting season for Bhubaneswar movers — book at least 10–14 days in advance for April and May slots.' },
+        { q: 'How long does a 2BHK shift take within Bhubaneswar?', a: "A standard 2BHK intra-Bhubaneswar shift takes 6–8 hours with a 3-person team. Bhubaneswar's planned grid layout and wide roads (BDA-designed sectors) make transit faster than older unplanned cities. The longest cross-city moves (Old Town to Patia, or Mancheswar to Chandrasekharpur) still rarely exceed 8–9 hours." },
+        { q: 'Can I move intercity from Bhubaneswar to Kolkata or Visakhapatnam?', a: 'Yes — Bhubaneswar to Kolkata (440 km via NH16, ~7.5 hrs truck), Bhubaneswar to Visakhapatnam (450 km via NH16, ~7.5 hrs), and Bhubaneswar to Raipur (380 km via NH353, ~7 hrs) are popular intercity routes. NH16 coastal expressway is in excellent condition. Get a free quote on TransRentals.' },
+      ],
+      'tempo-traveller': [
+        { q: 'What is the cost of Tempo Traveller rental in Bhubaneswar?', a: '12-seater AC Tempo Traveller starting from ₹4,500/day for local trips. Puri–Konark Golden Triangle full-day circuit starts from ₹6,000. Chilika Lake day trip (100 km) starts from ₹5,000. Simlipal Tiger Reserve (300 km) overnight starts from ₹12,000.' },
+        { q: 'Can I book a Tempo Traveller for a Konark Sun Temple visit from Bhubaneswar?', a: 'Yes, Bhubaneswar to Konark (65 km via NH316 then Marine Drive, ~1.5 hrs) is a popular Tempo Traveller route — often combined with Puri for a full-day Golden Triangle circuit. A 12-seater round trip for Konark alone starts from ₹4,500.' },
+      ],
+      'self-drive-car-rentals': [
+        { q: 'What is the cost of self-drive car rental in Bhubaneswar per day?', a: 'Hatchback self-drive in Bhubaneswar starts from ₹799/day. Sedans start from ₹1,099/day. Packages include 150–200 km; extra km at ₹12–15/km. NH316 (Bhubaneswar to Puri and Konark) is smooth — ideal for self-drive day trips.' },
+        { q: 'What are the best self-drive routes from Bhubaneswar?', a: 'Puri via NH316 (60 km, ~1.5 hrs), Konark via Marine Drive (65 km, ~1.5 hrs — one of India\'s most scenic coastal drives), and Chilika Lake via Satpada (100 km, ~2.5 hrs) are the top self-drive routes. All roads are in excellent condition.' },
+        { q: 'What documents are needed for self-drive in Bhubaneswar?', a: 'Original DL (minimum 1 year old), Aadhaar Card, and a security deposit of ₹2,000–₹4,000. Fuel policy is full-to-full. Petrol stations are abundant on NH16 and NH316.' },
+      ],
+    },
+  },
+
+  vadodara: {
+    intro:
+      "Vadodara (Baroda), Gujarat's cultural capital with 21 lakh residents, is a city of royal heritage, thriving education, and rapidly growing industrial output. The Maharaja Sayajirao University, Laxmi Vilas Palace, and the Vadodara Museum anchor the city's cultural identity. GIDC Makarpura, GIDC Gorwa, and the Padra industrial belt are major commercial drivers. The Ahmedabad-Vadodara Expressway (NH48) makes Vadodara the most accessible tier-2 city in Gujarat. TransRentals covers all Vadodara zones — Alkapuri, Akota, Gotri Road, Race Course, Manjalpur, and the Vadodara Airport area.",
+    routes: [
+      { to: 'Ahmedabad', distance: '110 km', duration: '1.5 hrs', via: 'NH48 Expressway' },
+      { to: 'Surat', distance: '160 km', duration: '3 hrs', via: 'NH48' },
+      { to: 'Anand', distance: '40 km', duration: '45 min', via: 'NH48' },
+      { to: 'Champaner-Pavagadh', distance: '50 km', duration: '1 hr', via: 'NH64' },
+      { to: 'Mumbai', distance: '430 km', duration: '7 hrs', via: 'NH48' },
+      { to: 'Rajkot', distance: '230 km', duration: '4 hrs', via: 'NH27' },
+    ],
+    tips: [
+      'NH48 Ahmedabad-Vadodara Expressway is one of India\'s finest — 110 km in under 90 minutes with FASTag',
+      'Champaner-Pavagadh UNESCO World Heritage Site (50 km) is ideal for a half-day day trip from Vadodara',
+      'Vadodara gets heavy rains in monsoon (June–September) — Harni area and low-lying roads flood easily',
+      'Gujarat dry state: Alcohol not available in Vadodara or on any highway route within Gujarat',
+    ],
+    stats: { population: '21 Lakh', knownFor: "Cultural Capital of Gujarat, Laxmi Vilas Palace, MSU, Baroda's Royal Heritage", airport: 'Vadodara Airport BDQ — 5 km from city center' },
+    serviceIntros: {
+      'car-rental':
+        "Vadodara's large university population, industrial base at GIDC Makarpura, and position between Ahmedabad and Surat on NH48 create diverse rental demand. Laxmi Vilas Palace, Champaner-Pavagadh, and VADODARA circuits are popular with tourists. TransRentals has verified Vadodara vendors covering Alkapuri, Akota, Gotri Road, and the Airport zone for same-day bookings.",
+      'bike-on-rent':
+        "Vadodara's student community from MSU and Parul University, combined with a compact city layout, make two-wheelers very popular. Honda Activa and TVS Jupiter dominate daily commuter rentals. Royal Enfield is available for Champaner-Pavagadh and Pavagadh fort rides. TransRentals has bike rentals across Alkapuri, Manjalpur, and Race Course areas.",
+      'bus-rental':
+        "Vadodara's large academic community and industrial workforce drive strong group travel demand. Pilgrimages to Champaner-Pavagadh (50 km) and Ambaji (200 km), and MSU convocation group transport are popular bookings. GIDC Makarpura and Gorwa industrial company outings are a major segment. TransRentals offers AC Tempo Travellers and buses from Vadodara.",
+      'packers-and-movers':
+        "Vadodara's relocation market is driven by three distinct segments: GIDC industrial transfers (executives and managers moving between Vadodara, Ahmedabad, and Surat), MSU and educational institution staff relocations, and government service postings. The strongest move corridors are Manjalpur to Gotri Road, Waghodia Road to Akota, and the old Baroda City area to new Sama-Savli township. Annual government transfer season peaks April–June. Key intercity routes: Vadodara to Ahmedabad (110 km via NH48 Expressway, ~1.5 hrs — Gujarat's most frequent intercity move), Vadodara to Surat (160 km via NH48), and Vadodara to Mumbai (430 km via NH48). The expressway makes same-day Ahmedabad moves routine. Gujarat summer heat (April–June, 42–45°C) demands early-morning loading. TransRentals-verified movers cover Alkapuri, Akota, Gotri Road, Race Course, Manjalpur, Waghodia Road, Sama, Sama-Savli Road, Subhanpura, Nizampura, Makarpura GIDC, Gorwa GIDC, Padra, Karelibaug, Fatehgunj, Pratapnagar, and Sayajigunj. Book insured movers and get a free quote online.",
+      'transporter':
+        "Vadodara's GIDC Makarpura (chemicals, engineering), GIDC Gorwa (plastics, pharma), and Padra industrial belt (pharmaceuticals) generate Gujarat's third-largest commercial transport demand after Ahmedabad and Surat. The Ahmedabad-Vadodara-Surat-Mumbai corridor is one of India's busiest industrial freight routes. TransRentals provides verified transporters for intra-city and intercity freight from Vadodara.",
+      'jcb-on-rent':
+        "Vadodara's rapid residential expansion along Gotri Road, Waghodia Road, and the new Sama-Savli township zone drives consistent JCB demand. Smart City Vadodara infrastructure projects and GIDC industrial estate expansion are major construction users. TransRentals provides JCB 3DX backhoe loaders and excavators for construction projects across Vadodara.",
+      'mini-truck-rental':
+        "Tata Ace and Bolero Pickup serve Vadodara's Lehripura market deliveries and household shifting between residential zones. Intra-city moves between Manjalpur and Gotri Road are the most frequent bookings. TransRentals has same-day mini-truck bookings with verified drivers across all Vadodara zones.",
+      'tempo-traveller':
+        "Vadodara is the ideal base for the Champaner-Pavagadh UNESCO Heritage Site (50 km), a top day-trip circuit for groups. Pilgrimages to Ambaji (200 km) and corporate team outings to Anand (40 km) and Amul Dairy are popular Tempo Traveller routes. TransRentals offers AC 9–17 seater Tempo Travellers with Gujarat-experienced drivers from Vadodara.",
+      'outstation-car-rental':
+        "Outstation cabs from Vadodara cover Ahmedabad (110 km), Surat (160 km), Champaner-Pavagadh (50 km), Anand (40 km), Rajkot (230 km), and Mumbai (430 km). TransRentals per-km pricing with transparent billing — available from all Vadodara zones with instant online booking.",
+      'one-way-car-rental':
+        "Vadodara's most popular one-way routes: Vadodara to Ahmedabad (110 km), Vadodara to Surat (160 km), Vadodara to Mumbai (430 km). The NH48 Expressway makes Ahmedabad one-ways the most convenient intercity one-way trip in Gujarat. Transparent pricing on TransRentals.",
+      'airport-transfer':
+        "Vadodara Airport (BDQ) is just 5 km from Alkapuri — among Gujarat's most centrally located airports. TransRentals airport transfers cover all Vadodara zones at fixed pre-booked prices. Airport to Alkapuri starting from ₹300 for a sedan. 24/7 service, no surge pricing, flight-tracking for arrivals.",
+      'self-drive-car-rentals':
+        "Vadodara's excellent NH48 Expressway to Ahmedabad (110 km, under 90 min) and Surat (160 km, ~3 hrs) makes it one of Gujarat's best self-drive cities. The NH64 to Champaner-Pavagadh UNESCO site (50 km) is a scenic and easy self-drive route. TransRentals lists verified self-drive vendors in Alkapuri, Akota, Gotri Road, and near Vadodara Airport. Note: Gujarat is a dry state — no alcohol in rental vehicles. FASTag required for NH48 expressway travel.",
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the best route from Vadodara to Ahmedabad?', a: 'NH48 Ahmedabad-Vadodara Expressway is ideal — 110 km in under 90 minutes with FASTag. One of India\'s smoothest expressway drives. Avoid Sundays (especially evenings) when return traffic from Ahmedabad can slow down the Vadodara toll approach.' },
+        { q: 'What is the cab cost from Vadodara to Surat?', a: 'One-way cab from Vadodara to Surat (160 km via NH48, ~3 hrs) starts from ₹1,500 for a sedan. NH48 is an excellent 6-lane highway — smooth and fast.' },
+        { q: 'Is self-drive car rental available in Vadodara?', a: 'Yes, self-drive cars are available. You need a valid DL (min 1 year old), Aadhaar, and security deposit. NH48 expressway to Ahmedabad and Surat is commonly allowed. Main vendors are in Alkapuri and near Vadodara Airport.' },
+        { q: 'Can I visit Champaner-Pavagadh as a day trip from Vadodara?', a: 'Yes, Champaner-Pavagadh UNESCO World Heritage Site (50 km via NH64, ~1 hr) is Vadodara\'s best day trip. Book a sedan or SUV — the site involves some walking and ropeway. Ideal departure time: 7 AM for a leisurely half-day visit.' },
+      ],
+      'bus-rental': [
+        { q: 'What is the cost of hiring a bus in Vadodara?', a: 'A 12-seater AC Tempo Traveller in Vadodara starts from ₹4,500+/day. A 20-seater mini bus for Ambaji (200 km, ~4 hrs) starts from ₹9,000+/day. For Champaner-Pavagadh group day trips (50 km), a Tempo Traveller starts from ₹4,000/day. MSU convocation and college outing buses are available at competitive rates.' },
+        { q: 'Which bus routes are most popular from Vadodara?', a: 'Vadodara to Champaner-Pavagadh (50 km, ~1 hr) is the most popular heritage circuit group route. Vadodara to Ambaji (200 km, ~4 hrs) is the top pilgrimage group route for Vadodara\'s large Gujarati community. Vadodara to Anand (40 km, ~45 min) including Amul Dairy visit is a popular corporate outing and educational group route.' },
+        { q: 'Can I hire a bus for an MSU function or corporate event in Vadodara?', a: 'Yes, Maharaja Sayajirao University (MSU) events, corporate GIDC industry outings, and Gujarati weddings are common bus booking segments. AC buses (20–50 seater) available from ₹8,000+/day. Gujarati wedding baraat buses start from ₹15,000/day. Book 2–3 weeks in advance for Navratri and Diwali season.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Vadodara do TransRentals movers cover?', a: 'TransRentals-verified movers cover all Vadodara localities — Alkapuri, Akota, Gotri Road, Race Course, Manjalpur, Waghodia Road, Sama, Sama-Savli Road, Subhanpura, Nizampura, Makarpura GIDC, Gorwa GIDC, Padra, Karelibaug, Fatehgunj, Pratapnagar, and Sayajigunj. Intercity moves to Ahmedabad, Surat, Anand, Rajkot, and Mumbai are available.' },
+        { q: 'Why is Vadodara to Ahmedabad the most common intercity move in Gujarat?', a: 'Vadodara and Ahmedabad are just 110 km apart on NH48 Expressway, connected in under 90 minutes. Executives at GIDC Makarpura and Gorwa frequently transfer to Ahmedabad\'s GIFT City or Naroda industrial zones, or vice versa. Students completing degrees at MSU Vadodara often relocate to Ahmedabad for employment. Same-day delivery is standard for Vadodara-Ahmedabad intercity moves, making it the most logistically efficient intercity move in Gujarat.' },
+        { q: 'When is the best time to shift house in Vadodara?', a: 'October–February is ideal — post-monsoon, cooler weather (Vadodara summer hits 44°C). Avoid April–June (extreme heat, GIDC and government transfers creating peak demand). August–September sees moderate activity as government academic transfers for universities finalize. Mid-month weekdays are consistently the most affordable and available.' },
+        { q: 'How does Vadodara\'s industrial character affect moving needs?', a: 'GIDC Makarpura (chemicals, fertilizers, pharmaceuticals) and GIDC Gorwa (plastics, engineering) involve specialized industrial relocations — executive families moving with imported furniture and high-value electronics. These moves require white-glove handling, air-conditioned loading periods during summer, and secure transit. TransRentals movers experienced with GIDC-area executive relocations are specifically listed for this requirement.' },
+        { q: 'How long does a 2BHK shift take within Vadodara?', a: "A standard 2BHK intra-Vadodara shift takes 6–8 hours with a 3-person team. Vadodara's well-planned road network (particularly the Akota Bridge area and Race Course Road) keeps transit times short. The longest cross-city moves (Manjalpur to Sama-Savli) rarely exceed 9 hours. Colonial-era bungalow areas near Sayajigunj may require narrower vehicles for lane access." },
+        { q: 'Can I move intercity from Vadodara to Ahmedabad, Surat, or Mumbai?', a: 'Yes — Vadodara to Ahmedabad (110 km via NH48, ~2 hrs truck, same-day), Vadodara to Surat (160 km via NH48, ~3 hrs, same-day delivery standard), and Vadodara to Mumbai (430 km via NH48, ~8 hrs truck) are all popular. The entire Gujarat-Mumbai corridor on NH48 is in outstanding condition. Get a free quote on TransRentals.' },
+      ],
+      'transporter': [
+        { q: 'What goods are commonly transported by trucks in Vadodara?', a: "Vadodara's GIDC Makarpura chemical and fertilizer units (fertilizers, dyes, specialty chemicals), Gorwa plastics and engineering goods, and Padra pharmaceutical cluster are the three largest freight categories. Indian Oil Corporation's Koyali refinery (15 km from Vadodara) drives significant bulk liquid tanker movement." },
+        { q: 'What is the truck rental cost in Vadodara per day?', a: 'Tata Ace (1T) starts from ₹2,500/day. Tata 407 (5T) starts from ₹5,500/day. For Ahmedabad (110 km) and Surat (160 km) same-day deliveries, per-trip pricing is standard.' },
+      ],
+      'tempo-traveller': [
+        { q: 'What is the cost of Tempo Traveller rental in Vadodara?', a: '12-seater AC Tempo Traveller starting from ₹4,500/day for local trips. Champaner-Pavagadh UNESCO heritage circuit (50 km, half-day) starts from ₹4,000. Ambaji pilgrimage (200 km, ~4 hrs) one-way starts from ₹8,000.' },
+        { q: 'Can I book a Tempo Traveller for a Champaner-Pavagadh trip?', a: 'Yes, Vadodara to Champaner-Pavagadh (50 km via NH64, ~1 hr) is Vadodara\'s most popular heritage group trip. A 12-seater round trip with 3 hours waiting starts from ₹5,000. Ideal for college groups, cultural society trips, and corporate heritage outings.' },
+      ],
+      'self-drive-car-rentals': [
+        { q: 'What is the cost of self-drive car rental in Vadodara per day?', a: 'Hatchback self-drive in Vadodara starts from ₹799/day. Sedans start from ₹1,099/day. SUVs start from ₹1,499/day. Packages include 150–200 km. NH48 expressway travel is allowed with most vendors.' },
+        { q: 'Can I self-drive from Vadodara to Ahmedabad on the expressway?', a: 'Yes, NH48 Ahmedabad-Vadodara Expressway is the most popular self-drive route from Vadodara — 110 km in under 90 minutes. FASTag is required. Confirm expressway outstation permission with your vendor before booking.' },
+        { q: 'What documents are required for self-drive in Vadodara?', a: 'Original DL (minimum 1 year old), Aadhaar Card, and a refundable security deposit (₹2,000–₹4,000). FASTag strongly recommended for NH48 expressway. Gujarat is a dry state — no alcohol in rental vehicles.' },
+      ],
+      'airport-transfer': [
+        { q: 'How much is a cab from Vadodara Airport to Alkapuri?', a: 'Pre-booked cab from Vadodara Airport (BDQ) to Alkapuri (5 km) starts from ₹280 on TransRentals. Fixed pricing — no surge. Vadodara Airport is among Gujarat\'s most centrally located, making transfers quick and affordable.' },
+        { q: 'How long does it take from Vadodara Airport to Gotri Road or Manjalpur?', a: 'Vadodara Airport to Gotri Road is 10–12 km and takes 20–30 minutes. To Manjalpur (18 km) takes 30–40 minutes in normal traffic. The airport\'s central location keeps all zone transfers under 45 minutes.' },
+      ],
+      'bike-on-rent': [
+        { q: 'Which bike is best for daily commute in Vadodara?', a: 'Honda Activa and TVS Jupiter are ideal for Vadodara daily commuting — excellent on the wide Race Course Road, Alkapuri Ring Road, and Gotri Road corridors. The city\'s broad colonial-era boulevards make scooters and bikes very comfortable.' },
+        { q: 'Can I rent a Royal Enfield in Vadodara for a weekend trip?', a: 'Yes, Royal Enfield Classic 350 is available from Vadodara for weekend rides. Pavagadh Hill (50 km via NH64) and the Narmada river valley road are popular local rides. Daman (200 km via NH53) is a weekend destination for coastal riders.' },
+        { q: 'What documents are needed to rent a bike in Vadodara?', a: 'Valid DL (minimum 1 year old), Aadhaar or Passport, and a refundable security deposit of ₹1,500–₹3,000. Gujarat police checkposts are active on NH48 — carry DL and documents. Note: Gujarat is a dry state — no alcohol on rental vehicles.' },
+      ],
+    },
+  },
+
+  noida: {
+    intro: 'Noida is one of NCR\'s fastest-growing IT and corporate hubs, with massive demand for cab services, airport transfers, and outstation car rentals. The city\'s Expressway connectivity — Yamuna Expressway, Noida-Greater Noida Expressway, and NH58 — makes road travel highly efficient. Corporate campuses in Sectors 62, 63, and 132 generate large-scale daily cab requirements. Weekend road trips to Agra, Jaipur, Mathura, and the Himalayan foothills are extremely popular among Noida residents.',
+    routes: [
+      { to: 'Agra', distance: '210 km', duration: '3.5 hrs', via: 'Yamuna Expressway' },
+      { to: 'Jaipur', distance: '270 km', duration: '4.5 hrs', via: 'NH48' },
+      { to: 'Mathura', distance: '155 km', duration: '2.5 hrs', via: 'Yamuna Expressway' },
+      { to: 'Haridwar', distance: '230 km', duration: '4 hrs', via: 'NH58' },
+      { to: 'Dehradun', distance: '290 km', duration: '5 hrs', via: 'NH58' },
+      { to: 'Nainital', distance: '310 km', duration: '6 hrs', via: 'NH9' },
+    ],
+    tips: [
+      'Book early morning slots (5–7 AM) for Yamuna Expressway trips — minimal toll congestion',
+      'FASTag mandatory on Yamuna Expressway and NH48 — ensure vendor vehicle is equipped',
+      'Noida Sectors 62 and 63 have designated cab pickup zones outside office campuses',
+      'Avoid Noida-Delhi border at Mayur Vihar and Ashram Chowk during peak hours (8–10 AM, 6–9 PM)',
+    ],
+    stats: { population: '6.4 Lakh', knownFor: 'IT parks, Film City, corporate hubs', airport: 'Indira Gandhi International Airport, Delhi (45 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Noida with a professional driver is the preferred choice for corporate employees, airport transfers, and outstation trips via Yamuna Expressway. TransRentals provides Swift, Innova, Ertiga, and Crysta with experienced chauffeurs familiar with Noida\'s expressway grid and NCR traffic patterns.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Noida are ideal for weekend escapes on the Yamuna Expressway to Agra and Mathura. Hatchbacks start from ₹899/day, SUVs from ₹1,899/day. Vendors in Sectors 62, 18, and Greater Noida offer doorstep delivery with FASTag-equipped vehicles.',
+      'bike-on-rent': 'Bike rentals in Noida are popular among IT professionals for daily commuting within sectors. Honda Activa from ₹299/day. Royal Enfield available for Yamuna Expressway weekend rides to Agra.',
+      'airport-transfer': 'Noida to IGI Airport (45–55 km via DND Flyway or NH24) takes 60–90 minutes. Pre-booked fixed-rate airport cabs from ₹1,299. Night flight transfers available 24/7 with TransRentals.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Noida per day?', a: 'Hatchback (Swift/WagonR) with driver starts from ₹999/day for local use in Noida. Sedan (Dzire/Amaze) starts from ₹1,299/day. Innova Crysta starts from ₹2,499/day. For outstation Agra via Yamuna Expressway, packages start from ₹3,499 for a full day (350 km limit).' },
+        { q: 'Is there a cab service from Noida to IGI Airport?', a: 'Yes, pre-booked cabs from Noida to IGI Airport start from ₹1,299 for a hatchback. The fastest route is via DND Flyway → NH24 → Ring Road (~45 km, 60–90 min). Night transfers available at no extra charge. Fixed rates — no surge pricing.' },
+        { q: 'Can I book a cab from Noida to Agra for a day trip?', a: 'Noida to Agra (210 km via Yamuna Expressway) is the most popular day trip from Noida. A round trip with driver (Sedan) starts from ₹3,499. Yamuna Expressway is a 6-lane premium highway — the 210 km journey takes ~3.5 hours. FASTag required.' },
+        { q: 'Which car is best for a Noida to Jaipur road trip?', a: 'Innova Crysta or Ertiga are recommended for Noida to Jaipur (270 km via NH48, ~4.5 hrs) — comfortable on long highway stretches. Package starts from ₹4,999 with driver. Gurugram-Jaipur stretch on NH48 has excellent road quality and regular fuel stops.' },
+        { q: 'Are outstation cabs available from Noida to Haridwar and Rishikesh?', a: 'Yes, Noida to Haridwar (230 km via NH58, ~4 hrs) and Rishikesh (260 km, ~4.5 hrs) are very popular weekend routes. Packages start from ₹4,499 round trip with driver. Best booked Thursday night for Friday morning departures to avoid NH58 weekend traffic.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Noida do TransRentals movers cover?', a: 'TransRentals-verified movers cover all Noida sectors — Sector 62, 63, 137, 150, Greater Noida, Indirapuram, Vaishali, Kaushambi, and Noida Extension (Greater Noida West). Cross-NCR moves to Delhi, Gurugram, Faridabad, and Ghaziabad are all available.' },
+        { q: 'What is the most common move corridor in Noida?', a: 'Noida Sector 62 to Greater Noida West and Delhi (South/West) to Noida are the busiest corridors, driven by IT professionals switching jobs between NCR tech hubs. End-of-financial-year (March–April) is peak season — book at least 7–10 days in advance.' },
+        { q: 'Can I move intercity from Noida to other cities?', a: 'Yes — Noida to Jaipur (270 km via NH48), Noida to Lucknow (500 km via NH19), and Noida to Mumbai (1,500 km) intercity moves are available. Full-truck-load door-to-door packages with packing and transit insurance. Get a free quote on TransRentals.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Noida?', a: 'JCB backhoe loaders from ₹3,499/day, hydraulic excavators from ₹4,500/day, cranes, generators (15–500kVA), road rollers, and concrete mixers. Noida Expressway infrastructure, YEIDA plots, and massive residential towers in Sectors 137 and 150 keep equipment in constant demand.' },
+        { q: 'What is the most in-demand construction equipment in Noida?', a: 'Tower cranes and hydraulic excavators dominate Noida\'s equipment demand, driven by high-rise residential construction in Sectors 137, 150, and Greater Noida West. Yamuna Expressway Industrial Development Authority (YEIDA) projects and data centre construction in Sector 62 also require large earthmoving equipment year-round.' },
+        { q: 'How far in advance should I book construction equipment in Noida?', a: 'For standard JCB and excavators, 48–72 hours is sufficient. For cranes and large machinery near Noida Expressway or metro corridor, book 5–7 days ahead. NMRC metro line construction zones require NMRC NOC before excavation work — arrange permits before scheduling deployment.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Noida per day?', a: 'Tata Ace (750 kg) starts from ₹1,599/day in Noida. Bolero Pickup (1.5 ton) from ₹2,099/day. Driver included. Helper on request at ₹350 extra. Same-day bookings available across Sectors 18, 62, and Greater Noida.' },
+        { q: 'Can I rent a mini truck for house shifting in Noida?', a: 'Yes, mini trucks are ideal for 1BHK and studio apartment shifts in Noida. Common routes: Sector 62 to Greater Noida West, Indirapuram to Noida Sector 137, and Noida to Delhi cross-NCR moves. Driver included; helpers available on request.' },
+        { q: 'What goods are commonly transported by mini trucks in Noida?', a: 'IT equipment and office furniture from Sector 62/63 tech parks, e-commerce last-mile deliveries from Noida\'s large Flipkart and Amazon fulfilment centres, and shop stock from Noida Sector 18 mall corridor are the most frequent mini truck use cases.' },
+      ],
+    },
+  },
+
+  gurugram: {
+    intro: 'Gurugram (Gurgaon) is the corporate capital of the NCR, home to Fortune 500 companies, multinational offices, and India\'s largest business parks along Golf Course Road and Cyber City. Demand for premium cab services, airport transfers, and chauffeur-driven corporate cars is among the highest in India. NH48 provides seamless connectivity to Jaipur, while IGI Airport is just 15–20 minutes away. Weekend drives to Sariska, Neemrana, and Rajasthan hill forts are extremely popular among Gurugram professionals.',
+    routes: [
+      { to: 'Jaipur', distance: '270 km', duration: '4.5 hrs', via: 'NH48' },
+      { to: 'Neemrana', distance: '120 km', duration: '2 hrs', via: 'NH48' },
+      { to: 'Sariska', distance: '200 km', duration: '3 hrs', via: 'NH48 → SH25' },
+      { to: 'Agra', distance: '230 km', duration: '3.5 hrs', via: 'Yamuna Expressway' },
+      { to: 'Alwar', distance: '160 km', duration: '2.5 hrs', via: 'NH48 → NH248' },
+      { to: 'Chandigarh', distance: '270 km', duration: '4 hrs', via: 'NH44' },
+    ],
+    tips: [
+      'NH48 Gurugram-Jaipur stretch has good quality roads but heavy trucks at night — depart early morning',
+      'IGI Airport is just 15–20 km from Cyber City — easiest airport access in NCR',
+      'Cyber City and Golf Course Road have surge pricing during morning/evening rush — book cabs 30 min early',
+      'Rajasthan highway toll booths accept FASTag — ensure rental vehicles are FASTag equipped',
+    ],
+    stats: { population: '15 Lakh', knownFor: 'Cyber City, corporate hubs, DLF malls', airport: 'Indira Gandhi International Airport, Delhi (15 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Gurugram with a professional driver is the standard for corporate commutes, client pickups, and executive transfers between Cyber City, Udyog Vihar, and IGI Airport. TransRentals provides Innova Crysta, Toyota Camry, and Mercedes E-Class for corporate accounts, and Swift/Ertiga for regular office cabs.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Gurugram are popular for weekend escapes on NH48 to Neemrana, Jaipur, and Sariska. Sedans from ₹999/day, SUVs from ₹1,799/day. Delivery available to DLF Phase 1–5, Sohna Road, and Golf Course Extension Road.',
+      'airport-transfer': 'Gurugram to IGI Airport transfers (15–20 km via NH48) start from ₹699. Fixed pricing for all terminals (T1, T2, T3). Night transfers available 24/7. Corporate account billing available for businesses.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Gurugram per day?', a: 'Hatchback (Swift/WagonR) with driver starts from ₹999/day. Sedan (Dzire) starts from ₹1,299/day. Innova Crysta starts from ₹2,499/day. Executive sedans (Toyota Camry, BMW 3-Series) available from ₹4,999/day for corporate requirements.' },
+        { q: 'What is the cab fare from Gurugram to IGI Airport?', a: 'Pre-booked cab from Gurugram (Cyber City/DLF areas) to IGI Airport starts from ₹699 for a hatchback. Distance is 15–20 km via NH48, taking 20–35 minutes in normal traffic. Night trips (midnight–5 AM) have same fixed rates — no surge.' },
+        { q: 'Can I book a corporate car rental subscription in Gurugram?', a: 'Yes, TransRentals offers monthly corporate car rental packages for Gurugram businesses. Dedicated driver + vehicle packages start from ₹30,000/month (8 hrs/80 km per day). Employee shuttle services for IT parks in Sector 44, Udyog Vihar, and Manesar also available.' },
+        { q: 'Which is the best cab for a Gurugram to Jaipur trip?', a: 'Innova Crysta or Ertiga are best for Gurugram to Jaipur (270 km via NH48, ~4.5 hrs). Package starts from ₹4,999 round trip. NH48 is a 6-lane expressway with good fuel availability. Neemrana Fort (120 km) is a popular midpoint stop.' },
+        { q: 'Is a chauffeur-driven car available in Gurugram for weddings and events?', a: 'Yes, luxury chauffeur-driven cars including Mercedes E-Class, BMW 5-Series, and Toyota Vellfire are available in Gurugram. Wedding packages start from ₹8,999. Decorated cars and convoy bookings available with advance notice of 72 hours.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Gurugram do TransRentals movers cover?', a: 'TransRentals-verified movers cover all Gurugram zones — Cyber City, DLF Phase 1–5, Sohna Road, Golf Course Extension, Sector 56, Palam Vihar, Manesar, and New Gurugram sectors. Cross-NCR moves to Delhi, Noida, Faridabad, and Ghaziabad available.' },
+        { q: 'When is the busiest moving season in Gurugram?', a: 'May–June (MNC annual transfer cycle) and March–April (financial year-end) are peak months in Gurugram. High-rise society moves require service lift booking 48–72 hours in advance with the RWA. Book movers at least 7 days ahead during peak season.' },
+        { q: 'Can I move intercity from Gurugram to Jaipur or other cities?', a: 'Yes — Gurugram to Jaipur (270 km via NH48), Gurugram to Chandigarh (270 km via NH44), and Gurugram to Mumbai (1,400 km) intercity moves are all available. Full-truck-load packages with packing, dedicated truck, and transit insurance. Free quote on TransRentals.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Gurugram?', a: 'JCB backhoe loaders from ₹3,499/day, hydraulic excavators, cranes, generator sets (15–500kVA), and road rollers. DLF high-rise construction, SPR and NH48 infrastructure, and Manesar industrial zone projects generate constant year-round equipment demand.' },
+        { q: 'Are cranes available for high-rise construction in Gurugram?', a: 'Yes, tower cranes for DLF residential towers and mobile cranes for Cyber City commercial construction are available. Book 5–7 days in advance for crane deployments. Sites near Rapid Metro corridor or Golf Course Road require prior NOC — confirm with the site engineer before scheduling.' },
+        { q: 'How do I book a generator for an outdoor event in Gurugram?', a: 'Generator sets (15kVA–500kVA) available for corporate events, DLF mall activations, and outdoor exhibitions. Silent DG sets preferred for Cyber Hub and residential society events. Book 24–48 hours in advance on TransRentals. All gensets come with certified operator.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Gurugram per day?', a: 'Tata Ace (750 kg) starts from ₹1,699/day in Gurugram. Bolero Pickup (1.5 ton) from ₹2,199/day. Driver included. Pickup zones: Sector 29, Cyber City, DLF Phase 1–4, and Sohna Road. Same-day bookings available.' },
+        { q: 'Can I rent a mini truck for office shifting in Gurugram?', a: 'Yes, mini trucks are the most common vehicle for IT office furniture and equipment shifting within Gurugram\'s DLF and Cyber City tech parks. For larger office moves, book 2–3 mini trucks for same-day completion. Helper on request at ₹350/person extra.' },
+        { q: 'What goods are commonly transported by mini trucks in Gurugram?', a: 'Corporate office relocations from Cyber City and Udyog Vihar, retail stock movement in Gurugram\'s malls (MGF Metropolitan, DLF Mega Mall), and courier last-mile from DTDC and Delhivery hubs in Udyog Vihar are the most frequent mini truck use cases in Gurugram.' },
+      ],
+    },
+  },
+
+  dehradun: {
+    intro: 'Dehradun is the gateway city to Uttarakhand\'s famous hill stations and pilgrimage circuits, making it one of North India\'s busiest car rental hubs. The city serves as the starting point for Mussoorie, Rishikesh, Haridwar, Auli, and the Char Dham yatra. With the Delhi-Dehradun Expressway reducing travel time significantly, weekend trip demand has surged. Corporate demand from ONGC, FRI, and ISRO Dehradun further drives the cab and outstation rental market.',
+    routes: [
+      { to: 'Mussoorie', distance: '35 km', duration: '1 hr', via: 'Mussoorie Road' },
+      { to: 'Haridwar', distance: '55 km', duration: '1.5 hrs', via: 'NH58' },
+      { to: 'Rishikesh', distance: '45 km', duration: '1 hr', via: 'NH58' },
+      { to: 'Auli', distance: '270 km', duration: '7 hrs', via: 'NH58 → NH7' },
+      { to: 'Delhi', distance: '300 km', duration: '5 hrs', via: 'NH58 / Expressway' },
+      { to: 'Nainital', distance: '290 km', duration: '6 hrs', via: 'NH109' },
+    ],
+    tips: [
+      'Mussoorie road from Dehradun has traffic congestion on weekends — depart before 7 AM',
+      'NH58 to Haridwar is a 4-lane highway — fast and smooth, ideal for airport transfers',
+      'Char Dham yatra (May–June) spikes car rental demand — book at least 2 weeks in advance',
+      'Jolly Grant Airport is 30 km from city centre — book pre-paid airport cabs to avoid auto overcharging',
+    ],
+    stats: { population: '7.1 Lakh', knownFor: 'Gateway to hill stations, ONGC HQ, FRI campus', airport: 'Jolly Grant Airport (30 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Dehradun with a driver is essential for navigating the hilly terrain to Mussoorie, Landour, and Chakrata. TransRentals provides experienced mountain-road drivers familiar with the steep Mussoorie ghats. Swift, Bolero, and Innova available for local and outstation Dehradun trips.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Dehradun are available for the Haridwar-Rishikesh valley road and Mussoorie day trips. Hatchbacks from ₹799/day. Note: Mussoorie hill roads require prior driving experience — consider a driver for first-timers.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Dehradun per day?', a: 'Hatchback with driver starts from ₹1,099/day in Dehradun. Innova Crysta (best for hilly roads) starts from ₹2,799/day. For a Dehradun–Mussoorie–Dehradun full day trip with driver, packages start from ₹1,800 (including toll and driver allowance).' },
+        { q: 'Is a cab available from Dehradun to Mussoorie?', a: 'Yes, Dehradun to Mussoorie (35 km, ~1 hr via Mussoorie Road) is the most booked route in Dehradun. One-way starts from ₹700, round trip with 4 hours waiting from ₹1,400. Library Chowk drop available. Cab drivers are experienced on the mountain ghat road.' },
+        { q: 'Can I book a car from Dehradun for the Char Dham yatra?', a: 'Yes, TransRentals offers dedicated Char Dham yatra packages from Dehradun — 10–12 day itineraries covering Yamunotri, Gangotri, Kedarnath (road), and Badrinath. Innova Crysta or Bolero recommended. Packages start from ₹28,000 per vehicle for a complete circuit. Book at least 3 weeks before the yatra season (May–June).' },
+        { q: 'How long does it take from Dehradun to Haridwar by cab?', a: 'Dehradun to Haridwar is 55 km via NH58 and takes approximately 1.5 hours in normal traffic. NH58 is a 4-lane national highway — excellent road condition. One-way fare starts from ₹899. Early morning departures for Ganga Aarti (6 AM at Har Ki Pauri) should depart Dehradun by 4:30 AM.' },
+        { q: 'What is the cab fare from Jolly Grant Airport to Dehradun city?', a: 'Pre-booked cab from Jolly Grant Airport to Dehradun city centre (30 km, ~40 min via Rishikesh Bypass) starts from ₹699. Fixed airport rates — no negotiation. Mussoorie drop from airport starts from ₹1,499. Night transfer available 24/7.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas do TransRentals movers cover in Dehradun?', a: 'TransRentals movers cover all Dehradun zones — Rajpur Road, Saharanpur Road, Haridwar Road, Prem Nagar, Clement Town, Ballupur, Dalanwala, and Mussoorie Road. Intercity moves to Delhi (300 km), Haridwar (55 km), and Chandigarh (230 km) available.' },
+        { q: 'What is the best time to shift house in Dehradun?', a: 'October–February is ideal — clear weather, comfortable temperatures. Avoid monsoon (July–September) when road access to Mussoorie Road and Rajpur Road can be compromised by landslides. March–April (ONGC/government transfers) and May–June (hill schools semester change) are peak booking periods — book 10 days ahead.' },
+        { q: 'Can I move intercity from Dehradun to Delhi?', a: 'Yes, Dehradun to Delhi (300 km via NH58, ~5.5 hrs truck) is the most booked intercity route. Full-truck-load door-to-door service with packing and transit insurance starts from ₹9,000 for a 1BHK. Get a free quote on TransRentals.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Dehradun?', a: 'JCB backhoe loaders from ₹3,499/day, excavators, generators, cranes, and road rollers. Dehradun\'s rapid residential development in Saharanpur Road and Ballupur corridors, ONGC Dehradun campus projects, and smart city work keep equipment in consistent demand.' },
+        { q: 'Are mini excavators available in Dehradun for narrow lane utility work?', a: 'Yes, mini excavators (1–5 ton) are ideal for Dehradun\'s narrow Mussoorie Road and Old Rajpur Road utility trenching. Starting from ₹3,500/day with operator. Book 48–72 hours in advance for standard excavators; 5 days ahead for larger machines near the Haridwar Road bypass.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Dehradun per day?', a: 'Tata Ace starts from ₹1,499/day in Dehradun. Bolero Pickup from ₹1,999/day. Driver included. Helpful for small household shifts between Rajpur Road and Prem Nagar or Saharanpur Road zones.' },
+        { q: 'Can I rent a mini truck for shifting goods to Mussoorie from Dehradun?', a: 'Yes, but note Mussoorie road is a ghat — the final 12 km (from Rajpur to Mussoorie Library Chowk) is steep with sharp bends. Mini trucks can navigate this but take 30–45 min for the last stretch. Verify with the driver before booking for Mussoorie delivery.' },
+      ],
+    },
+  },
+
+  jodhpur: {
+    intro: 'Jodhpur, the Blue City of Rajasthan, is a major tourism and heritage hub that generates significant car rental demand for fort visits, desert safaris, and Rajasthan circuit road trips. The city is the gateway to Jaisalmer, Bikaner, and the Thar Desert. Wedding season (October–February) drives substantial demand for luxury and vintage car rentals. NH62 and NH25 provide excellent connectivity to Jaipur, Jaisalmer, and Udaipur.',
+    routes: [
+      { to: 'Jaisalmer', distance: '290 km', duration: '4.5 hrs', via: 'NH62' },
+      { to: 'Udaipur', distance: '250 km', duration: '4 hrs', via: 'NH62' },
+      { to: 'Jaipur', distance: '340 km', duration: '5.5 hrs', via: 'NH62' },
+      { to: 'Bikaner', distance: '250 km', duration: '4 hrs', via: 'NH62' },
+      { to: 'Mount Abu', distance: '265 km', duration: '4.5 hrs', via: 'NH325' },
+      { to: 'Pushkar', distance: '215 km', duration: '3.5 hrs', via: 'NH62' },
+    ],
+    tips: [
+      'Jaisalmer road (NH62) has limited fuel stations after Sam Sand Dunes — refuel at Pokaran',
+      'Mehrangarh Fort area has restricted vehicle entry — hire a local auto or walk from Sardar Market',
+      'Monsoon (July–September) brings flash floods on desert roads — check NH62 status before Jaisalmer trip',
+      'Wedding car bookings require 2–4 weeks advance notice during peak season (Nov–Feb)',
+    ],
+    stats: { population: '11.3 Lakh', knownFor: 'Mehrangarh Fort, Blue City, Rajasthani cuisine, royal heritage', airport: 'Jodhpur Airport (5 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Jodhpur with a driver is the recommended way to explore Mehrangarh Fort, Umaid Bhawan Palace, Jaswant Thada, and the Mandore Gardens. TransRentals provides experienced drivers who know the narrow lanes of the old Blue City and the desert highway to Jaisalmer and Bikaner.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Jodhpur are popular for the Jodhpur-Jaisalmer-Jodhpur desert circuit. SUVs (Bolero, Thar) recommended for desert roads. Available from ₹1,099/day. Verify vendor\'s outstation policy for crossing into deep desert areas.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Jodhpur per day?', a: 'Hatchback with driver starts from ₹1,099/day in Jodhpur. Innova Crysta starts from ₹2,799/day. For Jaisalmer (290 km, one way), package starts from ₹4,499. Rajasthan circuit packages (Jodhpur–Jaisalmer–Bikaner–Jodhpur) start from ₹12,000 for 3 days.' },
+        { q: 'Can I book a cab from Jodhpur to Jaisalmer?', a: 'Jodhpur to Jaisalmer (290 km via NH62, ~4.5 hrs) is the most popular outstation route. One-way cab starts from ₹4,499 (Sedan). NH62 is a good 4-lane highway until Pokaran — the last 100 km is 2-lane. Bolero or Innova recommended for desert terrain.' },
+        { q: 'Are vintage and luxury cars available for weddings in Jodhpur?', a: 'Yes, Jodhpur is Rajasthan\'s premier wedding destination. Vintage cars (Ambassador, Jeep) and luxury cars (Mercedes, Audi) are available for baraat processions and airport pickups. Wedding packages start from ₹5,000 for vintage Ambassador to ₹15,000 for Mercedes E-Class. Book 3–4 weeks in advance during peak wedding season.' },
+        { q: 'Is a cab available from Jodhpur Airport to the city?', a: 'Pre-booked cab from Jodhpur Airport (5 km from city centre) starts from ₹350. Journey is about 15 minutes. Fixed rates — no overcharging. Hotels near Mehrangarh Fort (old city) take 20–25 minutes due to narrow lanes.' },
+        { q: 'Can I book a cab for a Jodhpur to Udaipur day trip?', a: 'Jodhpur to Udaipur (250 km via NH62, ~4 hrs) is a popular one-day or overnight trip covering two of Rajasthan\'s most beautiful cities. Full-day package with driver starts from ₹4,299. The route passes through Ranakpur (Jain temples, 160 km) — an excellent midpoint stop.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Jodhpur do TransRentals movers cover?', a: 'TransRentals movers cover all Jodhpur zones — Sardarpura, Ratanada, Shastri Nagar, Chopasni Housing Board, Paota, Pal Road, and Mandore. Intercity moves to Jaipur (340 km), Udaipur (250 km), and Jaisalmer (290 km) available.' },
+        { q: 'What is the best time to shift house in Jodhpur?', a: 'October–February is ideal — cooler desert climate. Avoid April–June (extreme heat up to 45°C). Jodhpur\'s wedding season (Nov–Feb) means moving crew availability is reduced on peak wedding dates — check calendar. Mid-month weekdays are most affordable.' },
+        { q: 'Can I move intercity from Jodhpur to Jaipur or other Rajasthan cities?', a: 'Yes — Jodhpur to Jaipur (340 km via NH62, ~5.5 hrs), Jodhpur to Udaipur (250 km, ~4 hrs), and Jodhpur to Jaisalmer (290 km, ~4.5 hrs) are all covered. TransRentals intercity packages include packing, dedicated truck, and transit insurance.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Jodhpur?', a: 'JCB backhoe loaders from ₹3,499/day, excavators, generators (15–500kVA), cranes, and road rollers available in Jodhpur. The city\'s RIICO industrial zone expansion, defense establishment construction, and the New Jodhpur residential development drive steady equipment demand.' },
+        { q: 'Are generators available for events and weddings in Jodhpur?', a: 'Yes, Jodhpur\'s wedding industry generates high generator rental demand. Silent DG sets (15kVA–500kVA) for palace wedding venues and tent houses available year-round. Book 48–72 hours ahead for standard events; 7 days ahead for large royal wedding setups.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Jodhpur per day?', a: 'Tata Ace starts from ₹1,499/day in Jodhpur. Bolero Pickup from ₹1,899/day. Driver included. Ideal for household shifts in Sardarpura, Ratanada, and Chopasni Housing Board zones.' },
+        { q: 'What goods are commonly transported by mini trucks in Jodhpur?', a: 'Jodhpur\'s handicraft and furniture exports (blue pottery, wrought iron furniture, wooden items for Delhi/Mumbai markets), RIICO industrial zone goods, and household shifting between the old city and newer Pal Road/Chopasni zones are the primary mini truck use cases.' },
+      ],
+    },
+  },
+
+  udaipur: {
+    intro: 'Udaipur, the City of Lakes, is Rajasthan\'s most romantic and widely visited destination, generating year-round car rental demand from domestic and international tourists. The city serves as a base for Rajasthan circuit tours to Jodhpur, Jaipur, and Chittorgarh. Lake Pichola, City Palace, and the Aravalli drives create consistent demand for local cabs. Maharana Pratap Airport handles direct flights from major metros, and the city\'s prominence as a wedding destination keeps luxury car demand high.',
+    routes: [
+      { to: 'Jodhpur', distance: '250 km', duration: '4 hrs', via: 'NH62' },
+      { to: 'Jaipur', distance: '405 km', duration: '6 hrs', via: 'NH48' },
+      { to: 'Chittorgarh', distance: '115 km', duration: '2 hrs', via: 'NH76' },
+      { to: 'Mount Abu', distance: '185 km', duration: '3.5 hrs', via: 'NH27' },
+      { to: 'Ajmer', distance: '280 km', duration: '4.5 hrs', via: 'NH48' },
+      { to: 'Ranakpur', distance: '90 km', duration: '2 hrs', via: 'NH162' },
+    ],
+    tips: [
+      'City Palace and Fateh Sagar Lake roads have heavy tourist traffic in evenings — use morning hours for local sightseeing',
+      'Monsoon (Jul–Sep) makes Udaipur most scenic but check road conditions for Rajsamand and Kumbhalgarh trips',
+      'Ranakpur Jain Temple (90 km) is the best half-day trip from Udaipur — depart by 8 AM',
+      'Pre-book airport cabs — surge pricing from Maharana Pratap Airport during peak tourist season',
+    ],
+    stats: { population: '4.7 Lakh', knownFor: 'City of Lakes, City Palace, Lake Pichola, Venice of the East', airport: 'Maharana Pratap Airport (22 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Udaipur with a driver is the best way to see the lakes, palaces, and Aravalli countryside without navigating unfamiliar roads. TransRentals drivers know the restricted zones around City Palace and Bagore Ki Haveli. Hatchbacks to Innova available for all trip types.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Udaipur are ideal for the Kumbhalgarh-Ranakpur circuit (180 km loop). Sedans from ₹1,099/day. Note: city centre driving near Lake Pichola has one-way restrictions — study the route before self-driving in the old city.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Udaipur per day?', a: 'Hatchback (Swift) with driver starts from ₹1,099/day. Innova Crysta starts from ₹2,799/day. Full-day sightseeing (City Palace, Saheliyon Ki Bari, Fateh Sagar, Bagore Ki Haveli) starts from ₹1,599 (Sedan with driver, 8 hrs/80 km).' },
+        { q: 'Is a cab available from Udaipur to Jodhpur or Jaipur?', a: 'Yes, Udaipur to Jodhpur (250 km via NH62, ~4 hrs) starts from ₹4,299. Udaipur to Jaipur (405 km via NH48, ~6 hrs) starts from ₹6,499. Both routes have excellent NH road quality. Ranakpur and Kumbhalgarh are popular intermediate stops.' },
+        { q: 'Are luxury cars available for weddings in Udaipur?', a: 'Udaipur is India\'s top luxury wedding destination. Mercedes E-Class, BMW 5-Series, and decorated vintage cars (Ambassador, Jeep) are available. Luxury wedding car packages start from ₹8,000. Book 4–6 weeks in advance for peak wedding season (Nov–Feb). Palace hotel drops and baraat processions arranged.' },
+        { q: 'What is the cab fare from Maharana Pratap Airport to Udaipur city?', a: 'Pre-booked cab from Maharana Pratap Airport (22 km, ~30 min) to the city starts from ₹699. Fixed rates — no surge. Lakeside hotels (Taj Lake Palace area, Fateh Garh) take 35–40 minutes. Book in advance during tourist season (Oct–Mar) to ensure availability.' },
+        { q: 'Can I hire a cab for local Udaipur sightseeing?', a: 'Yes, full-day Udaipur sightseeing packages start from ₹1,599 (Sedan, 8 hrs/80 km). Itinerary covers City Palace, Saheliyon Ki Bari, Fateh Sagar Lake, Bagore Ki Haveli, and Shilpgram. Half-day packages (4 hrs) start from ₹899 for the main lakeside circuit.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Udaipur do TransRentals movers cover?', a: 'TransRentals movers serve all Udaipur zones — Surajpole, Hiran Magri, Bhuwana, Pratap Nagar, Ambamata, Ayad, and the old city areas near Fatehsagar. Intercity moves to Jaipur (405 km via NH48) and Jodhpur (250 km via NH62) available.' },
+        { q: 'What is the best time to shift house in Udaipur?', a: 'June–September (monsoon off-peak for tourism) is the best time for hassle-free shifting. Avoid October–March when tourist traffic makes parking and access difficult near the old city and lakeside areas. Mid-month weekdays are most affordable.' },
+        { q: 'Do movers handle the old city and lakeside areas in Udaipur?', a: 'Yes, but access near Lake Pichola and Jagdish Temple has restrictions. Movers park at the nearest accessible point and carry goods manually for the last stretch. Factor in an extra 2–3 hours for old city shifts and always inform movers of narrow lane access in advance.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Udaipur?', a: 'JCB backhoe loaders, excavators, generators (for hotel and resort events), cranes for marble and mining work, and road rollers. Udaipur\'s marble quarrying belt (Rajsamand road), new residential development in Bhuwana, and the luxury hospitality sector drive equipment demand.' },
+        { q: 'Are generators available for wedding and event venues in Udaipur?', a: 'Yes, Udaipur\'s luxury wedding economy is a major generator rental market. Silent DG sets (25kVA–500kVA) for palace venues, lake-view resorts, and garden weddings are available. Book 1–2 weeks in advance during peak wedding season (Nov–Feb).' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Udaipur per day?', a: 'Tata Ace starts from ₹1,499/day in Udaipur. Bolero Pickup from ₹1,899/day. Driver included. Good for household shifts in Hiran Magri, Bhuwana, and Pratap Nagar sectors.' },
+        { q: 'What goods are transported by mini trucks in Udaipur?', a: 'Marble slabs from stone factories to truck hubs, handicraft exports, hotel and resort supplies for the luxury hospitality belt, and household shifting between Hiran Magri residential sectors are the primary mini truck use cases in Udaipur.' },
+      ],
+    },
+  },
+
+  rishikesh: {
+    intro: 'Rishikesh is the adventure and spiritual capital of India, attracting over 3 million visitors annually. Car rental demand is driven by Char Dham yatra pilgrims, adventure tourists, and yoga retreat visitors from across India and abroad. The city serves as the final large motorable hub before the Badrinath and Kedarnath routes. NH58 provides direct connectivity to Delhi and Dehradun, while local transport within Rishikesh and Haridwar is a major cab market.',
+    routes: [
+      { to: 'Haridwar', distance: '25 km', duration: '45 min', via: 'NH58' },
+      { to: 'Dehradun', distance: '45 km', duration: '1 hr', via: 'NH58' },
+      { to: 'Badrinath', distance: '300 km', duration: '8 hrs', via: 'NH58 → NH7' },
+      { to: 'Kedarnath (Gaurikund)', distance: '225 km', duration: '7 hrs', via: 'NH58 → NH107' },
+      { to: 'Delhi', distance: '240 km', duration: '5 hrs', via: 'NH58 → NH44' },
+      { to: 'Auli', distance: '250 km', duration: '6 hrs', via: 'NH58 → NH7' },
+    ],
+    tips: [
+      'Char Dham season (May–June, Sep–Oct) — book cabs at least 3 weeks in advance',
+      'Lakshman Jhula and Ram Jhula areas are pedestrian-only — park near ISBT and take autos to the river',
+      'NH58 mountain roads to Badrinath require experienced hill drivers — always hire locally familiar drivers',
+      'Monsoon (Jul–Aug) brings landslides on mountain routes — check NHAI road updates before departure',
+    ],
+    stats: { population: '1.1 Lakh', knownFor: 'Yoga capital, Char Dham gateway, adventure tourism, Ganga Aarti', airport: 'Jolly Grant Airport, Dehradun (30 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Rishikesh with a driver is essential for Char Dham yatris and adventure tourists. TransRentals provides Innova, Bolero, and Tata Sumo with mountain-road experienced drivers for the Kedarnath, Badrinath, and Auli routes. Local Rishikesh-Haridwar transfers also available.',
+      'self-drive-car-rentals': 'Self-drive rentals in Rishikesh are available for the Haridwar valley road and Tehri Dam circuit. Mountain roads to Kedarnath/Badrinath are NOT recommended for self-drive — experienced drivers are essential. Valley road self-drive from ₹999/day.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the cab fare from Rishikesh to Kedarnath?', a: 'Rishikesh to Gaurikund (225 km, ~7 hrs via NH58 → NH107) starts from ₹5,999 for a Bolero or Tata Sumo. Road is mountainous with multiple hairpin bends — only experienced hill drivers. Book at least 2 weeks in advance during Char Dham season (May–June). Innova not recommended for last 50 km.' },
+        { q: 'What is the cab fare from Rishikesh to Badrinath?', a: 'Rishikesh to Badrinath (300 km, ~8 hrs via NH58) starts from ₹6,999. Route passes through Devprayag, Rudraprayag, and Joshimath. Bolero or Tata Sumo recommended. Helicopter alternatives available from Guptkashi and Sersi during peak season.' },
+        { q: 'Is a cab available from Jolly Grant Airport to Rishikesh?', a: 'Pre-booked cab from Jolly Grant Airport (30 km, ~45 min) to Rishikesh starts from ₹799. Route via NH58 is straightforward. Night transfers available 24/7. Haridwar airport transfer (20 km from airport) starts from ₹599.' },
+        { q: 'Can I hire a car for local sightseeing in Rishikesh?', a: 'Yes, local Rishikesh sightseeing (Lakshman Jhula, Ram Jhula, Triveni Ghat, Neelkanth Mahadev Temple, Beatles Ashram) takes 4–5 hrs with a local cab. Half-day packages start from ₹999. Neelkanth Mahadev (32 km, forest road) requires a 4x4 or Bolero — ask for a suitable vehicle.' },
+        { q: 'How much does it cost to hire a cab for the entire Char Dham circuit from Rishikesh?', a: 'Complete Char Dham circuit (Rishikesh → Yamunotri → Gangotri → Kedarnath → Badrinath → Rishikesh, 12 days) starts from ₹35,000 per vehicle (Tata Sumo/Bolero). Innova Crysta packages start from ₹48,000. Prices include driver, fuel, and tolls. Accommodation not included.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Rishikesh do TransRentals packers cover?', a: 'TransRentals movers cover all major Rishikesh localities — Tapovan, Laxman Jhula area, Muni Ki Reti, Jonk, Swargashram, and Haridwar Road. Intercity moves to Dehradun, Haridwar, and Delhi are available. Note: access for large vehicles is restricted in the old town pedestrian zone — goods may be hand-carried for the last stretch.' },
+        { q: 'What is the cost to shift house in Rishikesh?', a: '1BHK local shifting within Rishikesh starts from ₹3,500–₹5,500. Move to Dehradun (55 km) starts from ₹6,000. Move to Delhi (240 km) starts from ₹12,000–₹18,000. Hill-terrain handling and narrow mountain lane delivery are included in quoted rates.' },
+        { q: 'Can I book a Rishikesh-to-Dehradun or Rishikesh-to-Delhi move?', a: 'Yes, intercity moves from Rishikesh to Dehradun (1.5 hrs) or Delhi (5 hrs) are fully covered. TransRentals provides sturdy packaging for mountain road vibration, and vehicles are selected based on load size. Fixed-price quotes provided before booking — no hidden fuel surcharges for the mountain section.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Rishikesh?', a: 'In Rishikesh, JCB backhoe loaders (₹4,500/day), mini excavators (₹3,500/day), and concrete mixers are commonly rented for hill construction projects. Equipment is sourced from Haridwar and Dehradun vendor bases with same-day or next-day delivery for most requests.' },
+        { q: 'Can I rent a mini excavator for foundation work in hilly areas of Rishikesh?', a: 'Yes, mini excavators (1–3T class) are ideal for tight-access hill plots in Rishikesh where full-size machines cannot reach. Rates start from ₹3,500/day. Operators familiar with rocky Himalayan soil conditions are provided. Confirm road access width before booking — narrow tracks may limit machine deployment.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Rishikesh per day?', a: 'Mini truck (Tata Ace/Mahindra Supro, ~1T capacity) starts from ₹1,499/day in Rishikesh. Half-day (4 hrs) available from ₹899. For deliveries to ashrams, hotels, or yoga centres in the old Rishikesh area, goods are transferred to smaller vehicles or handcarts if road access is restricted.' },
+        { q: 'Can I hire a tempo for hotel or ashram goods delivery in Rishikesh?', a: 'Yes, TransRentals provides tempo services for grocery runs, linen deliveries, LPG cylinder transport, and construction material delivery to hotels, ashrams, and yoga retreats in Rishikesh. Same-day booking available. Vehicles are GPS-tracked and drivers familiar with local access restrictions.' },
+      ],
+    },
+  },
+
+  haridwar: {
+    intro: 'Haridwar is one of the seven holiest cities in Hinduism and the busiest pilgrim gateway in Uttarakhand. The city generates massive cab demand for Char Dham pilgrims, Kumbh Mela visitors, and religious tourists from across India. NH58 provides direct connectivity to Delhi (225 km), Dehradun (55 km), and Rishikesh (25 km). Kumbh Mela years see exponential demand surge — advance booking is essential. Local temple circuit, Har Ki Pauri, and Chandi Devi ropeway are primary local demand generators.',
+    routes: [
+      { to: 'Rishikesh', distance: '25 km', duration: '45 min', via: 'NH58' },
+      { to: 'Dehradun', distance: '55 km', duration: '1.5 hrs', via: 'NH58' },
+      { to: 'Delhi', distance: '225 km', duration: '4.5 hrs', via: 'NH58 → NH44' },
+      { to: 'Mussoorie', distance: '90 km', duration: '2.5 hrs', via: 'NH58 → Mussoorie Road' },
+      { to: 'Kedarnath (Gaurikund)', distance: '250 km', duration: '8 hrs', via: 'NH58 → NH107' },
+      { to: 'Nainital', distance: '275 km', duration: '5.5 hrs', via: 'NH109' },
+    ],
+    tips: [
+      'Har Ki Pauri area (1 km radius) is pedestrian-only during Ganga Aarti timings — park at Rani Ghat and walk',
+      'Delhi-Haridwar NH58 has heavy religious pilgrim traffic on weekends and festivals — add 60–90 min buffer',
+      'Char Dham and Kumbh dates cause extreme demand — book cabs 4–6 weeks in advance',
+      'Jolly Grant Airport (Dehradun, 40 km) is nearest — pre-book airport transfers',
+    ],
+    stats: { population: '2.3 Lakh', knownFor: 'Har Ki Pauri, Ganga Aarti, Char Dham gateway, Kumbh Mela', airport: 'Jolly Grant Airport, Dehradun (40 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Haridwar with a driver is the most comfortable way for pilgrims and tourists to cover the temple circuit, Mansa Devi ropeway, Chandi Devi ropeway, and outstation Char Dham routes. TransRentals provides 24/7 cabs including early morning Ganga Aarti transfers.',
+      'self-drive-car-rentals': 'Self-drive options in Haridwar are best for the Haridwar-Rishikesh valley road or Rajaji National Park (20 km). Mountain routes to Kedarnath/Badrinath require experienced drivers and are not suitable for self-drive.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the cab fare from Haridwar to Delhi?', a: 'Haridwar to Delhi (225 km via NH58, ~4.5 hrs) starts from ₹3,999 for a Sedan with driver. NH58 is a 4-lane highway. Night travel is faster (3.5 hrs) but avoid post-midnight if the purpose is Ganga Aarti — depart Haridwar by 6 AM for Delhi arrival by 11 AM.' },
+        { q: 'What is the car rental rate in Haridwar per day?', a: 'Hatchback with driver starts from ₹999/day. Bolero or Tata Sumo for Char Dham routes starts from ₹2,499/day. Full-day local Haridwar sightseeing (Har Ki Pauri, Mansa Devi, Chandi Devi, Daksha Mahadev) starts from ₹1,299 (Sedan, 8 hrs).' },
+        { q: 'Is a cab available from Haridwar to Kedarnath?', a: 'Haridwar to Gaurikund (250 km, ~8 hrs via NH58 → NH107) starts from ₹6,499. The road beyond Rudraprayag is mountainous. Bolero or Tata Sumo recommended. From Gaurikund, trekking or helicopter to Kedarnath. Book 2–3 weeks in advance during Char Dham season.' },
+        { q: 'How do I get from Jolly Grant Airport to Haridwar?', a: 'Pre-booked cab from Jolly Grant Airport (40 km, ~60 min) to Haridwar starts from ₹899. Fixed rates. Route via Rishikesh bypass is most common. Haridwar ISBT drop and Har Ki Pauri area drop available. Night arrivals served 24/7.' },
+        { q: 'Can I book a cab for the Haridwar-Rishikesh-Mussoorie circuit?', a: 'Yes, Haridwar-Rishikesh-Mussoorie circuit (90 km total loop) is a popular 1-day trip. Packages start from ₹2,499 (Sedan, full day). Mussoorie Mall Road and Kempty Falls are 2.5 hrs from Haridwar via Dehradun Road. Ideal for family trips combining pilgrimage and leisure.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Haridwar do TransRentals movers cover?', a: 'TransRentals movers cover all Haridwar localities — Jwalapur, Ranipur, BHEL Colony, Sidcul Industrial Area, Shivalik Nagar, and Har Ki Pauri area. Intercity moves to Rishikesh, Dehradun, and Delhi NCR are available. Industrial moves from Sidcul manufacturing zone are handled with factory-grade packaging.' },
+        { q: 'What is the house shifting cost in Haridwar?', a: '1BHK local shifting within Haridwar starts from ₹3,000–₹5,000. Move to Dehradun (55 km) starts from ₹5,500. Move to Delhi (220 km) starts from ₹11,000–₹16,000. Kumbh Mela season (April–June) — book movers at least 2 weeks in advance as all vehicle capacity gets booked by pilgrimage operators.' },
+        { q: 'Can I shift goods from Haridwar during Kumbh Mela months?', a: 'Yes, but plan well in advance. During Kumbh Mela and Ardh Kumbh periods, vehicle availability tightens significantly in Haridwar. TransRentals pre-allocates mover capacity for scheduled clients. Book at least 3 weeks ahead for any move during April, May, or the Shahi Snan dates.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Haridwar?', a: 'Haridwar and the adjacent Sidcul industrial zone have good equipment availability. JCB backhoe loaders (₹4,500/day), compactors, concrete mixers, and cranes (5T–15T, from ₹8,000/day) are available for construction, road work, and industrial installation projects.' },
+        { q: 'Can I hire a JCB or excavator for construction near Haridwar Sidcul?', a: 'Yes, excavators and JCBs are frequently rented for the Sidcul industrial estates and upcoming Haridwar ring road projects. TransRentals connects you with BHEL, SIDCUL-registered equipment vendors. Rates: JCB ₹4,500/day, excavator (8T) ₹5,500/day. Operator included. Advance booking of 48 hrs recommended.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Haridwar per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~1T capacity) start from ₹1,299/day in Haridwar. Half-day (4 hrs) from ₹799. For BHEL Colony and Sidcul deliveries, multi-stop routes are available at ₹150–₹250 per extra stop.' },
+        { q: 'Can I hire a tempo for goods transport from Haridwar to Rishikesh or Dehradun?', a: 'Yes, Haridwar to Rishikesh (25 km, ~₹1,800 one way) and Haridwar to Dehradun (55 km, ~₹2,500 one way) tempo services are available on same-day booking for small loads under 1.5 tonnes. For larger loads, dedicated mini trucks or LCV (light commercial vehicles) are arranged.' },
+      ],
+    },
+  },
+
+  thane: {
+    intro: 'Thane is Mumbai Metropolitan Region\'s second-largest city, serving as a major residential and corporate hub. With Mumbai\'s traffic congestion driving residents to prefer pre-booked cabs, Thane\'s car rental market is substantial. Eastern Express Highway, Mumbai-Nashik Expressway (NH3), and the upcoming Mumbai-Nagpur Expressway (Samruddhi) all originate near Thane, making it a key outstation starting point. Corporate parks in Majiwada, Wagle Estate, and Kolshet generate daily cab demand.',
+    routes: [
+      { to: 'Nashik', distance: '175 km', duration: '2.5 hrs', via: 'NH3 Mumbai-Nashik Expressway' },
+      { to: 'Pune', distance: '145 km', duration: '2.5 hrs', via: 'NH48' },
+      { to: 'Lonavala', distance: '95 km', duration: '2 hrs', via: 'NH48' },
+      { to: 'Mumbai Airport (T2)', distance: '25 km', duration: '40 min', via: 'Eastern Express Hwy' },
+      { to: 'Shirdi', distance: '230 km', duration: '4 hrs', via: 'NH3' },
+      { to: 'Mahabaleshwar', distance: '225 km', duration: '4 hrs', via: 'NH48' },
+    ],
+    tips: [
+      'Eastern Express Highway (Thane to Mulund) has peak hour congestion (8–10 AM, 6–9 PM) — add 30 min buffer',
+      'Mumbai Airport from Thane via Eastern Express Hwy is fastest — add extra time during rains',
+      'Nashik via NH3 Expressway is smooth and fast — no tolls after Bhiwandi for the first 30 km',
+      'Book cabs from Thane for Shirdi a day in advance — weekend slots fill quickly',
+    ],
+    stats: { population: '18.4 Lakh', knownFor: 'Upahi Hills, Talao Pali, Yeoor Hills, MMR\'s green suburb', airport: 'Chhatrapati Shivaji Maharaj International Airport, Mumbai (25 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Thane with a driver is widely used for daily commutes to Mumbai BKC, Andheri, and Powai, as well as airport transfers to T1 and T2. TransRentals provides cabs from Thane for local MMR travel and outstation routes to Nashik, Pune, and Shirdi.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Thane are popular for Nashik expressway trips and Lonavala weekend drives. Hatchbacks from ₹799/day with pickup from Thane West or Ghodbunder Road. Maharashtra state travel permitted — outstation policy includes Pune and Nashik.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Thane per day?', a: 'Hatchback with driver starts from ₹999/day in Thane. Sedan (Dzire/Amaze) starts from ₹1,299/day. Innova Crysta starts from ₹2,499/day. For Nashik outstation (175 km one way via NH3), packages start from ₹3,299 for a full day.' },
+        { q: 'What is the cab fare from Thane to Mumbai Airport?', a: 'Pre-booked cab from Thane to Mumbai T2 Airport (25 km via Eastern Express Hwy) starts from ₹699. Journey time is 40–60 minutes in normal traffic. Add 30–45 minutes during peak hours (7–10 AM, 5–8 PM). Night transfer (after 11 PM) typically takes only 30 minutes.' },
+        { q: 'Can I book a cab from Thane to Shirdi?', a: 'Yes, Thane to Shirdi (230 km via NH3 Mumbai-Nashik Expressway → Kopargaon, ~4 hrs) starts from ₹4,499 (Sedan). Nashik Phata interchange on NH3 is the Shirdi exit point. NH3 is a 6-lane expressway until Igatpuri — smooth fast drive. Book the night before for early Darshan timings.' },
+        { q: 'Is there a daily cab service from Thane to Powai or BKC?', a: 'Yes, TransRentals offers monthly cab subscriptions for Thane-to-Mumbai corporate commutes. Daily cab from Thane to Powai (15 km, ~30 min via Eastern Express Hwy) starts from ₹500/trip. Monthly packages (22 days, one way) start from ₹9,999. BKC drop starts from ₹650/trip.' },
+        { q: 'Which is the best route from Thane to Pune?', a: 'Thane to Pune (145 km via NH48 Mumbai-Pune Expressway, ~2.5 hrs) is the standard route. Khopoli exit leads to the expressway. NH48 has 6 lanes with full amenities — rest stops at Khopoli, Khandala, and Lonavala. Avoid Friday evenings (office crowd heading to Pune for weekend).' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Thane do TransRentals movers cover?', a: 'TransRentals movers cover all Thane localities — Wagle Estate, Majiwada, Kapurbawdi, Ghodbunder Road, Hiranandani Estate, Kasarvadavali, Thane West, Thane East, Kalwa, Mumbra, and Diva. Intercity moves to Pune, Nashik, and Navi Mumbai are fully handled. Corporate office relocation for Wagle Estate companies is a specialty.' },
+        { q: 'What is the cost of house shifting in Thane to Mumbai?', a: 'Local Thane 1BHK shifting (within Thane city) starts from ₹3,500–₹5,000. Thane to Mumbai (25–40 km depending on destination) starts from ₹5,500–₹8,000. Thane to Pune (145 km) starts from ₹9,000–₹14,000. Ghodbunder Road high-rise relocations require elevator booking coordination — factor in 2–3 hrs buffer.' },
+        { q: 'Are office relocation services available in Thane Wagle Estate?', a: 'Yes, TransRentals handles office moves for Wagle Estate, Majiwada, and Kolshet corporate zones. Services include IT equipment packing, server rack transport, and furniture dismantling/reassembly. Weekend-only office moves are available to avoid business disruption. Quotes start from ₹15,000 for full office relocation.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Thane?', a: 'Thane has strong equipment availability for MMR construction projects. JCB loaders (₹4,500/day), concrete pumps (₹8,000/day), tower cranes (₹25,000/day), and mobile cranes (₹15,000–₹20,000/day) serve the many high-rise projects in Ghodbunder Road and Kolshet. Compactors and pavers available for road work near Eastern Express Highway.' },
+        { q: 'Can I hire a crane for high-rise construction in Ghodbunder Road, Thane?', a: 'Yes, tower cranes and mobile cranes are available for Thane\'s residential and commercial high-rise construction belt on Ghodbunder Road. Mobile crane (15T) from ₹18,000/day. Tower crane monthly contracts start from ₹3,00,000. All cranes come with certified operators and PESO-compliant inspection certificates.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Thane per day?', a: 'Mini truck (Tata Ace/Mahindra Supro, ~1T) starts from ₹1,299/day in Thane. For intra-Thane furniture moves or appliance delivery, half-day (4 hrs) packages from ₹799 are available. Ghodbunder Road, Eastern Express Highway, and Thane-Belapur Road deliveries are all covered.' },
+        { q: 'Can I hire a mini truck for furniture or appliance delivery in Thane?', a: 'Yes, TransRentals mini trucks are widely used for furniture delivery from Thane IKEA/furniture hubs, appliance transport, and e-commerce last-mile delivery within Thane and to Navi Mumbai or Kalyan. Same-day booking available. Vehicles fit standard apartment building cargo lifts.' },
+      ],
+    },
+  },
+
+  'navi-mumbai': {
+    intro: 'Navi Mumbai is a planned township that has become one of MMR\'s most important corporate and residential zones. Vashi, Kharghar, Belapur, and Panvel generate significant cab demand for Mumbai commutes, airport transfers, and Pune highway trips. Navi Mumbai is the gateway to the Mumbai-Pune Expressway and NH66 Coastal Highway. The upcoming Navi Mumbai International Airport (Ulwe) is expected to make it a major new aviation hub. MIDC industrial zones drive corporate cab requirements.',
+    routes: [
+      { to: 'Mumbai (Bandra)', distance: '35 km', duration: '50 min', via: 'Sion-Panvel Hwy → Eastern Freeway' },
+      { to: 'Pune', distance: '120 km', duration: '2 hrs', via: 'NH48 Mumbai-Pune Expressway' },
+      { to: 'Lonavala', distance: '75 km', duration: '1.5 hrs', via: 'NH48' },
+      { to: 'Alibaug', distance: '55 km', duration: '1.5 hrs', via: 'NH66' },
+      { to: 'Mahabaleshwar', distance: '200 km', duration: '3.5 hrs', via: 'NH48' },
+      { to: 'Nashik', distance: '200 km', duration: '3.5 hrs', via: 'NH3' },
+    ],
+    tips: [
+      'Panvel junction is the busiest bottleneck for Navi Mumbai exit — avoid 8–10 AM and 6–9 PM',
+      'Mumbai-Pune Expressway from Khopoli exit is just 30 min from Panvel — fastest Pune route from Navi Mumbai',
+      'Alibaug (coastal town, 55 km via NH66) is Navi Mumbai\'s top weekend escape — book Sunday cabs early',
+      'MIDC Mahape and Turbhe corporate zones have cab pickup zones outside premises',
+    ],
+    stats: { population: '15.4 Lakh', knownFor: 'Planned city, Vashi CBD, NMMC, Kharghar hills', airport: 'CSIA Mumbai (40 km) / Upcoming Navi Mumbai Airport at Ulwe' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Navi Mumbai with a driver covers daily corporate commutes to Mumbai BKC, Lower Parel, and Andheri, plus airport transfers to CSIA. TransRentals serves Vashi, Belapur, Kharghar, and Panvel with 24/7 availability.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Navi Mumbai are popular for the Mumbai-Pune Expressway weekend trips. Pickup available in Vashi, Kharghar, and Panvel. Hatchbacks from ₹799/day. Maharashtra outstation permitted.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Navi Mumbai per day?', a: 'Hatchback with driver starts from ₹999/day. Sedan starts from ₹1,299/day. Innova Crysta from ₹2,499/day. For Pune outstation (120 km via NH48), packages start from ₹2,799 for a full day (250 km limit).' },
+        { q: 'What is the cab fare from Navi Mumbai to Mumbai Airport?', a: 'Pre-booked cab from Navi Mumbai (Vashi/Belapur) to CSIA T2 Airport (40–45 km via Eastern Freeway or Harbour Line route) starts from ₹999. Traffic via Sion can add 30 min during peak hours — book 90 minutes before flight time from Vashi.' },
+        { q: 'Can I book a cab from Navi Mumbai to Pune?', a: 'Navi Mumbai to Pune (120 km via NH48 Mumbai-Pune Expressway, ~2 hrs) starts from ₹2,799 (Sedan). Panvel to Expressway is 10 min. NH48 Expressway is 6-lane and well-maintained. Khopoli service plaza is the main rest stop midway.' },
+        { q: 'Is a cab available from Navi Mumbai to Alibaug beach?', a: 'Yes, Navi Mumbai to Alibaug (55 km via NH66, ~1.5 hrs) starts from ₹1,499. Alternative ferry from Mandwa Jetty (Belapur to Mandwa by ferry, 20 min) + cab on Alibaug side also available. NH66 is a good 4-lane road through Pen and Alibaug.' },
+        { q: 'Are corporate cab services available in Navi Mumbai?', a: 'Yes, TransRentals provides dedicated corporate cab services for MIDC Mahape, Turbhe, TCS Yantra Park, L&T, and other Navi Mumbai corporate campuses. Monthly subscriptions with dedicated cabs and drivers start from ₹28,000. Employee shuttle services for MIDC zones also available.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Navi Mumbai do TransRentals movers cover?', a: 'TransRentals movers cover all Navi Mumbai nodes — Vashi, Nerul, Belapur, Kharghar, Panvel, Airoli, Ghansoli, Koparkhairane, Turbhe, and Ulwe. Moves to Mumbai, Thane, and Pune are fully handled. Kharghar and Ulwe society-based relocations are our strongest markets as new residents move into CIDCO-built townships.' },
+        { q: 'What is the house shifting cost in Navi Mumbai?', a: '1BHK local shifting within Navi Mumbai (node to node) starts from ₹3,000–₹4,500. Move to Mumbai (40–50 km) starts from ₹5,500–₹8,000. Move to Pune (120 km) starts from ₹8,000–₹13,000. Panvel to Pune via NH48 is quick — moves complete in a single day. CIDCO high-rise moves require cargo lift pre-booking via society office.' },
+        { q: 'Are office shifting services available in Navi Mumbai MIDC?', a: 'Yes, office and factory relocation within MIDC Mahape, Turbhe, and TTC Industrial Area is available. Moves include machinery shifting, IT rack transport, and clean-room equipment packing. TransRentals coordinates with MIDC security for outside-hours movement approvals. Quotes start from ₹20,000 for full office moves.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Navi Mumbai?', a: 'Navi Mumbai has strong equipment availability driven by ongoing CIDCO projects and Navi Mumbai Airport construction. Tower cranes, piling rigs, concrete pumps, JCB loaders, and excavators (8T–30T) are available. JCB starts from ₹4,500/day. Mobile cranes (15T–30T) from ₹18,000/day.' },
+        { q: 'Can I rent a JCB or excavator for Ulwe or Dronagiri construction in Navi Mumbai?', a: 'Yes, JCB and excavator rental is available for Ulwe, Dronagiri, and the Navi Mumbai Airport site periphery. Given the volume of ongoing CIDCO development, book at least 5–7 days in advance for larger equipment. Mini excavators for tight residential plots start from ₹3,500/day.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Navi Mumbai per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~1T) start from ₹1,299/day in Navi Mumbai. For inter-node deliveries (e.g., Vashi to Kharghar), half-day (4 hrs) packages from ₹799 are available. APMC Vashi wholesale market pickups and delivery to housing societies are a common use case.' },
+        { q: 'Can I hire a tempo for APMC Vashi market goods transport?', a: 'Yes, TransRentals tempos are frequently used for APMC Vashi wholesale vegetable, fruit, and dry goods pickups and delivery to restaurants and grocery stores across Navi Mumbai. Early morning (4–6 AM) pickup slots available. Vehicles up to 1.5T capacity for bulk loads.' },
+      ],
+    },
+  },
+
+  madurai: {
+    intro: 'Madurai is Tamil Nadu\'s cultural capital and one of the oldest continuously inhabited cities in the world. The city generates consistent car rental demand from pilgrims visiting Meenakshi Amman Temple, conference visitors, and tourists on the Tamil Nadu heritage circuit. Madurai serves as the gateway to Kodaikanal, Rameshwaram, and Munnar. The city\'s strategic location in southern Tamil Nadu makes it a hub for cab services serving the entire Madurai-Tirunelveli-Tenkasi corridor.',
+    routes: [
+      { to: 'Rameshwaram', distance: '175 km', duration: '3.5 hrs', via: 'NH87' },
+      { to: 'Kodaikanal', distance: '120 km', duration: '3 hrs', via: 'NH44 → Kodaikanal Road' },
+      { to: 'Munnar', distance: '225 km', duration: '5 hrs', via: 'NH85' },
+      { to: 'Rameswaram–Dhanushkodi', distance: '200 km', duration: '4 hrs', via: 'NH87' },
+      { to: 'Tirunelveli', distance: '160 km', duration: '2.5 hrs', via: 'NH44' },
+      { to: 'Chennai', distance: '460 km', duration: '7 hrs', via: 'NH38 / NH44' },
+    ],
+    tips: [
+      'Meenakshi Temple morning darshan (5:30–6 AM) requires 4 AM departure from outer city hotels',
+      'Kodaikanal road (Palani Ghat) has narrow sections — prefer driver-driven over self-drive',
+      'Rameshwaram trip is best done as a 2-day trip with overnight stay — 175 km one way is tiring same-day',
+      'Madurai airport pre-booking is strongly recommended — auto drivers quote inflated rates from arrival terminal',
+    ],
+    stats: { population: '14.6 Lakh', knownFor: 'Meenakshi Amman Temple, Jallikattu, silk sarees, filter coffee', airport: 'Madurai Airport (12 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Madurai with a driver is preferred by pilgrims doing the Meenakshi-Rameshwaram-Kanyakumari circuit and tourists exploring Kodaikanal from the plains. TransRentals provides Tamil-speaking drivers familiar with temple protocols and the narrow lanes of the temple city.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Madurai are available for the Madurai-Tirunelveli highway and flatter outstation routes. Hatchbacks from ₹799/day. Kodaikanal ghat road is NOT recommended for first-time self-drivers.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Madurai per day?', a: 'Hatchback with driver starts from ₹999/day in Madurai. Innova Crysta starts from ₹2,499/day. Full-day local sightseeing (Meenakshi Temple, Thirumalai Nayak Palace, Gandhi Memorial Museum, Vaigai Dam) starts from ₹1,299 (Sedan, 8 hrs/80 km).' },
+        { q: 'What is the cab fare from Madurai to Rameshwaram?', a: 'Madurai to Rameshwaram (175 km via NH87, ~3.5 hrs) starts from ₹3,299 (Sedan, one way). Pamban Bridge crossing and Agnitheertham are key stops. Round trip with 3 hours waiting starts from ₹5,499. Dhanushkodi beach extension adds 25 km — confirm with driver.' },
+        { q: 'Is a cab available from Madurai to Kodaikanal?', a: 'Yes, Madurai to Kodaikanal (120 km via Palani Ghat road, ~3 hrs) starts from ₹2,699 (Sedan). The Palani Ghat section has 40 hairpin bends — experienced mountain drivers recommended. Innova or SUV preferred for the steep ascent with luggage.' },
+        { q: 'What is the cab fare from Madurai Airport to city hotels?', a: 'Pre-booked cab from Madurai Airport (12 km, ~20 min) to the city starts from ₹399. Temple area hotels (near Meenakshi Temple) take 25–30 minutes due to temple traffic. Fixed rates — no auto overcharging.' },
+        { q: 'Can I book a car for a Madurai–Rameshwaram–Kanyakumari circuit trip?', a: 'Yes, the classic Tamil Nadu pilgrimage circuit (Madurai → Rameshwaram → Kanyakumari → Madurai, ~600 km, 2 days) starts from ₹9,999 (Innova Crysta, 2 days). Overnight stay in Rameshwaram or Kanyakumari. All major temple drops and coastal viewpoints covered.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Madurai do TransRentals movers cover?', a: 'TransRentals movers cover all Madurai localities — Arapalayam, Anna Nagar, KK Nagar, Thiruparankundram, Tallakulam, Alagarkoil Road, and Old Town. Intercity moves to Chennai (460 km), Coimbatore (210 km), and Trichy (130 km) are available. Full packing with traditional Tamil textile protection is available for households with silk sarees and antique brass items.' },
+        { q: 'What is the house shifting cost in Madurai?', a: '1BHK local shifting within Madurai starts from ₹3,000–₹4,500. Move to Trichy (130 km) starts from ₹6,000. Move to Chennai (460 km) starts from ₹14,000–₹20,000. For moves during the Chithirai Festival months (April–May), book movers 3–4 weeks in advance as vehicle availability tightens.' },
+        { q: 'Can I book packers and movers for a Madurai to Chennai shift?', a: 'Yes, Madurai to Chennai moves (460 km via NH38 or NH48) are fully covered by TransRentals. Transit time is 8–10 hrs. Full household including furniture, appliances, and kitchenware handled with professional packing materials. Fixed-price quote issued before departure — no mid-route surprises.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Madurai?', a: 'JCB backhoe loaders (₹4,500/day), mini excavators (₹3,500/day), concrete mixers, and transit mixers are available in Madurai. Equipment is deployed for residential construction, road work near the Madurai bypass, and Melur-Sivaganga highway projects.' },
+        { q: 'Can I rent a JCB for foundation work in Madurai?', a: 'Yes, JCB and excavator rental for independent house foundation work is a common service in Madurai. Black soil (clay) in the Madurai basin requires specific excavation timing — dry season (Feb–May) is preferred. Rates start from ₹4,000/day for JCB with operator. Same-day booking available for most Madurai city locations.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Madurai per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~1T capacity) start from ₹1,199/day in Madurai. Half-day (4 hrs) from ₹749. Goods delivery from Madurai wholesale markets (Mattuthavani, Vilachery) to retail stores and residences is a common use case.' },
+        { q: 'Can I hire a tempo for silk or textile goods transport from Madurai?', a: 'Yes, TransRentals mini trucks transport silk sarees, garments, and handloom goods from Madurai wholesale textile clusters to retailers across Tamil Nadu. Climate-controlled packing materials available on request. Same-day Madurai–Rajapalayam and Madurai–Dindigul deliveries available.' },
+      ],
+    },
+  },
+
+  thiruvananthapuram: {
+    intro: 'Thiruvananthapuram (Trivandrum) is Kerala\'s capital city and administrative hub, generating steady demand for cab services, airport transfers, and outstation routes to Kovalam, Varkala, and Kanyakumari. As Kerala\'s gateway to the southern tip of India, the city serves interstate tourists heading to Tamil Nadu. The Trivandrum International Airport handles major international traffic including Gulf routes, driving high demand for airport cabs. IT parks in Technopark generate substantial corporate cab requirements.',
+    routes: [
+      { to: 'Kovalam Beach', distance: '16 km', duration: '30 min', via: 'NH66' },
+      { to: 'Varkala', distance: '55 km', duration: '1.5 hrs', via: 'NH66' },
+      { to: 'Kanyakumari', distance: '90 km', duration: '2 hrs', via: 'NH44' },
+      { to: 'Kollam', distance: '70 km', duration: '1.5 hrs', via: 'NH66' },
+      { to: 'Munnar', distance: '270 km', duration: '6 hrs', via: 'NH183 → NH85' },
+      { to: 'Alleppey (Alappuzha)', distance: '155 km', duration: '3 hrs', via: 'NH66' },
+    ],
+    tips: [
+      'Technopark Phase 3 (Kazhakootam) corporate zones require cabs with advance booking — app-based cabs are often unavailable',
+      'Trivandrum Airport international arrivals see Gulf-return NRIs — book airport pickup well in advance on Friday nights',
+      'Kovalam beach road (Lighthouse Beach to Hawah Beach) is narrow — park at Kovalam junction and walk or take auto',
+      'Kanyakumari sunrise trip requires 4 AM departure from Thiruvananthapuram — book overnight cab',
+    ],
+    stats: { population: '9.6 Lakh', knownFor: 'Padmanabhaswamy Temple, Kovalam beach, Technopark, Kerala capital', airport: 'Trivandrum International Airport (8 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Thiruvananthapuram with a driver covers Technopark corporate commutes, Padmanabhaswamy Temple visits, and outstation trips to Kovalam, Varkala, and Kanyakumari. TransRentals provides Malayalam-speaking drivers familiar with Thiruvananthapuram\'s one-way roads and airport terminal layout.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Thiruvananthapuram are available for coastal highway NH66 trips to Varkala and Kollam. Hatchbacks from ₹799/day. Kerala permit required for Tamil Nadu crossings — confirm with vendor before Kanyakumari self-drive.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Thiruvananthapuram per day?', a: 'Hatchback with driver starts from ₹999/day. Sedan starts from ₹1,299/day. Innova Crysta from ₹2,499/day. Full-day Kerala sightseeing (Kovalam-Varkala-Padmanabhaswamy Temple circuit) starts from ₹1,599 (Innova, 8 hrs/80 km).' },
+        { q: 'What is the cab fare from Trivandrum Airport to Kovalam Beach?', a: 'Pre-booked cab from Trivandrum Airport (8 km from city, 16 km from Kovalam) to Kovalam Beach starts from ₹599. Fixed airport rate. Journey 20–30 minutes depending on traffic. Night arrival drop (after midnight) available 24/7.' },
+        { q: 'Can I book a cab from Thiruvananthapuram to Kanyakumari?', a: 'Thiruvananthapuram to Kanyakumari (90 km via NH44, ~2 hrs) starts from ₹1,999 (Sedan, one way). Round trip with 3 hrs waiting starts from ₹3,299. The NH44 coastal route passes through Nagercoil — Tamil Nadu road quality is excellent. Best visited at sunrise — book early morning departure.' },
+        { q: 'Is there a cab from Thiruvananthapuram to Alleppey (Alappuzha)?', a: 'Thiruvananthapuram to Alleppey (155 km via NH66, ~3 hrs) starts from ₹3,299 (Sedan). NH66 (old NH47) coastal highway has excellent road quality with views of backwaters and beaches. Kollam (70 km, 1.5 hrs) is a popular intermediate stop for backwater boat rides.' },
+        { q: 'Are corporate cab services available near Technopark in Thiruvananthapuram?', a: 'Yes, TransRentals provides daily cab subscriptions for Technopark Phase 1, 2, and 3 employees. Pickup from major residential areas (Pattom, Kawdiar, Kesavadasapuram, Kazhakoottam). Monthly packages start from ₹9,999. Dedicated driver option available for senior professionals.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Thiruvananthapuram do TransRentals movers cover?', a: 'TransRentals movers cover all Trivandrum areas — Pattom, Kawdiar, Kowdiar, Kazhakkoottam, Technopark campus area, Vattiyoorkavu, Nalanchira, Medical College area, Sreekaryam, and Kovalam. Intercity moves to Kochi (200 km), Kollam (70 km), and Nagercoil (75 km into Tamil Nadu) are fully covered.' },
+        { q: 'What is the house shifting cost in Thiruvananthapuram?', a: '1BHK local shifting within Trivandrum starts from ₹3,000–₹4,500. Move to Kollam (70 km) starts from ₹5,500. Move to Kochi (200 km) starts from ₹9,000–₹14,000. Technopark campus to nearby housing colony moves (Kazhakkoottam, Sreekaryam) are completed in under 4 hrs with a trained crew.' },
+        { q: 'Are packers and movers available for Trivandrum to Kochi relocation?', a: 'Yes, Thiruvananthapuram to Kochi moves (200 km via NH66, ~4 hrs) are a common route. Full household, electronics, and vehicle transport (bike towing) available. TransRentals provides fixed-price quotes with no surprise charges on NH66 tolls. Moving on Tuesday–Thursday avoids weekend and Monday congestion.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Thiruvananthapuram?', a: 'JCB backhoe loaders (₹4,500/day), mini excavators (₹3,800/day), concrete mixers, and crane trucks are available in Thiruvananthapuram. Laterite stone (charnockite) common in Kerala construction requires specific excavation equipment — operators experienced with Kerala soil are provided.' },
+        { q: 'Can I hire a JCB for plot development or house construction in Trivandrum?', a: 'Yes, JCB and mini excavator rental for independent house construction is widely available in Thiruvananthapuram. Laterite block cutting and site clearing are common tasks. JCB with operator starts from ₹4,000/day. Mini excavator for tight residential plots starts from ₹3,500/day. Book 24–48 hrs in advance.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Thiruvananthapuram per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~1T) start from ₹1,199/day in Thiruvananthapuram. Half-day (4 hrs) from ₹749. Kovalam–Varkala tourist hotel goods deliveries and Kazhakkoottam–Technopark supply runs are common use cases.' },
+        { q: 'Can I hire a tempo for goods transport from Trivandrum to Kochi or Kollam?', a: 'Yes, Trivandrum to Kollam (70 km, ~₹2,200 one way) and Trivandrum to Kochi (200 km, ~₹4,500 one way) tempo services are available for loads up to 1.5T. NH66 is a smooth coastal highway — transit is generally hassle-free. Booking 24 hrs in advance ensures dedicated vehicle allocation.' },
+      ],
+    },
+  },
+
+  vijayawada: {
+    intro: 'Vijayawada is Andhra Pradesh\'s commercial capital and one of the fastest-growing cities in South India. The city sits at the junction of NH16 (Chennai-Kolkata) and NH65, making it the state\'s most important road hub. Car rental demand is driven by pilgrims visiting Kanaka Durga Temple, corporate travelers, and tourists exploring the Krishna River delta. Amaravati (AP capital, 30 km) and Guntur (30 km) add to the daily commute cab market. The city is also a gateway to the Araku Valley and Tirupati pilgrimage routes.',
+    routes: [
+      { to: 'Hyderabad', distance: '275 km', duration: '4 hrs', via: 'NH65' },
+      { to: 'Amaravati', distance: '30 km', duration: '45 min', via: 'NH16' },
+      { to: 'Guntur', distance: '35 km', duration: '45 min', via: 'NH16' },
+      { to: 'Tirupati', distance: '415 km', duration: '6 hrs', via: 'NH16' },
+      { to: 'Vizag (Visakhapatnam)', distance: '340 km', duration: '5 hrs', via: 'NH16' },
+      { to: 'Chennai', distance: '430 km', duration: '6 hrs', via: 'NH16' },
+    ],
+    tips: [
+      'Kanaka Durga Temple (Indrakeeladri Hill) — parking is extremely limited; take TransRentals cab to the base and walk/rope way',
+      'Vijayawada-Hyderabad NH65 is mostly 4-lane and very fast — depart by 6 AM to avoid Hyderabad entry traffic',
+      'Amaravati Government complex requires vehicle registration at checkpoint — carry cab booking confirmation',
+      'Prakasam Barrage area (Krishna River) has evening traffic — avoid 5–7 PM for Besant Road crossings',
+    ],
+    stats: { population: '10.5 Lakh', knownFor: 'Kanaka Durga Temple, Krishna River, Amaravati capital proximity', airport: 'Vijayawada International Airport (20 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Vijayawada with a driver is the standard for Kanaka Durga Temple visits, Amaravati government office trips, and the Vijayawada-Hyderabad corridor. TransRentals provides Telugu-speaking drivers experienced on NH16 and the Amaravati expressway.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Vijayawada are available for highway trips to Guntur and Amaravati. Hatchbacks from ₹799/day. NH16 Vijayawada-Hyderabad stretch is a quality 4-lane road — suitable for confident highway drivers.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Vijayawada per day?', a: 'Hatchback with driver starts from ₹999/day. Sedan starts from ₹1,299/day. Innova Crysta from ₹2,499/day. For Hyderabad outstation (275 km via NH65), one-way package starts from ₹4,499.' },
+        { q: 'What is the cab fare from Vijayawada Airport to the city?', a: 'Pre-booked cab from Vijayawada International Airport (20 km, ~30 min) to city centre starts from ₹599. Fixed airport rate. Kanaka Durga Temple area drop ~35 minutes. Night arrivals served 24/7.' },
+        { q: 'Can I book a cab from Vijayawada to Hyderabad?', a: 'Vijayawada to Hyderabad (275 km via NH65, ~4 hrs) starts from ₹4,499 (Sedan, one way). NH65 is mostly 4-lane with good road quality. Recommended departure: 6 AM to reach Hyderabad before midday traffic. Monthly shuttle options available for regular travellers.' },
+        { q: 'Is there a cab from Vijayawada to Amaravati?', a: 'Yes, Vijayawada to Amaravati (30 km via NH16, ~45 min) starts from ₹599 one way. Regular shuttles available for government employees. Amaravati Secretariat and Assembly complex drops available. Return cabs bookable from Amaravati.' },
+        { q: 'Can I rent a car for local Vijayawada sightseeing?', a: 'Yes, full-day Vijayawada sightseeing (Kanaka Durga Temple, Undavalli Caves, Bhavani Island, Prakasam Barrage) starts from ₹1,299 (Sedan, 8 hrs). Half-day (Kanaka Durga + Bhavani Island) starts from ₹799. Telugu-speaking drivers available.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Vijayawada do TransRentals movers cover?', a: 'TransRentals movers cover all Vijayawada localities — Governorpet, Moghalrajpuram, Benz Circle, Vijayawada East, Vijayawada West, Gunadala, Patamata, and Amaravati road. Intercity moves to Hyderabad (275 km), Guntur (30 km), and Visakhapatnam (360 km) are fully covered.' },
+        { q: 'What is the house shifting cost in Vijayawada?', a: '1BHK local shifting within Vijayawada starts from ₹2,800–₹4,500. Move to Guntur (30 km) starts from ₹4,000. Move to Hyderabad (275 km) starts from ₹10,000–₹16,000. Move to Visakhapatnam (360 km) starts from ₹13,000–₹18,000. Fixed quotes with no hidden charges on NH65.' },
+        { q: 'Can I book packers and movers from Vijayawada to Amaravati for government office moves?', a: 'Yes, Vijayawada to Amaravati (30 km) office and residential moves are handled with government-grade packing. TransRentals has experience moving official files, computer equipment, and office furniture for AP government offices. Moves on weekends or after office hours available to avoid disruption.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Vijayawada?', a: 'JCB backhoe loaders (₹4,500/day), excavators (8T–20T, from ₹5,500/day), transit mixers, and cranes are available for Vijayawada city construction and the Amaravati capital region development projects. High demand means 48-hr advance booking is recommended for peak season (Jan–May).' },
+        { q: 'Can I rent excavators or cranes for Krishna River embankment projects near Vijayawada?', a: 'Yes, heavy equipment including long-reach excavators (₹9,000/day) and mobile cranes (20T–40T, from ₹22,000/day) are available for flood control, irrigation, and riverbank infrastructure projects near Vijayawada. APGENCO and APCRDA contractor-grade equipment available with operator and fuel-not-included options.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Vijayawada per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~1T) start from ₹1,199/day in Vijayawada. Half-day from ₹749. Amaravati construction material deliveries and Vijayawada wholesale market-to-retail transport are high-demand routes.' },
+        { q: 'Can I hire a tempo from Vijayawada to Guntur for goods transport?', a: 'Yes, Vijayawada to Guntur (30 km, ~₹1,500 one way) is a high-frequency route. TransRentals tempos cover this corridor multiple times daily. For loads between 500 kg and 1.5T, dedicated Tata Ace or Bolero Camper is arranged. Same-day booking available.' },
+      ],
+    },
+  },
+
+  tirupati: {
+    intro: 'Tirupati is the world\'s most visited pilgrimage city, with over 50,000–80,000 devotees visiting the Venkateswara Temple (Tirumala) every day. This makes Tirupati one of India\'s highest-demand car rental cities, with round-the-clock airport transfers, Tirumala ghat road drops, and circumambulation routes in constant demand. The city is well-connected via NH40, NH516, and a major airport. Cab services operate 24/7 to cater to devotees arriving on overnight trains and flights.',
+    routes: [
+      { to: 'Tirumala (TTD)', distance: '20 km', duration: '45 min', via: 'Ghat Road (one way)' },
+      { to: 'Chennai', distance: '145 km', duration: '2.5 hrs', via: 'NH40' },
+      { to: 'Bangalore', distance: '245 km', duration: '4 hrs', via: 'NH40 → NH44' },
+      { to: 'Vijayawada', distance: '415 km', duration: '6 hrs', via: 'NH65' },
+      { to: 'Kadapa', distance: '135 km', duration: '2.5 hrs', via: 'NH516' },
+      { to: 'Hyderabad', distance: '560 km', duration: '8 hrs', via: 'NH40 → NH65' },
+    ],
+    tips: [
+      'Tirumala ghat road: Alipiri route (uphill) and Srivari Mettu route (both have separate up/down timings) — confirm with driver',
+      'Parking at Tirumala is extremely limited — drop by cab and return to Tirupati; do not wait in Tirumala for hours',
+      'Book airport/railway station cabs 24 hrs in advance during Brahmotsavam and Vaikunta Ekadashi festivals',
+      'Tirupati-Chennai NH40 is a fast 2-lane highway — night travel is common for devotees returning after darshan',
+    ],
+    stats: { population: '4.7 Lakh', knownFor: 'Tirumala Venkateswara Temple, world\'s most visited pilgrimage site', airport: 'Tirupati Airport (15 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Tirupati with a driver is essential for navigating the Tirumala ghat road, circumambulation circuit, and return trips to the railway station or airport. TransRentals provides 24/7 cab service for devotees on all arrival and departure slots.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Tirupati are available for Chennai and Bangalore highway routes. Tirumala ghat road is restricted for personal vehicles at certain times — always hire a driver for Tirumala drops.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the cab fare from Tirupati to Tirumala?', a: 'Cab from Tirupati to Tirumala (20 km via Alipiri Ghat Road, ~45 min) starts from ₹600 one way. Shared cab (6-seater) from APSRTC stand starts from ₹120/person. Private cab (Innova/Sumo) for group of 4–6 starts from ₹900 round trip with 2 hrs waiting.' },
+        { q: 'What is the car rental rate in Tirupati per day?', a: 'Hatchback with driver starts from ₹999/day. Innova Crysta (best for group pilgrim trips) from ₹2,499/day. For Chennai outstation (145 km via NH40), packages start from ₹2,999 (Sedan, one way with driver).' },
+        { q: 'What is the cab fare from Tirupati Airport to the city?', a: 'Pre-booked cab from Tirupati Airport (15 km, ~20 min) to city starts from ₹449. Tirumala direct drop from airport (35 km) starts from ₹1,099. Fixed rates — no overcharging. 24/7 availability for midnight pilgrim arrivals.' },
+        { q: 'Can I book a cab from Tirupati to Bangalore?', a: 'Tirupati to Bangalore (245 km via NH40 → NH44, ~4 hrs) starts from ₹4,299 (Sedan, one way). Route passes through Palamaneer and Hindupur — good 2-lane road. Night travel is smooth. Weekly shuttle options available for regular travellers.' },
+        { q: 'Is there a car rental for Tirupati local sightseeing (apart from Tirumala)?', a: 'Yes, Tirupati local sightseeing (Sri Govindarajaswamy Temple, Kapila Theertham, Padmavathi Temple Tiruchanur, ISKCON Tirupati) takes 4–5 hrs. Half-day package starts from ₹899. Tiruchanur Padmavathi Temple is 5 km from Tirupati city — a quick add-on to most itineraries.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Tirupati do TransRentals movers cover?', a: 'TransRentals movers cover all Tirupati localities — Alipiri, Korlagunta, Karakambadi Road, Tiruchanur, Renigunta, and the Tirupati Urban Development Authority zones. Intercity moves to Chennai (145 km), Bangalore (245 km), and Nellore (170 km) are fully covered. Tirumala-specific moves (hilltop) require TTD-authorized vehicles — we coordinate this.' },
+        { q: 'What is the house shifting cost in Tirupati?', a: '1BHK local shifting within Tirupati starts from ₹2,800–₹4,500. Move to Chennai (145 km) starts from ₹7,000–₹11,000. Move to Bangalore (245 km) starts from ₹10,000–₹15,000. For pilgrim-season months (October–November, festival times), book at least 2 weeks in advance as all vehicle capacity is in high demand.' },
+        { q: 'Can I hire packers and movers to shift from Tirupati to Bangalore or Chennai?', a: 'Yes, Tirupati to Bangalore (245 km via NH40 → NH44) and Tirupati to Chennai (145 km via NH40) are regularly served routes. Full household, vehicle transport, and fragile item packing available. Fixed-rate quotes are issued with itemized breakdown — no surprise highway charges.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Tirupati?', a: 'JCB backhoe loaders (₹4,000/day), mini excavators (₹3,500/day), concrete mixers, and compactors are available in Tirupati for the city\'s ongoing urban expansion projects. TTD-area construction has specific zone restrictions — confirm equipment access permits before booking for Tirumala-adjacent sites.' },
+        { q: 'Can I rent a JCB or excavator for construction work in Tirupati?', a: 'Yes, JCBs and excavators are available for independent house construction and site development in Tirupati. Red soil (laterite-type) in the area responds well to standard backhoe attachments. Rates: JCB with operator from ₹4,000/day, mini excavator from ₹3,500/day. Advance booking of 24 hrs recommended.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Tirupati per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~1T) start from ₹1,199/day in Tirupati. Half-day (4 hrs) from ₹749. Common uses: grocery and supply runs for dharamshala operators, hotel linen transport, and pilgrim souvenir shop restocking near Alipiri area.' },
+        { q: 'Can I hire a tempo for goods transport from Tirupati to Renigunta or Nellore?', a: 'Yes, Tirupati to Renigunta (10 km, ~₹800 one way) and Tirupati to Nellore (170 km, ~₹3,500 one way) tempo services are available on same-day booking for loads under 1.5T. Renigunta is also where Tirupati Railway Junction is located — goods can be loaded/unloaded at freight terminals.' },
+      ],
+    },
+  },
+
+  raipur: {
+    intro: 'Raipur is the capital of Chhattisgarh and the state\'s primary commercial and administrative hub. Car rental demand is driven by state government officials, Bhilai steel industry workers, and tourists visiting the Chitrakote Waterfalls, Bastar tribal circuit, and Sirpur heritage sites. NH30 connects Raipur to Nagpur (280 km), while NH53 links it to Visakhapatnam. The city\'s airport handles multiple daily flights from Delhi, Mumbai, and Bangalore, driving airport cab demand.',
+    routes: [
+      { to: 'Nagpur', distance: '280 km', duration: '4.5 hrs', via: 'NH30' },
+      { to: 'Bilaspur', distance: '120 km', duration: '2 hrs', via: 'NH130' },
+      { to: 'Jagdalpur (Bastar)', distance: '300 km', duration: '6 hrs', via: 'NH30 → NH63' },
+      { to: 'Chitrakote Falls', distance: '340 km', duration: '6.5 hrs', via: 'NH63' },
+      { to: 'Bhilai', distance: '30 km', duration: '45 min', via: 'NH53' },
+      { to: 'Bhopal', distance: '475 km', duration: '7 hrs', via: 'NH30 → NH46' },
+    ],
+    tips: [
+      'Raipur-Nagpur NH30 has excellent road quality — one of Central India\'s fastest highways',
+      'Bastar circuit (Chitrakote, Kanger Valley, Jagdalpur) requires 2–3 days — plan overnight stays',
+      'Raipur Airport cabs should be pre-booked — limited auto availability at night terminal',
+      'Bhilai Steel Plant area visits require advance booking for Industrial area drops',
+    ],
+    stats: { population: '12.3 Lakh', knownFor: 'Chhattisgarh capital, steel industry, Bastar tribal heritage', airport: 'Swami Vivekananda Airport, Raipur (15 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Raipur with a driver is the standard for government officials, corporate visitors, and tourists exploring the Bastar region. TransRentals provides cabs for Raipur-Nagpur corridor, Jagdalpur trips, and Sirpur heritage circuit.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Raipur are available for the Raipur-Bilaspur highway and Bhilai day trips. SUVs recommended for Bastar forest roads. Hatchbacks from ₹799/day.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Raipur per day?', a: 'Hatchback with driver starts from ₹999/day in Raipur. Sedan starts from ₹1,299/day. SUV (Innova/Bolero) from ₹2,499/day. For Nagpur outstation (280 km via NH30), one-way package starts from ₹4,999.' },
+        { q: 'What is the cab fare from Raipur Airport to the city?', a: 'Pre-booked cab from Swami Vivekananda Airport (15 km, ~25 min) to Raipur city centre starts from ₹449. Fixed airport rate. Night transfers (after 11 PM) available 24/7. Bhilai drop from airport starts from ₹849.' },
+        { q: 'Can I book a cab from Raipur to Jagdalpur (Bastar)?', a: 'Raipur to Jagdalpur (300 km via NH30 → NH63, ~6 hrs) starts from ₹5,999 (Innova or Bolero). Road conditions improve significantly after the Kondagaon section — SUV recommended. Jagdalpur is the base for Chitrakote Waterfalls, Kanger Valley, and Bastar tribal villages.' },
+        { q: 'Is a cab available from Raipur to Nagpur?', a: 'Yes, Raipur to Nagpur (280 km via NH30, ~4.5 hrs) starts from ₹4,999 (Sedan). NH30 is a quality 4-lane highway through Gondia. Shared shuttle packages also available for regular travellers on this corridor.' },
+        { q: 'Can I hire a car for Raipur local sightseeing?', a: 'Yes, Raipur local sightseeing (Purkhouti Muktangan, Mahant Ghasi Das Museum, Dudhadhari Math, Nandan Van Zoo) takes 4–5 hrs. Half-day package starts from ₹999. Full-day packages including Sirpur (80 km) start from ₹1,999.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Raipur do TransRentals movers cover?', a: 'TransRentals movers cover all Raipur localities — Shankar Nagar, Telibandha, Civil Lines, Pandri, GE Road, Ring Road 1 & 2, Mandir Hasaud, and Devendra Nagar. Intercity moves to Nagpur (280 km), Bilaspur (130 km), and Bhubaneswar (500 km) are fully covered. Bhilai steel plant employee housing moves are handled regularly.' },
+        { q: 'What is the house shifting cost in Raipur?', a: '1BHK local shifting within Raipur starts from ₹2,800–₹4,500. Move to Bilaspur (130 km) starts from ₹5,500. Move to Nagpur (280 km) starts from ₹9,500–₹14,000. For government employees transferring within Chhattisgarh, TransRentals can provide TA/DA-compatible billing documents.' },
+        { q: 'Can I book packers and movers for a Raipur to Nagpur or Bhubaneswar shift?', a: 'Yes, Raipur to Nagpur (280 km via NH30, ~4.5 hrs) and Raipur to Bhubaneswar (500 km via NH53, ~9 hrs) are fully covered routes. Full household packing, loading, transit, and unloading handled. Fixed-price quote before departure — no surprise highway charges on NH30 or NH53.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Raipur?', a: 'JCB backhoe loaders (₹4,500/day), excavators (8T–20T from ₹5,500/day), mobile cranes (15T–30T from ₹15,000/day), and concrete pumps are available in Raipur. Equipment deployed for NMDC and SAIL contractor projects, Bhilai township expansion, and Raipur Smart City infrastructure.' },
+        { q: 'Can I rent a JCB or crane for Bhilai or Raipur industrial construction?', a: 'Yes, Raipur and Bhilai have good heavy equipment availability for industrial and civil projects. JCB with operator from ₹4,500/day. Mobile crane (15T) from ₹15,000/day. Hydra crane (12T, for steel structure erection) from ₹12,000/day. Operator, diesel, and transport to site quoted separately.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Raipur per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~1T) start from ₹1,199/day in Raipur. Half-day (4 hrs) from ₹749. Common uses include shop delivery in Pandri market, raw material runs for MSME units, and household appliance delivery across Raipur city.' },
+        { q: 'Can I hire a tempo for goods transport from Raipur to Bilaspur or Durg?', a: 'Yes, Raipur to Bilaspur (130 km, ~₹2,800 one way) and Raipur to Durg-Bhilai (35 km, ~₹1,200 one way) tempo services are available same-day for loads under 1.5T. Regular routes mean frequent departures — loads can often be combined for cost sharing.' },
+      ],
+    },
+  },
+
+  aurangabad: {
+    intro: 'Aurangabad is Maharashtra\'s historical capital and the gateway to the UNESCO World Heritage Sites of Ajanta and Ellora Caves. The city generates exceptional car rental demand from domestic and international tourists, as well as from the Marathwada administrative and industrial belt. Aurangabad Airport connects to Mumbai and Delhi, and the city is a key outstation hub for Shirdi (115 km), Nashik (190 km), and Pune (240 km). Delhi-Mumbai Industrial Corridor (DMIC) projects have also increased corporate car demand.',
+    routes: [
+      { to: 'Ellora Caves', distance: '30 km', duration: '45 min', via: 'Ellora Road' },
+      { to: 'Ajanta Caves', distance: '100 km', duration: '2 hrs', via: 'NH52' },
+      { to: 'Shirdi', distance: '115 km', duration: '2 hrs', via: 'NH160' },
+      { to: 'Nashik', distance: '190 km', duration: '3 hrs', via: 'NH160' },
+      { to: 'Pune', distance: '240 km', duration: '4 hrs', via: 'NH65' },
+      { to: 'Mumbai', distance: '335 km', duration: '5 hrs', via: 'NH160 → NH3' },
+    ],
+    tips: [
+      'Ajanta-Ellora combined 2-cave-site day trip (130 km total loop) — depart by 7 AM from Aurangabad',
+      'Aurangabad to Ajanta: take the Fardapur road (NH52) — faster than old Jalgaon road',
+      'Daulatabad Fort is 13 km from Aurangabad — combine with Ellora for a full-day history tour',
+      'Kailash Temple at Ellora (Cave 16) requires walking — park at the main Ellora complex entrance',
+    ],
+    stats: { population: '11.7 Lakh', knownFor: 'Ajanta-Ellora UNESCO caves, Bibi Ka Maqbara, Aurangzeb\'s capital', airport: 'Aurangabad Airport (10 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Aurangabad with a driver is the most popular way to do the Ajanta-Ellora UNESCO circuit. TransRentals provides English and Marathi-speaking drivers expert in the cave routes and local historical sights. Dedicated Ajanta + Ellora full-day packages available.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Aurangabad are available for the Ellora day trip and Nashik highway drives. Hatchbacks from ₹799/day. Ajanta cave parking is managed — drop and collect cab recommended over waiting at Ajanta.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Aurangabad per day?', a: 'Hatchback with driver starts from ₹999/day. Innova Crysta from ₹2,499/day. Full-day Ajanta + Ellora UNESCO cave circuit (130 km round trip, 10–12 hrs) starts from ₹2,499 (Innova with driver). Ellora-only half day starts from ₹999.' },
+        { q: 'Can I book a cab from Aurangabad to cover both Ajanta and Ellora in one day?', a: 'It is technically possible but exhausting — Ajanta (100 km away) + Ellora (30 km away) covers 260 km round trip. Recommended: Day 1 Ellora (Kailash Temple) + Daulatabad; Day 2 Ajanta full day. If doing both in one day, depart by 6 AM. Package starts from ₹2,799.' },
+        { q: 'Is a cab available from Aurangabad to Shirdi?', a: 'Aurangabad to Shirdi (115 km via NH160, ~2 hrs) starts from ₹2,299 (Sedan, one way). Shirdi Sai Baba Temple round trip with 4 hrs waiting starts from ₹3,799. Shani Shingnapur (30 km from Shirdi) can be combined — package starts from ₹4,499.' },
+        { q: 'What is the cab fare from Aurangabad Airport to city?', a: 'Pre-booked cab from Aurangabad Airport (10 km, ~20 min) to city centre starts from ₹399. Fixed airport rate. Cave hotel drops (near Ellora/Ajanta) are arranged as separate outstation packages. Night arrivals served 24/7.' },
+        { q: 'Can I book a car from Aurangabad to Mumbai?', a: 'Aurangabad to Mumbai (335 km via NH160 → NH3, ~5 hrs) starts from ₹5,499 (Sedan, one way). Route via Nashik-Kasara Ghats is scenic. For weekend return to Mumbai, book Friday afternoon — slots fill up fast.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Aurangabad do TransRentals movers cover?', a: 'TransRentals movers cover all Aurangabad localities — Cidco, Garkheda, Hudco, Osmanpura, TV Centre, Waluj MIDC, and N-1 to N-12 sectors. Intercity moves to Pune (240 km), Mumbai (335 km), Nashik (190 km), and Hyderabad (550 km) are fully covered. MIDC Waluj industrial zone office and factory moves are a specialty.' },
+        { q: 'What is the house shifting cost in Aurangabad?', a: '1BHK local shifting within Aurangabad starts from ₹2,800–₹4,500. Move to Nashik (190 km) starts from ₹7,000. Move to Pune (240 km) starts from ₹9,000–₹13,000. Move to Mumbai (335 km) starts from ₹12,000–₹18,000. Tourist season moves (October–February, Ajanta/Ellora peak) — book movers 2 weeks ahead.' },
+        { q: 'Can I hire packers and movers for Aurangabad to Pune or Mumbai relocation?', a: 'Yes, Aurangabad to Pune and Mumbai are the most-requested intercity routes from Aurangabad. Full household, vehicle transport (bike towing), and fragile item packing available. Fixed price quotes with itemized costs. NH160 and NH3 are both well-maintained — transit is completed in single day.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Aurangabad?', a: 'JCB backhoe loaders (₹4,500/day), excavators (₹5,500/day), mobile cranes (15T–25T from ₹16,000/day), and concrete pumps are available for Aurangabad\'s MIDC Waluj expansion and DMIC corridor projects. Hydra cranes for prefab panel installation in warehouses start from ₹12,000/day.' },
+        { q: 'Can I rent a crane or JCB for MIDC Waluj industrial construction in Aurangabad?', a: 'Yes, MIDC Waluj is one of Maharashtra\'s major auto-component manufacturing zones, and equipment rental demand is high. Mobile cranes for plant equipment installation start from ₹16,000/day. JCBs for site preparation from ₹4,500/day. Advance booking of 72 hrs recommended during peak construction season (Oct–March).' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Aurangabad per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~1T) start from ₹1,199/day in Aurangabad. Half-day (4 hrs) from ₹749. Common uses: Waluj MIDC auto parts delivery, tourist souvenir supply to Ellora/Ajanta gate shops, and fabric/garment delivery in the textile cluster.' },
+        { q: 'Can I hire a tempo for goods transport from Aurangabad to Nashik or Pune?', a: 'Yes, Aurangabad to Nashik (190 km, ~₹3,800 one way) and Aurangabad to Pune (240 km, ~₹4,800 one way) tempo services are available for loads up to 1.5T. NH160 is a smooth highway with good rest stops. Same-day booking available for early morning departures.' },
+      ],
+    },
+  },
+
+  ranchi: {
+    intro: 'Ranchi is the capital of Jharkhand and a rapidly developing city with strong industrial ties to the Tata-Jamshedpur corridor and Bokaro Steel City. Car rental demand in Ranchi is driven by government officials, SAIL/RINL employees, and tourists visiting the Dassam Falls, Hundru Falls, and Betla National Park. NH33 connects Ranchi to Jamshedpur (130 km) and Kolkata (390 km), while NH75 links to Varanasi. The city is also the starting point for Puri, Bhubaneswar, and Vizag road trips.',
+    routes: [
+      { to: 'Jamshedpur', distance: '130 km', duration: '2.5 hrs', via: 'NH33' },
+      { to: 'Bokaro', distance: '90 km', duration: '1.5 hrs', via: 'NH23' },
+      { to: 'Dhanbad', distance: '155 km', duration: '3 hrs', via: 'NH23' },
+      { to: 'Patna', distance: '330 km', duration: '6 hrs', via: 'NH939 → NH30' },
+      { to: 'Bhubaneswar', distance: '440 km', duration: '7 hrs', via: 'NH23 → NH16' },
+      { to: 'Betla National Park', distance: '155 km', duration: '3 hrs', via: 'NH75' },
+    ],
+    tips: [
+      'Ranchi-Jamshedpur NH33 is a good 4-lane highway — the fastest industrial corridor route in Jharkhand',
+      'Dassam Falls and Hundru Falls are 40–55 km from Ranchi — best visited early morning to avoid weekend crowds',
+      'Betla National Park requires a forest jeep inside — book cab to park gate and arrange safari separately',
+      'Ranchi Airport has limited pre-paid auto availability — pre-booking cabs is strongly recommended',
+    ],
+    stats: { population: '11.7 Lakh', knownFor: 'Jharkhand capital, waterfalls, tribal culture, steel industry gateway', airport: 'Birsa Munda Airport, Ranchi (7 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Ranchi with a driver is used by government officials for state secretariat commutes and by tourists visiting Jharkhand\'s famous waterfalls and tribal areas. TransRentals provides cabs for Ranchi-Jamshedpur-Bokaro corridor and nature circuit tours.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Ranchi are available for highway trips to Jamshedpur and Bokaro. Forest road trips to Betla require experienced local knowledge — driver-driven recommended.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Ranchi per day?', a: 'Hatchback with driver starts from ₹999/day in Ranchi. Sedan from ₹1,299/day. Bolero/Innova from ₹2,499/day. For Jamshedpur outstation (130 km via NH33), package starts from ₹2,799 (one way, Sedan).' },
+        { q: 'What is the cab fare from Birsa Munda Airport to Ranchi city?', a: 'Pre-booked cab from Birsa Munda Airport (7 km, ~15 min) to Ranchi city starts from ₹349. Fixed airport rate — no negotiation. Harmu, Lalpur, and Kanke area drops within 20 minutes. Night transfer available 24/7.' },
+        { q: 'Can I book a cab from Ranchi to Dassam Falls and Hundru Falls?', a: 'Yes, combined Dassam Falls (40 km) + Hundru Falls (55 km) day trip starts from ₹1,799 (Sedan, half day, 100 km). Both waterfalls are best visited October–January when water levels are high after monsoon. Depart by 8 AM to beat crowds.' },
+        { q: 'Is there a cab from Ranchi to Jamshedpur?', a: 'Ranchi to Jamshedpur (130 km via NH33, ~2.5 hrs) starts from ₹2,799 (Sedan, one way). NH33 is a 4-lane highway through the Chota Nagpur Plateau — smooth and fast. One-way Bolero starts from ₹3,299.' },
+        { q: 'Can I hire a car for a Ranchi to Betla National Park trip?', a: 'Ranchi to Betla National Park (155 km via NH75, ~3 hrs) starts from ₹3,499 (Bolero/SUV recommended for forest roads). Inside the park, forest department jeep safari is required — arrange separately at the park gate. Package including overnight with driver available from ₹6,999 (2 days).' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Ranchi do TransRentals movers cover?', a: 'TransRentals movers cover all Ranchi localities — Harmu, Lalpur, Kanke, Bariatu, Morabadi, Argora, Doranda, Hinoo, and Jharkhand IT Services cluster near Namkum. Intercity moves to Jamshedpur (130 km), Bokaro (100 km), Patna (330 km), and Kolkata (390 km) are fully covered. RINL and SAIL employee housing moves handled regularly.' },
+        { q: 'What is the house shifting cost in Ranchi?', a: '1BHK local shifting within Ranchi starts from ₹2,800–₹4,500. Move to Jamshedpur (130 km) starts from ₹5,500. Move to Patna (330 km) starts from ₹10,000–₹15,000. Move to Kolkata (390 km) starts from ₹13,000–₹18,000. Government employee transfer moves with TA/DA billing documentation available.' },
+        { q: 'Can I book packers and movers for a Ranchi to Kolkata or Patna shift?', a: 'Yes, Ranchi to Kolkata (390 km via NH33, ~7 hrs) and Ranchi to Patna (330 km via NH22, ~6 hrs) are fully covered. Full household packing, transit, and unloading at destination. Fixed-price quotes with no highway toll surprises. Truck size allocated based on household inventory provided at booking.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Ranchi?', a: 'JCB backhoe loaders (₹4,500/day), excavators (8T–20T from ₹5,500/day), mobile cranes, and compactors are available for Ranchi\'s Smart City projects and Jharkhand government infrastructure. Equipment vendors are based in the industrial areas near Tatisilwai and Namkum.' },
+        { q: 'Can I rent a JCB or excavator for foundation work in Ranchi?', a: 'Yes, JCB and excavator rental for independent house construction is widely available in Ranchi. Rocky laterite terrain in the Ranchi plateau area requires powerful excavators — standard 8T class is recommended for foundation digging. JCB with operator from ₹4,500/day. Book 48 hrs in advance for Kanke and Bariatu areas.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Ranchi per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~1T) start from ₹1,199/day in Ranchi. Half-day (4 hrs) from ₹749. Common uses include Main Road market goods delivery, Harmu housing colony furniture shifts, and construction material supply for residential projects.' },
+        { q: 'Can I hire a tempo for goods transport from Ranchi to Jamshedpur or Bokaro?', a: 'Yes, Ranchi to Jamshedpur (130 km, ~₹2,800 one way) and Ranchi to Bokaro (100 km, ~₹2,200 one way) tempo services are available for loads under 1.5T. NH33 (Ranchi–Jamshedpur) is a major industrial highway with consistent traffic — dedicated vehicles dispatched in 2–4 hrs on same-day booking.' },
+      ],
+    },
+  },
+
+  kozhikode: {
+    intro: 'Kozhikode (Calicut) is Kerala\'s northern commercial hub and a city of immense historical significance as Vasco da Gama\'s first Indian port of call. The city drives car rental demand across Malabar\'s tourism and business belt, serving the Wayanad hill circuit, Kannur beaches, and Ooty-Mysore route. Calicut International Airport is a major Gulf-return NRI hub — airport cab demand is exceptionally high. The city is also the gateway to the iconic Wayanad plateau for trekkers and coffee estate visitors.',
+    routes: [
+      { to: 'Wayanad (Kalpetta)', distance: '75 km', duration: '2 hrs', via: 'NH212' },
+      { to: 'Kannur', distance: '90 km', duration: '2 hrs', via: 'NH66' },
+      { to: 'Ooty', distance: '155 km', duration: '4 hrs', via: 'NH212 → Ooty Road' },
+      { to: 'Mysore', distance: '250 km', duration: '5 hrs', via: 'NH212 → NH275' },
+      { to: 'Kochi', distance: '185 km', duration: '3.5 hrs', via: 'NH66' },
+      { to: 'Malappuram', distance: '55 km', duration: '1 hr', via: 'NH66' },
+    ],
+    tips: [
+      'Wayanad road (Thamarassery Churam ghat — 9 hairpin bends) is breathtaking but requires slow careful driving — hire a local driver',
+      'Calicut Airport NRI arrivals peak on Friday nights (Gulf flights) — pre-book airport cabs 48 hrs in advance',
+      'Kozhikode Beach and Beypore Port area have evening traffic — avoid 5–8 PM on the coastal road',
+      'Ooty via Wayanad route has Bandipur Tiger Reserve section (6 PM–6 AM no vehicle movement) — time the trip carefully',
+    ],
+    stats: { population: '6.1 Lakh', knownFor: 'Calicut Beach, Zamorin history, Malabar cuisine, NRI Gulf hub', airport: 'Calicut International Airport (23 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Kozhikode with a driver is the preferred way to navigate the Wayanad ghat road, Malabar coastal route, and Gulf NRI family outings. TransRentals provides Malayalam-speaking drivers experienced on NH66 coastal highway and the hilly Wayanad circuit.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Kozhikode are available for the NH66 coastal highway. Wayanad and Ooty ghat roads are NOT recommended for self-drive — experienced local drivers essential. Hatchbacks from ₹799/day for flat terrain.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Kozhikode per day?', a: 'Hatchback with driver starts from ₹999/day in Kozhikode. Innova Crysta from ₹2,499/day. Wayanad day trip (75 km one way, full day with driver) starts from ₹2,299 (Innova recommended for ghat roads).' },
+        { q: 'What is the cab fare from Calicut Airport to Kozhikode city?', a: 'Pre-booked cab from Calicut International Airport (23 km, ~30 min via NH66) to Kozhikode city starts from ₹699. Fixed airport rate. Wayanad Kalpetta drop from airport (75 km) starts from ₹1,999. Night transfer (Gulf flight arrivals post-midnight) available 24/7.' },
+        { q: 'Is a cab available from Kozhikode to Wayanad?', a: 'Yes, Kozhikode to Wayanad (Kalpetta, 75 km via NH212, ~2 hrs including ghat) starts from ₹1,999 (Innova, one way). Thamarassery Ghat has 9 hairpin bends — experienced ghat drivers provided. Chembra Peak, Soochipara Falls, and Edakkal Caves are the main Wayanad stops.' },
+        { q: 'Can I hire a car from Kozhikode to Ooty?', a: 'Kozhikode to Ooty (155 km via Wayanad → Gudalur, ~4 hrs) starts from ₹3,499 (Innova, one way). Route passes through Wayanad and enters Tamil Nadu via Gudalur. Note: Bandipur forest stretch (Kerala-Karnataka border) has a no-movement window 6 PM–6 AM — plan accordingly.' },
+        { q: 'Are airport transfer cabs available for Gulf NRI families in Kozhikode?', a: 'Yes, TransRentals provides pre-booked airport transfer packages specifically for NRI Gulf family arrivals at Calicut Airport. Innova and Tempo Traveller (for large groups) available. Book 48–72 hours in advance for Friday night slots. Fixed rates — no surge for late-night Gulf flight arrivals.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Kozhikode do TransRentals movers cover?', a: 'TransRentals movers cover all Kozhikode localities — Calicut Beach, Mavoor Road, Palayam, Nadakkavu, Chevayur, West Hill, Kunnamangalam, Feroke, and Beypore. Intercity moves to Kochi (190 km), Bangalore (380 km), and Kannur (90 km) are fully covered. NRI household goods import unpacking and placement is a specialty service for Gulf returnees.' },
+        { q: 'What is the house shifting cost in Kozhikode?', a: '1BHK local shifting within Kozhikode starts from ₹2,800–₹4,500. Move to Kannur (90 km) starts from ₹4,500. Move to Kochi (190 km) starts from ₹7,500–₹12,000. Move to Bangalore (380 km) starts from ₹14,000–₹20,000. NRI returned goods from customs (Kozhikode Customs Office) — unpacking and delivery to residence available.' },
+        { q: 'Are packers available for Kozhikode to Bangalore relocation?', a: 'Yes, Kozhikode to Bangalore (380 km via NH766 Wayanad Ghat, ~7 hrs) is a fully covered route. Full household packing, electronics protection, and furniture dismantling/reassembly available. Wayanad Ghat section has 40+ hairpin bends — our drivers and vehicles are specifically selected for this route.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Kozhikode?', a: 'JCB backhoe loaders (₹4,500/day), mini excavators (₹3,800/day), concrete mixers, and mobile cranes are available in Kozhikode for residential and commercial construction. Laterite stone excavation is common in Malabar — operators experienced with Kerala rock types provided.' },
+        { q: 'Can I rent a JCB or excavator for plot development in Kozhikode?', a: 'Yes, mini excavators and JCBs for independent house construction and plot development are widely available in Kozhikode. NRI-funded home construction projects are a major driver of equipment demand in the Calicut district. JCB with operator from ₹4,000/day. Mini excavator from ₹3,500/day. Beypore port area and Ramanattukara sites have quick dispatch.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Kozhikode per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~1T) start from ₹1,199/day in Kozhikode. Half-day (4 hrs) from ₹749. Common uses include Kozhikode wholesale spice market (Kuttichira) deliveries, Belapur fish market transport, and NRI household goods last-mile delivery from Kozhikode Customs.' },
+        { q: 'Can I hire a tempo for goods transport from Kozhikode to Kochi or Kannur?', a: 'Yes, Kozhikode to Kannur (90 km, ~₹2,200 one way) and Kozhikode to Kochi (190 km, ~₹4,000 one way) tempo services are available. NH66 is a smooth coastal highway. For NRI cargo (electronics, furniture from Dubai or Kuwait) cleared through Kozhikode Customs, dedicated delivery vehicles with labour are available.' },
+      ],
+    },
+  },
+
+  shimla: {
+    intro: 'Shimla is Himachal Pradesh\'s capital and India\'s most iconic hill station, generating massive car rental demand from Delhi, Chandigarh, and Punjab travelers. The city is accessible via NH5 (Shimla-Chandigarh) and NH22, and serves as the gateway to Kinnaur, Spiti, and the Hindustan-Tibet Highway. Car rentals are essential in Shimla because the old town is a no-vehicle zone and tourists rely on cabs for all mobility. Winter snowfall and summer tourist season create year-round demand spikes.',
+    routes: [
+      { to: 'Chandigarh', distance: '115 km', duration: '2.5 hrs', via: 'NH5' },
+      { to: 'Manali', distance: '265 km', duration: '7 hrs', via: 'NH3' },
+      { to: 'Kufri', distance: '16 km', duration: '30 min', via: 'NH5' },
+      { to: 'Chail', distance: '45 km', duration: '1.5 hrs', via: 'Chail Road' },
+      { to: 'Delhi', distance: '360 km', duration: '7 hrs', via: 'NH5 → NH44' },
+      { to: 'Kinnaur (Reckong Peo)', distance: '235 km', duration: '7 hrs', via: 'NH5 → NH22' },
+    ],
+    tips: [
+      'Old Shimla Mall Road and Cart Road are pedestrian-only — drop at Scandal Point or Victory Tunnel and walk',
+      'Snow period (Dec–Feb): only chains/snow tyres allowed on Shimla-Kufri road — use vendor vehicles with proper equipment',
+      'Chandigarh-Shimla NH5 has sharp hairpin bends from Dharampur onwards — local drivers strongly preferred',
+      'Kinnaur/Spiti route requires Inner Line Permit — arrange before departure and carry all documents',
+    ],
+    stats: { population: '1.7 Lakh', knownFor: 'Queen of Hills, Mall Road, Viceregal Lodge, Christ Church, winter sports', airport: 'Shimla Airport (23 km, seasonal/limited)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Shimla with a driver is the standard for all tourists — the old town is pedestrian-only and mountain roads require experienced Himachali hill drivers. TransRentals provides Swift, Innova, and Thar with drivers who know the Shimla-Kufri-Chail circuit and Kinnaur highway.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Shimla are available for experienced mountain drivers only. Chandigarh-Shimla stretch is recommended; Kinnaur and Spiti roads are NOT suitable for self-drive without mountain driving experience. Cars from ₹1,099/day with driver option strongly recommended.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Shimla per day?', a: 'Hatchback with driver starts from ₹1,099/day. Innova Crysta from ₹2,799/day. Tata Sumo/Bolero from ₹2,499/day. Full-day Shimla sightseeing (Kufri, Chail, Jakhu Temple, Mall Road circuit) starts from ₹1,799 (Innova, 8 hrs).' },
+        { q: 'Is a cab available from Chandigarh to Shimla?', a: 'Chandigarh to Shimla (115 km via NH5, ~2.5 hrs) starts from ₹2,299 (Sedan, one way). NH5 is a good road until Dharampur — mountain hairpin section from Dharampur to Shimla adds 45 min. Innova or Bolero recommended for families. Snow season (Dec–Feb) — add 60 min.' },
+        { q: 'Can I hire a car in Shimla for a Kinnaur trip?', a: 'Yes, Shimla to Kinnaur (Reckong Peo, 235 km via NH22, ~7 hrs) starts from ₹6,999 (Bolero/Sumo, one way). The Hindustan-Tibet Highway (NH22) is one of India\'s most scenic and treacherous mountain roads. Inner Line Permit required for foreign nationals. Experienced Himachali drivers mandatory.' },
+        { q: 'Is there a cab from Shimla to Manali?', a: 'Shimla to Manali (265 km via NH3, ~7 hrs) starts from ₹6,499 (Innova, one way). Route passes through Rampur and Kullu — excellent mountain highway. Suitable for June–October; winter road conditions can be challenging. Manali to Shimla Volvo bus also available if you prefer one-way cab.' },
+        { q: 'What is the cab fare from Shimla Airport to city?', a: 'Shimla Airport (Jubbarhatti, 23 km) cabs to city start from ₹799. Note: Shimla Airport has limited flights and is seasonal — many visitors arrive via Chandigarh (115 km). Pre-booked cabs strongly recommended from Chandigarh Airport for Shimla transfer.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Shimla do TransRentals movers cover?', a: 'TransRentals movers cover all Shimla areas — Mall Road, Sanjauli, Chhota Shimla, Vikas Nagar, Kasumpti, Tara Devi, Rampur Road, and Shoghi. Intercity moves to Chandigarh (115 km) and Delhi (370 km) are fully covered. Note: old Shimla town (The Mall, Cart Road area) is vehicle-restricted — goods are hand-carried or trolleyed for the last portion.' },
+        { q: 'What is the house shifting cost in Shimla?', a: '1BHK local shifting within Shimla starts from ₹4,000–₹6,500 (higher than plains due to mountain access and labour costs). Move to Chandigarh (115 km) starts from ₹7,000. Move to Delhi (370 km) starts from ₹15,000–₹22,000. HP government employee transfers with TA billing documentation available.' },
+        { q: 'Can I shift household goods from Shimla to Chandigarh or Delhi?', a: 'Yes, Shimla to Chandigarh (115 km via NH5, ~3 hrs) and Shimla to Delhi (370 km, ~7 hrs) moves are fully covered. The Dharampur-Shimla mountain stretch requires slow driving — plan for 45 minutes extra compared to plains. Fragile item packing with mountain-grade cushioning provided. Fixed-price quotes.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Shimla?', a: 'Mini excavators (₹4,000/day), small backhoe loaders, concrete mixers, and compactors are available in Shimla for hill construction. Full-size equipment is often impractical on narrow mountain lanes — mini versions (1T–3T excavators) are the norm. Equipment sourced from Solan and Parwanoo for Shimla delivery.' },
+        { q: 'Can I rent a mini excavator for hill plot development in Shimla?', a: 'Yes, mini excavators (1–3T class) are the standard equipment for slope excavation and terrace cutting in Shimla\'s hill terrain. Rates from ₹4,000/day with operator. Road access confirmation is essential before dispatch — many Shimla residential plots are accessible only via steps or narrow footpaths. TransRentals pre-inspects access routes.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Shimla per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~1T) start from ₹1,499/day in Shimla — slightly higher than plains due to mountain road conditions. Half-day (4 hrs) from ₹899. Common uses: hotel and resort supply runs, apple orchard produce transport, and construction material delivery to residential projects.' },
+        { q: 'Can I hire a tempo for goods transport from Shimla to Chandigarh or Solan?', a: 'Yes, Shimla to Solan (50 km, ~₹1,800 one way) and Shimla to Chandigarh (115 km, ~₹2,800 one way) tempo services are available. Drivers are experienced with the NH5 mountain bends. Loads over 1T require a dedicated vehicle — shared loads not available on mountain routes due to safety constraints.' },
+      ],
+    },
+  },
+
+  manali: {
+    intro: 'Manali is Himachal Pradesh\'s premier adventure and leisure destination, attracting millions of tourists for snow, trekking, Rohtang Pass, Spiti Valley, and Ladakh road trips. Car rental demand peaks May–October (summer-monsoon tourist season) and December–January (snow season). The Delhi-Manali route via Chandigarh and Kullu is one of India\'s most popular road trip routes. Local cab services in Manali are essential as the Rohtang Pass, Solang Valley, and Sissu are all 20–55 km away via mountain roads.',
+    routes: [
+      { to: 'Rohtang Pass', distance: '52 km', duration: '2.5 hrs', via: 'Old Manali Road' },
+      { to: 'Solang Valley', distance: '15 km', duration: '30 min', via: 'NH3' },
+      { to: 'Shimla', distance: '265 km', duration: '7 hrs', via: 'NH3' },
+      { to: 'Leh (Ladakh)', distance: '480 km', duration: '2 days', via: 'Manali-Leh Highway (NH3)' },
+      { to: 'Spiti (Kaza)', distance: '200 km', duration: '7 hrs', via: 'Rohtang → Kunzum → Spiti' },
+      { to: 'Chandigarh', distance: '310 km', duration: '7 hrs', via: 'NH3 → NH44' },
+    ],
+    tips: [
+      'Rohtang Pass permit (online NGT permit) required for all vehicles — book at least 2 days in advance',
+      'Solang Valley and Rohtang cable car bookings fill up fast in peak season (May–Jun) — pre-arrange with cab driver',
+      'Manali-Leh Highway opens typically mid-June — Rohtang (Atal Tunnel shortcut) keeps Lahaul accessible year-round',
+      'Manali old town lanes are narrow — use Manu Market parking and take a cab/auto to outer lodges',
+    ],
+    stats: { population: '8,096 (town); Kullu district: 4.5 Lakh', knownFor: 'Rohtang Pass, Manali-Leh Highway, adventure sports, Hadimba Temple', airport: 'Bhuntar Airport, Kullu (55 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Manali with a driver is essential for Rohtang Pass, Solang Valley, and Spiti Valley trips — mountain roads require experienced local Himachali drivers. TransRentals provides Innova, Bolero, and Thar for the demanding high-altitude routes.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Manali are available for confident mountain drivers for the Kullu Valley and Solang Valley. Rohtang Pass and Spiti/Ladakh routes are NOT recommended for self-drive without prior Himalayan driving experience. Cars from ₹1,299/day.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Manali per day?', a: 'Hatchback with driver starts from ₹1,299/day in Manali. Innova Crysta from ₹2,999/day. Bolero/Sumo from ₹2,799/day. Rohtang Pass day trip (52 km each way, full day) with driver starts from ₹2,999 (Innova). Solang Valley half-day starts from ₹999.' },
+        { q: 'Can I hire a cab for Rohtang Pass from Manali?', a: 'Yes, Rohtang Pass (3,979 m, 52 km from Manali) cab starts from ₹2,999 (Innova, full day). NGT Rohtang permit must be obtained 2 days in advance at the Forest Department or online — your cab driver usually assists. Atal Tunnel (Rohtang alternate) keeps Lahaul accessible without permit.' },
+        { q: 'Is there a cab from Manali to Leh (Ladakh)?', a: 'Manali to Leh (480 km, 2-day drive via NH3) starts from ₹14,999 (Innova/Bolero, one way). Route is open June–October only. Passes: Rohtang, Baralacha, Lachulung, Tanglang La (5,328 m). Overnight stay at Jispa or Pang. Experienced Himalayan drivers mandatory.' },
+        { q: 'What is the cab fare from Bhuntar Airport (Kullu) to Manali?', a: 'Pre-booked cab from Bhuntar Airport (55 km, ~1.5 hrs via NH3 Kullu-Manali Highway) to Manali starts from ₹1,499. NH3 is a good mountain road along Beas River — scenic drive. Pre-booking strongly recommended as airport auto taxis overcharge tourists.' },
+        { q: 'Can I hire a car in Manali for the Spiti Valley circuit?', a: 'Yes, Manali-Spiti circuit (Manali → Rohtang → Kunzum → Kaza → Pin Valley → Kaza → Shimla, 500 km, 5–7 days) starts from ₹28,000 (Bolero/Sumo with driver). Spiti roads are extremely demanding — only experienced Spiti-route drivers. Inner Line Permit required near Kaza for foreign nationals.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Are packers and movers available in Manali for local household shifting?', a: 'Yes, TransRentals provides local movers for Manali town, Old Manali, Vashisht, Aleo, and Naggar areas. For intercity moves to Kullu (40 km) or Chandigarh (310 km), dedicated vehicles are dispatched from the Kullu-Manali valley. Mountain terrain means packing must account for vibration and sudden braking on hairpin bends.' },
+        { q: 'What is the cost to shift a household from Manali to Chandigarh or Delhi?', a: 'Manali to Kullu (40 km) shifting starts from ₹4,500. Manali to Chandigarh (310 km via NH3) starts from ₹12,000–₹18,000. Manali to Delhi (560 km) starts from ₹20,000–₹28,000. Season matters: June–October has good road conditions. Winter moves (Nov–Feb) require chains and add ₹2,000–₹5,000 to cost.' },
+        { q: 'Can I move household goods from Manali in winter (after October)?', a: 'Yes, but with important caveats. Rohtang Pass closes by October–November (Atal Tunnel now keeps Lahaul accessible year-round via tunnel). For Manali valley local moves, winter operations continue. For intercity moves after November, vehicles use Atal Tunnel route — book at least 7 days in advance as truck availability is limited.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Manali?', a: 'Mini excavators (₹4,500/day), small concrete mixers, and compactors are available in Manali for hotel/resort construction and residential development. Full-size heavy equipment is rare in the valley — sourced from Kullu or Mandi. Construction season is May–October (pre-winter). Book early in the season.' },
+        { q: 'Can I rent a mini excavator for hotel or resort construction in Manali?', a: 'Yes, mini excavators (1–3T) are the standard for hotel and cottage construction on the Manali hillsides. Compact machines navigate narrow mountain access roads. Rates from ₹4,500/day with operator. Site access inspection recommended before dispatch — many resort plots require machine offloading at road and manual site prep beyond.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Manali per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~750 kg to 1T) start from ₹1,599/day in Manali — higher than plains due to limited availability and mountain conditions. Half-day (4 hrs) from ₹999. Common uses: hotel linen/food supply runs, LPG cylinder delivery, and construction material transport for valley-facing properties.' },
+        { q: 'Can I hire a tempo for goods delivery to resorts in Manali or Solang Valley?', a: 'Yes, TransRentals tempos serve resort and hotel supply chains across Manali, Solang Valley, and Naggar. Morning delivery slots (7–9 AM) are recommended before tourist traffic peaks on NH3. For loads exceeding 1T (e.g., furniture for new hotel setup), a larger Bolero Camper or small truck is arranged.' },
+      ],
+    },
+  },
+
+  srinagar: {
+    intro: 'Srinagar is the summer capital of Jammu & Kashmir and one of India\'s most iconic tourist destinations. The city generates massive car rental demand from tourists visiting Dal Lake, Gulmarg, Pahalgam, and Sonmarg. NH44 connects Srinagar to Jammu (300 km) and the Zoji-La pass opens the Ladakh route. Post-370 abrogation, tourist arrivals have surged significantly, driving unprecedented cab and self-drive demand. Dal Lake Shikara rides, Mughal Gardens, and apple orchard valley drives are key local demand generators.',
+    routes: [
+      { to: 'Gulmarg', distance: '55 km', duration: '1.5 hrs', via: 'Tangmarg Road' },
+      { to: 'Pahalgam', distance: '95 km', duration: '2.5 hrs', via: 'NH44 → Anantnag' },
+      { to: 'Sonmarg', distance: '80 km', duration: '2 hrs', via: 'NH1' },
+      { to: 'Jammu', distance: '300 km', duration: '6 hrs', via: 'NH44' },
+      { to: 'Leh (via Zoji-La)', distance: '430 km', duration: '2 days', via: 'NH1 (seasonal)' },
+      { to: 'Yusmarg', distance: '45 km', duration: '1.5 hrs', via: 'Charar-e-Sharif Road' },
+    ],
+    tips: [
+      'Gulmarg and Pahalgam cabs: confirm tourist zone parking permits — outer parking to gondola/pony point is standard',
+      'Srinagar inner city (Lal Chowk, Dal Gate area) has heavy traffic 10 AM–6 PM — use early morning for city sightseeing',
+      'Jammu-Srinagar NH44 (300 km) has frequent one-way traffic controls due to landslides — check NHAI Kashmir updates',
+      'Airport cab from Sheikh ul-Alam International: only pre-booked vehicles allowed in arrival zone — must book in advance',
+    ],
+    stats: { population: '12.7 Lakh', knownFor: 'Dal Lake, houseboats, Mughal Gardens, Gulmarg ski resort, Shankaracharya Temple', airport: 'Sheikh ul-Alam International Airport (14 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Srinagar with a driver is the preferred choice for tourists visiting Gulmarg, Pahalgam, and Sonmarg. TransRentals provides Sumo, Innova, and Swift with Kashmiri drivers who know the valley roads, seasonal conditions, and tourist zone protocols.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Srinagar are available for the Dal Lake boulevard and Mughal Gardens circuit. Pahalgam and Gulmarg routes are best with an experienced local driver due to winding mountain roads and tourist zone restrictions.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the car rental rate in Srinagar per day?', a: 'Hatchback with driver starts from ₹1,299/day in Srinagar. Innova Crysta from ₹2,999/day. Sumo/Bolero from ₹2,799/day. Gulmarg day trip (55 km each way, full day with driver) starts from ₹2,799. Pahalgam full day starts from ₹3,499.' },
+        { q: 'Can I book a cab from Srinagar to Gulmarg?', a: 'Srinagar to Gulmarg (55 km via Tangmarg, ~1.5 hrs) starts from ₹2,499 (Sumo/Innova round trip, full day with waiting). Parking is at Gulmarg base — take gondola or pony to higher altitudes. Snow period (Dec–Mar) — carry chains; driver handles all snow-road protocols.' },
+        { q: 'Is there a cab from Srinagar to Pahalgam?', a: 'Srinagar to Pahalgam (95 km via NH44 → Anantnag, ~2.5 hrs) starts from ₹3,299 (round trip with full day waiting). Pahalgam is the base for Amarnath Yatra — July–August bookings should be made 3–4 weeks in advance. Betaab Valley and Chandanwari are must-see stops.' },
+        { q: 'What is the cab fare from Srinagar Airport to Dal Lake hotels?', a: 'Pre-booked cab from Sheikh ul-Alam Airport (14 km, ~25 min) to Dal Lake area hotels starts from ₹799. Only pre-booked vehicles allowed in arrival pickup zone — on-spot autos/cabs are not available inside the terminal. Book before landing.' },
+        { q: 'Can I hire a car for the full Kashmir valley circuit?', a: 'Yes, full Kashmir valley circuit (Srinagar → Gulmarg → Pahalgam → Sonmarg → Doodhpathri → Srinagar, 5 days) starts from ₹18,000 (Innova/Sumo with driver). Includes all local drops and pickups. Amarnath base camp taxi from Pahalgam is arranged separately by JKTDC.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Srinagar do TransRentals movers cover?', a: 'TransRentals movers cover all major Srinagar localities — Lal Chowk, Rajbagh, Hyderpora, Bemina, Nowgam, Pampore, Sopore Road, and Hazratbal. Intercity moves to Jammu (300 km) are fully handled. Seasonal relocation (summer capital → winter stay in Jammu) is a recurring service for J&K government employees and families.' },
+        { q: 'What is the house shifting cost in Srinagar?', a: '1BHK local shifting within Srinagar starts from ₹3,500–₹5,500. Srinagar to Jammu (300 km via NH44, ~6 hrs) starts from ₹12,000–₹18,000. Given NH44\'s mountain sections and one-way traffic controls, moves are planned to depart at 6 AM. Government employee seasonal moves (April for Srinagar, November for Jammu) available.' },
+        { q: 'Can I book movers for a Srinagar to Jammu seasonal household shift?', a: 'Yes, TransRentals handles the J&K government seasonal move pattern — Srinagar to Jammu in winter (October–November) and Jammu to Srinagar in summer (April–May). Full household including seasonal clothes, kitchen goods, and electronics. Book at least 2 weeks before your transfer date for the seasonal peak weeks.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Srinagar?', a: 'JCB backhoe loaders (₹5,000/day), mini excavators (₹4,500/day), concrete mixers, and compactors are available in Srinagar. Post-Article 370, major infrastructure investment has increased equipment demand significantly. Advance booking of 5–7 days recommended during peak construction season (April–October).' },
+        { q: 'Can I rent a JCB or excavator for construction in Srinagar?', a: 'Yes, JCBs and excavators are available for residential, commercial, and government infrastructure construction across Srinagar. Clay and alluvial soil in the Kashmir valley requires standard attachments. JCB with operator from ₹5,000/day. Mini excavator from ₹4,500/day. Equipment from Udhampur and Anantnag vendors can be dispatched to Srinagar sites.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Srinagar per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~1T) start from ₹1,499/day in Srinagar. Half-day (4 hrs) from ₹899. Common uses: apple box transport from Srinagar cold storage to Dal Lake area markets, hotel supply runs, and tourist houseboat provisioning.' },
+        { q: 'Can I hire a tempo for goods transport within Srinagar or to nearby areas?', a: 'Yes, TransRentals tempos cover Srinagar city and nearby areas including Budgam, Pulwama, Anantnag, and Baramulla. Tourist season (June–September) sees peak demand — book 48 hrs in advance. For apple harvest season loads (September–October), dedicated refrigerated or covered vehicles are available.' },
+      ],
+    },
+  },
+
+  jammu: {
+    intro: 'Jammu is the winter capital of Jammu & Kashmir and the primary gateway city for Vaishno Devi pilgrims — the most visited pilgrimage site in North India with over 8 million visitors annually. Car rental demand in Jammu is dominated by pilgrims traveling to Katra (the Vaishno Devi base camp, 50 km), airport transfers, and Srinagar highway trips. NH44 (Jammu-Srinagar National Highway) sees the highest cab traffic in the region. The city is also the starting point for Patnitop, Udhampur, and Bhaderwah hill station trips.',
+    routes: [
+      { to: 'Katra (Vaishno Devi)', distance: '50 km', duration: '1.5 hrs', via: 'NH144A' },
+      { to: 'Patnitop', distance: '115 km', duration: '2.5 hrs', via: 'NH44' },
+      { to: 'Srinagar', distance: '300 km', duration: '6 hrs', via: 'NH44' },
+      { to: 'Udhampur', distance: '70 km', duration: '1.5 hrs', via: 'NH44' },
+      { to: 'Amritsar', distance: '215 km', duration: '4 hrs', via: 'NH44 → NH3' },
+      { to: 'Chandigarh', distance: '325 km', duration: '5.5 hrs', via: 'NH44' },
+    ],
+    tips: [
+      'Katra cab booking: JKTDC-registered taxis mandatory for Katra drop — confirm with TransRentals that vehicle is registered',
+      'Jammu-Srinagar NH44: one-way traffic controls are frequent — check NHW Kashmir updates before departure',
+      'Vaishno Devi peak pilgrimage (Navratri Oct, Jan) — book Katra cabs 10 days in advance',
+      'Jammu Airport (Satwari) has limited auto availability at night — pre-book all airport transfers',
+    ],
+    stats: { population: '5.7 Lakh', knownFor: 'Vaishno Devi gateway, Raghunath Temple, Dogra heritage, winter capital J&K', airport: 'Jammu Airport / Satwari (8 km)' },
+    serviceIntros: {
+      'car-rental': 'Car rental in Jammu with a driver is the standard for Vaishno Devi pilgrim groups, Srinagar highway travelers, and tourists visiting Patnitop and Bhaderwah. TransRentals provides Sumo, Innova, and Swift with drivers familiar with the NH44 mountain highway protocols.',
+      'self-drive-car-rentals': 'Self-drive car rentals in Jammu are limited due to NH44 mountain conditions and J&K permit requirements. Available for Jammu plains local use. Katra and Srinagar routes are NOT recommended for self-drive without prior mountain experience.',
+    },
+    serviceFAQs: {
+      'car-rental': [
+        { q: 'What is the cab fare from Jammu to Katra (Vaishno Devi)?', a: 'Jammu to Katra (50 km via NH144A, ~1.5 hrs) starts from ₹1,099 (Sedan, one way). NH144A is a 4-lane road through scenic Trikuta Hills. JKTDC-registered cabs drop at Katra bus stand — onward travel to Bhawan by foot/pony/palki. Round trip with 8–12 hrs waiting starts from ₹1,899.' },
+        { q: 'What is the car rental rate in Jammu per day?', a: 'Hatchback with driver starts from ₹999/day. Innova Crysta from ₹2,499/day. Sumo/Bolero from ₹2,299/day. Patnitop day trip (115 km via NH44, full day with driver) starts from ₹2,299.' },
+        { q: 'Can I book a cab from Jammu to Srinagar?', a: 'Jammu to Srinagar (300 km via NH44, ~6 hrs) starts from ₹5,499 (Sedan, one way). NH44 passes through Banihal Tunnel (2.5 km) and multiple mountain sections. One-way traffic controls are frequent — departures by 6 AM recommended. Sharing cabs available from Jammu bus stand at lower cost.' },
+        { q: 'What is the cab fare from Jammu Airport to city?', a: 'Pre-booked cab from Jammu Airport/Satwari (8 km, ~20 min) to city centre starts from ₹399. Katra drop from airport (60 km) starts from ₹1,499. Night arrivals served 24/7 — pre-booking essential as airport auto availability is limited.' },
+        { q: 'Can I book a cab for a Vaishno Devi pilgrimage group from Jammu?', a: 'Yes, group pilgrimage packages from Jammu for Vaishno Devi are available. Tempo Traveller (12–14 seater) from Jammu to Katra starts from ₹3,499 (one way). Round trip with overnight waiting at Katra starts from ₹5,999. Navratri (Oct) — book 2–3 weeks in advance. Helicopter booking at Katra is separate.' },
+      ],
+      'packers-and-movers': [
+        { q: 'Which areas in Jammu do TransRentals movers cover?', a: 'TransRentals movers cover all Jammu localities — Gandhi Nagar, Trikuta Nagar, Bakshi Nagar, Talab Tillo, Nawabad, Rehari, Channi Himmat, and Sunjwan. Intercity moves to Katra (50 km), Srinagar (300 km), and Chandigarh (380 km) are fully covered. J&K government employee seasonal moves (winter capital base) are a high-volume service in October–November.' },
+        { q: 'What is the house shifting cost in Jammu?', a: '1BHK local shifting within Jammu starts from ₹2,800–₹4,500. Move to Katra (50 km) starts from ₹4,000. Move to Chandigarh (380 km) starts from ₹13,000–₹18,000. Move to Delhi (600 km) starts from ₹20,000–₹28,000. Navratri (October) and Baisakhi seasons — book at least 2 weeks ahead as vehicle capacity is strained by pilgrim traffic.' },
+        { q: 'Can I book packers and movers from Jammu to Chandigarh or Delhi?', a: 'Yes, Jammu to Chandigarh (380 km via NH44 → NH1, ~6 hrs) and Jammu to Delhi (600 km, ~9–10 hrs) are regularly served routes. Full household packing, fragile item protection, and furniture dismantling available. Fixed-price quotes — no highway toll surprises. Vehicles depart early morning to arrive before evening.' },
+      ],
+      'equipment-rental': [
+        { q: 'What construction equipment is available for rent in Jammu?', a: 'JCB backhoe loaders (₹4,500/day), excavators (8T–20T from ₹5,500/day), mobile cranes (15T–25T from ₹16,000/day), and compactors are available for Jammu\'s ongoing Smart City and Jammu Ring Road projects. Trikuta Nagar and Sunjwan industrial area have quick dispatch for standard equipment.' },
+        { q: 'Can I rent a crane or excavator for construction near Katra or Udhampur?', a: 'Yes, equipment can be dispatched to Katra (50 km), Udhampur (65 km), and Ramban sites. Mountain road logistics add ₹2,000–₹5,000 transport cost over the Jammu rate. Mobile cranes up to 25T available. TTD (Vaishno Devi Shrine Board) construction contracts often require equipment certification — confirm with vendor.' },
+      ],
+      'mini-truck-rental': [
+        { q: 'What is the mini truck rental rate in Jammu per day?', a: 'Mini trucks (Tata Ace/Mahindra Supro, ~1T) start from ₹1,299/day in Jammu. Half-day (4 hrs) from ₹799. Common uses: Narwal market goods delivery, pilgrimage supply runs to Katra (prasad shops, dhaba provisions), and construction material delivery in Trikuta Nagar residential areas.' },
+        { q: 'Can I hire a tempo for goods transport from Jammu to Katra or Udhampur?', a: 'Yes, Jammu to Katra (50 km, ~₹1,800 one way) and Jammu to Udhampur (65 km, ~₹2,200 one way) tempo services are available same-day for loads under 1.5T. NH144A (Jammu–Katra) is a 4-lane expressway — fast transit. Loads for Katra dhaba and hotel operators during Navratri require advance booking by 5–7 days.' },
+      ],
+    },
+  },
 };
 
 // ─── STATE FALLBACK DATA ──────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -445,7 +446,7 @@ export function CarBookingConfirmModal({
       <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
         <div className="w-24 h-20 bg-blue-100 rounded-lg flex items-center justify-center overflow-hidden">
           {car.sideImage ? (
-            <img src={car.sideImage} alt={car.name} className="w-full h-full object-cover" />
+            <Image src={car.sideImage} alt={car.name} width={96} height={80} className="object-cover" />
           ) : (
             <Car className="w-12 h-12 text-blue-600" />
           )}

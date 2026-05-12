@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import { SimpleServiceHero } from '@/components/services/SimpleServiceHero';
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Self Drive Car Rental - Rent Cars Without Driver @₹899/Day | TransRentals',
@@ -29,6 +30,17 @@ export const metadata: Metadata = {
 export default function SelfDriveCarRentalPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Book a Self-Drive Car Rental on TransRentals"
+        description="Rent a car without a driver in 4 simple steps. Drive yourself."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Choose City & Dates', text: 'Select city, pickup date, return date, and preferred pickup location (home delivery or vendor pickup).' },
+          { name: 'Pick a Car', text: 'Choose from hatchback, sedan, SUV, or luxury car. View fuel type — petrol, diesel, or CNG.' },
+          { name: 'Complete KYC', text: 'Upload driving licence, Aadhaar/PAN, and selfie. Pay refundable security deposit online.' },
+          { name: 'Pick Up & Drive', text: 'Collect car from vendor at the scheduled time. Do pre-rental inspection and start your trip.' },
+        ]}
+      />
       {/* Hero Section */}
       <SimpleServiceHero
         badge="Self Drive Car Rental"

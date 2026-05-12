@@ -7,12 +7,13 @@ export const revalidate = 86400;
 const BASE_URL = 'https://transrentals.in';
 
 const SUB_SITEMAPS = [
-  { url: `${BASE_URL}/sitemap-static.xml`,   label: 'Static pages' },
-  { url: `${BASE_URL}/sitemap-services.xml`, label: 'Service + city pages' },
-  { url: `${BASE_URL}/sitemap-states.xml`,   label: 'State hub pages' },
-  { url: `${BASE_URL}/sitemap-routes.xml`,   label: 'Route pages (one-way, round-trip, airport)' },
-  { url: `${BASE_URL}/sitemap-blog.xml`,     label: 'Blog posts + categories' },
-  { url: `${BASE_URL}/sitemap-stories.xml`,  label: 'Web Stories + AMP versions' },
+  { url: `${BASE_URL}/sitemap-static.xml`,        label: 'Static pages' },
+  { url: `${BASE_URL}/sitemap-services.xml`,      label: 'Service + city pages' },
+  { url: `${BASE_URL}/sitemap-sublocations.xml`,  label: 'Sub-location / neighbourhood pages' },
+  { url: `${BASE_URL}/sitemap-states.xml`,        label: 'State hub pages' },
+  { url: `${BASE_URL}/sitemap-routes.xml`,        label: 'Route pages (one-way, round-trip, airport)' },
+  { url: `${BASE_URL}/sitemap-blog.xml`,          label: 'Blog posts + categories' },
+  { url: `${BASE_URL}/sitemap-stories.xml`,       label: 'Web Stories + AMP versions' },
 ];
 
 export async function GET() {

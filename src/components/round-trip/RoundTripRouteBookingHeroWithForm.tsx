@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin,
@@ -476,10 +477,12 @@ export function RoundTripRouteBookingHeroWithForm({
                                 <div className="flex items-center gap-3">
                                   <div className="w-16 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
                                     {pkg.vehicleCategory.image ? (
-                                      <img
+                                      <Image
                                         src={pkg.vehicleCategory.image}
                                         alt={pkg.vehicleCategory.name}
-                                        className="w-14 h-10 object-contain"
+                                        width={56}
+                                        height={40}
+                                        className="object-contain"
                                       />
                                     ) : (
                                       <Car className="w-8 h-8 text-gray-400" />

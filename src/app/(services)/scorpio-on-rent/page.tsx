@@ -4,6 +4,7 @@ import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Scorpio on Rent Without Driver | Self Drive @₹2499/Day | TransRentals'),
@@ -18,6 +19,17 @@ const topCities = ALL_CITIES.slice(0, 60);
 export default function ScorpioOnRentPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Mahindra Scorpio on TransRentals"
+        description="Book Scorpio self-drive for adventure or family trips in 4 steps."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Select City & Trip Dates', text: 'Enter pickup city and rental period. Scorpio available for weekend, weekly, and monthly rentals.' },
+          { name: 'Choose Scorpio Variant', text: 'Select Scorpio-N or Scorpio Classic in 6-seater or 7-seater configuration. Check 4WD availability.' },
+          { name: 'KYC & Deposit', text: 'Upload DL and government ID. Pay refundable security deposit to confirm booking.' },
+          { name: 'Pick Up & Explore', text: 'Collect Scorpio at vendor location or opt for home delivery. Perfect for rugged terrain trips.' },
+        ]}
+      />
       <SwiftRentalTypeHero
         vehicleName="Mahindra Scorpio"
         selfDrivePrice="₹2,499"

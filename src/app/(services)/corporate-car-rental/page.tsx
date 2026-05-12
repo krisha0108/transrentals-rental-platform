@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
 
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
+import { HowToSchema } from '@/components/seo/schemas';
 export const metadata: Metadata = {
   title: 'Corporate Car Rental | Employee Transport @₹15000/Month | Business Taxi',
   description: 'Corporate car rental for employee transport, business meetings. Monthly car lease for companies. Professional chauffeur. Fleet management @₹15000/month.',
@@ -31,6 +32,17 @@ export default function CorporateCarRentalPage() {
 
   return (
     <>
+      <HowToSchema
+        name="How to Book Corporate Car Rental on TransRentals"
+        description="Set up corporate car rental or employee cab service in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Share Corporate Requirements', text: 'Submit number of employees, shift timings, pickup/drop locations, and required vehicle category.' },
+          { name: 'Choose Fleet Type', text: 'Select sedan for executives, SUV for senior management, or hatchback for bulk employee transport.' },
+          { name: 'Get Corporate Rate Card', text: 'Receive monthly rate quotes from verified vendors. Compare per-trip and monthly contract options.' },
+          { name: 'Sign Contract & Deploy', text: 'Sign the fleet agreement, share employee data, and the service goes live on agreed start date.' },
+        ]}
+      />
       <SpecialtyCarBookingHero service="corporate" />
 
       {/* Why Corporate Car Rental */}

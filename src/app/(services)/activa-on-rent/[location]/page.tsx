@@ -8,7 +8,7 @@ import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { notFound } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
-import { getServiceLocations } from '@/lib/services/service-locations';;
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { BikeSearchHero } from '@/components/bike';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
@@ -33,7 +33,7 @@ interface PageProps {
 // Generate static params for ALL locations - GOD LEVEL SEO
 // Generate static params from DATABASE - Only locations where bike-on-rent is available
 export async function generateStaticParams() {
-  return getServiceLocations('bike-on-rent');
+  return getAllCityLocations();
 }
 
 // Enable ISR - Revalidate every hour

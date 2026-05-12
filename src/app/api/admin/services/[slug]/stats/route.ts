@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
@@ -6,6 +7,60 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
+
+// Same person + same trip date + same service = 1 inquiry.
+// Each quote-request table uses its own trip-date column name.
+const QUOTE_REQUEST_DATE_COLUMNS = {
+  bike_quote_requests: 'pickupDate',
+  bus_quote_requests: 'pickupDate',
+  equipment_quote_requests: 'startDate',
+  luxury_quote_requests: 'pickupDate',
+  packers_quote_requests: 'preferredDate',
+  self_drive_quote_requests: 'pickupDate',
+  truck_quote_requests: 'pickupDate',
+} as const;
+type QuoteRequestTable = keyof typeof QUOTE_REQUEST_DATE_COLUMNS;
+
+interface QuoteRequestCountFilters {
+  createdAtGte?: Date;
+  createdAtLte?: Date;
+  status?: string;
+  statusIn?: string[];
+  statusNotIn?: string[];
+}
+
+async function countDistinctQuoteRequests(
+  table: QuoteRequestTable,
+  filters: QuoteRequestCountFilters = {},
+): Promise<number> {
+  const dateColumn = QUOTE_REQUEST_DATE_COLUMNS[table];
+  const conditions: Prisma.Sql[] = [];
+
+  if (filters.createdAtGte !== undefined) conditions.push(Prisma.sql`createdAt >= ${filters.createdAtGte}`);
+  if (filters.createdAtLte !== undefined) conditions.push(Prisma.sql`createdAt <= ${filters.createdAtLte}`);
+  if (filters.status !== undefined) conditions.push(Prisma.sql`status = ${filters.status}`);
+  if (filters.statusIn !== undefined && filters.statusIn.length > 0) {
+    conditions.push(Prisma.sql`status IN (${Prisma.join(filters.statusIn)})`);
+  }
+  if (filters.statusNotIn !== undefined && filters.statusNotIn.length > 0) {
+    conditions.push(Prisma.sql`status NOT IN (${Prisma.join(filters.statusNotIn)})`);
+  }
+
+  const whereClause = conditions.length > 0
+    ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}`
+    : Prisma.empty;
+
+  const tableSql = Prisma.raw(`\`${table}\``);
+  const dateColSql = Prisma.raw(`\`${dateColumn}\``);
+
+  const rows = await prisma.$queryRaw<{ count: bigint }[]>(Prisma.sql`
+    SELECT COUNT(DISTINCT CONCAT(customerPhone, '|', DATE(${dateColSql}))) AS count
+    FROM ${tableSql}
+    ${whereClause}
+  `);
+
+  return Number(rows[0]?.count ?? 0);
+}
 
 // Helper to calculate date range for recent bookings filter
 function getRecentBookingsDateRange(dateFilter: string): { startDate: Date | null; endDate: Date | null } {
@@ -124,6 +179,12 @@ export async function GET(
       }
     } : {};
 
+    // Same filter range expressed as plain fields for the dedup helper.
+    const baseRange: QuoteRequestCountFilters = {
+      createdAtGte: recentBookingsStart ?? undefined,
+      createdAtLte: recentBookingsEnd ?? undefined,
+    };
+
     // Find the service in database
     const service = await prisma.services.findUnique({
       where: { slug },
@@ -197,15 +258,15 @@ export async function GET(
     // use quote_requests tables to match what the bookings page shows
     if (isServiceType(['self-drive', 'self drive']) && !isServiceType(['bike'])) {
       const [total, pending, confirmed, completed, cancelled, thisMonth, lastMonth, thisWeek, today, revenue, lastMonthRevenue, recent] = await Promise.all([
-        prisma.self_drive_quote_requests.count({ where: baseWhere }),
-        prisma.self_drive_quote_requests.count({ where: { ...baseWhere, status: 'PENDING' } }),
-        prisma.self_drive_quote_requests.count({ where: { ...baseWhere, status: { in: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] } } }),
-        prisma.self_drive_quote_requests.count({ where: { ...baseWhere, status: 'BOOKING_CONFIRMED' } }),
-        prisma.self_drive_quote_requests.count({ where: { ...baseWhere, status: { in: ['CANCELLED', 'EXPIRED'] } } }),
-        prisma.self_drive_quote_requests.count({ where: { createdAt: { gte: startOfMonth } } }),
-        prisma.self_drive_quote_requests.count({ where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
-        prisma.self_drive_quote_requests.count({ where: { createdAt: { gte: startOfWeek } } }),
-        prisma.self_drive_quote_requests.count({ where: { createdAt: { gte: startOfToday } } }),
+        countDistinctQuoteRequests('self_drive_quote_requests', baseRange),
+        countDistinctQuoteRequests('self_drive_quote_requests', { ...baseRange, status: 'PENDING' }),
+        countDistinctQuoteRequests('self_drive_quote_requests', { ...baseRange, statusIn: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] }),
+        countDistinctQuoteRequests('self_drive_quote_requests', { ...baseRange, status: 'BOOKING_CONFIRMED' }),
+        countDistinctQuoteRequests('self_drive_quote_requests', { ...baseRange, statusIn: ['CANCELLED', 'EXPIRED'] }),
+        countDistinctQuoteRequests('self_drive_quote_requests', { createdAtGte: startOfMonth }),
+        countDistinctQuoteRequests('self_drive_quote_requests', { createdAtGte: startOfLastMonth, createdAtLte: endOfLastMonth }),
+        countDistinctQuoteRequests('self_drive_quote_requests', { createdAtGte: startOfWeek }),
+        countDistinctQuoteRequests('self_drive_quote_requests', { createdAtGte: startOfToday }),
         prisma.self_drive_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.self_drive_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.self_drive_quote_requests.findMany({
@@ -257,15 +318,15 @@ export async function GET(
       };
     } else if (isServiceType(['bike', 'scooter', 'two-wheeler'])) {
       const [total, pending, confirmed, completed, cancelled, thisMonth, lastMonth, thisWeek, today, revenue, lastMonthRevenue, recent] = await Promise.all([
-        prisma.bike_quote_requests.count({ where: baseWhere }),
-        prisma.bike_quote_requests.count({ where: { ...baseWhere, status: 'PENDING' } }),
-        prisma.bike_quote_requests.count({ where: { ...baseWhere, status: { in: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] } } }),
-        prisma.bike_quote_requests.count({ where: { ...baseWhere, status: 'BOOKING_CONFIRMED' } }),
-        prisma.bike_quote_requests.count({ where: { ...baseWhere, status: { in: ['CANCELLED', 'EXPIRED'] } } }),
-        prisma.bike_quote_requests.count({ where: { createdAt: { gte: startOfMonth } } }),
-        prisma.bike_quote_requests.count({ where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
-        prisma.bike_quote_requests.count({ where: { createdAt: { gte: startOfWeek } } }),
-        prisma.bike_quote_requests.count({ where: { createdAt: { gte: startOfToday } } }),
+        countDistinctQuoteRequests('bike_quote_requests', baseRange),
+        countDistinctQuoteRequests('bike_quote_requests', { ...baseRange, status: 'PENDING' }),
+        countDistinctQuoteRequests('bike_quote_requests', { ...baseRange, statusIn: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] }),
+        countDistinctQuoteRequests('bike_quote_requests', { ...baseRange, status: 'BOOKING_CONFIRMED' }),
+        countDistinctQuoteRequests('bike_quote_requests', { ...baseRange, statusIn: ['CANCELLED', 'EXPIRED'] }),
+        countDistinctQuoteRequests('bike_quote_requests', { createdAtGte: startOfMonth }),
+        countDistinctQuoteRequests('bike_quote_requests', { createdAtGte: startOfLastMonth, createdAtLte: endOfLastMonth }),
+        countDistinctQuoteRequests('bike_quote_requests', { createdAtGte: startOfWeek }),
+        countDistinctQuoteRequests('bike_quote_requests', { createdAtGte: startOfToday }),
         prisma.bike_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.bike_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.bike_quote_requests.findMany({
@@ -353,15 +414,15 @@ export async function GET(
       bookingStats = { total, pending, confirmed, completed, cancelled, thisMonth, lastMonth, thisWeek, today, revenue: revenue._sum.grandTotal || 0, lastMonthRevenue: lastMonthRevenue._sum.grandTotal || 0, recentBookings: recent, dailyBookings: [] };
     } else if (isServiceType(['luxury'])) {
       const [total, pending, confirmed, completed, cancelled, thisMonth, lastMonth, thisWeek, today, revenue, lastMonthRevenue, recent] = await Promise.all([
-        prisma.luxury_quote_requests.count({ where: baseWhere }),
-        prisma.luxury_quote_requests.count({ where: { ...baseWhere, status: 'PENDING' } }),
-        prisma.luxury_quote_requests.count({ where: { ...baseWhere, status: { in: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] } } }),
-        prisma.luxury_quote_requests.count({ where: { ...baseWhere, status: 'BOOKING_CONFIRMED' } }),
-        prisma.luxury_quote_requests.count({ where: { ...baseWhere, status: { in: ['CANCELLED', 'EXPIRED'] } } }),
-        prisma.luxury_quote_requests.count({ where: { createdAt: { gte: startOfMonth } } }),
-        prisma.luxury_quote_requests.count({ where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
-        prisma.luxury_quote_requests.count({ where: { createdAt: { gte: startOfWeek } } }),
-        prisma.luxury_quote_requests.count({ where: { createdAt: { gte: startOfToday } } }),
+        countDistinctQuoteRequests('luxury_quote_requests', baseRange),
+        countDistinctQuoteRequests('luxury_quote_requests', { ...baseRange, status: 'PENDING' }),
+        countDistinctQuoteRequests('luxury_quote_requests', { ...baseRange, statusIn: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] }),
+        countDistinctQuoteRequests('luxury_quote_requests', { ...baseRange, status: 'BOOKING_CONFIRMED' }),
+        countDistinctQuoteRequests('luxury_quote_requests', { ...baseRange, statusIn: ['CANCELLED', 'EXPIRED'] }),
+        countDistinctQuoteRequests('luxury_quote_requests', { createdAtGte: startOfMonth }),
+        countDistinctQuoteRequests('luxury_quote_requests', { createdAtGte: startOfLastMonth, createdAtLte: endOfLastMonth }),
+        countDistinctQuoteRequests('luxury_quote_requests', { createdAtGte: startOfWeek }),
+        countDistinctQuoteRequests('luxury_quote_requests', { createdAtGte: startOfToday }),
         prisma.luxury_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.luxury_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.luxury_quote_requests.findMany({
@@ -407,15 +468,15 @@ export async function GET(
       };
     } else if (isServiceType(['bus'])) {
       const [total, pending, confirmed, completed, cancelled, thisMonth, lastMonth, thisWeek, today, revenue, lastMonthRevenue, recent] = await Promise.all([
-        prisma.bus_quote_requests.count({ where: baseWhere }),
-        prisma.bus_quote_requests.count({ where: { ...baseWhere, status: 'PENDING' } }),
-        prisma.bus_quote_requests.count({ where: { ...baseWhere, status: { in: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] } } }),
-        prisma.bus_quote_requests.count({ where: { ...baseWhere, status: 'BOOKING_CONFIRMED' } }),
-        prisma.bus_quote_requests.count({ where: { ...baseWhere, status: { in: ['CANCELLED', 'EXPIRED'] } } }),
-        prisma.bus_quote_requests.count({ where: { createdAt: { gte: startOfMonth } } }),
-        prisma.bus_quote_requests.count({ where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
-        prisma.bus_quote_requests.count({ where: { createdAt: { gte: startOfWeek } } }),
-        prisma.bus_quote_requests.count({ where: { createdAt: { gte: startOfToday } } }),
+        countDistinctQuoteRequests('bus_quote_requests', baseRange),
+        countDistinctQuoteRequests('bus_quote_requests', { ...baseRange, status: 'PENDING' }),
+        countDistinctQuoteRequests('bus_quote_requests', { ...baseRange, statusIn: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] }),
+        countDistinctQuoteRequests('bus_quote_requests', { ...baseRange, status: 'BOOKING_CONFIRMED' }),
+        countDistinctQuoteRequests('bus_quote_requests', { ...baseRange, statusIn: ['CANCELLED', 'EXPIRED'] }),
+        countDistinctQuoteRequests('bus_quote_requests', { createdAtGte: startOfMonth }),
+        countDistinctQuoteRequests('bus_quote_requests', { createdAtGte: startOfLastMonth, createdAtLte: endOfLastMonth }),
+        countDistinctQuoteRequests('bus_quote_requests', { createdAtGte: startOfWeek }),
+        countDistinctQuoteRequests('bus_quote_requests', { createdAtGte: startOfToday }),
         prisma.bus_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.bus_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.bus_quote_requests.findMany({
@@ -461,15 +522,15 @@ export async function GET(
       };
     } else if (isServiceType(['truck', 'tempo', 'transporter'])) {
       const [total, pending, confirmed, completed, cancelled, thisMonth, lastMonth, thisWeek, today, revenue, lastMonthRevenue, recent] = await Promise.all([
-        prisma.truck_quote_requests.count({ where: baseWhere }),
-        prisma.truck_quote_requests.count({ where: { ...baseWhere, status: 'PENDING' } }),
-        prisma.truck_quote_requests.count({ where: { ...baseWhere, status: { in: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] } } }),
-        prisma.truck_quote_requests.count({ where: { ...baseWhere, status: 'BOOKING_CONFIRMED' } }),
-        prisma.truck_quote_requests.count({ where: { ...baseWhere, status: { in: ['CANCELLED', 'EXPIRED'] } } }),
-        prisma.truck_quote_requests.count({ where: { createdAt: { gte: startOfMonth } } }),
-        prisma.truck_quote_requests.count({ where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
-        prisma.truck_quote_requests.count({ where: { createdAt: { gte: startOfWeek } } }),
-        prisma.truck_quote_requests.count({ where: { createdAt: { gte: startOfToday } } }),
+        countDistinctQuoteRequests('truck_quote_requests', baseRange),
+        countDistinctQuoteRequests('truck_quote_requests', { ...baseRange, status: 'PENDING' }),
+        countDistinctQuoteRequests('truck_quote_requests', { ...baseRange, statusIn: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] }),
+        countDistinctQuoteRequests('truck_quote_requests', { ...baseRange, status: 'BOOKING_CONFIRMED' }),
+        countDistinctQuoteRequests('truck_quote_requests', { ...baseRange, statusIn: ['CANCELLED', 'EXPIRED'] }),
+        countDistinctQuoteRequests('truck_quote_requests', { createdAtGte: startOfMonth }),
+        countDistinctQuoteRequests('truck_quote_requests', { createdAtGte: startOfLastMonth, createdAtLte: endOfLastMonth }),
+        countDistinctQuoteRequests('truck_quote_requests', { createdAtGte: startOfWeek }),
+        countDistinctQuoteRequests('truck_quote_requests', { createdAtGte: startOfToday }),
         prisma.truck_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.truck_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.truck_quote_requests.findMany({
@@ -515,15 +576,15 @@ export async function GET(
       };
     } else if (isServiceType(['packers', 'movers'])) {
       const [total, pending, confirmed, completed, cancelled, thisMonth, lastMonth, thisWeek, today, revenue, lastMonthRevenue, recent] = await Promise.all([
-        prisma.packers_quote_requests.count({ where: baseWhere }),
-        prisma.packers_quote_requests.count({ where: { ...baseWhere, status: 'PENDING' } }),
-        prisma.packers_quote_requests.count({ where: { ...baseWhere, status: { in: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] } } }),
-        prisma.packers_quote_requests.count({ where: { ...baseWhere, status: 'BOOKING_CONFIRMED' } }),
-        prisma.packers_quote_requests.count({ where: { ...baseWhere, status: { in: ['CANCELLED', 'EXPIRED'] } } }),
-        prisma.packers_quote_requests.count({ where: { createdAt: { gte: startOfMonth } } }),
-        prisma.packers_quote_requests.count({ where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
-        prisma.packers_quote_requests.count({ where: { createdAt: { gte: startOfWeek } } }),
-        prisma.packers_quote_requests.count({ where: { createdAt: { gte: startOfToday } } }),
+        countDistinctQuoteRequests('packers_quote_requests', baseRange),
+        countDistinctQuoteRequests('packers_quote_requests', { ...baseRange, status: 'PENDING' }),
+        countDistinctQuoteRequests('packers_quote_requests', { ...baseRange, statusIn: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] }),
+        countDistinctQuoteRequests('packers_quote_requests', { ...baseRange, status: 'BOOKING_CONFIRMED' }),
+        countDistinctQuoteRequests('packers_quote_requests', { ...baseRange, statusIn: ['CANCELLED', 'EXPIRED'] }),
+        countDistinctQuoteRequests('packers_quote_requests', { createdAtGte: startOfMonth }),
+        countDistinctQuoteRequests('packers_quote_requests', { createdAtGte: startOfLastMonth, createdAtLte: endOfLastMonth }),
+        countDistinctQuoteRequests('packers_quote_requests', { createdAtGte: startOfWeek }),
+        countDistinctQuoteRequests('packers_quote_requests', { createdAtGte: startOfToday }),
         prisma.packers_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.packers_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.packers_quote_requests.findMany({
@@ -569,15 +630,15 @@ export async function GET(
       };
     } else if (isServiceType(['equipment'])) {
       const [total, pending, confirmed, completed, cancelled, thisMonth, lastMonth, thisWeek, today, revenue, lastMonthRevenue, recent] = await Promise.all([
-        prisma.equipment_quote_requests.count({ where: baseWhere }),
-        prisma.equipment_quote_requests.count({ where: { ...baseWhere, status: 'PENDING' } }),
-        prisma.equipment_quote_requests.count({ where: { ...baseWhere, status: { in: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] } } }),
-        prisma.equipment_quote_requests.count({ where: { ...baseWhere, status: 'BOOKING_CONFIRMED' } }),
-        prisma.equipment_quote_requests.count({ where: { ...baseWhere, status: { in: ['CANCELLED', 'EXPIRED'] } } }),
-        prisma.equipment_quote_requests.count({ where: { createdAt: { gte: startOfMonth } } }),
-        prisma.equipment_quote_requests.count({ where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
-        prisma.equipment_quote_requests.count({ where: { createdAt: { gte: startOfWeek } } }),
-        prisma.equipment_quote_requests.count({ where: { createdAt: { gte: startOfToday } } }),
+        countDistinctQuoteRequests('equipment_quote_requests', baseRange),
+        countDistinctQuoteRequests('equipment_quote_requests', { ...baseRange, status: 'PENDING' }),
+        countDistinctQuoteRequests('equipment_quote_requests', { ...baseRange, statusIn: ['QUOTES_RECEIVED', 'QUOTE_ACCEPTED'] }),
+        countDistinctQuoteRequests('equipment_quote_requests', { ...baseRange, status: 'BOOKING_CONFIRMED' }),
+        countDistinctQuoteRequests('equipment_quote_requests', { ...baseRange, statusIn: ['CANCELLED', 'EXPIRED'] }),
+        countDistinctQuoteRequests('equipment_quote_requests', { createdAtGte: startOfMonth }),
+        countDistinctQuoteRequests('equipment_quote_requests', { createdAtGte: startOfLastMonth, createdAtLte: endOfLastMonth }),
+        countDistinctQuoteRequests('equipment_quote_requests', { createdAtGte: startOfWeek }),
+        countDistinctQuoteRequests('equipment_quote_requests', { createdAtGte: startOfToday }),
         prisma.equipment_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.equipment_quote_requests.aggregate({ _sum: { budgetMax: true }, where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth }, status: { notIn: ['CANCELLED', 'EXPIRED'] } } }),
         prisma.equipment_quote_requests.findMany({

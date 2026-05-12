@@ -1,7 +1,7 @@
 ﻿import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
-import { getServiceLocations } from '@/lib/services/service-locations';;
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -20,7 +20,7 @@ interface PageProps {
 
 // Generate static params from DATABASE - Only locations where car-rental is available
 export async function generateStaticParams() {
-  return getServiceLocations('car-rental');
+  return getAllCityLocations();
 }
 
 // Enable ISR - Revalidate every hour
@@ -289,8 +289,9 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',
-              lowPrice: '25000',
-              highPrice: '80000',
+              lowPrice: 25000,
+              highPrice: 80000,
+              offerCount: 8,
             },
             provider: {
               '@type': 'Organization',

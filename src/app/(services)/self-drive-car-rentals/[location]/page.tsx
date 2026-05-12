@@ -10,6 +10,10 @@ import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
+import { CITY_SEO } from '@/data/city-seo-content';
+import { RelatedServices } from '@/components/services/RelatedServices';
+import { AutoRentalSchema } from '@/components/seo/schemas';
+import { getServiceLocationRating } from '@/lib/services/cached-service-lookups';
 
 const COMING_SOON_SLUGS = new Set([
   'varanasi',
@@ -50,14 +54,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const _seoDb = await resolvePageMeta(`self-drive-car-rentals:${params.location}`);
   return {
-    title: _seoDb?.metaTitle || `Self Drive Car Rental in ${locationName} | No Driver @₹899/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent self-drive cars in ${locationName}. Drive yourself without driver. Hatchbacks, sedans, SUVs available. Book online. Flexible hours. 24/7 support.`,
+    title: _seoDb?.metaTitle || `Self Drive Car Rental in ${locationName} | Drive Yourself @₹899/Day | TransRentals`,
+    description: _seoDb?.metaDescription || `Rent self-drive cars in ${locationName} — no driver, complete freedom. Hatchbacks ₹899/day, Sedans ₹1299/day, SUVs ₹1899/day. Flexible pickup hours, doorstep delivery. Book self-drive car in ${locationName} now!`,
     keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
       `self drive car rental ${locationName.toLowerCase()}`,
+      `self drive car ${locationName.toLowerCase()}`,
       `self drive cars ${locationName.toLowerCase()}`,
-      `car rental without driver ${locationName.toLowerCase()}`,
       `self drive car hire ${locationName.toLowerCase()}`,
       `drive yourself car ${locationName.toLowerCase()}`,
+      `car without driver ${locationName.toLowerCase()}`,
+      `self driven car ${locationName.toLowerCase()}`,
       ...(city?.keywords || []).map(k => `self drive car ${k}`),
     ],
     openGraph: {
@@ -295,9 +301,13 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
 
   const city = pageContext.city;
   const locationName = city.name;
+  const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['self-drive-car-rentals'] || [];
+  const cityServiceIntro = CITY_SEO[params.location]?.serviceIntros?.['self-drive-car-rentals'];
 
-  // Fetch page heading/description from admin settings
-  const seoData = await resolvePageMeta(`self-drive-car-rentals:${params.location}`);
+  const [seoData, liveRating] = await Promise.all([
+    resolvePageMeta(`self-drive-car-rentals:${params.location}`),
+    getServiceLocationRating('self-drive-car-rentals', params.location),
+  ]);
 
   return (
     <>
@@ -392,35 +402,20 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
         </div>
       </section>
 
-      {/* FAQs */}
+      {/* FAQs — city-specific if available, generic fallback otherwise */}
       <section className="py-16">
         <div className="container-custom max-w-4xl">
           <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions
+            Frequently Asked Questions — Self Drive Car Rental in {locationName}
           </h2>
           <div className="space-y-6">
-            {[
-              {
-                q: `How much does self-drive car rental cost in ${locationName}?`,
-                a: `Self-drive car rental in ${locationName} starts from ₹899/day for hatchbacks. Sedans cost around ₹1299/day and SUVs from ₹2199/day.`,
-              },
-              {
-                q: `What documents are required for self-drive car rental in ${locationName}?`,
-                a: `You need a valid driving license (minimum 1 year old), Aadhar card/PAN card for ID proof, and a refundable security deposit.`,
-              },
-              {
-                q: `Is fuel included in self-drive car rental?`,
-                a: `No, fuel charges are separate. The car will have some fuel when you pick it up, and you should return it with the same fuel level.`,
-              },
-              {
-                q: `Can I take a self-drive car for outstation trips from ${locationName}?`,
-                a: `Yes, you can take self-drive cars for outstation trips from ${locationName}. Additional charges may apply for inter-state travel.`,
-              },
-              {
-                q: `How do I book a self-drive car in ${locationName}?`,
-                a: `You can book online through our website or app. Select your car, provide required documents, pay the security deposit, and pick up your car.`,
-              },
-            ].map((faq, idx) => (
+            {(cityFAQs.length > 0 ? cityFAQs.map(f => ({ q: f.q, a: f.a })) : [
+              { q: `How much does self-drive car rental cost in ${locationName}?`, a: `Self-drive car rental in ${locationName} starts from ₹899/day for hatchbacks. Sedans cost around ₹1299/day and SUVs from ₹2199/day.` },
+              { q: `What documents are required for self-drive car rental in ${locationName}?`, a: `You need a valid driving license (minimum 1 year old), Aadhaar card/PAN card for ID proof, and a refundable security deposit.` },
+              { q: `Is fuel included in self-drive car rental?`, a: `No, fuel charges are separate. The car will have some fuel when you pick it up, and you should return it with the same fuel level.` },
+              { q: `Can I take a self-drive car for outstation trips from ${locationName}?`, a: `Yes, you can take self-drive cars for outstation trips from ${locationName}. Additional charges may apply for inter-state travel.` },
+              { q: `How do I book a self-drive car in ${locationName}?`, a: `You can book online through our website or app. Select your car, provide required documents, pay the security deposit, and pick up your car.` },
+            ]).map((faq, idx) => (
               <div key={idx} className="bg-gray-50 p-6 rounded-lg">
                 <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
                 <p className="text-gray-600">{faq.a}</p>
@@ -437,26 +432,80 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
         stateCode={city.stateCode}
       />
 
-      {/* Schema Markup */}
+      {/* SEO Content Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="container-custom">
+          <div className="max-w-4xl mx-auto prose prose-lg">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">
+              Self Drive Car Rental in {locationName}
+            </h2>
+            {cityServiceIntro ? (
+              <p className="text-gray-600">{cityServiceIntro}</p>
+            ) : (
+              <p className="text-gray-600">
+                TransRentals offers the best self drive car rental services in {locationName}. Drive yourself
+                without a driver — complete privacy, no time restrictions, and full flexibility to explore
+                {locationName} at your own pace. Our verified vendor network offers well-maintained hatchbacks,
+                sedans, SUVs, and luxury cars from top brands like Maruti Swift, Honda City, Hyundai Creta,
+                Toyota Innova, and more.
+              </p>
+            )}
+            <h3 className="text-2xl font-bold text-gray-900 mt-8 mb-4">
+              Why Choose TransRentals for Self Drive Car Rental in {locationName}?
+            </h3>
+            <ul className="text-gray-600 space-y-2">
+              <li><strong>No Driver Needed:</strong> Complete privacy and freedom to drive yourself</li>
+              <li><strong>Best Prices:</strong> Self-drive cars starting from just ₹899/day</li>
+              <li><strong>Wide Fleet:</strong> Hatchbacks, sedans, SUVs, luxury cars available</li>
+              <li><strong>Flexible Hours:</strong> Hourly, daily, weekly, and monthly options</li>
+              <li><strong>Easy Booking:</strong> Book online in minutes with instant confirmation</li>
+              <li><strong>24/7 Support:</strong> Roadside assistance and customer support</li>
+              <li><strong>Verified Vendors:</strong> All cars are background-checked and regularly serviced</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="car-rental"
+        parentName="Car Rental"
+        currentSlug="self-drive-car-rentals"
+        siblings={[
+          { slug: 'car-rental', name: 'Chauffeur Driven' },
+          { slug: 'luxury-car-rental', name: 'Luxury Cars' },
+          { slug: 'hourly-car-rental', name: 'Hourly Rental' },
+          { slug: 'monthly-car-rental', name: 'Monthly Rental' },
+        ]}
+      />
+
+      {/* AutoRental Schema — schema.org/AutoRental subtype */}
+      <AutoRentalSchema
+        name={`Self Drive Car Rental in ${locationName} — TransRentals`}
+        description={`Rent self-drive cars in ${locationName} without a driver. Hatchbacks, sedans, SUVs starting @₹899/day.`}
+        city={locationName}
+        citySlug={params.location}
+        serviceSlug="self-drive-car-rentals"
+        vehicleTypes={['Car', 'SUV', 'Hatchback', 'Sedan']}
+        rating={liveRating?.ratingValue}
+        reviewCount={liveRating?.reviewCount}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
-            name: `Self Drive Car Rental in ${locationName}`,
-            description: `Rent self-drive cars in ${locationName}. No driver needed. Complete freedom.`,
-            offers: {
-              '@type': 'AggregateOffer',
-              priceCurrency: 'INR',
-              lowPrice: '899',
-              highPrice: '4999',
-            },
-            provider: {
-              '@type': 'Organization',
-              name: 'TransRentals',
-              url: 'https://transrentals.in',
-            },
+            '@type': 'FAQPage',
+            mainEntity: (cityFAQs.length > 0 ? cityFAQs : [
+              { q: `How much does self-drive car rental cost in ${locationName}?`, a: `Self-drive car rental in ${locationName} starts from ₹899/day for hatchbacks. Sedans cost around ₹1299/day and SUVs from ₹2199/day.` },
+              { q: `What documents are required for self-drive car rental in ${locationName}?`, a: `You need a valid driving license (minimum 1 year old), Aadhaar card/PAN card for ID proof, and a refundable security deposit.` },
+              { q: `Is fuel included in self-drive car rental?`, a: `No, fuel charges are separate. The car will have some fuel when you pick it up, and you should return it with the same fuel level.` },
+              { q: `Can I take a self-drive car for outstation trips from ${locationName}?`, a: `Yes, you can take self-drive cars for outstation trips from ${locationName}. Additional charges may apply for inter-state travel.` },
+            ]).map((faq) => ({
+              '@type': 'Question',
+              name: faq.q,
+              acceptedAnswer: { '@type': 'Answer', text: faq.a },
+            })),
           }),
         }}
       />

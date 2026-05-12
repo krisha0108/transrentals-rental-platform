@@ -79,3 +79,4 @@ tr-driver-app/ios/build/
 tr-driver-app/android/app/google-services.json
 tr-app/android/app/google-services.json
 tr-vendor-app/android/app/google-services.json
+.claude/worktrees/

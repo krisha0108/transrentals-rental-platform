@@ -4,6 +4,7 @@ import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Self Drive SUV Rental India | Rent SUV Without Driver @₹1999/Day | TransRentals'),
@@ -32,6 +33,17 @@ const topCities = ALL_CITIES.slice(0, 60);
 export default function SelfDriveSUVRentalPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Self-Drive SUV on TransRentals"
+        description="Book an SUV without driver for road trips or family travel in 4 steps."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Enter City & Duration', text: 'Select your city, pickup date, and rental duration. Weekly and monthly SUV rentals available at discounts.' },
+          { name: 'Choose SUV Model', text: 'Pick from Hyundai Creta, Kia Seltos, Mahindra Scorpio, XUV700, or Toyota Fortuner based on budget and terrain.' },
+          { name: 'Complete Document Verification', text: 'Upload DL, Aadhaar/PAN. Pay security deposit. Booking confirmed instantly after verification.' },
+          { name: 'Pick Up & Drive', text: 'Collect SUV at vendor or doorstep (select cities). Inspect the vehicle thoroughly before your road trip.' },
+        ]}
+      />
       <SwiftRentalTypeHero
         vehicleName="Self Drive SUV"
         selfDrivePrice="₹1,999"

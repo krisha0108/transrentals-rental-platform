@@ -17,8 +17,11 @@ import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { prisma } from '@/lib/db/prisma';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { getCachedServiceBySlug } from '@/lib/services/cached-service-lookups';
-import { getServiceLocations } from '@/lib/services/service-locations';
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
 import { CITY_SEO } from '@/data/city-seo-content';
+import { RelatedServices } from '@/components/services/RelatedServices';
+import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
+import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 
 const BUS_RENTAL_FALLBACK_FAQS = [
   { question: 'What is the cost of bus rental per km in India?', answer: 'Bus rental rates depend on bus size and type. Tempo Traveller (12-seater) starts from ₹18/km. Mini bus (20-seater) starts from ₹25/km. Luxury coach (40-50 seater) starts from ₹40/km. Local packages (8 hrs/80 km) are also available. Get a free quote on TransRentals for your specific route and group size.' },
@@ -39,9 +42,17 @@ interface PageProps {
   };
 }
 
-// Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  return getServiceLocations('bus-rental');
+  if (process.env.SKIP_DATABASE_CALLS === '1') return [];
+  try {
+    const locations = await prisma.locations.findMany({
+      where: { type: { in: ['CITY', 'UNION_TERRITORY', 'VILLAGE'] }, isActive: true },
+      select: { slug: true },
+    });
+    return locations.map((loc) => ({ location: loc.slug }));
+  } catch {
+    return getServiceLocations('bus-rental');
+  }
 }
 
 // Enable ISR - Revalidate every hour
@@ -73,6 +84,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: `Hire buses and tempo travellers in ${locationName}. AC/Non-AC options for pilgrimages, weddings, and corporate events. 500+ verified operators.`,
       type: 'website',
       url: `https://transrentals.in/bus-rental/${params.location}`,
+      images: [
+        {
+          url: `https://transrentals.in/api/og?service=bus-rental&location=${encodeURIComponent(locationName)}`,
+          width: 1200,
+          height: 630,
+          alt: `Bus Rental in ${locationName} - TransRentals`,
+        },
+      ],
       locale: 'en_IN',
       siteName: 'TransRentals',
     },
@@ -80,6 +99,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       card: 'summary_large_image',
       title: `Bus Rental in ${locationName} | TransRentals`,
       description: `Hire buses and tempo travellers in ${locationName}. Verified operators for pilgrimages, weddings, and events.`,
+      images: [`https://transrentals.in/api/og?service=bus-rental&location=${encodeURIComponent(locationName)}`],
     },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
   };
@@ -304,6 +324,23 @@ export default async function BusLocationPage({ params }: PageProps) {
           customFaqs={BUS_RENTAL_FALLBACK_FAQS}
         />
       )}
+      {cityFAQs.length > 0 && (
+        <section className="py-16 bg-white">
+          <div className="container-custom max-w-3xl">
+            <h2 className="text-3xl font-bold text-gray-900 mb-10 text-center">
+              Frequently Asked Questions — Bus Rental in {locationName}
+            </h2>
+            <div className="space-y-6">
+              {cityFAQs.map((faq) => (
+                <div key={faq.q} className="bg-gray-50 p-6 rounded-xl">
+                  <h3 className="font-semibold text-gray-900 mb-2">{faq.q}</h3>
+                  <p className="text-gray-600">{faq.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <NearbyLocations
         locationSlug={params.location}
@@ -315,6 +352,19 @@ export default async function BusLocationPage({ params }: PageProps) {
         serviceSlug="bus-rental"
         cityName={locationName}
         stateCode={cityData?.stateCode}
+      />
+
+      <ServiceAreasSection
+        serviceSlug="bus-rental"
+        citySlug={params.location}
+        cityName={locationName}
+        serviceName="Bus Rental"
+      />
+
+      <CrossServiceLinks
+        citySlug={params.location}
+        cityName={locationName}
+        currentServiceSlug="bus-rental"
       />
 
       {/* TravelAgency / BusService Schema */}
@@ -357,6 +407,17 @@ export default async function BusLocationPage({ params }: PageProps) {
           }),
         }}
       />
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="bus-rental"
+        parentName="Bus Rental"
+        currentSlug="bus-rental"
+        siblings={[
+          { slug: 'mini-truck-rental', name: 'Mini Truck Rental' },
+          { slug: 'packers-and-movers', name: 'Packers & Movers' },
+        ]}
+      />
+
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
