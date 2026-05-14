@@ -111,8 +111,11 @@ export default function BusRentalScreen() {
   const [pickupLocationId, setPickupLocationId] = useState(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
+  const [busPurpose, setBusPurpose] = useState('regular'); // regular | tempo | corporate | wedding
   const [tripType, setTripType] = useState('outstation'); // outstation | local
   const [destination, setDestination] = useState('');
+  const [pickupFullAddress, setPickupFullAddress] = useState('');
+  const [dropFullAddress, setDropFullAddress] = useState('');
   const [busType, setBusType] = useState('20seater');
   const [totalPassengers, setTotalPassengers] = useState('');
   const [otherDetails, setOtherDetails] = useState('');
@@ -396,32 +399,51 @@ export default function BusRentalScreen() {
         }
       }
 
+      const purposeTripTypeMap = {
+        regular: tripType,           // local or outstation
+        tempo: tripType,             // local or outstation
+        corporate: 'corporate',
+        wedding: 'wedding',
+      };
+      const purposeVehicleCategoryMap = {
+        regular: 'Bus',
+        tempo: 'Tempo Traveller',
+        corporate: 'Corporate Bus',
+        wedding: 'Luxury Bus (Wedding)',
+      };
       const payload = {
-        customer_id: customerId ?? '',
-        service_id: 5,
-        service_name: 'Bus Rental',
-        location_id: finalLocationId,
-        location_name: pickupLocation,
-        destination: destination,
-        journey_datetime: startDate.toISOString(),
-        return_datetime: tripType === 'outstation' ? returnDate.toISOString() : null,
-        total_passangers: Number(totalPassengers),
-        bus_type: busType,
-        trip_type: tripType,
-        other_info: otherDetails?.trim() || '',
+        customerId: customerId || null,
+        customerName: customerData?.name || 'Customer',
+        customerEmail: customerData?.email || 'book@transrentals.in',
+        customerPhone: customerData?.phone || '',
+        tripType: purposeTripTypeMap[busPurpose] || tripType,
+        vehicleCategory: busPurpose === 'tempo' ? 'tempo-traveller-17' : 'bus-45',
+        vehicleCategoryName: `${purposeVehicleCategoryMap[busPurpose]} (${busType.replace('seater', ' Seater')})`,
+        pickupCity: pickupLocation,
+        pickupAddress: pickupFullAddress.trim() || pickupLocation,
+        dropCity: destination,
+        dropAddress: dropFullAddress.trim() || destination,
+        pickupDate: startDate.toISOString(),
+        pickupTime: `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`,
+        returnDate: (busPurpose === 'corporate' || busPurpose === 'wedding' || tripType === 'outstation') ? returnDate.toISOString() : null,
+        returnTime: (busPurpose === 'corporate' || busPurpose === 'wedding' || tripType === 'outstation') ? `${String(returnDate.getHours()).padStart(2, '0')}:${String(returnDate.getMinutes()).padStart(2, '0')}` : null,
+        passengers: Number(totalPassengers),
+        requirements: otherDetails?.trim() || '',
+        source: 'app',
       };
 
       console.log('Bus booking payload:', payload);
 
       const response = await bookingService.createBusQuoteRequest(payload);
 
-      if (response.success || response.booking) {
-        alert('Bus booking submitted ✅');
+      if (response.success || response.quoteRequest || response.booking) {
+        alert('Bus booking submitted ✅\n\nVendors will send quotes within 24-48 hours.');
         setDestination('');
         setOtherDetails('');
         setTotalPassengers('');
+        navigation.navigate('MyBusBookings');
       } else {
-        alert('Booking could not be submitted. Check required fields.');
+        alert('Booking could not be submitted. Please try again.');
       }
     } catch (err) {
       console.log('bus booking err', err?.response?.data || err?.message || err);
@@ -515,7 +537,38 @@ export default function BusRentalScreen() {
             </View>
           </View>
 
-          {/* Trip type */}
+          {/* Bus purpose */}
+          <Text style={styles.label}>Bus purpose</Text>
+          <View style={styles.purposeBar}>
+            {[
+              { id: 'regular',   label: 'Regular Bus',  icon: 'bus-outline' },
+              { id: 'tempo',     label: 'Tempo',         icon: 'car-outline' },
+              { id: 'corporate', label: 'Corporate',     icon: 'briefcase-outline' },
+              { id: 'wedding',   label: 'Wedding',       icon: 'heart-outline' },
+            ].map((p) => {
+              const active = busPurpose === p.id;
+              return (
+                <TouchableOpacity
+                  key={p.id}
+                  onPress={() => {
+                    setBusPurpose(p.id);
+                    if (p.id === 'corporate' || p.id === 'wedding') setTripType('outstation');
+                  }}
+                  activeOpacity={0.85}
+                  style={[styles.purposeChip, active && styles.purposeChipActive]}
+                >
+                  <Ionicons name={p.icon} size={14} color={active ? GREEN : '#64748B'} />
+                  <Text style={[styles.purposeChipText, active && styles.purposeChipTextActive]}>
+                    {p.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Trip type — only shown for regular/tempo */}
+          {(busPurpose === 'regular' || busPurpose === 'tempo') && (
+            <>
           <Text style={styles.label}>Trip type</Text>
           <View style={styles.tripTypeBar}>
             {[
@@ -550,93 +603,95 @@ export default function BusRentalScreen() {
               );
             })}
           </View>
+            </>
+          )}
 
-          {/* Location block - MODIFIED WITH OVERLAY */}
+          {/* ── Pickup city ── */}
           <View style={styles.locationBlock}>
-            {/* FROM */}
-            <Text style={styles.smallLabel}>
-              From (Area, Street or Landmark)
-            </Text>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.locationRow}
-            >
+            <Text style={styles.smallLabel}>From (Pickup city)</Text>
+            <TouchableOpacity activeOpacity={0.9} style={styles.locationRow}>
               <Ionicons name="location-outline" size={18} color="#0F172A" />
               <TextInput
                 value={query.length ? query : pickupLocation}
                 onChangeText={handleInputChange}
-                placeholder="Enter pickup location"
+                placeholder="Enter pickup city"
                 placeholderTextColor="#94A3B8"
                 style={styles.locationInput}
                 onFocus={() => setShowSuggestions(true)}
               />
               {pickupLocation ? (
-                <TouchableOpacity
-                  onPress={() => {
-                    setPickupLocation('');
-                    setPickupLocationId(null);
-                    setQuery('');
-                  }}
-                >
+                <TouchableOpacity onPress={() => { setPickupLocation(''); setPickupLocationId(null); setQuery(''); }}>
                   <Ionicons name="close-circle" size={24} color="#CBD5F5" />
                 </TouchableOpacity>
               ) : null}
             </TouchableOpacity>
 
-            {/* suggestions with overlay */}
             {showSuggestions && (
               <>
-                {/* Overlay for outside click */}
-                <Pressable 
-                  style={styles.overlay}
-                  onPress={handleOutsideClick}
-                />
-                
+                <Pressable style={styles.overlay} onPress={handleOutsideClick} />
                 <View style={styles.suggestionBox} ref={dropdownRef}>
-                  <ScrollView
-                    style={styles.suggestionScrollView}
-                    showsVerticalScrollIndicator={true}
-                    persistentScrollbar={true}
-                    scrollEnabled={true}
-                    nestedScrollEnabled={true}
-                    keyboardShouldPersistTaps="handled"
-                    contentContainerStyle={styles.suggestionScrollContent}
-                  >
-                    {filteredLocations.length ? (
-                      filteredLocations.map((loc) => (
-                        <TouchableOpacity
-                          key={loc.id}
-                          style={styles.suggestionItem}
-                          onPress={() => handleLocationSelect(loc)}
-                        >
-                          <Text style={styles.suggestionText}>{loc.name}</Text>
-                        </TouchableOpacity>
-                      ))
-                    ) : (
-                      <Text style={styles.noResult}>No location found</Text>
-                    )}
+                  <ScrollView style={styles.suggestionScrollView} showsVerticalScrollIndicator nestedScrollEnabled keyboardShouldPersistTaps="handled" contentContainerStyle={styles.suggestionScrollContent}>
+                    {filteredLocations.length ? filteredLocations.map((loc) => (
+                      <TouchableOpacity key={loc.id} style={styles.suggestionItem} onPress={() => handleLocationSelect(loc)}>
+                        <Text style={styles.suggestionText}>{loc.name}</Text>
+                      </TouchableOpacity>
+                    )) : <Text style={styles.noResult}>No location found</Text>}
                   </ScrollView>
                 </View>
               </>
             )}
+          </View>
 
-            {/* TO */}
-            <Text style={[styles.smallLabel, { marginTop: 14 }]}>
-              To (Area, Street or Landmark)
-            </Text>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.locationRow}
-            >
+          {/* ── Pickup address ── */}
+          <View style={styles.addressBlock}>
+            <Text style={styles.smallLabel}>Pickup address <Text style={styles.optText}>(optional)</Text></Text>
+            <View style={styles.addressRow}>
+              <Ionicons name="home-outline" size={16} color="#64748B" />
+              <TextInput
+                value={pickupFullAddress}
+                onChangeText={(t) => { console.log('pickupFullAddress:', t); setPickupFullAddress(t); }}
+                placeholder="Building, street, area, landmark"
+                placeholderTextColor="#94A3B8"
+                style={styles.addressInput}
+                multiline
+              />
+            </View>
+          </View>
+
+          {/* ── Drop city ── */}
+          <View style={styles.locationBlock}>
+            <Text style={styles.smallLabel}>To (Drop city)</Text>
+            <View style={styles.locationRow}>
               <Ionicons name="flag-outline" size={18} color="#0F172A" />
               <TextInput
                 value={destination}
                 onChangeText={setDestination}
-                placeholder="Enter drop location"
+                placeholder="Enter drop city / area"
                 placeholderTextColor="#94A3B8"
                 style={styles.locationInput}
               />
-            </TouchableOpacity>
+              {destination ? (
+                <TouchableOpacity onPress={() => setDestination('')}>
+                  <Ionicons name="close-circle" size={24} color="#CBD5F5" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          </View>
+
+          {/* ── Drop address ── */}
+          <View style={styles.addressBlock}>
+            <Text style={styles.smallLabel}>Drop address <Text style={styles.optText}>(optional)</Text></Text>
+            <View style={styles.addressRow}>
+              <Ionicons name="business-outline" size={16} color="#64748B" />
+              <TextInput
+                value={dropFullAddress}
+                onChangeText={(t) => { console.log('dropFullAddress:', t); setDropFullAddress(t); }}
+                placeholder="Building, street, area, landmark"
+                placeholderTextColor="#94A3B8"
+                style={styles.addressInput}
+                multiline
+              />
+            </View>
           </View>
 
           {/* DATE ROW */}
@@ -679,7 +734,7 @@ export default function BusRentalScreen() {
             </TouchableOpacity>
 
             {/* TRIP END CARD */}
-            {tripType === 'outstation' ? (
+            {(busPurpose === 'corporate' || busPurpose === 'wedding' || tripType === 'outstation') ? (
               <TouchableOpacity
                 style={styles.dateCard}
                 onPress={() => {
@@ -964,6 +1019,37 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
 
+  purposeBar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14,
+  },
+  purposeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  purposeChipActive: {
+    backgroundColor: '#F0FDF4',
+    borderColor: GREEN,
+  },
+  purposeChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#64748B',
+  },
+  purposeChipTextActive: {
+    color: '#16A34A',
+    fontWeight: '700',
+  },
+
   tripTypeBar: {
     flexDirection: 'row',
     backgroundColor: '#EFF3F6',
@@ -1015,8 +1101,30 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(15,23,42,0.04)',
     padding: 12,
     marginBottom: 12,
-    position: 'relative', // Important for overlay positioning
+    position: 'relative',
   },
+  addressBlock: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(9,179,104,0.2)',
+    padding: 12,
+    marginBottom: 12,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 6,
+  },
+  addressInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#0F172A',
+    minHeight: 44,
+    paddingVertical: 4,
+  },
+  optText: { color: '#94A3B8', fontWeight: '400' },
   smallLabel: {
     fontSize: 13,
     color: '#94A3B8',

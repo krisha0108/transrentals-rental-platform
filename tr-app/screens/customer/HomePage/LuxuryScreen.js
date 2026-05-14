@@ -66,8 +66,8 @@ const LUXURY_TYPE_ID_MAP = {
 
 const PACKAGE_ID_MAP = {
   local: '1',
-  outstation: '2',
-  airport: '3',
+  outstation: '3',
+  airport: '4',
 };
 
 export default function LuxuryScreen() {
@@ -89,6 +89,9 @@ export default function LuxuryScreen() {
   // booking selections (keep slugs in UI)
   const [selectedLuxuryType, setSelectedLuxuryType] = useState('wedding'); // slug
   const [selectedPackage, setSelectedPackage] = useState('local');         // slug
+  const [vehicleCategory, setVehicleCategory] = useState(null);           // Premium Sedan | Luxury SUV | Vintage
+  const [needDecoration, setNeedDecoration] = useState(false);
+  const [pickupAddress, setPickupAddress] = useState('');
   const [otherDetails, setOtherDetails] = useState('');
   const [isPhoneModal, setIsPhoneModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -344,9 +347,14 @@ export default function LuxuryScreen() {
         destination,
         journey_datetime: startDate.toISOString(),
         return_datetime: returnDate?.toISOString() ?? null,
-        luxury_type: luxuryTypeId,   // ✅ numeric ID (same as old working screen)
-        package: packageId,          // ✅ numeric ID (same as old working screen)
-        total_passangers: 4,         // optional (kept from old screen)
+        luxury_type: luxuryTypeId,
+        package: packageId,
+        total_passangers: 4,
+        vehicleCategory: vehicleCategory || null,
+        vehicleCategoryName: vehicleCategory || null,
+        pickupAddress: pickupAddress.trim() || null,
+        needDecoration,
+        occasionType: selectedLuxuryType,
         other_info: (otherDetails || '').trim(),
       };
 
@@ -628,8 +636,61 @@ export default function LuxuryScreen() {
             })}
           </ScrollView>
 
+          {/* VEHICLE CATEGORY */}
+          <Text style={[styles.label, { marginTop: 16, marginBottom: 8 }]}>Vehicle category</Text>
+          <View style={styles.vehicleCatRow}>
+            {[
+              { id: 'Premium Sedan', icon: 'car-sport-outline', sub: 'Mercedes, BMW, Audi' },
+              { id: 'Luxury SUV',    icon: 'car-outline',        sub: 'Range Rover, GLC' },
+              { id: 'Vintage',       icon: 'speedometer-outline',sub: 'Rolls-Royce, Jag' },
+            ].map((c) => {
+              const active = vehicleCategory === c.id;
+              return (
+                <TouchableOpacity
+                  key={c.id}
+                  onPress={() => setVehicleCategory(active ? null : c.id)}
+                  activeOpacity={0.85}
+                  style={[styles.vehicleCatChip, active && styles.vehicleCatChipActive]}
+                >
+                  <Ionicons name={c.icon} size={16} color={active ? GREEN : '#64748B'} />
+                  <Text style={[styles.vehicleCatText, active && styles.vehicleCatTextActive]}>{c.id}</Text>
+                  <Text style={styles.vehicleCatSub}>{c.sub}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* PICKUP ADDRESS */}
+          <Text style={[styles.label, { marginTop: 16, marginBottom: 6 }]}>Pickup address</Text>
+          <View style={styles.addressRow}>
+            <Ionicons name="location-outline" size={16} color="#64748B" style={{ marginRight: 8 }} />
+            <TextInput
+              value={pickupAddress}
+              onChangeText={setPickupAddress}
+              placeholder="Building, street, landmark…"
+              placeholderTextColor="#9CA3AF"
+              style={{ flex: 1, fontSize: 13, color: '#0F172A' }}
+              multiline
+            />
+          </View>
+
+          {/* DECORATION TOGGLE */}
+          <TouchableOpacity
+            onPress={() => setNeedDecoration(!needDecoration)}
+            activeOpacity={0.8}
+            style={styles.decorRow}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.decorLabel}>Car decoration needed?</Text>
+              <Text style={styles.decorSub}>Flowers, ribbon, baraat décor, etc.</Text>
+            </View>
+            <View style={[styles.toggleTrack, needDecoration && styles.toggleTrackOn]}>
+              <View style={[styles.toggleThumb, needDecoration && styles.toggleThumbOn]} />
+            </View>
+          </TouchableOpacity>
+
           {/* OTHER DETAILS */}
-          <Text style={[styles.label, { marginTop: 16 }]}>Other details (car colour, décor…)</Text>
+          <Text style={[styles.label, { marginTop: 16 }]}>Other details (optional)</Text>
           <TextInput
             style={styles.textArea}
             value={otherDetails}
@@ -939,6 +1000,40 @@ const styles = StyleSheet.create({
   packageNameActive: { color: '#055F3B' },
   packageMeta: { fontSize: 11.5, color: '#94A3B8' },
   packageMetaActive: { color: '#0F172A' },
+
+  vehicleCatRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  vehicleCatChip: {
+    flex: 1, alignItems: 'center', paddingVertical: 10, paddingHorizontal: 6,
+    borderRadius: 12, backgroundColor: '#F1F5F9', borderWidth: 1.5, borderColor: 'transparent',
+  },
+  vehicleCatChipActive: { backgroundColor: '#F0FDF4', borderColor: GREEN },
+  vehicleCatText: { fontSize: 12, fontWeight: '600', color: '#475569', marginTop: 4, textAlign: 'center' },
+  vehicleCatTextActive: { color: '#16A34A' },
+  vehicleCatSub: { fontSize: 10, color: '#94A3B8', textAlign: 'center', marginTop: 2 },
+
+  addressRow: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    backgroundColor: '#F8FAFC', borderRadius: 10, borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.06)', padding: 10, minHeight: 50,
+  },
+
+  decorRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.05)', padding: 12, marginTop: 12,
+  },
+  decorLabel: { fontSize: 14, fontWeight: '600', color: '#0F172A' },
+  decorSub: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
+  toggleTrack: {
+    width: 42, height: 24, borderRadius: 12, backgroundColor: '#CBD5E1',
+    justifyContent: 'center', paddingHorizontal: 3,
+  },
+  toggleTrackOn: { backgroundColor: GREEN },
+  toggleThumb: {
+    width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff',
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 2, shadowOffset: { width: 0, height: 1 },
+  },
+  toggleThumbOn: { alignSelf: 'flex-end' },
 
   textArea: {
     backgroundColor: '#F8FAFC',
