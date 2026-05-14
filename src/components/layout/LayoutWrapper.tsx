@@ -37,7 +37,12 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     pathname?.startsWith(route)
   );
 
-  if (hideDefaultLayout) {
+  // Exception: public property pages under /agent/<slug>/property/<id> should
+  // still get the default header/footer (same shell as /wander/<id>). They
+  // are customer-facing detail pages, not part of the agency-profile shell.
+  const isAgentPropertyPage = /^\/agent\/[^/]+\/property\//.test(pathname || '');
+
+  if (hideDefaultLayout && !isAgentPropertyPage) {
     // Customer/admin pages - no default header/footer, no bottom nav
     // SmartShivi shown on customer pages only (not admin/vendor/manager)
     const showShivi = pathname?.startsWith('/customer/');

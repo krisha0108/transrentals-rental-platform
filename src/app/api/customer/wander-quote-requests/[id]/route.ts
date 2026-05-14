@@ -43,6 +43,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
           select: {
             id: true, slug: true, title: true, listingId: true, duration: true,
             images: true, shortDescription: true,
+            // Tour-detail tabs on the customer quote page render these.
+            // wander_listings has `cancellationNotes` (no `termsConditions`).
+            description: true, itinerary: true, cancellationNotes: true,
+            highlights: true, inclusions: true, exclusions: true,
             priceType: true, basePrice: true, priceTiers: true,
             requireAdvancePayment: true, advancePaymentType: true, advancePaymentValue: true,
             category: { select: { name: true, icon: true } },
@@ -62,6 +66,50 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     });
 
     if (request) {
+      // Normalize the vendor listing into the shape the customer page expects.
+      // wander_listings stores highlights / inclusions / exclusions as JSON
+      // strings, and itinerary as a JSON array of structured stops — the page
+      // renders tourHighlights / tourInclusions / tourExclusions arrays plus
+      // an HTML itinerary blob.
+      const L = request.listing;
+      if (L) {
+        const tourHighlights: string[] = safeJson(L.highlights, []) || [];
+        const tourInclusions: string[] = safeJson(L.inclusions, []) || [];
+        const tourExclusions: string[] = safeJson(L.exclusions, []) || [];
+
+        // Convert structured itinerary stops to HTML the customer view can render.
+        let itineraryHtml: string | null = null;
+        const stops = safeJson(L.itinerary, null);
+        if (Array.isArray(stops) && stops.length > 0) {
+          const parts: string[] = [];
+          stops.forEach((s: any, i: number) => {
+            const emoji = s?.emoji || '📍';
+            const time = (s?.time || '').toString().trim();
+            const title = (s?.title || `Stop ${i + 1}`).toString().trim();
+            const desc = (s?.description || '').toString().trim();
+            const acts = Array.isArray(s?.activities) ? s.activities.filter(Boolean) : [];
+            const header = `<p><strong>${emoji} ${title}${time ? ` <em>· ${time}</em>` : ''}</strong></p>`;
+            const descBlock = desc ? `<p>${desc}</p>` : '';
+            const actsBlock = acts.length
+              ? `<ul>${acts.map((a: string) => `<li>${a}</li>`).join('')}</ul>`
+              : '';
+            parts.push(`${header}${descBlock}${actsBlock}`);
+          });
+          itineraryHtml = parts.join('');
+        } else if (typeof L.itinerary === 'string' && L.itinerary.trim()) {
+          // Plain text or HTML stored directly — pass through.
+          itineraryHtml = L.itinerary;
+        }
+
+        request.listing = {
+          ...L,
+          itinerary: itineraryHtml,
+          termsConditions: L.cancellationNotes || null,
+          tourHighlights,
+          tourInclusions,
+          tourExclusions,
+        };
+      }
       return NextResponse.json({ ...request, source: 'VENDOR' });
     }
 

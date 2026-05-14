@@ -22,6 +22,7 @@ import {
   Lock,
   AlertCircle,
 } from 'lucide-react';
+import { sanitizeRichText } from '@/lib/utils/sanitize';
 
 interface Tour {
   id: string;
@@ -217,7 +218,10 @@ export default function TourPreviewPage({ params }: { params: { id: string } }) 
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">{tour.title}</h1>
         {tour.description && (
-          <p className="text-gray-700 mt-3 leading-relaxed">{tour.description}</p>
+          <div
+            className="text-gray-700 mt-3 leading-relaxed prose prose-sm max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-strong:text-gray-900 prose-a:text-emerald-700"
+            dangerouslySetInnerHTML={{ __html: sanitizeRichText(tour.description) }}
+          />
         )}
       </div>
 

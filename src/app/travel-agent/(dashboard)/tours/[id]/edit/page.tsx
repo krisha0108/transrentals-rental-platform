@@ -105,7 +105,7 @@ function tourToForm(tour: any) {
         timeSpent: stop.timeSpent || '',
         breakNote: stop.breakNote || '',
       }))
-    : [{ id: Date.now(), type: 'stop', emoji: '🚗', time: '8:30 AM', title: 'Pickup', description: '', activities: [''], timeSpent: '', breakNote: '' }];
+    : [{ id: Date.now(), type: 'stop', emoji: '📍', time: '', title: '', description: '', activities: [''], timeSpent: '', breakNote: '' }];
 
   const priceTiersRaw = parseJSON(tour.priceTiers, null);
   const priceTiers = Array.isArray(priceTiersRaw) && priceTiersRaw.length > 0

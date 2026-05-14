@@ -12,6 +12,21 @@ import {
 } from 'lucide-react';
 
 const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
+const TravelAgentChat = dynamic(
+  () => import('@/components/travel-agent/chat/TravelAgentChat'),
+  { ssr: false },
+);
+
+interface AgentConversation {
+  id: string;
+  subject: string | null;
+  status: string;
+  lastMessageAt: string | null;
+  unreadCount: number;
+  lastMessage: { id: string; content: string; senderType: string; createdAt: string } | null;
+  agency: { id: string; agencyName: string; logo: string | null; phone: string | null } | null;
+  createdAt: string;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,7 +108,11 @@ export default function CustomerChatPage() {
   const [showMobileSidebar, setShowMobileSidebar] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [chatMode, setChatMode] = useState<'vendor' | 'driver'>('vendor');
+  const [chatMode, setChatMode] = useState<'vendor' | 'driver' | 'agent'>('vendor');
+  const [agentConversations, setAgentConversations] = useState<AgentConversation[]>([]);
+  const [selectedAgentConvId, setSelectedAgentConvId] = useState<string | null>(null);
+  const [agentTotalUnread, setAgentTotalUnread] = useState(0);
+  const [isLoadingAgentConvs, setIsLoadingAgentConvs] = useState(false);
   const [driverConversations, setDriverConversations] = useState<any[]>([]);
   const [selectedDriverConvId, setSelectedDriverConvId] = useState<string | null>(null);
   const [driverMessages, setDriverMessages] = useState<any[]>([]);
@@ -214,6 +233,24 @@ export default function CustomerChatPage() {
     } catch {}
     setIsLoadingDriverConvs(false);
   }, [customer]);
+
+  // ── Travel-agent chats: fetch the customer's conversations by phone ──
+  const fetchAgentConversations = useCallback(async () => {
+    if (!customer?.phone) { setAgentConversations([]); setAgentTotalUnread(0); return; }
+    setIsLoadingAgentConvs(true);
+    try {
+      const res = await fetch(
+        `/api/travel-agent-chat/conversations?phone=${encodeURIComponent(customer.phone)}`,
+      );
+      const data = await res.json();
+      if (data.success) {
+        const convs: AgentConversation[] = data.conversations || [];
+        setAgentConversations(convs);
+        setAgentTotalUnread(convs.reduce((s, c) => s + (c.unreadCount || 0), 0));
+      }
+    } catch {}
+    setIsLoadingAgentConvs(false);
+  }, [customer?.phone]);
 
   const fetchDriverMessages = useCallback(async (since?: string | null) => {
     if (!selectedDriverConvId) return;
@@ -382,6 +419,12 @@ export default function CustomerChatPage() {
       setShowMobileSidebar(false);
       fetchDriverConversations();
       window.history.replaceState({}, '', '/customer/chat');
+    } else if (mode === 'agent') {
+      setChatMode('agent');
+      setSelectedAgentConvId(convId);
+      setShowMobileSidebar(false);
+      fetchAgentConversations();
+      window.history.replaceState({}, '', '/customer/chat');
     } else if (mode === 'vendor') {
       setChatMode('vendor');
       setShowMobileSidebar(false);
@@ -425,6 +468,14 @@ export default function CustomerChatPage() {
   useEffect(() => {
     if (customer && chatMode === 'driver') fetchDriverConversations();
   }, [customer, chatMode, fetchDriverConversations]);
+
+  // ── Fetch agent conversations + refresh every 15s while on the tab ──
+  useEffect(() => {
+    if (!customer?.phone || chatMode !== 'agent') return;
+    fetchAgentConversations();
+    const t = setInterval(fetchAgentConversations, 15000);
+    return () => clearInterval(t);
+  }, [customer?.phone, chatMode, fetchAgentConversations]);
 
   // ── Driver messages polling ──
   useEffect(() => {
@@ -572,26 +623,33 @@ export default function CustomerChatPage() {
                 <p className="text-[11px] text-gray-400 mt-0.5">{customer?.name || 'Customer'}</p>
               </div>
               <div className="flex items-center gap-1.5">
-                {(chatMode === 'vendor' ? totalUnread : driverTotalUnread) > 0 && (
-                  <span className="bg-teal-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
-                    {chatMode === 'vendor' ? totalUnread : driverTotalUnread}
-                  </span>
-                )}
-                <button onClick={chatMode === 'vendor' ? fetchConversations : fetchDriverConversations} className="p-1.5 hover:bg-teal-50 rounded-lg transition-colors group">
+                {(() => {
+                  const u = chatMode === 'vendor' ? totalUnread : chatMode === 'driver' ? driverTotalUnread : agentTotalUnread;
+                  return u > 0 && (
+                    <span className="bg-teal-600 text-white text-xs font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">{u}</span>
+                  );
+                })()}
+                <button onClick={chatMode === 'vendor' ? fetchConversations : chatMode === 'driver' ? fetchDriverConversations : fetchAgentConversations} className="p-1.5 hover:bg-teal-50 rounded-lg transition-colors group">
                   <RefreshCw className="w-3.5 h-3.5 text-gray-400 group-hover:text-teal-600 transition-colors" />
                 </button>
               </div>
             </div>
             {/* Mode toggle */}
             <div className="flex gap-1 mb-2.5">
-              <button onClick={() => { setChatMode('vendor'); setSelectedDriverConvId(null); }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all ${chatMode === 'vendor' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-teal-50 hover:text-teal-700'}`}>
-                Vendor Chats
+              <button onClick={() => { setChatMode('vendor'); setSelectedDriverConvId(null); setSelectedAgentConvId(null); }}
+                className={`flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 ${chatMode === 'vendor' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-teal-50 hover:text-teal-700'}`}>
+                Vendor
+                {chatMode !== 'vendor' && totalUnread > 0 && <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{totalUnread}</span>}
               </button>
-              <button onClick={() => { setChatMode('driver'); setSelectedVendorGroup(null); setActiveConvId(null); fetchDriverConversations(); }}
-                className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1 ${chatMode === 'driver' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'}`}>
-                Driver Chats
-                {driverTotalUnread > 0 && <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{driverTotalUnread}</span>}
+              <button onClick={() => { setChatMode('driver'); setSelectedVendorGroup(null); setActiveConvId(null); setSelectedAgentConvId(null); fetchDriverConversations(); }}
+                className={`flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 ${chatMode === 'driver' ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'}`}>
+                Driver
+                {chatMode !== 'driver' && driverTotalUnread > 0 && <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{driverTotalUnread}</span>}
+              </button>
+              <button onClick={() => { setChatMode('agent'); setSelectedVendorGroup(null); setActiveConvId(null); setSelectedDriverConvId(null); fetchAgentConversations(); }}
+                className={`flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 ${chatMode === 'agent' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-indigo-50 hover:text-indigo-700'}`}>
+                Agent
+                {chatMode !== 'agent' && agentTotalUnread > 0 && <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{agentTotalUnread}</span>}
               </button>
             </div>
 
@@ -613,7 +671,66 @@ export default function CustomerChatPage() {
 
           {/* List */}
           <div className="flex-1 overflow-y-auto px-2 pt-1">
-            {chatMode === 'driver' ? (
+            {chatMode === 'agent' ? (
+              /* Travel-agent conversations list */
+              !customer?.phone ? (
+                <div className="text-center py-14 fade-in-up">
+                  <Building2 className="w-8 h-8 text-indigo-200 mx-auto mb-2" />
+                  <p className="text-xs text-gray-400 font-medium">Phone number missing</p>
+                  <p className="text-[11px] text-gray-300 mt-1">Agent chats are matched by phone</p>
+                </div>
+              ) : isLoadingAgentConvs ? (
+                <div className="p-1">{[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 p-2.5">
+                    <div className="w-10 h-10 shimmer-teal rounded-full flex-shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 shimmer-teal rounded w-24" />
+                      <div className="h-2 shimmer-teal rounded w-32" />
+                    </div>
+                  </div>
+                ))}</div>
+              ) : agentConversations.length === 0 ? (
+                <div className="text-center py-14 fade-in-up">
+                  <Building2 className="w-8 h-8 text-indigo-200 mx-auto mb-2" />
+                  <p className="text-xs text-gray-400 font-medium">No agent chats yet</p>
+                  <p className="text-[11px] text-gray-300 mt-1">Agents will reach out about your travel enquiries</p>
+                </div>
+              ) : (
+                <div className="pb-1 pt-1">
+                  {agentConversations.map((conv) => {
+                    const isActive = selectedAgentConvId === conv.id;
+                    const agencyName = conv.agency?.agencyName || 'Travel Agent';
+                    return (
+                      <button key={conv.id}
+                        onClick={() => setSelectedAgentConvId(conv.id)}
+                        className={`w-full p-2.5 text-left rounded-xl flex items-center gap-3 mb-0.5 transition-all ${isActive ? 'bg-indigo-50 border border-indigo-200/60' : 'hover:bg-indigo-50/40 border border-transparent'}`}>
+                        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0 overflow-hidden">
+                          {conv.agency?.logo
+                            ? <img src={conv.agency.logo} alt="" className="w-10 h-10 object-cover rounded-full" />
+                            : agencyName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-center gap-1">
+                            <span className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-600'}`}>{agencyName}</span>
+                            <span className="text-xs text-gray-400 flex-shrink-0">
+                              {conv.lastMessageAt ? new Date(conv.lastMessageAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : ''}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center mt-0.5">
+                            <p className="text-[13px] text-gray-400 truncate">
+                              {conv.lastMessage?.senderType === 'customer' && <span className="text-gray-300">You: </span>}
+                              {conv.lastMessage?.content || conv.subject || 'No messages'}
+                            </p>
+                            {conv.unreadCount > 0 && <span className="bg-indigo-600 text-white text-xs font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center ml-1">{conv.unreadCount}</span>}
+                          </div>
+                          {conv.subject && <p className="text-[10px] text-gray-300 mt-0.5 truncate">{conv.subject}</p>}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+            ) : chatMode === 'driver' ? (
               /* Driver conversations list */
               isLoadingDriverConvs ? (
                 <div className="p-1">{[...Array(4)].map((_, i) => (
@@ -733,8 +850,60 @@ export default function CustomerChatPage() {
         </div>
 
         {/* ══════ CHAT AREA ══════ */}
-        <div className={`flex-1 flex flex-col min-w-0 ${showMobileSidebar && !selectedVendorGroup && !selectedDriverConvId ? 'hidden lg:flex' : 'flex'}`}>
-          {chatMode === 'driver' && !selectedDriverConvId ? (
+        <div className={`flex-1 flex flex-col min-w-0 ${showMobileSidebar && !selectedVendorGroup && !selectedDriverConvId && !selectedAgentConvId ? 'hidden lg:flex' : 'flex'}`}>
+          {chatMode === 'agent' ? (
+            !selectedAgentConvId ? (
+              <div className="flex-1 flex items-center justify-center chat-bg">
+                <div className="text-center bg-white/80 backdrop-blur-md rounded-3xl px-10 py-8 shadow-sm fade-in-up">
+                  <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <Building2 className="w-7 h-7 text-indigo-500" />
+                  </div>
+                  <h2 className="text-base font-bold text-gray-600 mb-0.5">Select an agent conversation</h2>
+                  <p className="text-sm text-gray-400">Choose a travel agent to view messages</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col min-h-0 p-3 bg-white">
+                {(() => {
+                  const conv = agentConversations.find((c) => c.id === selectedAgentConvId);
+                  const agencyName = conv?.agency?.agencyName || 'Travel Agent';
+                  return (
+                    <>
+                      <div className="flex items-center gap-3 px-2 pb-3 border-b border-gray-100 mb-2 flex-shrink-0">
+                        <button onClick={() => { setSelectedAgentConvId(null); setShowMobileSidebar(true); }} className="p-1.5 hover:bg-indigo-50 rounded-lg lg:hidden transition-colors">
+                          <ArrowLeft className="w-4 h-4 text-gray-500" />
+                        </button>
+                        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-base flex-shrink-0">
+                          {agencyName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h2 className="text-sm font-bold text-gray-900 truncate">{agencyName}</h2>
+                          <p className="text-xs text-gray-400 truncate">{conv?.subject || 'Travel enquiry'}</p>
+                        </div>
+                        {conv?.agency?.phone && (
+                          <a href={`tel:${conv.agency.phone}`} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors text-indigo-700 text-xs font-semibold">
+                            <Phone className="w-3.5 h-3.5" />Call
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex-1 min-h-0">
+                        <TravelAgentChat
+                          key={selectedAgentConvId}
+                          conversationId={selectedAgentConvId}
+                          senderType="customer"
+                          senderName={customer?.name || 'Customer'}
+                          customerPhone={customer?.phone || ''}
+                          hideHeader
+                          heightClass="flex-1 min-h-0"
+                          className="h-full"
+                        />
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )
+          ) : chatMode === 'driver' && !selectedDriverConvId ? (
             <div className="flex-1 flex items-center justify-center chat-bg">
               <div className="text-center bg-white/80 backdrop-blur-md rounded-3xl px-10 py-8 shadow-sm fade-in-up">
                 <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-3">

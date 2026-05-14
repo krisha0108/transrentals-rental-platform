@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
+import { notifyTravelAgent } from '@/lib/notifications/travel-agent-notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,6 +71,29 @@ export async function PATCH(
       data: updateData,
     });
 
+    // Notify agent about the verify/reject decision (skip the auto-approve
+    // notification for now — that's emitted below if auto-promotion fires).
+    const docLabel = String(doc.documentType || 'Document').replace(/_/g, ' ').toLowerCase();
+    if (action === 'VERIFY') {
+      await notifyTravelAgent(travelAgentId, {
+        type: 'SYSTEM',
+        title: 'Document verified ✅',
+        body: `Your ${docLabel} was verified by our team.`,
+        link: '/travel-agent/documents',
+        metadata: { documentId, documentType: doc.documentType, action: 'VERIFY' },
+      });
+    } else if (action === 'REJECT') {
+      await notifyTravelAgent(travelAgentId, {
+        type: 'SYSTEM',
+        title: 'Document rejected',
+        body: rejectionReason
+          ? `Your ${docLabel} was rejected. Reason: ${rejectionReason}`
+          : `Your ${docLabel} was rejected. Please re-upload.`,
+        link: '/travel-agent/documents',
+        metadata: { documentId, documentType: doc.documentType, action: 'REJECT', rejectionReason },
+      });
+    }
+
     // Auto-promote agent status when all required KYC docs are VERIFIED
     // (mirrors vendor's 3-required-docs gating).
     const REQUIRED_TYPES = ['GST_CERTIFICATE', 'PAN_CARD', 'ADDRESS_PROOF'] as const;
@@ -108,6 +132,13 @@ export async function PATCH(
           logger.info('Travel agent auto-approved after all required docs verified', {
             travelAgentId,
             verifiedById: session.user.id,
+          });
+          await notifyTravelAgent(travelAgentId, {
+            type: 'SYSTEM',
+            title: 'Account approved 🎉',
+            body: 'All required documents verified — your account is now active. You can start posting tours and accepting leads.',
+            link: '/travel-agent/dashboard',
+            metadata: { autoApproved: true },
           });
         }
       }
