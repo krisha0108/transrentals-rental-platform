@@ -406,7 +406,7 @@ export default function ChatListScreen() {
     return (
       <TouchableOpacity
         style={styles.vendorCard}
-        onPress={() => navigation.navigate('DriverChat', { conversationId: item.id, driverName })}
+        onPress={() => navigation.navigate('DriverChat', { conversationId: item.id, driverName, bookingId: item.bookingId || null, bookingType: item.bookingType || 'chauffeur' })}
         activeOpacity={0.7}
       >
         <View style={[styles.vendorAvatar, { backgroundColor: '#16A34A18' }]}>

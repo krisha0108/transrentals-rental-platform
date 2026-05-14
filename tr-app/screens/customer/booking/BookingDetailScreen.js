@@ -415,6 +415,9 @@ const BookingDetails = () => {
         navigation.navigate('DriverChat', {
           conversationId: result.conversation.id,
           driverName: booking.driverName || 'Driver',
+          bookingId: booking.id,
+          bookingNumber: booking.booking_id || booking.bookingNumber || null,
+          bookingType: booking.service_type || 'car',
         });
       }
     } catch (e) {

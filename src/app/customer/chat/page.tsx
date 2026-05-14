@@ -231,6 +231,14 @@ export default function CustomerChatPage() {
           });
         } else {
           setDriverMessages(newMsgs);
+          // Backfill bookingNumber into driverConversations if not already present
+          if (data.conversation?.bookingNumber) {
+            setDriverConversations(prev => prev.map(c =>
+              c.id === selectedDriverConvId && !c.bookingNumber
+                ? { ...c, bookingNumber: data.conversation.bookingNumber }
+                : c
+            ));
+          }
         }
         if (newMsgs.length > 0) setDriverLastSince(newMsgs[newMsgs.length - 1].createdAt);
       }
@@ -644,7 +652,7 @@ export default function CustomerChatPage() {
                             <p className="text-[13px] text-gray-400 truncate">{conv.lastMessage?.content || 'No messages'}</p>
                             {conv.unreadCount > 0 && <span className="bg-emerald-600 text-white text-xs font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center ml-1">{conv.unreadCount}</span>}
                           </div>
-                          <p className="text-[10px] text-gray-300 mt-0.5">Chauffeur booking</p>
+                          <p className="text-[10px] text-gray-300 mt-0.5">{conv.bookingNumber ? `#${conv.bookingNumber}` : 'Chauffeur booking'}</p>
                         </div>
                       </button>
                     );
@@ -743,6 +751,7 @@ export default function CustomerChatPage() {
               {(() => {
                 const conv = driverConversations.find(c => c.id === selectedDriverConvId);
                 const driverName = conv?.driver?.name || 'Driver';
+                const bNum = conv?.bookingNumber || null;
                 return (
                   <div className="bg-white px-5 py-3 flex items-center justify-between border-b border-gray-200 flex-shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                     <div className="flex items-center gap-3">
@@ -754,14 +763,26 @@ export default function CustomerChatPage() {
                       </div>
                       <div>
                         <h2 className="text-sm font-bold text-gray-900">{driverName}</h2>
-                        <p className="text-xs text-gray-400">Driver • Chauffeur booking</p>
+                        {bNum ? (
+                          <p className="text-xs text-gray-400 mt-0.5">Booking <span className="text-gray-600 font-semibold">#{bNum}</span></p>
+                        ) : (
+                          <p className="text-xs text-gray-400">Driver • Chauffeur booking</p>
+                        )}
                       </div>
                     </div>
-                    {conv?.driver?.phone && (
-                      <a href={`tel:${conv.driver.phone}`} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors text-emerald-700 text-xs font-semibold">
-                        <Phone className="w-3.5 h-3.5" />Call
-                      </a>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {bNum && (
+                        <Link href={conv?.bookingType === 'car' ? `/customer/car-bookings/${bNum}` : `/customer/car-rental-bookings/${bNum}`}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors text-emerald-700 text-xs font-semibold">
+                          <Eye className="w-3.5 h-3.5" />View
+                        </Link>
+                      )}
+                      {conv?.driver?.phone && (
+                        <a href={`tel:${conv.driver.phone}`} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors text-emerald-700 text-xs font-semibold">
+                          <Phone className="w-3.5 h-3.5" />Call
+                        </a>
+                      )}
+                    </div>
                   </div>
                 );
               })()}
