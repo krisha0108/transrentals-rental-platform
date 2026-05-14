@@ -32,6 +32,7 @@ import {
   MessageSquare,
   ShieldCheck,
   CalendarDays,
+  Smile,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut, useSession } from 'next-auth/react';
@@ -61,7 +62,7 @@ const approvedNavigationItems: NavItem[] = [
     icon: Target,
     children: [
       { name: 'All Leads', href: '/travel-agent/leads', icon: Users },
-      { name: 'Tour Quote Requests', href: '/travel-agent/leads?source=WEBSITE', icon: DollarSign },
+      { name: 'Tour Quote Requests', href: '/travel-agent/tour-quote-requests', icon: DollarSign },
       { name: 'Add Lead', href: '/travel-agent/leads/add', icon: Plus },
       { name: 'Pipeline', href: '/travel-agent/pipeline', icon: Inbox },
       { name: 'Follow-Ups', href: '/travel-agent/follow-ups', icon: Calendar },
@@ -108,6 +109,17 @@ const approvedNavigationItems: NavItem[] = [
   },
   { name: 'Payments', href: '/travel-agent/payments', icon: Wallet },
   { name: 'Earnings', href: '/travel-agent/earnings', icon: DollarSign },
+  {
+    name: 'Social Network',
+    href: '/travel-agent/social',
+    icon: Smile,
+    children: [
+      { name: 'Feed',        href: '/travel-agent/social',            icon: LayoutDashboard },
+      { name: 'Create Post', href: '/travel-agent/social/create',     icon: Plus            },
+      { name: 'My Profile',  href: '/travel-agent/social/profile/me', icon: User            },
+      { name: 'Messages',    href: '/travel-agent/social/messages',   icon: MessageSquare   },
+    ],
+  },
   {
     name: 'Notifications',
     href: '/travel-agent/notifications',
@@ -167,6 +179,17 @@ const pendingNavigationItems: NavItem[] = [
     children: [
       { name: 'All Bookings', href: '/travel-agent/bookings', icon: BookOpen },
       { name: 'Add Booking', href: '/travel-agent/bookings/add', icon: Plus },
+    ],
+  },
+  {
+    name: 'Social Network',
+    href: '/travel-agent/social',
+    icon: Smile,
+    children: [
+      { name: 'Feed',        href: '/travel-agent/social',            icon: LayoutDashboard },
+      { name: 'Create Post', href: '/travel-agent/social/create',     icon: Plus            },
+      { name: 'My Profile',  href: '/travel-agent/social/profile/me', icon: User            },
+      { name: 'Messages',    href: '/travel-agent/social/messages',   icon: MessageSquare   },
     ],
   },
   { name: 'Notifications', href: '/travel-agent/notifications', icon: Bell },

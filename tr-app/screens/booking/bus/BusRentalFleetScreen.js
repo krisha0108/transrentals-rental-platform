@@ -149,6 +149,8 @@ export default function BusRentalFleetScreen() {
   const [toResults, setToResults] = useState([]);
   const [searchingFrom, setSearchingFrom] = useState(false);
   const [searchingTo, setSearchingTo] = useState(false);
+  const [pickupFullAddress, setPickupFullAddress] = useState('');
+  const [dropFullAddress, setDropFullAddress] = useState('');
 
   // Submission
   const [customer, setCustomer] = useState(null);
@@ -427,11 +429,11 @@ export default function BusRentalFleetScreen() {
         vehicleCategoryName: 'Standard Bus',
         passengers: parseInt(passengers),
         pickupCity: (fromLocation?.name || fromSearch || '').trim() || null,
-        pickupAddress: (fromLocation?.name || fromSearch || '').trim() || null,
+        pickupAddress: pickupFullAddress.trim() || (fromLocation?.name || fromSearch || '').trim() || null,
         pickupDate: pickupDate.toISOString().split('T')[0],
         pickupTime,
         dropCity: (toLocation?.name || toSearch || '').trim() || null,
-        dropAddress: (toLocation?.name || toSearch || '').trim() || null,
+        dropAddress: dropFullAddress.trim() || (toLocation?.name || toSearch || '').trim() || null,
         returnDate: returnDate ? returnDate.toISOString().split('T')[0] : null,
         returnTime: returnTime || null,
         tripDays,
@@ -663,6 +665,24 @@ export default function BusRentalFleetScreen() {
             </Text>
           </View>
         )}
+
+        {(fromLocation || fromSearch.trim().length > 0) && (
+          <View style={styles.addressInputBlock}>
+            <Text style={styles.addressInputLabel}>Pickup address (optional)</Text>
+            <View style={[styles.searchBox, { borderColor: TEAL, marginTop: 0 }]}>
+              <View style={[styles.searchIconCircle, { backgroundColor: TEAL_LIGHT }]}>
+                <Ionicons name="home-outline" size={wp('4.5%')} color={TEAL} />
+              </View>
+              <TextInput
+                style={styles.searchInput}
+                value={pickupFullAddress}
+                onChangeText={setPickupFullAddress}
+                placeholder="Street, area, landmark..."
+                placeholderTextColor={TEXT_MUTED}
+              />
+            </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -747,6 +767,24 @@ export default function BusRentalFleetScreen() {
             <Text style={styles.manualEntryText}>
               You can continue with "{toSearch}" as your destination
             </Text>
+          </View>
+        )}
+
+        {(toLocation || toSearch.trim().length > 0) && (
+          <View style={styles.addressInputBlock}>
+            <Text style={styles.addressInputLabel}>Drop address (optional)</Text>
+            <View style={[styles.searchBox, { borderColor: '#EF4444', marginTop: 0 }]}>
+              <View style={[styles.searchIconCircle, { backgroundColor: '#FEE2E2' }]}>
+                <Ionicons name="flag-outline" size={wp('4.5%')} color="#EF4444" />
+              </View>
+              <TextInput
+                style={styles.searchInput}
+                value={dropFullAddress}
+                onChangeText={setDropFullAddress}
+                placeholder="Street, area, landmark..."
+                placeholderTextColor={TEXT_MUTED}
+              />
+            </View>
           </View>
         )}
       </View>
@@ -2429,5 +2467,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: wp('4%'),
     fontWeight: '700',
+  },
+
+  addressInputBlock: {
+    marginTop: hp('1.5%'),
+  },
+  addressInputLabel: {
+    fontSize: wp('3.5%'),
+    fontWeight: '600',
+    color: TEXT_SECONDARY,
+    marginBottom: hp('0.8%'),
+    paddingLeft: wp('1%'),
   },
 });

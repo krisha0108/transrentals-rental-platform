@@ -8,6 +8,7 @@ import {
   Loader2, ArrowRight, Sparkles, Globe, Heart, Shield,
   SlidersHorizontal, X, TrendingUp, ArrowUpDown, ChevronRight, Layers, CalendarDays,
 } from 'lucide-react';
+import { PropertiesStrip } from '@/components/wander/PropertiesStrip';
 
 /* ─── constants ────────────────────────────────────── */
 const FALLBACK_CATEGORIES = [
@@ -1181,6 +1182,11 @@ export default function WanderHomePage() {
           )}
         </div>
       </section>
+
+      {/* ══════════════════════════════════════════════════
+          TRAVEL-AGENT PROPERTIES — Curated stays strip
+      ══════════════════════════════════════════════════ */}
+      <PropertiesStrip />
 
       {/* ══════════════════════════════════════════════════
           HOW IT WORKS

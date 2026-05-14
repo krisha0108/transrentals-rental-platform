@@ -41,7 +41,9 @@ const LocalScreen = () => {
   const [step, setStep] = useState(0);
   const [pickupLocation, setPickupLocation] = useState('');  // Pickup location text
   const [pickupLocationId, setPickupLocationId] = useState(null);  // Pickup location ID
+  const [pickupFullAddress, setPickupFullAddress] = useState('');
   const [destination, setDestination] = useState('');
+  const [dropFullAddress, setDropFullAddress] = useState('');
   // const [selectedVehicleTyes, setvehicleTypes] = useState(null);
   // const [selectedAirportType, setairportBookingType] = useState(null);
   const [startDate, setStartDate] = useState(new Date()); // Date object for Start Date
@@ -201,11 +203,11 @@ const handleBookingSubmit = async () => {
       busType: 'standard',
       passengerCount: parseInt(totalPassengers) || 1,
       pickupCity: pickupLocation.trim(),
-      pickupAddress: pickupLocation.trim(),
+      pickupAddress: pickupFullAddress.trim() || pickupLocation.trim(),
       pickupDate: startDate.toISOString().split('T')[0],
       pickupTime: startDate.toTimeString().split(' ')[0].slice(0, 5),
       dropCity: destination.trim(),
-      dropAddress: destination.trim(),
+      dropAddress: dropFullAddress.trim() || destination.trim(),
       returnDate: returnDate.toISOString().split('T')[0],
       returnTime: returnDate.toTimeString().split(' ')[0].slice(0, 5),
       requirements: otherDetails,
@@ -280,6 +282,17 @@ const handleBookingSubmit = async () => {
                 );
               })}
             </View>
+            {pickupLocation ? (
+              <View style={styles.addressBlock}>
+                <Text style={styles.addressLabel}>Pickup address (optional)</Text>
+                <TextInput
+                  style={styles.addressInput}
+                  placeholder="Street, area, landmark..."
+                  value={pickupFullAddress}
+                  onChangeText={setPickupFullAddress}
+                />
+              </View>
+            ) : null}
             <TouchableOpacity style={styles.nextBtn} onPress={nextStep}>
               <Text style={styles.nextBtnText}>Next</Text>
             </TouchableOpacity>
@@ -295,10 +308,19 @@ const handleBookingSubmit = async () => {
               <Text style={styles.label}>Your Destination Location</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter destination"
+                placeholder="Enter destination city"
                 value={destination}
                 onChangeText={setDestination}
               />
+              <View style={styles.addressBlock}>
+                <Text style={styles.addressLabel}>Drop address (optional)</Text>
+                <TextInput
+                  style={styles.addressInput}
+                  placeholder="Street, area, landmark..."
+                  value={dropFullAddress}
+                  onChangeText={setDropFullAddress}
+                />
+              </View>
               <View style={styles.rowButtons}>
                 <TouchableOpacity style={styles.navBtn} onPress={prevStep}>
                   <Text style={styles.nextBtnText}>{'<-'}</Text>
@@ -558,6 +580,24 @@ const handleBookingSubmit = async () => {
     },
     disabledBtn: {
       backgroundColor: '#ccc',
+    },
+    addressBlock: {
+      marginBottom: 4,
+    },
+    addressLabel: {
+      fontSize: 14,
+      color: '#555',
+      fontWeight: '500',
+      marginBottom: 6,
+    },
+    addressInput: {
+      borderWidth: 1,
+      borderColor: '#09B368',
+      borderRadius: 10,
+      padding: 12,
+      fontSize: 15,
+      backgroundColor: '#F0FDF4',
+      marginBottom: 20,
     },
   });
   export default LocalScreen;

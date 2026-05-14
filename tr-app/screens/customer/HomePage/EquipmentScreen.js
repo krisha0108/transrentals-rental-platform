@@ -105,6 +105,9 @@ export default function EquipmentScreen() {
   const [startDate, setStartDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false); // iOS only
   const [equipmentCount, setEquipmentCount] = useState('');
+  const [siteAddress, setSiteAddress] = useState('');
+  const [needOperator, setNeedOperator] = useState(false);
+  const [needDelivery, setNeedDelivery] = useState(true);
   const [otherDetails, setOtherDetails] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -324,10 +327,10 @@ export default function EquipmentScreen() {
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
         deliveryCity: pickupLocation,
-        deliveryAddress: pickupLocation,
+        deliveryAddress: siteAddress.trim() || pickupLocation,
         siteType: 'construction',
-        needOperator: false,
-        needDelivery: true,
+        needOperator,
+        needDelivery,
         needInstallation: false,
         requirements: otherDetails?.trim() || null,
         budgetMin: null,
@@ -508,6 +511,44 @@ export default function EquipmentScreen() {
             </ScrollView>
           </View>
 
+          {/* SITE ADDRESS */}
+          <View style={{ marginBottom: hp('1.5%') }}>
+            <Text style={styles.label}>Site address <Text style={{ fontSize: wp('3%'), fontWeight: '400', color: TEXT_MUTED }}>(optional)</Text></Text>
+            <View style={[styles.inputPlain, { flexDirection: 'row', alignItems: 'center', minHeight: hp('6.5%'), paddingHorizontal: wp('3%'), paddingVertical: hp('0.8%') }]}>
+              <Ionicons name="location-outline" size={wp('4%')} color={TEXT_MUTED} style={{ marginRight: wp('2%') }} />
+              <TextInput
+                value={siteAddress}
+                onChangeText={setSiteAddress}
+                placeholder="Building, street, landmark, site name..."
+                placeholderTextColor={TEXT_MUTED}
+                style={{ flex: 1, fontSize: wp('3.5%'), color: TEXT_PRIMARY }}
+                multiline
+              />
+            </View>
+          </View>
+
+          {/* OPERATOR & DELIVERY TOGGLES */}
+          <View style={styles.toggleCard}>
+            <TouchableOpacity onPress={() => setNeedOperator(!needOperator)} activeOpacity={0.8} style={styles.toggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.toggleLabel}>Need operator with equipment?</Text>
+                <Text style={styles.toggleSub}>Skilled operator to run the machine</Text>
+              </View>
+              <View style={[styles.toggleTrack, needOperator && styles.toggleTrackOn]}>
+                <View style={[styles.toggleThumb, needOperator && styles.toggleThumbOn]} />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setNeedDelivery(!needDelivery)} activeOpacity={0.8} style={[styles.toggleRow, { borderBottomWidth: 0 }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.toggleLabel}>Need delivery to site?</Text>
+                <Text style={styles.toggleSub}>Equipment transported to your location</Text>
+              </View>
+              <View style={[styles.toggleTrack, needDelivery && styles.toggleTrackOn]}>
+                <View style={[styles.toggleThumb, needDelivery && styles.toggleThumbOn]} />
+              </View>
+            </TouchableOpacity>
+          </View>
+
           {/* DATE (platform safe) */}
           <TouchableOpacity
             style={styles.dateCard}
@@ -578,8 +619,7 @@ export default function EquipmentScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: wp('2.5%'), paddingVertical: hp('0.5%') }}
-              style={{ marginHorizontal: wp('-4%'), paddingHorizontal: wp('4%') }}
+              contentContainerStyle={{ gap: wp('2.5%'), paddingVertical: hp('0.5%'), paddingRight: wp('4%') }}
             >
               {(equipmentTypes.length ? equipmentTypes : localEquipFallback).map(
                 (eq) => {
@@ -1158,7 +1198,7 @@ const styles = StyleSheet.create({
     fontSize: wp('3.4%'),
     color: TEXT_PRIMARY,
     fontWeight: '500',
-    maxWidth: wp('30%'),
+    maxWidth: wp('40%'),
   },
   equipChipTextActive: {
     color: TEAL_DEEP,
@@ -1192,6 +1232,35 @@ const styles = StyleSheet.create({
     color: TEAL_DEEP,
     fontWeight: '700',
   },
+
+  /* ── TOGGLE CARD ── */
+  toggleCard: {
+    backgroundColor: '#F8FAFB',
+    borderRadius: wp('4%'),
+    borderWidth: 1,
+    borderColor: 'rgba(16,185,129,0.08)',
+    paddingHorizontal: wp('3.5%'),
+    marginBottom: hp('1.5%'),
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: hp('1.2%'),
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(16,185,129,0.1)',
+  },
+  toggleLabel: { fontSize: wp('3.5%'), fontWeight: '600', color: TEXT_PRIMARY },
+  toggleSub: { fontSize: wp('2.9%'), color: TEXT_MUTED, marginTop: 2 },
+  toggleTrack: {
+    width: wp('11%'), height: wp('6%'), borderRadius: wp('3%'),
+    backgroundColor: '#D1D5DB', justifyContent: 'center', paddingHorizontal: wp('0.8%'),
+  },
+  toggleTrackOn: { backgroundColor: TEAL },
+  toggleThumb: {
+    width: wp('4.5%'), height: wp('4.5%'), borderRadius: wp('2.25%'),
+    backgroundColor: '#FFFFFF', alignSelf: 'flex-start',
+  },
+  toggleThumbOn: { alignSelf: 'flex-end' },
 
   /* ── INPUTS ── */
   inputPlain: {

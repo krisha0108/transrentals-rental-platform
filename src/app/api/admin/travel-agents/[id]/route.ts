@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
+import { notifyTravelAgent } from '@/lib/notifications/travel-agent-notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -147,6 +148,26 @@ export async function PUT(
       where: { id },
       data: updateData,
     });
+
+    // Notify the agent about the account status change
+    const statusNotice: Record<string, { title: string; body: string; link: string }> = {
+      APPROVE:            { title: 'Account approved 🎉',     body: 'Your travel agent account has been approved. You can now start posting tours and accepting leads.',                          link: '/travel-agent/dashboard' },
+      REJECT:             { title: 'Account rejected',         body: rejectionReason ? `Reason: ${rejectionReason}` : 'Your account application was rejected. Please contact support.',          link: '/travel-agent/profile'   },
+      SUSPEND:            { title: 'Account suspended',        body: 'Your travel agent account has been suspended. Please contact support for details.',                                        link: '/travel-agent/profile'   },
+      UNSUSPEND:          { title: 'Account reactivated',      body: 'Your account has been reactivated and is back to APPROVED status.',                                                       link: '/travel-agent/dashboard' },
+      BLOCK:              { title: 'Account blocked',          body: 'Your travel agent account has been blocked. Please contact support immediately.',                                          link: '/travel-agent/profile'   },
+      MARK_UNDER_REVIEW:  { title: 'Account under review',     body: "Your account is being reviewed. We'll notify you once verification is complete.",                                          link: '/travel-agent/profile'   },
+    };
+    const notice = statusNotice[action];
+    if (notice) {
+      await notifyTravelAgent(id, {
+        type: 'SYSTEM',
+        title: notice.title,
+        body: notice.body,
+        link: notice.link,
+        metadata: { action, newStatus: updateData.status, rejectionReason: rejectionReason || null },
+      });
+    }
 
     const { password, ...safe } = updated;
     return NextResponse.json(safe);

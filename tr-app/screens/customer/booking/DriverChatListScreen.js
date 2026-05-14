@@ -51,7 +51,7 @@ export default function DriverChatListScreen() {
     return (
       <TouchableOpacity
         style={styles.item}
-        onPress={() => navigation.navigate('DriverChat', { conversationId: item.id, driverName })}
+        onPress={() => navigation.navigate('DriverChat', { conversationId: item.id, driverName, bookingId: item.bookingId || null, bookingType: item.bookingType || 'chauffeur' })}
         activeOpacity={0.8}
       >
         <View style={styles.avatar}>

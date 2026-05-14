@@ -41,8 +41,10 @@ function timeAgo(dateStr: string) {
 function groupSOSByVendor(posts: any[]): VendorStoryGroup[] {
   const map = new Map<string, VendorStoryGroup>();
   for (const p of posts) {
-    // Use vendorId (direct field on the post row) as the key — more reliable than p.vendor.id
-    const key: string = p.vendorId ?? p.vendor?.id;
+    // Cross-type author: vendorId OR agentId identifies the author. Falls back
+    // to whatever ID the response carried (vendor field is synthetic for agent
+    // posts and contains the agent's id in that case).
+    const key: string = p.vendorId ?? p.agentId ?? p.vendor?.id ?? p.agent?.id;
     if (!map.has(key)) map.set(key, { vendor: p.vendor, posts: [] });
     map.get(key)!.posts.push(p);
   }
@@ -177,13 +179,23 @@ function StoryViewer({ groups, initialVendorIdx, onClose }: {
             ))}
           </div>
           <div className="flex items-center gap-3 px-4 pt-3 pb-2 relative z-20">
-            <Link href={`/vendor/social/profile/${currentPost.vendor.id}`} onClick={onClose}>
-              <div className="p-[2px] rounded-full bg-gradient-to-br from-red-500 to-orange-400">
-                <div className="p-[2px] bg-gray-900 rounded-full">
-                  <VendorAvatar vendor={currentPost.vendor} size={40} />
+            {(currentPost as any).author?.type === 'agent' ? (
+              <div>
+                <div className="p-[2px] rounded-full bg-gradient-to-br from-red-500 to-orange-400">
+                  <div className="p-[2px] bg-gray-900 rounded-full">
+                    <VendorAvatar vendor={currentPost.vendor} size={40} />
+                  </div>
                 </div>
               </div>
-            </Link>
+            ) : (
+              <Link href={`/vendor/social/profile/${currentPost.vendor.id}`} onClick={onClose}>
+                <div className="p-[2px] rounded-full bg-gradient-to-br from-red-500 to-orange-400">
+                  <div className="p-[2px] bg-gray-900 rounded-full">
+                    <VendorAvatar vendor={currentPost.vendor} size={40} />
+                  </div>
+                </div>
+              </Link>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-white font-semibold text-sm leading-tight truncate">{currentPost.vendor.businessName}</p>
               <div className="flex items-center gap-2 mt-0.5">
@@ -215,7 +227,11 @@ function StoryViewer({ groups, initialVendorIdx, onClose }: {
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors">
               <Share2 className="h-4 w-4" /> WhatsApp
             </button>
-            <Link href={`/vendor/social/profile/${currentPost.vendor.id}`} onClick={onClose}
+            <Link
+              href={(currentPost as any).author?.type === 'agent'
+                ? `/vendor/social/profile/agent/${currentPost.vendor.id}`
+                : `/vendor/social/profile/${currentPost.vendor.id}`}
+              onClick={onClose}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition-colors border border-white/20">
               <Building2 className="h-4 w-4" /> Profile
             </Link>
@@ -567,7 +583,11 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
   const [followLoading, setFollowLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const isOwner = post.vendor.id === currentVendorId;
+  // Cross-type posts (Phase 1): agent-authored posts appear here too. Follow
+  // and profile aren't cross-type yet — disable those affordances when the
+  // author is an agent so we don't trip FK violations or 404s.
+  const isAgentAuthor = (post as any).author?.type === 'agent';
+  const isOwner = !isAgentAuthor && post.vendor.id === currentVendorId;
   const isLongContent = post.content.length > 150;
 
   useEffect(() => { setFollowedByMe(post.followedByMe); }, [post.followedByMe]);
@@ -654,19 +674,25 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
 
       {/* ── WHITE CONTENT AREA ── */}
       <div className="bg-white">
-        {/* Vendor Info */}
+        {/* Vendor / Agent Info */}
         <div className="px-5 pt-4 pb-2 flex items-center gap-3">
-          <Link href={`/vendor/social/profile/${post.vendor.id}`} className="flex-shrink-0">
+          <Link href={isAgentAuthor ? `/vendor/social/profile/agent/${post.vendor.id}` : `/vendor/social/profile/${post.vendor.id}`}
+            className="flex-shrink-0">
             <div className={`rounded-full ring-2 ${theme.ring} ring-offset-2`}>
               <VendorAvatar vendor={post.vendor} size={40} />
             </div>
           </Link>
           <div className="flex-1 min-w-0">
-            <Link href={`/vendor/social/profile/${post.vendor.id}`}
-              className="text-[15px] font-bold text-gray-900 hover:text-purple-700 transition-colors leading-tight truncate block">
+            <Link href={isAgentAuthor ? `/vendor/social/profile/agent/${post.vendor.id}` : `/vendor/social/profile/${post.vendor.id}`}
+              className="text-[15px] font-bold text-gray-900 hover:text-emerald-700 transition-colors leading-tight truncate block">
               {post.vendor.businessName}
             </Link>
-            <p className="text-[11px] text-gray-400">
+            <p className="text-[11px] text-gray-400 flex items-center gap-1">
+              {isAgentAuthor && (
+                <span className="inline-flex items-center gap-0.5 bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider">
+                  Travel Agent
+                </span>
+              )}
               {post.vendor.city && <>{post.vendor.city} · </>}{new Date(post.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
             </p>
           </div>
@@ -679,7 +705,7 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-xl z-20 min-w-[170px] py-1 overflow-hidden">
-                {!isOwner && (
+                {!isOwner && !isAgentAuthor && (
                   <button onClick={handleFollow} disabled={followLoading}
                     className="w-full text-left px-4 py-2.5 text-[14px] text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 disabled:opacity-50">
                     {followLoading
@@ -727,7 +753,7 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
               <MessageCircle className="w-4 h-4" />
               {post.commentsCount > 0 && post.commentsCount}
             </button>
-            <button onClick={shareWA} title="Share"
+            <button onClick={() => onShareInChat(post)} title="Share to chat"
               className="inline-flex items-center px-2.5 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all">
               <Share2 className="w-4 h-4" />
             </button>

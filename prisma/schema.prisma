@@ -5859,62 +5859,76 @@ model social_categories {
 
 model social_posts {
   id                   String                 @id @default(cuid())
-  vendorId             String
+  vendorId             String?
+  agentId              String?
   categoryId           String
   content              String                 @db.Text
   isActive             Boolean                @default(true)
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
-  vendor               vendors                @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendor               vendors?               @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  agent                travel_agents?         @relation(fields: [agentId], references: [id], onDelete: Cascade)
   category             social_categories      @relation(fields: [categoryId], references: [id])
   social_post_likes    social_post_likes[]
   social_post_comments social_post_comments[]
   social_post_saves    social_post_saves[]
 
   @@index([vendorId])
+  @@index([agentId])
   @@index([categoryId])
   @@index([createdAt])
   @@index([isActive])
 }
 
 model social_post_likes {
-  id        String       @id @default(cuid())
+  id        String         @id @default(cuid())
   postId    String
-  vendorId  String
-  createdAt DateTime     @default(now())
-  post      social_posts @relation(fields: [postId], references: [id], onDelete: Cascade)
-  vendor    vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId  String?
+  agentId   String?
+  createdAt DateTime       @default(now())
+  post      social_posts   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  vendor    vendors?       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  agent     travel_agents? @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   @@unique([postId, vendorId])
+  @@unique([postId, agentId])
   @@index([postId])
   @@index([vendorId])
+  @@index([agentId])
 }
 
 model social_post_comments {
-  id        String       @id @default(cuid())
+  id        String         @id @default(cuid())
   postId    String
-  vendorId  String
-  content   String       @db.Text
-  isActive  Boolean      @default(true)
-  createdAt DateTime     @default(now())
-  post      social_posts @relation(fields: [postId], references: [id], onDelete: Cascade)
-  vendor    vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId  String?
+  agentId   String?
+  content   String         @db.Text
+  isActive  Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  post      social_posts   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  vendor    vendors?       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  agent     travel_agents? @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   @@index([postId])
   @@index([vendorId])
+  @@index([agentId])
 }
 
 model social_post_saves {
-  id        String       @id @default(cuid())
+  id        String         @id @default(cuid())
   postId    String
-  vendorId  String
-  createdAt DateTime     @default(now())
-  post      social_posts @relation(fields: [postId], references: [id], onDelete: Cascade)
-  vendor    vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendorId  String?
+  agentId   String?
+  createdAt DateTime       @default(now())
+  post      social_posts   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  vendor    vendors?       @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  agent     travel_agents? @relation(fields: [agentId], references: [id], onDelete: Cascade)
 
   @@unique([postId, vendorId])
+  @@unique([postId, agentId])
   @@index([postId])
   @@index([vendorId])
+  @@index([agentId])
 }
 
 model social_follows {
@@ -5932,32 +5946,46 @@ model social_follows {
 
 model vendor_conversations {
   id            String            @id @default(cuid())
-  vendor1Id     String
-  vendor2Id     String
+  vendor1Id     String?
+  vendor2Id     String?
+  agent1Id      String?
+  agent2Id      String?
   lastMessageAt DateTime          @default(now())
   createdAt     DateTime          @default(now())
-  vendor1       vendors           @relation("conv_vendor1", fields: [vendor1Id], references: [id], onDelete: Cascade)
-  vendor2       vendors           @relation("conv_vendor2", fields: [vendor2Id], references: [id], onDelete: Cascade)
+  vendor1       vendors?          @relation("conv_vendor1", fields: [vendor1Id], references: [id], onDelete: Cascade)
+  vendor2       vendors?          @relation("conv_vendor2", fields: [vendor2Id], references: [id], onDelete: Cascade)
+  agent1        travel_agents?    @relation("conv_agent1", fields: [agent1Id], references: [id], onDelete: Cascade)
+  agent2        travel_agents?    @relation("conv_agent2", fields: [agent2Id], references: [id], onDelete: Cascade)
   messages      vendor_messages[]
 
   @@unique([vendor1Id, vendor2Id])
+  @@unique([vendor1Id, agent2Id])
+  @@unique([agent1Id, vendor2Id])
+  @@unique([agent1Id, agent2Id])
   @@index([vendor1Id])
   @@index([vendor2Id])
+  @@index([agent1Id])
+  @@index([agent2Id])
   @@index([lastMessageAt])
 }
 
 model vendor_messages {
   id             String               @id @default(cuid())
   conversationId String
-  senderId       String
+  senderId       String?
+  senderAgentId  String?
+  senderType     String               @default("vendor")
   content        String               @db.Text
   isRead         Boolean              @default(false)
   createdAt      DateTime             @default(now())
   conversation   vendor_conversations @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         vendors              @relation("msg_sender", fields: [senderId], references: [id], onDelete: Cascade)
+  sender         vendors?             @relation("msg_sender", fields: [senderId], references: [id], onDelete: Cascade)
+  senderAgent    travel_agents?       @relation("msg_agent_sender", fields: [senderAgentId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
   @@index([senderId])
+  @@index([senderAgentId])
+  @@index([senderType])
   @@index([createdAt])
   @@index([isRead])
 }
@@ -6301,6 +6329,14 @@ model travel_agents {
   travel_agent_bookings           travel_agent_bookings[]
   travel_agent_fleets             travel_agent_fleets[]
   travel_agent_chat_conversations travel_agent_chat_conversations[]
+  travel_agent_notifications      travel_agent_notifications[]
+  social_posts                    social_posts[]
+  social_post_likes               social_post_likes[]
+  social_post_comments            social_post_comments[]
+  social_post_saves               social_post_saves[]
+  conv_agent1                     vendor_conversations[]            @relation("conv_agent1")
+  conv_agent2                     vendor_conversations[]            @relation("conv_agent2")
+  vendor_messages_sent            vendor_messages[]                 @relation("msg_agent_sender")
 
   @@index([approvedById], map: "travel_agents_approvedById_fkey")
   @@index([email])
@@ -6871,6 +6907,36 @@ model travel_agent_chat_messages {
   @@index([conversationId])
   @@index([senderType])
   @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRAVEL AGENT NOTIFICATIONS — in-app inbox per travel agent
+// ─────────────────────────────────────────────────────────────────────────────
+
+model travel_agent_notifications {
+  id            String                         @id @default(cuid())
+  travelAgentId String
+  type          travel_agent_notification_type
+  title         String
+  body          String                         @db.Text
+  link          String? // optional in-app deep link
+  metadata      String?                        @db.Text // optional JSON payload (parsed in app)
+  isRead        Boolean                        @default(false)
+  readAt        DateTime?
+  createdAt     DateTime                       @default(now())
+
+  travel_agents travel_agents @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
+
+  @@index([travelAgentId, createdAt])
+  @@index([travelAgentId, isRead])
+}
+
+enum travel_agent_notification_type {
+  LEAD
+  PAYMENT
+  BOOKING
+  CHAT
+  SYSTEM
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import { sendWanderBookingEmail } from '@/lib/services/email-service';
+import { notifyTravelAgent } from '@/lib/notifications/travel-agent-notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +55,18 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
               : `Customer accepted the quote. No advance required.`,
           },
         });
+        // Notify agent — fire only on the first acceptance (not on idempotent re-calls)
+        if (!lead.customerAcceptedAt) {
+          await notifyTravelAgent(lead.travelAgentId, {
+            type: 'LEAD',
+            title: 'Quote accepted',
+            body: hasAdvance
+              ? `${lead.customerName} accepted your quote. Awaiting advance payment.`
+              : `${lead.customerName} accepted your quote. No advance required.`,
+            link: `/travel-agent/leads/${lead.id}`,
+            metadata: { leadId: lead.id, hasAdvance },
+          });
+        }
         return NextResponse.json({
           success: true,
           isTravelAgentLead: true,

@@ -36,6 +36,20 @@ export async function GET(
       return NextResponse.json({ error: 'Not a driver conversation' }, { status: 400 });
     }
 
+    // Resolve human-readable booking number from the linked booking
+    let bookingNumber: string | null = null;
+    if (conversation.bookingId) {
+      try {
+        if (conversation.bookingType === 'chauffeur') {
+          const b = await prisma.chauffeur_bookings.findUnique({ where: { id: conversation.bookingId }, select: { bookingNumber: true } });
+          bookingNumber = b?.bookingNumber ?? null;
+        } else if (conversation.bookingType === 'car') {
+          const b = await prisma.car_bookings.findUnique({ where: { id: conversation.bookingId }, select: { bookingNumber: true } });
+          bookingNumber = b?.bookingNumber ?? null;
+        }
+      } catch {}
+    }
+
     const where: any = { conversationId, isDeleted: false };
     if (since) where.createdAt = { gt: new Date(since) };
 
@@ -63,6 +77,7 @@ export async function GET(
         id: conversation.id,
         bookingType: conversation.bookingType,
         bookingId: conversation.bookingId,
+        bookingNumber,
         subject: conversation.subject,
         status: conversation.status,
         participantType: conversation.participantType,
