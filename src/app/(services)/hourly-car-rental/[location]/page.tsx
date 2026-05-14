@@ -13,6 +13,8 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { HourlyCarBookingHero } from '@/components/hourly-car-rental/HourlyCarBookingHero';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps { params: { location: string }; }
 
@@ -53,7 +55,10 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
-  const seoData = await resolvePageMeta(`hourly-car-rental:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`hourly-car-rental:${params.location}`),
+    getServiceCityContent('hourly-car-rental', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'What is the minimum hourly booking for a car with driver?', answer: 'The minimum booking is 2 hours, covering up to 20 km. Additional km are charged at ₹12–₹18/km depending on the car category.' },
@@ -105,12 +110,14 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
         </div>
       </section>
 
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="hourly-car-rental"
-        cityName={locationName}
-        stateCode={undefined}
-      />
+              citySlug={params.location}
+              serviceSlug="hourly-car-rental"
+              cityName={locationName}
+              stateCode={undefined}
+            />
+      */}
       <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
       <BikeServiceSchema
         serviceName="Hourly Car Rental"
@@ -122,6 +129,10 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
         rating={4.6}
         reviewCount={1124}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="self-drive-car-rentals"

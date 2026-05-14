@@ -13,6 +13,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps { params: { location: string }; }
 
@@ -50,7 +52,10 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
-  const seoData = await resolvePageMeta(`26-seater-bus:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`26-seater-bus:${params.location}`),
+    getServiceCityContent('26-seater-bus', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'Is a 26-seater classified as a mini bus or full-size bus?', answer: 'A 26-seater is a mini bus — larger than a tempo traveller but compact enough for city roads. Ideal for 24–26 passengers with hand luggage.' },
@@ -145,12 +150,14 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="26-seater-bus"
-        cityName={locationName}
-        stateCode={undefined}
-      />
+              citySlug={params.location}
+              serviceSlug="26-seater-bus"
+              cityName={locationName}
+              stateCode={undefined}
+            />
+      */}
       <FAQSection service="bus-rental" location={locationName} customFaqs={pageFaqs} />
       <BikeServiceSchema
         serviceName="26 Seater Bus"
@@ -160,6 +167,10 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
         citySlug={params.location}
         faqs={[]}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="bus-rental"

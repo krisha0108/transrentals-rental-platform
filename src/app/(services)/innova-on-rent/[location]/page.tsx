@@ -13,6 +13,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -78,7 +80,10 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
-  const seoData = await resolvePageMeta(`innova-on-rent:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`innova-on-rent:${params.location}`),
+    getServiceCityContent('innova-on-rent', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'Is Toyota Innova available for self-drive rental?', answer: 'Yes, Toyota Innova Crysta (7-seater) and Innova HyCross (hybrid) are available for self-drive — perfect for large family trips.' },
@@ -182,12 +187,14 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="innova-on-rent"
-        cityName={locationName}
-        stateCode={undefined}
-      />
+              citySlug={params.location}
+              serviceSlug="innova-on-rent"
+              cityName={locationName}
+              stateCode={undefined}
+            />
+      */}
       <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
       <BikeServiceSchema
         serviceName="Innova on Rent"
@@ -197,6 +204,10 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
         citySlug={params.location}
         faqs={[]}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="self-drive-car-rentals"

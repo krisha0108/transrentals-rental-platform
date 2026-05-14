@@ -12,6 +12,8 @@ import { getCarRentalServiceId, getLocationId } from '@/lib/db/build-cache';
 import { LocalTaxiPackages } from '@/components/local-taxi/LocalTaxiPackages';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 const COMING_SOON_SLUGS = new Set([
   'bhavnagar',
@@ -104,9 +106,10 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
   const locationName = city.name;
 
   // Fetch local packages from DB (city-specific + global fallback)
-  const [locationId, carRentalServiceId] = await Promise.all([
+  const [locationId, carRentalServiceId, scContent] = await Promise.all([
     getLocationId(params.location),
     getCarRentalServiceId(),
+    getServiceCityContent('local-taxi', params.location),
   ]);
 
   const localPackages = carRentalServiceId ? await prisma.chauffeur_local_packages.findMany({
@@ -349,12 +352,14 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="local-taxi"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="local-taxi"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
 
       {/* Schema Markup */}
       <script
@@ -380,6 +385,9 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
           }),
         }}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}

@@ -229,7 +229,13 @@ export default function ServiceSEOPage() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Link href={`/admin/seo-content?service=${slug}`}>
+            <Button variant="outline" size="sm" className="border-purple-300 text-purple-700 hover:bg-purple-50">
+              <FileText className="w-4 h-4 mr-2" />
+              Manage City Pages Content
+            </Button>
+          </Link>
           <Link href={`/${service.slug}`} target="_blank">
             <Button variant="outline" size="sm">
               <Eye className="w-4 h-4 mr-2" />

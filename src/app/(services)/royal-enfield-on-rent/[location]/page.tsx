@@ -15,6 +15,8 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -152,7 +154,10 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
     ],
   };
 
-  const seoData = await resolvePageMeta(`royal-enfield-on-rent:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`royal-enfield-on-rent:${params.location}`),
+    getServiceCityContent('royal-enfield-on-rent', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'Which Royal Enfield models are available on rent?', answer: 'We offer Classic 350, Bullet 350, Meteor 350, and Himalayan — all well-maintained with valid insurance and permits.' },
@@ -203,6 +208,10 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
         locationSlug={params.location}
         service="royal-enfield-on-rent"
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="bike-on-rent"

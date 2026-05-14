@@ -16,6 +16,8 @@ import { prisma } from '@/lib/db/prisma';
 import { getBusRentalServiceId, getLocationId } from '@/lib/db/build-cache';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { BikeServiceSchema } from '@/components/seo/schemas';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -78,10 +80,11 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
     { question: 'What bus sizes are available for corporate hire?', answer: 'We offer 17, 20, 26, 32, and 49-seater buses for corporate use — AC and non-AC — based on employee count and route requirements.' },
   ];
 
-  const [seoData, busServiceId, locationId] = await Promise.all([
+  const [seoData, busServiceId, locationId, scContent] = await Promise.all([
     resolvePageMeta(`corporate-bus-rental:${params.location}`),
     getBusRentalServiceId(),
     getLocationId(params.location),
+    getServiceCityContent('corporate-bus-rental', params.location),
   ]);
 
   const busModels = busServiceId ? await prisma.vehicle_models.findMany({
@@ -215,12 +218,14 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
         service="corporate-bus-rental"
       />
 
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="corporate-bus-rental"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="corporate-bus-rental"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
       <BikeServiceSchema
         serviceName="Corporate Bus Rental"
         serviceSlug="corporate-bus-rental"
@@ -229,6 +234,10 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
         citySlug={params.location}
         faqs={[]}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="bus-rental"

@@ -9,6 +9,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface Props {
   params: { location: string };
@@ -75,7 +77,10 @@ export default async function TrailerLocationPage({ params }: Props) {
     },
   ];
 
-  const seoData = await resolvePageMeta(`trailer-on-rent:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`trailer-on-rent:${params.location}`),
+    getServiceCityContent('trailer-on-rent', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'What sizes of trailers are available on rent?', answer: 'We offer 20ft, 32ft, and 40ft flatbed and lowbed trailers for heavy cargo, machinery, and construction equipment transport.' },
@@ -108,12 +113,14 @@ export default async function TrailerLocationPage({ params }: Props) {
         highlights={highlights}
       />
 
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="trailer-on-rent"
-        cityName={location.name}
-        stateCode={undefined}
-      />
+              citySlug={params.location}
+              serviceSlug="trailer-on-rent"
+              cityName={location.name}
+              stateCode={undefined}
+            />
+      */}
       <BikeServiceSchema
         serviceName="Trailer on Rent"
         serviceSlug="trailer-on-rent"
@@ -122,6 +129,10 @@ export default async function TrailerLocationPage({ params }: Props) {
         citySlug={params.location}
         faqs={[]}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="transporter"

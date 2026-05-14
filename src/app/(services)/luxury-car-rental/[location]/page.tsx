@@ -13,6 +13,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections, hasSectionsContent } from '@/components/seo/ServiceCitySections';
 import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
 import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 
@@ -149,6 +151,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
   }
   const city = pageContext.city;
   const locationName = city.name;
+  const scContent = await getServiceCityContent('luxury-car-rental', params.location);
 
   // Get nearby cities for internal linking
   const nearbyCities = ALL_CITIES
@@ -369,14 +372,6 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
         </div>
       </section>
 
-      
-      <CityContentSection
-        citySlug={params.location}
-        serviceSlug="luxury-car-rental"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
-
       <ServiceAreasSection
         serviceSlug="luxury-car-rental"
         citySlug={params.location}
@@ -389,6 +384,9 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
         cityName={locationName}
         currentServiceSlug="luxury-car-rental"
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}

@@ -29,6 +29,8 @@ import { B2BServiceNote } from '@/components/common/B2BServiceNote';
 import { getCachedServiceBySlug, getCachedSubServices } from '@/lib/services/cached-service-lookups';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections, hasSectionsContent } from '@/components/seo/ServiceCitySections';
 import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
 import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 
@@ -286,7 +288,10 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
 
   const vehicles = dbVehicles;
 
-  const seoData = await resolvePageMeta(`equipment-rental:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`equipment-rental:${params.location}`),
+    getServiceCityContent('equipment-rental', params.location),
+  ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['equipment-rental'] || [];
 
   return (
@@ -335,42 +340,9 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
 
       <WhyRentHere locationName={locationName} />
 
-      {cityFAQs.length === 0 && (
-        <FAQSection
-          service="equipment-rental"
-          location={locationName}
-          customFaqs={EQUIPMENT_FALLBACK_FAQS}
-        />
-      )}
-      {cityFAQs.length > 0 && (
-        <section className="py-16 bg-white">
-          <div className="container-custom max-w-3xl">
-            <h2 className="text-3xl font-bold text-gray-900 mb-10 text-center">
-              Frequently Asked Questions — Equipment Rental in {locationName}
-            </h2>
-            <div className="space-y-6">
-              {cityFAQs.map((faq) => (
-                <div key={faq.q} className="bg-gray-50 p-6 rounded-xl">
-                  <h3 className="font-semibold text-gray-900 mb-2">{faq.q}</h3>
-                  <p className="text-gray-600">{faq.a}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       <NearbyLocations
         locationSlug={params.location}
         service="equipment-rental"
-      />
-
-      
-      <CityContentSection
-        citySlug={params.location}
-        serviceSlug="equipment-rental"
-        cityName={locationName}
-        stateCode={city?.stateCode}
       />
 
       <ServiceAreasSection
@@ -385,6 +357,9 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
         cityName={locationName}
         currentServiceSlug="equipment-rental"
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}

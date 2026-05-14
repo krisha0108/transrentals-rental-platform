@@ -10,6 +10,8 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import { WeddingFleetSection } from '@/components/wedding-car-rental/WeddingFleetSection';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -87,7 +89,7 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
     { question: 'How far in advance should I book a wedding car rental?', answer: 'We recommend booking 2–4 weeks before the wedding date. For peak wedding season (Oct–Feb), book at least 6 weeks in advance.' },
   ];
 
-  const [seoData, luxuryFleet] = await Promise.all([
+  const [seoData, luxuryFleet, scContent] = await Promise.all([
     resolvePageMeta(`wedding-car-rental:${params.location}`),
     prisma.vehicle_models.findMany({
       where: {
@@ -108,6 +110,7 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
       },
       orderBy: [{ isPopular: 'desc' }, { displayOrder: 'asc' }],
     }),
+    getServiceCityContent('wedding-car-rental', params.location),
   ]);
 
 
@@ -286,12 +289,14 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="wedding-car-rental"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="wedding-car-rental"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
 
       {/* Schema Markup */}
       <script
@@ -317,6 +322,9 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
           }),
         }}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}

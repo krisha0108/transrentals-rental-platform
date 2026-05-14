@@ -17,6 +17,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 const COMING_SOON_SLUGS = new Set([
   'margao',
@@ -189,7 +191,10 @@ export default async function ActivaLocationPage({ params }: PageProps) {
     ],
   };
 
-  const seoData = await resolvePageMeta(`activa-on-rent:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`activa-on-rent:${params.location}`),
+    getServiceCityContent('activa-on-rent', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'What scooters are available for rent?', answer: 'We offer Honda Activa 6G, TVS Jupiter, Suzuki Access 125, and Honda Dio — all automatic, fuel-efficient scooters.' },
@@ -272,17 +277,23 @@ export default async function ActivaLocationPage({ params }: PageProps) {
 
       <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
 
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="activa-on-rent"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="activa-on-rent"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
 
       <NearbyLocations
         locationSlug={params.location}
         service="activa-on-rent"
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="bike-on-rent"

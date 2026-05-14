@@ -63,6 +63,7 @@ import {
   Smile,
   Compass,
   Film,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
@@ -395,6 +396,11 @@ const adminItems: NavItem[] = [
     icon: Users,
   },
   {
+    name: 'Drivers',
+    href: '/admin/drivers',
+    icon: CarTaxiFront,
+  },
+  {
     name: 'Social Network',
     href: '/admin/social/categories',
     icon: Smile,
@@ -697,6 +703,25 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
               </p>
               <div className="space-y-1">
                 {missionControls.map((item) => renderNavItem(item, true))}
+              </div>
+            </div>
+
+            {/* SEO Content (AI-powered per-city page content) */}
+            <div>
+              <p className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                SEO Content
+              </p>
+              <div className="space-y-1">
+                {renderNavItem({
+                  name: 'AI Content Manager',
+                  href: '/admin/seo-content',
+                  icon: Sparkles,
+                  children: [
+                    { name: 'Pages Inventory', href: '/admin/seo-content/inventory', icon: Layers },
+                    { name: 'All Pages', href: '/admin/seo-content', icon: FileText },
+                    { name: 'Bulk Generate', href: '/admin/seo-content/bulk', icon: Sparkles },
+                  ],
+                })}
               </div>
             </div>
 

@@ -12,6 +12,8 @@ import { prisma } from '@/lib/db/prisma';
 import { OutstationCabSection } from '@/components/outstation-cab/OutstationCabSection';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { ServiceComingSoon } from '@/components/location/ServiceComingSoon';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 const COMING_SOON_SLUGS = new Set([
   'ludhiana-noida-roundtrip',
@@ -186,7 +188,7 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
 
   const locationName = city.name;
 
-  const [vehicleCategories, cityPricing] = await Promise.all([
+  const [vehicleCategories, cityPricing, scContent] = await Promise.all([
     prisma.chauffeur_vehicle_categories.findMany({
       where: { isActive: true, services: { slug: 'car-rental' } },
       select: {
@@ -200,6 +202,7 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
       where: { isActive: true, locations: { slug: params.location } },
       select: { vehicleCategoryId: true, baseKmRate: true, minKmPerDay: true, driverDayAllowance: true },
     }),
+    getServiceCityContent('outstation-cab', params.location),
   ]);
 
   const pricingMap = new Map(cityPricing.map((p) => [p.vehicleCategoryId, p]));
@@ -425,12 +428,14 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="outstation-cab"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="outstation-cab"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
 
       {/* Schema Markup */}
       <script
@@ -456,6 +461,9 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
           }),
         }}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}

@@ -14,6 +14,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps { params: { location: string }; }
 
@@ -51,7 +53,10 @@ export default async function XUV700LocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
-  const seoData = await resolvePageMeta(`xuv700-on-rent:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`xuv700-on-rent:${params.location}`),
+    getServiceCityContent('xuv700-on-rent', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'Is Mahindra XUV700 available for self-drive without a chauffeur?', answer: 'Yes, Mahindra XUV700 AX5 and AX7 are available for self-drive with ADAS features and panoramic sunroof.' },
@@ -118,12 +123,14 @@ export default async function XUV700LocationPage({ params }: PageProps) {
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="xuv700-on-rent"
-        cityName={locationName}
-        stateCode={undefined}
-      />
+              citySlug={params.location}
+              serviceSlug="xuv700-on-rent"
+              cityName={locationName}
+              stateCode={undefined}
+            />
+      */}
       <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
       <BikeServiceSchema
         serviceName="XUV700 on Rent"
@@ -133,6 +140,10 @@ export default async function XUV700LocationPage({ params }: PageProps) {
         citySlug={params.location}
         faqs={[]}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="self-drive-car-rentals"

@@ -13,6 +13,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps { params: { location: string }; }
 
@@ -50,7 +52,10 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
-  const seoData = await resolvePageMeta(`generator-on-rent:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`generator-on-rent:${params.location}`),
+    getServiceCityContent('generator-on-rent', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'What KVA generator sizes are available on rent?', answer: 'We offer 15 KVA, 25 KVA, 62.5 KVA, 125 KVA, and 250 KVA silent diesel generators for events, construction, and office backup.' },
@@ -122,12 +127,14 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="generator-on-rent"
-        cityName={locationName}
-        stateCode={undefined}
-      />
+              citySlug={params.location}
+              serviceSlug="generator-on-rent"
+              cityName={locationName}
+              stateCode={undefined}
+            />
+      */}
       <FAQSection service="equipment-rental" location={locationName} customFaqs={pageFaqs} />
       <BikeServiceSchema
         serviceName="Generator on Rent"
@@ -137,6 +144,10 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
         citySlug={params.location}
         faqs={[]}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="equipment-rental"

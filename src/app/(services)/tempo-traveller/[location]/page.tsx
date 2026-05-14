@@ -20,6 +20,8 @@ const TEMPO_FALLBACK_FAQS = [
 import { TempoFleetSection } from '@/components/tempo-traveller/TempoFleetSection';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 const COMING_SOON_SLUGS = new Set([
   'rohtak',
@@ -146,7 +148,7 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['tempo-traveller'] || [];
   const displayFAQs = cityFAQs.length > 0 ? cityFAQs : TEMPO_FALLBACK_FAQS;
 
-  const [seoData, tempoFleet] = await Promise.all([
+  const [seoData, tempoFleet, scContent] = await Promise.all([
     resolvePageMeta(`tempo-traveller:${params.location}`),
     prisma.vehicle_models.findMany({
       where: {
@@ -170,6 +172,7 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
       },
       orderBy: [{ isPopular: 'desc' }, { seatingCapacity: 'asc' }, { displayOrder: 'asc' }],
     }),
+    getServiceCityContent('tempo-traveller', params.location),
   ]);
 
 
@@ -369,12 +372,14 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="tempo-traveller"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="tempo-traveller"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
 
       {/* SEO Content Section */}
       <section className="py-16 bg-gray-50">
@@ -438,6 +443,9 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
           }),
         }}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}

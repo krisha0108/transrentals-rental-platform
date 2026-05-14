@@ -15,6 +15,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -112,7 +114,10 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
     ],
   };
 
-  const seoData = await resolvePageMeta(`wedding-bus-rental:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`wedding-bus-rental:${params.location}`),
+    getServiceCityContent('wedding-bus-rental', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'What types of buses are available for wedding rental?', answer: 'We offer AC luxury coaches (26–49 seater), decorated mini buses (17–20 seater), and Tempo Travellers (9–17 seater) for wedding functions.' },
@@ -252,12 +257,14 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
         service="wedding-bus-rental"
       />
 
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="wedding-bus-rental"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="wedding-bus-rental"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
       <BikeServiceSchema
         serviceName="Wedding Bus Rental"
         serviceSlug="wedding-bus-rental"
@@ -266,6 +273,10 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
         citySlug={params.location}
         faqs={[]}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="bus-rental"

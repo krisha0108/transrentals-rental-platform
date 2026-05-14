@@ -11,6 +11,8 @@ import { prisma } from '@/lib/db/prisma';
 import { getLuxuryServiceId, getLocationId } from '@/lib/db/build-cache';
 import { VintageCarsGrid } from '@/components/vintage-car-rental/VintageCarsGrid';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -87,9 +89,10 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
   ];
 
   // Fetch luxury car models for this location (service id cached across pages)
-  const [luxuryServiceId, locationId] = await Promise.all([
+  const [luxuryServiceId, locationId, scContent] = await Promise.all([
     getLuxuryServiceId(),
     getLocationId(params.location),
+    getServiceCityContent('vintage-car-rental', params.location),
   ]);
 
   const luxuryCars = luxuryServiceId ? await prisma.vehicle_models.findMany({
@@ -271,12 +274,14 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="vintage-car-rental"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="vintage-car-rental"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
 
       {/* Schema Markup */}
       <script
@@ -302,6 +307,9 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
           }),
         }}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}

@@ -12,6 +12,8 @@ import { getSelfDriveServiceId, getLocationId } from '@/lib/db/build-cache';
 import Image from 'next/image';
 import { MonthlyCarPlans } from '@/components/monthly-car-rental/MonthlyCarPlans';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -88,9 +90,10 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
   ];
 
   // Fetch self-drive vehicle models for monthly plans
-  const [selfDriveServiceId, locationId] = await Promise.all([
+  const [selfDriveServiceId, locationId, scContent] = await Promise.all([
     getSelfDriveServiceId(),
     getLocationId(params.location),
+    getServiceCityContent('monthly-car-rental', params.location),
   ]);
 
   const vehicleModels = selfDriveServiceId ? await prisma.vehicle_models.findMany({
@@ -293,12 +296,14 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="monthly-car-rental"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="monthly-car-rental"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
 
       {/* Schema Markup */}
       <script
@@ -324,6 +329,9 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
           }),
         }}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}

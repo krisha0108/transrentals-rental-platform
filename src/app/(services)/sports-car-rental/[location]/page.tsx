@@ -11,6 +11,8 @@ import { prisma } from '@/lib/db/prisma';
 import { getLuxuryServiceId, getLocationId } from '@/lib/db/build-cache';
 import { SupercarsGrid } from '@/components/sports-car-rental/SupercarsGrid';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -86,9 +88,10 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
     { question: 'Can I rent a sports car just for a photo shoot?', answer: 'Yes, 2-hour photo shoot packages are available with a designated location. Contact us for custom packages with multiple car combinations.' },
   ];
 
-  const [luxuryServiceId, locationId] = await Promise.all([
+  const [luxuryServiceId, locationId, scContent] = await Promise.all([
     getLuxuryServiceId(),
     getLocationId(params.location),
+    getServiceCityContent('sports-car-rental', params.location),
   ]);
 
   const luxuryCars = luxuryServiceId ? await prisma.vehicle_models.findMany({
@@ -270,12 +273,14 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="sports-car-rental"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="sports-car-rental"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
 
       {/* Schema Markup */}
       <script
@@ -301,6 +306,9 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
           }),
         }}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}

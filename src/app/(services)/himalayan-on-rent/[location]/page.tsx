@@ -13,6 +13,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps { params: { location: string }; }
 
@@ -50,7 +52,10 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
-  const seoData = await resolvePageMeta(`himalayan-on-rent:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`himalayan-on-rent:${params.location}`),
+    getServiceCityContent('himalayan-on-rent', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'Is the Royal Enfield Himalayan good for mountain trips?', answer: 'Yes — the Himalayan 411 is built for adventure touring with long-travel suspension, 21-inch front wheel, and fuel range of 400+ km.' },
@@ -140,12 +145,14 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="himalayan-on-rent"
-        cityName={locationName}
-        stateCode={undefined}
-      />
+              citySlug={params.location}
+              serviceSlug="himalayan-on-rent"
+              cityName={locationName}
+              stateCode={undefined}
+            />
+      */}
       <FAQSection service="bike-rental" location={locationName} customFaqs={pageFaqs} />
       <BikeServiceSchema
         serviceName="Royal Enfield Himalayan on Rent"
@@ -155,6 +162,10 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
         citySlug={params.location}
         faqs={[]}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="bike-on-rent"

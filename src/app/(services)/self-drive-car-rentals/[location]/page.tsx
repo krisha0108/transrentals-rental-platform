@@ -8,12 +8,13 @@ import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
-import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { CITY_SEO } from '@/data/city-seo-content';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { AutoRentalSchema } from '@/components/seo/schemas';
 import { getServiceLocationRating } from '@/lib/services/cached-service-lookups';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 const COMING_SOON_SLUGS = new Set([
   'varanasi',
@@ -302,11 +303,11 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
   const city = pageContext.city;
   const locationName = city.name;
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['self-drive-car-rentals'] || [];
-  const cityServiceIntro = CITY_SEO[params.location]?.serviceIntros?.['self-drive-car-rentals'];
 
-  const [seoData, liveRating] = await Promise.all([
+  const [seoData, liveRating, scContent] = await Promise.all([
     resolvePageMeta(`self-drive-car-rentals:${params.location}`),
     getServiceLocationRating('self-drive-car-rentals', params.location),
+    getServiceCityContent('self-drive-car-rentals', params.location),
   ]);
 
   return (
@@ -352,119 +353,8 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
         showViewAll={false}
       />
 
-      {/* Popular Self Drive Routes */}
-      <section className="py-16">
-        <div className="container-custom">
-          <h2 className="text-3xl font-bold mb-8">
-            Popular Self Drive Routes from {locationName}
-          </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            {city.tier <= 2 && [
-              { route: `${locationName} City Tour`, distance: 'Full Day', desc: 'Explore the city at your own pace' },
-              { route: `${locationName} to Nearby Attractions`, distance: '100-200 km', desc: 'Weekend getaway trips' },
-              { route: `Airport Transfers`, distance: 'As needed', desc: 'Pick up and drop flexibility' },
-              { route: `Outstation Trips`, distance: '200+ km', desc: 'Long distance self-drive' },
-            ].map((route, idx) => (
-              <div key={idx} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-                <div>
-                  <p className="font-semibold">{route.route}</p>
-                  <p className="text-sm text-gray-600">{route.desc}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-blue-600">{route.distance}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Rental Packages */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Self Drive Car Rental Packages in {locationName}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { duration: 'Hourly', price: '150-300', desc: '4 hours minimum' },
-              { duration: 'Daily', price: '899-2999', desc: '24 hours package' },
-              { duration: 'Weekly', price: '6000-18000', desc: '7 days - 10% off' },
-              { duration: 'Monthly', price: '20000-60000', desc: '30 days - 30% off' },
-            ].map((plan, idx) => (
-              <div key={idx} className="bg-white p-6 rounded-lg shadow-md text-center">
-                <h3 className="font-semibold text-lg mb-2">{plan.duration}</h3>
-                <p className="text-2xl font-bold text-blue-600 mb-2">₹{plan.price}</p>
-                <p className="text-sm text-gray-600">{plan.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQs — city-specific if available, generic fallback otherwise */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions — Self Drive Car Rental in {locationName}
-          </h2>
-          <div className="space-y-6">
-            {(cityFAQs.length > 0 ? cityFAQs.map(f => ({ q: f.q, a: f.a })) : [
-              { q: `How much does self-drive car rental cost in ${locationName}?`, a: `Self-drive car rental in ${locationName} starts from ₹899/day for hatchbacks. Sedans cost around ₹1299/day and SUVs from ₹2199/day.` },
-              { q: `What documents are required for self-drive car rental in ${locationName}?`, a: `You need a valid driving license (minimum 1 year old), Aadhaar card/PAN card for ID proof, and a refundable security deposit.` },
-              { q: `Is fuel included in self-drive car rental?`, a: `No, fuel charges are separate. The car will have some fuel when you pick it up, and you should return it with the same fuel level.` },
-              { q: `Can I take a self-drive car for outstation trips from ${locationName}?`, a: `Yes, you can take self-drive cars for outstation trips from ${locationName}. Additional charges may apply for inter-state travel.` },
-              { q: `How do I book a self-drive car in ${locationName}?`, a: `You can book online through our website or app. Select your car, provide required documents, pay the security deposit, and pick up your car.` },
-            ]).map((faq, idx) => (
-              <div key={idx} className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <CityContentSection
-        citySlug={params.location}
-        serviceSlug="self-drive-car-rentals"
-        cityName={locationName}
-        stateCode={city.stateCode}
-      />
-
-      {/* SEO Content Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto prose prose-lg">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              Self Drive Car Rental in {locationName}
-            </h2>
-            {cityServiceIntro ? (
-              <p className="text-gray-600">{cityServiceIntro}</p>
-            ) : (
-              <p className="text-gray-600">
-                TransRentals offers the best self drive car rental services in {locationName}. Drive yourself
-                without a driver — complete privacy, no time restrictions, and full flexibility to explore
-                {locationName} at your own pace. Our verified vendor network offers well-maintained hatchbacks,
-                sedans, SUVs, and luxury cars from top brands like Maruti Swift, Honda City, Hyundai Creta,
-                Toyota Innova, and more.
-              </p>
-            )}
-            <h3 className="text-2xl font-bold text-gray-900 mt-8 mb-4">
-              Why Choose TransRentals for Self Drive Car Rental in {locationName}?
-            </h3>
-            <ul className="text-gray-600 space-y-2">
-              <li><strong>No Driver Needed:</strong> Complete privacy and freedom to drive yourself</li>
-              <li><strong>Best Prices:</strong> Self-drive cars starting from just ₹899/day</li>
-              <li><strong>Wide Fleet:</strong> Hatchbacks, sedans, SUVs, luxury cars available</li>
-              <li><strong>Flexible Hours:</strong> Hourly, daily, weekly, and monthly options</li>
-              <li><strong>Easy Booking:</strong> Book online in minutes with instant confirmation</li>
-              <li><strong>24/7 Support:</strong> Roadside assistance and customer support</li>
-              <li><strong>Verified Vendors:</strong> All cars are background-checked and regularly serviced</li>
-            </ul>
-          </div>
-        </div>
-      </section>
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}
