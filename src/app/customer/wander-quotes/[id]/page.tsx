@@ -15,7 +15,9 @@ import {
 import QRCode from 'qrcode';
 import { BookingPayment } from '@/components/payment/BookingPayment';
 import WanderChat from '@/components/wander/WanderChat';
+import TravelAgentChat from '@/components/travel-agent/chat/TravelAgentChat';
 import CustomerHeader from '@/components/customer/CustomerHeader';
+import { sanitizeRichText } from '@/lib/utils/sanitize';
 
 function fmt(date: string) {
   if (!date) return '—';
@@ -571,10 +573,39 @@ export default function CustomerWanderQuoteDetailPage() {
               <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-indigo-400 transition" />
             </Link>
 
-            {/* Chat with vendor */}
+            {/* Travel-agent leads → use the dedicated travel-agent chat
+                (different table + auth model). The customer authenticates
+                here via their phone, which the API matches against
+                conv.customerPhone. */}
+            {(data.isTravelAgentLead || data.source === 'TRAVEL_AGENT') &&
+              data.travelAgentId &&
+              data.customer?.phone && (
+                <TravelAgentChat
+                  senderType="customer"
+                  senderName={data.customer.name || 'Customer'}
+                  customerPhone={data.customer.phone}
+                  travelAgentId={data.travelAgentId}
+                  customerName={data.customer.name || 'Customer'}
+                  customerEmail={data.customer.email || undefined}
+                  leadId={data.id}
+                  subject={data.listing?.title || 'Travel Enquiry'}
+                  title={data.listing?.vendor?.businessName || 'Travel Agent'}
+                  description="Direct message your agent"
+                  heightClass="h-96"
+                />
+              )}
+
+            {/* Chat with vendor — vendor-wander quotes only. Travel-agent
+                leads use a separate chat system (travel_agent_chat_conversations)
+                and would fail the vendors FK here. */}
             {(() => {
+              if (data.isTravelAgentLead || data.source === 'TRAVEL_AGENT') return null;
               const acceptedQuote = data.quotes?.find((q: any) => q.status === 'ACCEPTED');
               if (!acceptedQuote || !data.customer?.id) return null;
+              // Once a booking exists, match the vendor's chat key exactly
+              // (bookingType='wander_booking', bookingId=booking.id) so both
+              // sides share one conversation instead of creating siblings.
+              const hasBooking = !!wanderBooking?.id;
               return (
                 <WanderChat
                   vendorId={acceptedQuote.vendor?.id || data.listing?.vendor?.id}
@@ -583,8 +614,8 @@ export default function CustomerWanderQuoteDetailPage() {
                   senderId={data.customer.id}
                   senderName={data.customer.name || 'Customer'}
                   otherName={acceptedQuote.vendor?.businessName || 'Vendor'}
-                  bookingType="wander_quote"
-                  bookingId={wanderBooking?.id || (id as string)}
+                  bookingType={hasBooking ? 'wander_booking' : 'wander_quote'}
+                  bookingId={hasBooking ? wanderBooking.id : (id as string)}
                   quoteId={acceptedQuote.id}
                 />
               );
@@ -1014,6 +1045,91 @@ export default function CustomerWanderQuoteDetailPage() {
   );
 }
 
+/* ─── Itinerary renderer ─── */
+function ItineraryView({ raw }: { raw: string }) {
+  let stops: any[] | null = null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) stops = parsed;
+  } catch {}
+
+  if (!stops) {
+    return <div dangerouslySetInnerHTML={{ __html: sanitizeRichText(raw) }} />;
+  }
+
+  const visible = stops.filter((s: any) => {
+    const title = (s?.title || '').trim();
+    const time = (s?.time || '').trim();
+    const desc = (s?.description || '').toString().replace(/<[^>]*>/g, '').trim();
+    const hasActivities = Array.isArray(s?.activities) && s.activities.filter(Boolean).length > 0;
+    return !!(title || time || desc || hasActivities);
+  });
+
+  if (visible.length === 0) {
+    return <p className="text-sm text-gray-500">Itinerary will be shared shortly.</p>;
+  }
+
+  const groups: Record<string, any[]> = {};
+  visible.forEach((s: any) => {
+    const key = s?.day ? `Day ${s.day}` : 'Day 1';
+    (groups[key] ||= []).push(s);
+  });
+
+  return (
+    <div className="space-y-6 not-prose">
+      {Object.entries(groups).map(([dayLabel, dayStops]) => (
+        <div key={dayLabel}>
+          <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-3">
+            {dayLabel}
+          </p>
+          <div className="relative">
+            <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-indigo-100" />
+            <div className="space-y-0">
+              {dayStops.map((stop: any, i: number) => (
+                <div key={i} className="relative flex gap-4 pb-5">
+                  <div className="w-10 h-10 bg-white border-2 border-indigo-200 rounded-full flex items-center justify-center flex-shrink-0 z-10 text-lg">
+                    {stop.emoji || (stop.type === 'break' ? '☕' : '📍')}
+                  </div>
+                  <div className="flex-1 bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      {stop.time && (
+                        <span className="text-xs text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full">
+                          {stop.time}
+                        </span>
+                      )}
+                      {stop.timeSpent && (
+                        <span className="text-xs text-gray-400">{stop.timeSpent}</span>
+                      )}
+                    </div>
+                    {stop.title && (
+                      <h3 className="font-bold text-gray-900 text-sm">{stop.title}</h3>
+                    )}
+                    {stop.description && (
+                      <div
+                        className="text-xs text-gray-500 mt-1 leading-relaxed prose prose-xs max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-strong:text-gray-900 prose-p:my-1 prose-headings:my-2"
+                        dangerouslySetInnerHTML={{ __html: sanitizeRichText(stop.description) }}
+                      />
+                    )}
+                    {Array.isArray(stop.activities) && stop.activities.filter(Boolean).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {stop.activities.filter(Boolean).map((a: string, j: number) => (
+                          <span key={j} className="text-xs bg-white border border-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                            {a}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ─── Tour Details Section ─── */
 function TourDetailsSection({ listing }: { listing: any }) {
   const [tab, setTab] = useState<'overview' | 'itinerary' | 'terms'>(
@@ -1074,15 +1190,15 @@ function TourDetailsSection({ listing }: { listing: any }) {
             ))}
           </div>
 
-          <div className="px-6 py-5 text-sm text-gray-700 leading-relaxed">
+          <div className="px-6 py-5 text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-strong:text-gray-900 prose-a:text-emerald-700">
             {tab === 'overview' && listing?.description && (
-              <p className="whitespace-pre-wrap">{listing.description}</p>
+              <div dangerouslySetInnerHTML={{ __html: sanitizeRichText(listing.description) }} />
             )}
             {tab === 'itinerary' && listing?.itinerary && (
-              <p className="whitespace-pre-wrap">{listing.itinerary}</p>
+              <ItineraryView raw={listing.itinerary} />
             )}
             {tab === 'terms' && listing?.termsConditions && (
-              <p className="whitespace-pre-wrap">{listing.termsConditions}</p>
+              <div dangerouslySetInnerHTML={{ __html: sanitizeRichText(listing.termsConditions) }} />
             )}
           </div>
         </>

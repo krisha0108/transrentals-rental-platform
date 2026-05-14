@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, MessageSquare, Clock, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Search, MessageSquare, Clock, ArrowLeft, ChevronRight, PenSquare, X, Loader2 } from 'lucide-react';
 
 interface OtherVendor {
   id: string;
@@ -86,6 +86,134 @@ function VendorAvatar({
   );
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+   New Chat Modal — search vendors + agents, click to open conversation
+────────────────────────────────────────────────────────────────────────── */
+interface SearchResult {
+  type: 'vendor' | 'agent';
+  id: string;
+  businessName: string;
+  ownerName: string | null;
+  logo?: string | null;
+  city?: string | null;
+}
+
+function NewChatModal({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const [q, setQ] = useState('');
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [opening, setOpening] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  useEffect(() => {
+    const term = q.trim();
+    if (term.length < 2) { setResults([]); return; }
+    let cancelled = false;
+    setSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/social/search?q=${encodeURIComponent(term)}`);
+        if (!res.ok) return;
+        const d = await res.json();
+        if (!cancelled) setResults(d.results || []);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 250);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [q]);
+
+  const openChat = async (r: SearchResult) => {
+    if (opening) return;
+    setOpening(`${r.type}:${r.id}`);
+    const res = await fetch('/api/social/chat/conversations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ otherType: r.type, otherId: r.id }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      router.push(`/vendor/social/messages/${data.conversationId}`);
+      onClose();
+      return;
+    }
+    setOpening(null);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 pt-16 sm:pt-4"
+      onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
+        onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
+          <h3 className="font-bold text-gray-900 flex items-center gap-2">
+            <PenSquare className="h-4 w-4 text-emerald-600" /> New Chat
+          </h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="px-4 py-3 border-b border-gray-100">
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 focus-within:border-emerald-400 focus-within:ring-1 focus-within:ring-emerald-200 transition-all">
+            <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)}
+              placeholder="Search by name, owner, or city..."
+              className="flex-1 bg-transparent text-sm focus:outline-none text-gray-800 placeholder-gray-400" />
+            {searching && <Loader2 className="h-3.5 w-3.5 text-emerald-500 animate-spin flex-shrink-0" />}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {q.trim().length < 2 ? (
+            <div className="py-10 text-center px-6">
+              <p className="text-sm text-gray-400 font-medium">Start typing to search</p>
+              <p className="text-xs text-gray-300 mt-1">At least 2 characters</p>
+            </div>
+          ) : !searching && results.length === 0 ? (
+            <div className="py-10 text-center px-6">
+              <p className="text-sm text-gray-400 font-medium">No results for "{q}"</p>
+              <p className="text-xs text-gray-300 mt-1">Try a different name or city</p>
+            </div>
+          ) : (
+            <div className="py-1">
+              {results.map(r => {
+                const key = `${r.type}:${r.id}`;
+                const isOpening = opening === key;
+                return (
+                  <button key={key} onClick={() => openChat(r)} disabled={!!opening}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left disabled:opacity-60">
+                    <VendorAvatar name={r.businessName} logo={r.logo || undefined} size={40} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{r.businessName}</p>
+                        <span className={`text-[8px] font-bold px-1 py-0.5 rounded-full uppercase tracking-wider flex-shrink-0 ${
+                          r.type === 'agent' ? 'bg-indigo-50 text-indigo-700' : 'bg-emerald-50 text-emerald-700'
+                        }`}>
+                          {r.type}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 truncate">
+                        {[r.city, r.ownerName].filter(Boolean).join(' · ') || '—'}
+                      </p>
+                    </div>
+                    {isOpening
+                      ? <Loader2 className="h-4 w-4 text-emerald-500 animate-spin flex-shrink-0" />
+                      : <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ConversationList({
   activeId,
   onSelect,
@@ -96,6 +224,7 @@ function ConversationList({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [newChatOpen, setNewChatOpen] = useState(false);
   const router = useRouter();
 
   const fetch_ = useCallback(async (initial = false) => {
@@ -141,17 +270,23 @@ function ConversationList({
         <div className="absolute top-2 right-8 w-1 h-1 bg-white/30 rounded-full animate-[sparkle_3s_ease-in-out_infinite]" />
         <div className="absolute bottom-3 right-16 w-1.5 h-1.5 bg-white/20 rounded-full animate-[sparkle_4s_ease-in-out_infinite_0.5s]" />
 
-        <div className="relative flex items-center justify-between">
+        <div className="relative flex items-center justify-between gap-2">
           <h2 className="text-lg font-bold text-white tracking-tight">Messages</h2>
-          {totalUnread > 0 ? (
-            <span className="text-xs text-white bg-white/20 px-2.5 py-0.5 rounded-full font-semibold backdrop-blur-sm">
-              {totalUnread} new
-            </span>
-          ) : (
-            <span className="text-xs text-white/70 bg-white/10 px-2.5 py-0.5 rounded-full font-medium backdrop-blur-sm">
-              {conversations.length} chats
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {totalUnread > 0 ? (
+              <span className="text-xs text-white bg-white/20 px-2.5 py-0.5 rounded-full font-semibold backdrop-blur-sm">
+                {totalUnread} new
+              </span>
+            ) : (
+              <span className="text-xs text-white/70 bg-white/10 px-2.5 py-0.5 rounded-full font-medium backdrop-blur-sm">
+                {conversations.length} chats
+              </span>
+            )}
+            <button onClick={() => setNewChatOpen(true)} title="New chat"
+              className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white transition-all backdrop-blur-sm active:scale-95">
+              <PenSquare className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -191,15 +326,13 @@ function ConversationList({
               {search ? 'No results' : 'No conversations yet'}
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              {search ? 'Try a different name' : 'Visit a vendor profile to start chatting'}
+              {search ? 'Try a different name' : 'Tap "New chat" or visit a profile to start chatting'}
             </p>
             {!search && (
-              <Link
-                href="/vendor/social"
-                className="mt-4 text-xs font-semibold text-emerald-600 hover:text-emerald-700"
-              >
-                Browse Vendor Network →
-              </Link>
+              <button onClick={() => setNewChatOpen(true)}
+                className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm shadow-emerald-200/50">
+                <PenSquare className="h-3.5 w-3.5" /> Start a New Chat
+              </button>
             )}
           </div>
         ) : (
@@ -280,6 +413,8 @@ function ConversationList({
           50%, 100% { transform: translateX(100%); }
         }
       `}</style>
+
+      {newChatOpen && <NewChatModal onClose={() => setNewChatOpen(false)} />}
     </div>
   );
 }

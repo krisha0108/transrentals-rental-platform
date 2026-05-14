@@ -133,11 +133,45 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       // ignore — return tour without vehicles
     }
 
-    // Itinerary on agent tours is plain text — wrap it as a single "Day" entry the
-    // existing detail page can render.
-    const itinerary = agentTour.itinerary
-      ? [{ day: 1, title: 'Itinerary', description: agentTour.itinerary }]
-      : [];
+    // Itinerary on agent tours can be either:
+    //   1. JSON array of structured stops (Quick mode):
+    //      [{ day, emoji, time, title, description, activities, timeSpent, type }]
+    //   2. Tiptap-style HTML blob (Detailed mode textarea)
+    //   3. Plain text
+    // Normalize all into the stop[] shape that the wander detail page renders.
+    let itinerary: any[] = [];
+    if (agentTour.itinerary) {
+      const raw = String(agentTour.itinerary).trim();
+      const looksLikeJson = raw.startsWith('[') || raw.startsWith('{');
+      if (looksLikeJson) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            itinerary = parsed.map((s: any, i: number) => ({
+              day: s.day ?? i + 1,
+              emoji: s.emoji ?? '📍',
+              time: s.time ?? '',
+              title: s.title ?? `Stop ${i + 1}`,
+              description: s.description ?? '',
+              activities: Array.isArray(s.activities) ? s.activities : [],
+              timeSpent: s.timeSpent ?? '',
+              type: s.type ?? 'stop',
+            }));
+          } else if (parsed && typeof parsed === 'object') {
+            // Single stop object — wrap into an array
+            itinerary = [{ day: 1, title: parsed.title || 'Itinerary', description: parsed.description || raw }];
+          } else {
+            itinerary = [{ day: 1, title: 'Itinerary', description: raw }];
+          }
+        } catch {
+          // Not valid JSON — fall back to treating it as HTML / plain text
+          itinerary = [{ day: 1, title: 'Itinerary', description: raw }];
+        }
+      } else {
+        // HTML or plain text — render via dangerouslySetInnerHTML on the page
+        itinerary = [{ day: 1, title: 'Itinerary', description: raw }];
+      }
+    }
 
     const duration =
       agentTour.durationDays > 0
@@ -152,7 +186,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       id: agentTour.id,
       slug: agentTour.slug,
       title: agentTour.title,
-      shortDescription: agentTour.description,
+      // shortDescription should be PLAIN TEXT (rendered as <p> on the wander
+       // page, NOT through dangerouslySetInnerHTML). Prefer the dedicated
+       // shortDescription field; if absent, strip HTML tags from description.
+      shortDescription:
+        agentTour.shortDescription ||
+        (agentTour.description
+          ? String(agentTour.description).replace(/<[^>]*>/g, '').trim().slice(0, 300)
+          : null),
       description: agentTour.description,
       duration,
       images: allImages,

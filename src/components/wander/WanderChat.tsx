@@ -53,11 +53,15 @@ export default function WanderChat({
         setConversationId(data.conversation.id);
         return data.conversation.id;
       } else {
-        setError('Could not start chat');
+        setError(data.error || data.details || 'Could not start chat');
+        if (typeof window !== 'undefined') {
+          console.warn('[WanderChat] init failed', { status: res.status, body: data });
+        }
         return null;
       }
-    } catch {
+    } catch (err) {
       setError('Failed to connect');
+      if (typeof window !== 'undefined') console.warn('[WanderChat] init exception', err);
       return null;
     }
   }, [vendorId, customerId, bookingType, bookingId, quoteId]);

@@ -14,13 +14,15 @@ const POLL_INTERVAL = 3000;
 export default function DriverChatScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { conversationId, driverName = 'Driver' } = route.params || {};
+  const { conversationId, driverName = 'Driver', bookingId: paramBookingId, bookingNumber: paramBookingNumber, bookingType } = route.params || {};
 
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [lastSince, setLastSince] = useState(null);
+  const [bookingId, setBookingId] = useState(paramBookingId || null);
+  const [bookingNumber, setBookingNumber] = useState(paramBookingNumber || null);
 
   const listRef = useRef(null);
   const pollRef = useRef(null);
@@ -38,6 +40,9 @@ export default function DriverChatScreen() {
           });
         } else {
           setMessages(newMsgs);
+          // Populate booking info from API response if not already set via params
+          if (data.conversation?.bookingNumber) setBookingNumber(data.conversation.bookingNumber);
+          if (data.conversation?.bookingId && !paramBookingId) setBookingId(data.conversation.bookingId);
         }
         if (newMsgs.length > 0) setLastSince(newMsgs[newMsgs.length - 1].createdAt);
       }
@@ -45,7 +50,7 @@ export default function DriverChatScreen() {
       console.log('Driver fetch messages error:', e);
     }
     setLoading(false);
-  }, [conversationId]);
+  }, [conversationId, paramBookingId]);
 
   useEffect(() => {
     fetchMessages(null);
@@ -58,6 +63,13 @@ export default function DriverChatScreen() {
   useEffect(() => {
     if (messages.length > 0) setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
   }, [messages.length]);
+
+  const handleViewBooking = () => {
+    if (!bookingId) return;
+    // driver chats are always linked to car/chauffeur bookings — BookingDetailScreen uses 'car' key
+    const resolvedType = (bookingType === 'chauffeur' || !bookingType) ? 'car' : bookingType;
+    navigation.navigate('BookingDetail', { bookingId, bookingType: resolvedType });
+  };
 
   const handleSend = async () => {
     if (!text.trim() || sending) return;
@@ -119,12 +131,21 @@ export default function DriverChatScreen() {
             <View style={styles.headerAvatar}>
               <Ionicons name="car" size={16} color="#16A34A" />
             </View>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.headerName}>{driverName}</Text>
-              <Text style={styles.headerSub}>Driver</Text>
+              {bookingNumber ? (
+                <Text style={styles.headerSub}>Booking #{bookingNumber}</Text>
+              ) : null}
             </View>
           </View>
-          <View style={{ width: 36 }} />
+          {bookingId ? (
+            <TouchableOpacity onPress={handleViewBooking} style={styles.viewBookingBtn}>
+              <Ionicons name="document-text-outline" size={15} color="#fff" />
+              <Text style={styles.viewBookingText}>View</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 60 }} />
+          )}
         </View>
 
         {loading ? (
@@ -177,7 +198,13 @@ const styles = StyleSheet.create({
   headerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#DCFCE7', justifyContent: 'center', alignItems: 'center' },
   headerName: { fontSize: 15, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: '500' },
+  headerSub: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: '500', marginTop: 1 },
+  viewBookingBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 20,
+    paddingHorizontal: 10, paddingVertical: 6,
+  },
+  viewBookingText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   list: { padding: 14, gap: 4 },
   dateSep: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 10 },
   dateLine: { flex: 1, height: 1, backgroundColor: '#E2EAF4' },

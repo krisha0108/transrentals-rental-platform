@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getTravelAgentAuth } from '@/lib/auth/travel-agent-auth';
 import logger from '@/lib/security/logger';
+import { notifyTravelAgent } from '@/lib/notifications/travel-agent-notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -146,6 +147,18 @@ export async function POST(
           : { agentUnread: { increment: 1 } }),
       },
     });
+
+    // Notify the agent when a customer messages them. Agent-side messages are
+    // self-initiated, no notification needed.
+    if (senderType === 'customer') {
+      await notifyTravelAgent(conv.travelAgentId, {
+        type: 'CHAT',
+        title: `Message from ${conv.customerName || 'customer'}`,
+        body: trimmed.slice(0, 140),
+        link: `/travel-agent/chats/${conv.id}`,
+        metadata: { conversationId: conv.id, messageId: message.id },
+      });
+    }
 
     return NextResponse.json({ success: true, message });
   } catch (error: any) {

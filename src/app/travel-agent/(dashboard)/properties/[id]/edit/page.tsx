@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Loader2, ArrowLeft, Save, Building2, Globe, Lock } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Building2, Globe, Lock, Upload, X, ImageIcon } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useTravelAgentVerification } from '@/contexts/TravelAgentVerificationContext';
 
@@ -26,7 +26,8 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
   const { isApproved, openVerificationModal } = useTravelAgentVerification();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [galleryInput, setGalleryInput] = useState('');
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
@@ -93,11 +94,49 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
 
   const update = (k: keyof typeof form, v: any) => setForm((p) => ({ ...p, [k]: v }));
 
-  const addGalleryImage = () => {
-    const url = galleryInput.trim();
-    if (!url) return;
-    update('galleryImages', [...form.galleryImages, url]);
-    setGalleryInput('');
+  const uploadCover = async (file: File) => {
+    setUploadingCover(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'properties');
+      const res = await fetch('/api/travel-agent/upload', { method: 'POST', body: fd });
+      const j = await res.json();
+      if (res.ok && j.success && j.url) {
+        update('coverImage', j.url);
+        showToast({ type: 'success', title: 'Cover image uploaded' });
+      } else {
+        showToast({ type: 'error', title: j.error || 'Upload failed' });
+      }
+    } catch {
+      showToast({ type: 'error', title: 'Upload failed' });
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const uploadGallery = async (files: FileList) => {
+    if (!files || files.length === 0) return;
+    setUploadingGallery(true);
+    try {
+      const fd = new FormData();
+      Array.from(files).forEach((f) => fd.append('files', f));
+      fd.append('folder', 'properties');
+      const res = await fetch('/api/travel-agent/upload', { method: 'POST', body: fd });
+      const j = await res.json();
+      if (res.ok && j.success && Array.isArray(j.uploaded)) {
+        const urls = j.uploaded.map((u: any) => u.url).filter(Boolean);
+        update('galleryImages', [...form.galleryImages, ...urls]);
+        showToast({ type: 'success', title: `${urls.length} image(s) uploaded` });
+        if (j.errors) showToast({ type: 'error', title: j.errors });
+      } else {
+        showToast({ type: 'error', title: j.error || 'Upload failed' });
+      }
+    } catch {
+      showToast({ type: 'error', title: 'Upload failed' });
+    } finally {
+      setUploadingGallery(false);
+    }
   };
 
   const removeGalleryImage = (idx: number) =>
@@ -267,34 +306,78 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
         </Section>
 
         <Section title="Images">
+          {/* Cover Image */}
           <div className="sm:col-span-2">
-            <label className={labelCls}>Cover Image URL</label>
-            <input
-              type="url"
-              value={form.coverImage}
-              onChange={(e) => update('coverImage', e.target.value)}
-              className={inputCls}
-            />
+            <label className={labelCls}>Cover Image</label>
+            {form.coverImage ? (
+              <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.coverImage} alt="Cover" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => update('coverImage', '')}
+                  className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center shadow"
+                  aria-label="Remove cover"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center gap-2 w-full max-w-sm h-40 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/40 transition">
+                {uploadingCover ? (
+                  <>
+                    <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+                    <span className="text-xs text-gray-500">Uploading…</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-6 h-6 text-gray-400" />
+                    <span className="text-sm font-medium text-gray-700">Click to upload cover image</span>
+                    <span className="text-[11px] text-gray-400">JPG / PNG / WEBP — up to 5 MB</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploadingCover}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) uploadCover(f);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            )}
           </div>
+
+          {/* Gallery Images */}
           <div className="sm:col-span-2">
             <label className={labelCls}>Gallery Images</label>
-            <div className="flex gap-2">
+            <label className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl cursor-pointer disabled:opacity-60">
+              {uploadingGallery ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Uploading…
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" /> Upload Images
+                </>
+              )}
               <input
-                type="url"
-                value={galleryInput}
-                onChange={(e) => setGalleryInput(e.target.value)}
-                placeholder="https://..."
-                className={inputCls}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={uploadingGallery}
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (files && files.length > 0) uploadGallery(files);
+                  e.target.value = '';
+                }}
               />
-              <button
-                type="button"
-                onClick={addGalleryImage}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 rounded-xl"
-              >
-                Add
-              </button>
-            </div>
-            {form.galleryImages.length > 0 && (
+            </label>
+            {form.galleryImages.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
                 {form.galleryImages.map((url, i) => (
                   <div key={i} className="relative aspect-square">
@@ -303,13 +386,18 @@ export default function EditPropertyPage({ params }: { params: { id: string } })
                     <button
                       type="button"
                       onClick={() => removeGalleryImage(i)}
-                      className="absolute top-1 right-1 bg-red-600 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-700"
+                      className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-700 shadow"
+                      aria-label="Remove image"
                     >
-                      ×
+                      <X className="w-3 h-3" />
                     </button>
                   </div>
                 ))}
               </div>
+            ) : (
+              <p className="text-xs text-gray-400 mt-2 flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5" /> No images uploaded yet.
+              </p>
             )}
           </div>
         </Section>

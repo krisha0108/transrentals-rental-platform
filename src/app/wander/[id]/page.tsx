@@ -1202,15 +1202,26 @@ export default function TourDetailPage() {
               </div>
             )}
 
-            {/* Itinerary */}
-            {itinerary.length > 0 && (
+            {/* Itinerary — only render when at least one stop has meaningful
+                content (title / time / description / activities). Skip the
+                section entirely if the agent / vendor never filled stops. */}
+            {(() => {
+              const visibleStops = (itinerary || []).filter((s: any) => {
+                const title = (s?.title || '').trim();
+                const time = (s?.time || '').trim();
+                const desc = (s?.description || '').toString().replace(/<[^>]*>/g, '').trim();
+                const hasActivities = Array.isArray(s?.activities) && s.activities.filter(Boolean).length > 0;
+                return !!(title || time || desc || hasActivities);
+              });
+              if (visibleStops.length === 0) return null;
+              return (
               <div>
                 <h2 className="text-lg font-bold text-gray-900 mb-4">Itinerary</h2>
                 <div className="relative">
                   {/* vertical line */}
                   <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-indigo-100" />
                   <div className="space-y-0">
-                    {itinerary.map((stop: any, i: number) => (
+                    {visibleStops.map((stop: any, i: number) => (
                       <div key={i} className="relative flex gap-4 pb-6">
                         <div className="w-10 h-10 bg-white border-2 border-indigo-200 rounded-full flex items-center justify-center flex-shrink-0 z-10 text-lg">
                           {stop.emoji || '📍'}
@@ -1228,7 +1239,10 @@ export default function TourDetailPage() {
                           </div>
                           <h3 className="font-bold text-gray-900 text-sm">{stop.title}</h3>
                           {stop.description && (
-                            <p className="text-xs text-gray-500 mt-1 leading-relaxed">{stop.description}</p>
+                            <div
+                              className="text-xs text-gray-500 mt-1 leading-relaxed prose prose-xs max-w-none prose-headings:text-gray-900 prose-headings:font-semibold prose-strong:text-gray-900 prose-p:my-1 prose-headings:my-2"
+                              dangerouslySetInnerHTML={{ __html: sanitizeRichText(stop.description) }}
+                            />
                           )}
                           {stop.activities?.filter(Boolean).length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-2">
@@ -1245,7 +1259,8 @@ export default function TourDetailPage() {
                   </div>
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* Inclusions & Exclusions */}
             {(inclusions.length > 0 || exclusions.length > 0) && (

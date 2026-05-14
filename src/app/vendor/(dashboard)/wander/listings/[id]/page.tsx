@@ -75,7 +75,7 @@ function listingToForm(listing) {
         activities: Array.isArray(stop.activities) && stop.activities.length ? stop.activities : [''],
         timeSpent: stop.timeSpent || '',
       }))
-    : [{ id: Date.now(), emoji: '🚗', time: '8:30 AM', title: 'Pickup', description: '', activities: [''], timeSpent: '' }];
+    : [{ id: Date.now(), emoji: '📍', time: '', title: '', description: '', activities: [''], timeSpent: '' }];
 
   const priceTiersRaw = parseJSON(listing.priceTiers, null);
   const priceTiers = Array.isArray(priceTiersRaw) && priceTiersRaw.length > 0

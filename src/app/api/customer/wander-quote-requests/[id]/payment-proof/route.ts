@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { notifyTravelAgent } from '@/lib/notifications/travel-agent-notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -132,6 +133,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           (uploadedUrls.length ? `\nImages: ${uploadedUrls.length}` : '') +
           (!txnId && uploadedUrls.length ? '\n(no txn id — proof via screenshot only)' : ''),
       },
+    });
+
+    await notifyTravelAgent(lead.travelAgentId, {
+      type: 'PAYMENT',
+      title: 'Payment proof submitted',
+      body: `${lead.customerName} submitted payment proof${txnId ? ` (Txn: ${txnId})` : ''}. Verify when ready.`,
+      link: `/travel-agent/leads/${lead.id}`,
+      metadata: { leadId: lead.id, txnId: txnId || null, imageCount: uploadedUrls.length },
     });
 
     return NextResponse.json({

@@ -47,6 +47,18 @@ export async function GET(request: NextRequest) {
       orderBy: { lastMessageAt: 'desc' },
     });
 
+    // Batch-resolve human-readable booking numbers
+    const chauffeurIds = conversations.filter(c => c.bookingType === 'chauffeur' && c.bookingId).map(c => c.bookingId as string);
+    const carIds = conversations.filter(c => c.bookingType === 'car' && c.bookingId).map(c => c.bookingId as string);
+
+    const [chauffeurBookings, carBookings] = await Promise.all([
+      chauffeurIds.length ? prisma.chauffeur_bookings.findMany({ where: { id: { in: chauffeurIds } }, select: { id: true, bookingNumber: true } }) : [],
+      carIds.length ? prisma.car_bookings.findMany({ where: { id: { in: carIds } }, select: { id: true, bookingNumber: true } }) : [],
+    ]);
+
+    const bookingNumberMap = new Map<string, string>();
+    [...chauffeurBookings, ...carBookings].forEach(b => bookingNumberMap.set(b.id, b.bookingNumber));
+
     const totalUnread = conversations.reduce((s, c) => s + (c.customerUnread || 0), 0);
 
     return NextResponse.json({
@@ -55,6 +67,7 @@ export async function GET(request: NextRequest) {
         id: conv.id,
         bookingType: conv.bookingType,
         bookingId: conv.bookingId,
+        bookingNumber: conv.bookingId ? (bookingNumberMap.get(conv.bookingId) ?? null) : null,
         subject: conv.subject,
         status: conv.status,
         participantType: conv.participantType,
