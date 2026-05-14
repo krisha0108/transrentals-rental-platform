@@ -13,6 +13,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -71,7 +73,10 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
-  const seoData = await resolvePageMeta(`self-drive-hatchback-rental:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`self-drive-hatchback-rental:${params.location}`),
+    getServiceCityContent('self-drive-hatchback-rental', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'Which hatchback cars are available for self-drive?', answer: 'We offer Maruti Swift, Hyundai i20, Maruti Baleno, Honda Jazz, and Tata Tiago — affordable and fuel-efficient hatchbacks.' },
@@ -146,12 +151,14 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="self-drive-hatchback-rental"
-        cityName={locationName}
-        stateCode={undefined}
-      />
+              citySlug={params.location}
+              serviceSlug="self-drive-hatchback-rental"
+              cityName={locationName}
+              stateCode={undefined}
+            />
+      */}
       <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
       <BikeServiceSchema
         serviceName="Self Drive Hatchback Rental"
@@ -161,6 +168,10 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
         citySlug={params.location}
         faqs={[]}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="self-drive-car-rentals"

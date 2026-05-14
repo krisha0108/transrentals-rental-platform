@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Loader2, Search, Building2, Truck, Calendar, MapPin, ChevronRight,
   Clock, CheckCircle, FileText, IndianRupee, AlertCircle, ExternalLink,
-  Eye, CreditCard, Car, Users, Filter, Download,
+  Eye, CreditCard, Car, Users, Filter, Download, PartyPopper, Sparkles,
 } from 'lucide-react';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -68,14 +68,28 @@ export default function ManagerB2BPage() {
 
   const needsAction = bookings.filter((b: any) => b.status === 'QUOTES_RECEIVED').length;
 
-  // Booking stats
-  const bookingStats = useMemo(() => ({
-    total: bookings.length,
-    active: bookings.filter((b: any) => ['CONFIRMED', 'TRIPS_CREATED', 'IN_PROGRESS'].includes(b.status)).length,
-    pending: bookings.filter((b: any) => ['OPEN_FOR_QUOTES', 'QUOTES_RECEIVED', 'SUPER_QUOTE_SENT'].includes(b.status)).length,
-    completed: bookings.filter((b: any) => ['COMPLETED', 'INVOICED', 'PAID'].includes(b.status)).length,
-    totalValue: bookings.reduce((s: number, b: any) => s + (b.finalAmount || 0), 0),
-  }), [bookings]);
+  // Split — CUSTOM_BULK (multi-day event) bookings get their own tab so the
+  // regular B2B list stays single-service.
+  const regularBookings = useMemo(
+    () => bookings.filter((b: any) => b.serviceType !== 'CUSTOM_BULK'),
+    [bookings],
+  );
+  const bulkBookings = useMemo(
+    () => bookings.filter((b: any) => b.serviceType === 'CUSTOM_BULK'),
+    [bookings],
+  );
+
+  // Booking stats — built from the active list (regular vs bulk).
+  const bookingStats = useMemo(() => {
+    const list = activeTab === 'bulk-bookings' ? bulkBookings : regularBookings;
+    return {
+      total: list.length,
+      active: list.filter((b: any) => ['CONFIRMED', 'TRIPS_CREATED', 'IN_PROGRESS'].includes(b.status)).length,
+      pending: list.filter((b: any) => ['OPEN_FOR_QUOTES', 'QUOTES_RECEIVED', 'SUPER_QUOTE_SENT'].includes(b.status)).length,
+      completed: list.filter((b: any) => ['COMPLETED', 'INVOICED', 'PAID'].includes(b.status)).length,
+      totalValue: list.reduce((s: number, b: any) => s + (b.finalAmount || 0), 0),
+    };
+  }, [regularBookings, bulkBookings, activeTab]);
 
   // Invoice stats
   const invoiceStats = useMemo(() => {
@@ -104,15 +118,18 @@ export default function ManagerB2BPage() {
     return list;
   }, [invoices, invoiceStatus, searchQuery]);
 
-  // Service types from bookings
+  // Service types — only from regular bookings (the per-service filter chips
+  // sit under the regular tab; bulk events are always multi-service).
   const serviceTypes = useMemo(() => {
-    return [...new Set(bookings.map((b: any) => b.serviceType))].sort();
-  }, [bookings]);
+    return [...new Set(regularBookings.map((b: any) => b.serviceType))].sort();
+  }, [regularBookings]);
 
-  // Filtered bookings by search + service
+  // Filtered bookings by tab + search + service.
   const filteredBookings = useMemo(() => {
-    let list = bookings;
-    if (serviceFilter !== 'all') list = list.filter((b: any) => b.serviceType === serviceFilter);
+    let list = activeTab === 'bulk-bookings' ? bulkBookings : regularBookings;
+    if (activeTab !== 'bulk-bookings' && serviceFilter !== 'all') {
+      list = list.filter((b: any) => b.serviceType === serviceFilter);
+    }
     if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
     return list.filter((b: any) =>
@@ -120,7 +137,7 @@ export default function ManagerB2BPage() {
       b.companyName?.toLowerCase().includes(q) ||
       b.pickupLocation?.toLowerCase().includes(q)
     );
-  }, [bookings, searchQuery, serviceFilter]);
+  }, [regularBookings, bulkBookings, activeTab, searchQuery, serviceFilter]);
 
   // Unique companies
   const companies = useMemo(() => {
@@ -151,9 +168,10 @@ export default function ManagerB2BPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b">
+      <div className="flex gap-1 border-b overflow-x-auto">
         {[
-          { key: 'bookings', label: 'Bookings', icon: Truck, count: bookingStats.total },
+          { key: 'bookings', label: 'Bookings', icon: Truck, count: regularBookings.length },
+          { key: 'bulk-bookings', label: 'Bulk Bookings', icon: PartyPopper, count: bulkBookings.length },
           { key: 'invoices', label: 'Invoices', icon: FileText, count: invoiceStats.count },
           { key: 'companies', label: 'Companies', icon: Building2, count: companies.length },
         ].map(tab => {
@@ -187,9 +205,19 @@ export default function ManagerB2BPage() {
         />
       </div>
 
-      {/* ============ BOOKINGS TAB ============ */}
-      {activeTab === 'bookings' && (
+      {/* ============ BOOKINGS / BULK BOOKINGS TABS ============ */}
+      {(activeTab === 'bookings' || activeTab === 'bulk-bookings') && (
         <div className="space-y-4">
+          {activeTab === 'bulk-bookings' && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 flex items-start gap-2 text-sm text-purple-800">
+              <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-purple-600" />
+              <p>
+                <span className="font-semibold">Multi-day event bookings.</span>{' '}
+                These bookings combine multiple services across several days. Open one
+                to see the day-wise vehicle plan and the vendor quotes received against it.
+              </p>
+            </div>
+          )}
           {/* Stats */}
           <div className="grid grid-cols-5 gap-3">
             {[
@@ -218,8 +246,8 @@ export default function ManagerB2BPage() {
             ))}
           </div>
 
-          {/* Service Filter */}
-          {serviceTypes.length > 1 && (
+          {/* Service Filter — regular tab only; bulk events are always mixed-service */}
+          {activeTab === 'bookings' && serviceTypes.length > 1 && (
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
               <Filter className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
               <button onClick={() => setServiceFilter('all')}
@@ -271,7 +299,10 @@ export default function ManagerB2BPage() {
                       </div>
                       <div className="font-semibold text-gray-900">{b.companyName}</div>
                       <div className="flex flex-wrap gap-4 text-sm text-gray-500 mt-1">
-                        <span className="flex items-center gap-1 capitalize"><Car className="w-3.5 h-3.5" /> {b.vehiclesRequired} {b.serviceType}</span>
+                        <span className="flex items-center gap-1 capitalize">
+                          {b.serviceType === 'CUSTOM_BULK' ? <PartyPopper className="w-3.5 h-3.5 text-purple-500" /> : <Car className="w-3.5 h-3.5" />}
+                          {b.serviceType === 'CUSTOM_BULK' ? `${b.vehiclesRequired} vehicles · Multi-Day Event` : `${b.vehiclesRequired} ${b.serviceType}`}
+                        </span>
                         <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {b.pickupLocation}</span>
                         <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" /> {formatDate(b.scheduledDate)}</span>
                         <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> {b._count?.vendorQuotes || 0} quotes</span>

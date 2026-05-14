@@ -16,6 +16,8 @@ import { prisma } from '@/lib/db/prisma';
 import { JCBFleetGrid } from '@/components/jcb-on-rent/JCBFleetGrid';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -78,7 +80,7 @@ export default async function JCBLocationPage({ params }: PageProps) {
     { question: 'What is the minimum rental period for JCB?', answer: 'Minimum rental is 8 hours (1 shift). Multi-day and weekly contracts are available with 10–15% volume discount.' },
   ];
 
-  const [seoData, equipmentFleet] = await Promise.all([
+  const [seoData, equipmentFleet, scContent] = await Promise.all([
     resolvePageMeta(`jcb-on-rent:${params.location}`),
     prisma.vehicle_models.findMany({
       where: {
@@ -98,6 +100,7 @@ export default async function JCBLocationPage({ params }: PageProps) {
       },
       orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
     }),
+    getServiceCityContent('jcb-on-rent', params.location),
   ]);
 
 
@@ -201,12 +204,14 @@ export default async function JCBLocationPage({ params }: PageProps) {
         service="jcb-on-rent"
       />
 
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="jcb-on-rent"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="jcb-on-rent"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
       <BikeServiceSchema
         serviceName="JCB on Rent"
         serviceSlug="jcb-on-rent"
@@ -215,6 +220,10 @@ export default async function JCBLocationPage({ params }: PageProps) {
         citySlug={params.location}
         faqs={pageFaqs}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="equipment-rental"

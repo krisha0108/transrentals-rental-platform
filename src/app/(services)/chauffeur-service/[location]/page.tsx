@@ -11,6 +11,8 @@ import { prisma } from '@/lib/db/prisma';
 import { getCarRentalServiceId, getLocationId } from '@/lib/db/build-cache';
 import { ChauffeurPackages } from '@/components/chauffeur-service/ChauffeurPackages';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -79,9 +81,10 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
   const locationName = city.name;
 
   // Fetch dynamic package data
-  const [locationId, carRentalServiceId] = await Promise.all([
+  const [locationId, carRentalServiceId, scContent] = await Promise.all([
     getLocationId(params.location),
     getCarRentalServiceId(),
+    getServiceCityContent('chauffeur-service', params.location),
   ]);
 
   const [localPackages, outstationPricing] = await Promise.all([
@@ -338,12 +341,14 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="chauffeur-service"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="chauffeur-service"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
 
       {/* Schema Markup */}
       <script
@@ -369,6 +374,9 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
           }),
         }}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}

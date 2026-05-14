@@ -13,6 +13,8 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -93,7 +95,10 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
     { name: 'TVS iQube', brand: 'TVS', price: 449 },
   ];
 
-  const seoData = await resolvePageMeta(`electric-scooter-rental:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`electric-scooter-rental:${params.location}`),
+    getServiceCityContent('electric-scooter-rental', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'Which electric scooters are available on rent?', answer: 'We offer Ola S1 Pro, Ather 450X, and TVS iQube — all with full charge, app connectivity, and fast charger included.' },
@@ -267,13 +272,19 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="electric-scooter-rental"
-        cityName={locationName}
-        stateCode={undefined}
-      />
+              citySlug={params.location}
+              serviceSlug="electric-scooter-rental"
+              cityName={locationName}
+              stateCode={undefined}
+            />
+      */}
       <FAQSection service="bike-on-rent" customFaqs={pageFaqs} />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="bike-on-rent"

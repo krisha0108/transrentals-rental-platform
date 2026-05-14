@@ -16,6 +16,8 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -134,7 +136,10 @@ export default async function KTMLocationPage({ params }: PageProps) {
     ],
   };
 
-  const seoData = await resolvePageMeta(`ktm-on-rent:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`ktm-on-rent:${params.location}`),
+    getServiceCityContent('ktm-on-rent', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'Which KTM bikes are available on rent?', answer: 'We offer KTM Duke 200, Duke 390, RC 200, and RC 390 — all premium performance bikes with regular servicing.' },
@@ -198,12 +203,18 @@ export default async function KTMLocationPage({ params }: PageProps) {
           service="ktm-on-rent"
         />
 
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="ktm-on-rent"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="ktm-on-rent"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="bike-on-rent"

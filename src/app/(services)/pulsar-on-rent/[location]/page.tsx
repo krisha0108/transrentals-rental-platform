@@ -16,6 +16,8 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -134,7 +136,10 @@ export default async function PulsarLocationPage({ params }: PageProps) {
     ],
   };
 
-  const seoData = await resolvePageMeta(`pulsar-on-rent:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`pulsar-on-rent:${params.location}`),
+    getServiceCityContent('pulsar-on-rent', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'Which Pulsar models are available for rent?', answer: 'We offer Bajaj Pulsar 150, Pulsar 180, Pulsar NS200, and Pulsar RS200 — well-maintained bikes for daily and weekend rides.' },
@@ -222,12 +227,18 @@ export default async function PulsarLocationPage({ params }: PageProps) {
           service="pulsar-on-rent"
         />
 
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="pulsar-on-rent"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="pulsar-on-rent"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="bike-on-rent"

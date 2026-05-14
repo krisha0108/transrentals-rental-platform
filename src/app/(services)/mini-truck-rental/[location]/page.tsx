@@ -17,6 +17,8 @@ import { getTransporterServiceId, getLocationId } from '@/lib/db/build-cache';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
 import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -86,10 +88,11 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
     { question: 'Can I book a mini truck for just 2–3 hours?', answer: 'Yes, half-day (4-hour) packages are available starting from ₹799 including driver and 40 km. Ideal for market runs and shop deliveries.' },
   ];
 
-  const [seoData, transporterServiceId, locationId] = await Promise.all([
+  const [seoData, transporterServiceId, locationId, scContent] = await Promise.all([
     resolvePageMeta(`mini-truck-rental:${params.location}`),
     getTransporterServiceId(),
     getLocationId(params.location),
+    getServiceCityContent('mini-truck-rental', params.location),
   ]);
 
   const truckModels = transporterServiceId ? await prisma.vehicle_models.findMany({
@@ -203,12 +206,14 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
         service="mini-truck-rental"
       />
 
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="mini-truck-rental"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="mini-truck-rental"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
 
       <ServiceAreasSection
         serviceSlug="mini-truck-rental"
@@ -254,6 +259,10 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
           acceptedAnswer: { '@type': 'Answer', text: faq.answer },
         })),
       })}} />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="mini-truck-rental"

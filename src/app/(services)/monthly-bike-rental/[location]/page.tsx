@@ -13,6 +13,8 @@ import { StateServicePage } from '@/components/location/StateServicePage';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -106,7 +108,10 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
     { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 9999 },
   ];
 
-  const seoData = await resolvePageMeta(`monthly-bike-rental:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`monthly-bike-rental:${params.location}`),
+    getServiceCityContent('monthly-bike-rental', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'What is included in the monthly bike rental plan?', answer: 'Monthly plans include the bike, helmet, insurance, and free maintenance. You only pay for fuel — no hidden charges.' },
@@ -118,12 +123,14 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
   return (
     <>
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="monthly-bike-rental"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="monthly-bike-rental"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
 
       {/* Schema Markup */}
       <BikeServiceSchema
@@ -414,6 +421,10 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
       </section>
 
       <FAQSection service="bike-on-rent" customFaqs={pageFaqs} />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="bike-on-rent"

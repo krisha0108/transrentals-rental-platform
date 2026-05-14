@@ -8,7 +8,8 @@ import {
   Building2, Car, Users, MapPin, Calendar, ArrowLeft, AlertCircle,
   Loader2, IndianRupee, Route, Phone, User, Shield, Clock, Fuel,
   CheckCircle, ChevronDown, ChevronUp, Truck, Send, KeyRound, Play,
-  Flag, XCircle, MessageCircle, Edit3,
+  Flag, XCircle, MessageCircle, Edit3, Bike, Bus, Package, Wrench,
+  Star, Sparkles, PartyPopper, StickyNote,
 } from 'lucide-react';
 import VendorBookingChat from '@/components/vendor/VendorBookingChat';
 import { useVendorVerification } from '@/contexts/VendorVerificationContext';
@@ -160,6 +161,46 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
     }
   };
 
+  // Self-drive shortcut: vendor at the pickup point handles both ends —
+  // generate the OTP (audit + customer copy) AND verify it. The customer
+  // doesn't need to enter anything from their side. Chains the two existing
+  // endpoints (arrive → verify-otp) behind one button.
+  const handleSelfDriveHandover = async (tripCode: string) => {
+    setTripProcessing(tripCode);
+    setTripActionMsg(null);
+    try {
+      // 1. Generate OTP — moves trip to DRIVER_ARRIVED and saves OTP.
+      const arriveRes = await fetch(`/api/b2b/trips/${tripCode}/driver-action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'arrive' }),
+      });
+      const arriveData = await arriveRes.json();
+      if (!arriveRes.ok || arriveData.status !== 'success' || !arriveData.otp) {
+        setTripActionMsg({ tripCode, type: 'error', msg: arriveData.error || 'Could not generate handover OTP' });
+        return;
+      }
+      // 2. Auto-verify with the OTP we just got back — moves trip to STARTED.
+      const verifyRes = await fetch(`/api/b2b/trips/${tripCode}/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp: arriveData.otp }),
+      });
+      const verifyData = await verifyRes.json();
+      if (verifyRes.ok && verifyData.status === 'success') {
+        setTripActionMsg({ tripCode, type: 'success', msg: `Vehicle handed over. OTP ${arriveData.otp} saved for records.` });
+        fetchData();
+      } else {
+        setTripActionMsg({ tripCode, type: 'error', msg: verifyData.error || 'Could not start the trip after generating OTP' });
+        fetchData();
+      }
+    } catch {
+      setTripActionMsg({ tripCode, type: 'error', msg: 'Network error' });
+    } finally {
+      setTripProcessing(null);
+    }
+  };
+
   const handleEndTrip = async (tripCode: string) => {
     setTripProcessing(tripCode);
     setTripActionMsg(null);
@@ -218,7 +259,26 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
   const vendorName = vendorUser?.businessName || vendorUser?.name || '';
   const isDirect = ['car', 'bike', 'luxury'].includes(booking.serviceType);
   const isSelfDrive = booking.serviceType === 'self-drive';
+  const isBulk = booking.serviceType === 'CUSTOM_BULK';
   const canAssign = ['OPEN_FOR_QUOTES', 'QUOTES_RECEIVED'].includes(booking.status) && myQuotes.length === 0;
+
+  // CUSTOM_BULK event plan — day-by-day services/vehicles. Stored as a JSON
+  // string in b2b_bookings.bulkBreakdown; null/parse failures fall through to
+  // the regular booking-details rendering.
+  let bulkPlan: any = null;
+  if (isBulk && booking.bulkBreakdown) {
+    try { bulkPlan = JSON.parse(booking.bulkBreakdown); } catch { bulkPlan = null; }
+  }
+  const SERVICE_META: Record<string, { Icon: any; cls: string; label: string }> = {
+    car:          { Icon: Car,     cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Car Rental'     },
+    'self-drive': { Icon: Car,     cls: 'bg-sky-50 text-sky-700 border-sky-200',             label: 'Self Drive'     },
+    bus:          { Icon: Bus,     cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Bus'            },
+    truck:        { Icon: Truck,   cls: 'bg-red-50 text-red-700 border-red-200',             label: 'Truck'          },
+    bike:         { Icon: Bike,    cls: 'bg-amber-50 text-amber-700 border-amber-200',       label: 'Bike'           },
+    equipment:    { Icon: Wrench,  cls: 'bg-cyan-50 text-cyan-700 border-cyan-200',          label: 'Equipment'      },
+    packers:      { Icon: Package, cls: 'bg-pink-50 text-pink-700 border-pink-200',          label: 'Packers'        },
+    luxury:       { Icon: Star,    cls: 'bg-purple-50 text-purple-700 border-purple-200',    label: 'Luxury Car'     },
+  };
 
   // Parse self-drive vehicle preference from specialNotes
   let selfDrivePref: any = null;
@@ -251,17 +311,16 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
         <ArrowLeft className="w-4 h-4" /> Back to B2B Requests
       </button>
 
-      {/* Header */}
-      <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-2xl border border-teal-200 p-6">
+      {/* Header — purple tint for CUSTOM_BULK so vendors recognise event requests */}
+      <div className={`rounded-2xl border p-6 bg-gradient-to-r ${isBulk ? 'from-purple-50 to-indigo-50 border-purple-200' : 'from-teal-50 to-cyan-50 border-teal-200'}`}>
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <Building2 className="w-6 h-6 text-teal-600" />
-              <h1 className="text-xl font-bold text-teal-800">{booking.bookingNumber}</h1>
-              
+              {isBulk ? <PartyPopper className="w-6 h-6 text-purple-600" /> : <Building2 className="w-6 h-6 text-teal-600" />}
+              <h1 className={`text-xl font-bold ${isBulk ? 'text-purple-800' : 'text-teal-800'}`}>{booking.bookingNumber}</h1>
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}>{statusConfig.label}</span>
             </div>
-            <p className="text-sm text-gray-500 ml-9">B2B Booking Request</p>
+            <p className="text-sm text-gray-500 ml-9">{isBulk ? 'Multi-Day Bulk Event Request' : 'B2B Booking Request'}</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -282,6 +341,126 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
           </div>
         </div>
       </div>
+
+      {/* CUSTOM_BULK Event Plan — day-by-day services and vehicles. Quote flow
+          below stays identical to regular B2B; this section is purely additive. */}
+      {isBulk && bulkPlan && (
+        <div className="bg-white rounded-2xl border border-purple-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-purple-100 flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-gray-900 truncate">
+                  {bulkPlan.occasion_name || 'Event Plan'}
+                </h2>
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  {bulkPlan.occasion_type && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-extrabold uppercase tracking-wider bg-purple-100 text-purple-700">
+                      {bulkPlan.occasion_type}
+                    </span>
+                  )}
+                  {bulkPlan.base_location && (
+                    <span className="inline-flex items-center gap-1 text-xs text-gray-600 font-medium">
+                      <MapPin className="w-3 h-3" /> {bulkPlan.base_location}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {bulkPlan.total_days && (
+                <div className="px-3 py-1.5 bg-white rounded-lg border border-purple-100 text-center">
+                  <p className="text-lg font-extrabold text-purple-700 leading-none tabular-nums">{bulkPlan.total_days}</p>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">Days</p>
+                </div>
+              )}
+              {bulkPlan.total_people && (
+                <div className="px-3 py-1.5 bg-white rounded-lg border border-emerald-100 text-center">
+                  <p className="text-lg font-extrabold text-emerald-700 leading-none tabular-nums">{bulkPlan.total_people}</p>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">People</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Day-by-day */}
+          <div className="p-4 space-y-3">
+            {Array.isArray(bulkPlan.days) && bulkPlan.days.length > 0 ? bulkPlan.days.map((day: any, dIdx: number) => (
+              <div key={dIdx} className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 font-extrabold text-xs">
+                      D{dIdx + 1}
+                    </div>
+                    <span className="font-bold text-gray-900 text-sm">
+                      {day.date ? formatDate(day.date) : `Day ${dIdx + 1}`}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500 font-medium">{(day.services || []).length} service{(day.services || []).length !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  {(day.services || []).map((svc: any, sIdx: number) => {
+                    const meta = SERVICE_META[svc.service_type] || { Icon: Car, cls: 'bg-gray-50 text-gray-700 border-gray-200', label: svc.service_type };
+                    const SvcIcon = meta.Icon;
+                    return (
+                      <div key={sIdx} className="px-4 py-3">
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border ${meta.cls}`}>
+                            <SvcIcon className="w-3.5 h-3.5" />
+                            {meta.label}
+                          </span>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            {svc.total_vehicles ? <span className="font-bold text-gray-700 tabular-nums">{svc.total_vehicles} veh</span> : null}
+                            {svc.people_count ? <span className="font-medium">· {svc.people_count} pax</span> : null}
+                            {svc.pickup_time ? <span className="font-medium">· {svc.pickup_time}</span> : null}
+                          </div>
+                        </div>
+                        {Array.isArray(svc.vehicles) && svc.vehicles.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {svc.vehicles.map((v: any, vIdx: number) => (
+                              <span key={vIdx} className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded text-[11px] font-medium text-gray-700">
+                                <span className="font-bold tabular-nums">×{v.count}</span>
+                                <span className="truncate max-w-[180px]">{v.vehicle_name || v.vehicle_slug || 'Vehicle'}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {(svc.pickup_location || svc.drop_location) && (
+                          <div className="flex items-center gap-2 text-xs text-gray-600 mb-1">
+                            {svc.pickup_location && <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3 text-emerald-500" />{svc.pickup_location}</span>}
+                            {svc.drop_location && (
+                              <>
+                                <span className="text-gray-300">→</span>
+                                <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3 text-red-500" />{svc.drop_location}</span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                        {svc.notes && (
+                          <p className="flex items-start gap-1.5 text-xs text-gray-500 italic mt-1">
+                            <StickyNote className="w-3 h-3 mt-0.5 shrink-0" />
+                            {svc.notes}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )) : (
+              <p className="text-sm text-gray-500 text-center py-4">No day-wise breakdown provided.</p>
+            )}
+          </div>
+
+          {bulkPlan.special_requirements && (
+            <div className="border-t border-purple-100 px-6 py-3 bg-purple-50/40 text-sm text-purple-900">
+              <span className="font-bold">Special requirements:</span> {bulkPlan.special_requirements}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Self-Drive Vehicle Preference */}
       {isSelfDrive && selfDrivePref && (
@@ -676,6 +855,11 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
               const myVendorId = myQuotes.length > 0 ? myQuotes[0].vendorId : null;
               const isMyTrip = myVendorId ? (trip.vendorId === myVendorId || trip.vendor?.id === myVendorId) : false;
               const actionMsg = tripActionMsg?.tripCode === trip.tripCode ? tripActionMsg : null;
+              // A trip is self-drive when either the whole booking is self-drive,
+              // or this is a CUSTOM_BULK booking and the trip has no driver
+              // attached (self-drive rows from the quote come through without
+              // a driver). That's the OTP-flow trigger.
+              const tripIsSelfDrive = isSelfDrive || (booking.serviceType === 'CUSTOM_BULK' && !trip.driverStaffId && !trip.driverName);
 
               return (
                 <div key={trip.id} className={`rounded-xl border overflow-hidden ${
@@ -706,7 +890,8 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                       </div>
                       <div className="text-xs text-gray-500 mt-0.5">
                         {trip.vehicleName || '-'} {trip.vehicleNumber && `(${trip.vehicleNumber})`}
-                        {!isSelfDrive && trip.driverName && ` • Driver: ${trip.driverName}`}
+                        {!tripIsSelfDrive && trip.driverName && ` • Driver: ${trip.driverName}`}
+                        {tripIsSelfDrive && <span className="ml-1 inline-flex items-center gap-1 text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded font-medium"><KeyRound className="w-3 h-3" /> Self-Drive</span>}
                       </div>
                     </div>
 
@@ -728,58 +913,60 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                   )}
 
                   {/* Self-drive trip actions (only for vendor's own trips) */}
-                  {isSelfDrive && isMyTrip && (
+                  {tripIsSelfDrive && isMyTrip && (
                     <div className="px-4 pb-4">
-                      {/* PENDING → Mark Arrived */}
+                      {/* PENDING → Generate OTP. Once clicked, the OTP
+                          appears on the customer's trip link (/trip/<code>);
+                          customer reads it out, vendor types it back to verify. */}
                       {tripStatus === 'PENDING' && (
                         <div className="flex items-center gap-3">
-                          <div className="flex-1 bg-emerald-50 rounded-lg p-3 flex items-center gap-3">
-                            <KeyRound className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                          <div className="flex-1 bg-sky-50 border border-sky-100 rounded-lg p-3 flex items-center gap-3">
+                            <KeyRound className="w-5 h-5 text-sky-600 flex-shrink-0" />
                             <div>
-                              <p className="text-sm font-medium text-emerald-800">Vehicle Ready for Handover?</p>
-                              <p className="text-xs text-emerald-600">Mark arrived to generate OTP for customer verification</p>
+                              <p className="text-sm font-medium text-sky-800">Vehicle Ready for Handover?</p>
+                              <p className="text-xs text-sky-600">Generate an OTP — it'll appear on the customer's trip link. Ask them to read it out, then verify here to start the trip.</p>
                             </div>
                           </div>
                           <button
                             onClick={() => isApproved ? handleMarkArrived(trip.tripCode) : openVerificationModal()}
                             disabled={tripProcessing === trip.tripCode}
-                            className="px-5 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl font-semibold text-sm flex items-center gap-2 disabled:opacity-50 transition"
+                            className="px-5 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-semibold text-sm flex items-center gap-2 disabled:opacity-50 transition"
                           >
                             {tripProcessing === trip.tripCode ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
                               <KeyRound className="w-4 h-4" />
                             )}
-                            Mark Arrived
+                            Generate OTP
                           </button>
                         </div>
                       )}
 
-                      {/* DRIVER_ARRIVED → Waiting for customer OTP */}
+                      {/* DRIVER_ARRIVED → OTP visible on customer's trip link.
+                          Vendor asks customer, enters it here, and verifies to
+                          mark the trip as started. */}
                       {tripStatus === 'DRIVER_ARRIVED' && (
                         <div className="space-y-3">
-                          {/* Info: OTP sent to customer + Resend */}
-                          <div className="bg-cyan-50 border border-cyan-200 rounded-xl p-4 flex items-center gap-3">
-                            <KeyRound className="w-6 h-6 text-cyan-600 flex-shrink-0" />
+                          <div className="bg-sky-50 border border-sky-200 rounded-xl p-4 flex items-center gap-3">
+                            <KeyRound className="w-6 h-6 text-sky-600 flex-shrink-0" />
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-cyan-800">OTP sent to customer</p>
-                              <p className="text-xs text-cyan-600">Ask the customer to share the OTP they received via trip link</p>
+                              <p className="text-sm font-medium text-sky-800">OTP is now visible on the customer's trip link</p>
+                              <p className="text-xs text-sky-700">Ask the customer to read out the 4-digit OTP from their trip page, then enter it below to start the trip.</p>
                             </div>
                             <button
                               onClick={() => isApproved ? handleResendOtp(trip.tripCode) : openVerificationModal()}
                               disabled={tripProcessing === trip.tripCode}
-                              className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 transition flex-shrink-0"
+                              className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 transition flex-shrink-0"
                             >
                               {tripProcessing === trip.tripCode ? (
                                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               ) : (
                                 <KeyRound className="w-3.5 h-3.5" />
                               )}
-                              Resend OTP
+                              Regenerate OTP
                             </button>
                           </div>
 
-                          {/* OTP Verify Input */}
                           <div className="flex items-center gap-3">
                             <div className="flex-1">
                               <input
@@ -790,7 +977,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                                   [trip.tripCode]: e.target.value.replace(/\D/g, '').slice(0, 4)
                                 }))}
                                 placeholder="Enter 4-digit OTP from customer"
-                                className="w-full px-4 py-3 text-center text-xl font-mono tracking-[0.3em] border-2 border-cyan-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none"
+                                className="w-full px-4 py-3 text-center text-xl font-mono tracking-[0.3em] border-2 border-sky-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none"
                                 maxLength={4}
                               />
                             </div>
@@ -804,7 +991,7 @@ export default function VendorB2BBookingDetailPage({ params }: { params: { id: s
                               ) : (
                                 <Play className="w-4 h-4" />
                               )}
-                              Verify & Start
+                              Verify &amp; Start Trip
                             </button>
                           </div>
                         </div>

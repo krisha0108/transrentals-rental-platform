@@ -27,6 +27,11 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const view = searchParams.get('view') || 'open'; // 'open' = open bookings, 'my' = my quotes
+    // serviceType: 'CUSTOM_BULK' → only bulk; 'non-bulk' → exclude bulk; otherwise all.
+    // Vendor side splits these into two lists (/vendor/b2b-bookings vs
+    // /vendor/bulk-bookings) so the day-wise event plan stays out of the regular
+    // single-service B2B view.
+    const serviceTypeFilter = searchParams.get('serviceType');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
@@ -78,12 +83,17 @@ export async function GET(request: NextRequest) {
     }
 
     // B2B bookings: open ones + any where this vendor has submitted a quote
-    const whereClause = {
+    const whereClause: any = {
       OR: [
         { status: { in: ['OPEN_FOR_QUOTES', 'QUOTES_RECEIVED'] } },
         { vendorQuotes: { some: { vendorId: auth.vendorId } } },
       ],
     };
+    if (serviceTypeFilter === 'CUSTOM_BULK') {
+      whereClause.serviceType = 'CUSTOM_BULK';
+    } else if (serviceTypeFilter === 'non-bulk') {
+      whereClause.serviceType = { not: 'CUSTOM_BULK' };
+    }
 
     const [bookings, total] = await Promise.all([
       prisma.b2b_bookings.findMany({
@@ -154,24 +164,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'You have already submitted a quote for this booking' }, { status: 400 });
     }
 
-    // Verify all vehicles belong to this vendor
+    // Verify all vehicles belong to this vendor. For CUSTOM_BULK quotes a
+    // single vehicle can legitimately appear on multiple days, so dedupe the
+    // ids before comparing — otherwise Prisma's unique findMany result would
+    // falsely report a missing fleet entry.
     const fleetIds = vehicles.map((v: any) => v.vendorFleetId);
+    const uniqueFleetIds = Array.from(new Set(fleetIds));
     const vendorFleets = await prisma.vendor_fleets.findMany({
-      where: { id: { in: fleetIds }, vendorId: auth.vendorId },
+      where: { id: { in: uniqueFleetIds }, vendorId: auth.vendorId },
       select: { id: true, vehicleName: true, registrationNumber: true },
     });
-    if (vendorFleets.length !== fleetIds.length) {
+    if (vendorFleets.length !== uniqueFleetIds.length) {
       return NextResponse.json({ error: 'Some vehicles do not belong to your fleet' }, { status: 400 });
     }
 
-    // Verify drivers belong to this vendor (if provided)
+    // Verify drivers belong to this vendor (if provided). Same dedupe logic —
+    // one driver may be assigned across multiple days of the same quote.
     const driverIds = vehicles.map((v: any) => v.driverStaffId).filter(Boolean);
-    if (driverIds.length > 0) {
+    const uniqueDriverIds = Array.from(new Set(driverIds));
+    if (uniqueDriverIds.length > 0) {
       const vendorDrivers = await prisma.vendor_staff.findMany({
-        where: { id: { in: driverIds }, vendorId: auth.vendorId, role: 'DRIVER' },
+        where: { id: { in: uniqueDriverIds }, vendorId: auth.vendorId, role: 'DRIVER' },
         select: { id: true, name: true, phone: true },
       });
-      if (vendorDrivers.length !== driverIds.length) {
+      if (vendorDrivers.length !== uniqueDriverIds.length) {
         return NextResponse.json({ error: 'Some drivers do not belong to your staff' }, { status: 400 });
       }
     }

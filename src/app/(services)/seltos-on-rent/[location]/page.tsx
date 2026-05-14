@@ -13,6 +13,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps { params: { location: string }; }
 
@@ -50,7 +52,10 @@ export default async function SeltosLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
-  const seoData = await resolvePageMeta(`seltos-on-rent:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`seltos-on-rent:${params.location}`),
+    getServiceCityContent('seltos-on-rent', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'Which Kia Seltos variants are available for self-drive?', answer: 'We offer Kia Seltos HTE, HTK, HTX, and HTX+ in both petrol manual and petrol DCT automatic variants.' },
@@ -117,12 +122,14 @@ export default async function SeltosLocationPage({ params }: PageProps) {
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="seltos-on-rent"
-        cityName={locationName}
-        stateCode={undefined}
-      />
+              citySlug={params.location}
+              serviceSlug="seltos-on-rent"
+              cityName={locationName}
+              stateCode={undefined}
+            />
+      */}
       <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
       <BikeServiceSchema
         serviceName="Seltos on Rent"
@@ -132,6 +139,10 @@ export default async function SeltosLocationPage({ params }: PageProps) {
         citySlug={params.location}
         faqs={[]}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="self-drive-car-rentals"

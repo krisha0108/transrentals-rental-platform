@@ -264,10 +264,23 @@ const toLocalISODate = (d: Date) => {
   return `${y}-${m}-${day}`;
 };
 
+const getTomorrowISO = (): string => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 1);
+  return toLocalISODate(d);
+};
+
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+};
+
+const formatDayFull = (dateStr: string) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 };
 
 const formatTime12 = (hhmm: string) => {
@@ -733,17 +746,18 @@ export function CustomBookingForm() {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-                    const dayAfter = new Date(today); dayAfter.setDate(today.getDate() + 2);
+                    const dayAfterTomorrow = new Date(today); dayAfterTomorrow.setDate(today.getDate() + 2);
+                    const threeDaysOut = new Date(today); threeDaysOut.setDate(today.getDate() + 3);
                     const friday = new Date(today);
                     friday.setDate(today.getDate() + ((5 - today.getDay() + 7) % 7 || 7));
                     const sunday = new Date(friday); sunday.setDate(friday.getDate() + 2);
                     const nextMon = new Date(today); nextMon.setDate(today.getDate() + ((8 - today.getDay()) % 7 || 7));
                     const nextSun = new Date(nextMon); nextSun.setDate(nextMon.getDate() + 6);
                     const presets: { label: string; start: string; end: string }[] = [
-                      { label: 'Today', start: fmt(today), end: fmt(today) },
                       { label: 'Tomorrow', start: fmt(tomorrow), end: fmt(tomorrow) },
+                      { label: 'Day after', start: fmt(dayAfterTomorrow), end: fmt(dayAfterTomorrow) },
                       { label: 'This weekend', start: fmt(friday), end: fmt(sunday) },
-                      { label: 'Next 3 days', start: fmt(today), end: fmt(dayAfter) },
+                      { label: 'Next 3 days', start: fmt(tomorrow), end: fmt(threeDaysOut) },
                       { label: 'Next week', start: fmt(nextMon), end: fmt(nextSun) },
                     ];
                     return presets.map(p => {
@@ -774,12 +788,17 @@ export function CustomBookingForm() {
                       <input
                         type="date"
                         value={formData.startDate}
-                        min={toLocalISODate(new Date())}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          startDate: e.target.value,
-                          endDate: prev.endDate && prev.endDate < e.target.value ? e.target.value : prev.endDate,
-                        }))}
+                        min={getTomorrowISO()}
+                        onChange={(e) => {
+                          const picked = e.target.value;
+                          const tomorrow = getTomorrowISO();
+                          if (picked && picked < tomorrow) return;
+                          setFormData(prev => ({
+                            ...prev,
+                            startDate: picked,
+                            endDate: prev.endDate && prev.endDate < picked ? picked : prev.endDate,
+                          }));
+                        }}
                         className="flex-1 min-w-0 px-2 py-1.5 bg-transparent border-0 text-sm font-medium text-gray-900 focus:outline-none focus:ring-0"
                       />
                       <div className="flex items-center gap-1.5 sm:border-l sm:pl-2">
@@ -806,8 +825,13 @@ export function CustomBookingForm() {
                       <input
                         type="date"
                         value={formData.endDate}
-                        min={formData.startDate || toLocalISODate(new Date())}
-                        onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                        min={formData.startDate || getTomorrowISO()}
+                        onChange={(e) => {
+                          const picked = e.target.value;
+                          const floor = formData.startDate || getTomorrowISO();
+                          if (picked && picked < floor) return;
+                          setFormData(prev => ({ ...prev, endDate: picked }));
+                        }}
                         className="flex-1 min-w-0 px-2 py-1.5 bg-transparent border-0 text-sm font-medium text-gray-900 focus:outline-none focus:ring-0"
                       />
                       <div className="flex items-center gap-1.5 sm:border-l sm:pl-2">
@@ -921,8 +945,12 @@ export function CustomBookingForm() {
                       <span className="text-blue-600 font-bold">D{dayIndex + 1}</span>
                     </div>
                     <div className="text-left">
-                      <h3 className="font-semibold text-lg">Day {dayIndex + 1}</h3>
-                      <p className="text-sm text-gray-500">{formatDate(day.date)}</p>
+                      <h3 className="font-semibold text-lg flex flex-wrap items-baseline gap-x-2">
+                        <span>Day {dayIndex + 1}</span>
+                        <span className="text-sm font-normal text-gray-600">
+                          · {formatDayFull(day.date)}
+                        </span>
+                      </h3>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -1030,6 +1058,20 @@ export function CustomBookingForm() {
                                 })}
                               </div>
                             </div>
+
+                            {/* Self-drive disclaimer — customer drives the
+                                vehicle themselves, so no driver/chauffeur. */}
+                            {service.serviceType === 'selfdrive' && (
+                              <div className="mb-4 flex items-start gap-2 p-3 bg-teal-50 border border-teal-200 rounded-lg text-sm text-teal-800">
+                                <KeyRound className="w-4 h-4 mt-0.5 shrink-0 text-teal-600" />
+                                <div>
+                                  <span className="font-semibold">Driver is not included.</span>{' '}
+                                  Self-drive means you drive the vehicle yourself —
+                                  the price covers only the vehicle. Carry your driving licence
+                                  &amp; ID at pickup.
+                                </div>
+                              </div>
+                            )}
 
                             {/* Vehicle picker — multi-select card grid with per-vehicle quantity */}
                             <div className="mb-4">

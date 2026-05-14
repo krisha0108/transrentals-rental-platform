@@ -11,6 +11,8 @@ import { VehicleGrid } from '@/components/location/VehicleGrid';
 import { prisma } from '@/lib/db/prisma';
 import { getCarRentalServiceId, getLocationId } from '@/lib/db/build-cache';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -84,10 +86,11 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
     { question: 'What is the minimum contract duration for corporate car rental?', answer: 'Minimum 1-month contracts for regular fleet. For event or project-based requirements, even 1-week arrangements are possible.' },
   ];
 
-  const [seoData, carServiceId, locationId] = await Promise.all([
+  const [seoData, carServiceId, locationId, scContent] = await Promise.all([
     resolvePageMeta(`corporate-car-rental:${params.location}`),
     getCarRentalServiceId(),
     getLocationId(params.location),
+    getServiceCityContent('corporate-car-rental', params.location),
   ]);
 
   const carModels = carServiceId ? await prisma.vehicle_models.findMany({
@@ -298,12 +301,14 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="corporate-car-rental"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="corporate-car-rental"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
 
       {/* Schema Markup */}
       <script
@@ -329,6 +334,9 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
           }),
         }}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}

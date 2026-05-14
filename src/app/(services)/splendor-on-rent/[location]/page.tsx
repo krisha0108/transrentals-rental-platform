@@ -16,6 +16,8 @@ import { BikeServiceSchema } from '@/components/seo/schemas';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -134,7 +136,10 @@ export default async function SplendorLocationPage({ params }: PageProps) {
     ],
   };
 
-  const seoData = await resolvePageMeta(`splendor-on-rent:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`splendor-on-rent:${params.location}`),
+    getServiceCityContent('splendor-on-rent', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'Is Splendor available as a daily rental bike?', answer: 'Yes, Hero Splendor Plus and Splendor+ i3S are available for daily rental — India\'s most fuel-efficient commuter bike.' },
@@ -198,12 +203,18 @@ export default async function SplendorLocationPage({ params }: PageProps) {
           service="splendor-on-rent"
         />
 
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="splendor-on-rent"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="splendor-on-rent"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="bike-on-rent"

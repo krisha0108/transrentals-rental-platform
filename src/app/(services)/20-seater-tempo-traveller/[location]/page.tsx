@@ -13,6 +13,8 @@ import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps { params: { location: string }; }
 
@@ -50,7 +52,10 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
-  const seoData = await resolvePageMeta(`20-seater-tempo-traveller:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`20-seater-tempo-traveller:${params.location}`),
+    getServiceCityContent('20-seater-tempo-traveller', params.location),
+  ]);
 
   const pageFaqs = [
     { question: 'Is 20-seater tempo traveller suitable for large family trips?', answer: 'Yes — a 20-seater is perfect for 18–20 family members with overhead luggage racks and individual reclining seats.' },
@@ -145,12 +150,14 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="20-seater-tempo-traveller"
-        cityName={locationName}
-        stateCode={undefined}
-      />
+              citySlug={params.location}
+              serviceSlug="20-seater-tempo-traveller"
+              cityName={locationName}
+              stateCode={undefined}
+            />
+      */}
       <FAQSection service="bus-rental" location={locationName} customFaqs={pageFaqs} />
       <BikeServiceSchema
         serviceName="20 Seater Tempo Traveller"
@@ -160,6 +167,10 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
         citySlug={params.location}
         faqs={[]}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="bus-rental"

@@ -18,6 +18,8 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 const COMING_SOON_SLUGS = new Set([
   'ahmedabad-airport-amd',
@@ -112,7 +114,7 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
     { question: 'Can I modify or cancel my outstation car rental booking?', answer: 'Free cancellation up to 6 hours before the trip. Modifications allowed up to 2 hours before start subject to availability.' },
   ];
 
-  const [seoData, vehicleCategories, cityPricing, routePackages] = await Promise.all([
+  const [seoData, vehicleCategories, cityPricing, routePackages, scContent] = await Promise.all([
     resolvePageMeta(`outstation-car-rental:${params.location}`),
     prisma.chauffeur_vehicle_categories.findMany({
       where: {
@@ -163,6 +165,7 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
       },
       orderBy: [{ isPopular: 'desc' }, { estimatedKm: 'asc' }],
     }),
+    getServiceCityContent('outstation-car-rental', params.location),
   ]);
 
   // Group route packages by destination — pick min round-trip price per destination
@@ -325,12 +328,14 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
         service="outstation-car-rental"
       />
 
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="outstation-car-rental"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="outstation-car-rental"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
       <BikeServiceSchema
         serviceName="Outstation Car Rental"
         serviceSlug="outstation-car-rental"
@@ -341,6 +346,10 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
         rating={4.7}
         reviewCount={1589}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
       <RelatedServices
         locationSlug={params.location}
         parentSlug="car-rental"

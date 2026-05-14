@@ -20,6 +20,8 @@ import { CITY_SEO } from '@/data/city-seo-content';
 import { RelatedServices } from '@/components/services/RelatedServices';
 import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
 import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections, hasSectionsContent } from '@/components/seo/ServiceCitySections';
 
 const COMING_SOON_SLUGS = new Set([
   'chidambaram',
@@ -315,7 +317,10 @@ export default async function BikeLocationPage({ params }: PageProps) {
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationFaqs = getLocationFaqs(locationName);
-  const seoData = await resolvePageMeta(`bike-on-rent:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`bike-on-rent:${params.location}`),
+    getServiceCityContent('bike-on-rent', params.location),
+  ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['bike-on-rent'] || [];
 
   return (
@@ -398,35 +403,8 @@ export default async function BikeLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* FAQs */}
-      {cityFAQs.length === 0 && <FAQSection service="bike-on-rent" location={locationName} />}
-      {cityFAQs.length > 0 && (
-        <section className="py-16 bg-white">
-          <div className="container-custom max-w-3xl">
-            <h2 className="text-3xl font-bold text-gray-900 mb-10 text-center">
-              Frequently Asked Questions — Bike Rental in {locationName}
-            </h2>
-            <div className="space-y-6">
-              {cityFAQs.map((faq) => (
-                <div key={faq.q} className="bg-gray-50 p-6 rounded-xl">
-                  <h3 className="font-semibold text-gray-900 mb-2">{faq.q}</h3>
-                  <p className="text-gray-600">{faq.a}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* Nearby Locations */}
       <NearbyLocations locationSlug={params.location} service="bike-on-rent" />
-
-      <CityContentSection
-        citySlug={params.location}
-        serviceSlug="bike-on-rent"
-        cityName={locationName}
-        stateCode={pageContext.city.stateCode}
-      />
 
       <ServiceAreasSection
         serviceSlug="bike-on-rent"
@@ -457,6 +435,9 @@ export default async function BikeLocationPage({ params }: PageProps) {
           }}
         />
       )}
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}
@@ -496,33 +477,6 @@ export default async function BikeLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* SEO Content */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom">
-          <div className="max-w-4xl mx-auto prose prose-lg">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              Bike Rental Services in {locationName}
-            </h2>
-            <p className="text-gray-600">
-              TransRentals offers the best bike rental services in {locationName}. Whether you need a scooter
-              for daily commute, a Royal Enfield for a road trip, or a sports bike for the weekend,
-              we have you covered. Our fleet includes well-maintained bikes from top brands like Honda,
-              Royal Enfield, TVS, KTM, Bajaj, and more.
-            </p>
-            <h3 className="text-2xl font-bold text-gray-900 mt-8 mb-4">
-              Why Choose TransRentals for Bike Rental in {locationName}?
-            </h3>
-            <ul className="text-gray-600 space-y-2">
-              <li><strong>Wide Selection:</strong> Scooters, bikes, sports bikes, cruisers & more</li>
-              <li><strong>Best Prices:</strong> Starting from just ₹299/day</li>
-              <li><strong>Well Maintained:</strong> All bikes are regularly serviced and cleaned</li>
-              <li><strong>Flexible Rentals:</strong> Daily, weekly, and monthly options available</li>
-              <li><strong>Easy Booking:</strong> Book online in minutes with instant confirmation</li>
-              <li><strong>24/7 Support:</strong> Roadside assistance and customer support</li>
-            </ul>
-          </div>
-        </div>
-      </section>
       </div>
     </>
   );

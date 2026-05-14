@@ -10,6 +10,8 @@ import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { prisma } from '@/lib/db/prisma';
 import Image from 'next/image';
 import { RelatedServices } from '@/components/services/RelatedServices';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
 
 interface PageProps {
   params: {
@@ -72,6 +74,7 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="one-way-car-rental" serviceName="One Way Car Rental" />;
   const city = pageContext.city;
 
+  const scContent = await getServiceCityContent('one-way-car-rental', params.location);
   const locationName = city.name;
 
   // Fetch one-way route packages FROM this location
@@ -382,12 +385,14 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
       </section>
 
       
+      {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-        citySlug={params.location}
-        serviceSlug="one-way-car-rental"
-        cityName={locationName}
-        stateCode={city?.stateCode}
-      />
+              citySlug={params.location}
+              serviceSlug="one-way-car-rental"
+              cityName={locationName}
+              stateCode={city?.stateCode}
+            />
+      */}
 
       {/* Schema Markup */}
       <script
@@ -413,6 +418,9 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
           }),
         }}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
         locationSlug={params.location}

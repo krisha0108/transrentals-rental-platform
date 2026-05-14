@@ -17,6 +17,8 @@ import { prisma } from '@/lib/db/prisma';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { CITY_SEO } from '@/data/city-seo-content';
+import { getServiceCityContent } from '@/lib/seo/service-city-content';
+import { ServiceCitySections, hasSectionsContent } from '@/components/seo/ServiceCitySections';
 
 const TRANSPORTER_FALLBACK_FAQS = [
   { question: 'What is the cost of truck rental per day?', answer: 'Mini truck (Tata Ace, 1T) starts from ₹2,500/day for local trips. Tata 407 (5T) starts from ₹6,000/day. Container trucks (20–32 ft) are quoted per trip based on route and load. Outstation rates are charged per km. Get a free quote on TransRentals for your specific load and route requirements.' },
@@ -238,7 +240,10 @@ export default async function TransporterLocationPage({ params }: PageProps) {
 
   const vehicles = dbVehicles;
 
-  const seoData = await resolvePageMeta(`transporter:${params.location}`);
+  const [seoData, scContent] = await Promise.all([
+    resolvePageMeta(`transporter:${params.location}`),
+    getServiceCityContent('transporter', params.location),
+  ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['transporter'] || [];
 
   return (
@@ -285,25 +290,9 @@ export default async function TransporterLocationPage({ params }: PageProps) {
 
       <WhyRentHere locationName={locationName} />
 
-      {cityFAQs.length === 0 && (
-        <FAQSection
-          service="transporter"
-          location={locationName}
-          customFaqs={TRANSPORTER_FALLBACK_FAQS}
-        />
-      )}
-
       <NearbyLocations
         locationSlug={params.location}
         service="transporter"
-      />
-
-      
-      <CityContentSection
-        citySlug={params.location}
-        serviceSlug="transporter"
-        cityName={locationName}
-        stateCode={city?.stateCode}
       />
 
       {/* LocalBusiness Schema */}
@@ -342,6 +331,9 @@ export default async function TransporterLocationPage({ params }: PageProps) {
           }),
         }}
       />
+
+      {/* All editable SEO content — block-based sectionsConfig from admin */}
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
     </div>
   );
 }
