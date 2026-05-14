@@ -131,7 +131,7 @@ export default async function TrailerLocationPage({ params }: Props) {
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
-      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+      <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={location.name} />
 
       <RelatedServices
         locationSlug={params.location}
