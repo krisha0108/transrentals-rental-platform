@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
-import { getServiceLocations } from '@/lib/services/service-locations';
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
 import { FAQSection } from '@/components/services/FAQSection';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
@@ -17,7 +17,7 @@ import { RelatedServices } from '@/components/services/RelatedServices';
 interface PageProps { params: { location: string }; }
 
 export async function generateStaticParams() {
-  return getServiceLocations('car-rental');
+  return getAllCityLocations();
 }
 
 export const revalidate = 43200; // 12 hours
@@ -119,6 +119,8 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
         city={locationName}
         citySlug={params.location}
         faqs={[]}
+        rating={4.6}
+        reviewCount={1124}
       />
       <RelatedServices
         locationSlug={params.location}

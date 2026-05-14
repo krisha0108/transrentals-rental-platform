@@ -5,6 +5,7 @@ import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
 import { TruckTypesCards } from '@/components/services/TruckTypesCards';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { HowToSchema } from '@/components/seo/schemas';
 
 const TRANSPORTER_FAQS = [
   {
@@ -88,6 +89,17 @@ export const metadata: Metadata = {
 export default function TransporterPage() {
   return (
     <div className="flex flex-col">
+      <HowToSchema
+        name="How to Book a Truck or Transporter on TransRentals"
+        description="Book a truck or goods transport vehicle in 4 simple steps across India."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Enter Shipment Details', text: 'Provide pickup city, delivery destination, goods type, weight, and loading date. Specify FTL or LTL requirement.' },
+          { name: 'Choose Truck Type', text: 'Select from mini truck (1 ton), Tata 407, Eicher, container truck (20–32 ft), or trailer based on load size.' },
+          { name: 'Compare Transporter Quotes', text: 'Review freight quotes from verified transporters. Check per-km rates, driver allowance, and transit insurance options.' },
+          { name: 'Confirm & Track Shipment', text: 'Pay advance to confirm. Driver picks up goods on scheduled date. Track shipment via GPS during transit.' },
+        ]}
+      />
       {/* Hero Section */}
       <ServiceHeroWithChat
         badge="Truck Rental & Transport"
@@ -184,8 +196,9 @@ export default function TransporterPage() {
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',
-              lowPrice: '2500',
-              highPrice: '22000',
+              lowPrice: 2500,
+              highPrice: 22000,
+              offerCount: 30,
             },
           }),
         }}

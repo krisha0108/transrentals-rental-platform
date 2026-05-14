@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, Calendar, Clock, Car, ArrowRight,
@@ -431,7 +432,7 @@ export function HourlyCarBookingHero({ cityName, citySlug }: HourlyCarBookingHer
                                 <div className="flex items-center gap-3">
                                   <div className="w-16 h-12 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
                                     {cat.image ? (
-                                      <img src={cat.image} alt={cat.name} className="w-14 h-10 object-contain" />
+                                      <Image src={cat.image} alt={cat.name} width={56} height={40} className="object-contain" />
                                     ) : (
                                       <Car className="w-8 h-8 text-gray-400" />
                                     )}
@@ -573,7 +574,7 @@ export function HourlyCarBookingHero({ cityName, citySlug }: HourlyCarBookingHer
                       isSingle ? 'w-52 min-h-full py-6 px-8' : 'px-6 pt-6 pb-3 min-h-[100px]'
                     }`}>
                       {cat.image ? (
-                        <img src={cat.image} alt={cat.name} className="h-24 object-contain drop-shadow-sm" />
+                        <Image src={cat.image} alt={cat.name} width={192} height={96} className="object-contain drop-shadow-sm" />
                       ) : (
                         <Car className="w-16 h-16 text-blue-300" />
                       )}

@@ -79,8 +79,7 @@ export default async function ChauffeurServicePage() {
           serviceType: 'Chauffeur Service',
           provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
           areaServed: { '@type': 'Country', name: 'India' },
-          offers: { '@type': 'AggregateOffer', priceCurrency: 'INR', lowPrice: '599', highPrice: '2500' },
-          aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '3200', bestRating: '5' },
+          offers: { '@type': 'AggregateOffer', priceCurrency: 'INR', lowPrice: 599, highPrice: 2500, offerCount: 30 },
         }) }}
       />
       <HowToSchema

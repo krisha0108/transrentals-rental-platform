@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar, ChevronDown, X } from 'lucide-react';
 import {
   DateFilterType,
@@ -28,8 +29,19 @@ export default function DateFilterDropdown({
   const [customEndDate, setCustomEndDate] = useState(initialEndDate || '');
   const [showCustomInputs, setShowCustomInputs] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Panel is portaled to document.body so it escapes parent stacking contexts
+  // (animation transforms, opacity, etc. on consumers' wrappers create stacking
+  // contexts that trap a non-portaled panel below sibling cards).
+  const [panelPos, setPanelPos] = useState<{ top: number; right: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Sync selectedFilter with incoming props (fix for label not updating)
   useEffect(() => {
@@ -69,10 +81,36 @@ export default function DateFilterDropdown({
     }
   }, [initialStartDate, initialEndDate]);
 
-  // Close dropdown when clicking outside
+  const computePosition = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    setPanelPos({
+      top: rect.bottom + 8,
+      right: window.innerWidth - rect.right,
+    });
+  }, []);
+
+  // Recompute panel position while open; close handler doesn't need cleanup.
+  useEffect(() => {
+    if (!isOpen) return;
+    computePosition();
+    const handler = () => computePosition();
+    window.addEventListener('scroll', handler, true);
+    window.addEventListener('resize', handler);
+    return () => {
+      window.removeEventListener('scroll', handler, true);
+      window.removeEventListener('resize', handler);
+    };
+  }, [isOpen, computePosition]);
+
+  // Close dropdown when clicking outside — must check both wrapper (button)
+  // and the portaled panel since panel is no longer a DOM descendant.
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const insideWrapper = wrapperRef.current?.contains(target);
+      const insidePanel = panelRef.current?.contains(target);
+      if (!insideWrapper && !insidePanel) {
         setIsOpen(false);
         setShowCustomInputs(false);
         setError(null);
@@ -174,9 +212,97 @@ export default function DateFilterDropdown({
 
   const hasActiveFilter = selectedFilter !== 'all';
 
+  const panel = (
+    <div
+      ref={panelRef}
+      style={{
+        position: 'fixed',
+        top: panelPos?.top ?? 0,
+        right: panelPos?.right ?? 0,
+        zIndex: 9999,
+      }}
+      className="w-64 bg-white border border-gray-200 rounded-lg shadow-lg"
+    >
+      {!showCustomInputs ? (
+        <div className="py-1">
+          {filterOptions.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => handleFilterSelect(option.value)}
+              className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                selectedFilter === option.value
+                  ? 'bg-emerald-50 text-emerald-700 font-medium'
+                  : 'text-gray-700'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="p-4">
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Start Date
+            </label>
+            <input
+              type="date"
+              value={customStartDate}
+              onChange={(e) => {
+                setCustomStartDate(e.target.value);
+                setError(null);
+              }}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              End Date
+            </label>
+            <input
+              type="date"
+              value={customEndDate}
+              onChange={(e) => {
+                setCustomEndDate(e.target.value);
+                setError(null);
+              }}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+
+          {error && (
+            <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-xs text-red-600">{error}</p>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setShowCustomInputs(false);
+                setError(null);
+              }}
+              className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleApplyCustomRange}
+              className="flex-1 px-3 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 transition-colors"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="relative z-10" ref={dropdownRef}>
+    <div className="relative" ref={wrapperRef}>
       <button
+        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-lg transition-colors ${
           hasActiveFilter
@@ -199,83 +325,7 @@ export default function DateFilterDropdown({
         )}
       </button>
 
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-          {!showCustomInputs ? (
-            <div className="py-1">
-              {filterOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => handleFilterSelect(option.value)}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                    selectedFilter === option.value
-                      ? 'bg-emerald-50 text-emerald-700 font-medium'
-                      : 'text-gray-700'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="p-4">
-              <div className="mb-3">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => {
-                    setCustomStartDate(e.target.value);
-                    setError(null);
-                  }}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div className="mb-3">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => {
-                    setCustomEndDate(e.target.value);
-                    setError(null);
-                  }}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              {error && (
-                <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-xs text-red-600">{error}</p>
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setShowCustomInputs(false);
-                    setError(null);
-                  }}
-                  className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleApplyCustomRange}
-                  className="flex-1 px-3 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 transition-colors"
-                >
-                  Apply
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {isOpen && mounted && panelPos && createPortal(panel, document.body)}
     </div>
   );
 }

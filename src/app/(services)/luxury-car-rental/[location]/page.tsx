@@ -11,7 +11,10 @@ import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { prisma } from '@/lib/db/prisma';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
-import { getServiceLocations } from '@/lib/services/service-locations';
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
+import { RelatedServices } from '@/components/services/RelatedServices';
+import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
+import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 
 const COMING_SOON_SLUGS = new Set([
   'vadodara',
@@ -28,7 +31,7 @@ interface PageProps {
 
 // Generate static params from DATABASE - Only enabled locations
 export async function generateStaticParams() {
-  return getServiceLocations('luxury-car-rental');
+  return getAllCityLocations();
 }
 
 // Enable ISR - Revalidate every hour
@@ -59,14 +62,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `wedding car ${locationName.toLowerCase()}`,
       ...(city.keywords || []).map(k => `luxury car ${k}`),
     ],
-    openGraph: {
-      title: `Luxury Car Rental in ${locationName} - BMW, Mercedes, Audi, Ferrari`,
-      description: `Book luxury & exotic cars in ${locationName}. Premium vehicles with chauffeur service for weddings, corporate events, and special occasions.`,
-      url: `https://transrentals.in/luxury-car-rental/${params.location}`,
-    },
     alternates: {
       canonical: `https://transrentals.in/luxury-car-rental/${params.location}`,
     },
+    openGraph: {
+      title: `Luxury Car Rental in ${locationName} | BMW, Mercedes, Audi | TransRentals`,
+      description: `Book luxury & exotic cars in ${locationName}. Premium vehicles with chauffeur service for weddings, corporate events, and special occasions.`,
+      type: 'website',
+      url: `https://transrentals.in/luxury-car-rental/${params.location}`,
+      images: [{ url: `https://transrentals.in/api/og?service=luxury-car-rental&location=${encodeURIComponent(locationName)}`, width: 1200, height: 630, alt: `Luxury Car Rental in ${locationName}` }],
+      locale: 'en_IN',
+      siteName: 'TransRentals',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Luxury Car Rental in ${locationName} | TransRentals`,
+      description: `BMW, Mercedes, Audi, Ferrari, Lamborghini available in ${locationName}. Chauffeur-driven luxury cars for weddings and events.`,
+      images: [`https://transrentals.in/api/og?service=luxury-car-rental&location=${encodeURIComponent(locationName)}`],
+    },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
   };
 }
 
@@ -140,6 +154,14 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
   const nearbyCities = ALL_CITIES
     .filter(c => c.state === city.state && c.slug !== city.slug)
     .slice(0, 6);
+
+  const luxuryFaqs = [
+    { q: `How does luxury car booking work in ${locationName}?`, a: `Simply fill in your trip details (date, time, type of trip), and our verified vendors will send you customized quotes. Compare quotes and choose the best one for your needs.` },
+    { q: `Which luxury cars are available in ${locationName}?`, a: `We offer Mercedes E-Class, S-Class, BMW 5/7 Series, Audi A6/A8, Jaguar XF, Range Rover, Porsche 911/Cayenne, Bentley, Rolls-Royce, Ferrari, and Lamborghini in ${locationName}.` },
+    { q: `Is chauffeur service included in ${locationName}?`, a: `Yes, professional chauffeur service is included with all luxury car rentals in ${locationName}. Our chauffeurs are trained, well-groomed, and know the city well.` },
+    { q: `Do you deliver luxury cars to my location in ${locationName}?`, a: `Yes, we provide doorstep delivery anywhere in ${locationName} — home, office, hotel, airport, or event venue. Delivery arrangements are included in vendor quotes.` },
+    { q: `Can I rent exotic cars like Ferrari or Lamborghini in ${locationName}?`, a: `Yes, exotic supercars including Ferrari 488, Lamborghini Huracan, Porsche 911 are available in ${locationName} for special occasions, photoshoots, and events.` },
+  ];
 
   return (
     <>
@@ -308,28 +330,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
             FAQs - Luxury Car Rental in {locationName}
           </h2>
           <div className="space-y-4">
-            {[
-              {
-                q: `How does luxury car booking work in ${locationName}?`,
-                a: `Simply fill in your trip details (date, time, type of trip), and our verified vendors will send you customized quotes. Compare quotes and choose the best one for your needs.`,
-              },
-              {
-                q: `Which luxury cars are available in ${locationName}?`,
-                a: `We offer Mercedes E-Class, S-Class, BMW 5/7 Series, Audi A6/A8, Jaguar XF, Range Rover, Porsche 911/Cayenne, Bentley, Rolls-Royce, Ferrari, and Lamborghini in ${locationName}.`,
-              },
-              {
-                q: `Is chauffeur service included in ${locationName}?`,
-                a: `Yes, professional chauffeur service is included with all luxury car rentals in ${locationName}. Our chauffeurs are trained, well-groomed, and know the city well.`,
-              },
-              {
-                q: `Do you deliver luxury cars to my location in ${locationName}?`,
-                a: `Yes, we provide doorstep delivery anywhere in ${locationName} - home, office, hotel, airport, or event venue. Delivery arrangements are included in vendor quotes.`,
-              },
-              {
-                q: `Can I rent exotic cars like Ferrari or Lamborghini in ${locationName}?`,
-                a: `Yes, exotic supercars including Ferrari 488, Lamborghini Huracan, Porsche 911 are available in ${locationName} for special occasions, photoshoots, and events.`,
-              },
-            ].map((faq, idx) => (
+            {luxuryFaqs.map((faq, idx) => (
               <div key={idx} className="bg-gray-50 p-6 rounded-xl">
                 <h3 className="font-semibold text-lg text-gray-900 mb-2">{faq.q}</h3>
                 <p className="text-gray-600">{faq.a}</p>
@@ -376,31 +377,62 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
         stateCode={city?.stateCode}
       />
 
-      {/* Schema Markup */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Service',
-            name: `Luxury Car Rental in ${locationName}`,
-            description: `Rent luxury and exotic cars in ${locationName}. BMW, Mercedes, Audi, Ferrari, Lamborghini, Rolls-Royce with professional chauffeur.`,
-            provider: {
-              '@type': 'Organization',
-              name: 'TransRentals',
-              url: 'https://transrentals.in',
-            },
-            areaServed: {
-              '@type': 'City',
-              name: locationName,
-              containedInPlace: {
-                '@type': 'State',
-                name: city.state,
-              },
-            },
-          }),
-        }}
+      <ServiceAreasSection
+        serviceSlug="luxury-car-rental"
+        citySlug={params.location}
+        cityName={locationName}
+        serviceName="Luxury Car Rental"
       />
+
+      <CrossServiceLinks
+        citySlug={params.location}
+        cityName={locationName}
+        currentServiceSlug="luxury-car-rental"
+      />
+
+      <RelatedServices
+        locationSlug={params.location}
+        parentSlug="luxury-car-rental"
+        parentName="Luxury Car Rental"
+        currentSlug="luxury-car-rental"
+        siblings={[
+          { slug: 'car-rental', name: 'Car Rental' },
+          { slug: 'self-drive-car-rentals', name: 'Self Drive Cars' },
+        ]}
+      />
+
+      {/* AutoRental Schema */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'AutoRental',
+        name: `Luxury Car Rental in ${locationName} — TransRentals`,
+        description: `Rent luxury and exotic cars in ${locationName}. BMW, Mercedes, Audi, Ferrari, Lamborghini, Rolls-Royce with professional chauffeur.`,
+        url: `https://transrentals.in/luxury-car-rental/${params.location}`,
+        priceRange: '₹₹₹',
+        areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
+        provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
+        vehicleType: 'Luxury Car, SUV, Limousine, Exotic Supercar',
+      })}} />
+      {/* BreadcrumbList Schema */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
+          { '@type': 'ListItem', position: 2, name: 'Luxury Car Rental', item: 'https://transrentals.in/luxury-car-rental' },
+          { '@type': 'ListItem', position: 3, name: `Luxury Car Rental in ${locationName}`, item: `https://transrentals.in/luxury-car-rental/${params.location}` },
+        ],
+      })}} />
+      {/* FAQPage Schema */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: luxuryFaqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.q,
+          acceptedAnswer: { '@type': 'Answer', text: faq.a },
+        })),
+      })}} />
     </>
   );
 }

@@ -5,6 +5,7 @@ import { OneWayCabRoutesGrid } from '@/components/services/OneWayCabRoutesGrid';
 import Link from 'next/link';
 import { Car, Star, Shield, Clock, IndianRupee, MapPin, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'One Way Cab - Drop Taxi Service Starting @₹9/km | TransRentals',
@@ -104,6 +105,17 @@ export default async function OneWayCabPage() {
 
   return (
     <>
+      <HowToSchema
+        name="How to Book a One-Way Cab on TransRentals"
+        description="Book a one-way drop taxi in 4 simple steps. No return charges."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Enter Pickup & Drop City', text: 'Enter your departure city and destination. One-way drop taxis available on 500+ routes across India.' },
+          { name: 'Choose Car Type', text: 'Select from hatchback, sedan, SUV, or luxury car. All cars come with professional drivers.' },
+          { name: 'Review Pricing', text: 'One-way pricing includes base fare, per-km rate, and driver allowance. No return journey charges.' },
+          { name: 'Confirm & Travel', text: 'Pay booking amount. Driver picks you up at the scheduled time and drops at your destination.' },
+        ]}
+      />
       {/* Hero with booking form */}
       <ServiceHeroWithChat
         badge="One Way Cab Service"
@@ -379,9 +391,9 @@ export default async function OneWayCabPage() {
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',
-              lowPrice: '9',
-              highPrice: '20',
-              priceSuffix: '/km',
+              lowPrice: 9,
+              highPrice: 20,
+              offerCount: 50,
             },
           }),
         }}

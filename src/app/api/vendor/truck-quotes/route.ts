@@ -45,10 +45,32 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20') || 20;
     const skip = (page - 1) * limit;
 
+    // DATE FILTER PARAMS
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     const whereClause: any = { vendorId: vendorId };
     if (status && status !== 'all' && status !== '') {
       const statuses = status.split(",").map((s) => s.trim()).filter(Boolean);
       whereClause.status = statuses.length === 1 ? statuses[0] : { in: statuses };
+    }
+
+    // DATE FILTERING — truck_quotes has no sentAt column; createdAt is the
+    // close proxy here since rows are inserted at send-time (status: 'SENT' on
+    // create). Normalize startDate to local midnight so an IST server doesn't
+    // drop the first 5.5h of the day.
+    if (startDate || endDate) {
+      whereClause.createdAt = {};
+      if (startDate) {
+        const startDateTime = new Date(startDate);
+        startDateTime.setHours(0, 0, 0, 0);
+        whereClause.createdAt.gte = startDateTime;
+      }
+      if (endDate) {
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        whereClause.createdAt.lte = endDateTime;
+      }
     }
 
     // SEARCH FILTER

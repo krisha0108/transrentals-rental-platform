@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   Bell,
@@ -297,7 +298,7 @@ export default function NotificationPanel() {
                     </p>
                     {item.image && (
                       <div className="mt-1.5 rounded-lg overflow-hidden">
-                        <img src={item.image} alt="" className="w-full h-20 object-cover rounded-lg" />
+                        <Image src={item.image} alt="" width={300} height={80} className="w-full object-cover rounded-lg" />
                       </div>
                     )}
                     <div className="flex items-center justify-between mt-1.5">

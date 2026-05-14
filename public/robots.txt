@@ -121,9 +121,7 @@ Disallow: /wander/*-sitemap
 Disallow: /wander/post-sitemap
 Disallow: /wander/page-sitemap
 
-# Old WordPress blog archive pages (tags, categories)
-Disallow: /blog/tag/
-Disallow: /blog/category/
+# Blog tag and category pages — allowed (real pages, in sitemap)
 
 # Old taxi route booking pages
 Disallow: /book-taxi/
@@ -141,8 +139,6 @@ Disallow: /taxi-service/*-sitemap
 Disallow: /taxi-service/
 Disallow: /taxi-service-in-*/
 Disallow: /tempo-traveller-rental/
-Disallow: /bike-tours/
-Disallow: /stories/*/amp
 Disallow: /luxury-car-rental-in-*/
 Disallow: /car-rental-in-*/
 Disallow: /one-way-taxi-cab/
@@ -198,8 +194,6 @@ Disallow: /wander/memberpackage/
 Disallow: /wander/*-sitemap
 Disallow: /wander/post-sitemap
 Disallow: /wander/page-sitemap
-Disallow: /blog/tag/
-Disallow: /blog/category/
 Disallow: /book-taxi/
 Disallow: /page-sitemap
 Disallow: /post-sitemap
@@ -211,8 +205,6 @@ Disallow: /taxi-service/*-sitemap
 Disallow: /taxi-service/
 Disallow: /taxi-service-in-*/
 Disallow: /tempo-traveller-rental/
-Disallow: /bike-tours/
-Disallow: /stories/*/amp
 Disallow: /luxury-car-rental-in-*/
 Disallow: /car-rental-in-*/
 Disallow: /one-way-taxi-cab/
@@ -337,15 +329,8 @@ User-agent: DotBot
 Disallow: /
 
 # =============================================================================
-# CRAWL RATE LIMITING
-# =============================================================================
-# Polite crawl delay for unspecified bots
-Crawl-delay: 1
-
-# =============================================================================
 # SITEMAP LOCATIONS
 # =============================================================================
-Sitemap: https://transrentals.in/sitemap-main.xml
 Sitemap: https://transrentals.in/sitemap.xml
 
 # =============================================================================

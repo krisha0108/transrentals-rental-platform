@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'KTM on Rent in India | Duke & RC Bike Rental @₹999/Day | TransRentals',
@@ -46,6 +47,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function KTMRentalPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a KTM Bike on TransRentals"
+        description="Book KTM Duke or RC rental in 4 simple steps."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Select City & Rental Period', text: 'Enter your city and rental duration. KTM Duke 200, Duke 390, RC 200, RC 390 available daily.' },
+          { name: 'Choose KTM Model', text: 'Pick Duke for street riding or RC for track/performance. Check engine size and handlebar configuration.' },
+          { name: 'Submit Documents', text: 'Upload DL with valid motorcycle endorsement and Aadhaar. Pay deposit for high-performance bike category.' },
+          { name: 'Ride the Beast', text: 'Pick up KTM at vendor location after inspection. Wear full riding gear before starting your ride.' },
+        ]}
+      />
       <BikeSearchHero />
 
       {/* Hero Section */}

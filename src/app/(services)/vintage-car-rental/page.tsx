@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Vintage Car Rental | Classic Car for Wedding @₹8999 | Ambassador Car Hire'),
@@ -32,6 +33,17 @@ export default function VintageCarRentalPage() {
 
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Vintage Car on TransRentals"
+        description="Book a classic or vintage car for weddings and events in 4 steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Share Event Details', text: 'Enter event date, location, duration, and purpose — wedding baraat, photo shoot, or heritage event.' },
+          { name: 'Choose Vintage Model', text: 'Select Classic Ambassador, retro Fiat, or other heritage cars. Confirm if decoration is required.' },
+          { name: 'Review Vintage Car Package', text: 'Check included hours, chauffeur attire, decoration options, and additional mileage charges.' },
+          { name: 'Confirm & Celebrate', text: 'Pay advance to confirm. Vintage car arrives decorated at your venue on event day.' },
+        ]}
+      />
       <SpecialtyCarBookingHero service="vintage" />
 
 

@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
-import { getServiceLocations } from '@/lib/services/service-locations';;
+import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { capitalize } from '@/lib/utils';
 import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { FAQSection } from '@/components/services/FAQSection';
@@ -23,7 +23,7 @@ interface PageProps {
 // Generate static params for all cities
 // Generate static params from DATABASE - Only locations where bike-on-rent is available
 export async function generateStaticParams() {
-  return getServiceLocations('bike-on-rent');
+  return getAllCityLocations();
 }
 
 // Enable ISR - Revalidate every hour

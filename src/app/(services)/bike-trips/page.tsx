@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { BikeTourHero } from '@/components/bike-tours/BikeTourHero';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Bike Trip Rentals India | Ladakh, Spiti, Rajasthan Motorcycle Tours | TransRentals',
@@ -74,6 +75,17 @@ export default function BikeTripsPage() {
 
   return (
     <>
+      <HowToSchema
+        name="How to Book a Bike Trip on TransRentals"
+        description="Plan and book a self-guided bike road trip in 4 simple steps."
+        totalTime="PT12M"
+        steps={[
+          { name: 'Choose Your Destination', text: 'Select from Ladakh, Spiti Valley, Rajasthan, or Goa bike trip routes. Check road conditions and best travel season.' },
+          { name: 'Select Bike & Duration', text: 'Choose Royal Enfield Classic 350 or Himalayan based on the terrain. Select trip duration from 3 to 15 days.' },
+          { name: 'Book Bike & Add-ons', text: 'Submit DL and Aadhaar. Pay advance to book bike. Add panniers, crash guard, USB charger if needed.' },
+          { name: 'Pick Up & Ride Free', text: 'Collect bike at pickup city. Get route guidance and emergency contacts. Ride at your own pace.' },
+        ]}
+      />
       <BikeTourHero
         badge="Adventure Awaits"
         title="Bike Trip Rentals India"

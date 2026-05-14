@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CarRentalBookingConfirmModal } from '@/components/car-rental/CarRentalBookingConfirmModal';
 import {
@@ -473,7 +474,7 @@ export function OutstationBookingHero({ cityName, citySlug, vehicleCategories = 
                             <div className="flex items-center gap-3 p-4">
                               <div className="w-16 h-12 bg-gray-50 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
                                 {cat.image ? (
-                                  <img src={cat.image} alt={cat.name} className="w-full h-full object-contain p-1" />
+                                  <Image src={cat.image} alt={cat.name} width={64} height={48} className="object-contain p-1" />
                                 ) : (
                                   <span className="text-2xl">🚗</span>
                                 )}

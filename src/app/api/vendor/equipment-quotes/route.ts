@@ -52,14 +52,18 @@ export async function GET(request: NextRequest) {
       whereClause.status = statuses.length === 1 ? statuses[0] : { in: statuses };
     }
 
-    // DATE FILTERING
+    // DATE FILTERING — equipment_quotes has no sentAt column; createdAt is the
+    // close proxy here since rows are inserted at send-time (status: 'SENT' on
+    // create). Normalize startDate to local midnight so an IST server doesn't
+    // drop the first 5.5h of the day.
     if (startDate || endDate) {
       whereClause.createdAt = {};
       if (startDate) {
-        whereClause.createdAt.gte = new Date(startDate);
+        const startDateTime = new Date(startDate);
+        startDateTime.setHours(0, 0, 0, 0);
+        whereClause.createdAt.gte = startDateTime;
       }
       if (endDate) {
-        // Set to end of day (23:59:59)
         const endDateTime = new Date(endDate);
         endDateTime.setHours(23, 59, 59, 999);
         whereClause.createdAt.lte = endDateTime;

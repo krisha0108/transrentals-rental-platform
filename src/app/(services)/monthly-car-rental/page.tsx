@@ -4,6 +4,7 @@ import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBoo
 import { ServiceLocationsGrid } from '@/components/services/ServiceLocationsGrid';
 import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Monthly Car Rental | Car Subscription @₹12000/Month | Long Term Car Lease'),
@@ -31,6 +32,17 @@ export const metadata: Metadata = {
 export default function MonthlyCarRentalPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Book Monthly Car Rental on TransRentals"
+        description="Subscribe to a monthly car rental in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Choose Subscription Period', text: 'Select 1 month, 3 months, or 6 months. Longer subscriptions get better monthly rates.' },
+          { name: 'Pick Car Category', text: 'Choose hatchback, sedan, or SUV. Select self-drive or chauffeur-driven based on your needs.' },
+          { name: 'Complete KYC & Sign Agreement', text: 'Submit documents for KYC. Pay first month rent and security deposit. Sign monthly rental agreement.' },
+          { name: 'Receive Car & Use', text: 'Car delivered to your location. Enjoy monthly subscription with zero maintenance hassle.' },
+        ]}
+      />
       {/* Hero with booking form */}
       <SpecialtyCarBookingHero service="monthly" />
 

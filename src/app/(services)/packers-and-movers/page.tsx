@@ -4,39 +4,68 @@ import Link from 'next/link';
 import { CheckCircle, Shield, Star, Clock, MapPin, Package } from 'lucide-react';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { HowToSchema } from '@/components/seo/schemas';
 
 const PACKERS_FAQS = [
   {
     q: 'What is the cost of packers and movers in India?',
-    a: 'Packers and movers costs depend on home size, distance, floors, goods volume, packing quality, and transit insurance. Local shifts start from ₹3,000 for smaller homes and intercity moves are priced higher based on route and load. Get free quotes from multiple TransRentals-verified movers to compare for your specific shift.',
+    a: 'Local 1BHK shifting starts from ₹3,000–₹5,000. 2BHK local move costs ₹5,000–₹9,000. 3BHK local shift costs ₹8,000–₹14,000. Intercity moves are distance-based: short routes (under 300 km) start from ₹8,000 for 1BHK; long-distance (1,000+ km) starts from ₹15,000. Rates vary by city, floor (lift/no lift), packing quality, and whether insurance is included.',
   },
   {
     q: 'How do I choose reliable packers and movers?',
-    a: 'On TransRentals, all listed packers and movers are pre-verified with GST registration, moving license, and customer reviews. Check: (1) IBA panel registration for government employees, (2) customer star rating and reviews, (3) whether transit insurance is offered, and (4) whether the quote includes packing materials.',
+    a: 'On TransRentals, all listed movers are pre-verified with GST registration, moving license, and customer reviews. Check: (1) IBA panel registration for government employees, (2) customer star rating (minimum 4.0), (3) whether transit insurance is offered, (4) whether the quote is itemised (packing materials listed separately), and (5) whether a physical survey was done before quoting.',
   },
   {
     q: 'How long does it take to shift a 2BHK house?',
-    a: 'A professional packing and moving team of 3–4 people takes 6–10 hours for a 2BHK intra-city shift (packing + loading + transit + unloading). For intercity moves, transit time is additional — 1–3 days for nearby cities, 4–7 days for pan-India moves.',
+    a: 'A professional team of 3–4 people takes 6–10 hours for a 2BHK intra-city shift (packing + loading + transit + unloading). Ground floor with lift: faster. 4th floor without lift: slower. For intercity moves, transit is additional — 1–3 days for nearby cities, 4–7 days for pan-India routes.',
   },
   {
-    q: 'Is insurance mandatory for household shifting?',
-    a: 'Insurance is optional but strongly recommended. TransRentals vendors offer transit insurance at 0.5–1% of declared goods value. For electronics (TV, refrigerator, AC), antiques, and artwork — always opt for declared-value insurance. Without insurance, most movers\' liability is limited by weight.',
+    q: 'Is transit insurance mandatory for household shifting?',
+    a: 'Transit insurance is optional but strongly recommended. TransRentals vendors offer declared-value insurance at 0.5–1% of goods value. For electronics (TV, AC, refrigerator), antiques, and artwork — always opt for insurance. Without it, mover liability is typically limited to ₹100–₹500 per kg by weight under standard terms, which may not cover actual damage.',
   },
   {
-    q: 'What is the best time to book packers and movers in India?',
-    a: 'Month-end (last week) is the busiest — book at least 5–7 days in advance. Financial year-end (March–April) and transfer season (May–June) are peak months requiring 2–3 weeks advance booking. Mid-month weekdays are typically less busy and easier to schedule.',
+    q: 'What is the best time to book packers and movers?',
+    a: 'Month-end (25th–31st) is the busiest period — book at least 5–7 days in advance. Transfer season (May–June, post-monsoon Sep–Oct) requires 2–3 weeks advance booking. Mid-month weekdays (Tuesday–Thursday) are typically least busy. Avoid booking on public holidays — surcharges apply and team availability is limited.',
+  },
+  {
+    q: 'What is the GST rate on packers and movers services?',
+    a: 'GST on packers and movers in India: (1) Pure goods transport (GTA — Goods Transport Agency): 5% GST, no input tax credit. (2) Full packing + moving service (not classified as GTA): 18% GST. Most household movers fall under the 18% GST category. Always ask for a GST invoice — it is mandatory for corporate reimbursement and IBA claims.',
+  },
+  {
+    q: 'How do I detect and avoid fraudulent packers and movers?',
+    a: 'Warning signs of fraud: (1) No GST registration or GSTIN on the bill. (2) Asking for full payment before the move starts. (3) Extremely low quotes (50–60% below market rate). (4) No written contract or itemised quote. (5) No physical survey before quoting. (6) Not providing a company address or contact person. Always verify GSTIN on the GST portal before booking. Use TransRentals-listed movers for verified, background-checked vendors.',
   },
   {
     q: 'Do packers and movers disassemble and reassemble furniture?',
-    a: 'Yes, TransRentals movers offer dismantling and reassembly of beds, wardrobes, and modular furniture as part of the standard service. Always confirm this is included in your quote. Some vendors charge extra for AC unit installation/removal.',
+    a: 'Yes, standard movers include dismantling and reassembly of beds, wardrobes, and modular furniture. Always confirm this is in your written quote. AC installation/removal typically costs ₹500–₹1,500 extra. Modular kitchen cabinets may or may not be included — confirm before the shift. Pianos and antique furniture require specialist handlers — mention these upfront.',
   },
   {
     q: 'What items cannot be moved by packers and movers?',
-    a: 'Most movers will not transport: LPG cylinders, flammable/hazardous materials, perishable food, plants, and pets. Jewellery, cash, and important documents should always be carried personally. Confirm restricted items with your vendor before the shift date.',
+    a: 'Items movers typically refuse: LPG cylinders (must be surrendered before shifting), flammable/hazardous materials, cash, jewellery (carry personally), important documents (originals — carry personally), perishable food, live plants, and pets. Vehicles must be booked as a separate car/bike transport service. Confirm your vendor\'s restricted items list in writing before the move.',
+  },
+  {
+    q: 'What is the difference between full-truck-load (FTL) and shared/part-load moving?',
+    a: 'FTL (Full Truck Load): Entire truck is dedicated to your goods. Faster transit (direct delivery), less handling, lower damage risk. Recommended for 2BHK and above or high-value goods. Part-load (Shared): Your goods are consolidated with others moving on the same route. 30–40% cheaper, but slower transit (2–5 extra days) and more handling points. Best for 1BHK, studio, or single-room moves.',
+  },
+  {
+    q: 'What is IBA-approved movers and why does it matter?',
+    a: 'IBA (Indian Banks Association) approval is mandatory for government and PSU employees claiming moving allowance from their employer. IBA-approved movers meet specific standards for packing, insurance, and billing. If you are a central government employee, bank employee, or PSU worker — always confirm IBA status before booking. TransRentals shows IBA approval status on each vendor listing.',
+  },
+  {
+    q: 'How do I file a damage claim after a move?',
+    a: 'Step 1: At delivery, do NOT sign the receipt if you notice damaged goods — note damages on the receipt before signing. Step 2: Photograph all damaged items immediately. Step 3: Report to the mover\'s customer service within 24–48 hours (most contracts have a reporting window). Step 4: File claim with the insurance company if goods were insured — submit photos and the original inventory list. Step 5: Contact TransRentals support if the mover does not respond — we mediate on your behalf.',
   },
   {
     q: 'Can I track my goods during an intercity move?',
-    a: 'Yes, most TransRentals-listed intercity movers provide real-time tracking via GPS or WhatsApp updates during transit. For high-value shipments, ask for a dedicated vehicle (full-truck-load) rather than shared transport to reduce handling and transit time.',
+    a: 'Yes, most TransRentals-listed intercity movers provide GPS tracking or WhatsApp updates during transit. For FTL moves, your dedicated truck can be tracked in real time. For shared/part-load, vendors provide depot-to-depot status updates. Ask for the driver\'s contact number at the time of loading — direct communication reduces transit anxiety.',
+  },
+  {
+    q: 'What questions should I ask a mover before confirming the booking?',
+    a: 'Ask: (1) Is the quote itemised (packing materials, labour, transport, insurance separate)? (2) Is the truck dedicated to my goods or shared? (3) What is the transit timeline? (4) What is the damage liability and claims process? (5) Is transit insurance included or extra? (6) Do you have GST registration and IBA approval? (7) What items are excluded from the quote? (8) Is the packing materials cost included or billed separately at actuals? Get all answers in writing before paying any advance.',
+  },
+  {
+    q: 'What is the best day to move in India?',
+    a: 'Tuesday, Wednesday, and Thursday are the best days to move — least busy for movers, best team availability, and no weekend surcharges. Avoid Saturday and Sunday (high demand, 10–20% surcharge common). Avoid last 3 days of the month (highest demand). Avoid national holidays. Morning start (7–9 AM) is best — more working hours before evening traffic.',
   },
 ];
 
@@ -138,7 +167,7 @@ export const metadata: Metadata = {
     description: 'Verified packers and movers across 50+ Indian cities. Home shifting, office relocation, intercity moves. IBA-approved and insured.',
     type: 'website',
     url: 'https://transrentals.in/packers-and-movers',
-    images: [{ url: 'https://transrentals.in/images/og/packers-movers.jpg', width: 1200, height: 630, alt: 'Packers and Movers - TransRentals' }],
+    images: [{ url: 'https://transrentals.in/api/og?service=packers-and-movers', width: 1200, height: 630, alt: 'Packers and Movers - TransRentals' }],
     locale: 'en_IN',
     siteName: 'TransRentals',
   },
@@ -146,7 +175,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Packers and Movers in India | TransRentals',
     description: 'Verified packers and movers across 50+ Indian cities. IBA-approved, insured moving teams.',
-    images: ['https://transrentals.in/images/og/packers-movers.jpg'],
+    images: ['https://transrentals.in/api/og?service=packers-and-movers'],
   },
   alternates: { canonical: 'https://transrentals.in/packers-and-movers' },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
@@ -212,6 +241,17 @@ export default function PackersAndMoversPage() {
         }}
       />
 
+      <HowToSchema
+        name="How to Book Packers and Movers on TransRentals"
+        description="Book verified, insured packers and movers for home shifting, office relocation, and intercity moves across India."
+        totalTime="PT15M"
+        steps={[
+          { name: 'Request a Quote', text: 'Share your shift details — home size (1BHK/2BHK), pickup city, delivery city, and preferred move date.' },
+          { name: 'Compare Vendors', text: 'Get quotes from multiple TransRentals-verified packers. Compare price, star rating, IBA status, and inclusions.' },
+          { name: 'Confirm Booking', text: 'Confirm your preferred vendor with a small advance payment. Receive booking confirmation and vendor contact details.' },
+          { name: 'Shift & Settle', text: 'The team arrives, packs professionally using quality materials, transports safely with insurance, and unloads at your new home.' },
+        ]}
+      />
       {/* Hero */}
       <ServiceHeroWithChat
         badge="Packers & Movers"
@@ -317,12 +357,15 @@ export default function PackersAndMoversPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Packers and Movers FAQs</h2>
             <p className="text-gray-600">Everything you need to know before booking a mover</p>
           </div>
-          <div className="max-w-3xl mx-auto space-y-4">
+          <div className="max-w-3xl mx-auto space-y-3">
             {PACKERS_FAQS.map((faq, idx) => (
-              <div key={idx} className="bg-white rounded-xl p-5 shadow-sm">
-                <h3 className="font-semibold text-gray-900 mb-2">{faq.q}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{faq.a}</p>
-              </div>
+              <details key={idx} className="bg-white rounded-xl border border-gray-100 shadow-sm group">
+                <summary className="px-5 py-4 font-medium text-gray-900 cursor-pointer select-none list-none flex justify-between items-center">
+                  {faq.q}
+                  <span className="text-gray-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-3">▾</span>
+                </summary>
+                <p className="px-5 pb-4 text-gray-600 text-sm leading-relaxed">{faq.a}</p>
+              </details>
             ))}
           </div>
         </div>

@@ -260,25 +260,6 @@ export default function ServiceBookingsPage() {
     totalPages: 1,
   });
 
-  // Fetch ALL stats once on mount (without filter)
-  useEffect(() => {
-    const fetchAllStats = async () => {
-      try {
-        const res = await fetch(`/api/admin/services/${slug}/bookings?page=1&limit=1&status=ALL`);
-        if (res.ok) {
-          const data = await res.json();
-          setStats(data.stats);
-        }
-      } catch (error) {
-        console.error('Failed to fetch stats:', error);
-      }
-    };
-
-    if (slug) {
-      fetchAllStats();
-    }
-  }, [slug]);
-
   useEffect(() => {
     const fetchBookings = async () => {
       setLoading(true);
@@ -316,7 +297,7 @@ export default function ServiceBookingsPage() {
             endDate: safeDate(b.endDate),
             createdAt: safeDate(b.createdAt),
           })));
-          // Don't update stats - keep them fixed
+          if (data.stats) setStats(data.stats);
           setPagination(data.pagination);
         } else {
           const errorData = await res.json();

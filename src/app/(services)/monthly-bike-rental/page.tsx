@@ -4,7 +4,7 @@ import { getCitiesByPriority } from '@/data/indian-cities';
 import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
 import { FAQSection } from '@/components/services/FAQSection';
-import { BikeServiceSchema } from '@/components/seo/schemas';
+import { BikeServiceSchema, HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Monthly Bike Rental | Scooty on Rent Monthly @₹2999/Month | TransRentals',
@@ -70,6 +70,17 @@ export default function MonthlyBikeRentalPage() {
 
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Bike on Monthly Subscription on TransRentals"
+        description="Book a monthly bike or scooty subscription in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Choose City & Duration', text: 'Select your city and subscription period — 1 month, 3 months, or 6 months. Longer plans get bigger discounts.' },
+          { name: 'Pick a Bike', text: 'Choose from Activa, Splendor, Pulsar, or other available models. Check the monthly rate including maintenance.' },
+          { name: 'Submit KYC Documents', text: 'Upload your driving licence, Aadhaar/PAN, and selfie. Pay security deposit and first month rent.' },
+          { name: 'Get Bike Delivered', text: 'Bike delivered to your doorstep (in select cities) or pick up from vendor. Enjoy zero maintenance hassle.' },
+        ]}
+      />
       {/* Schema Markup */}
       <BikeServiceSchema
         serviceName="Monthly Bike Rental"

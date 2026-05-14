@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { RoundTripRoutesGrid } from '@/components/services/RoundTripRoutesGrid';
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Round Trip Cab Service | Outstation Round Trip Taxi @ Best Rates | TransRentals',
@@ -31,6 +32,17 @@ export const metadata: Metadata = {
 export default function RoundTripPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Book a Round-Trip Cab on TransRentals"
+        description="Book a round-trip outstation cab in 4 simple steps."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Enter Pickup & Return Details', text: 'Enter origin city, destination, travel date, and return date. Same driver for both directions.' },
+          { name: 'Select Vehicle', text: 'Choose sedan, SUV, or luxury car. Round-trip bookings get priority vehicle allocation.' },
+          { name: 'Review Round-Trip Pricing', text: 'Check per-km rate for total distance. Driver allowance and night halt charges included in quote.' },
+          { name: 'Book & Travel Stress-Free', text: 'Pay advance to confirm. Driver handles both legs of the journey with the same vehicle.' },
+        ]}
+      />
       {/* Hero with booking form */}
       <SpecialtyCarBookingHero service="round-trip" />
 
@@ -268,9 +280,9 @@ export default function RoundTripPage() {
             offers: {
               '@type': 'AggregateOffer',
               priceCurrency: 'INR',
-              lowPrice: '10',
-              highPrice: '25',
-              priceSuffix: '/km',
+              lowPrice: 10,
+              highPrice: 25,
+              offerCount: 50,
             },
           }),
         }}

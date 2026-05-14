@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { BikeHeroWithLocation } from '@/components/bike/BikeHeroWithLocation';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Pulsar on Rent in India | Bajaj Pulsar Rental @₹499/Day | TransRentals',
@@ -46,6 +47,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function PulsarRentalPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent a Bajaj Pulsar on TransRentals"
+        description="Book Pulsar bike rental in 4 simple steps."
+        totalTime="PT7M"
+        steps={[
+          { name: 'Choose City & Dates', text: 'Select your city and rental period. Pulsar 150, 180, NS200, and RS200 available for daily and monthly rent.' },
+          { name: 'Pick Pulsar Model', text: 'Choose based on engine size and riding purpose — Pulsar 150 for daily commute, NS200/RS200 for performance.' },
+          { name: 'Submit Documents', text: 'Upload DL with two-wheeler endorsement and Aadhaar. Pay deposit and confirm booking instantly.' },
+          { name: 'Collect & Ride', text: 'Pick up Pulsar at vendor location after inspection. Wear helmet and riding gear before heading out.' },
+        ]}
+      />
       <BikeHeroWithLocation />
 
       {/* Hero Section */}

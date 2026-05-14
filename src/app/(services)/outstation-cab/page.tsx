@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCitiesByPriority } from '@/data/indian-cities';
 import { SpecialtyCarBookingHero } from '@/components/car-rental/SpecialtyCarBookingHero';
 import { formatPriceHighlight } from '@/lib/utils';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: formatPriceHighlight('Outstation Cab | Intercity Taxi @₹12/Km | Round Trip Car Rental India'),
@@ -32,6 +33,17 @@ export default async function OutstationCabPage() {
 
   return (
     <>
+      <HowToSchema
+        name="How to Book an Outstation Cab on TransRentals"
+        description="Book an intercity taxi in 4 simple steps. AC cabs with professional drivers."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Select Trip Type & Route', text: 'Choose one-way or round-trip. Enter departure city, destination, and travel date.' },
+          { name: 'Pick Car Category', text: 'Select economy sedan, premium sedan, or SUV. All come with experienced intercity drivers.' },
+          { name: 'Compare & Confirm Rate', text: 'Review per-km pricing with inclusions — driver allowance, toll (in select plans), and GST.' },
+          { name: 'Pay & Track', text: 'Confirm booking with advance payment. Receive driver contact. Track cab on travel day.' },
+        ]}
+      />
       {/* Hero with booking form */}
       <SpecialtyCarBookingHero service="outstation-cab" />
 

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     description: 'Rent luxury cars across India. Rolls-Royce, Bentley, Ferrari, Lamborghini, Porsche. Premium experience with chauffeur service.',
     type: 'website',
     url: 'https://transrentals.in/luxury-car-rental',
-    images: [{ url: 'https://transrentals.in/images/og/luxury-car.jpg', width: 1200, height: 630, alt: 'Luxury Car Rental - TransRentals' }],
+    images: [{ url: 'https://transrentals.in/api/og?service=luxury-car-rental', width: 1200, height: 630, alt: 'Luxury Car Rental - TransRentals' }],
     locale: 'en_IN',
     siteName: 'TransRentals',
   },
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Luxury & Exotic Car Rental India | TransRentals',
     description: 'Rent luxury cars across India. BMW, Mercedes, Ferrari, Lamborghini, Rolls-Royce.',
-    images: ['https://transrentals.in/images/og/luxury-car.jpg'],
+    images: ['https://transrentals.in/api/og?service=luxury-car-rental'],
   },
   alternates: { canonical: 'https://transrentals.in/luxury-car-rental' },
   robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
@@ -46,8 +46,7 @@ export default function LuxuryCarRentalPage() {
           serviceType: 'Luxury Car Rental',
           provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
           areaServed: { '@type': 'Country', name: 'India' },
-          offers: { '@type': 'AggregateOffer', priceCurrency: 'INR', lowPrice: '8000', highPrice: '200000' },
-          aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '850', bestRating: '5' },
+          offers: { '@type': 'AggregateOffer', priceCurrency: 'INR', lowPrice: 8000, highPrice: 200000, offerCount: 20 },
         }) }}
       />
       <HowToSchema
@@ -195,6 +194,14 @@ export default function LuxuryCarRentalPage() {
                 q: 'Is insurance included?',
                 a: 'Yes, all our luxury cars come with comprehensive insurance coverage. Additional coverage options are available for exotic supercars.',
               },
+              {
+                q: 'How far in advance should I book a luxury car?',
+                a: 'For weddings and major events, book at least 2–3 weeks in advance — premium vehicles like Rolls-Royce and Bentley have very limited availability. For corporate and airport transfers, 48–72 hours notice is usually sufficient.',
+              },
+              {
+                q: 'Are luxury cars available for hourly hire?',
+                a: 'Yes, hourly packages (minimum 4 hours) are available for airport transfers, corporate meetings, and short-duration events. Full-day rates offer better value for weddings and all-day photoshoots.',
+              },
             ].map((faq, idx) => (
               <div key={idx} className="bg-white p-6 rounded-xl shadow-sm">
                 <h3 className="font-semibold text-lg text-gray-900 mb-2">{faq.q}</h3>
@@ -227,26 +234,23 @@ export default function LuxuryCarRentalPage() {
         </div>
       </section>
 
-      {/* Schema Markup */}
+      {/* FAQPage Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
-            name: 'Luxury Car Rental India',
-            description: 'Rent luxury and exotic cars across India. BMW, Mercedes, Audi, Ferrari, Lamborghini, Rolls-Royce, Bentley.',
-            offers: {
-              '@type': 'AggregateOffer',
-              priceCurrency: 'INR',
-              lowPrice: '5999',
-              highPrice: '85000',
-            },
-            provider: {
-              '@type': 'Organization',
-              name: 'TransRentals',
-              url: 'https://transrentals.in',
-            },
+            '@type': 'FAQPage',
+            mainEntity: [
+              { '@type': 'Question', name: 'What luxury cars are available for rent?', acceptedAnswer: { '@type': 'Answer', text: 'We offer Mercedes E-Class, BMW 5/7 Series, Audi A6/A8, Jaguar XF, Range Rover, Porsche 911/Cayenne, Bentley Continental/Bentayga, Rolls-Royce Ghost, Ferrari 488, Lamborghini Huracan, and more.' } },
+              { '@type': 'Question', name: 'How much does luxury car rental cost?', acceptedAnswer: { '@type': 'Answer', text: 'Prices start from ₹5,999/day for premium sedans like Mercedes E-Class. Ultra-luxury cars like Rolls-Royce start at ₹45,000/day. Exotic supercars like Ferrari and Lamborghini range from ₹75,000–₹85,000/day.' } },
+              { '@type': 'Question', name: 'Is chauffeur service included?', acceptedAnswer: { '@type': 'Answer', text: 'Yes, professional chauffeur service is included with all luxury car rentals. Self-drive options are available for select models after verification.' } },
+              { '@type': 'Question', name: 'Can I rent luxury cars for weddings?', acceptedAnswer: { '@type': 'Answer', text: 'Absolutely! Our luxury cars are perfect for weddings. We offer special wedding packages with decorations, red carpet service, and professional chauffeurs.' } },
+              { '@type': 'Question', name: 'What documents are required?', acceptedAnswer: { '@type': 'Answer', text: 'You need valid ID proof (Aadhaar/Passport), address proof, and a refundable security deposit. For self-drive, a valid driving license is required.' } },
+              { '@type': 'Question', name: 'Is insurance included?', acceptedAnswer: { '@type': 'Answer', text: 'Yes, all our luxury cars come with comprehensive insurance coverage. Additional coverage options are available for exotic supercars.' } },
+              { '@type': 'Question', name: 'How far in advance should I book a luxury car?', acceptedAnswer: { '@type': 'Answer', text: 'For weddings and major events, book at least 2–3 weeks in advance — premium vehicles like Rolls-Royce and Bentley have very limited availability. For corporate and airport transfers, 48–72 hours notice is usually sufficient.' } },
+              { '@type': 'Question', name: 'Are luxury cars available for hourly hire?', acceptedAnswer: { '@type': 'Answer', text: 'Yes, hourly packages (minimum 4 hours) are available for airport transfers, corporate meetings, and short-duration events. Full-day rates offer better value for weddings and all-day photoshoots.' } },
+            ],
           }),
         }}
       />

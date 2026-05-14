@@ -1,5 +1,6 @@
 import { CITY_SEO, STATE_SEO } from '@/data/city-seo-content';
-import { MapPin, Clock, Lightbulb, BarChart3 } from 'lucide-react';
+import { CITY_RICH } from '@/data/city-rich-content';
+import { MapPin, Clock, Lightbulb, BarChart3, Navigation, Landmark, CarFront } from 'lucide-react';
 
 const SERVICE_FALLBACK_INTROS: Record<string, (city: string) => string> = {
   'packers-and-movers': (city) => `Looking for reliable packers and movers in ${city}? TransRentals connects you with verified, GST-registered moving companies across ${city}. Whether you're shifting locally within ${city} or relocating to another city, our listed movers offer professional packing, safe transport, and door-to-door delivery. All vendors are pre-verified with valid licenses and customer reviews. Get free quotes from multiple vendors and compare before booking.`,
@@ -100,6 +101,7 @@ interface Props {
 export function CityContentSection({ citySlug, serviceSlug, cityName, stateCode }: Props) {
   const cityData = CITY_SEO[citySlug];
   const stateData = stateCode ? STATE_SEO[stateCode] : null;
+  const richData = CITY_RICH[citySlug] ?? null;
 
   if (!cityData && !stateData) return null;
 
@@ -220,6 +222,78 @@ export function CityContentSection({ citySlug, serviceSlug, cityName, stateCode 
                   <p className="text-xs text-amber-600 font-medium uppercase tracking-wide mb-1">Nearest Airport</p>
                   <p className="text-gray-900 font-semibold text-sm">{stats.airport}</p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Neighborhood Pickup Zones — hyper-local content */}
+          {richData?.neighborhoods && richData.neighborhoods.length > 0 && (
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Navigation className="w-5 h-5 text-primary" />
+                {serviceLabel} Pickup Zones in {cityName}
+              </h3>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {richData.neighborhoods.map((n) => (
+                  <div key={n.name} className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
+                    <p className="font-semibold text-gray-900 text-sm">
+                      {n.name}
+                      <span className="ml-2 text-xs font-medium text-primary bg-primary/10 rounded-full px-2 py-0.5">{n.type}</span>
+                    </p>
+                    <p className="text-gray-500 text-xs mt-1 leading-relaxed">{n.pickupNote}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tourist Attractions — why people rent vehicles */}
+          {richData?.attractions && richData.attractions.length > 0 && (
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Landmark className="w-5 h-5 text-purple-600" />
+                Top Places to Visit from {cityName}
+              </h3>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {richData.attractions.map((a) => (
+                  <div key={a.name} className="bg-gray-50 rounded-lg px-4 py-3 border border-gray-100">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-semibold text-gray-900 text-sm">{a.name}</p>
+                      <p className="text-xs text-primary font-medium shrink-0">{a.distance}</p>
+                    </div>
+                    <p className="text-gray-500 text-xs mt-1">Best vehicle: {a.bestVehicle}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Local Driving Info */}
+          {richData?.drivingInfo && (
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <CarFront className="w-5 h-5 text-orange-500" />
+                Driving in {cityName} — What You Need to Know
+              </h3>
+              <div className="space-y-3">
+                {richData.drivingInfo.restrictions && (
+                  <div className="bg-orange-50 rounded-lg px-4 py-3 border border-orange-100">
+                    <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide mb-1">Restrictions & Rules</p>
+                    <p className="text-gray-700 text-sm">{richData.drivingInfo.restrictions}</p>
+                  </div>
+                )}
+                {richData.drivingInfo.parking && (
+                  <div className="bg-blue-50 rounded-lg px-4 py-3 border border-blue-100">
+                    <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Parking</p>
+                    <p className="text-gray-700 text-sm">{richData.drivingInfo.parking}</p>
+                  </div>
+                )}
+                {richData.drivingInfo.highwayNote && (
+                  <div className="bg-emerald-50 rounded-lg px-4 py-3 border border-emerald-100">
+                    <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">Highway Info</p>
+                    <p className="text-gray-700 text-sm">{richData.drivingInfo.highwayNote}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

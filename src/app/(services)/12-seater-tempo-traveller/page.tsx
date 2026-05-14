@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: '12 Seater Tempo Traveller on Rent | Hire @₹18/km | TransRentals',
@@ -30,6 +31,17 @@ const topCities = ALL_CITIES.slice(0, 12);
 export default function TwelveSeaterTempoTravellerPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Book a 12-Seater Tempo Traveller on TransRentals"
+        description="Book a 12-seater tempo traveller for group travel in 4 simple steps."
+        totalTime="PT10M"
+        steps={[
+          { name: 'Enter Group Details', text: 'Select pickup city, travel date, and confirm group size of 10–12 passengers.' },
+          { name: 'Choose AC or Non-AC', text: 'Select AC Tempo Traveller for summer or long-distance trips, non-AC for short hill station routes.' },
+          { name: 'Compare Vendor Quotes', text: 'Get per-km quotes from verified operators. Review toll, state permit, and driver allowance inclusions.' },
+          { name: 'Confirm & Travel', text: 'Pay advance to lock in the booking. Driver arrives at your pickup point with a clean, well-maintained vehicle.' },
+        ]}
+      />
       <ServiceHeroWithChat
         badge="Perfect for 10-12 People"
         title="12 Seater Tempo Traveller"

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { SwiftRentalTypeHero } from '@/components/swift/SwiftRentalTypeHero';
 import { FAQSection } from '@/components/services/FAQSection';
 import { ALL_CITIES } from '@/data/indian-cities';
+import { HowToSchema } from '@/components/seo/schemas';
 
 export const metadata: Metadata = {
   title: 'Innova on Rent Without Driver | Self Drive Innova @₹2499/Day | TransRentals',
@@ -31,6 +32,17 @@ const topCities = ALL_CITIES.slice(0, 60);
 export default function InnovaOnRentPage() {
   return (
     <>
+      <HowToSchema
+        name="How to Rent Toyota Innova on TransRentals"
+        description="Book Innova Crysta self-drive or with driver in 4 simple steps."
+        totalTime="PT8M"
+        steps={[
+          { name: 'Select Rental Type & City', text: 'Choose self-drive or driver-included Innova rental. Select your city and travel dates.' },
+          { name: 'Confirm Vehicle Variant', text: 'Choose Innova Crysta 2.4G or 2.8 ZX. Check 7-seater configuration and AC.' },
+          { name: 'Submit Documents', text: 'Upload driving licence, Aadhaar. Pay security deposit for self-drive or advance for driver booking.' },
+          { name: 'Receive & Travel', text: 'Collect keys at vendor or get home delivery in select cities. Enjoy 7-seater comfort.' },
+        ]}
+      />
       <SwiftRentalTypeHero
         vehicleName="Toyota Innova"
         selfDrivePrice="₹2,499"

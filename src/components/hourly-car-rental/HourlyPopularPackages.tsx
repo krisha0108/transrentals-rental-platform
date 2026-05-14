@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { Car, Users, Timer, Gauge, ChevronDown, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -82,7 +83,7 @@ export function HourlyPopularPackages() {
                   )}
                   <div className="bg-gradient-to-br from-blue-50 to-indigo-50 px-6 pt-6 pb-3 flex items-center justify-center min-h-[100px]">
                     {cat.image ? (
-                      <img src={cat.image} alt={cat.name} className="h-20 object-contain drop-shadow-sm" />
+                      <Image src={cat.image} alt={cat.name} width={160} height={80} className="object-contain drop-shadow-sm" />
                     ) : (
                       <Car className="w-14 h-14 text-blue-300" />
                     )}
