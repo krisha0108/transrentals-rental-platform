@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { checkRateLimit, RATE_LIMITS, logger } from '@/lib/security';
+import { notifyTravelAgent } from '@/lib/notifications/travel-agent-notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,7 +116,7 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid phone number' }, { status: 400 });
     }
 
-    await prisma.$transaction([
+    const [createdLead] = await prisma.$transaction([
       prisma.travel_agent_leads.create({
         data: {
           travelAgentId: link.travelAgentId,
@@ -141,6 +142,14 @@ export async function POST(
         data: { totalSubmissions: { increment: 1 } },
       }),
     ]);
+
+    await notifyTravelAgent(link.travelAgentId, {
+      type: 'LEAD',
+      title: 'New lead captured',
+      body: `${String(customerName).trim()} is interested${destination ? ` in ${destination}` : ''}.`,
+      link: `/travel-agent/leads/${createdLead.id}`,
+      metadata: { leadId: createdLead.id, source: 'CAPTURE_LINK' },
+    });
 
     return NextResponse.json(
       {

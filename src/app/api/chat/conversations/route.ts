@@ -204,6 +204,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate the vendor row exists — chat_conversations.vendorId has a
+    // hard FK to vendors.id, and silently failing here surfaces as a 500.
+    // Travel-agent IDs / stale IDs get caught with a clear message instead.
+    const vendorRow = await prisma.vendors.findUnique({
+      where: { id: vendorId },
+      select: { id: true },
+    });
+    if (!vendorRow) {
+      return NextResponse.json(
+        { error: 'Vendor not found', details: `No vendor with id ${vendorId}` },
+        { status: 404 }
+      );
+    }
+
     // Resolve customer
     let resolvedCustomerId = customerId;
     if (!resolvedCustomerId && (customerPhone || customerEmail)) {
@@ -212,6 +226,20 @@ export async function POST(request: NextRequest) {
         select: { id: true },
       });
       resolvedCustomerId = customer?.id;
+    }
+
+    // Same guard for customerId — FK to customers.id.
+    if (resolvedCustomerId) {
+      const customerRow = await prisma.customers.findUnique({
+        where: { id: resolvedCustomerId },
+        select: { id: true },
+      });
+      if (!customerRow) {
+        return NextResponse.json(
+          { error: 'Customer not found', details: `No customer with id ${resolvedCustomerId}` },
+          { status: 404 }
+        );
+      }
     }
 
     // Check for existing conversation

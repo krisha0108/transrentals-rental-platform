@@ -59,6 +59,22 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // Stats reflect the current filter set MINUS status (so the chip row can
+    // show the breakdown-by-status for the user's view). This lets the
+    // Tour Quote Requests page (always source=WEBSITE) show its own NEW /
+    // CONTACTED / BOOKED counts without bleeding in non-website leads.
+    const statsWhere: any = { travelAgentId: auth.travelAgentId };
+    if (priority && priority !== 'ALL' && VALID_PRIORITY.includes(priority as any)) statsWhere.priority = priority;
+    if (source && source !== 'ALL' && VALID_SOURCE.includes(source as any)) statsWhere.source = source;
+    if (search) {
+      statsWhere.OR = [
+        { customerName: { contains: search } },
+        { customerPhone: { contains: search } },
+        { customerEmail: { contains: search } },
+        { destination: { contains: search } },
+      ];
+    }
+
     const [leads, total, statsByStatus] = await Promise.all([
       prisma.travel_agent_leads.findMany({
         where,
@@ -72,7 +88,7 @@ export async function GET(request: NextRequest) {
       prisma.travel_agent_leads.count({ where }),
       prisma.travel_agent_leads.groupBy({
         by: ['status'],
-        where: { travelAgentId: auth.travelAgentId },
+        where: statsWhere,
         _count: { _all: true },
       }),
     ]);

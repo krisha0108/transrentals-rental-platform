@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { checkRateLimit, RATE_LIMITS, logger } from '@/lib/security';
+import { notifyTravelAgent } from '@/lib/notifications/travel-agent-notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -171,6 +172,18 @@ export async function POST(
         customerFilledAt: new Date(),
       },
     });
+
+    // Notify the agent on the first fill — re-edits before the booking is
+    // confirmed don't need to ping every time.
+    if (!booking.customerFilledAt) {
+      await notifyTravelAgent(booking.travelAgentId, {
+        type: 'BOOKING',
+        title: 'Customer filled booking details',
+        body: `${updated.customerName} completed booking ${updated.bookingNumber}.`,
+        link: `/travel-agent/bookings/${booking.id}`,
+        metadata: { bookingId: booking.id, bookingNumber: updated.bookingNumber },
+      });
+    }
 
     return NextResponse.json({
       success: true,
