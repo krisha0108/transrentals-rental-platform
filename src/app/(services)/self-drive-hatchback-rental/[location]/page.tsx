@@ -158,8 +158,7 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Self Drive Hatchback Rental"
         serviceSlug="self-drive-hatchback-rental"

@@ -188,15 +188,7 @@ export default async function KTMLocationPage({ params }: PageProps) {
           title={`Available KTM Bikes in ${locationName}`}
         />
 
-        <WhyRentHere locationName={locationName} />
-
-        <PopularRoutes
-          location={locationName}
-          locationSlug={params.location}
-          serviceSlug="ktm-on-rent"
-        />
-
-        <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
+        <WhyRentHere locationName={locationName} />
 
         <NearbyLocations
           locationSlug={params.location}

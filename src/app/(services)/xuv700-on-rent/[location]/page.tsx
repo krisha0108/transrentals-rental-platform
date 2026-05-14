@@ -130,8 +130,7 @@ export default async function XUV700LocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="XUV700 on Rent"
         serviceSlug="xuv700-on-rent"

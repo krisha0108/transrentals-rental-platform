@@ -280,7 +280,6 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
               stateCode={undefined}
             />
       */}
-      <FAQSection service="bike-on-rent" customFaqs={pageFaqs} />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />

@@ -248,45 +248,7 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
             ))}
           </div>
         </div>
-      </section>
-
-      {/* FAQs */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-6">
-            {[
-              {
-                q: `How much does wedding car rental cost in ${locationName}?`,
-                a: `Wedding car rental in ${locationName} starts from ₹2999 for 4 hours (baraat). Luxury cars like Mercedes cost ₹6999-9999. Decoration included.`,
-              },
-              {
-                q: `Which wedding cars are available in ${locationName}?`,
-                a: `We offer Fortuner, Mercedes, BMW, Audi, Vintage Ambassador, and Range Rover in ${locationName} for weddings.`,
-              },
-              {
-                q: `Is car decoration free in ${locationName}?`,
-                a: `Yes! Basic flower decoration with ribbons is FREE. Premium decoration with LED lights available at ₹1500 extra.`,
-              },
-              {
-                q: `Do you provide chauffeur for wedding cars in ${locationName}?`,
-                a: `Yes, all wedding cars in ${locationName} come with professional uniformed chauffeur at no extra cost.`,
-              },
-              {
-                q: `Can I book vintage car for baraat in ${locationName}?`,
-                a: `Yes! Vintage Ambassador cars are available in ${locationName} starting @₹3999. Perfect for traditional Indian weddings.`,
-              },
-            ].map((faq, idx) => (
-              <div key={idx} className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content

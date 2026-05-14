@@ -188,8 +188,7 @@ export default async function SUVRentalLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Self Drive SUV Rental"
         serviceSlug="self-drive-suv-rental"

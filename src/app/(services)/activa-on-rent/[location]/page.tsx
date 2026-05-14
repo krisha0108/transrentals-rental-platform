@@ -267,15 +267,7 @@ export default async function ActivaLocationPage({ params }: PageProps) {
         title={`Available Scooters in ${locationName}`}
       />
 
-      <WhyRentHere locationName={locationName} />
-
-      <PopularRoutes
-        location={locationName}
-        locationSlug={params.location}
-        serviceSlug="activa-on-rent"
-      />
-
-      <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
+      <WhyRentHere locationName={locationName} />
 
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection

@@ -134,8 +134,7 @@ export default async function ExcavatorLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="equipment-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Excavator on Rent"
         serviceSlug="excavator-on-rent"

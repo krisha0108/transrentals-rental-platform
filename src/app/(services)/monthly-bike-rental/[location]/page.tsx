@@ -420,8 +420,6 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" customFaqs={pageFaqs} />
-
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 

@@ -209,9 +209,7 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
         />
       )}
 
-      <WhyRentHere locationName={locationName} />
-
-      <FAQSection service="bus-rental" location={locationName} customFaqs={pageFaqs} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location}

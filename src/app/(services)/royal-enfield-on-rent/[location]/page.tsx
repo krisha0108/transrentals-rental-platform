@@ -194,15 +194,7 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
         title={`Available Royal Enfield Bikes in ${locationName}`}
       />
 
-      <WhyRentHere locationName={locationName} />
-
-      <PopularRoutes
-        location={locationName}
-        locationSlug={params.location}
-        serviceSlug="royal-enfield-on-rent"
-      />
-
-      <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location}

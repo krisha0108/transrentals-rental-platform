@@ -129,8 +129,7 @@ export default async function SeltosLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Seltos on Rent"
         serviceSlug="seltos-on-rent"

@@ -197,9 +197,7 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
         />
       )}
 
-      <WhyRentHere locationName={locationName} />
-
-      <FAQSection service="transporter" location={locationName} customFaqs={pageFaqs} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location}

@@ -174,8 +174,7 @@ export default async function CretaOnRentLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Creta on Rent"
         serviceSlug="creta-on-rent"

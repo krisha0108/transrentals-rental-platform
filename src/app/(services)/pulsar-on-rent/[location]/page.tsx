@@ -212,15 +212,7 @@ export default async function PulsarLocationPage({ params }: PageProps) {
           title={`Available Pulsar Bikes in ${locationName}`}
         />
 
-        <WhyRentHere locationName={locationName} />
-
-        <PopularRoutes
-          location={locationName}
-          locationSlug={params.location}
-          serviceSlug="pulsar-on-rent"
-        />
-
-        <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
+        <WhyRentHere locationName={locationName} />
 
         <NearbyLocations
           locationSlug={params.location}

@@ -231,46 +231,7 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
             </div>
           </div>
         </div>
-      </section>
-
-
-      {/* FAQs */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-6">
-            {[
-              {
-                q: `How much does sports car rental cost in ${locationName}?`,
-                a: `Sports car rental in ${locationName} starts from ₹25,000/day for GT-R. Ferrari costs ₹80,000/day, Lamborghini ₹75,000/day.`,
-              },
-              {
-                q: `Can I self-drive sports car in ${locationName}?`,
-                a: `Yes, self-drive available in ${locationName} with 3+ years license and security deposit. Chauffeur also available.`,
-              },
-              {
-                q: `Which supercars available in ${locationName}?`,
-                a: `We have Lamborghini, Ferrari, Porsche, McLaren, Audi R8, and GT-R in ${locationName}. Availability varies.`,
-              },
-              {
-                q: `What documents needed in ${locationName}?`,
-                a: `You need driving license (3+ years), Aadhar, PAN, address proof, and security deposit in ${locationName}.`,
-              },
-              {
-                q: `How to book sports car in ${locationName}?`,
-                a: `Book online. Select ${locationName}, choose supercar, provide documents and pay deposit.`,
-              },
-            ].map((faq, idx) => (
-              <div key={idx} className="bg-white p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content

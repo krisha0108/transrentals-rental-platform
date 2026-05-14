@@ -138,8 +138,7 @@ export default async function CraneLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="equipment-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Crane on Rent"
         serviceSlug="crane-on-rent"

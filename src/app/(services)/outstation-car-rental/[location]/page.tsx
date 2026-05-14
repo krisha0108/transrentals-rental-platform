@@ -313,15 +313,7 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
         </section>
       )}
 
-      <WhyRentHere locationName={locationName} />
-
-      <PopularRoutes
-        location={locationName}
-        locationSlug={params.location}
-        serviceSlug="outstation-car-rental"
-      />
-
-      <FAQSection service="car-rental" location={locationName} customFaqs={pageFaqs} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location}

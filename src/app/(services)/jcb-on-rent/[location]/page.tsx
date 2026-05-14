@@ -195,9 +195,7 @@ export default async function JCBLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <WhyRentHere locationName={locationName} />
-
-      <FAQSection service="equipment-rental" location={locationName} customFaqs={pageFaqs} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location}

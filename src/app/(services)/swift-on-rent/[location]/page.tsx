@@ -166,8 +166,7 @@ export default async function SwiftOnRentLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Swift on Rent"
         serviceSlug="swift-on-rent"

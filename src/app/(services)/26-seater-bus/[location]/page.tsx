@@ -157,8 +157,7 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="bus-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="26 Seater Bus"
         serviceSlug="26-seater-bus"

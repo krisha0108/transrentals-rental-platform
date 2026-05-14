@@ -117,8 +117,7 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Hourly Car Rental"
         serviceSlug="hourly-car-rental"

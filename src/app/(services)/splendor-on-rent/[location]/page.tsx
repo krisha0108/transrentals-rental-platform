@@ -188,15 +188,7 @@ export default async function SplendorLocationPage({ params }: PageProps) {
           title={`Available Splendor Bikes in ${locationName}`}
         />
 
-        <WhyRentHere locationName={locationName} />
-
-        <PopularRoutes
-          location={locationName}
-          locationSlug={params.location}
-          serviceSlug="splendor-on-rent"
-        />
-
-        <FAQSection service="bike-on-rent" location={locationName} customFaqs={pageFaqs} />
+        <WhyRentHere locationName={locationName} />
 
         <NearbyLocations
           locationSlug={params.location}

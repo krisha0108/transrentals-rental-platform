@@ -260,45 +260,7 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
             </div>
           </div>
         </div>
-      </section>
-
-      {/* FAQs */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-6">
-            {[
-              {
-                q: `How much does corporate car rental cost in ${locationName}?`,
-                a: `Corporate car rental in ${locationName} starts from ₹15,000/month for employee transport. Executive cars cost ₹25,000-40,000/month.`,
-              },
-              {
-                q: `Do you provide GST invoice in ${locationName}?`,
-                a: `Yes! We provide proper GST invoices for all corporate bookings in ${locationName} for tax benefits.`,
-              },
-              {
-                q: `Can we rent multiple cars in ${locationName}?`,
-                a: `Yes, we provide fleet management in ${locationName} with centralized billing and reports.`,
-              },
-              {
-                q: `What is minimum contract in ${locationName}?`,
-                a: `Minimum contract is 1 month for monthly packages in ${locationName}. Daily bookings have no minimum commitment.`,
-              },
-              {
-                q: `How to book corporate car in ${locationName}?`,
-                a: `Contact us for requirements. We'll create custom proposal for ${locationName}. After agreement, vehicles deployed.`,
-              },
-            ].map((faq, idx) => (
-              <div key={idx} className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content

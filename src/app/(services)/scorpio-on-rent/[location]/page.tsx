@@ -129,8 +129,7 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Scorpio on Rent"
         serviceSlug="scorpio-on-rent"

@@ -300,45 +300,7 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
             ))}
           </div>
         </div>
-      </section>
-
-      {/* FAQs */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-6">
-            {[
-              {
-                q: `How much does chauffeur cost in ${locationName}?`,
-                a: `Chauffeur service in ${locationName} starts from ₹599/day for 8-10 hours. Outstation drivers cost ₹800-1200/day.`,
-              },
-              {
-                q: `Are chauffeurs in ${locationName} verified?`,
-                a: `Yes! All chauffeurs in ${locationName} are police verified with valid driving licenses and background checks.`,
-              },
-              {
-                q: `Can I hire driver for outstation from ${locationName}?`,
-                a: `Yes, we provide drivers for outstation trips from ${locationName}. Charges are ₹800-1200/day plus driver allowance.`,
-              },
-              {
-                q: `What is monthly chauffeur package in ${locationName}?`,
-                a: `Monthly package in ${locationName} costs ₹15,000-25,000 for 26 days, 8-10 hours per day.`,
-              },
-              {
-                q: `How to book chauffeur in ${locationName}?`,
-                a: `Book online on our website. Select ${locationName}, choose package, provide car details and complete booking.`,
-              },
-            ].map((faq, idx) => (
-              <div key={idx} className="bg-white p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content

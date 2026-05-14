@@ -165,8 +165,7 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Fortuner on Rent"
         serviceSlug="fortuner-on-rent"

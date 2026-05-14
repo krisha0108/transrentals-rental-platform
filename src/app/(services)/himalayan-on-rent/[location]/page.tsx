@@ -152,8 +152,7 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="bike-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Royal Enfield Himalayan on Rent"
         serviceSlug="himalayan-on-rent"

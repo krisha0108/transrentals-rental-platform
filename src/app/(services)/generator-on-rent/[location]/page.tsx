@@ -134,8 +134,7 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="equipment-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Generator on Rent"
         serviceSlug="generator-on-rent"

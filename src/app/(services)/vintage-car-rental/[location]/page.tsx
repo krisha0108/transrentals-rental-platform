@@ -232,46 +232,7 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
             </div>
           </div>
         </div>
-      </section>
-
-
-      {/* FAQs */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-6">
-            {[
-              {
-                q: `How much does vintage car cost in ${locationName}?`,
-                a: `Vintage car rental in ${locationName} starts from ₹8999 for 4 hours. Ambassador costs ₹8999-9999. Rare models cost ₹12999-14999.`,
-              },
-              {
-                q: `Which vintage cars available in ${locationName}?`,
-                a: `We have Ambassador Classic, Fiat Vintage, Standard Herald, Premier Padmini in ${locationName}.`,
-              },
-              {
-                q: `Is decoration included in ${locationName}?`,
-                a: `Yes! Basic vintage-style decoration is FREE in ${locationName}. Premium decor available extra.`,
-              },
-              {
-                q: `Can I rent for photo shoot in ${locationName}?`,
-                a: `Yes! 2-3 hour packages for shoots in ${locationName} starting @₹6999.`,
-              },
-              {
-                q: `How to book vintage car in ${locationName}?`,
-                a: `Book online. Select ${locationName}, choose vintage car, date and complete booking.`,
-              },
-            ].map((faq, idx) => (
-              <div key={idx} className="bg-white p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content

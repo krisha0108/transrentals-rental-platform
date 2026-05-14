@@ -248,9 +248,7 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
         title={`Wedding Buses Available in ${locationName}`}
       />
 
-      <WhyRentHere locationName={locationName} />
-
-      <FAQSection service="bus-rental" location={locationName} customFaqs={pageFaqs} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location}

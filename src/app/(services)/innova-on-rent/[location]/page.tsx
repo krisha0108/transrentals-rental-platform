@@ -194,8 +194,7 @@ export default async function InnovaOnRentLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Innova on Rent"
         serviceSlug="innova-on-rent"
