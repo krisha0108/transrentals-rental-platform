@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -9,6 +9,7 @@ import {
   AlertCircle, CheckCircle, Loader2, IndianRupee, Route, Copy,
   ChevronDown, ChevronUp, Bus, Truck, Bike, Wrench, Package, Star,
   XCircle, Edit3, X, Settings2, Fuel, Navigation, Lightbulb, Clock,
+  Sparkles, StickyNote, PartyPopper, Info,
 } from 'lucide-react';
 import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 
@@ -32,6 +33,8 @@ interface BookingDetail {
   returnTime: string | null;
   specialNotes: string | null;
   status: string;
+  // CUSTOM_BULK bookings carry a full multi-day plan as JSON in this column.
+  bulkBreakdown: string | null;
 }
 
 interface VehicleEntry {
@@ -40,23 +43,55 @@ interface VehicleEntry {
   useCustomPrice: boolean;
   basePrice: string;
   perKmRate: string;
+  minimumKm: string;
   perHourRate: string;
   perDayRate: string;
   driverAllowance: string;
   nightCharges: string;
   extraKmCharge: string;
   extraHourCharge: string;
+  // CUSTOM_BULK only: links this picker row to a specific day + service in
+  // the customer's plan, plus the originally-requested vehicle label so the
+  // vendor can match what was asked.
+  dayIndex?: number;
+  serviceIdx?: number;
+  serviceType?: string;
+  requestedVehicle?: string;
+  // Self-drive only: where the customer picks up / drops the vehicle.
+  // Shown to the customer + manager once the quote is accepted.
+  pickupPoint?: string;
 }
+
+// Module-level slug map so both the fleet fetch and the per-day filter
+// (used inside CUSTOM_BULK pickers) agree on which fleet rows belong to
+// which service type.
+const SERVICE_SLUG_MAP: Record<string, string[]> = {
+  car: ['chauffeur-car-rental', 'car-rental', 'car'],
+  selfdrive: ['self-drive-car-rentals', 'self-drive', 'selfdrive'],
+  'self-drive': ['self-drive-car-rentals', 'self-drive', 'selfdrive'],
+  bus: ['bus-rental', 'bus'],
+  bike: ['bike-rental', 'bike-on-rent', 'bike'],
+  truck: ['truck-rental', 'truck'],
+  luxury: ['luxury-car-rental', 'luxury'],
+  equipment: ['equipment-rental', 'equipment'],
+  packers: ['packers-and-movers', 'packers'],
+};
 
 interface OverallPricing {
   basePrice: string;
   perKmRate: string;
+  // Min km expected per vehicle. Drives the breakdown total:
+  // basePrice + (perKmRate × minimumKm) + driverAllowance.
+  minimumKm: string;
   perHourRate: string;
   perDayRate: string;
   driverAllowance: string;
   nightCharges: string;
   extraKmCharge: string;
   extraHourCharge: string;
+  // Flat per-vehicle override. When set (>0) it replaces the
+  // breakdown total when pricingMode === 'final'.
+  finalAmount: string;
 }
 
 interface Template {
@@ -76,8 +111,9 @@ interface Template {
 }
 
 const EMPTY_PRICING: OverallPricing = {
-  basePrice: '', perKmRate: '', perHourRate: '', perDayRate: '',
+  basePrice: '', perKmRate: '', minimumKm: '', perHourRate: '', perDayRate: '',
   driverAllowance: '', nightCharges: '', extraKmCharge: '', extraHourCharge: '',
+  finalAmount: '',
 };
 
 const EMPTY_VEHICLE: VehicleEntry = {
@@ -94,6 +130,30 @@ const SERVICE_CONFIG: Record<string, { label: string; icon: any }> = {
   equipment: { label: 'Equipment', icon: Wrench },
   packers: { label: 'Packers & Movers', icon: Package },
   luxury: { label: 'Luxury Car', icon: Star },
+  CUSTOM_BULK: { label: 'Multi-Day Event', icon: PartyPopper },
+};
+
+// Styling/labelling for service chips inside the CUSTOM_BULK day-wise plan.
+// CustomBookingForm writes service types without the hyphen ('selfdrive'),
+// while older single-service B2B uses 'self-drive' — accept both.
+const SERVICE_META: Record<string, { Icon: any; cls: string; label: string }> = {
+  car:          { Icon: Car,     cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Car Rental'   },
+  selfdrive:    { Icon: Car,     cls: 'bg-sky-50 text-sky-700 border-sky-200',             label: 'Self Drive'   },
+  'self-drive': { Icon: Car,     cls: 'bg-sky-50 text-sky-700 border-sky-200',             label: 'Self Drive'   },
+  bus:          { Icon: Bus,     cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Bus'          },
+  truck:        { Icon: Truck,   cls: 'bg-red-50 text-red-700 border-red-200',             label: 'Truck'        },
+  bike:         { Icon: Bike,    cls: 'bg-amber-50 text-amber-700 border-amber-200',       label: 'Bike'         },
+  equipment:    { Icon: Wrench,  cls: 'bg-cyan-50 text-cyan-700 border-cyan-200',          label: 'Equipment'    },
+  packers:      { Icon: Package, cls: 'bg-pink-50 text-pink-700 border-pink-200',          label: 'Packers'      },
+  luxury:       { Icon: Star,    cls: 'bg-purple-50 text-purple-700 border-purple-200',    label: 'Luxury Car'   },
+};
+
+// Resolve a service type to its self-drive flag — covers both spellings.
+const isSelfDriveService = (t?: string) => t === 'selfdrive' || t === 'self-drive';
+
+const formatDayLabel = (dateStr: string) => {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 };
 
 const TRIP_TYPE_LABELS: Record<string, string> = {
@@ -106,14 +166,15 @@ function getPricingFields(serviceType: string, tripType: string): string[] {
     return ['basePrice', 'perHourRate', 'perKmRate', 'driverAllowance', 'nightCharges'];
   }
   if (tripType === 'ROUND_TRIP' || tripType === 'OUTSTATION') {
-    return ['basePrice', 'perKmRate', 'perDayRate', 'driverAllowance', 'nightCharges', 'extraKmCharge'];
+    return ['basePrice', 'perKmRate', 'minimumKm', 'perDayRate', 'driverAllowance', 'nightCharges', 'extraKmCharge'];
   }
-  return ['basePrice', 'perKmRate', 'driverAllowance', 'nightCharges'];
+  return ['basePrice', 'perKmRate', 'minimumKm', 'driverAllowance', 'nightCharges'];
 }
 
 const FIELD_LABELS: Record<string, string> = {
   basePrice: 'Base Price (Rs.)',
   perKmRate: 'Per KM Rate (Rs.)',
+  minimumKm: 'Minimum KM',
   perHourRate: 'Per Hour Rate (Rs.)',
   perDayRate: 'Per Day Rate (Rs.)',
   driverAllowance: 'Driver Allowance (Rs.)',
@@ -218,6 +279,9 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
   // ---- Non-self-drive state ----
   const [vehicles, setVehicles] = useState<VehicleEntry[]>([{ ...EMPTY_VEHICLE }]);
   const [overallPricing, setOverallPricing] = useState<OverallPricing>({ ...EMPTY_PRICING });
+  // 'final'    → vendor enters one flat per-vehicle price
+  // 'breakdown' → vendor fills the rate breakdown (base + km + allowance, etc.)
+  const [pricingMode, setPricingMode] = useState<'final' | 'breakdown'>('breakdown');
 
   // ---- Self-drive state ----
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -315,30 +379,114 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           if (parsedNotes) {
             if (parsedNotes.basePrice != null) op.basePrice = String(parsedNotes.basePrice);
             if (parsedNotes.perKmRate != null) op.perKmRate = String(parsedNotes.perKmRate);
+            if (parsedNotes.minimumKm != null) op.minimumKm = String(parsedNotes.minimumKm);
             if (parsedNotes.perDayRate != null) op.perDayRate = String(parsedNotes.perDayRate);
             if (parsedNotes.driverAllowance != null) op.driverAllowance = String(parsedNotes.driverAllowance);
             if (parsedNotes.nightCharges != null) op.nightCharges = String(parsedNotes.nightCharges);
             if (parsedNotes.extraKmCharge != null) op.extraKmCharge = String(parsedNotes.extraKmCharge);
+            if (parsedNotes.finalAmount != null && parsedNotes.finalAmount > 0) {
+              op.finalAmount = String(parsedNotes.finalAmount);
+            }
           }
           setOverallPricing(op);
+          // Restore the pricing mode: explicit if saved, else infer from data.
+          if (parsedNotes?.pricingMode === 'final' || parsedNotes?.pricingMode === 'breakdown') {
+            setPricingMode(parsedNotes.pricingMode);
+          } else if (parsedNotes?.finalAmount > 0) {
+            setPricingMode('final');
+          } else {
+            setPricingMode('breakdown');
+          }
 
-          setVehicles(
-            qVehicles.length > 0
-              ? qVehicles.map((qv: any) => ({
-                  vendorFleetId: qv.vendorFleetId || qv.vehicle?.id || '',
-                  driverStaffId: qv.driverStaffId || qv.driver?.id || '',
-                  useCustomPrice: false,
-                  basePrice: qv.basePrice != null ? String(qv.basePrice) : '',
-                  perKmRate: qv.perKmRate != null ? String(qv.perKmRate) : '',
-                  perHourRate: qv.perHourRate != null ? String(qv.perHourRate) : '',
-                  perDayRate: qv.perDayRate != null ? String(qv.perDayRate) : '',
-                  driverAllowance: qv.driverAllowance != null ? String(qv.driverAllowance) : '',
-                  nightCharges: qv.nightCharges != null ? String(qv.nightCharges) : '',
-                  extraKmCharge: qv.extraKmCharge != null ? String(qv.extraKmCharge) : '',
-                  extraHourCharge: qv.extraHourCharge != null ? String(qv.extraHourCharge) : '',
-                }))
-              : [{ ...EMPTY_VEHICLE }]
-          );
+          const pickupPoints: (string | null)[] = Array.isArray(parsedNotes?.vehiclePickupPoints)
+            ? parsedNotes.vehiclePickupPoints
+            : [];
+          const savedDayMeta: any[] = Array.isArray(parsedNotes?.vehicleDayMeta)
+            ? parsedNotes.vehicleDayMeta
+            : [];
+          const savedEditorState: any[] = Array.isArray(parsedNotes?.editorState)
+            ? parsedNotes.editorState
+            : [];
+
+          // Preferred path: rebuild vehicles state directly from the saved
+          // editorState blob. This is order-stable and carries every field
+          // the editor needs.
+          if (savedEditorState.length > 0) {
+            setVehicles(savedEditorState.map((s: any) => ({
+              vendorFleetId: s.vendorFleetId || '',
+              driverStaffId: s.driverStaffId || '',
+              useCustomPrice: !!s.useCustomPrice,
+              basePrice: s.basePrice || '',
+              perKmRate: s.perKmRate || '',
+              minimumKm: s.minimumKm || '',
+              perHourRate: s.perHourRate || '',
+              perDayRate: s.perDayRate || '',
+              driverAllowance: s.driverAllowance || '',
+              nightCharges: s.nightCharges || '',
+              extraKmCharge: s.extraKmCharge || '',
+              extraHourCharge: s.extraHourCharge || '',
+              pickupPoint: s.pickupPoint || '',
+              dayIndex: typeof s.dayIndex === 'number' ? s.dayIndex : undefined,
+              serviceIdx: typeof s.serviceIdx === 'number' ? s.serviceIdx : undefined,
+              serviceType: s.serviceType || undefined,
+              requestedVehicle: s.requestedVehicle || undefined,
+            })));
+          } else {
+            // Legacy fallback: no editorState in notes. Use qVehicles + day
+            // metadata (or bulkPlan slot walk for the oldest quotes).
+            let fallbackSlots: { dayIndex: number; serviceIdx: number; serviceType: string; requestedVehicle: string }[] = [];
+            if (isBulk && bulkPlan && savedDayMeta.length === 0) {
+              (bulkPlan.days || []).forEach((day: any, dIdx: number) => {
+                (day.services || []).forEach((svc: any, sIdx: number) => {
+                  const requested = Array.isArray(svc.vehicles) ? svc.vehicles : [];
+                  if (requested.length === 0) {
+                    const total = Math.max(Number(svc.total_vehicles) || 1, 1);
+                    for (let i = 0; i < total; i++) {
+                      fallbackSlots.push({ dayIndex: dIdx, serviceIdx: sIdx, serviceType: svc.service_type, requestedVehicle: '' });
+                    }
+                    return;
+                  }
+                  requested.forEach((v: any) => {
+                    const count = Math.max(Number(v.count) || 1, 1);
+                    for (let i = 0; i < count; i++) {
+                      fallbackSlots.push({
+                        dayIndex: dIdx,
+                        serviceIdx: sIdx,
+                        serviceType: svc.service_type,
+                        requestedVehicle: v.vehicle_name || v.vehicle_slug || '',
+                      });
+                    }
+                  });
+                });
+              });
+            }
+            const dayMeta: any[] = savedDayMeta.length > 0 ? savedDayMeta : fallbackSlots;
+            setVehicles(
+              qVehicles.length > 0
+                ? qVehicles.map((qv: any, idx: number) => {
+                    const meta = dayMeta[idx] || {};
+                    return {
+                      vendorFleetId: qv.vendorFleetId || qv.vehicle?.id || '',
+                      driverStaffId: qv.driverStaffId || qv.driver?.id || '',
+                      useCustomPrice: false,
+                      basePrice: qv.basePrice != null ? String(qv.basePrice) : '',
+                      perKmRate: qv.perKmRate != null ? String(qv.perKmRate) : '',
+                      perHourRate: qv.perHourRate != null ? String(qv.perHourRate) : '',
+                      perDayRate: qv.perDayRate != null ? String(qv.perDayRate) : '',
+                      driverAllowance: qv.driverAllowance != null ? String(qv.driverAllowance) : '',
+                      nightCharges: qv.nightCharges != null ? String(qv.nightCharges) : '',
+                      extraKmCharge: qv.extraKmCharge != null ? String(qv.extraKmCharge) : '',
+                      extraHourCharge: qv.extraHourCharge != null ? String(qv.extraHourCharge) : '',
+                      pickupPoint: pickupPoints[idx] || '',
+                      dayIndex: typeof meta.dayIndex === 'number' ? meta.dayIndex : undefined,
+                      serviceIdx: typeof meta.serviceIdx === 'number' ? meta.serviceIdx : undefined,
+                      serviceType: meta.serviceType || undefined,
+                      requestedVehicle: meta.requestedVehicle || undefined,
+                    };
+                  })
+                : [{ ...EMPTY_VEHICLE }]
+            );
+          }
         }
       } catch (e) {
         console.error('Failed to load quote for edit:', e);
@@ -386,16 +534,8 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           }
         } catch (e) { console.error('Failed to fetch templates:', e); }
       } else {
-        // Filter fleet by service type
-        const SERVICE_SLUG_MAP: Record<string, string[]> = {
-          car: ['chauffeur-car-rental', 'car-rental', 'car'],
-          bus: ['bus-rental', 'bus'],
-          bike: ['bike-rental', 'bike-on-rent', 'bike'],
-          truck: ['truck-rental', 'truck'],
-          luxury: ['luxury-car-rental', 'luxury'],
-          equipment: ['equipment-rental', 'equipment'],
-          packers: ['packers-and-movers', 'packers'],
-        };
+        // Filter fleet by service type (CUSTOM_BULK keeps the full fleet —
+        // the per-day picker filters by each service's own type)
         const allowedSlugs = SERVICE_SLUG_MAP[bookingServiceType] || [];
         if (allowedSlugs.length > 0) {
           setFleet(allFleet.filter((v: any) => {
@@ -417,8 +557,18 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
   };
 
   const isSelfDrive = booking?.serviceType === 'self-drive';
+  const isBulk = booking?.serviceType === 'CUSTOM_BULK';
   const selfDrivePref = isSelfDrive ? parseSelfDrivePref(booking?.specialNotes || null) : null;
   const pricingFields = booking ? getPricingFields(booking.serviceType, booking.tripType) : [];
+
+  // Parse the CUSTOM_BULK day-wise plan from the booking JSON. Vendors need
+  // this to see exactly which vehicle the customer asked for on which day —
+  // without it they were assigning arbitrary vehicles. Memoised so the seed
+  // effect doesn't re-fire on every render.
+  const bulkPlan: any = useMemo(() => {
+    if (!isBulk || !booking?.bulkBreakdown) return null;
+    try { return JSON.parse(booking.bulkBreakdown); } catch { return null; }
+  }, [isBulk, booking?.bulkBreakdown]);
 
   // Calculate rental days for self-drive
   const rentalDays = (() => {
@@ -430,6 +580,58 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
     return Math.max(days, 1);
   })();
 
+  // Seed the vehicle picker rows from the customer's day-wise plan once
+  // the bulk booking loads. One picker row per requested vehicle, carrying
+  // the day/service link so each row sits next to the right request.
+  useEffect(() => {
+    if (!isBulk || !bulkPlan || isEditMode) return;
+    if (vehicles.some(v => v.dayIndex !== undefined)) return; // already seeded
+    const seeded: VehicleEntry[] = [];
+    (bulkPlan.days || []).forEach((day: any, dIdx: number) => {
+      (day.services || []).forEach((svc: any, sIdx: number) => {
+        const requested = Array.isArray(svc.vehicles) ? svc.vehicles : [];
+        if (requested.length === 0) {
+          // Still create one empty slot so the vendor has somewhere to pick.
+          const totalSlots = Math.max(Number(svc.total_vehicles) || 1, 1);
+          for (let i = 0; i < totalSlots; i++) {
+            seeded.push({
+              ...EMPTY_VEHICLE,
+              dayIndex: dIdx,
+              serviceIdx: sIdx,
+              serviceType: svc.service_type,
+            });
+          }
+          return;
+        }
+        requested.forEach((v: any) => {
+          const count = Math.max(Number(v.count) || 1, 1);
+          for (let i = 0; i < count; i++) {
+            seeded.push({
+              ...EMPTY_VEHICLE,
+              dayIndex: dIdx,
+              serviceIdx: sIdx,
+              serviceType: svc.service_type,
+              requestedVehicle: v.vehicle_name || v.vehicle_slug || '',
+            });
+          }
+        });
+      });
+    });
+    if (seeded.length > 0) setVehicles(seeded);
+  }, [isBulk, bulkPlan, isEditMode]);
+
+  // Filter the loaded fleet to a particular service type — used inside the
+  // per-day pickers so a "bike" slot only lists bikes, etc.
+  const filterFleetByService = (serviceType?: string): any[] => {
+    if (!serviceType) return fleet;
+    const slugs = SERVICE_SLUG_MAP[serviceType];
+    if (!slugs || slugs.length === 0) return fleet;
+    return fleet.filter((v: any) => {
+      const slug = v.services?.slug || '';
+      return slugs.some(s => slug.includes(s));
+    });
+  };
+
   // ============ NON-SELF-DRIVE HANDLERS ============
 
   const addVehicleRow = () => {
@@ -438,6 +640,38 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
       return;
     }
     setVehicles([...vehicles, { ...EMPTY_VEHICLE }]);
+  };
+
+  // Append a picker row scoped to a specific day + service in the bulk plan.
+  // The booking-level vehiclesRequired cap doesn't apply here — that number is
+  // the customer's total across all days, but the vendor often wants to offer
+  // extra vehicles (alternatives) per day on a CUSTOM_BULK quote.
+  const addVehicleForService = (dayIdx: number, serviceIdx: number, serviceType?: string) => {
+    // Insert right after the last row that belongs to the same service so
+    // the picker rows stay grouped in render order.
+    const lastIdxForService = vehicles.reduce((acc, v, i) =>
+      v.dayIndex === dayIdx && v.serviceIdx === serviceIdx ? i : acc, -1);
+    const newEntry: VehicleEntry = {
+      ...EMPTY_VEHICLE,
+      dayIndex: dayIdx,
+      serviceIdx: serviceIdx,
+      serviceType,
+    };
+    if (lastIdxForService === -1) {
+      setVehicles([...vehicles, newEntry]);
+    } else {
+      const next = [...vehicles];
+      next.splice(lastIdxForService + 1, 0, newEntry);
+      setVehicles(next);
+    }
+  };
+
+  // Remove a picker row by absolute index. For CUSTOM_BULK we allow removing
+  // even down to zero rows in a given service (the customer's intent stays
+  // visible above); regular bookings keep the existing min-1 guard.
+  const removeVehicleByIndex = (absIdx: number) => {
+    if (!isBulk && vehicles.length <= 1) return;
+    setVehicles(vehicles.filter((_, i) => i !== absIdx));
   };
 
   const removeVehicleRow = (index: number) => {
@@ -451,15 +685,39 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
     setVehicles(updated);
   };
 
+  // Copy this row's pickup point onto every other self-drive row. Vendors
+  // typically run one garage so the same address is reused across days.
+  const applyPickupToAllSelfDrive = (sourceIdx: number) => {
+    const pickup = vehicles[sourceIdx]?.pickupPoint?.trim() || '';
+    if (!pickup) return;
+    setVehicles(vehicles.map((v, i) => {
+      if (i === sourceIdx) return v;
+      if (!isSelfDriveService(v.serviceType)) return v;
+      return { ...v, pickupPoint: pickup };
+    }));
+  };
+
   const applyOverallToAll = () => {
-    setVehicles(vehicles.map(v => ({ ...v, useCustomPrice: false, ...overallPricing })));
+    // finalAmount lives only at the overall level — it shouldn't be copied
+    // onto each VehicleEntry (per-vehicle custom pricing has its own breakdown).
+    const { finalAmount: _ignored, ...rest } = overallPricing;
+    setVehicles(vehicles.map(v => ({ ...v, useCustomPrice: false, ...rest })));
   };
 
   const calcVehicleTotal = (entry: VehicleEntry | OverallPricing) => {
-    // Only basePrice + driverAllowance count toward per-vehicle total
-    // Other fields (perKmRate, perDayRate, nightCharges, extraKmCharge) are informational
-    const totalFields = ['basePrice', 'driverAllowance'];
-    return totalFields.reduce((sum, f) => sum + (parseFloat((entry as any)[f]) || 0), 0);
+    // For the overall pricing entry, pricingMode picks the source.
+    // For per-vehicle custom entries (toggled via useCustomPrice) we always
+    // use the breakdown — custom pricing has its own breakdown inputs.
+    if (entry === overallPricing && pricingMode === 'final') {
+      return parseFloat((entry as any).finalAmount) || 0;
+    }
+    // Breakdown: basePrice + (perKmRate × minimumKm) + driverAllowance.
+    // Other fields (perDayRate, nightCharges, extraKmCharge) are informational.
+    const base = parseFloat((entry as any).basePrice) || 0;
+    const perKm = parseFloat((entry as any).perKmRate) || 0;
+    const minKm = parseFloat((entry as any).minimumKm) || 0;
+    const driverAllow = parseFloat((entry as any).driverAllowance) || 0;
+    return base + (perKm * minKm) + driverAllow;
   };
 
   const overallTotal = calcVehicleTotal(overallPricing);
@@ -633,9 +891,17 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
       setError('Please enter pricing details');
       return;
     }
-    const missingDrivers = validVehicles.filter(v => !v.driverStaffId);
+    // Self-drive rows intentionally have no driver — the customer drives.
+    const missingDrivers = validVehicles.filter(v => !v.driverStaffId && !isSelfDriveService(v.serviceType));
     if (missingDrivers.length > 0) {
       setError('Please select a driver for each vehicle');
+      return;
+    }
+    // Self-drive rows need a pickup point so the customer knows where to
+    // collect the vehicle.
+    const missingPickup = validVehicles.filter(v => isSelfDriveService(v.serviceType) && !v.pickupPoint?.trim());
+    if (missingPickup.length > 0) {
+      setError('Please add a pickup point for each self-drive vehicle');
       return;
     }
 
@@ -665,10 +931,47 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
         pricePerVehicle: overallTotal,
         basePrice: parseFloat(overallPricing.basePrice) || 0,
         perKmRate: parseFloat(overallPricing.perKmRate) || 0,
+        minimumKm: parseFloat(overallPricing.minimumKm) || 0,
         perDayRate: parseFloat(overallPricing.perDayRate) || 0,
         driverAllowance: parseFloat(overallPricing.driverAllowance) || 0,
         nightCharges: parseFloat(overallPricing.nightCharges) || 0,
         extraKmCharge: parseFloat(overallPricing.extraKmCharge) || 0,
+        finalAmount: pricingMode === 'final' ? (parseFloat(overallPricing.finalAmount) || 0) : 0,
+        pricingMode,
+        // Per-row pickup points, aligned with the order of `vehicles` posted
+        // alongside. Self-drive rows carry a non-empty string here.
+        vehiclePickupPoints: validVehicles.map(v => v.pickupPoint?.trim() || null),
+        // CUSTOM_BULK day-link metadata so edit-mode can rebuild the per-day
+        // picker UI instead of falling back to the flat list.
+        vehicleDayMeta: validVehicles.map(v => ({
+          dayIndex: v.dayIndex ?? null,
+          serviceIdx: v.serviceIdx ?? null,
+          serviceType: v.serviceType ?? null,
+          requestedVehicle: v.requestedVehicle ?? null,
+        })),
+        // Full editor state — the saved quoteVehicles rows in the DB come
+        // back in an indeterminate order (createMany with cuid + same-instant
+        // createdAt), so the index-based mapping above isn't reliable. This
+        // blob is the source of truth for edit mode.
+        editorState: validVehicles.map(v => ({
+          vendorFleetId: v.vendorFleetId,
+          driverStaffId: v.driverStaffId || '',
+          useCustomPrice: !!v.useCustomPrice,
+          basePrice: v.basePrice || '',
+          perKmRate: v.perKmRate || '',
+          minimumKm: v.minimumKm || '',
+          perHourRate: v.perHourRate || '',
+          perDayRate: v.perDayRate || '',
+          driverAllowance: v.driverAllowance || '',
+          nightCharges: v.nightCharges || '',
+          extraKmCharge: v.extraKmCharge || '',
+          extraHourCharge: v.extraHourCharge || '',
+          pickupPoint: v.pickupPoint || '',
+          dayIndex: v.dayIndex ?? null,
+          serviceIdx: v.serviceIdx ?? null,
+          serviceType: v.serviceType ?? null,
+          requestedVehicle: v.requestedVehicle ?? null,
+        })),
         inclusions,
         exclusions,
         termsConditions,
@@ -839,6 +1142,338 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           </div>
         </div>
       </div>
+
+      {/* ============ CUSTOM_BULK — Customer's Day-wise Vehicle Request ============
+          Shown BEFORE the quote form so the vendor reads exactly which vehicle the
+          customer asked for on which day. Earlier the vendor only saw aggregate
+          numbers and ended up assigning arbitrary vehicles. */}
+      {isBulk && bulkPlan && (
+        <div className="mt-6 space-y-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-sm text-amber-900">
+            <Info className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" />
+            <p>
+              <span className="font-semibold">Read carefully — </span>
+              the customer has requested specific vehicles for each day below.
+              Please match these in your quote so we can fulfil the booking correctly.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-purple-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 border-b border-purple-100 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-5 h-5 text-purple-600" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold text-gray-900 truncate">
+                    Customer's Day-wise Request
+                    {bulkPlan.occasion_name ? ` · ${bulkPlan.occasion_name}` : ''}
+                  </h2>
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    {bulkPlan.occasion_type && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-extrabold uppercase tracking-wider bg-purple-100 text-purple-700">
+                        {bulkPlan.occasion_type}
+                      </span>
+                    )}
+                    {bulkPlan.base_location && (
+                      <span className="inline-flex items-center gap-1 text-xs text-gray-600 font-medium">
+                        <MapPin className="w-3 h-3" /> {bulkPlan.base_location}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {bulkPlan.total_days && (
+                  <div className="px-3 py-1.5 bg-white rounded-lg border border-purple-100 text-center">
+                    <p className="text-lg font-extrabold text-purple-700 leading-none tabular-nums">{bulkPlan.total_days}</p>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">Days</p>
+                  </div>
+                )}
+                {bulkPlan.total_people && (
+                  <div className="px-3 py-1.5 bg-white rounded-lg border border-emerald-100 text-center">
+                    <p className="text-lg font-extrabold text-emerald-700 leading-none tabular-nums">{bulkPlan.total_people}</p>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">People</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-4 space-y-3">
+              {Array.isArray(bulkPlan.days) && bulkPlan.days.length > 0 ? bulkPlan.days.map((day: any, dIdx: number) => {
+                const dayVehicleTotal = (day.services || []).reduce((sum: number, s: any) => {
+                  if (typeof s.total_vehicles === 'number') return sum + s.total_vehicles;
+                  if (Array.isArray(s.vehicles)) {
+                    return sum + s.vehicles.reduce((a: number, v: any) => a + (Number(v.count) || 0), 0);
+                  }
+                  return sum;
+                }, 0);
+                // Duplicate-blocks are scoped to this DAY only — a vehicle or
+                // driver used on Day 1 stays selectable for Day 2 etc., since
+                // the same physical vehicle/driver can serve multiple days.
+                const dayFleetIds = vehicles
+                  .filter(v => v.dayIndex === dIdx && v.vendorFleetId)
+                  .map(v => v.vendorFleetId);
+                const dayDriverIds = vehicles
+                  .filter(v => v.dayIndex === dIdx && v.driverStaffId)
+                  .map(v => v.driverStaffId);
+                return (
+                  <div key={dIdx} className="border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 font-extrabold text-xs shrink-0">
+                          D{dIdx + 1}
+                        </div>
+                        <span className="font-bold text-gray-900 text-sm">
+                          Day {dIdx + 1}
+                        </span>
+                        {day.date && (
+                          <span className="text-sm text-gray-600 font-medium">
+                            · {formatDayLabel(day.date)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {dayVehicleTotal > 0 && (
+                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded font-bold tabular-nums">
+                            {dayVehicleTotal} vehicle{dayVehicleTotal !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                        <span className="text-gray-500 font-medium">
+                          {(day.services || []).length} service{(day.services || []).length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                      {(day.services || []).map((svc: any, sIdx: number) => {
+                        const meta = SERVICE_META[svc.service_type] || { Icon: Car, cls: 'bg-gray-50 text-gray-700 border-gray-200', label: svc.service_type };
+                        const SvcIcon = meta.Icon;
+                        // Pickers belonging to this exact day+service slot.
+                        const pickerIdxs = vehicles
+                          .map((v, i) => (v.dayIndex === dIdx && v.serviceIdx === sIdx ? i : -1))
+                          .filter(i => i !== -1);
+                        const serviceFleet = filterFleetByService(svc.service_type);
+                        return (
+                          <div key={sIdx} className="px-4 py-3">
+                            <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border ${meta.cls}`}>
+                                <SvcIcon className="w-3.5 h-3.5" />
+                                {meta.label}
+                              </span>
+                              <div className="flex items-center gap-2 text-xs text-gray-500">
+                                {svc.total_vehicles ? <span className="font-bold text-gray-700 tabular-nums">{svc.total_vehicles} veh</span> : null}
+                                {svc.people_count ? <span className="font-medium">· {svc.people_count} pax</span> : null}
+                                {svc.pickup_time ? <span className="font-medium">· {svc.pickup_time}</span> : null}
+                              </div>
+                            </div>
+                            {Array.isArray(svc.vehicles) && svc.vehicles.length > 0 && (
+                              <div className="mb-2">
+                                <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-1">Customer requested</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {svc.vehicles.map((v: any, vIdx: number) => (
+                                    <span key={vIdx} className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded text-[11px] font-medium text-gray-700">
+                                      <span className="font-bold tabular-nums text-purple-700">×{v.count}</span>
+                                      <span className="truncate max-w-[220px]">
+                                        {v.vehicle_name || v.vehicle_slug || 'Vehicle'}
+                                      </span>
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {(svc.pickup_location || svc.drop_location) && (
+                              <div className="flex items-center gap-2 text-xs text-gray-600 mb-1 flex-wrap">
+                                {svc.pickup_location && <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3 text-emerald-500" />{svc.pickup_location}</span>}
+                                {svc.drop_location && (
+                                  <>
+                                    <span className="text-gray-300">→</span>
+                                    <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3 text-red-500" />{svc.drop_location}</span>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                            {svc.notes && (
+                              <p className="flex items-start gap-1.5 text-xs text-gray-500 italic mt-1 mb-2">
+                                <StickyNote className="w-3 h-3 mt-0.5 shrink-0" />
+                                {svc.notes}
+                              </p>
+                            )}
+
+                            {/* Vendor's vehicle pickers for THIS service.
+                                Renders in both new + edit mode now that the
+                                saved quote carries day metadata. */}
+                            <div className="mt-3 pt-3 border-t border-dashed border-gray-200 space-y-2">
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <p className="text-[11px] font-bold uppercase tracking-wider text-teal-700 flex items-center gap-1.5">
+                                  <Car className="w-3.5 h-3.5" /> Your vehicles for this {meta.label.toLowerCase()}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => addVehicleForService(dIdx, sIdx, svc.service_type)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-700 hover:bg-teal-100 rounded-md text-xs font-medium transition"
+                                >
+                                  <Plus className="w-3.5 h-3.5" /> Add vehicle
+                                </button>
+                              </div>
+                              {pickerIdxs.length === 0 ? (
+                                <p className="text-xs text-gray-400 italic">No vehicles added yet. Use "Add vehicle" to assign from your fleet.</p>
+                              ) : pickerIdxs.map((absIdx, slotNum) => {
+                                const entry = vehicles[absIdx];
+                                return (
+                                  <div key={absIdx} className="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-xs font-bold text-gray-500 w-6 shrink-0">#{slotNum + 1}</span>
+                                      {entry.requestedVehicle && (
+                                        <span className="text-[11px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-medium">
+                                          Asked: {entry.requestedVehicle}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-col md:flex-row gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <label className="block text-[11px] font-medium text-gray-600 mb-1">Vehicle</label>
+                                        <select
+                                          value={entry.vendorFleetId}
+                                          onChange={(e) => updateVehicle(absIdx, 'vendorFleetId', e.target.value)}
+                                          className="w-full px-2.5 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+                                        >
+                                          <option value="">Select vehicle...</option>
+                                          {serviceFleet.map((v: any) => {
+                                            const brandName = v.brands?.name || v.vehicle_models?.brands?.name || '';
+                                            const modelName = v.vehicle_models?.name || v.vehicleName || 'Vehicle';
+                                            const label = [brandName, modelName].filter(Boolean).join(' ');
+                                            const extras = [v.fuelType, v.transmission, v.registrationNumber].filter(Boolean).join(' | ');
+                                            return (
+                                              <option key={v.id} value={v.id} disabled={dayFleetIds.includes(v.id) && entry.vendorFleetId !== v.id}>
+                                                {label}{extras ? ` (${extras})` : ''}
+                                              </option>
+                                            );
+                                          })}
+                                        </select>
+                                      </div>
+                                      {isSelfDriveService(svc.service_type) ? (
+                                        <div className="flex-1 min-w-0 flex items-end">
+                                          <p className="text-[11px] text-sky-700 bg-sky-50 border border-sky-200 rounded-md px-2.5 py-2 w-full">
+                                            <span className="font-semibold">Self-drive</span> — no driver. Customer drives the vehicle themselves.
+                                          </p>
+                                        </div>
+                                      ) : (
+                                        <div className="flex-1 min-w-0">
+                                          <label className="block text-[11px] font-medium text-gray-600 mb-1">Driver</label>
+                                          <select
+                                            value={entry.driverStaffId}
+                                            onChange={(e) => updateVehicle(absIdx, 'driverStaffId', e.target.value)}
+                                            className="w-full px-2.5 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+                                          >
+                                            <option value="">Select driver...</option>
+                                            {drivers.map((d: any) => (
+                                              <option key={d.id} value={d.id} disabled={dayDriverIds.includes(d.id) && entry.driverStaffId !== d.id}>
+                                                {d.name} ({d.phone})
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => removeVehicleByIndex(absIdx)}
+                                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition md:mt-5 self-end"
+                                        aria-label="Remove vehicle"
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </button>
+                                    </div>
+
+                                    {/* Self-drive pickup point — visible to
+                                        the customer after they accept the
+                                        quote and to the manager throughout. */}
+                                    {isSelfDriveService(svc.service_type) && (() => {
+                                      // Count other self-drive picker rows so we
+                                      // only show the "Apply to all" button when
+                                      // there's actually somewhere to copy to.
+                                      const otherSelfDriveSlots = vehicles.reduce(
+                                        (n, v, i) => (i !== absIdx && isSelfDriveService(v.serviceType) ? n + 1 : n),
+                                        0,
+                                      );
+                                      return (
+                                        <div>
+                                          <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                                            <label className="text-[11px] font-medium text-gray-600 flex items-center gap-1">
+                                              <MapPin className="w-3.5 h-3.5 text-sky-600" /> Pickup Point
+                                              <span className="text-red-500">*</span>
+                                            </label>
+                                            {otherSelfDriveSlots > 0 && entry.pickupPoint?.trim() && (
+                                              <button
+                                                type="button"
+                                                onClick={() => applyPickupToAllSelfDrive(absIdx)}
+                                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 rounded text-[10px] font-semibold transition"
+                                                title="Copy this pickup point to every other self-drive vehicle in the quote"
+                                              >
+                                                <Copy className="w-3 h-3" /> Apply to all self-drive ({otherSelfDriveSlots})
+                                              </button>
+                                            )}
+                                          </div>
+                                          <input
+                                            type="text"
+                                            value={entry.pickupPoint || ''}
+                                            onChange={(e) => updateVehicle(absIdx, 'pickupPoint', e.target.value)}
+                                            placeholder="Where the customer picks up the vehicle, e.g. ABC Showroom, Satellite, Ahmedabad"
+                                            className="w-full px-2.5 py-2 border border-sky-200 rounded-lg text-sm focus:outline-none focus:border-sky-500"
+                                          />
+                                        </div>
+                                      );
+                                    })()}
+
+                                    {entry.vendorFleetId && (
+                                      <button
+                                        type="button"
+                                        onClick={() => updateVehicle(absIdx, 'useCustomPrice', !entry.useCustomPrice)}
+                                        className="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-teal-600 transition"
+                                      >
+                                        {entry.useCustomPrice ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                        {entry.useCustomPrice ? 'Hide custom pricing' : 'Set custom pricing for this vehicle'}
+                                      </button>
+                                    )}
+
+                                    {entry.useCustomPrice && (
+                                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                        {pricingFields.map(field => (
+                                          <div key={field}>
+                                            <label className="block text-[11px] text-gray-500 mb-0.5">{FIELD_LABELS[field]}</label>
+                                            <input
+                                              type="number"
+                                              value={(entry as any)[field]}
+                                              onChange={(e) => updateVehicle(absIdx, field, e.target.value)}
+                                              placeholder="0"
+                                              className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:border-teal-500"
+                                            />
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }) : (
+                <p className="text-sm text-gray-500 text-center py-4">No day-wise breakdown provided.</p>
+              )}
+            </div>
+
+            {bulkPlan.special_requirements && (
+              <div className="border-t border-purple-100 px-6 py-3 bg-purple-50/40 text-sm text-purple-900">
+                <span className="font-bold">Special requirements:</span> {bulkPlan.special_requirements}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ============ SELF-DRIVE QUOTE FORM ============ */}
       {isSelfDrive ? (
@@ -1327,33 +1962,102 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
               </button>
             </div>
             <p className="text-sm text-gray-500">
-              Set the overall pricing that applies to all vehicles. You can override per-vehicle below.
+              Pick how you want to price this quote — either a single flat per-vehicle amount,
+              or a detailed rate breakdown.
             </p>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {pricingFields.map(field => (
-                <div key={field}>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">{FIELD_LABELS[field]}</label>
-                  <input
-                    type="number"
-                    value={(overallPricing as any)[field]}
-                    onChange={(e) => setOverallPricing({ ...overallPricing, [field]: e.target.value })}
-                    placeholder="0"
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-teal-500"
-                  />
-                </div>
-              ))}
+            {/* Mode toggle */}
+            <div className="inline-flex p-1 bg-gray-100 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setPricingMode('final')}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${
+                  pricingMode === 'final'
+                    ? 'bg-white text-teal-700 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Final Amount
+              </button>
+              <button
+                type="button"
+                onClick={() => setPricingMode('breakdown')}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${
+                  pricingMode === 'breakdown'
+                    ? 'bg-white text-teal-700 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Per-Vehicle Rate
+              </button>
             </div>
 
+            {pricingMode === 'final' ? (
+              <div>
+                <label className="text-xs font-medium text-gray-700 mb-1 flex items-center gap-1.5">
+                  <IndianRupee className="w-3.5 h-3.5 text-teal-600" />
+                  Final Amount per Vehicle
+                </label>
+                <div className="relative mt-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rs.</span>
+                  <input
+                    type="number"
+                    value={overallPricing.finalAmount}
+                    onChange={(e) => setOverallPricing({ ...overallPricing, finalAmount: e.target.value })}
+                    placeholder="e.g. 5000"
+                    className="w-full pl-10 pr-3 py-2.5 border border-teal-200 rounded-lg text-base font-medium focus:outline-none focus:border-teal-500"
+                  />
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  One flat number — used as the per-vehicle total in this quote.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {pricingFields.map(field => (
+                  <div key={field}>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">{FIELD_LABELS[field]}</label>
+                    <input
+                      type="number"
+                      value={(overallPricing as any)[field]}
+                      onChange={(e) => setOverallPricing({ ...overallPricing, [field]: e.target.value })}
+                      placeholder="0"
+                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-teal-500"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
             {overallTotal > 0 && (
-              <div className="flex items-center justify-between p-3 bg-teal-50 rounded-lg">
-                <span className="text-sm font-medium text-teal-700">Per Vehicle Total</span>
+              <div className="flex items-center justify-between p-3 bg-teal-50 rounded-lg gap-3 flex-wrap">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-medium text-teal-700">Per Vehicle Total</span>
+                  <span className="text-[11px] text-teal-600 italic">
+                    {pricingMode === 'final' ? (
+                      'Flat amount'
+                    ) : (() => {
+                      const base = parseFloat(overallPricing.basePrice) || 0;
+                      const perKm = parseFloat(overallPricing.perKmRate) || 0;
+                      const minKm = parseFloat(overallPricing.minimumKm) || 0;
+                      const driver = parseFloat(overallPricing.driverAllowance) || 0;
+                      const parts: string[] = [];
+                      if (base > 0) parts.push(`Base ${base}`);
+                      if (perKm > 0 && minKm > 0) parts.push(`${perKm} × ${minKm} km = ${perKm * minKm}`);
+                      if (driver > 0) parts.push(`Driver ${driver}`);
+                      return parts.length > 0 ? parts.join(' + ') : 'Base Price + Driver Allowance';
+                    })()}
+                  </span>
+                </div>
                 <span className="text-lg font-bold text-teal-800">Rs. {overallTotal.toLocaleString('en-IN')}</span>
               </div>
             )}
           </div>
 
-          {/* Vehicles & Drivers */}
+          {/* Vehicles & Drivers — CUSTOM_BULK uses the inline per-day picker
+              under each day above (both new + edit mode), so skip this flat
+              list entirely for bulk quotes. */}
+          {!isBulk && (
           <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -1458,6 +2162,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
               ))}
             </div>
           </div>
+          )}
 
           {/* Inclusions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">

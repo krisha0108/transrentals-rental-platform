@@ -49,25 +49,29 @@ export async function PUT(
       );
     }
 
-    // Verify all vehicles belong to this vendor
+    // Verify all vehicles belong to this vendor. CUSTOM_BULK quotes reuse
+    // the same vehicle across multiple days, so dedupe ids first — Prisma's
+    // findMany returns unique rows and would otherwise undercount.
     const fleetIds = vehicles.map((v: any) => v.vendorFleetId);
+    const uniqueFleetIds = Array.from(new Set(fleetIds));
     const vendorFleets = await prisma.vendor_fleets.findMany({
-      where: { id: { in: fleetIds }, vendorId: auth.vendorId },
+      where: { id: { in: uniqueFleetIds }, vendorId: auth.vendorId },
       select: { id: true, vehicleName: true, registrationNumber: true },
     });
-    if (vendorFleets.length !== fleetIds.length) {
+    if (vendorFleets.length !== uniqueFleetIds.length) {
       return NextResponse.json({ error: 'Some vehicles do not belong to your fleet' }, { status: 400 });
     }
 
-    // Verify drivers belong to this vendor (if provided)
+    // Verify drivers belong to this vendor (if provided). Same dedupe logic.
     const driverIds = vehicles.map((v: any) => v.driverStaffId).filter(Boolean);
+    const uniqueDriverIds = Array.from(new Set(driverIds));
     let driverMap = new Map<string, { id: string; name: string | null; phone: string | null }>();
-    if (driverIds.length > 0) {
+    if (uniqueDriverIds.length > 0) {
       const vendorDrivers = await prisma.vendor_staff.findMany({
-        where: { id: { in: driverIds }, vendorId: auth.vendorId, role: 'DRIVER' },
+        where: { id: { in: uniqueDriverIds }, vendorId: auth.vendorId, role: 'DRIVER' },
         select: { id: true, name: true, phone: true },
       });
-      if (vendorDrivers.length !== driverIds.length) {
+      if (vendorDrivers.length !== uniqueDriverIds.length) {
         return NextResponse.json({ error: 'Some drivers do not belong to your staff' }, { status: 400 });
       }
       vendorDrivers.forEach(d => driverMap.set(d.id, d));
@@ -204,7 +208,7 @@ export async function GET(
             id: true, bookingNumber: true, companyName: true, serviceType: true,
             vehiclesRequired: true, pickupLocation: true, dropLocation: true,
             scheduledDate: true, scheduledTime: true, tripType: true, status: true,
-            selfDriveDetails: true, notes: true,
+            specialNotes: true, bulkBreakdown: true,
           }
         },
         quoteVehicles: {
@@ -224,7 +228,7 @@ export async function GET(
                 licenseNumber: true, licenseType: true,
               }
             }
-          }
+          },
         }
       },
     });

@@ -144,7 +144,8 @@ export default function VendorB2BBookingsPage() {
   const fetchBookings = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/vendor/b2b-quotes?view=open');
+      // CUSTOM_BULK bookings live in /vendor/bulk-bookings; exclude them here.
+      const response = await fetch('/api/vendor/b2b-quotes?view=open&serviceType=non-bulk');
       const data = await response.json();
       if (data.status === 'success') {
         setBookings(data.bookings || []);

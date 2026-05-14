@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import NextImage from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -69,6 +69,7 @@ import {
   Ban,
   Lock,
   Sparkles,
+  PartyPopper,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { signOut, useSession } from 'next-auth/react';
@@ -225,6 +226,11 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Templates', href: '/vendor/equipment/templates', icon: FileSpreadsheet },
       { name: 'Earnings', href: '/vendor/equipment/earnings', icon: Wallet },
     ],
+  },
+  {
+    name: 'Bulk Bookings',
+    href: '/vendor/bulk-bookings',
+    icon: PartyPopper,
   },
   {
     name: 'B2B Corporate',
@@ -552,6 +558,11 @@ const pendingNavigationItems: NavItem[] = [
     ],
   },
   {
+    name: 'Bulk Bookings',
+    href: '/vendor/bulk-bookings',
+    icon: PartyPopper,
+  },
+  {
     name: 'B2B Corporate',
     href: '/vendor/b2b-bookings',
     icon: Building2,
@@ -618,8 +629,72 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
   const { data: session } = useSession();
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [profileExpanded, setProfileExpanded] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+  // Open & unquoted request counts — drive the sidebar badges next to
+  // "Bulk Bookings" and "B2B Corporate" so vendors notice new requests.
+  const [openBulkCount, setOpenBulkCount] = useState(0);
+  const [openB2bCount, setOpenB2bCount] = useState(0);
 
   const isApproved = vendorStatus === 'APPROVED';
+
+  // Poll unread customer-chat count for the sidebar badge. Refreshes every 30s
+  // and on tab refocus so the number stays roughly live without a websocket.
+  // Only runs for approved vendors (the Customer Chats item is hidden otherwise).
+  useEffect(() => {
+    if (!isApproved) {
+      setUnreadChatCount(0);
+      return;
+    }
+    let cancelled = false;
+    const fetchCount = async () => {
+      try {
+        const res = await fetch('/api/vendor/chat/unread-count', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setUnreadChatCount(Number(data?.unreadCount) || 0);
+      } catch { /* network blip — keep last value */ }
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 30_000);
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchCount(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [isApproved]);
+
+  // Poll open B2B / Bulk request counts — same cadence as chat. Each entry
+  // is "open and not yet quoted by this vendor", so a 0 means there's nothing
+  // actionable in that queue.
+  useEffect(() => {
+    if (!isApproved) {
+      setOpenBulkCount(0);
+      setOpenB2bCount(0);
+      return;
+    }
+    let cancelled = false;
+    const fetchCounts = async () => {
+      try {
+        const res = await fetch('/api/vendor/b2b-quotes/open-count', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        setOpenBulkCount(Number(data?.bulk) || 0);
+        setOpenB2bCount(Number(data?.b2b) || 0);
+      } catch { /* keep last value on network blip */ }
+    };
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 30_000);
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchCounts(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [isApproved]);
 
   // Filter navigation items based on approved service IDs
   // This approach is stable - even if admin changes service slugs, IDs remain the same
@@ -669,6 +744,18 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
     const hasChildren = item.children && item.children.length > 0;
     const isActive = isItemActive(item);
     const isExpanded = expandedSections.includes(item.name);
+    // Customer Chats + Bulk Bookings + B2B Corporate each get a live count
+    // badge driven by the polled state above. Caps at "99+" so the pill
+    // stays compact regardless of how many requests are open.
+    const formatBadge = (n: number) => (n > 99 ? '99+' : String(n));
+    let dynamicBadge: string | undefined = item.badge;
+    if (item.href === '/vendor/chat' && unreadChatCount > 0) {
+      dynamicBadge = formatBadge(unreadChatCount);
+    } else if (item.href === '/vendor/bulk-bookings' && openBulkCount > 0) {
+      dynamicBadge = formatBadge(openBulkCount);
+    } else if (item.href === '/vendor/b2b-bookings' && openB2bCount > 0) {
+      dynamicBadge = formatBadge(openB2bCount);
+    }
 
     // ── Locked item: visible but navigates back to dashboard (no sub-menu) ──
     if (item.locked) {
@@ -770,9 +857,9 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
       >
         <Icon className="w-5 h-5" />
         <span className="font-medium">{item.name}</span>
-        {item.badge && (
-          <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-            {item.badge}
+        {dynamicBadge && (
+          <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center font-bold">
+            {dynamicBadge}
           </span>
         )}
       </Link>

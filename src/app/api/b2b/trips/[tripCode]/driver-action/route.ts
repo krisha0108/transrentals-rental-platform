@@ -92,9 +92,12 @@ export async function POST(request: NextRequest, { params }: { params: { tripCod
         },
       });
 
+      // Return the new OTP — needed by the vendor app's self-drive
+      // recovery flow which chains resend → verify in one click.
       return NextResponse.json({
         status: 'success',
         message: 'New OTP generated and sent to customer.',
+        otp,
         trip: { tripCode, status: 'DRIVER_ARRIVED' },
       });
     }

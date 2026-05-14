@@ -45,12 +45,24 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const booking = superQuote.booking;
 
-    // Generate trips from all vendor quote vehicles
+    // Generate trips from all vendor quote vehicles. For self-drive vehicles
+    // the vendor declared a per-vehicle pickup point — pull it from the quote
+    // notes JSON (vehiclePickupPoints, ordered same as quoteVehicles).
     const tripsData: any[] = [];
 
     for (const item of superQuote.items) {
       const vendorQuote = item.vendorQuote;
-      for (const qv of vendorQuote.quoteVehicles) {
+      let vehiclePickupPoints: (string | null)[] = [];
+      if (vendorQuote.notes) {
+        try {
+          const parsed = JSON.parse(vendorQuote.notes);
+          if (Array.isArray(parsed?.vehiclePickupPoints)) {
+            vehiclePickupPoints = parsed.vehiclePickupPoints;
+          }
+        } catch { /* legacy plain-text notes — fall back to booking pickup */ }
+      }
+      vendorQuote.quoteVehicles.forEach((qv: any, qvIdx: number) => {
+        const perVehiclePickup = vehiclePickupPoints[qvIdx]?.trim?.() || '';
         tripsData.push({
           id: generateId(),
           tripCode: generateTripCode(),
@@ -62,13 +74,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           vehicleNumber: qv.vehicleNumber,
           driverName: qv.driverName,
           driverPhone: qv.driverPhone,
-          pickupLocation: booking.pickupLocation,
+          pickupLocation: perVehiclePickup || booking.pickupLocation,
           dropLocation: booking.dropLocation,
           scheduledDate: booking.scheduledDate,
           scheduledTime: booking.scheduledTime,
           status: 'PENDING',
         });
-      }
+      });
     }
 
     await prisma.$transaction(async (tx) => {
