@@ -18,7 +18,7 @@ COPY prisma ./prisma/
 ENV DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy"
 
 # Install ALL dependencies (including dev for prisma CLI)
-RUN npm ci --prefer-offline --no-audit --progress=false
+RUN npm install --prefer-offline --no-audit --progress=false
 
 # Explicitly generate Prisma client during build
 RUN npx prisma generate
