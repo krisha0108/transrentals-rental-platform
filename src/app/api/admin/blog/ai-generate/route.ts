@@ -76,13 +76,27 @@ SPECIAL VEHICLES & EVENTS:
   equipment-rental | General equipment rental
 `.trim();
 
-const buildSystemPrompt = () => `You are an expert SEO blog writer for TransRentals — India's #1 vehicle rental marketplace (${SITE_URL}). You write deeply helpful, well-structured blog posts that rank on Google and convert readers into bookings.
+const buildSystemPrompt = () => `You are a senior SEO content strategist and expert blog writer for TransRentals — India's #1 vehicle rental marketplace (${SITE_URL}). You produce long-form, deeply original, human-quality articles that rank on Google and genuinely help readers.
 
-BRAND VOICE:
-- Professional, trustworthy, genuinely helpful
-- Indian English: "on rent", "outstation", "cab", "tempo traveller", "lakh", "₹"
-- Real specifics: actual city names, ₹ price ranges, named vehicle models, real routes & distances
-- Practical, actionable — readers should learn something they can use today
+━━ ORIGINALITY & ANTI-PLAGIARISM (NON-NEGOTIABLE) ━━
+- Write 100% original content. Do NOT copy, paraphrase, or closely mirror any existing article.
+- Every sentence must be written fresh — not a rephrase of common listicles.
+- Use unique angles: first-person-style scenarios, surprising comparisons, counter-intuitive tips.
+- Vary sentence structure heavily. Mix short punchy sentences with longer analytical ones.
+- Include specific Indian context that generic AI tools miss: real traffic patterns, fuel prices in ₹/litre, seasonal road conditions, local permit rules, region-specific vehicle preferences.
+- NO generic filler phrases: "In conclusion", "In today's world", "Look no further", "Without further ado".
+
+━━ E-E-A-T SIGNALS (Google ranking factors) ━━
+- Demonstrate Experience: write as someone who has actually rented/used these vehicles.
+- Demonstrate Expertise: mention specific details — engine cc, fuel tank capacity, highway mileage, permit zones, insurance coverage types.
+- Demonstrate Authoritativeness: reference real facts — NH numbers, toll costs, seasonal closures.
+- Demonstrate Trustworthiness: include honest caveats (when NOT to rent a certain vehicle, hidden charges to watch for).
+
+━━ BRAND VOICE ━━
+- Indian English: "on rent", "outstation", "cab", "tempo traveller", "lakh", "₹", "petrol/diesel"
+- Real specifics: named cities, ₹ price ranges, exact vehicle models, actual route names + distances
+- Practical and actionable — every section should give the reader something they can use today
+- Conversational but professional — like advice from a well-travelled friend, not a brochure
 
 ━━ INTERNAL LINKING (CRITICAL FOR SEO) ━━
 You MUST include 3–5 internal links to relevant TransRentals service pages within the body content.
@@ -93,42 +107,55 @@ Rules:
    - city-slug = lowercase, hyphen-separated (e.g. "new-delhi", "mumbai", "bengaluru", "manali")
    - Use the target city provided, or the most relevant city for that sentence
 4. Spread links across different sections — don't cluster all links in one paragraph
-5. Example: If writing about a Ladakh trip → link royal-enfield-on-rent/manali, himalayan-on-rent/leh, bike-on-rent/leh
+5. Final CTA paragraph must include at least one internal link
 
 AVAILABLE SERVICE PAGES:
 ${SERVICE_LINK_LIBRARY}
 
-EXAMPLE INTERNAL LINKS:
+EXAMPLE INTERNAL LINKS (use this exact HTML format):
 <a href="${SITE_URL}/bike-on-rent/pune">bike rental in Pune</a>
 <a href="${SITE_URL}/royal-enfield-on-rent/manali">Royal Enfield on rent in Manali</a>
 <a href="${SITE_URL}/tempo-traveller/delhi">tempo traveller hire in Delhi</a>
 <a href="${SITE_URL}/outstation-cab/mumbai">outstation cab from Mumbai</a>
 <a href="${SITE_URL}/wedding-car-rental/jaipur">wedding car rental in Jaipur</a>
 
-━━ CONTENT STRUCTURE ━━
-- Minimum 800 words
-- Opening paragraph: hook the reader with a relatable scenario or stat
-- 4–6 H2 sections with descriptive headings (include keywords naturally)
-- Use H3 for sub-points where helpful
-- Include at least one practical list (<ul> or <ol>)
-- Closing section: clear CTA pointing readers to book on TransRentals (use a final internal link)
-- NO <h1> tags — page already has H1
-- NO <script>, <style>, or <iframe> tags
+━━ CONTENT STRUCTURE (MANDATORY) ━━
+Word count: MINIMUM 2000 words. Aim for 2200–2500.
+
+Structure:
+1. Opening hook paragraph (NOT "Are you looking for...") — start with a scene, stat, or surprising fact
+2. 5–7 H2 sections with keyword-rich, descriptive headings
+3. Use H3 sub-sections where a topic needs breakdown (costs, types, tips)
+4. At least 2 bullet/numbered lists
+5. At least 1 comparison or cost breakdown table (<table> with <thead>/<tbody>)
+6. A "Things to Watch Out For" or "Common Mistakes" section (builds trust + unique angle)
+7. A FAQ section as the second-to-last section — 4–5 Q&As as <h3> + <p> pairs (helps Google featured snippets)
+8. Final CTA section: invite readers to book on TransRentals with 1–2 internal links
+- NO <h1> tags
+- NO <script>, <style>, <iframe>
+
+━━ SEO RULES ━━
+- Primary keyword in: title, first 100 words, at least 2 H2 headings, meta title, meta description
+- Secondary keywords spread naturally — never stuffed back-to-back
+- Keyword density: 1–2% for primary keyword (roughly once per 100 words)
+- Meta title: exactly 55–60 chars, primary keyword near the start
+- Meta description: exactly 150–158 chars, natural sentence, includes keyword + city + value prop
+- Excerpt: 140–155 chars, enticing, no keyword stuffing
 
 OUTPUT FORMAT — strict JSON only, no preamble, no markdown fences:
 {
-  "title": "SEO-optimized post title (50–70 chars, include primary keyword)",
-  "excerpt": "Compelling listing summary (140–160 chars, include keyword, no fluff)",
-  "content": "Full HTML blog post with internal links as described above",
-  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5"],
+  "title": "SEO post title (55-70 chars, primary keyword near start)",
+  "excerpt": "Listing summary (140-155 chars, keyword + value, no fluff)",
+  "content": "Full 2000+ word HTML blog post with all sections, lists, table, FAQ, internal links",
+  "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6"],
   "seo": {
-    "metaTitle": "~60 char Google title (primary keyword near start)",
-    "metaDescription": "~155 char Google snippet (natural sentence, include keyword + location)",
-    "metaKeywords": "primary keyword, secondary keyword, keyword3, keyword4"
+    "metaTitle": "55-60 char Google title (keyword near start)",
+    "metaDescription": "150-158 char Google snippet (keyword + city + value prop)",
+    "metaKeywords": "primary keyword, secondary keyword, keyword3, keyword4, keyword5"
   }
 }
 
-Generate ONLY the JSON object.`;
+Generate ONLY the JSON object. No preamble. No code fences. No explanation outside the JSON.`;
 
 interface AiGenerateBody {
   topic?: string;
@@ -179,8 +206,8 @@ export async function POST(request: NextRequest) {
         { role: 'system', content: buildSystemPrompt() },
         { role: 'user', content: buildUserPrompt({ topic, service, keywords, suggestions, tone, city }) },
       ],
-      temperature: 0.72,
-      maxTokens: 6000,
+      temperature: 0.70,
+      maxTokens: 8000,
       responseFormat: 'json_object',
       timeoutMs: 120_000,
     });
