@@ -118,6 +118,7 @@ export default function BlogPostEditor({
     keywords: '',
     suggestions: '',
     tone: 'informative',
+    city: '',
   });
   const [aiPreview, setAiPreview] = useState<{
     title: string; excerpt: string; content: string; tags: string[];
@@ -311,7 +312,7 @@ export default function BlogPostEditor({
     }));
     setShowAiModal(false);
     setAiPreview(null);
-    setAiForm({ topic: '', service: '', keywords: '', suggestions: '', tone: 'informative' });
+    setAiForm({ topic: '', service: '', keywords: '', suggestions: '', tone: 'informative', city: '' });
   }, [aiPreview]);
 
   const addTag = () => {
@@ -943,6 +944,20 @@ export default function BlogPostEditor({
                   value={aiForm.keywords}
                   onChange={(e) => setAiForm((f) => ({ ...f, keywords: e.target.value }))}
                   placeholder="e.g. bike rental leh ladakh, ladakh bike trip cost, royal enfield hire manali"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Target City */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1.5">
+                  Target City <span className="text-gray-400 font-normal">(for internal links — e.g. Pune, Mumbai, Delhi)</span>
+                </label>
+                <input
+                  type="text"
+                  value={aiForm.city}
+                  onChange={(e) => setAiForm((f) => ({ ...f, city: e.target.value }))}
+                  placeholder="e.g. Pune, Manali, Bengaluru"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
