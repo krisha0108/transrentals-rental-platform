@@ -8,6 +8,7 @@ import {
   ArrowLeft, Save, Eye, ChevronDown, ChevronUp,
   Upload, X, Image as ImageIcon, Tag, Globe,
   CheckCircle2, AlertCircle, Clock, Loader2, Search, Plus, FolderPlus,
+  Sparkles, Wand2,
 } from 'lucide-react';
 
 const BlogEditor = dynamic(() => import('./BlogEditor'), {
@@ -106,6 +107,22 @@ export default function BlogPostEditor({
   const [imgUploading, setImgUploading] = useState(false);
   const [slugEdited, setSlugEdited] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // AI Generate state
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [aiForm, setAiForm] = useState({
+    topic: '',
+    service: '',
+    keywords: '',
+    suggestions: '',
+    tone: 'informative',
+  });
+  const [aiPreview, setAiPreview] = useState<{
+    title: string; excerpt: string; content: string; tags: string[];
+    seo: { metaTitle: string; metaDescription: string; metaKeywords: string };
+  } | null>(null);
 
   const emptyPost: PostData = {
     title: '',
@@ -251,6 +268,52 @@ export default function BlogPostEditor({
     [form, isEdit, apiBase, postId, backHref, router]
   );
 
+  const handleAiGenerate = useCallback(async () => {
+    setAiError('');
+    setAiPreview(null);
+    if (!aiForm.topic.trim() && !aiForm.keywords.trim() && !aiForm.service.trim()) {
+      setAiError('Enter a topic, service, or keywords to generate from.');
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const res = await fetch('/api/admin/blog/ai-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(aiForm),
+      });
+      const data = await res.json();
+      if (!res.ok) { setAiError(data.error || 'Generation failed'); return; }
+      setAiPreview(data.post);
+    } catch {
+      setAiError('Network error. Please try again.');
+    } finally {
+      setAiLoading(false);
+    }
+  }, [aiForm]);
+
+  const applyAiContent = useCallback(() => {
+    if (!aiPreview) return;
+    setForm((f) => ({
+      ...f,
+      title: aiPreview.title,
+      excerpt: aiPreview.excerpt,
+      content: aiPreview.content,
+      tags: aiPreview.tags,
+      seo: {
+        ...f.seo,
+        metaTitle: aiPreview.seo.metaTitle,
+        metaDescription: aiPreview.seo.metaDescription,
+        metaKeywords: aiPreview.seo.metaKeywords,
+        ogTitle: aiPreview.seo.metaTitle,
+        ogDescription: aiPreview.seo.metaDescription,
+      },
+    }));
+    setShowAiModal(false);
+    setAiPreview(null);
+    setAiForm({ topic: '', service: '', keywords: '', suggestions: '', tone: 'informative' });
+  }, [aiPreview]);
+
   const addTag = () => {
     const t = tagInput.trim();
     if (t && !form.tags.includes(t)) {
@@ -317,6 +380,16 @@ export default function BlogPostEditor({
                 <AlertCircle className="w-4 h-4" /> Error
               </span>
             )}
+
+            {/* Generate with AI */}
+            <button
+              type="button"
+              onClick={() => { setShowAiModal(true); setAiPreview(null); setAiError(''); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-purple-700 border border-purple-300 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors font-medium"
+            >
+              <Sparkles className="w-4 h-4" />
+              Generate with AI
+            </button>
 
             {/* Preview */}
             {isEdit && form.slug && (
@@ -806,6 +879,189 @@ export default function BlogPostEditor({
           </div>
         </div>
       </div>
+
+      {/* AI Generate Modal */}
+      {showAiModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-sm">Generate Blog with AI</h3>
+                  <p className="text-xs text-gray-500">DeepSeek will write a full SEO-optimized post</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowAiModal(false); setAiPreview(null); setAiError(''); }}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              {/* Topic */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1.5">
+                  Topic / Title Idea <span className="text-gray-400 font-normal">(what should this blog be about?)</span>
+                </label>
+                <input
+                  type="text"
+                  value={aiForm.topic}
+                  onChange={(e) => setAiForm((f) => ({ ...f, topic: e.target.value }))}
+                  placeholder="e.g. Best time to rent a bike in Leh Ladakh"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Service/Niche */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1.5">
+                  Service / Niche <span className="text-gray-400 font-normal">(optional context)</span>
+                </label>
+                <input
+                  type="text"
+                  value={aiForm.service}
+                  onChange={(e) => setAiForm((f) => ({ ...f, service: e.target.value }))}
+                  placeholder="e.g. bike rental, tempo traveller, car rental in Pune"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Keywords */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1.5">
+                  Your Target Keywords <span className="text-gray-400 font-normal">(comma separated)</span>
+                </label>
+                <input
+                  type="text"
+                  value={aiForm.keywords}
+                  onChange={(e) => setAiForm((f) => ({ ...f, keywords: e.target.value }))}
+                  placeholder="e.g. bike rental leh ladakh, ladakh bike trip cost, royal enfield hire manali"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Tone */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1.5">Writing Tone</label>
+                <div className="flex gap-2">
+                  {(['informative', 'conversational', 'professional'] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setAiForm((f) => ({ ...f, tone: t }))}
+                      className={`flex-1 py-1.5 text-xs rounded-lg border font-medium capitalize transition-colors ${
+                        aiForm.tone === t
+                          ? 'bg-purple-600 text-white border-purple-600'
+                          : 'border-gray-300 text-gray-600 hover:border-purple-300 hover:bg-purple-50'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Suggestions */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1.5">
+                  Additional Instructions <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <textarea
+                  value={aiForm.suggestions}
+                  onChange={(e) => setAiForm((f) => ({ ...f, suggestions: e.target.value }))}
+                  placeholder="e.g. Focus on budget travelers, mention Manali to Leh route, include a cost comparison table"
+                  rows={3}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
+              </div>
+
+              {/* Error */}
+              {aiError && (
+                <div className="flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  {aiError}
+                </div>
+              )}
+
+              {/* Preview strip (after generation) */}
+              {aiPreview && (
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-purple-700 mb-2">
+                    <CheckCircle2 className="w-4 h-4" /> Generated successfully
+                  </div>
+                  <p className="text-sm font-semibold text-gray-900 leading-snug">{aiPreview.title}</p>
+                  <p className="text-xs text-gray-600 leading-relaxed">{aiPreview.excerpt}</p>
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {aiPreview.tags.slice(0, 5).map((tag) => (
+                      <span key={tag} className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-1">
+                {!aiPreview ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { setShowAiModal(false); setAiError(''); }}
+                      className="flex-1 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAiGenerate}
+                      disabled={aiLoading}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 text-sm text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-60 font-medium transition-colors"
+                    >
+                      {aiLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-4 h-4" />
+                          Generate
+                        </>
+                      )}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { setAiPreview(null); setAiError(''); }}
+                      className="flex-1 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                    >
+                      Regenerate
+                    </button>
+                    <button
+                      type="button"
+                      onClick={applyAiContent}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 text-sm text-white bg-purple-600 rounded-lg hover:bg-purple-700 font-medium transition-colors"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      Apply to Editor
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
