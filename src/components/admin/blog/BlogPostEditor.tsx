@@ -63,6 +63,15 @@ interface BlogPostEditorProps {
   // Initial data (for edit mode)
   initialData?: Partial<PostData> & { id?: string };
   postId?: string;
+  // Service slug — if set, AI modal auto-fills service context
+  serviceSlug?: string;
+}
+
+function slugToServiceName(slug: string): string {
+  return slug
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 }
 
 function slugify(text: string): string {
@@ -91,6 +100,7 @@ export default function BlogPostEditor({
   previewBase = '/blog',
   initialData,
   postId,
+  serviceSlug,
 }: BlogPostEditorProps) {
   const router = useRouter();
   const isEdit = !!postId;
@@ -175,6 +185,13 @@ export default function BlogPostEditor({
       },
     };
   });
+
+  // Auto-fill service context from page slug
+  useEffect(() => {
+    if (serviceSlug) {
+      setAiForm((f) => ({ ...f, service: slugToServiceName(serviceSlug) }));
+    }
+  }, [serviceSlug]);
 
   const loadCategories = useCallback(() => {
     fetch('/api/admin/blog/categories')
@@ -984,9 +1001,16 @@ export default function BlogPostEditor({
 
               {/* Service/Niche */}
               <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1.5">
-                  Service / Niche <span className="text-gray-400 font-normal">(optional context)</span>
-                </label>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <label className="text-xs font-semibold text-gray-600">
+                    Service / Niche <span className="text-gray-400 font-normal">(optional context)</span>
+                  </label>
+                  {serviceSlug && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                      ✓ Auto-detected
+                    </span>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={aiForm.service}

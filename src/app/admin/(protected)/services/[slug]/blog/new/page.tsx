@@ -12,6 +12,7 @@ export default function NewServiceBlogPostPage() {
       apiBase={`/api/admin/services/${slug}/blog`}
       backHref={`/admin/services/${slug}/blog`}
       backLabel="Back to Blog"
+      serviceSlug={slug}
     />
   );
 }
