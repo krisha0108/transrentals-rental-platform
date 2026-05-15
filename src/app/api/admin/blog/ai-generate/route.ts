@@ -173,7 +173,7 @@ Word count: MINIMUM 2000 words. Target 2200–2500.
 2. 5–7 H2 sections with keyword-rich descriptive headings
 3. H3 sub-sections where a topic needs breakdown (costs, types, tips)
 4. At least 2 bullet/numbered lists (<ul>/<ol> with <li>)
-5. At least 1 styled cost/comparison table (use the inline CSS template above)
+5. MANDATORY TABLE — you MUST include at least one styled cost/comparison/overview table (use the exact inline CSS template above). This is non-negotiable — a response without a table is incomplete.
 6. At least 1 Pro Tip box and 1 Warning box (use inline CSS templates above)
 7. A "Common Mistakes" or "What to Watch Out For" section
 8. A FAQ section (second-to-last) — 4–5 Q&As as <h3> question + <p> answer pairs
@@ -219,7 +219,12 @@ function buildUserPrompt({ topic, service, keywords, suggestions, tone, city }: 
   if (service) lines.push(`SERVICE / NICHE: ${service}`);
   if (keywords) lines.push(`TARGET KEYWORDS (weave in naturally, use in H2s where possible): ${keywords}`);
   if (city) lines.push(`TARGET CITY FOR INTERNAL LINKS: ${city} (use ${city.toLowerCase().replace(/\s+/g, '-')} as the city slug in all internal links where applicable)`);
-  if (suggestions) lines.push(`ADDITIONAL INSTRUCTIONS: ${suggestions}`);
+  if (suggestions) {
+    lines.push(`ADDITIONAL INSTRUCTIONS: ${suggestions}`);
+    if (/table/i.test(suggestions)) {
+      lines.push('REMINDER: Admin explicitly requested tables — include multiple styled tables with inline CSS as instructed.');
+    }
+  }
   lines.push(`WRITING TONE: ${tone || 'informative and helpful'}`);
   lines.push('');
   lines.push(

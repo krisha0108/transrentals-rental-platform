@@ -9,6 +9,10 @@ import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
 import Highlight from '@tiptap/extension-highlight';
 import CharacterCount from '@tiptap/extension-character-count';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
 import { useCallback, useEffect, useState } from 'react';
 import {
   Bold, Italic, UnderlineIcon, Strikethrough, Code, Heading2, Heading3,
@@ -95,6 +99,10 @@ export default function BlogEditor({ content, onChange, placeholder }: BlogEdito
       }),
       Highlight.configure({ multicolor: false }),
       CharacterCount,
+      Table.configure({ resizable: false, HTMLAttributes: { style: 'width:100%;border-collapse:collapse;margin:1.75rem 0;' } }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content,
     immediatelyRender: false,
