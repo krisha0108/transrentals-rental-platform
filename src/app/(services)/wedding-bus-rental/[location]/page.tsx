@@ -40,11 +40,14 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const _seoDb = await resolvePageMeta(`wedding-bus-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`wedding-bus-rental:${params.location}`),
+    getServiceCityContent('wedding-bus-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Wedding Bus Rental in ${locationName} | Luxury Buses for Marriage @₹5999 | TransRentals`,
-    description: _seoDb?.metaDescription || `Book luxury AC buses for weddings in ${locationName}. Guest transportation, baraat buses, decorated buses available. 20-50 seater options. Book now!`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Wedding Bus Rental in ${locationName} | Luxury Buses for Marriage @₹5999 | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book luxury AC buses for weddings in ${locationName}. Guest transportation, baraat buses, decorated buses available. 20-50 seater options. Book now!`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `wedding bus rental in ${locationName}`,
       `marriage bus ${locationName}`,
       `${locationName} wedding bus`,
@@ -142,8 +145,8 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Wedding Bus in ${locationName}`}
         title="Wedding Bus Rental"
         titleHighlight="Baraat Ready @₹4999/day"

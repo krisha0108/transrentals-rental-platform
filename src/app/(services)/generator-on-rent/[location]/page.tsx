@@ -32,10 +32,13 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-  const _seoDb = await resolvePageMeta(`generator-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`generator-on-rent:${params.location}`),
+    getServiceCityContent('generator-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Generator on Rent in ${locationName} | DG Set @₹1500/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Hire generator in ${locationName} for events, construction, industrial backup. 5KVA to 500KVA.`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Generator on Rent in ${locationName} | DG Set @₹1500/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire generator in ${locationName} for events, construction, industrial backup. 5KVA to 500KVA.`,
     alternates: { canonical: `https://transrentals.in/generator-on-rent/${params.location}` },
     twitter: {
       card: 'summary_large_image' as const,
@@ -79,8 +82,8 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Generator Rental in ${locationName}`}
         title="Generator on Rent"
         titleHighlight="Power Backup @₹999/day"

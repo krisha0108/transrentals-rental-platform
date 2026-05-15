@@ -53,11 +53,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const city = getCityBySlug(params.location);
   const locationName = city?.name || params.location.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-  const _seoDb = await resolvePageMeta(`self-drive-car-rentals:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`self-drive-car-rentals:${params.location}`),
+    getServiceCityContent('self-drive-car-rentals', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Self Drive Car Rental in ${locationName} | Drive Yourself @₹899/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent self-drive cars in ${locationName} — no driver, complete freedom. Hatchbacks ₹899/day, Sedans ₹1299/day, SUVs ₹1899/day. Flexible pickup hours, doorstep delivery. Book self-drive car in ${locationName} now!`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Self Drive Car Rental in ${locationName} | Drive Yourself @₹899/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent self-drive cars in ${locationName} — no driver, complete freedom. Hatchbacks ₹899/day, Sedans ₹1299/day, SUVs ₹1899/day. Flexible pickup hours, doorstep delivery. Book self-drive car in ${locationName} now!`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `self drive car rental ${locationName.toLowerCase()}`,
       `self drive car ${locationName.toLowerCase()}`,
       `self drive cars ${locationName.toLowerCase()}`,
@@ -315,8 +318,8 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
       <CarSearchHero
         city={locationName}
         citySlug={params.location}
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
       />
 
       {/* Why Self Drive in This City */}

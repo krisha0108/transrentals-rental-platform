@@ -41,11 +41,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
-  const _seoDb = await resolvePageMeta(`splendor-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`splendor-on-rent:${params.location}`),
+    getServiceCityContent('splendor-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Splendor on Rent in ${locationName} | Hero Splendor Rental @₹299/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent Hero Splendor bikes in ${locationName}. Splendor Plus, iSmart, Super Splendor available. Best mileage bike. Book now!`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Splendor on Rent in ${locationName} | Hero Splendor Rental @₹299/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Hero Splendor bikes in ${locationName}. Splendor Plus, iSmart, Super Splendor available. Best mileage bike. Book now!`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `splendor on rent in ${locationName}`,
       `hero splendor rental ${locationName}`,
       `${locationName} splendor rental`,
@@ -179,8 +182,8 @@ export default async function SplendorLocationPage({ params }: PageProps) {
         <BikeSearchHero
           city={locationName}
           citySlug={params.location}
-          pageHeading={seoData?.pageHeading || undefined}
-          pageDescription={seoData?.pageDescription || undefined}
+          pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+          pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         />
 
         <VehicleGrid

@@ -73,11 +73,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
-  const _seoDb = await resolvePageMeta(`bike-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`bike-on-rent:${params.location}`),
+    getServiceCityContent('bike-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Bike on Rent in ${locationName} | Starting @₹299/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent bikes in ${locationName} with TransRentals. Choose from Royal Enfield, KTM, Activa, Honda & more. Best prices guaranteed. Doorstep delivery available. Book your bike rental in ${locationName} now!`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Bike on Rent in ${locationName} | Starting @₹299/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent bikes in ${locationName} with TransRentals. Choose from Royal Enfield, KTM, Activa, Honda & more. Best prices guaranteed. Doorstep delivery available. Book your bike rental in ${locationName} now!`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `bike on rent in ${locationName}`,
       `bike rental ${locationName}`,
       `${locationName} bike rental`,
@@ -354,7 +357,7 @@ export default async function BikeLocationPage({ params }: PageProps) {
         </div>
 
       {/* Hero with Search */}
-      <BikeSearchHero city={locationName} citySlug={params.location} pageHeading={seoData?.pageHeading || undefined} pageDescription={seoData?.pageDescription || undefined} />
+      <BikeSearchHero city={locationName} citySlug={params.location} pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined} pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined} />
 
       {/* Available Bikes - Dynamic from Database */}
       <ServiceFleetDisplay

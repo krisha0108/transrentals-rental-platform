@@ -51,11 +51,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`luxury-car-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`luxury-car-rental:${params.location}`),
+    getServiceCityContent('luxury-car-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Luxury Car Rental in ${locationName} | BMW, Mercedes, Audi, Ferrari | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent luxury & exotic cars in ${locationName}. BMW, Mercedes, Audi, Jaguar, Range Rover, Ferrari, Lamborghini. Premium car hire with professional chauffeur. Wedding, corporate events.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Luxury Car Rental in ${locationName} | BMW, Mercedes, Audi, Ferrari | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent luxury & exotic cars in ${locationName}. BMW, Mercedes, Audi, Jaguar, Range Rover, Ferrari, Lamborghini. Premium car hire with professional chauffeur. Wedding, corporate events.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `luxury car rental ${locationName.toLowerCase()}`,
       `exotic car hire ${locationName.toLowerCase()}`,
       `BMW rental ${locationName.toLowerCase()}`,

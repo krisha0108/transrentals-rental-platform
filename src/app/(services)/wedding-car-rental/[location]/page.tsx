@@ -40,11 +40,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`wedding-car-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`wedding-car-rental:${params.location}`),
+    getServiceCityContent('wedding-car-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Wedding Car Rental ${locationName} | Shadi Car Hire @₹2999 | Baraat Car`,
-    description: _seoDb?.metaDescription || `Book wedding cars in ${locationName}. Baraat car rental, bride/groom car, vintage cars. Professional decoration & chauffeur. Starting @₹2999.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Wedding Car Rental ${locationName} | Shadi Car Hire @₹2999 | Baraat Car`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book wedding cars in ${locationName}. Baraat car rental, bride/groom car, vintage cars. Professional decoration & chauffeur. Starting @₹2999.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `wedding car rental ${locationName.toLowerCase()}`,
       `shadi car ${locationName.toLowerCase()}`,
       `baraat car hire ${locationName.toLowerCase()}`,

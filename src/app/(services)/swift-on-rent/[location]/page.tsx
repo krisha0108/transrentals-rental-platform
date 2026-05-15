@@ -38,11 +38,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
-  const _seoDb = await resolvePageMeta(`swift-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`swift-on-rent:${params.location}`),
+    getServiceCityContent('swift-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Swift on Rent in ${locationName} | Rent Swift @₹899/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent Maruti Swift without driver in ${locationName}. Self-drive Swift rental for city commute. Swift LXi, VXi, ZXi, CNG available.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Swift on Rent in ${locationName} | Rent Swift @₹899/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Maruti Swift without driver in ${locationName}. Self-drive Swift rental for city commute. Swift LXi, VXi, ZXi, CNG available.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `swift on rent ${locationName}`,
       `maruti swift rental ${locationName}`,
       `rent swift without driver ${locationName}`,

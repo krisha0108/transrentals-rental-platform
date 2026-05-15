@@ -41,11 +41,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`corporate-car-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`corporate-car-rental:${params.location}`),
+    getServiceCityContent('corporate-car-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Corporate Car Rental ${locationName} | Employee Transport @₹15k | Business Taxi`,
-    description: _seoDb?.metaDescription || `Corporate car rental in ${locationName}. Employee transport, business meetings, fleet management. Professional service @₹15000/month.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Corporate Car Rental ${locationName} | Employee Transport @₹15k | Business Taxi`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Corporate car rental in ${locationName}. Employee transport, business meetings, fleet management. Professional service @₹15000/month.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `corporate car rental ${locationName.toLowerCase()}`,
       `corporate taxi ${locationName.toLowerCase()}`,
       `employee transport ${locationName.toLowerCase()}`,

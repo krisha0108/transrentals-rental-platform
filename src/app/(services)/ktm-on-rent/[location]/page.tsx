@@ -41,11 +41,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
-  const _seoDb = await resolvePageMeta(`ktm-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`ktm-on-rent:${params.location}`),
+    getServiceCityContent('ktm-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `KTM on Rent in ${locationName} | Duke & RC Rental @₹999/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent KTM bikes in ${locationName}. Duke 200, Duke 390, RC 200, RC 390 available. High performance sports bikes. Book your KTM rental now!`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `KTM on Rent in ${locationName} | Duke & RC Rental @₹999/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent KTM bikes in ${locationName}. Duke 200, Duke 390, RC 200, RC 390 available. High performance sports bikes. Book your KTM rental now!`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `ktm on rent in ${locationName}`,
       `ktm duke rental ${locationName}`,
       `${locationName} ktm rental`,
@@ -179,8 +182,8 @@ export default async function KTMLocationPage({ params }: PageProps) {
         <BikeSearchHero
           city={locationName}
           citySlug={params.location}
-          pageHeading={seoData?.pageHeading || undefined}
-          pageDescription={seoData?.pageDescription || undefined}
+          pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+          pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         />
 
         <VehicleGrid

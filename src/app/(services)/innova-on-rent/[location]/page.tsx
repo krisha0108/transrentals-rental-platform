@@ -38,11 +38,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
-  const _seoDb = await resolvePageMeta(`innova-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`innova-on-rent:${params.location}`),
+    getServiceCityContent('innova-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Innova on Rent in ${locationName} | Rent Innova @₹2499/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent Toyota Innova Crysta without driver in ${locationName}. Self-drive Innova rental for family trips, weddings. 7+1 seater. GX, VX, ZX variants available.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Innova on Rent in ${locationName} | Rent Innova @₹2499/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Toyota Innova Crysta without driver in ${locationName}. Self-drive Innova rental for family trips, weddings. 7+1 seater. GX, VX, ZX variants available.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `innova on rent ${locationName}`,
       `toyota innova rental ${locationName}`,
       `rent innova without driver ${locationName}`,

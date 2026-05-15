@@ -38,11 +38,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
-  const _seoDb = await resolvePageMeta(`self-drive-hatchback-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`self-drive-hatchback-rental:${params.location}`),
+    getServiceCityContent('self-drive-hatchback-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Self Drive Hatchback Rental in ${locationName} | Rent @₹899/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent hatchback without driver in ${locationName}. Swift, i20, Baleno, Tiago available. Most affordable self-drive option.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Self Drive Hatchback Rental in ${locationName} | Rent @₹899/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent hatchback without driver in ${locationName}. Swift, i20, Baleno, Tiago available. Most affordable self-drive option.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `self drive hatchback rental ${locationName}`,
       `hatchback on rent ${locationName}`,
       `swift on rent ${locationName}`,
@@ -102,8 +105,8 @@ export default async function HatchbackRentalLocationPage({ params }: PageProps)
       <CarSearchHero
         city={locationName}
         citySlug={params.location}
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
       />
 
       <section className="bg-gradient-to-br from-green-700 to-blue-800 text-white py-12">

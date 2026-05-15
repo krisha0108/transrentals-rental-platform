@@ -40,11 +40,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`one-way-car-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`one-way-car-rental:${params.location}`),
+    getServiceCityContent('one-way-car-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `One Way Car Rental from ${locationName} | Drop at Different City @₹1299 | TransRentals`,
-    description: _seoDb?.metaDescription || `One-way car rental from ${locationName}. Drop car at different city. No return trip needed. Convenient intercity travel. Book online instantly.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `One Way Car Rental from ${locationName} | Drop at Different City @₹1299 | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `One-way car rental from ${locationName}. Drop car at different city. No return trip needed. Convenient intercity travel. Book online instantly.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `one way car rental ${locationName.toLowerCase()}`,
       `one way car hire ${locationName.toLowerCase()}`,
       `${locationName.toLowerCase()} to other cities cab`,

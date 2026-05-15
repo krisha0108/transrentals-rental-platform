@@ -136,11 +136,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`outstation-cab:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`outstation-cab:${params.location}`),
+    getServiceCityContent('outstation-cab', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Outstation Cab ${locationName} | Intercity Taxi @₹12/Km | Round Trip`,
-    description: _seoDb?.metaDescription || `Book outstation cab from ${locationName}. Intercity taxi, round trip & one-way cabs. Sedan, SUV available. Station taxi @₹12/km.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Outstation Cab ${locationName} | Intercity Taxi @₹12/Km | Round Trip`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book outstation cab from ${locationName}. Intercity taxi, round trip & one-way cabs. Sedan, SUV available. Station taxi @₹12/km.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `outstation cab ${locationName.toLowerCase()}`,
       `outstation taxi ${locationName.toLowerCase()}`,
       `intercity cab ${locationName.toLowerCase()}`,

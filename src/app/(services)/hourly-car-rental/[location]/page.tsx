@@ -28,10 +28,13 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-  const seoDb = await resolvePageMeta(`hourly-car-rental:${params.location}`);
+  const [seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`hourly-car-rental:${params.location}`),
+    getServiceCityContent('hourly-car-rental', params.location),
+  ]);
   return {
-    title: seoDb?.metaTitle || `Hourly Car Rental in ${locationName} | Book with Driver | TransRentals`,
-    description: seoDb?.metaDescription || `Book hourly cab in ${locationName} with driver. Packages starting from 2 hrs. Driver + fuel included.`,
+    title: scContent?.metaTitle || seoDb?.metaTitle || `Hourly Car Rental in ${locationName} | Book with Driver | TransRentals`,
+    description: scContent?.metaDescription || seoDb?.metaDescription || `Book hourly cab in ${locationName} with driver. Packages starting from 2 hrs. Driver + fuel included.`,
     alternates: { canonical: `https://transrentals.in/hourly-car-rental/${params.location}` },
     twitter: {
       card: 'summary_large_image' as const,
@@ -117,7 +120,7 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
+      */}
       <BikeServiceSchema
         serviceName="Hourly Car Rental"
         serviceSlug="hourly-car-rental"

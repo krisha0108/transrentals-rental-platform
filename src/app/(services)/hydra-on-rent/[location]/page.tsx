@@ -32,10 +32,13 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-  const _seoDb = await resolvePageMeta(`hydra-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`hydra-on-rent:${params.location}`),
+    getServiceCityContent('hydra-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Hydra on Rent in ${locationName} | @₹6000/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Hire hydra crane in ${locationName} for loading, unloading, construction. 8T-14T capacity.`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Hydra on Rent in ${locationName} | @₹6000/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire hydra crane in ${locationName} for loading, unloading, construction. 8T-14T capacity.`,
     alternates: { canonical: `https://transrentals.in/hydra-on-rent/${params.location}` },
     twitter: {
       card: 'summary_large_image' as const,
@@ -79,8 +82,8 @@ export default async function HydraLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Hydra Crane in ${locationName}`}
         title="Hydra Crane on Rent"
         titleHighlight="Loading Made Easy @₹3999/day"

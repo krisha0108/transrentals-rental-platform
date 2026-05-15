@@ -51,11 +51,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`local-taxi:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`local-taxi:${params.location}`),
+    getServiceCityContent('local-taxi', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Local Taxi ${locationName} | Hourly Cab @₹399 | 4 Hour 8 Hour Package`,
-    description: _seoDb?.metaDescription || `Book local taxi in ${locationName}. Hourly cab rental - 4hr, 8hr, 12hr packages. City taxi service. AC sedan, SUV @₹399.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Local Taxi ${locationName} | Hourly Cab @₹399 | 4 Hour 8 Hour Package`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book local taxi in ${locationName}. Hourly cab rental - 4hr, 8hr, 12hr packages. City taxi service. AC sedan, SUV @₹399.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `local taxi ${locationName.toLowerCase()}`,
       `hourly taxi ${locationName.toLowerCase()}`,
       `local cab ${locationName.toLowerCase()}`,

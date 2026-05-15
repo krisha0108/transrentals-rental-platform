@@ -49,6 +49,8 @@ function rowToPayload(row: any, citySlug: string, serviceSlug: string) {
       metaDescription: row?.metaDescription ?? null,
       metaKeywords: row?.metaKeywords ?? null,
       h1Heading: row?.h1Heading ?? null,
+      pageHeading: row?.pageHeading ?? null,
+      pageDescription: row?.pageDescription ?? null,
     },
     workflow: {
       status: row?.status ?? 'draft',
@@ -121,6 +123,8 @@ export async function PUT(
   if ('metaDescription' in content) data.metaDescription = content.metaDescription ?? null;
   if ('metaKeywords' in content) data.metaKeywords = content.metaKeywords ?? null;
   if ('h1Heading' in content) data.h1Heading = content.h1Heading ?? null;
+  if ('pageHeading' in content) data.pageHeading = content.pageHeading ?? null;
+  if ('pageDescription' in content) data.pageDescription = content.pageDescription ?? null;
 
   let statusToSet: string | undefined;
   if ('status' in workflow) {

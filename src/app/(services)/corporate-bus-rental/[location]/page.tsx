@@ -41,11 +41,14 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const _seoDb = await resolvePageMeta(`corporate-bus-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`corporate-bus-rental:${params.location}`),
+    getServiceCityContent('corporate-bus-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Corporate Bus Rental in ${locationName} | Employee Transport @₹4999 | TransRentals`,
-    description: _seoDb?.metaDescription || `Corporate bus rental in ${locationName} for employee transportation, office events & team outings. Daily, monthly & annual contracts available. Book now!`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Corporate Bus Rental in ${locationName} | Employee Transport @₹4999 | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Corporate bus rental in ${locationName} for employee transportation, office events & team outings. Daily, monthly & annual contracts available. Book now!`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `corporate bus rental in ${locationName}`,
       `employee transport bus ${locationName}`,
       `${locationName} office bus rental`,
@@ -141,8 +144,8 @@ export default async function CorporateBusLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Corporate Bus in ${locationName}`}
         title="Corporate Bus Rental"
         titleHighlight="Employee Transport @₹4999/day"

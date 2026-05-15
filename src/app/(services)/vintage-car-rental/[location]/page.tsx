@@ -41,11 +41,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`vintage-car-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`vintage-car-rental:${params.location}`),
+    getServiceCityContent('vintage-car-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Vintage Car Rental ${locationName} | Classic Car Wedding @₹8999 | Ambassador`,
-    description: _seoDb?.metaDescription || `Rent vintage cars in ${locationName}. Classic Ambassador, retro cars for weddings. Heritage car booking @₹8999. Photo shoot ready.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Vintage Car Rental ${locationName} | Classic Car Wedding @₹8999 | Ambassador`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent vintage cars in ${locationName}. Classic Ambassador, retro cars for weddings. Heritage car booking @₹8999. Photo shoot ready.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `vintage car rental ${locationName.toLowerCase()}`,
       `vintage car wedding ${locationName.toLowerCase()}`,
       `classic car ${locationName.toLowerCase()}`,

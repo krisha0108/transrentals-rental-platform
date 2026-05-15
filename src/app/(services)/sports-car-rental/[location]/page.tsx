@@ -41,11 +41,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`sports-car-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`sports-car-rental:${params.location}`),
+    getServiceCityContent('sports-car-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Sports Car Rental ${locationName} | Supercar Hire @₹25k | Ferrari Lamborghini`,
-    description: _seoDb?.metaDescription || `Rent sports cars in ${locationName}. Ferrari, Lamborghini, Porsche available. Luxury supercar hire @₹25000/day. Self-drive & chauffeur.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Sports Car Rental ${locationName} | Supercar Hire @₹25k | Ferrari Lamborghini`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent sports cars in ${locationName}. Ferrari, Lamborghini, Porsche available. Luxury supercar hire @₹25000/day. Self-drive & chauffeur.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `sports car rental ${locationName.toLowerCase()}`,
       `supercar rental ${locationName.toLowerCase()}`,
       `Ferrari rental ${locationName.toLowerCase()}`,

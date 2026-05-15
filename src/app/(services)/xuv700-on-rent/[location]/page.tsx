@@ -33,10 +33,13 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-  const _seoDb = await resolvePageMeta(`xuv700-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`xuv700-on-rent:${params.location}`),
+    getServiceCityContent('xuv700-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || formatPriceHighlight(`XUV700 on Rent in ${locationName} | @₹2999/Day | TransRentals`),
-    description: _seoDb?.metaDescription || formatPriceHighlight(`Rent Mahindra XUV700 without driver in ${locationName}. India's safest SUV with ADAS.`),
+    title: scContent?.metaTitle || _seoDb?.metaTitle || formatPriceHighlight(`XUV700 on Rent in ${locationName} | @₹2999/Day | TransRentals`),
+    description: scContent?.metaDescription || _seoDb?.metaDescription || formatPriceHighlight(`Rent Mahindra XUV700 without driver in ${locationName}. India's safest SUV with ADAS.`),
     alternates: { canonical: `https://transrentals.in/xuv700-on-rent/${params.location}` },
     twitter: {
       card: 'summary_large_image' as const,

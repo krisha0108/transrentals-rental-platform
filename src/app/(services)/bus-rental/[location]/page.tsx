@@ -67,11 +67,14 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const _seoDb = await resolvePageMeta(`bus-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`bus-rental:${params.location}`),
+    getServiceCityContent('bus-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Bus Rental in ${locationName} | Starting ₹18/km | TransRentals`,
-    description: _seoDb?.metaDescription || `Hire buses and tempo travellers in ${locationName}. Mini buses, luxury coaches, and AC Tempo Travellers for pilgrimages, weddings, corporate events. Verified operators.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Bus Rental in ${locationName} | Starting ₹18/km | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire buses and tempo travellers in ${locationName}. Mini buses, luxury coaches, and AC Tempo Travellers for pilgrimages, weddings, corporate events. Verified operators.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `bus rental in ${locationName}`,
       `bus on rent ${locationName}`,
       `${locationName} bus rental`,
@@ -291,8 +294,8 @@ export default async function BusLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Bus Rental in ${locationName}`}
         title="Bus Rental Services"
         titleHighlight="Mini Bus & Luxury Coach Hire"

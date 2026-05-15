@@ -41,11 +41,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`chauffeur-service:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`chauffeur-service:${params.location}`),
+    getServiceCityContent('chauffeur-service', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Chauffeur Service ${locationName} | Driver on Hire @₹599 | Car Driver`,
-    description: _seoDb?.metaDescription || `Hire professional chauffeur in ${locationName}. Driver on hire for daily use, outstation. Verified car drivers @₹599/day.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Chauffeur Service ${locationName} | Driver on Hire @₹599 | Car Driver`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire professional chauffeur in ${locationName}. Driver on hire for daily use, outstation. Verified car drivers @₹599/day.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `chauffeur service ${locationName.toLowerCase()}`,
       `driver on hire ${locationName.toLowerCase()}`,
       `car driver ${locationName.toLowerCase()}`,

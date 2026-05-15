@@ -50,11 +50,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
-  const _seoDb = await resolvePageMeta(`activa-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`activa-on-rent:${params.location}`),
+    getServiceCityContent('activa-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Activa on Rent in ${locationName} | Scooty Rental @₹299/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent Activa & scooters in ${locationName}. Honda Activa, TVS Jupiter, Suzuki Access available. Fuel efficient, easy to ride. Book your scooty rental now!`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Activa on Rent in ${locationName} | Scooty Rental @₹299/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Activa & scooters in ${locationName}. Honda Activa, TVS Jupiter, Suzuki Access available. Fuel efficient, easy to ride. Book your scooty rental now!`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `activa on rent in ${locationName}`,
       `scooty rental ${locationName}`,
       `${locationName} activa rental`,
@@ -235,8 +238,8 @@ export default async function ActivaLocationPage({ params }: PageProps) {
       <BikeSearchHero
         city={locationName}
         citySlug={params.location}
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
       />
 
       {/* Why Choose Activa */}

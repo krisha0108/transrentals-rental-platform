@@ -41,11 +41,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
-  const _seoDb = await resolvePageMeta(`pulsar-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`pulsar-on-rent:${params.location}`),
+    getServiceCityContent('pulsar-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Pulsar on Rent in ${locationName} | Bajaj Pulsar Rental @₹499/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent Bajaj Pulsar bikes in ${locationName}. Pulsar 150, 180, NS200, RS200 available. Reliable sports bikes. Book your Pulsar rental now!`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Pulsar on Rent in ${locationName} | Bajaj Pulsar Rental @₹499/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Bajaj Pulsar bikes in ${locationName}. Pulsar 150, 180, NS200, RS200 available. Reliable sports bikes. Book your Pulsar rental now!`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `pulsar on rent in ${locationName}`,
       `bajaj pulsar rental ${locationName}`,
       `${locationName} pulsar rental`,
@@ -179,8 +182,8 @@ export default async function PulsarLocationPage({ params }: PageProps) {
         <BikeSearchHero
           city={locationName}
           citySlug={params.location}
-          pageHeading={seoData?.pageHeading || undefined}
-          pageDescription={seoData?.pageDescription || undefined}
+          pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+          pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         />
 
         {/* Available Models */}

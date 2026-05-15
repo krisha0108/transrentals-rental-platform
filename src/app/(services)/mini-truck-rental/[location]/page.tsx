@@ -42,11 +42,14 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const _seoDb = await resolvePageMeta(`mini-truck-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`mini-truck-rental:${params.location}`),
+    getServiceCityContent('mini-truck-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Mini Truck Rental in ${locationName} | Starting ₹1,499/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent mini trucks in ${locationName}. Tata Ace, Mahindra Pickup available. Perfect for local deliveries, house shifting & goods transport. Book now!`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Mini Truck Rental in ${locationName} | Starting ₹1,499/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent mini trucks in ${locationName}. Tata Ace, Mahindra Pickup available. Perfect for local deliveries, house shifting & goods transport. Book now!`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `mini truck rental in ${locationName}`,
       `tata ace on rent ${locationName}`,
       `${locationName} mini truck hire`,
@@ -147,8 +150,8 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Mini Truck Rental in ${locationName}`}
         title="Mini Truck Rental"
         titleHighlight="Driver Included | All India"

@@ -32,10 +32,13 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-  const _seoDb = await resolvePageMeta(`scorpio-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`scorpio-on-rent:${params.location}`),
+    getServiceCityContent('scorpio-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Scorpio on Rent in ${locationName} | @₹2499/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent Mahindra Scorpio without driver in ${locationName}. Rugged SUV for adventure & outstation.`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Scorpio on Rent in ${locationName} | @₹2499/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Mahindra Scorpio without driver in ${locationName}. Rugged SUV for adventure & outstation.`,
     alternates: { canonical: `https://transrentals.in/scorpio-on-rent/${params.location}` },
     twitter: {
       card: 'summary_large_image' as const,

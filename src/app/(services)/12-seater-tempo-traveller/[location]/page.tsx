@@ -35,11 +35,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
-  const _seoDb = await resolvePageMeta(`12-seater-tempo-traveller:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`12-seater-tempo-traveller:${params.location}`),
+    getServiceCityContent('12-seater-tempo-traveller', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `12 Seater Tempo Traveller in ${locationName} | Hire @₹18/km | TransRentals`,
-    description: _seoDb?.metaDescription || `Book 12 seater tempo traveller on rent in ${locationName}. AC/Non-AC options with driver. Perfect for family trips, weddings, pilgrimages.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [`12 seater tempo traveller ${locationName}`, `tempo traveller hire ${locationName}`, `12 seater van rental ${locationName}`],
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `12 Seater Tempo Traveller in ${locationName} | Hire @₹18/km | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book 12 seater tempo traveller on rent in ${locationName}. AC/Non-AC options with driver. Perfect for family trips, weddings, pilgrimages.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [`12 seater tempo traveller ${locationName}`, `tempo traveller hire ${locationName}`, `12 seater van rental ${locationName}`],
     openGraph: {
       title: `12 Seater Tempo Traveller in ${locationName} @₹18/km`,
       description: `Hire 12 seater tempo traveller with driver in ${locationName}.`,
@@ -95,8 +98,8 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`12 Seater Tempo in ${locationName}`}
         title="12 Seater Tempo Traveller"
         titleHighlight="Small Groups @₹18/km"

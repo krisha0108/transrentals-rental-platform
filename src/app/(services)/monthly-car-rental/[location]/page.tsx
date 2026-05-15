@@ -42,11 +42,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`monthly-car-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`monthly-car-rental:${params.location}`),
+    getServiceCityContent('monthly-car-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Monthly Car Rental ${locationName} | Car Subscription @₹12k | Long Term Lease`,
-    description: _seoDb?.metaDescription || `Rent car monthly in ${locationName}. Car subscription service. Long term rental @₹12000/month. Self-drive & chauffeur options.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Monthly Car Rental ${locationName} | Car Subscription @₹12k | Long Term Lease`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent car monthly in ${locationName}. Car subscription service. Long term rental @₹12000/month. Self-drive & chauffeur options.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `monthly car rental ${locationName.toLowerCase()}`,
       `car subscription ${locationName.toLowerCase()}`,
       `car on monthly rent ${locationName.toLowerCase()}`,
