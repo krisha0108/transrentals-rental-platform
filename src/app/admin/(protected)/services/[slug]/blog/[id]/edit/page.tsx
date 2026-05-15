@@ -49,6 +49,7 @@ export default function EditServiceBlogPostPage() {
       backLabel="Back to Blog"
       initialData={initialData}
       postId={id}
+      serviceSlug={slug}
     />
   );
 }

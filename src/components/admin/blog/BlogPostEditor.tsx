@@ -8,6 +8,7 @@ import {
   ArrowLeft, Save, Eye, ChevronDown, ChevronUp,
   Upload, X, Image as ImageIcon, Tag, Globe,
   CheckCircle2, AlertCircle, Clock, Loader2, Search, Plus, FolderPlus,
+  Sparkles, Wand2,
 } from 'lucide-react';
 
 const BlogEditor = dynamic(() => import('./BlogEditor'), {
@@ -62,6 +63,15 @@ interface BlogPostEditorProps {
   // Initial data (for edit mode)
   initialData?: Partial<PostData> & { id?: string };
   postId?: string;
+  // Service slug — if set, AI modal auto-fills service context
+  serviceSlug?: string;
+}
+
+function slugToServiceName(slug: string): string {
+  return slug
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 }
 
 function slugify(text: string): string {
@@ -90,6 +100,7 @@ export default function BlogPostEditor({
   previewBase = '/blog',
   initialData,
   postId,
+  serviceSlug,
 }: BlogPostEditorProps) {
   const router = useRouter();
   const isEdit = !!postId;
@@ -106,6 +117,26 @@ export default function BlogPostEditor({
   const [imgUploading, setImgUploading] = useState(false);
   const [slugEdited, setSlugEdited] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // AI Generate state
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [aiForm, setAiForm] = useState({
+    topic: '',
+    service: '',
+    keywords: '',
+    suggestions: '',
+    tone: 'informative',
+    city: '',
+  });
+  const [aiPreview, setAiPreview] = useState<{
+    title: string; excerpt: string; content: string; tags: string[];
+    seo: { metaTitle: string; metaDescription: string; metaKeywords: string };
+  } | null>(null);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestedTopics, setSuggestedTopics] = useState<{ title: string; why: string }[]>([]);
+  const [aiApplied, setAiApplied] = useState(false);
 
   const emptyPost: PostData = {
     title: '',
@@ -154,6 +185,13 @@ export default function BlogPostEditor({
       },
     };
   });
+
+  // Auto-fill service context from page slug
+  useEffect(() => {
+    if (serviceSlug) {
+      setAiForm((f) => ({ ...f, service: slugToServiceName(serviceSlug) }));
+    }
+  }, [serviceSlug]);
 
   const loadCategories = useCallback(() => {
     fetch('/api/admin/blog/categories')
@@ -251,6 +289,73 @@ export default function BlogPostEditor({
     [form, isEdit, apiBase, postId, backHref, router]
   );
 
+  const handleAiGenerate = useCallback(async () => {
+    setAiError('');
+    setAiPreview(null);
+    if (!aiForm.topic.trim() && !aiForm.keywords.trim() && !aiForm.service.trim() && !aiForm.city.trim()) {
+      setAiError('Fill at least one field above — service, keywords, or city — so AI knows what to write about.');
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const res = await fetch('/api/admin/blog/ai-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(aiForm),
+      });
+      const data = await res.json();
+      if (!res.ok) { setAiError(data.error || 'Generation failed'); return; }
+      setAiPreview(data.post);
+    } catch {
+      setAiError('Network error. Please try again.');
+    } finally {
+      setAiLoading(false);
+    }
+  }, [aiForm]);
+
+  const handleSuggestTopics = useCallback(async () => {
+    setAiError('');
+    setSuggestLoading(true);
+    setSuggestedTopics([]);
+    try {
+      const res = await fetch('/api/admin/blog/ai-suggest-topics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ service: aiForm.service, keywords: aiForm.keywords, city: aiForm.city }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setAiError(data.error || 'Failed to suggest topics'); return; }
+      setSuggestedTopics(data.topics || []);
+    } catch {
+      setAiError('Network error. Please try again.');
+    } finally {
+      setSuggestLoading(false);
+    }
+  }, [aiForm.service, aiForm.keywords, aiForm.city]);
+
+  const applyAiContent = useCallback(() => {
+    if (!aiPreview) return;
+    setForm((f) => ({
+      ...f,
+      title: aiPreview.title,
+      excerpt: aiPreview.excerpt,
+      content: aiPreview.content,
+      tags: aiPreview.tags,
+      seo: {
+        ...f.seo,
+        metaTitle: aiPreview.seo.metaTitle,
+        metaDescription: aiPreview.seo.metaDescription,
+        metaKeywords: aiPreview.seo.metaKeywords,
+        ogTitle: aiPreview.seo.metaTitle,
+        ogDescription: aiPreview.seo.metaDescription,
+      },
+    }));
+    setShowAiModal(false);
+    setAiPreview(null);
+    setAiApplied(true);
+    // keep aiForm intact so user can regenerate with same inputs
+  }, [aiPreview]);
+
   const addTag = () => {
     const t = tagInput.trim();
     if (t && !form.tags.includes(t)) {
@@ -317,6 +422,20 @@ export default function BlogPostEditor({
                 <AlertCircle className="w-4 h-4" /> Error
               </span>
             )}
+
+            {/* Generate with AI / Regenerate */}
+            <button
+              type="button"
+              onClick={() => { setShowAiModal(true); setAiPreview(null); setAiError(''); setSuggestedTopics([]); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-lg transition-colors font-medium ${
+                aiApplied
+                  ? 'text-green-700 border-green-300 bg-green-50 hover:bg-green-100'
+                  : 'text-purple-700 border-purple-300 bg-purple-50 hover:bg-purple-100'
+              }`}
+            >
+              {aiApplied ? <Wand2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+              {aiApplied ? 'Regenerate' : 'Generate with AI'}
+            </button>
 
             {/* Preview */}
             {isEdit && form.slug && (
@@ -806,6 +925,244 @@ export default function BlogPostEditor({
           </div>
         </div>
       </div>
+
+      {/* AI Generate Modal */}
+      {showAiModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-sm">
+                    {aiApplied ? 'Regenerate Blog' : 'Generate Blog with AI'}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {aiApplied ? 'Your previous inputs are saved — tweak or generate again' : 'DeepSeek will write a full SEO-optimized post'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowAiModal(false); setAiPreview(null); setAiError(''); setSuggestedTopics([]); }}
+              className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-4">
+              {/* Topic */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-gray-600">
+                    Topic / Title Idea <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleSuggestTopics}
+                    disabled={suggestLoading}
+                    className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium disabled:opacity-50"
+                  >
+                    {suggestLoading
+                      ? <><Loader2 className="w-3 h-3 animate-spin" /> Suggesting...</>
+                      : <><Sparkles className="w-3 h-3" /> Suggest Topics</>
+                    }
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={aiForm.topic}
+                  onChange={(e) => setAiForm((f) => ({ ...f, topic: e.target.value }))}
+                  placeholder="e.g. Best time to rent a bike in Leh Ladakh — or leave blank and use Suggest Topics"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                {/* Suggested topic chips */}
+                {suggestedTopics.length > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    <p className="text-xs text-gray-400">Click a topic to use it:</p>
+                    {suggestedTopics.map((t, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => { setAiForm((f) => ({ ...f, topic: t.title })); setSuggestedTopics([]); }}
+                        className="w-full text-left px-3 py-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors group"
+                      >
+                        <p className="text-xs font-medium text-gray-800 group-hover:text-purple-800 leading-snug">{t.title}</p>
+                        <p className="text-xs text-gray-400 mt-0.5 leading-snug">{t.why}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Service/Niche */}
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <label className="text-xs font-semibold text-gray-600">
+                    Service / Niche <span className="text-gray-400 font-normal">(optional context)</span>
+                  </label>
+                  {serviceSlug && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                      ✓ Auto-detected
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={aiForm.service}
+                  onChange={(e) => setAiForm((f) => ({ ...f, service: e.target.value }))}
+                  placeholder="e.g. bike rental, tempo traveller, car rental in Pune"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Keywords */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1.5">
+                  Your Target Keywords <span className="text-gray-400 font-normal">(comma separated)</span>
+                </label>
+                <input
+                  type="text"
+                  value={aiForm.keywords}
+                  onChange={(e) => setAiForm((f) => ({ ...f, keywords: e.target.value }))}
+                  placeholder="e.g. bike rental leh ladakh, ladakh bike trip cost, royal enfield hire manali"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Target City */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1.5">
+                  Target City <span className="text-gray-400 font-normal">(for internal links — e.g. Pune, Mumbai, Delhi)</span>
+                </label>
+                <input
+                  type="text"
+                  value={aiForm.city}
+                  onChange={(e) => setAiForm((f) => ({ ...f, city: e.target.value }))}
+                  placeholder="e.g. Pune, Manali, Bengaluru"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Tone */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1.5">Writing Tone</label>
+                <div className="flex gap-2">
+                  {(['informative', 'conversational', 'professional'] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setAiForm((f) => ({ ...f, tone: t }))}
+                      className={`flex-1 py-1.5 text-xs rounded-lg border font-medium capitalize transition-colors ${
+                        aiForm.tone === t
+                          ? 'bg-purple-600 text-white border-purple-600'
+                          : 'border-gray-300 text-gray-600 hover:border-purple-300 hover:bg-purple-50'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Suggestions */}
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1.5">
+                  Additional Instructions <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <textarea
+                  value={aiForm.suggestions}
+                  onChange={(e) => setAiForm((f) => ({ ...f, suggestions: e.target.value }))}
+                  placeholder="e.g. Focus on budget travelers, mention Manali to Leh route, include a cost comparison table"
+                  rows={3}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
+              </div>
+
+              {/* Error */}
+              {aiError && (
+                <div className="flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  {aiError}
+                </div>
+              )}
+
+              {/* Preview strip (after generation) */}
+              {aiPreview && (
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-purple-700 mb-2">
+                    <CheckCircle2 className="w-4 h-4" /> Generated successfully
+                  </div>
+                  <p className="text-sm font-semibold text-gray-900 leading-snug">{aiPreview.title}</p>
+                  <p className="text-xs text-gray-600 leading-relaxed">{aiPreview.excerpt}</p>
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {aiPreview.tags.slice(0, 5).map((tag) => (
+                      <span key={tag} className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-1">
+                {!aiPreview ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { setShowAiModal(false); setAiError(''); }}
+                      className="flex-1 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAiGenerate}
+                      disabled={aiLoading}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 text-sm text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-60 font-medium transition-colors"
+                    >
+                      {aiLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Wand2 className="w-4 h-4" />
+                          Generate
+                        </>
+                      )}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { setAiPreview(null); setAiError(''); setAiApplied(false); }}
+                      className="flex-1 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                    >
+                      Try Again
+                    </button>
+                    <button
+                      type="button"
+                      onClick={applyAiContent}
+                      className="flex-1 flex items-center justify-center gap-2 py-2 text-sm text-white bg-purple-600 rounded-lg hover:bg-purple-700 font-medium transition-colors"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      Apply to Editor
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
