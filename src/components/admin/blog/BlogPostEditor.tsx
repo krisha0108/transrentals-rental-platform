@@ -126,6 +126,7 @@ export default function BlogPostEditor({
   } | null>(null);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [suggestedTopics, setSuggestedTopics] = useState<{ title: string; why: string }[]>([]);
+  const [aiApplied, setAiApplied] = useState(false);
 
   const emptyPost: PostData = {
     title: '',
@@ -334,7 +335,8 @@ export default function BlogPostEditor({
     }));
     setShowAiModal(false);
     setAiPreview(null);
-    setAiForm({ topic: '', service: '', keywords: '', suggestions: '', tone: 'informative', city: '' });
+    setAiApplied(true);
+    // keep aiForm intact so user can regenerate with same inputs
   }, [aiPreview]);
 
   const addTag = () => {
@@ -404,14 +406,18 @@ export default function BlogPostEditor({
               </span>
             )}
 
-            {/* Generate with AI */}
+            {/* Generate with AI / Regenerate */}
             <button
               type="button"
               onClick={() => { setShowAiModal(true); setAiPreview(null); setAiError(''); setSuggestedTopics([]); }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-purple-700 border border-purple-300 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors font-medium"
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-lg transition-colors font-medium ${
+                aiApplied
+                  ? 'text-green-700 border-green-300 bg-green-50 hover:bg-green-100'
+                  : 'text-purple-700 border-purple-300 bg-purple-50 hover:bg-purple-100'
+              }`}
             >
-              <Sparkles className="w-4 h-4" />
-              Generate with AI
+              {aiApplied ? <Wand2 className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+              {aiApplied ? 'Regenerate' : 'Generate with AI'}
             </button>
 
             {/* Preview */}
@@ -914,14 +920,18 @@ export default function BlogPostEditor({
                   <Sparkles className="w-4 h-4 text-purple-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 text-sm">Generate Blog with AI</h3>
-                  <p className="text-xs text-gray-500">DeepSeek will write a full SEO-optimized post</p>
+                  <h3 className="font-semibold text-gray-900 text-sm">
+                    {aiApplied ? 'Regenerate Blog' : 'Generate Blog with AI'}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {aiApplied ? 'Your previous inputs are saved — tweak or generate again' : 'DeepSeek will write a full SEO-optimized post'}
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => { setShowAiModal(false); setAiPreview(null); setAiError(''); setSuggestedTopics([]); }}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100"
+              className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1109,10 +1119,10 @@ export default function BlogPostEditor({
                   <>
                     <button
                       type="button"
-                      onClick={() => { setAiPreview(null); setAiError(''); }}
+                      onClick={() => { setAiPreview(null); setAiError(''); setAiApplied(false); }}
                       className="flex-1 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
                     >
-                      Regenerate
+                      Try Again
                     </button>
                     <button
                       type="button"
