@@ -116,7 +116,41 @@ export default function BookingDetailPage() {
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [callLogs, setCallLogs] = useState<any[]>([]);
+  const [showForceVerifyModal, setShowForceVerifyModal] = useState(false);
+  const [forceVerifyLoading, setForceVerifyLoading] = useState(false);
+  const [forceVerifyNotes, setForceVerifyNotes] = useState('');
+  const [forceVerifyError, setForceVerifyError] = useState('');
   const printRef = useRef<HTMLDivElement>(null);
+
+  const handleForceVerify = async () => {
+    setForceVerifyLoading(true);
+    setForceVerifyError('');
+    try {
+      const res = await fetch(`/api/admin/services/${slug}/bookings/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'force_verify_payment', notes: forceVerifyNotes }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowForceVerifyModal(false);
+        setForceVerifyNotes('');
+        // Refresh booking
+        const res2 = await fetch(`/api/admin/services/${slug}/bookings/${id}`);
+        if (res2.ok) {
+          const d = await res2.json();
+          setBooking(d.booking);
+          setQuotes(d.quotes || []);
+        }
+      } else {
+        setForceVerifyError(data.error || 'Action failed');
+      }
+    } catch {
+      setForceVerifyError('Something went wrong. Please try again.');
+    } finally {
+      setForceVerifyLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -289,6 +323,16 @@ export default function BookingDetailPage() {
           <p className="text-gray-600 mt-1">{service?.name}</p>
         </div>
         <div className="flex items-center gap-3 no-print">
+          {booking.status === 'PENDING_PAYMENT' && (
+            <Button
+              size="sm"
+              onClick={() => { setShowForceVerifyModal(true); setForceVerifyError(''); }}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" />
+              Force Verify & Broadcast
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -849,6 +893,74 @@ export default function BookingDetailPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Force Verify Payment Modal */}
+      {showForceVerifyModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 no-print">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Force Verify Payment</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Use this only when Razorpay shows payment confirmed but booking is still showing Payment Pending.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 text-sm text-orange-800">
+              This will mark the payment as <strong>PAID</strong> and immediately broadcast the booking to vendors.
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Notes (optional — e.g. Razorpay transaction ID)
+              </label>
+              <input
+                type="text"
+                value={forceVerifyNotes}
+                onChange={(e) => setForceVerifyNotes(e.target.value)}
+                placeholder="e.g. pay_ABC123xyz"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+              />
+            </div>
+
+            {forceVerifyError && (
+              <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+                {forceVerifyError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setShowForceVerifyModal(false); setForceVerifyNotes(''); setForceVerifyError(''); }}
+                disabled={forceVerifyLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleForceVerify}
+                disabled={forceVerifyLoading}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                {forceVerifyLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  'Confirm & Broadcast'
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       )}

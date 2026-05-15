@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
+import { sendVendorDirectNotification, sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
 
 export const dynamic = 'force-dynamic';
 
@@ -2285,5 +2286,96 @@ export async function GET(
       { error: 'Failed to fetch booking details', details: error?.message },
       { status: 500 }
     );
+  }
+}
+
+// PUT - Admin actions on a booking (force_verify_payment)
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string; id: string }> | { slug: string; id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const resolvedParams = 'then' in params ? await params : params;
+    const { slug, id } = resolvedParams;
+
+    const body = await request.json();
+    const { action, notes } = body;
+
+    if (action !== 'force_verify_payment') {
+      return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
+    }
+
+    // car-rental and chauffeur slugs → chauffeur_bookings table
+    if (['car-rental', 'chauffeur-service', 'chauffeur-driven'].includes(slug)) {
+      const booking = await prisma.chauffeur_bookings.findUnique({ where: { id } });
+      if (!booking) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+      }
+
+      if (booking.status !== 'PENDING_PAYMENT') {
+        return NextResponse.json({
+          error: `Booking status is "${booking.status}". Force verify only works on PENDING_PAYMENT bookings.`,
+        }, { status: 400 });
+      }
+
+      const isSingleVendor = !!booking.assignedVendorId;
+      const adminNote = `[Admin force-verified on ${new Date().toLocaleDateString('en-IN')} by ${session.user.email || session.user.name}]${notes ? ` — ${notes}` : ''}`;
+
+      await prisma.chauffeur_bookings.update({
+        where: { id },
+        data: {
+          paymentStatus: 'PAID',
+          paidAmount: booking.grandTotal || 0,
+          status: isSingleVendor ? 'PENDING_VENDOR' : 'BROADCASTED',
+          broadcastedAt: new Date(),
+          responseDeadline: new Date(Date.now() + 4 * 60 * 60 * 1000),
+          adminNotes: adminNote,
+        },
+      });
+
+      if (isSingleVendor) {
+        sendVendorDirectNotification({
+          vendorId: booking.assignedVendorId,
+          title: 'New Car Rental Booking!',
+          body: `A car rental booking has been assigned to you. Please review and confirm.`,
+          type: 'booking_assigned',
+          serviceType: 'car',
+          bookingId: id,
+        }).catch((err: any) => logger.error('Admin force verify - vendor notify failed', err));
+      } else {
+        const fullBooking = await prisma.chauffeur_bookings.findUnique({
+          where: { id },
+          select: { locationId: true, locationName: true, bookingNumber: true },
+        });
+        if (fullBooking?.locationId) {
+          sendQuoteRequestNotificationToVendors({
+            requestId: id,
+            requestNumber: fullBooking.bookingNumber || id,
+            locationId: fullBooking.locationId,
+            locationName: fullBooking.locationName || 'your city',
+            customerName: booking.customerName || 'A customer',
+            serviceType: 'car',
+            serviceDisplayName: 'Car Rental',
+          }).catch((err: any) => logger.error('Admin force verify - broadcast failed', err));
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: isSingleVendor
+          ? 'Payment verified. Booking sent to assigned vendor.'
+          : 'Payment verified. Booking broadcasted to all vendors.',
+      });
+    }
+
+    return NextResponse.json({ error: 'Service type not supported for this action' }, { status: 400 });
+  } catch (error: any) {
+    logger.error('Admin force verify payment error', error);
+    return NextResponse.json({ error: 'Failed to update booking', details: error?.message }, { status: 500 });
   }
 }

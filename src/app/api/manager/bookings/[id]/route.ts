@@ -1059,6 +1059,89 @@ export async function PUT(
       return NextResponse.json({ success: false, error: 'Unsupported booking type for payment verification' }, { status: 400 });
     }
 
+    // ==================== FORCE VERIFY PAYMENT (Razorpay paid but webhook missed) ====================
+    if (action === 'force_verify_payment') {
+      if (table !== 'chauffeur') {
+        return NextResponse.json({ success: false, error: 'Action not supported for this service type' }, { status: 400 });
+      }
+
+      if (booking.status !== 'PENDING_PAYMENT') {
+        return NextResponse.json({
+          success: false,
+          error: `Booking status is "${booking.status}". Force verify only works on PENDING_PAYMENT bookings.`,
+        }, { status: 400 });
+      }
+
+      const isSingleVendorFV = !!booking.assignedVendorId;
+      const managerNote = `[Manager force-verified on ${new Date().toLocaleDateString('en-IN')} by ${session.user.email || session.user.name}]${notes ? ` — ${notes}` : ''}`;
+
+      await prisma.chauffeur_bookings.update({
+        where: { id: bookingId },
+        data: {
+          paymentStatus: 'PAID',
+          paidAmount: booking.grandTotal || 0,
+          status: isSingleVendorFV ? 'PENDING_VENDOR' : 'BROADCASTED',
+          broadcastedAt: new Date(),
+          responseDeadline: new Date(Date.now() + 4 * 60 * 60 * 1000),
+          adminNotes: managerNote,
+        },
+      });
+
+      try {
+        await prisma.notifications.create({
+          data: prepareNotificationData({
+            customerId: booking.customerId,
+            title: 'Payment Confirmed!',
+            body: `Your car rental booking payment has been confirmed and your booking is now active.`,
+            type: 'payment',
+            serviceType: 'car',
+            bookingId,
+            quoteId: null,
+          }),
+        });
+        await sendFCMNotification({
+          customerId: booking.customerId,
+          title: 'Payment Confirmed!',
+          body: `Your car rental booking payment has been confirmed and your booking is now active.`,
+          data: { type: 'payment', serviceType: 'car', bookingId },
+        });
+      } catch (e) { logger.error('Force verify - notification error', e); }
+
+      if (isSingleVendorFV) {
+        sendVendorDirectNotification({
+          vendorId: booking.assignedVendorId,
+          title: 'New Car Rental Booking!',
+          body: `A car rental booking has been assigned to you. Please review and confirm.`,
+          type: 'booking_assigned',
+          serviceType: 'car',
+          bookingId,
+        }).catch((err: any) => logger.error('Force verify - vendor notify failed', err));
+      } else {
+        const fvBooking = await prisma.chauffeur_bookings.findUnique({
+          where: { id: bookingId },
+          select: { locationId: true, locationName: true, bookingNumber: true },
+        });
+        if (fvBooking?.locationId) {
+          sendQuoteRequestNotificationToVendors({
+            requestId: bookingId,
+            requestNumber: fvBooking.bookingNumber || bookingId,
+            locationId: fvBooking.locationId,
+            locationName: fvBooking.locationName || 'your city',
+            customerName: booking.customerName || 'A customer',
+            serviceType: 'car',
+            serviceDisplayName: 'Car Rental',
+          }).catch((err: any) => logger.error('Force verify - broadcast failed', err));
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: isSingleVendorFV
+          ? 'Payment force-verified. Booking sent to assigned vendor.'
+          : 'Payment force-verified. Booking broadcasted to all vendors.',
+      });
+    }
+
     // ==================== REJECT PAYMENT ====================
     if (action === 'reject_payment') {
       const rejectNotes = reason || notes || 'Payment rejected by manager';
