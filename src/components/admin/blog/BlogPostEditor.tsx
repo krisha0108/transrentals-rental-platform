@@ -124,6 +124,8 @@ export default function BlogPostEditor({
     title: string; excerpt: string; content: string; tags: string[];
     seo: { metaTitle: string; metaDescription: string; metaKeywords: string };
   } | null>(null);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestedTopics, setSuggestedTopics] = useState<{ title: string; why: string }[]>([]);
 
   const emptyPost: PostData = {
     title: '',
@@ -272,8 +274,8 @@ export default function BlogPostEditor({
   const handleAiGenerate = useCallback(async () => {
     setAiError('');
     setAiPreview(null);
-    if (!aiForm.topic.trim() && !aiForm.keywords.trim() && !aiForm.service.trim()) {
-      setAiError('Enter a topic, service, or keywords to generate from.');
+    if (!aiForm.topic.trim() && !aiForm.keywords.trim() && !aiForm.service.trim() && !aiForm.city.trim()) {
+      setAiError('Fill at least one field above — service, keywords, or city — so AI knows what to write about.');
       return;
     }
     setAiLoading(true);
@@ -292,6 +294,26 @@ export default function BlogPostEditor({
       setAiLoading(false);
     }
   }, [aiForm]);
+
+  const handleSuggestTopics = useCallback(async () => {
+    setAiError('');
+    setSuggestLoading(true);
+    setSuggestedTopics([]);
+    try {
+      const res = await fetch('/api/admin/blog/ai-suggest-topics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ service: aiForm.service, keywords: aiForm.keywords, city: aiForm.city }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setAiError(data.error || 'Failed to suggest topics'); return; }
+      setSuggestedTopics(data.topics || []);
+    } catch {
+      setAiError('Network error. Please try again.');
+    } finally {
+      setSuggestLoading(false);
+    }
+  }, [aiForm.service, aiForm.keywords, aiForm.city]);
 
   const applyAiContent = useCallback(() => {
     if (!aiPreview) return;
@@ -385,7 +407,7 @@ export default function BlogPostEditor({
             {/* Generate with AI */}
             <button
               type="button"
-              onClick={() => { setShowAiModal(true); setAiPreview(null); setAiError(''); }}
+              onClick={() => { setShowAiModal(true); setAiPreview(null); setAiError(''); setSuggestedTopics([]); }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-purple-700 border border-purple-300 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors font-medium"
             >
               <Sparkles className="w-4 h-4" />
@@ -898,7 +920,7 @@ export default function BlogPostEditor({
               </div>
               <button
                 type="button"
-                onClick={() => { setShowAiModal(false); setAiPreview(null); setAiError(''); }}
+                onClick={() => { setShowAiModal(false); setAiPreview(null); setAiError(''); setSuggestedTopics([]); }}
                 className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100"
               >
                 <X className="w-5 h-5" />
@@ -908,16 +930,46 @@ export default function BlogPostEditor({
             <div className="px-6 py-5 space-y-4">
               {/* Topic */}
               <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1.5">
-                  Topic / Title Idea <span className="text-gray-400 font-normal">(what should this blog be about?)</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-gray-600">
+                    Topic / Title Idea <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleSuggestTopics}
+                    disabled={suggestLoading}
+                    className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium disabled:opacity-50"
+                  >
+                    {suggestLoading
+                      ? <><Loader2 className="w-3 h-3 animate-spin" /> Suggesting...</>
+                      : <><Sparkles className="w-3 h-3" /> Suggest Topics</>
+                    }
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={aiForm.topic}
                   onChange={(e) => setAiForm((f) => ({ ...f, topic: e.target.value }))}
-                  placeholder="e.g. Best time to rent a bike in Leh Ladakh"
+                  placeholder="e.g. Best time to rent a bike in Leh Ladakh — or leave blank and use Suggest Topics"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
+                {/* Suggested topic chips */}
+                {suggestedTopics.length > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    <p className="text-xs text-gray-400">Click a topic to use it:</p>
+                    {suggestedTopics.map((t, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => { setAiForm((f) => ({ ...f, topic: t.title })); setSuggestedTopics([]); }}
+                        className="w-full text-left px-3 py-2 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors group"
+                      >
+                        <p className="text-xs font-medium text-gray-800 group-hover:text-purple-800 leading-snug">{t.title}</p>
+                        <p className="text-xs text-gray-400 mt-0.5 leading-snug">{t.why}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Service/Niche */}
