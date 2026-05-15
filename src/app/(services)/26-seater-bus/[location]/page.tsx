@@ -32,10 +32,13 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-  const _seoDb = await resolvePageMeta(`26-seater-bus:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`26-seater-bus:${params.location}`),
+    getServiceCityContent('26-seater-bus', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `26 Seater Bus in ${locationName} | Mini Bus @₹28/km | TransRentals`,
-    description: _seoDb?.metaDescription || `Book 26 seater bus in ${locationName}. AC/Non-AC with driver for weddings, corporate events.`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `26 Seater Bus in ${locationName} | Mini Bus @₹28/km | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book 26 seater bus in ${locationName}. AC/Non-AC with driver for weddings, corporate events.`,
     alternates: { canonical: `https://transrentals.in/26-seater-bus/${params.location}` },
     twitter: {
       card: 'summary_large_image' as const,
@@ -79,8 +82,8 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
       </section>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`26 Seater Bus in ${locationName}`}
         title="26 Seater Bus Rental"
         titleHighlight="Full Group Travel @₹25/km"
@@ -157,8 +160,7 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="bus-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="26 Seater Bus"
         serviceSlug="26-seater-bus"

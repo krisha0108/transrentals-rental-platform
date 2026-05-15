@@ -41,11 +41,14 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const _seoDb = await resolvePageMeta(`jcb-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`jcb-on-rent:${params.location}`),
+    getServiceCityContent('jcb-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `JCB on Rent in ${locationName} | Starting from ₹2,999/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent JCB backhoe loaders in ${locationName} for construction, excavation & road work. Expert operators included. Book JCB rental now!`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `JCB on Rent in ${locationName} | Starting from ₹2,999/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent JCB backhoe loaders in ${locationName} for construction, excavation & road work. Expert operators included. Book JCB rental now!`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `jcb on rent in ${locationName}`,
       `jcb rental ${locationName}`,
       `${locationName} backhoe loader rental`,
@@ -120,8 +123,8 @@ export default async function JCBLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`JCB Rental in ${locationName}`}
         title="JCB on Rent"
         titleHighlight="Certified Operators Included"
@@ -195,9 +198,7 @@ export default async function JCBLocationPage({ params }: PageProps) {
         </div>
       </section>
 
-      <WhyRentHere locationName={locationName} />
-
-      <FAQSection service="equipment-rental" location={locationName} customFaqs={pageFaqs} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location}

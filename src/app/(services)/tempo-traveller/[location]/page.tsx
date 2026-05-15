@@ -61,11 +61,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`tempo-traveller:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`tempo-traveller:${params.location}`),
+    getServiceCityContent('tempo-traveller', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Tempo Traveller in ${locationName} | Starting ₹18/km | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC/Non-AC available for pilgrimages, family trips, and corporate events. Verified drivers.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Tempo Traveller in ${locationName} | Starting ₹18/km | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Tempo Traveller in ${locationName}. 12, 17, 20 seater AC/Non-AC available for pilgrimages, family trips, and corporate events. Verified drivers.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `tempo traveller ${locationName.toLowerCase()}`,
       `12 seater tempo ${locationName.toLowerCase()}`,
       `17 seater tempo ${locationName.toLowerCase()}`,
@@ -179,8 +182,8 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
   return (
     <>
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Tempo Traveller in ${locationName}`}
         title="Tempo Traveller Rental"
         titleHighlight="12-20 Seater | AC & Non-AC"
@@ -352,24 +355,7 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
             ))}
           </div>
         </div>
-      </section>
-
-      {/* FAQs */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Tempo Traveller in {locationName} — Frequently Asked Questions
-          </h2>
-          <div className="space-y-6">
-            {displayFAQs.map((faq, idx) => (
-              <div key={idx} className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content

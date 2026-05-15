@@ -73,11 +73,14 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const _seoDb = await resolvePageMeta(`packers-and-movers:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`packers-and-movers:${params.location}`),
+    getServiceCityContent('packers-and-movers', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Packers and Movers in ${locationName} | Starting from ₹3,999 | TransRentals`,
-    description: _seoDb?.metaDescription || `Verified packers and movers in ${locationName}. Local & intercity home shifting, office relocation. IBA-approved, insured moving teams. Get free quotes and book online.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Packers and Movers in ${locationName} | Starting from ₹3,999 | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Verified packers and movers in ${locationName}. Local & intercity home shifting, office relocation. IBA-approved, insured moving teams. Get free quotes and book online.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `packers and movers in ${locationName}`,
       `movers and packers ${locationName}`,
       `home shifting ${locationName}`,
@@ -201,8 +204,8 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Packers and Movers in ${locationName}`}
         title="Professional Moving Services"
         titleHighlight="Trusted & Insured Relocation"

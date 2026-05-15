@@ -32,10 +32,13 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-  const _seoDb = await resolvePageMeta(`20-seater-tempo-traveller:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`20-seater-tempo-traveller:${params.location}`),
+    getServiceCityContent('20-seater-tempo-traveller', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `20 Seater Tempo Traveller in ${locationName} | @₹22/km | TransRentals`,
-    description: _seoDb?.metaDescription || `Book 20 seater tempo traveller in ${locationName}. AC/Non-AC with driver for large groups.`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `20 Seater Tempo Traveller in ${locationName} | @₹22/km | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book 20 seater tempo traveller in ${locationName}. AC/Non-AC with driver for large groups.`,
     alternates: { canonical: `https://transrentals.in/20-seater-tempo-traveller/${params.location}` },
     twitter: {
       card: 'summary_large_image' as const,
@@ -79,8 +82,8 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`20 Seater Tempo in ${locationName}`}
         title="20 Seater Tempo Traveller"
         titleHighlight="Large Groups @₹22/km"
@@ -157,8 +160,7 @@ export default async function TwentySeaterLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="bus-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="20 Seater Tempo Traveller"
         serviceSlug="20-seater-tempo-traveller"

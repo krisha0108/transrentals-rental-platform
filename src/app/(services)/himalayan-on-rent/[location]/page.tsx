@@ -32,10 +32,13 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-  const _seoDb = await resolvePageMeta(`himalayan-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`himalayan-on-rent:${params.location}`),
+    getServiceCityContent('himalayan-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Himalayan on Rent in ${locationName} | @₹1499/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent Royal Enfield Himalayan in ${locationName}. Adventure touring bike for mountain trips.`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Himalayan on Rent in ${locationName} | @₹1499/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Royal Enfield Himalayan in ${locationName}. Adventure touring bike for mountain trips.`,
     alternates: { canonical: `https://transrentals.in/himalayan-on-rent/${params.location}` },
     twitter: {
       card: 'summary_large_image' as const,
@@ -81,8 +84,8 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
       <BikeSearchHero
         city={locationName}
         citySlug={params.location}
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
       />
 
       <section className="bg-gradient-to-br from-slate-800 to-blue-900 text-white py-12">
@@ -152,8 +155,7 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="bike-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Royal Enfield Himalayan on Rent"
         serviceSlug="himalayan-on-rent"

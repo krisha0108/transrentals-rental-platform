@@ -28,6 +28,8 @@ export type ServiceCityContent = {
   metaDescription: string | null;
   metaKeywords: string | null;
   h1Heading: string | null;
+  pageHeading: string | null;
+  pageDescription: string | null;
   updatedAt: Date;
   publishedAt: Date | null;
 };
@@ -65,6 +67,8 @@ export async function getServiceCityContent(
       metaDescription: row.metaDescription,
       metaKeywords: row.metaKeywords,
       h1Heading: row.h1Heading,
+      pageHeading: (row as any).pageHeading ?? null,
+      pageDescription: (row as any).pageDescription ?? null,
       updatedAt: row.updatedAt,
       publishedAt: row.publishedAt,
     };

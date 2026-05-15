@@ -38,11 +38,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
-  const _seoDb = await resolvePageMeta(`fortuner-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`fortuner-on-rent:${params.location}`),
+    getServiceCityContent('fortuner-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Fortuner on Rent in ${locationName} | Rent Fortuner @₹4999/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent Toyota Fortuner without driver in ${locationName}. Self-drive Fortuner rental for VIP travel, weddings. 4x2, 4x4, Legender variants available.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Fortuner on Rent in ${locationName} | Rent Fortuner @₹4999/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Toyota Fortuner without driver in ${locationName}. Self-drive Fortuner rental for VIP travel, weddings. 4x2, 4x4, Legender variants available.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `fortuner on rent ${locationName}`,
       `toyota fortuner rental ${locationName}`,
       `rent fortuner without driver ${locationName}`,
@@ -165,8 +168,7 @@ export default async function FortunerOnRentLocationPage({ params }: PageProps) 
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Fortuner on Rent"
         serviceSlug="fortuner-on-rent"

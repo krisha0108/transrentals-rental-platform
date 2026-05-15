@@ -38,11 +38,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
-  const _seoDb = await resolvePageMeta(`electric-scooter-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`electric-scooter-rental:${params.location}`),
+    getServiceCityContent('electric-scooter-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Electric Scooter Rental in ${locationName} | EV Bike on Rent @₹399/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent electric scooters in ${locationName}. Ola S1, Ather 450X, TVS iQube available. Zero fuel cost, eco-friendly. Daily & monthly EV rental from ₹399/day.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Electric Scooter Rental in ${locationName} | EV Bike on Rent @₹399/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent electric scooters in ${locationName}. Ola S1, Ather 450X, TVS iQube available. Zero fuel cost, eco-friendly. Daily & monthly EV rental from ₹399/day.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `electric scooter rental ${locationName}`,
       `ev scooter on rent ${locationName}`,
       `ola scooter on rent ${locationName}`,
@@ -125,8 +128,8 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
       <BikeSearchHero
         city={locationName}
         citySlug={params.location}
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
       />
 
       {/* Breadcrumb */}
@@ -280,7 +283,6 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
               stateCode={undefined}
             />
       */}
-      <FAQSection service="bike-on-rent" customFaqs={pageFaqs} />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />

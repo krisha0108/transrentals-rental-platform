@@ -136,11 +136,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`outstation-cab:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`outstation-cab:${params.location}`),
+    getServiceCityContent('outstation-cab', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Outstation Cab ${locationName} | Intercity Taxi @₹12/Km | Round Trip`,
-    description: _seoDb?.metaDescription || `Book outstation cab from ${locationName}. Intercity taxi, round trip & one-way cabs. Sedan, SUV available. Station taxi @₹12/km.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Outstation Cab ${locationName} | Intercity Taxi @₹12/Km | Round Trip`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book outstation cab from ${locationName}. Intercity taxi, round trip & one-way cabs. Sedan, SUV available. Station taxi @₹12/km.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `outstation cab ${locationName.toLowerCase()}`,
       `outstation taxi ${locationName.toLowerCase()}`,
       `intercity cab ${locationName.toLowerCase()}`,
@@ -271,12 +274,7 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
         />
       )}
 
-      {/* Popular Routes from City */}
-      <PopularRoutes
-        location={locationName}
-        locationSlug={params.location}
-        serviceSlug="outstation-cab"
-      />
+      {/* Popular Routes from City */}
 
       {/* Features */}
       <section className="py-16 bg-gray-50">
@@ -387,45 +385,7 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
             ))}
           </div>
         </div>
-      </section>
-
-      {/* FAQs */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-6">
-            {[
-              {
-                q: `How much does outstation cab cost from ${locationName}?`,
-                a: `Outstation cab from ${locationName} starts from ₹12/km for sedan. SUVs cost ₹16-22/km. Round trip is more economical.`,
-              },
-              {
-                q: `Can I book one-way cab from ${locationName}?`,
-                a: `Yes! One-way drop from ${locationName} is available at ₹14-25/km depending on car type.`,
-              },
-              {
-                q: `Are tolls included in outstation cab fare from ${locationName}?`,
-                a: `Yes, all toll charges, parking, state taxes are included in the fare from ${locationName}. No extra charges.`,
-              },
-              {
-                q: `Which cars are available for outstation from ${locationName}?`,
-                a: `We have Sedan (Dzire, City), SUV (Ertiga, Innova, Crysta) and Tempo Traveller in ${locationName}.`,
-              },
-              {
-                q: `How to book outstation cab from ${locationName}?`,
-                a: `You can book online on our website. Select ${locationName} as pickup, choose destination, car type and complete booking.`,
-              },
-            ].map((faq, idx) => (
-              <div key={idx} className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content

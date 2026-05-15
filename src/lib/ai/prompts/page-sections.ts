@@ -30,9 +30,11 @@ CRITICAL ANTI-DUPLICATE-CONTENT RULES:
 
 OUTPUT FORMAT — strict JSON, no preamble, no markdown fences:
 {
-  "metaTitle": "50-60 char SEO title",
-  "metaDescription": "140-158 char description",
-  "h1Heading": "60-80 char H1 heading",
+  "metaTitle": "50-60 char SEO title (for <title> tag + Google search result)",
+  "metaDescription": "140-158 char description (for <meta description> + search snippet)",
+  "h1Heading": "60-80 char H1 heading (kept for back-compat, mirror of pageHeading)",
+  "pageHeading": "Visible heading shown on the page hero — same as the H1, written for users not Google",
+  "pageDescription": "Short tagline shown below the hero heading, 1-2 sentences, conversational",
   "sections": [
     { "id": "<section_id>", "html": "<valid HTML content>" },
     ...

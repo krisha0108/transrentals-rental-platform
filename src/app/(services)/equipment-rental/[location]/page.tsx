@@ -72,11 +72,14 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const _seoDb = await resolvePageMeta(`equipment-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`equipment-rental:${params.location}`),
+    getServiceCityContent('equipment-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Equipment Rental in ${locationName} | Starting from ₹1,499/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent construction and event equipment in ${locationName}. Excavators, cranes, generators, DJ systems. Professional operators available. Book now!`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Equipment Rental in ${locationName} | Starting from ₹1,499/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent construction and event equipment in ${locationName}. Excavators, cranes, generators, DJ systems. Professional operators available. Book now!`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `equipment rental in ${locationName}`,
       `construction equipment ${locationName}`,
       `${locationName} event equipment`,
@@ -316,8 +319,8 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
       <B2BServiceNote serviceName="Equipment Rental" />
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Equipment Rental in ${locationName}`}
         title="Construction & Event Equipment"
         titleHighlight="Verified Operators Available"

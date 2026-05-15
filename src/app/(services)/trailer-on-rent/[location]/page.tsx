@@ -27,11 +27,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const _seoDb = await resolvePageMeta(`trailer-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`trailer-on-rent:${params.location}`),
+    getServiceCityContent('trailer-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Trailer on Rent in ${location.name} - Heavy Duty Trailer Rental | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent trailers in ${location.name} for heavy cargo transportation. 20ft to 40ft trailers available. Best rates guaranteed. Book now!`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Trailer on Rent in ${location.name} - Heavy Duty Trailer Rental | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent trailers in ${location.name} for heavy cargo transportation. 20ft to 40ft trailers available. Best rates guaranteed. Book now!`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `trailer on rent in ${location.name}`,
       `${location.name} trailer rental`,
       `heavy trailer ${location.name}`,
@@ -92,8 +95,8 @@ export default async function TrailerLocationPage({ params }: Props) {
   return (
     <>
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Trailer Rental in ${location.name}`}
         title="Trailer on Rent"
         titleHighlight="Heavy Cargo @₹5999/day"

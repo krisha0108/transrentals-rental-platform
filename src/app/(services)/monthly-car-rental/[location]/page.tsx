@@ -42,11 +42,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`monthly-car-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`monthly-car-rental:${params.location}`),
+    getServiceCityContent('monthly-car-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Monthly Car Rental ${locationName} | Car Subscription @₹12k | Long Term Lease`,
-    description: _seoDb?.metaDescription || `Rent car monthly in ${locationName}. Car subscription service. Long term rental @₹12000/month. Self-drive & chauffeur options.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Monthly Car Rental ${locationName} | Car Subscription @₹12k | Long Term Lease`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent car monthly in ${locationName}. Car subscription service. Long term rental @₹12000/month. Self-drive & chauffeur options.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `monthly car rental ${locationName.toLowerCase()}`,
       `car subscription ${locationName.toLowerCase()}`,
       `car on monthly rent ${locationName.toLowerCase()}`,
@@ -255,45 +258,7 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
             ))}
           </div>
         </div>
-      </section>
-
-      {/* FAQs */}
-      <section className="py-16">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-6">
-            {[
-              {
-                q: `How much does monthly car rental cost in ${locationName}?`,
-                a: `Monthly car rental in ${locationName} starts from ₹12,000 for hatchback. Sedan costs ₹18,000-22,000, SUV ₹25,000-30,000.`,
-              },
-              {
-                q: `What is included in monthly rental in ${locationName}?`,
-                a: `Includes vehicle for 30 days, maintenance, insurance, roadside assistance in ${locationName}. Fuel NOT included.`,
-              },
-              {
-                q: `Can I extend my rental in ${locationName}?`,
-                a: `Yes! You can extend month by month in ${locationName}. Long term (3+ months) gets better rates.`,
-              },
-              {
-                q: `What documents needed in ${locationName}?`,
-                a: `You need driving license, Aadhar, address proof, PAN, and security deposit in ${locationName}.`,
-              },
-              {
-                q: `How to book monthly car in ${locationName}?`,
-                a: `Book online. Select ${locationName}, choose car, submit documents, pay deposit. Car delivered to you.`,
-              },
-            ].map((faq, idx) => (
-              <div key={idx} className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content

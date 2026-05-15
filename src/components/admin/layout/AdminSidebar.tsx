@@ -95,12 +95,12 @@ const serviceSubMenu = (slug: string): NavItem[] => [
   { name: 'Location Inventory', href: `/admin/services/${slug}/location-inventory`, icon: BarChart3 },
   { name: 'Pricing', href: `/admin/services/${slug}/pricing`, icon: DollarSign },
   { name: 'Bookings', href: `/admin/services/${slug}/bookings`, icon: CalendarCheck },
-  { name: 'Pages', href: `/admin/services/${slug}/pages`, icon: FileText },
+  // Deprecated — admin meta+content now managed under /admin/seo-content
   { name: 'Blog', href: `/admin/services/${slug}/blog`, icon: FileEdit },
   { name: 'Media', href: `/admin/services/${slug}/media`, icon: Image },
   { name: 'Redirects', href: `/admin/services/${slug}/redirects`, icon: ArrowRightLeft },
   { name: 'Knowledge Base', href: `/admin/services/${slug}/knowledge-base`, icon: Brain },
-  { name: 'SEO', href: `/admin/services/${slug}/seo`, icon: Globe },
+  { name: 'SEO Content', href: `/admin/seo-content?service=${slug}`, icon: Globe },
   { name: 'Settings', href: `/admin/services/${slug}/settings`, icon: Settings },
 ];
 
@@ -123,10 +123,10 @@ const carRentalSubMenu = (slug: string): NavItem[] => [
   { name: 'Locations', href: `/admin/services/${slug}/locations`, icon: MapPin },
   { name: 'Location Inventory', href: `/admin/services/${slug}/location-inventory`, icon: BarChart3 },
   { name: 'Page Content', href: `/admin/services/${slug}/page-content`, icon: FileText },
-  { name: 'Pages', href: `/admin/services/${slug}/pages`, icon: FileText },
+  // Deprecated — admin meta+content now managed under /admin/seo-content
   { name: 'Blog', href: `/admin/services/${slug}/blog`, icon: FileEdit },
   { name: 'Media', href: `/admin/services/${slug}/media`, icon: Image },
-  { name: 'SEO', href: `/admin/services/${slug}/seo`, icon: Globe },
+  { name: 'SEO Content', href: `/admin/seo-content?service=${slug}`, icon: Globe },
   { name: 'Settings', href: `/admin/services/${slug}/settings`, icon: Settings },
 ];
 
@@ -142,11 +142,11 @@ const busRentalSubMenu = (slug: string): NavItem[] => [
   { name: 'Location Inventory', href: `/admin/services/${slug}/location-inventory`, icon: BarChart3 },
   { name: 'Bookings', href: `/admin/services/${slug}/bookings`, icon: CalendarCheck },
   { name: 'Page Content', href: `/admin/services/${slug}/page-content`, icon: FileText },
-  { name: 'Pages', href: `/admin/services/${slug}/pages`, icon: FileText },
+  // Deprecated — admin meta+content now managed under /admin/seo-content
   { name: 'Blog', href: `/admin/services/${slug}/blog`, icon: FileEdit },
   { name: 'Media', href: `/admin/services/${slug}/media`, icon: Image },
   { name: 'Knowledge Base', href: `/admin/services/${slug}/knowledge-base`, icon: Brain },
-  { name: 'SEO', href: `/admin/services/${slug}/seo`, icon: Globe },
+  { name: 'SEO Content', href: `/admin/seo-content?service=${slug}`, icon: Globe },
   { name: 'Settings', href: `/admin/services/${slug}/settings`, icon: Settings },
 ];
 
@@ -162,11 +162,11 @@ const luxuryCarSubMenu = (slug: string): NavItem[] => [
   { name: 'Location Inventory', href: `/admin/services/${slug}/location-inventory`, icon: BarChart3 },
   { name: 'Bookings', href: `/admin/services/${slug}/bookings`, icon: CalendarCheck },
   { name: 'Page Content', href: `/admin/services/${slug}/page-content`, icon: FileText },
-  { name: 'Pages', href: `/admin/services/${slug}/pages`, icon: FileText },
+  // Deprecated — admin meta+content now managed under /admin/seo-content
   { name: 'Blog', href: `/admin/services/${slug}/blog`, icon: FileEdit },
   { name: 'Media', href: `/admin/services/${slug}/media`, icon: Image },
   { name: 'Knowledge Base', href: `/admin/services/${slug}/knowledge-base`, icon: Brain },
-  { name: 'SEO', href: `/admin/services/${slug}/seo`, icon: Globe },
+  { name: 'SEO Content', href: `/admin/seo-content?service=${slug}`, icon: Globe },
   { name: 'Settings', href: `/admin/services/${slug}/settings`, icon: Settings },
 ];
 
@@ -180,11 +180,11 @@ const truckRentalSubMenu = (slug: string): NavItem[] => [
   { name: 'Location Inventory', href: `/admin/services/${slug}/location-inventory`, icon: BarChart3 },
   { name: 'Bookings', href: `/admin/services/${slug}/bookings`, icon: CalendarCheck },
   { name: 'Page Content', href: `/admin/services/${slug}/page-content`, icon: FileText },
-  { name: 'Pages', href: `/admin/services/${slug}/pages`, icon: FileText },
+  // Deprecated — admin meta+content now managed under /admin/seo-content
   { name: 'Blog', href: `/admin/services/${slug}/blog`, icon: FileEdit },
   { name: 'Media', href: `/admin/services/${slug}/media`, icon: Image },
   { name: 'Knowledge Base', href: `/admin/services/${slug}/knowledge-base`, icon: Brain },
-  { name: 'SEO', href: `/admin/services/${slug}/seo`, icon: Globe },
+  { name: 'SEO Content', href: `/admin/seo-content?service=${slug}`, icon: Globe },
   { name: 'Settings', href: `/admin/services/${slug}/settings`, icon: Settings },
 ];
 
@@ -198,11 +198,11 @@ const packersMoversSubMenu = (slug: string): NavItem[] => [
   { name: 'Location Inventory', href: `/admin/services/${slug}/location-inventory`, icon: BarChart3 },
   { name: 'Bookings', href: `/admin/services/${slug}/bookings`, icon: CalendarCheck },
   { name: 'Page Content', href: `/admin/services/${slug}/page-content`, icon: FileText },
-  { name: 'Pages', href: `/admin/services/${slug}/pages`, icon: FileText },
+  // Deprecated — admin meta+content now managed under /admin/seo-content
   { name: 'Blog', href: `/admin/services/${slug}/blog`, icon: FileEdit },
   { name: 'Media', href: `/admin/services/${slug}/media`, icon: Image },
   { name: 'Knowledge Base', href: `/admin/services/${slug}/knowledge-base`, icon: Brain },
-  { name: 'SEO', href: `/admin/services/${slug}/seo`, icon: Globe },
+  { name: 'SEO Content', href: `/admin/seo-content?service=${slug}`, icon: Globe },
   { name: 'Settings', href: `/admin/services/${slug}/settings`, icon: Settings },
 ];
 
@@ -216,11 +216,11 @@ const equipmentRentalSubMenu = (slug: string): NavItem[] => [
   { name: 'Location Inventory', href: `/admin/services/${slug}/location-inventory`, icon: BarChart3 },
   { name: 'Bookings', href: `/admin/services/${slug}/bookings`, icon: CalendarCheck },
   { name: 'Page Content', href: `/admin/services/${slug}/page-content`, icon: FileText },
-  { name: 'Pages', href: `/admin/services/${slug}/pages`, icon: FileText },
+  // Deprecated — admin meta+content now managed under /admin/seo-content
   { name: 'Blog', href: `/admin/services/${slug}/blog`, icon: FileEdit },
   { name: 'Media', href: `/admin/services/${slug}/media`, icon: Image },
   { name: 'Knowledge Base', href: `/admin/services/${slug}/knowledge-base`, icon: Brain },
-  { name: 'SEO', href: `/admin/services/${slug}/seo`, icon: Globe },
+  { name: 'SEO Content', href: `/admin/seo-content?service=${slug}`, icon: Globe },
   { name: 'Settings', href: `/admin/services/${slug}/settings`, icon: Settings },
 ];
 

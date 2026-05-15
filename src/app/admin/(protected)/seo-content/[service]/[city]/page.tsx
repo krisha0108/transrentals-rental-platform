@@ -39,6 +39,8 @@ type RowPayload = {
     metaDescription: string | null;
     metaKeywords: string | null;
     h1Heading: string | null;
+    pageHeading: string | null;
+    pageDescription: string | null;
   };
   workflow: {
     status: string;
@@ -76,6 +78,8 @@ export default function SeoContentEditPage({
   const [metaTitle, setMetaTitle] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
   const [metaKeywords, setMetaKeywords] = useState('');
+  const [pageHeading, setPageHeading] = useState('');
+  const [pageDescription, setPageDescription] = useState('');
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -112,6 +116,8 @@ export default function SeoContentEditPage({
       setMetaTitle(row.content.metaTitle ?? '');
       setMetaDescription(row.content.metaDescription ?? '');
       setMetaKeywords(row.content.metaKeywords ?? '');
+      setPageHeading(row.content.pageHeading ?? '');
+      setPageDescription(row.content.pageDescription ?? '');
 
       // Load sections: stored config OR defaults
       let stored: SectionConfig[] = [];
@@ -142,6 +148,8 @@ export default function SeoContentEditPage({
           metaTitle: metaTitle || null,
           metaDescription: metaDescription || null,
           metaKeywords: metaKeywords || null,
+          pageHeading: pageHeading || null,
+          pageDescription: pageDescription || null,
         },
         workflow: setStatus ? { status: setStatus } : {},
       };
@@ -320,8 +328,36 @@ export default function SeoContentEditPage({
 
         {/* SEO meta sidebar */}
         <div className="space-y-4">
+          {/* Visible on the page (hero) */}
+          <div className="bg-emerald-50 rounded-lg border border-emerald-200 p-4">
+            <h3 className="font-semibold text-emerald-900 mb-1">Page Content</h3>
+            <p className="text-xs text-emerald-700 mb-3">Visible on the page — hero heading and supporting line.</p>
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Page Heading (H1)</label>
+              <input
+                type="text"
+                value={pageHeading}
+                onChange={(e) => setPageHeading(e.target.value)}
+                placeholder={`e.g. ${data.serviceLabel} in ${data.cityName}`}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Page Description</label>
+              <textarea
+                value={pageDescription}
+                onChange={(e) => setPageDescription(e.target.value)}
+                rows={2}
+                placeholder={`e.g. Best ${data.serviceLabel.toLowerCase()} in ${data.cityName} starting from ₹...`}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
+              />
+            </div>
+          </div>
+
+          {/* SEO meta (browser tab / search snippet) */}
           <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">SEO Meta</h3>
+            <h3 className="font-semibold text-gray-900 mb-1">SEO Meta</h3>
+            <p className="text-xs text-gray-500 mb-3">For Google search result + browser tab.</p>
             <div className="mb-3">
               <div className="flex items-baseline justify-between mb-1">
                 <label className="block text-sm font-medium text-gray-700">Meta Title</label>

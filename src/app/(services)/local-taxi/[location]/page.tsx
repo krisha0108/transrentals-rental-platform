@@ -51,11 +51,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`local-taxi:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`local-taxi:${params.location}`),
+    getServiceCityContent('local-taxi', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Local Taxi ${locationName} | Hourly Cab @₹399 | 4 Hour 8 Hour Package`,
-    description: _seoDb?.metaDescription || `Book local taxi in ${locationName}. Hourly cab rental - 4hr, 8hr, 12hr packages. City taxi service. AC sedan, SUV @₹399.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Local Taxi ${locationName} | Hourly Cab @₹399 | 4 Hour 8 Hour Package`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book local taxi in ${locationName}. Hourly cab rental - 4hr, 8hr, 12hr packages. City taxi service. AC sedan, SUV @₹399.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `local taxi ${locationName.toLowerCase()}`,
       `hourly taxi ${locationName.toLowerCase()}`,
       `local cab ${locationName.toLowerCase()}`,
@@ -311,45 +314,7 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
             ))}
           </div>
         </div>
-      </section>
-
-      {/* FAQs */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-6">
-            {[
-              {
-                q: `How much does local taxi cost in ${locationName}?`,
-                a: `Local taxi in ${locationName} starts from ₹399 for 4 hours/40km in sedan. 8 hour package costs ₹799. SUV costs ₹599 for 4 hours.`,
-              },
-              {
-                q: `Can I make multiple stops in ${locationName}?`,
-                a: `Yes! You can make unlimited stops within ${locationName} during your booked hours and kilometers. Perfect for shopping or errands.`,
-              },
-              {
-                q: `What if I exceed the time limit in ${locationName}?`,
-                a: `Extra charges apply: ₹10 per additional kilometer and ₹100 per additional hour beyond your package limit.`,
-              },
-              {
-                q: `Is local taxi available 24/7 in ${locationName}?`,
-                a: `Yes, local taxi service is available 24/7 in ${locationName}. Night charges may apply for bookings between 11 PM - 6 AM.`,
-              },
-              {
-                q: `How to book local taxi in ${locationName}?`,
-                a: `You can book online on our website. Select ${locationName}, choose package (4hr/8hr/12hr), car type and complete booking.`,
-              },
-            ].map((faq, idx) => (
-              <div key={idx} className="bg-white p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content

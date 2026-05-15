@@ -38,11 +38,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const locationSlug = params.location;
 
-  const _seoDb = await resolvePageMeta(`creta-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`creta-on-rent:${params.location}`),
+    getServiceCityContent('creta-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Creta on Rent in ${locationName} | Rent Creta @₹1999/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent Hyundai Creta without driver in ${locationName}. Self-drive Creta rental for family trips & outstation. Creta E, S, SX, SX(O) AT available.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Creta on Rent in ${locationName} | Rent Creta @₹1999/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Hyundai Creta without driver in ${locationName}. Self-drive Creta rental for family trips & outstation. Creta E, S, SX, SX(O) AT available.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `creta on rent ${locationName}`,
       `hyundai creta rental ${locationName}`,
       `rent creta without driver ${locationName}`,
@@ -100,8 +103,8 @@ export default async function CretaOnRentLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Creta Rental in ${locationName}`}
         title="Hyundai Creta on Rent"
         titleHighlight="#1 SUV in India @₹1499/day"
@@ -174,8 +177,7 @@ export default async function CretaOnRentLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="self-drive-car-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Creta on Rent"
         serviceSlug="creta-on-rent"

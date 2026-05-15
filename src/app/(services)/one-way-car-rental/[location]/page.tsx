@@ -40,11 +40,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const locationName = city.name;
 
-  const _seoDb = await resolvePageMeta(`one-way-car-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`one-way-car-rental:${params.location}`),
+    getServiceCityContent('one-way-car-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `One Way Car Rental from ${locationName} | Drop at Different City @₹1299 | TransRentals`,
-    description: _seoDb?.metaDescription || `One-way car rental from ${locationName}. Drop car at different city. No return trip needed. Convenient intercity travel. Book online instantly.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `One Way Car Rental from ${locationName} | Drop at Different City @₹1299 | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `One-way car rental from ${locationName}. Drop car at different city. No return trip needed. Convenient intercity travel. Book online instantly.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `one way car rental ${locationName.toLowerCase()}`,
       `one way car hire ${locationName.toLowerCase()}`,
       `${locationName.toLowerCase()} to other cities cab`,
@@ -344,45 +347,7 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
             ))}
           </div>
         </div>
-      </section>
-
-      {/* FAQs */}
-      <section className="py-16 bg-gray-50">
-        <div className="container-custom max-w-4xl">
-          <h2 className="text-3xl font-bold mb-8 text-center">
-            Frequently Asked Questions
-          </h2>
-          <div className="space-y-6">
-            {[
-              {
-                q: `How much does one way car rental from ${locationName} cost?`,
-                a: `One way car rental from ${locationName} starts from ₹1299 depending on your destination city, distance, and car type.`,
-              },
-              {
-                q: `Can I drop the car in any city from ${locationName}?`,
-                a: `Yes, you can drop the car in most major cities across India. Some remote locations may have limited availability.`,
-              },
-              {
-                q: `Is fuel included in one way rental from ${locationName}?`,
-                a: `Fuel charges are typically extra and based on actual consumption during your journey.`,
-              },
-              {
-                q: `Do I need to pay for the return journey?`,
-                a: `No, there are no return charges. You only pay for the one-way trip from ${locationName} to your destination.`,
-              },
-              {
-                q: `How do I book a one way car from ${locationName}?`,
-                a: `You can book online through our website. Select ${locationName} as pickup, choose your drop city, select car type, and complete booking.`,
-              },
-            ].map((faq, idx) => (
-              <div key={idx} className="bg-white p-6 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content

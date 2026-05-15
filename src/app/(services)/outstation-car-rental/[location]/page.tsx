@@ -47,11 +47,14 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const _seoDb = await resolvePageMeta(`outstation-car-rental:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`outstation-car-rental:${params.location}`),
+    getServiceCityContent('outstation-car-rental', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Outstation Car Rental in ${locationName} | Intercity Hire @₹10/Km | TransRentals`,
-    description: _seoDb?.metaDescription || `Rent cars for outstation trips from ${locationName}. Round trips, one-way drops, multi-city tours. Professional drivers, all India permits. Book now!`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Outstation Car Rental in ${locationName} | Intercity Hire @₹10/Km | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent cars for outstation trips from ${locationName}. Round trips, one-way drops, multi-city tours. Professional drivers, all India permits. Book now!`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `outstation car rental in ${locationName}`,
       `intercity car hire ${locationName}`,
       `${locationName} outstation cab`,
@@ -313,15 +316,7 @@ export default async function OutstationCarLocationPage({ params }: PageProps) {
         </section>
       )}
 
-      <WhyRentHere locationName={locationName} />
-
-      <PopularRoutes
-        location={locationName}
-        locationSlug={params.location}
-        serviceSlug="outstation-car-rental"
-      />
-
-      <FAQSection service="car-rental" location={locationName} customFaqs={pageFaqs} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location}

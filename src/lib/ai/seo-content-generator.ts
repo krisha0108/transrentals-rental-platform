@@ -198,6 +198,8 @@ export type GeneratedSectionPayload = {
   metaTitle: string;
   metaDescription: string;
   h1Heading: string;
+  pageHeading?: string;
+  pageDescription?: string;
   sections: GeneratedSection[];
 };
 
@@ -245,10 +247,17 @@ function validateSectionsPayload(raw: unknown): GeneratedSectionPayload {
     return { id: s.id, html: s.html };
   });
 
+  const optStr = (k: string): string | undefined => {
+    const v = r[k];
+    return typeof v === 'string' && v.trim() !== '' ? v : undefined;
+  };
+
   return {
     metaTitle: reqStr('metaTitle'),
     metaDescription: reqStr('metaDescription'),
     h1Heading: reqStr('h1Heading'),
+    pageHeading: optStr('pageHeading'),
+    pageDescription: optStr('pageDescription'),
     sections,
   };
 }

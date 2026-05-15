@@ -32,10 +32,13 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-  const _seoDb = await resolvePageMeta(`crane-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`crane-on-rent:${params.location}`),
+    getServiceCityContent('crane-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Crane on Rent in ${locationName} | @₹8000/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Hire crane in ${locationName} for construction & industrial projects. Mobile, tower, hydra cranes available.`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Crane on Rent in ${locationName} | @₹8000/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire crane in ${locationName} for construction & industrial projects. Mobile, tower, hydra cranes available.`,
     alternates: { canonical: `https://transrentals.in/crane-on-rent/${params.location}` },
     twitter: {
       card: 'summary_large_image' as const,
@@ -79,8 +82,8 @@ export default async function CraneLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Crane Rental in ${locationName}`}
         title="Crane on Rent"
         titleHighlight="Heavy Lifting @₹4999/day"
@@ -138,8 +141,7 @@ export default async function CraneLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="equipment-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Crane on Rent"
         serviceSlug="crane-on-rent"

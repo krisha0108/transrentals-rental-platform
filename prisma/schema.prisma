@@ -6978,6 +6978,8 @@ model service_city_content {
   metaDescription String? @db.Text
   metaKeywords    String? @db.Text
   h1Heading       String?
+  pageHeading     String?
+  pageDescription String? @db.Text
 
   status      String    @default("draft")
   source      String    @default("ai")

@@ -63,11 +63,14 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const _seoDb = await resolvePageMeta(`transporter:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`transporter:${params.location}`),
+    getServiceCityContent('transporter', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Truck Rental in ${locationName} | Starting from ₹3,999/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Book trucks and goods vehicles in ${locationName}. Mini trucks to 32-ton containers with GPS tracking and verified drivers. Full-load and part-load options.`,
-    keywords: _seoDb?.metaKeywords ? _seoDb.metaKeywords.split(',').map((k) => k.trim()) : [
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Truck Rental in ${locationName} | Starting from ₹3,999/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Book trucks and goods vehicles in ${locationName}. Mini trucks to 32-ton containers with GPS tracking and verified drivers. Full-load and part-load options.`,
+    keywords: (scContent?.metaKeywords ?? _seoDb?.metaKeywords)?.split(',').map((k) => k.trim()) ?? [
       `truck rental in ${locationName}`,
       `transporter in ${locationName}`,
       `${locationName} goods transport`,
@@ -266,8 +269,8 @@ export default async function TransporterLocationPage({ params }: PageProps) {
       </div>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Truck Rental in ${locationName}`}
         title="Professional Transport Services"
         titleHighlight="7-32 Ton Trucks | GPS Tracked"

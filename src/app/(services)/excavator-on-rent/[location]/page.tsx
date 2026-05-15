@@ -32,10 +32,13 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-  const _seoDb = await resolvePageMeta(`excavator-on-rent:${params.location}`);
+  const [_seoDb, scContent] = await Promise.all([
+    resolvePageMeta(`excavator-on-rent:${params.location}`),
+    getServiceCityContent('excavator-on-rent', params.location),
+  ]);
   return {
-    title: _seoDb?.metaTitle || `Excavator on Rent in ${locationName} | @₹5000/Day | TransRentals`,
-    description: _seoDb?.metaDescription || `Hire excavator in ${locationName} for digging, trenching, construction. Mini to large excavators.`,
+    title: scContent?.metaTitle || _seoDb?.metaTitle || `Excavator on Rent in ${locationName} | @₹5000/Day | TransRentals`,
+    description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire excavator in ${locationName} for digging, trenching, construction. Mini to large excavators.`,
     alternates: { canonical: `https://transrentals.in/excavator-on-rent/${params.location}` },
     twitter: {
       card: 'summary_large_image' as const,
@@ -79,8 +82,8 @@ export default async function ExcavatorLocationPage({ params }: PageProps) {
       </section>
 
       <ServiceHeroWithChat
-        pageHeading={seoData?.pageHeading || undefined}
-        pageDescription={seoData?.pageDescription || undefined}
+        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
+        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
         badge={`Excavator Rental in ${locationName}`}
         title="Excavator on Rent"
         titleHighlight="Earthmoving Power @₹3499/day"
@@ -134,8 +137,7 @@ export default async function ExcavatorLocationPage({ params }: PageProps) {
               cityName={locationName}
               stateCode={undefined}
             />
-      */}
-      <FAQSection service="equipment-rental" location={locationName} customFaqs={pageFaqs} />
+      */}
       <BikeServiceSchema
         serviceName="Excavator on Rent"
         serviceSlug="excavator-on-rent"
