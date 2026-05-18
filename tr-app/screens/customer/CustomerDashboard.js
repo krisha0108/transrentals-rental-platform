@@ -1116,6 +1116,38 @@ export default function CustomerDashboard() {
             </View>
           </View>
 
+          {/* CUSTOM EVENT BOOKING (CUSTOM_BULK) — entry to multi-day,
+              multi-service event flow (wedding / corporate / tour / etc.) */}
+          <TouchableOpacity
+            activeOpacity={0.88}
+            style={styles.wanderBanner}
+            onPress={() => navigation.navigate('CustomBooking')}
+          >
+            <LinearGradient
+              colors={['#5B21B6', '#7C3AED', '#9333EA']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.wanderBannerGrad}
+            >
+              <View style={[styles.wanderDeco, { width: 90, height: 90, top: -25, right: 60, opacity: 0.12 }]} />
+              <View style={[styles.wanderDeco, { width: 55, height: 55, bottom: -15, right: 10, opacity: 0.1 }]} />
+
+              <View style={styles.wanderBannerLeft}>
+                <View style={styles.wanderIconCircle}>
+                  <Ionicons name="sparkles" size={24} color="#A78BFA" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.wanderBannerTitle}>Custom Event Booking</Text>
+                  <Text style={styles.wanderBannerSub}>Multi-day · Multiple services · One quote</Text>
+                </View>
+              </View>
+
+              <View style={styles.wanderViewBtn}>
+                <Text style={styles.wanderViewBtnText}>Plan</Text>
+                <Ionicons name="chevron-forward" size={14} color="#A78BFA" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
           {/* WANDER TOURS QUICK ACCESS */}
           <TouchableOpacity
             activeOpacity={0.88}

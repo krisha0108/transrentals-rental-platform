@@ -30,6 +30,7 @@ import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SEC
 // Service types with icons and colors
 const SERVICES = [
   { key: 'all', label: 'All', icon: 'apps', color: TEAL },
+  { key: 'bulk', label: 'Bulk Event', icon: 'party-popper', iconLib: 'MaterialCommunityIcons', color: '#7C3AED' },
   { key: 'luxury', label: 'Luxury Car', icon: 'diamond', color: '#F59E0B' },
   { key: 'self-drive', label: 'Self Drive', icon: 'car-sport', color: '#3498db' },
   { key: 'bike', label: 'Bike', icon: 'bicycle', color: '#e74c3c' },
@@ -203,6 +204,12 @@ const MyBookingsScreen = ({route}) => {
             case 'equipment':
               serviceIcon = 'toolbox';
               serviceColor = '#7f8c8d';
+              iconLib = 'MaterialCommunityIcons';
+              break;
+            case 'bulk':
+              // Multi-day event booking — purple accent, party-popper icon.
+              serviceIcon = 'party-popper';
+              serviceColor = '#7C3AED';
               iconLib = 'MaterialCommunityIcons';
               break;
             default:
@@ -401,6 +408,8 @@ const MyBookingsScreen = ({route}) => {
         bookingId: booking.bookingNumber || booking.id,
         bookingType: 'car'
       });
+    } else if (booking.serviceType === 'bulk') {
+      navigation.navigate('BulkBookingDetail', { bookingId: booking.id });
     } else {
       navigation.navigate('BookingDetail', { bookingId: booking.id });
     }

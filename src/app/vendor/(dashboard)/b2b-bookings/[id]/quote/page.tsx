@@ -60,6 +60,10 @@ interface VehicleEntry {
   // Self-drive only: where the customer picks up / drops the vehicle.
   // Shown to the customer + manager once the quote is accepted.
   pickupPoint?: string;
+  // Direct per-vehicle flat price set from the Quote Summary. Overrides the
+  // breakdown when useCustomPrice is true. Separate from the overall-level
+  // finalAmount so each row can have its own number.
+  finalAmount?: string;
 }
 
 // Module-level slug map so both the fleet fetch and the per-day filter
@@ -425,6 +429,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
               nightCharges: s.nightCharges || '',
               extraKmCharge: s.extraKmCharge || '',
               extraHourCharge: s.extraHourCharge || '',
+              finalAmount: s.finalAmount || '',
               pickupPoint: s.pickupPoint || '',
               dayIndex: typeof s.dayIndex === 'number' ? s.dayIndex : undefined,
               serviceIdx: typeof s.serviceIdx === 'number' ? s.serviceIdx : undefined,
@@ -680,9 +685,14 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
   };
 
   const updateVehicle = (index: number, field: string, value: any) => {
-    const updated = [...vehicles];
-    updated[index] = { ...updated[index], [field]: value };
-    setVehicles(updated);
+    // Functional setState so consecutive updateVehicle calls in the same
+    // event handler compose instead of overwriting each other (the old
+    // closure-based approach lost the first update).
+    setVehicles((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
   // Copy this row's pickup point onto every other self-drive row. Vendors
@@ -705,11 +715,15 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
   };
 
   const calcVehicleTotal = (entry: VehicleEntry | OverallPricing) => {
-    // For the overall pricing entry, pricingMode picks the source.
-    // For per-vehicle custom entries (toggled via useCustomPrice) we always
-    // use the breakdown — custom pricing has its own breakdown inputs.
+    // Overall pricing entry — pricingMode picks the source.
     if (entry === overallPricing && pricingMode === 'final') {
       return parseFloat((entry as any).finalAmount) || 0;
+    }
+    // Per-vehicle row with its own flat price (set inline from the Quote
+    // Summary) — short-circuit before the breakdown calc.
+    const perVehicleFinal = parseFloat((entry as any).finalAmount) || 0;
+    if (entry !== overallPricing && (entry as any).useCustomPrice && perVehicleFinal > 0) {
+      return perVehicleFinal;
     }
     // Breakdown: basePrice + (perKmRate × minimumKm) + driverAllowance.
     // Other fields (perDayRate, nightCharges, extraKmCharge) are informational.
@@ -722,6 +736,8 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
 
   const overallTotal = calcVehicleTotal(overallPricing);
   const grandTotal = vehicles.reduce((sum, v) => {
+    // Empty picker slots (no vehicle picked yet) shouldn't contribute.
+    if (!v.vendorFleetId) return sum;
     const vTotal = v.useCustomPrice ? calcVehicleTotal(v) : overallTotal;
     return sum + vTotal;
   }, 0);
@@ -908,6 +924,25 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
     setIsSubmitting(true);
     try {
       const vehiclePricing = validVehicles.map(v => {
+        // Per-vehicle flat price (set inline from the Quote Summary) wins
+        // over the breakdown. b2b_vendor_quote_vehicles has no finalAmount
+        // column, so we store the flat value as basePrice with the rest
+        // zeroed — calcVehicleTotal still resolves the same per-vehicle total.
+        const perVehFinal = parseFloat(v.finalAmount || '') || 0;
+        if (v.useCustomPrice && perVehFinal > 0) {
+          return {
+            vendorFleetId: v.vendorFleetId,
+            driverStaffId: v.driverStaffId || null,
+            basePrice: perVehFinal,
+            perKmRate: 0,
+            perHourRate: 0,
+            perDayRate: 0,
+            driverAllowance: 0,
+            nightCharges: 0,
+            extraKmCharge: 0,
+            extraHourCharge: 0,
+          };
+        }
         const pricing = v.useCustomPrice ? v : overallPricing;
         return {
           vendorFleetId: v.vendorFleetId,
@@ -966,6 +1001,7 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           nightCharges: v.nightCharges || '',
           extraKmCharge: v.extraKmCharge || '',
           extraHourCharge: v.extraHourCharge || '',
+          finalAmount: v.finalAmount || '',
           pickupPoint: v.pickupPoint || '',
           dayIndex: v.dayIndex ?? null,
           serviceIdx: v.serviceIdx ?? null,
@@ -2301,20 +2337,77 @@ export default function B2BQuoteSubmitPage({ params }: { params: { id: string } 
           <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
             <h2 className="text-lg font-bold text-gray-900">Quote Summary</h2>
 
+            <p className="text-xs text-gray-500">
+              Each row uses the overall per-vehicle price by default. Type a number in any row to set a custom price for just that vehicle — handy when one vehicle should cost more or less than the rest.
+            </p>
             <div className="space-y-2">
-              {vehicles.filter(v => v.vendorFleetId).map((v, i) => {
+              {vehicles.map((v, absIdx) => {
+                // Render every row with its absolute index so onChange handlers
+                // point at the right entry, but skip empty ones from display.
+                if (!v.vendorFleetId) return null;
                 const fl = fleet.find(f => f.id === v.vendorFleetId);
                 const dr = drivers.find(d => d.id === v.driverStaffId);
-                const vTotal = v.useCustomPrice ? calcVehicleTotal(v) : overallTotal;
+                const hasOwnPrice = !!v.useCustomPrice && (parseFloat(v.finalAmount || '') || 0) > 0;
+                const vTotal = hasOwnPrice ? calcVehicleTotal(v) : overallTotal;
                 return (
-                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm">
-                    <div>
+                  <div key={absIdx} className={`flex items-center justify-between gap-3 p-3 rounded-lg text-sm flex-wrap ${hasOwnPrice ? 'bg-teal-50 border border-teal-200' : 'bg-gray-50'}`}>
+                    <div className="flex-1 min-w-0">
                       <span className="font-medium text-gray-800">
                         {fl?.vehicleName || 'Vehicle'} {fl?.registrationNumber ? `(${fl.registrationNumber})` : ''}
                       </span>
                       {dr && <span className="text-gray-500 ml-2">| {dr.name}</span>}
+                      {hasOwnPrice && (
+                        <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-teal-700 bg-teal-100 px-1.5 py-0.5 rounded">
+                          Custom price
+                        </span>
+                      )}
                     </div>
-                    <span className="font-bold text-gray-800">Rs. {vTotal.toLocaleString('en-IN')}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs">Rs.</span>
+                        <input
+                          type="number"
+                          value={v.finalAmount ?? ''}
+                          onChange={(e) => {
+                            // Both fields need to update together in a SINGLE
+                            // setVehicles call — two updateVehicle() calls
+                            // back-to-back overwrite each other due to stale
+                            // state in the closure.
+                            const next = e.target.value;
+                            const numeric = parseFloat(next) || 0;
+                            setVehicles((prev) => prev.map((vv, ii) =>
+                              ii === absIdx
+                                ? { ...vv, finalAmount: next, useCustomPrice: numeric > 0 }
+                                : vv,
+                            ));
+                          }}
+                          placeholder={String(overallTotal || '')}
+                          className={`w-32 pl-9 pr-2 py-1.5 border rounded-md text-sm font-bold text-right focus:outline-none focus:ring-2 focus:ring-teal-100 ${hasOwnPrice ? 'border-teal-400 text-teal-800 bg-white' : 'border-gray-200 text-gray-800 bg-white'}`}
+                        />
+                      </div>
+                      {hasOwnPrice && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setVehicles((prev) => prev.map((vv, ii) =>
+                              ii === absIdx
+                                ? { ...vv, finalAmount: '', useCustomPrice: false }
+                                : vv,
+                            ));
+                          }}
+                          className="p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 transition"
+                          aria-label="Reset to default price"
+                          title="Reset to default per-vehicle price"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {!hasOwnPrice && (
+                      <div className="w-full text-right text-[11px] text-gray-400 font-medium -mt-1">
+                        Default: Rs. {(overallTotal || 0).toLocaleString('en-IN')}
+                      </div>
+                    )}
                   </div>
                 );
               })}

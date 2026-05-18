@@ -420,6 +420,7 @@ const adminItems: NavItem[] = [
     children: [
       { name: 'Companies', href: '/admin/b2b', icon: Building2 },
       { name: 'Bookings & Invoices', href: '/admin/b2b/bookings', icon: FileText },
+      { name: 'Bulk Events', href: '/admin/b2b/bookings?tab=bulk-bookings', icon: Sparkles },
     ],
   },
   {
