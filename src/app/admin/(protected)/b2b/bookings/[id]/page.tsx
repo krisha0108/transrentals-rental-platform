@@ -6,7 +6,8 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Loader2, ArrowLeft, Building2, Truck, Calendar, MapPin, Clock, CheckCircle,
-  XCircle, Users, FileText, DollarSign, Copy, ExternalLink, AlertCircle, Send, Eye
+  XCircle, Users, FileText, DollarSign, Copy, ExternalLink, AlertCircle, Send, Eye,
+  PartyPopper, Sparkles, StickyNote, Truck as TruckIcon, Bike, Wrench, Package, Star, Car,
 } from 'lucide-react';
 
 const STATUS_COLORS = {
@@ -29,6 +30,26 @@ const TRIP_STATUS_COLORS = {
   COMPLETED: 'bg-gray-100 text-gray-700',
   CANCELLED: 'bg-red-100 text-red-700',
   VENDOR_CANCELLED: 'bg-red-100 text-red-700',
+};
+
+// Styling/icons for the per-service chips inside a CUSTOM_BULK day plan.
+// Customer-form writes service types without the hyphen ('selfdrive');
+// older single-service B2B uses 'self-drive' — accept both.
+const SERVICE_META: Record<string, { Icon: any; cls: string; label: string }> = {
+  car:          { Icon: Car,       cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Car Rental'   },
+  selfdrive:    { Icon: Car,       cls: 'bg-sky-50 text-sky-700 border-sky-200',             label: 'Self Drive'   },
+  'self-drive': { Icon: Car,       cls: 'bg-sky-50 text-sky-700 border-sky-200',             label: 'Self Drive'   },
+  bus:          { Icon: Truck,     cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', label: 'Bus'          },
+  truck:        { Icon: TruckIcon, cls: 'bg-red-50 text-red-700 border-red-200',             label: 'Truck'        },
+  bike:         { Icon: Bike,      cls: 'bg-amber-50 text-amber-700 border-amber-200',       label: 'Bike'         },
+  equipment:    { Icon: Wrench,    cls: 'bg-cyan-50 text-cyan-700 border-cyan-200',          label: 'Equipment'    },
+  packers:      { Icon: Package,   cls: 'bg-pink-50 text-pink-700 border-pink-200',          label: 'Packers'      },
+  luxury:       { Icon: Star,      cls: 'bg-purple-50 text-purple-700 border-purple-200',    label: 'Luxury Car'   },
+};
+
+const formatDayLabel = (dateStr: string) => {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 };
 
 export default function AdminB2BBookingDetailPage() {
@@ -93,6 +114,14 @@ export default function AdminB2BBookingDetailPage() {
     return <div className="text-center py-20 text-gray-500">Booking not found</div>;
   }
 
+  const isBulk = booking.serviceType === 'CUSTOM_BULK';
+  // Day-wise plan lives in bulkBreakdown (JSON in a LongText column). If it
+  // fails to parse, just hide the section — the rest of the page still works.
+  let bulkPlan: any = null;
+  if (isBulk && booking.bulkBreakdown) {
+    try { bulkPlan = JSON.parse(booking.bulkBreakdown); } catch { bulkPlan = null; }
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -101,15 +130,163 @@ export default function AdminB2BBookingDetailPage() {
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div className="flex-1">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold">{booking.bookingNumber}</h1>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${STATUS_COLORS[booking.status] || 'bg-gray-100'}`}>
               {booking.status.replace(/_/g, ' ')}
             </span>
+            {isBulk && (
+              <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-purple-100 text-purple-700 inline-flex items-center gap-1">
+                <PartyPopper className="w-3.5 h-3.5" /> Multi-Day Event
+              </span>
+            )}
           </div>
-          <p className="text-gray-500">{booking.companyName} | {booking.serviceType}</p>
+          <p className="text-gray-500">
+            {booking.companyName || booking.customerName}
+            {' | '}
+            {isBulk ? 'Multi-Day Event' : booking.serviceType}
+          </p>
         </div>
       </div>
+
+      {/* CUSTOM_BULK day-wise plan — shows the admin exactly which vehicle
+          the customer asked for on each day, plus pickup/drop and notes. */}
+      {isBulk && bulkPlan && (
+        <div className="bg-white rounded-xl border border-purple-200 overflow-hidden mb-6">
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-5 py-3 border-b border-purple-100 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base font-bold text-gray-900 truncate">
+                  Day-wise Event Plan
+                  {bulkPlan.occasion_name ? ` · ${bulkPlan.occasion_name}` : ''}
+                </h2>
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  {bulkPlan.occasion_type && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-purple-100 text-purple-700">
+                      {bulkPlan.occasion_type}
+                    </span>
+                  )}
+                  {bulkPlan.base_location && (
+                    <span className="inline-flex items-center gap-1 text-xs text-gray-600 font-medium">
+                      <MapPin className="w-3 h-3" /> {bulkPlan.base_location}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {bulkPlan.total_days && (
+                <div className="px-3 py-1.5 bg-white rounded-lg border border-purple-100 text-center">
+                  <p className="text-base font-extrabold text-purple-700 leading-none tabular-nums">{bulkPlan.total_days}</p>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">Days</p>
+                </div>
+              )}
+              {bulkPlan.total_people && (
+                <div className="px-3 py-1.5 bg-white rounded-lg border border-emerald-100 text-center">
+                  <p className="text-base font-extrabold text-emerald-700 leading-none tabular-nums">{bulkPlan.total_people}</p>
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">People</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="p-3 space-y-3">
+            {Array.isArray(bulkPlan.days) && bulkPlan.days.length > 0 ? bulkPlan.days.map((day: any, dIdx: number) => {
+              const dayVehicleTotal = (day.services || []).reduce((sum: number, s: any) => {
+                if (typeof s.total_vehicles === 'number') return sum + s.total_vehicles;
+                if (Array.isArray(s.vehicles)) {
+                  return sum + s.vehicles.reduce((a: number, v: any) => a + (Number(v.count) || 0), 0);
+                }
+                return sum;
+              }, 0);
+              return (
+                <div key={dIdx} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 px-3 py-2 border-b border-gray-200 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded-md bg-purple-100 flex items-center justify-center text-purple-700 font-extrabold text-[10px] shrink-0">
+                        D{dIdx + 1}
+                      </div>
+                      <span className="font-bold text-gray-900 text-sm">Day {dIdx + 1}</span>
+                      {day.date && (
+                        <span className="text-xs text-gray-600 font-medium">· {formatDayLabel(day.date)}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      {dayVehicleTotal > 0 && (
+                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded font-bold tabular-nums">
+                          {dayVehicleTotal} vehicle{dayVehicleTotal !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                      <span className="text-gray-500 font-medium">
+                        {(day.services || []).length} service{(day.services || []).length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                    {(day.services || []).map((svc: any, sIdx: number) => {
+                      const meta = SERVICE_META[svc.service_type] || { Icon: Car, cls: 'bg-gray-50 text-gray-700 border-gray-200', label: svc.service_type };
+                      const SvcIcon = meta.Icon;
+                      return (
+                        <div key={sIdx} className="px-3 py-2.5">
+                          <div className="flex items-center justify-between gap-3 mb-1.5 flex-wrap">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border ${meta.cls}`}>
+                              <SvcIcon className="w-3.5 h-3.5" />
+                              {meta.label}
+                            </span>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              {svc.total_vehicles ? <span className="font-bold text-gray-700 tabular-nums">{svc.total_vehicles} veh</span> : null}
+                              {svc.people_count ? <span className="font-medium">· {svc.people_count} pax</span> : null}
+                              {svc.pickup_time ? <span className="font-medium">· {svc.pickup_time}</span> : null}
+                            </div>
+                          </div>
+                          {Array.isArray(svc.vehicles) && svc.vehicles.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mb-1.5">
+                              {svc.vehicles.map((v: any, vIdx: number) => (
+                                <span key={vIdx} className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded text-[11px] font-medium text-gray-700">
+                                  <span className="font-bold tabular-nums text-purple-700">×{v.count}</span>
+                                  <span className="truncate max-w-[220px]">{v.vehicle_name || v.vehicle_slug || 'Vehicle'}</span>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          {(svc.pickup_location || svc.drop_location) && (
+                            <div className="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
+                              {svc.pickup_location && <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3 text-emerald-500" />{svc.pickup_location}</span>}
+                              {svc.drop_location && (
+                                <>
+                                  <span className="text-gray-300">→</span>
+                                  <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3 text-red-500" />{svc.drop_location}</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                          {svc.notes && (
+                            <p className="flex items-start gap-1.5 text-xs text-gray-500 italic mt-1">
+                              <StickyNote className="w-3 h-3 mt-0.5 shrink-0" />
+                              {svc.notes}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }) : (
+              <p className="text-sm text-gray-500 text-center py-4">No day-wise breakdown provided.</p>
+            )}
+          </div>
+
+          {bulkPlan.special_requirements && (
+            <div className="border-t border-purple-100 px-5 py-2.5 bg-purple-50/40 text-sm text-purple-900">
+              <span className="font-bold">Special requirements:</span> {bulkPlan.special_requirements}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Trip Stats Bar */}
       {tripStats && tripStats.total > 0 && (

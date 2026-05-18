@@ -132,6 +132,22 @@ const selfDriveQuoteRequestStatusMappings: Record<string, string[]> = {
   Dropped: ['CANCELLED', 'EXPIRED', 'DROPPED'],
 };
 
+// CUSTOM_BULK (b2b_bookings.serviceType='CUSTOM_BULK') status mappings.
+// Customer is "waiting" until they accept a super quote → Confirmed.
+const bulkBookingStatusMappings: Record<string, string[]> = {
+  Open: ['OPEN_FOR_QUOTES', 'QUOTES_RECEIVED', 'SUPER_QUOTE_SENT'],
+  Confirmed: ['CONFIRMED', 'TRIPS_CREATED'],
+  Ongoing: ['IN_PROGRESS'],
+  Completed: ['COMPLETED', 'INVOICED', 'PAID'],
+  Dropped: ['CANCELLED'],
+};
+function mapBulkBookingStatus(status: string): string {
+  for (const [bucket, list] of Object.entries(bulkBookingStatusMappings)) {
+    if (list.includes(status)) return bucket;
+  }
+  return 'Open';
+}
+
 /**
  * GET - Get customer bookings from local trans_cms database
  * Query params: identifier (phone or email), status
@@ -173,6 +189,7 @@ export async function GET(request: NextRequest) {
     const luxuryBookingStatusArray = isAllStatus ? null : (luxuryBookingStatusMappings[requestedStatus] ?? []);
     const luxuryQuoteRequestStatusArray = isAllStatus ? null : (luxuryQuoteRequestStatusMappings[requestedStatus] ?? []);
     const selfDriveQuoteRequestStatusArray = isAllStatus ? null : (selfDriveQuoteRequestStatusMappings[requestedStatus] ?? []);
+    const bulkBookingStatusArray = isAllStatus ? null : (bulkBookingStatusMappings[requestedStatus] ?? []);
 
     // Normalize phone number for search (remove spaces, keep +)
     const normalizedPhone = identifier ? identifier.replace(/\s+/g, '') : null;
@@ -240,6 +257,7 @@ export async function GET(request: NextRequest) {
       equipmentBookings,
       luxuryQuoteRequests,
       luxuryBookings,
+      bulkBookingsRaw,
     ] = await Promise.all([
       // Bike quote requests
       (!bikeQuoteRequestStatusArray || bikeQuoteRequestStatusArray.length > 0)
@@ -469,6 +487,35 @@ export async function GET(request: NextRequest) {
           take: 500,
         }).catch((e) => { logger.error('Error fetching luxury bookings', e); return []; })
         : Promise.resolve([]),
+
+      // CUSTOM_BULK (multi-day event) bookings — live in b2b_bookings under
+      // serviceType='CUSTOM_BULK'. Wrapped in an async IIFE so neither sync
+      // errors (e.g. Prisma client missing the model on an older deploy) nor
+      // async ones can blow up Promise.all and blank the whole bookings list.
+      (async () => {
+        if (bulkBookingStatusArray && bulkBookingStatusArray.length === 0) return [];
+        try {
+          return await (prisma as any).b2b_bookings.findMany({
+            where: {
+              ...quoteRequestFilter,
+              serviceType: 'CUSTOM_BULK',
+              ...(bulkBookingStatusArray ? { status: { in: bulkBookingStatusArray as any } } : {}),
+            },
+            include: {
+              superQuotes: {
+                select: { id: true, quoteNumber: true, status: true, finalAmount: true, createdAt: true },
+                orderBy: { createdAt: 'desc' },
+              },
+              _count: { select: { vendorQuotes: true, trips: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 500,
+          });
+        } catch (e: any) {
+          logger.error('Error fetching bulk bookings', e);
+          return [];
+        }
+      })(),
     ]);
 
     // Helper to extract first image from vehicleImages JSON string
@@ -926,6 +973,67 @@ export async function GET(request: NextRequest) {
         quotations: [],
         is_quote_request: false,
       })),
+
+      // CUSTOM_BULK (multi-day event) bookings — surfaces in the customer's
+      // unified booking list. Detail screen renders day-wise plan, super
+      // quote (if any), and trip OTPs once confirmed. Each row mapped
+      // inside its own try/catch so a single bad row can't drop the whole
+      // bookings response.
+      ...(bulkBookingsRaw || []).map((b: any) => {
+        try {
+        // Parse occasion + day count from the stored breakdown JSON.
+        let plan: any = null;
+        if (b.bulkBreakdown) {
+          try { plan = JSON.parse(b.bulkBreakdown); } catch { plan = null; }
+        }
+        const sentSuperQuote = (b.superQuotes || []).find((sq: any) => sq.status === 'SENT');
+        // Defensive date conversion — a bad/null timestamp on any single
+        // b2b_bookings row would otherwise throw inside .map() and bubble up
+        // to the outer try/catch, blanking out the whole bookings response.
+        const toIsoSafe = (d: any) => {
+          try {
+            if (!d) return null;
+            const dt = d instanceof Date ? d : new Date(d);
+            return isNaN(dt.getTime()) ? null : dt.toISOString();
+          } catch {
+            return null;
+          }
+        };
+        return {
+          id: b.id,
+          booking_number: b.bookingNumber,
+          service_name: 'Multi-Day Event',
+          service_type: 'bulk',
+          location_name: plan?.base_location || b.pickupLocation || '',
+          destination: null,
+          journey_datetime: toIsoSafe(b.scheduledDate) || toIsoSafe(b.createdAt) || new Date().toISOString(),
+          return_datetime: toIsoSafe(b.returnDate),
+          status: mapBulkBookingStatus(b.status),
+          raw_status: b.status,
+          created_at: toIsoSafe(b.createdAt) || new Date().toISOString(),
+          vehicle_name: plan?.occasion_name || (plan?.occasion_type ? `${String(plan.occasion_type).replace(/^./, (c: string) => c.toUpperCase())} Event` : 'Multi-Day Event'),
+          vehicle_image: null,
+          brand: null,
+          category: plan?.occasion_type || null,
+          total_amount: b.finalAmount || null,
+          vendor: null,
+          quotations: [],
+          is_quote_request: false,
+          // Bulk-specific extras read by the mobile detail screen
+          bulk_total_days: plan?.total_days ?? null,
+          bulk_total_people: plan?.total_people ?? null,
+          bulk_vehicles_required: b.vehiclesRequired,
+          bulk_vendor_quotes_count: b._count?.vendorQuotes ?? 0,
+          bulk_trips_count: b._count?.trips ?? 0,
+          bulk_has_super_quote_pending: !!sentSuperQuote,
+          bulk_super_quote_id: sentSuperQuote?.id || null,
+          bulk_super_quote_amount: sentSuperQuote?.finalAmount || null,
+        };
+        } catch (e) {
+          logger.error('Failed to map bulk booking row', { bookingId: b?.id, error: e });
+          return null;
+        }
+      }).filter(Boolean),
     ];
 
     // Filter out accepted/confirmed quote requests (the booking entry already exists for these)

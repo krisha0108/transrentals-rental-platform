@@ -88,7 +88,9 @@ export async function GET(request: Request) {
 
     const dateFilter = getDateRange(filter);
 
-    // Fetch bookings from all services
+    // Fetch bookings from all services. CUSTOM_BULK rows live in
+    // b2b_bookings.serviceType — count them separately so they show up as
+    // their own slice on the dashboard chart.
     const [
       bikeBookings,
       busBookings,
@@ -98,6 +100,7 @@ export async function GET(request: Request) {
       luxuryBookings,
       packersBookings,
       truckBookings,
+      bulkBookings,
     ] = await Promise.all([
       prisma.bike_bookings.count({ where: { createdAt: dateFilter } }),
       prisma.bus_bookings.count({ where: { createdAt: dateFilter } }),
@@ -107,10 +110,12 @@ export async function GET(request: Request) {
       prisma.luxury_bookings.count({ where: { createdAt: dateFilter } }),
       prisma.packers_bookings.count({ where: { createdAt: dateFilter } }),
       prisma.truck_bookings.count({ where: { createdAt: dateFilter } }),
+      prisma.b2b_bookings.count({ where: { createdAt: dateFilter, serviceType: 'CUSTOM_BULK' } }),
     ]);
 
     const totalBookings = bikeBookings + busBookings + carBookings + chauffeurBookings +
-                         equipmentBookings + luxuryBookings + packersBookings + truckBookings;
+                         equipmentBookings + luxuryBookings + packersBookings + truckBookings +
+                         bulkBookings;
 
     // Fetch quote requests from all services
     const [
@@ -144,6 +149,7 @@ export async function GET(request: Request) {
       'Luxury Cars': luxuryBookings,
       'Packers & Movers': packersBookings,
       'Truck Rental': truckBookings,
+      'Bulk Events': bulkBookings,
     };
 
     const quotesByService = {
