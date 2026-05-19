@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Update vendor status if all required documents are uploaded
-    const requiredTypes = ['GST_CERTIFICATE', 'PAN_CARD', 'ADDRESS_PROOF'];
+    const requiredTypes = ['PAN_CARD', 'ADDRESS_PROOF'];
     const uploadedDocs = await prisma.vendor_documents.findMany({
       where: {
         vendorId: vendorId,

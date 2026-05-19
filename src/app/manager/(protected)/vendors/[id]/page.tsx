@@ -773,30 +773,47 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
               WhatsApp
             </a>
           )}
-          {vendor.status === 'UNDER_REVIEW' && (
-            <>
-              <Button
-                onClick={() => handleVendorAction('APPROVE')}
-                disabled={!!actionLoading}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {actionLoading === 'APPROVE' ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                ) : (
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                )}
-                Approve Vendor
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => openRejectModal('vendor')}
-                disabled={!!actionLoading}
-              >
-                <XCircle className="w-4 h-4 mr-2" />
-                Reject
-              </Button>
-            </>
-          )}
+          {['UNDER_REVIEW', 'PENDING', 'DOCUMENTS_PENDING'].includes(vendor.status) && (() => {
+            const unverifiedDocs = vendor.documents.filter((d) => d.status !== 'APPROVED').length;
+            const docsIncomplete = unverifiedDocs > 0 || vendor.documents.length === 0;
+            const isOverride = docsIncomplete; // approving without all docs verified
+            const handleApproveClick = () => {
+              if (isOverride) {
+                const msg = vendor.documents.length === 0
+                  ? 'This vendor has not uploaded any documents. Approve anyway?'
+                  : `${unverifiedDocs} document(s) are not yet approved. Approve this vendor anyway?`;
+                if (!confirm(msg)) return;
+              }
+              handleVendorAction('APPROVE');
+            };
+            return (
+              <>
+                <Button
+                  onClick={handleApproveClick}
+                  disabled={!!actionLoading}
+                  className={isOverride ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'}
+                  title={isOverride ? 'Approving without complete document verification' : undefined}
+                >
+                  {actionLoading === 'APPROVE' ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : isOverride ? (
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                  )}
+                  {isOverride ? 'Approve (Override)' : 'Approve Vendor'}
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => openRejectModal('vendor')}
+                  disabled={!!actionLoading}
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject
+                </Button>
+              </>
+            );
+          })()}
           {vendor.status === 'APPROVED' && (
             <Button
               variant="outline"
