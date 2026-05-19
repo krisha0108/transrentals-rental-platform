@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     const booking = await prisma.b2b_bookings.findUnique({
       where: { id: bookingId },
       include: {
-        customer: { select: { email: true, phone: true } },
+        customer: { select: { name: true, email: true, phone: true, companyName: true } },
         trips: { select: { status: true } },
       },
     });
@@ -108,12 +108,31 @@ export async function POST(request: NextRequest) {
     const invoiceId = generateId();
     const invoiceNumber = generateInvoiceNumber();
 
+    // CUSTOM_BULK bookings allow null companyName (individual event organisers).
+    // For those, prefer the occasion name stored inside bulkBreakdown so the
+    // invoice shows e.g. "Sharma Wedding" instead of the customer's personal name.
+    let occasionName: string | null = null;
+    if (booking.serviceType === 'CUSTOM_BULK' && (booking as any).bulkBreakdown) {
+      try {
+        const parsed = JSON.parse((booking as any).bulkBreakdown);
+        occasionName = parsed?.occasion_name || null;
+      } catch { /* ignore malformed JSON */ }
+    }
+
+    const resolvedCompanyName =
+      booking.companyName ||
+      booking.customer?.companyName ||
+      occasionName ||
+      booking.customerName ||
+      booking.customer?.name ||
+      'Unknown Company';
+
     const invoice = await prisma.b2b_invoices.create({
       data: {
         id: invoiceId,
         invoiceNumber,
         bookingId,
-        companyName: booking.companyName,
+        companyName: resolvedCompanyName,
         customerEmail: booking.customerEmail || booking.customer?.email,
         customerPhone: booking.customerPhone || booking.customer?.phone,
         totalVehicles: booking.vehiclesRequired,

@@ -1021,6 +1021,13 @@ export default function CustomerDashboardPage() {
       return `/customer/luxury-bookings/${booking.id}`;
     }
 
+    // CUSTOM_BULK (multi-day event) bookings live in b2b_bookings and have a
+    // dedicated detail page. The generic /customer/booking/[id] route can't
+    // find them, so route them explicitly.
+    if (type === 'bulk') {
+      return `/customer/b2b-bookings/${booking.id}`;
+    }
+
     switch (type) {
       case 'bike':
         if (booking.is_quote_request) {

@@ -23,7 +23,7 @@ const DOC_TYPES = [
   {
     type: 'GST_CERTIFICATE',
     name: 'GST Certificate',
-    required: true,
+    required: false,
     description: 'GST registration certificate from the government portal',
     icon: '🏛️',
     hint: 'Download from GST portal — gstin.gov.in',

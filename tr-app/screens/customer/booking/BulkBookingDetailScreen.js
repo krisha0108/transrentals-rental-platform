@@ -527,6 +527,57 @@ export default function BulkBookingDetailScreen() {
           </View>
         )}
 
+        {/* Invoice card(s) — once the manager generates an invoice, the customer
+            sees it here with a tap-to-pay button. Matches the web detail page. */}
+        {Array.isArray(booking.invoices) && booking.invoices.length > 0 && booking.invoices.map((inv) => {
+          const isPaid = inv.status === 'PAID';
+          const dueDate = inv.dueDate ? new Date(inv.dueDate) : null;
+          const isOverdue = !isPaid && inv.status !== 'CANCELLED' && dueDate && dueDate < new Date();
+          const webBase = (api?.defaults?.baseURL || '').replace(/\/api\/?$/, '');
+          const invoiceUrl = `${webBase}/invoice/b2b/${inv.id}`;
+          return (
+            <View key={inv.id} style={styles.invoiceCard}>
+              <View style={styles.invoiceHeader}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.invoiceLabel}>Invoice</Text>
+                  <Text style={styles.invoiceNumber} numberOfLines={1}>{inv.invoiceNumber}</Text>
+                </View>
+                <View style={[styles.invoiceStatusPill, isPaid ? styles.invoiceStatusPaid : styles.invoiceStatusUnpaid]}>
+                  <Text style={[styles.invoiceStatusText, { color: isPaid ? '#fff' : '#9A3412' }]}>
+                    {isOverdue ? 'OVERDUE' : inv.status}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.invoiceAmountLabel}>Total Amount</Text>
+              <Text style={styles.invoiceAmount}>{formatINR(inv.totalAmount)}</Text>
+              <View style={styles.invoiceMeta}>
+                {dueDate && (
+                  <Text style={styles.invoiceMetaText}>
+                    Due: {dueDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </Text>
+                )}
+                {(inv.totalVehicles != null || inv.tripsCompleted != null) && (
+                  <Text style={styles.invoiceMetaText}>
+                    {inv.totalVehicles ?? 0} vehicles · {inv.tripsCompleted ?? 0} trips completed
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity
+                onPress={() => Linking.openURL(invoiceUrl).catch(() => {
+                  if (Platform.OS === 'android') ToastAndroid.show('Could not open invoice', ToastAndroid.SHORT);
+                })}
+                style={[styles.invoiceBtn, isPaid && styles.invoiceBtnPaid]}
+                activeOpacity={0.7}
+              >
+                <Icon name="external-link" size={15} color={isPaid ? '#fff' : '#9A3412'} />
+                <Text style={[styles.invoiceBtnText, { color: isPaid ? '#fff' : '#9A3412' }]}>
+                  {isPaid ? 'View Invoice' : 'View & Pay Invoice'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+
         {/* Day-wise plan */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -850,6 +901,29 @@ const styles = StyleSheet.create({
   },
   acceptedTitle: { fontSize: 13, fontWeight: '800', color: '#065F46' },
   acceptedSub: { fontSize: 11, color: '#065F46', marginTop: 2 },
+  // Invoice card — orange gradient look (no LinearGradient dep, so flat orange)
+  invoiceCard: {
+    backgroundColor: '#F97316', borderRadius: 16, padding: 16, marginBottom: 14,
+    shadowColor: '#F97316', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  invoiceHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 },
+  invoiceLabel: { color: '#FED7AA', fontSize: 10, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
+  invoiceNumber: { color: '#fff', fontSize: 13, fontWeight: '900', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', marginTop: 2 },
+  invoiceStatusPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  invoiceStatusPaid: { backgroundColor: 'rgba(255,255,255,0.25)' },
+  invoiceStatusUnpaid: { backgroundColor: '#fff' },
+  invoiceStatusText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  invoiceAmountLabel: { color: '#FED7AA', fontSize: 11 },
+  invoiceAmount: { color: '#fff', fontSize: 28, fontWeight: '900', marginTop: 2 },
+  invoiceMeta: { marginTop: 8, marginBottom: 12 },
+  invoiceMetaText: { color: '#FFEDD5', fontSize: 11, marginTop: 2 },
+  invoiceBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#fff', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12,
+  },
+  invoiceBtnPaid: { backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
+  invoiceBtnText: { fontSize: 14, fontWeight: '900' },
   // Section
   section: {
     backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: BORDER,

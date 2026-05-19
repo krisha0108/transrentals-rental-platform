@@ -60,6 +60,7 @@ model admin_users {
   travel_agents                   travel_agents[]
   travel_agent_documents_uploaded travel_agent_documents[]   @relation("travel_agent_documents_uploadedBy")
   travel_agent_documents          travel_agent_documents[]   @relation("travel_agent_documents_verifiedBy")
+  vendor_tag_assignments          vendor_tag_assignments[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -3879,11 +3880,40 @@ model vendors {
 
   vendor_bank_accounts vendor_bank_accounts[]
   vendor_call_logs     vendor_call_logs[]
+  vendor_tag_assignments vendor_tag_assignments[]
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
   @@index([email])
   @@index([phone])
   @@index([status])
+}
+
+model vendor_tag_assignments {
+  id           String      @id @default(cuid())
+  vendorId     String
+  tag          vendor_tag
+  assignedById String?
+  createdAt    DateTime    @default(now())
+  vendors      vendors     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  admin_users  admin_users? @relation(fields: [assignedById], references: [id])
+
+  @@unique([vendorId, tag])
+  @@index([tag])
+  @@index([assignedById], map: "vendor_tag_assignments_assignedById_fkey")
+}
+
+enum vendor_tag {
+  FOLLOW_UP_REQUIRED
+  CONNECTED
+  RESPONDED
+  DOCUMENTS_PENDING
+  DOCUMENTS_VERIFIED
+  WRONG_VENDOR_DETAILS
+  NOT_INTERESTED
+  NO_RESPONSE
+  VEHICLE_DETAILS_PENDING
+  ACTIVE_VENDOR
+  SUSPENDED
 }
 
 model vendor_bank_accounts {

@@ -270,7 +270,27 @@ export default function ManagerB2BPage() {
           {loadingBookings ? (
             <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
           ) : filteredBookings.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-xl border text-gray-500">No bookings found</div>
+            (() => {
+              const otherCount = activeTab === 'bulk-bookings' ? regularBookings.length : bulkBookings.length;
+              const otherKey = activeTab === 'bulk-bookings' ? 'bookings' : 'bulk-bookings';
+              const otherLabel = activeTab === 'bulk-bookings' ? 'Bookings' : 'Bulk Bookings';
+              if (otherCount > 0 && !searchQuery.trim() && (activeTab === 'bulk-bookings' || serviceFilter === 'all')) {
+                return (
+                  <div className="text-center py-10 bg-white rounded-xl border">
+                    <p className="text-gray-500 text-sm mb-3">
+                      No bookings here for <span className="font-medium">{bookingStatus === 'all' ? 'this tab' : STATUS_LABELS[bookingStatus] || bookingStatus}</span>.
+                    </p>
+                    <button
+                      onClick={() => setActiveTab(otherKey)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition"
+                    >
+                      View {otherCount} in {otherLabel} <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                );
+              }
+              return <div className="text-center py-12 bg-white rounded-xl border text-gray-500">No bookings found</div>;
+            })()
           ) : (
             <div className="space-y-2">
               {filteredBookings.map((b: any) => (

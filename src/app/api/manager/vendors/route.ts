@@ -117,6 +117,30 @@ export async function GET(request: NextRequest) {
           orderBy: { createdAt: 'desc' },
         });
 
+    // Fetch CRM tags via raw SQL — the table is in a new migration that may
+    // not be applied yet, and `vendor_tag_assignments` may also be missing
+    // from the generated Prisma client until `prisma generate` is run. Wrap
+    // in try/catch so the vendor list stays available pre-migration.
+    let tagsByVendor: Record<string, string[]> = {};
+    if (vendors.length > 0) {
+      try {
+        const ids = vendors.map((v) => v.id);
+        const placeholders = ids.map(() => '?').join(',');
+        const rows: any[] = await (prisma as any).$queryRawUnsafe(
+          `SELECT vendorId, tag FROM vendor_tag_assignments WHERE vendorId IN (${placeholders})`,
+          ...ids,
+        );
+        for (const r of rows) {
+          if (!tagsByVendor[r.vendorId]) tagsByVendor[r.vendorId] = [];
+          tagsByVendor[r.vendorId].push(r.tag);
+        }
+      } catch (e: any) {
+        // Table likely doesn't exist yet (migration not applied). Tags will
+        // simply be empty arrays — the page renders fine without them.
+        logger.warn?.('vendor_tag_assignments query failed (migration pending?)', e?.message);
+      }
+    }
+
     // Get stats
     const stats = {
       total: vendors.length,
@@ -155,6 +179,7 @@ export async function GET(request: NextRequest) {
           serviceNames: approvedServices,
           documentCount: v._count.vendor_documents,
           fleetCount: v._count.vendor_fleets,
+          tags: tagsByVendor[v.id] || [],
         };
       }),
     });
