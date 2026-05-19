@@ -136,6 +136,18 @@ export default function B2BDashboard({ customerId, customerName, companyName }: 
     invoices.filter(i => i.status !== 'PAID' && i.status !== 'CANCELLED').slice(0, 3),
   [invoices]);
 
+  // Map of bookingId -> unpaid invoice, so the booking card can flag "Invoice
+  // generated · Pay now" instead of relying on the easy-to-miss status pill.
+  const unpaidInvoiceByBookingId = useMemo(() => {
+    const map = new Map<string, any>();
+    invoices.forEach((i: any) => {
+      if (i.status !== 'PAID' && i.status !== 'CANCELLED' && i.bookingId) {
+        map.set(i.bookingId, i);
+      }
+    });
+    return map;
+  }, [invoices]);
+
   if (loading) {
     return (
       <div className="flex justify-center py-20">
@@ -352,15 +364,35 @@ export default function B2BDashboard({ customerId, customerName, companyName }: 
             const ServiceIcon = SERVICE_ICONS[b.serviceType] || Truck;
             const serviceColor = SERVICE_COLORS[b.serviceType] || 'bg-gray-50 text-gray-600';
             const isActionNeeded = b.status === 'SUPER_QUOTE_SENT';
+            const unpaidInvoice = unpaidInvoiceByBookingId.get(b.id);
+            const isInvoiceReady = !!unpaidInvoice;
+            const isInvoiceOverdue = isInvoiceReady && new Date(unpaidInvoice.dueDate) < new Date();
 
             return (
               <Link key={b.id} href={`/customer/b2b-bookings/${b.id}?customer_id=${customerId}`}
                 className={`block bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-all ${
-                  isActionNeeded ? 'border-purple-300 ring-1 ring-purple-200' : 'border-gray-200'
+                  isActionNeeded ? 'border-purple-300 ring-1 ring-purple-200'
+                  : isInvoiceOverdue ? 'border-red-300 ring-1 ring-red-200'
+                  : isInvoiceReady ? 'border-orange-300 ring-1 ring-orange-200'
+                  : 'border-gray-200'
                 }`}>
                 {isActionNeeded && (
                   <div className="bg-purple-50 px-4 py-1.5 text-xs font-semibold text-purple-700 flex items-center gap-1.5 border-b border-purple-200">
                     <AlertCircle className="w-3.5 h-3.5" /> Quote ready — tap to review & accept
+                  </div>
+                )}
+                {isInvoiceReady && !isActionNeeded && (
+                  <div className={`px-4 py-1.5 text-xs font-semibold flex items-center justify-between gap-2 border-b ${
+                    isInvoiceOverdue
+                      ? 'bg-red-50 text-red-700 border-red-200'
+                      : 'bg-orange-50 text-orange-700 border-orange-200'
+                  }`}>
+                    <span className="flex items-center gap-1.5 truncate">
+                      <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+                      Invoice {unpaidInvoice.invoiceNumber} generated · {formatCurrency(unpaidInvoice.totalAmount)}
+                      {isInvoiceOverdue ? ' · OVERDUE' : ` · Due ${formatDate(unpaidInvoice.dueDate)}`}
+                    </span>
+                    <span className="font-bold whitespace-nowrap">Pay now →</span>
                   </div>
                 )}
                 <div className="p-4 flex items-center gap-4">
