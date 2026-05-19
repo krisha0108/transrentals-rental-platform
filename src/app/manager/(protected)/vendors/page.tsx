@@ -1,13 +1,32 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Loader2, Search, Store, Phone, Mail, MapPin, Layers,
   ChevronRight, RefreshCw, AlertCircle, CheckCircle, Clock,
   XCircle, FileText, Car, Star, TrendingUp, TrendingDown,
-  Calendar, X,
+  Calendar, X, Tag, Plus,
 } from 'lucide-react';
+
+// Manager-managed CRM tags — coexist with vendor.status. Keep enum order
+// stable; server validates against the same list.
+const VENDOR_TAGS = [
+  { key: 'FOLLOW_UP_REQUIRED',     label: 'Follow-Up Required',     color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  { key: 'CONNECTED',              label: 'Connected',              color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { key: 'RESPONDED',              label: 'Responded',              color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
+  { key: 'DOCUMENTS_PENDING',      label: 'Documents Pending',      color: 'bg-orange-100 text-orange-700 border-orange-200' },
+  { key: 'DOCUMENTS_VERIFIED',     label: 'Documents Verified',     color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  { key: 'WRONG_VENDOR_DETAILS',   label: 'Wrong Vendor Details',   color: 'bg-rose-100 text-rose-700 border-rose-200' },
+  { key: 'NOT_INTERESTED',         label: 'Not Interested',         color: 'bg-gray-200 text-gray-700 border-gray-300' },
+  { key: 'NO_RESPONSE',            label: 'No Response',            color: 'bg-stone-100 text-stone-700 border-stone-200' },
+  { key: 'VEHICLE_DETAILS_PENDING', label: 'Vehicle Details Pending', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+  { key: 'ACTIVE_VENDOR',          label: 'Active Vendor',          color: 'bg-green-100 text-green-700 border-green-200' },
+  { key: 'SUSPENDED',              label: 'Suspended',              color: 'bg-purple-100 text-purple-700 border-purple-200' },
+] as const;
+const TAG_BY_KEY: Record<string, { label: string; color: string }> = Object.fromEntries(
+  VENDOR_TAGS.map((t) => [t.key, { label: t.label, color: t.color }])
+);
 
 interface Vendor {
   id: string;
@@ -25,6 +44,7 @@ interface Vendor {
   serviceNames: string[];
   documentCount: number;
   fleetCount: number;
+  tags: string[];
 }
 
 interface Stats {
@@ -54,6 +74,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function ManagerVendorsPage() {
+  const router = useRouter();
   const [allVendors, setAllVendors] = useState<Vendor[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,7 +86,10 @@ export default function ManagerVendorsPage() {
   const [locationFilter, setLocationFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date_desc');
+  const [tagEditorOpenFor, setTagEditorOpenFor] = useState<string | null>(null);
+  const [tagSaving, setTagSaving] = useState<string | null>(null);
 
   const fetchVendors = async () => {
     try {
@@ -137,6 +161,11 @@ export default function ManagerVendorsPage() {
       }
     }
 
+    // Tag filter — vendor matches if they carry the selected tag
+    if (tagFilter !== 'all') {
+      list = list.filter(v => Array.isArray(v.tags) && v.tags.includes(tagFilter));
+    }
+
     // Sort
     switch (sortBy) {
       case 'date_asc':   list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); break;
@@ -148,16 +177,47 @@ export default function ManagerVendorsPage() {
     }
 
     return list;
-  }, [allVendors, search, locationFilter, serviceFilter, statusFilter, sortBy]);
+  }, [allVendors, search, locationFilter, serviceFilter, statusFilter, tagFilter, sortBy]);
 
   const activeFilterCount = [
     search, locationFilter !== 'all' ? locationFilter : '', serviceFilter !== 'all' ? serviceFilter : '',
-    statusFilter !== 'all' ? statusFilter : '', sortBy !== 'date_desc' ? sortBy : '',
+    statusFilter !== 'all' ? statusFilter : '', tagFilter !== 'all' ? tagFilter : '',
+    sortBy !== 'date_desc' ? sortBy : '',
   ].filter(Boolean).length;
 
   const clearFilters = () => {
     setSearch(''); setLocationFilter('all'); setServiceFilter('all');
-    setStatusFilter('all'); setSortBy('date_desc');
+    setStatusFilter('all'); setTagFilter('all'); setSortBy('date_desc');
+  };
+
+  // Optimistic tag toggle — adds/removes the tag locally, then syncs server.
+  // Rolls back on failure. Keeps the inline editor snappy.
+  const handleToggleTag = async (vendorId: string, tag: string, present: boolean) => {
+    const key = `${vendorId}:${tag}`;
+    setTagSaving(key);
+    const prev = allVendors;
+    setAllVendors(curr => curr.map(v => v.id === vendorId
+      ? { ...v, tags: present ? v.tags.filter(t => t !== tag) : [...(v.tags || []), tag] }
+      : v));
+    try {
+      const res = present
+        ? await fetch(`/api/manager/vendors/${vendorId}/tags?tag=${tag}`, { method: 'DELETE' })
+        : await fetch(`/api/manager/vendors/${vendorId}/tags`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tag }),
+          });
+      if (!res.ok) throw new Error('Server rejected tag change');
+      const data = await res.json();
+      if (Array.isArray(data?.tags)) {
+        setAllVendors(curr => curr.map(v => v.id === vendorId ? { ...v, tags: data.tags } : v));
+      }
+    } catch (e) {
+      setAllVendors(prev);
+      alert('Could not update tag. Please try again.');
+    } finally {
+      setTagSaving(null);
+    }
   };
 
   const formatDate = (d: string) =>
@@ -230,7 +290,7 @@ export default function ManagerVendorsPage() {
         </div>
 
         {/* Row 2: Dropdowns */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {/* Location */}
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1 block">Location</label>
@@ -263,6 +323,16 @@ export default function ManagerVendorsPage() {
               <option value="DOCUMENTS_PENDING">Docs Pending</option>
               <option value="SUSPENDED">Suspended</option>
               <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
+
+          {/* Tag */}
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1 block">Tag</label>
+            <select value={tagFilter} onChange={e => setTagFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 bg-white">
+              <option value="all">All Tags</option>
+              {VENDOR_TAGS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
             </select>
           </div>
 
@@ -301,6 +371,12 @@ export default function ManagerVendorsPage() {
               <span className="flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium border border-gray-200">
                 {statusFilter}
                 <button onClick={() => setStatusFilter('all')}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
+            {tagFilter !== 'all' && (
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium border border-indigo-200">
+                <Tag className="w-3 h-3" /> {TAG_BY_KEY[tagFilter]?.label || tagFilter}
+                <button onClick={() => setTagFilter('all')}><X className="w-3 h-3 ml-0.5" /></button>
               </span>
             )}
             {sortBy !== 'date_desc' && (
@@ -344,9 +420,12 @@ export default function ManagerVendorsPage() {
             {vendors.map((vendor) => {
               const statusConfig = STATUS_CONFIG[vendor.status] || STATUS_CONFIG.PENDING;
               const StatusIcon = statusConfig.icon;
+              const isTagEditorOpen = tagEditorOpenFor === vendor.id;
+              const stopRow = (e: React.MouseEvent) => { e.stopPropagation(); };
               return (
-                <Link key={vendor.id} href={`/manager/vendors/${vendor.id}`}
-                  className="block p-4 sm:p-5 hover:bg-gray-50 transition">
+                <div key={vendor.id}
+                  onClick={() => router.push(`/manager/vendors/${vendor.id}`)}
+                  className="block p-4 sm:p-5 hover:bg-gray-50 transition cursor-pointer relative">
                   <div className="flex items-start gap-4">
                     {/* Avatar */}
                     <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -412,11 +491,81 @@ export default function ManagerVendorsPage() {
                           <span className="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-xs">+{vendor.serviceNames.length - 2}</span>
                         )}
                       </div>
+
+                      {/* Tag chips + inline editor — clicks stopped from
+                          bubbling so they don't navigate the row. */}
+                      <div className="mt-2 flex flex-wrap gap-1.5 items-center" onClick={stopRow}>
+                        {(vendor.tags || []).map((t) => {
+                          const meta = TAG_BY_KEY[t];
+                          if (!meta) return null;
+                          const saving = tagSaving === `${vendor.id}:${t}`;
+                          return (
+                            <span key={t}
+                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${meta.color} ${saving ? 'opacity-50' : ''}`}>
+                              <Tag className="w-3 h-3" />
+                              {meta.label}
+                              <button
+                                type="button"
+                                disabled={saving}
+                                onClick={(e) => { e.stopPropagation(); handleToggleTag(vendor.id, t, true); }}
+                                className="ml-0.5 hover:opacity-70"
+                                title="Remove tag"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setTagEditorOpenFor(isTagEditorOpen ? null : vendor.id); }}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-dashed border-gray-300 text-gray-500 hover:bg-gray-50 hover:border-gray-400"
+                        >
+                          <Plus className="w-3 h-3" />
+                          {(vendor.tags || []).length === 0 ? 'Add tag' : 'Edit tags'}
+                        </button>
+                      </div>
+
+                      {isTagEditorOpen && (
+                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg" onClick={stopRow}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-semibold text-gray-700">Toggle tags</span>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); setTagEditorOpenFor(null); }}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {VENDOR_TAGS.map((t) => {
+                              const present = (vendor.tags || []).includes(t.key);
+                              const saving = tagSaving === `${vendor.id}:${t.key}`;
+                              return (
+                                <button
+                                  key={t.key}
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={(e) => { e.stopPropagation(); handleToggleTag(vendor.id, t.key, present); }}
+                                  className={`px-2 py-1 rounded-full text-xs font-medium border transition ${
+                                    present
+                                      ? `${t.color} ring-1 ring-offset-1 ring-current`
+                                      : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-100'
+                                  } ${saving ? 'opacity-50' : ''}`}
+                                >
+                                  {present ? '✓ ' : '+ '}{t.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 mt-1" />
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>
