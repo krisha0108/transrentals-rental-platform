@@ -535,6 +535,12 @@ export default function BulkBookingDetailScreen() {
           const isOverdue = !isPaid && inv.status !== 'CANCELLED' && dueDate && dueDate < new Date();
           const webBase = (api?.defaults?.baseURL || '').replace(/\/api\/?$/, '');
           const invoiceUrl = `${webBase}/invoice/b2b/${inv.id}`;
+          // PDF endpoint returns Content-Disposition: attachment so the device
+          // browser triggers a download (or opens its PDF viewer).
+          const pdfUrl = `${webBase}/api/b2b/invoices/${inv.id}/pdf`;
+          const openExternal = (url) => Linking.openURL(url).catch(() => {
+            if (Platform.OS === 'android') ToastAndroid.show('Could not open link', ToastAndroid.SHORT);
+          });
           return (
             <View key={inv.id} style={styles.invoiceCard}>
               <View style={styles.invoiceHeader}>
@@ -562,18 +568,26 @@ export default function BulkBookingDetailScreen() {
                   </Text>
                 )}
               </View>
-              <TouchableOpacity
-                onPress={() => Linking.openURL(invoiceUrl).catch(() => {
-                  if (Platform.OS === 'android') ToastAndroid.show('Could not open invoice', ToastAndroid.SHORT);
-                })}
-                style={[styles.invoiceBtn, isPaid && styles.invoiceBtnPaid]}
-                activeOpacity={0.7}
-              >
-                <Icon name="external-link" size={15} color={isPaid ? '#fff' : '#9A3412'} />
-                <Text style={[styles.invoiceBtnText, { color: isPaid ? '#fff' : '#9A3412' }]}>
-                  {isPaid ? 'View Invoice' : 'View & Pay Invoice'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.invoiceBtnRow}>
+                <TouchableOpacity
+                  onPress={() => openExternal(invoiceUrl)}
+                  style={[styles.invoiceBtn, { flex: 1 }, isPaid && styles.invoiceBtnPaid]}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="external-link" size={15} color={isPaid ? '#fff' : '#9A3412'} />
+                  <Text style={[styles.invoiceBtnText, { color: isPaid ? '#fff' : '#9A3412' }]}>
+                    {isPaid ? 'View Invoice' : 'View & Pay'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => openExternal(pdfUrl)}
+                  style={[styles.invoiceBtn, styles.invoiceBtnSecondary]}
+                  activeOpacity={0.7}
+                >
+                  <Icon name="download" size={15} color="#fff" />
+                  <Text style={[styles.invoiceBtnText, { color: '#fff' }]}>Download</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           );
         })}
@@ -918,11 +932,16 @@ const styles = StyleSheet.create({
   invoiceAmount: { color: '#fff', fontSize: 28, fontWeight: '900', marginTop: 2 },
   invoiceMeta: { marginTop: 8, marginBottom: 12 },
   invoiceMetaText: { color: '#FFEDD5', fontSize: 11, marginTop: 2 },
+  invoiceBtnRow: { flexDirection: 'row', gap: 8 },
   invoiceBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: '#fff', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12,
   },
   invoiceBtnPaid: { backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
+  invoiceBtnSecondary: {
+    backgroundColor: 'rgba(0,0,0,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: 14,
+  },
   invoiceBtnText: { fontSize: 14, fontWeight: '900' },
   // Section
   section: {
