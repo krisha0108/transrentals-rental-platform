@@ -174,11 +174,7 @@ export default function VendorDocumentsScreen({ navigation }) {
       <SafeAreaView style={st.safe} edges={['top']}>
         <StatusBar barStyle="light-content" backgroundColor={C.g900} />
         <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.heroLoading}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
-            <Icon name="arrow-left" size={20} color="#fff" />
-          </TouchableOpacity>
           <Text style={st.heroTitle}>Documents</Text>
-          <View style={{ width: 38 }} />
         </LinearGradient>
         <View style={st.loaderWrap}>
           <ActivityIndicator size="large" color={C.g600} />
@@ -203,9 +199,6 @@ export default function VendorDocumentsScreen({ navigation }) {
           <View style={[st.blob, { width: 80, height: 80, bottom: 5, left: -20, opacity: 0.05 }]} />
 
           <View style={st.heroNav}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={st.backBtn}>
-              <Icon name="arrow-left" size={20} color="#fff" />
-            </TouchableOpacity>
             <View style={st.heroMid}>
               <View style={st.heroBadge}>
                 <MaterialCommunityIcons name="file-document-multiple-outline" size={11} color={C.g400} />
@@ -214,7 +207,6 @@ export default function VendorDocumentsScreen({ navigation }) {
               <Text style={st.heroTitle}>Business Documents</Text>
               <Text style={st.heroSub}>Upload & manage your verification documents</Text>
             </View>
-            <View style={{ width: 38 }} />
           </View>
 
           {/* Stats strip */}
@@ -385,6 +377,20 @@ export default function VendorDocumentsScreen({ navigation }) {
           </Text>
         </View>
 
+        {/* ── GO TO DASHBOARD ── secondary action so a vendor who landed here
+            from signup/login can reach the onboarding dashboard at any time
+            without the upload step. Kept visually quieter than the green
+            "Continue to Services" CTA above. */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('VendorDashboard')}
+          style={st.goDashboardBtn}
+          activeOpacity={0.8}
+        >
+          <Icon name="home" size={18} color={C.g700} />
+          <Text style={st.goDashboardBtnTxt}>Go to Dashboard</Text>
+          <Icon name="arrow-right" size={16} color={C.g700} />
+        </TouchableOpacity>
+
         <View style={{ height: 120 }} />
       </ScrollView>
 
@@ -498,6 +504,17 @@ const st = StyleSheet.create({
   blob:        { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
   heroNav:     { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 18 },
   backBtn:     { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', marginTop: 2 },
+  // Secondary CTA at the end of the scroll — quieter than the green
+  // "Continue to Services" button, so it doesn't pull focus away from
+  // the primary upload flow but is still reachable for vendors who want
+  // to leave this screen.
+  goDashboardBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    marginTop: 12, marginHorizontal: 16, paddingVertical: 14,
+    backgroundColor: '#fff', borderRadius: 14,
+    borderWidth: 1.5, borderColor: '#E5E7EB',
+  },
+  goDashboardBtnTxt: { color: '#0f172a', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
   heroMid:     { flex: 1 },
   heroBadge:   { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.1)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 5 },
   heroBadgeTxt:{ fontSize: 11, fontWeight: '600', color: C.g400 },

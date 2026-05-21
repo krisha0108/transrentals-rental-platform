@@ -451,6 +451,21 @@ export default function VendorServicesScreen({ navigation }) {
             Select services you want to offer and submit a request. Admin will review and approve based on your fleet capabilities.
           </Text>
         </View>
+
+        {/* Skip / Go to Dashboard — mirrors the same CTA on the documents
+            screen so a vendor in the onboarding flow can leave this step
+            and reach the dashboard at any time. */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('VendorDashboard')}
+          style={styles.goDashboardBtn}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="home-outline" size={18} color={C.g700} />
+          <Text style={styles.goDashboardBtnTxt}>Skip & Go to Dashboard</Text>
+          <Ionicons name="arrow-forward" size={16} color={C.g700} />
+        </TouchableOpacity>
+
+        <View style={{ height: 24 }} />
       </ScrollView>
 
       {/* Floating Request Button */}
@@ -802,6 +817,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   infoText: { flex: 1, fontSize: 13, color: C.text, lineHeight: 18, fontWeight: '500' },
+
+  // Secondary CTA at end of scroll — quieter than the floating Request
+  // button so it doesn't pull focus from the primary action when the
+  // vendor has selections, but reachable otherwise.
+  goDashboardBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    marginTop: 12, paddingVertical: 14,
+    backgroundColor: '#fff', borderRadius: 14,
+    borderWidth: 1.5, borderColor: '#E5E7EB',
+  },
+  goDashboardBtnTxt: { color: '#0f172a', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
 
   // Floating button
   floatingBar: {

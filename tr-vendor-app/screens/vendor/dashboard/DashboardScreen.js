@@ -614,22 +614,32 @@ export default function DashboardScreen({ navigation }) {
 
 
           {/* ── Quick Actions ─────────────────────────── */}
-          {isApproved && (
-            <View style={s.section}>
+          {/* Visible to pending vendors too — write actions inside each
+              destination screen are gated by VerificationGate, so they
+              can browse the app without being trapped on the onboarding
+              card. */}
+          <View style={s.section}>
+            <View style={s.sectionRow}>
               <Text style={s.sectionTitle}>Quick Actions</Text>
-              <View style={s.qaRow}>
-                {quickActions.map((qa, i) => (
-                  <TouchableOpacity key={i} style={s.qaItem}
-                    onPress={() => navigation.navigate(qa.route)} activeOpacity={0.7}>
-                    <View style={[s.qaCircle, { backgroundColor: qa.color + '14' }]}>
-                      <Ico lib={qa.lib} name={qa.icon} size={20} color={qa.color} />
-                    </View>
-                    <Text style={s.qaLabel}>{qa.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              {!isApproved && (
+                <View style={s.previewPill}>
+                  <Ionicons name="eye-outline" size={11} color={C.amber} />
+                  <Text style={s.previewPillTxt}>Preview</Text>
+                </View>
+              )}
             </View>
-          )}
+            <View style={s.qaRow}>
+              {quickActions.map((qa, i) => (
+                <TouchableOpacity key={i} style={s.qaItem}
+                  onPress={() => navigation.navigate(qa.route)} activeOpacity={0.7}>
+                  <View style={[s.qaCircle, { backgroundColor: qa.color + '14' }]}>
+                    <Ico lib={qa.lib} name={qa.icon} size={20} color={qa.color} />
+                  </View>
+                  <Text style={s.qaLabel}>{qa.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
           {/* ── Your Services ─────────────────────────── */}
           {isApproved && myServices.length > 0 && (
@@ -667,30 +677,47 @@ export default function DashboardScreen({ navigation }) {
           )}
 
           {/* ── Manage — 2-column grid ────────────────── */}
-          {isApproved && (
-            <View style={s.section}>
+          {/* Visible to pending vendors too. Browsing is free; write
+              actions inside each destination screen are gated. */}
+          <View style={s.section}>
+            <View style={s.sectionRow}>
               <Text style={s.sectionTitle}>Manage</Text>
-              <View style={s.manageGrid}>
-                {manageItems.map((m, i) => (
-                  <TouchableOpacity key={i} style={s.manageCard}
-                    onPress={() => navigation.navigate(m.route)} activeOpacity={0.75}>
-                    <View style={[s.manageIconBox, { backgroundColor: m.color + '14' }]}>
-                      <Ico lib={m.lib} name={m.icon} size={20} color={m.color} />
-                    </View>
-                    <Text style={s.manageLabel}>{m.label}</Text>
-                    <Text style={s.manageSub}>{m.sub}</Text>
-                    <Ionicons name="chevron-forward" size={12} color={C.muted} style={s.manageArrow} />
-                  </TouchableOpacity>
-                ))}
-              </View>
+              {!isApproved && (
+                <View style={s.previewPill}>
+                  <Ionicons name="eye-outline" size={11} color={C.amber} />
+                  <Text style={s.previewPillTxt}>Preview</Text>
+                </View>
+              )}
             </View>
-          )}
+            <View style={s.manageGrid}>
+              {manageItems.map((m, i) => (
+                <TouchableOpacity key={i} style={s.manageCard}
+                  onPress={() => navigation.navigate(m.route)} activeOpacity={0.75}>
+                  <View style={[s.manageIconBox, { backgroundColor: m.color + '14' }]}>
+                    <Ico lib={m.lib} name={m.icon} size={20} color={m.color} />
+                  </View>
+                  <Text style={s.manageLabel}>{m.label}</Text>
+                  <Text style={s.manageSub}>{m.sub}</Text>
+                  <Ionicons name="chevron-forward" size={12} color={C.muted} style={s.manageArrow} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
           {/* ── Community / Social ───────────────────── */}
-          {isApproved && (
-            <View style={s.section}>
+          {/* Visible to pending vendors too — browsing the feed/messages
+              is allowed; posting / sending is gated inside each screen. */}
+          <View style={s.section}>
+            <View style={s.sectionRow}>
               <Text style={s.sectionTitle}>Community</Text>
-              <View style={s.manageGrid}>
+              {!isApproved && (
+                <View style={s.previewPill}>
+                  <Ionicons name="eye-outline" size={11} color={C.amber} />
+                  <Text style={s.previewPillTxt}>Preview</Text>
+                </View>
+              )}
+            </View>
+            <View style={s.manageGrid}>
                 {[
                   { label: 'Social Feed',  sub: 'Posts & updates',  icon: 'newspaper-outline',     lib: 'ion', color: C.pink,   route: 'SocialFeed' },
                   { label: 'Messages',     sub: 'Vendor chats',     icon: 'chatbubbles-outline',   lib: 'ion', color: C.blue,   route: 'SocialMessagesScreen' },
@@ -707,7 +734,6 @@ export default function DashboardScreen({ navigation }) {
                 ))}
               </View>
             </View>
-          )}
 
           <View style={{ height: 100 }} />
         </View>
@@ -883,6 +909,10 @@ const s = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: -0.2, marginBottom: 10 },
   countPill:    { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 20, backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100 },
   countPillTxt: { fontSize: 10, fontWeight: '700', color: C.g700 },
+  // "Preview" badge — sits next to Quick Actions / Manage section titles
+  // for pending vendors so they know they can look but not act.
+  previewPill:    { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, backgroundColor: C.amberL, borderWidth: 1, borderColor: '#FDE68A' },
+  previewPillTxt: { fontSize: 10, fontWeight: '800', color: C.amber, letterSpacing: 0.3 },
 
   // ── Metrics ──────────────────────────────────────────────────
   metricsRow: { flexDirection: 'row', gap: 8, marginBottom: 22 },

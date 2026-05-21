@@ -77,6 +77,7 @@ import BankDetailsScreen from './screens/vendor/profile/BankDetailsScreen';
 import BusinessProfileScreen from './screens/vendor/profile/BusinessProfileScreen';
 import HelpSupportScreen from './screens/vendor/profile/HelpSupportScreen';
 import AboutUsScreen from './screens/vendor/profile/AboutUsScreen';
+import GetStartedScreen from './screens/vendor/get-started/GetStartedScreen';
 
 // Earnings
 import EarningsScreen from './screens/vendor/earnings/EarningsScreen';
@@ -751,6 +752,7 @@ export default function App() {
             <Stack.Screen name="BusinessProfileScreen" component={BusinessProfileScreen} />
             <Stack.Screen name="HelpSupportScreen" component={HelpSupportScreen} />
             <Stack.Screen name="AboutUsScreen" component={AboutUsScreen} />
+            <Stack.Screen name="GetStartedScreen" component={GetStartedScreen} />
 
             {/* Earnings */}
             <Stack.Screen name="EarningsScreen" component={EarningsScreen} />

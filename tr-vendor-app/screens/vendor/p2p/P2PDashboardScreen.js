@@ -9,6 +9,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MCI from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getP2PStats, getP2PMyPostings, getP2PTransactions } from '../../api/client';
+import { useVerificationGate, VerificationBanner } from '../../../components/VerificationGate';
 
 const SW = Dimensions.get('window').width;
 
@@ -33,6 +34,9 @@ const STATUS_COLORS = {
 export default function P2PDashboardScreen({ navigation }) {
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
+  // Verification gate — Post* actions are write-actions and gated; browse
+  // actions stay open so pending vendors can explore the marketplace.
+  const { status: vendorStatus, gate, LockGateModal } = useVerificationGate(navigation);
   const [stats, setStats]             = useState(null);
   const [recentTx, setRecentTx]       = useState([]);
   const [activePostings, setActivePostings] = useState([]);
@@ -132,6 +136,8 @@ export default function P2PDashboardScreen({ navigation }) {
 
       <HeaderBlock />
 
+      <VerificationBanner status={vendorStatus} navigation={navigation} />
+
       <ScrollView
         contentContainerStyle={{ paddingBottom: 48 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g500]} />}
@@ -159,8 +165,8 @@ export default function P2PDashboardScreen({ navigation }) {
           <Text style={s.sectionTitle}>Quick Actions</Text>
           <View style={s.actionsGrid}>
             {[
-              { label: 'Post Vehicle',   sub: 'Share idle vehicle',     icon: 'truck',                  mci: true,  pastel: '#E8FDF5', iconBg: C.g50,      iconColor: C.g600,   screen: 'PostVehicleScreen' },
-              { label: 'Share Booking',  sub: 'Sub-contract a trip',    icon: 'share-variant',          mci: true,  pastel: '#F3EEFF', iconBg: '#EDE9FE',   iconColor: C.purple, screen: 'PostBookingScreen' },
+              { label: 'Post Vehicle',   sub: 'Share idle vehicle',     icon: 'truck',                  mci: true,  pastel: '#E8FDF5', iconBg: C.g50,      iconColor: C.g600,   screen: 'PostVehicleScreen',   locked: true, lockLabel: 'post vehicles to the marketplace' },
+              { label: 'Share Booking',  sub: 'Sub-contract a trip',    icon: 'share-variant',          mci: true,  pastel: '#F3EEFF', iconBg: '#EDE9FE',   iconColor: C.purple, screen: 'PostBookingScreen',   locked: true, lockLabel: 'share bookings with other vendors' },
               { label: 'Find Vehicles',  sub: 'Rent from vendors',      icon: 'magnify',                mci: true,  pastel: '#EFF6FF', iconBg: '#DBEAFE',   iconColor: C.blue,   screen: 'BrowseVehiclesScreen' },
               { label: 'Find Bookings',  sub: 'Accept load requests',   icon: 'text-box-search-outline', mci: true, pastel: '#FFFBEB', iconBg: '#FEF3C7',   iconColor: C.amber,  screen: 'BrowseBookingsScreen' },
             ].map(a => (
@@ -168,7 +174,7 @@ export default function P2PDashboardScreen({ navigation }) {
                 key={a.label}
                 style={[s.actionCard, { backgroundColor: a.pastel }]}
                 activeOpacity={0.85}
-                onPress={() => navigation.navigate(a.screen)}
+                onPress={a.locked ? gate(() => navigation.navigate(a.screen), a.lockLabel) : () => navigation.navigate(a.screen)}
               >
                 <View style={[s.actionIconBox, { backgroundColor: a.iconBg }]}>
                   <MCI name={a.icon} size={24} color={a.iconColor} />
@@ -324,6 +330,7 @@ export default function P2PDashboardScreen({ navigation }) {
         </View>
 
       </ScrollView>
+      {LockGateModal}
     </View>
   );
 }

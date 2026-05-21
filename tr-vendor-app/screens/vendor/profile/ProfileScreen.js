@@ -290,6 +290,25 @@ export default function ProfileScreen({ navigation }) {
           </View>
         ))}
 
+        {/* ── GET STARTED CTA — visible to all vendors right above Logout
+            so it stays one tap from anywhere in the app ── */}
+        <TouchableOpacity
+          style={st.getStartedBtn}
+          onPress={() => navigation.navigate('GetStartedScreen')}
+          activeOpacity={0.85}
+        >
+          <LinearGradient colors={[C.blueL, '#DBEAFE']} style={st.getStartedGrad}>
+            <View style={st.getStartedIconBox}>
+              <MaterialCommunityIcons name="compass-outline" size={20} color={C.blue} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={st.getStartedTxt}>Get Started</Text>
+              <Text style={st.getStartedSub}>Setup guide & feature tour</Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={C.blue} />
+          </LinearGradient>
+        </TouchableOpacity>
+
         {/* ── LOGOUT ── */}
         <TouchableOpacity style={st.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
           <LinearGradient colors={['#FEE2E2', '#FECACA']} style={st.logoutGrad}>
@@ -433,8 +452,15 @@ const st = StyleSheet.create({
     backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center',
   },
 
+  /* ── Get Started CTA ── */
+  getStartedBtn:    { marginHorizontal: 16, marginTop: 20, borderRadius: 16, overflow: 'hidden' },
+  getStartedGrad:   { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 14, gap: 12 },
+  getStartedIconBox:{ width: 38, height: 38, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  getStartedTxt:    { fontSize: 14, fontWeight: '800', color: '#1E3A8A' },
+  getStartedSub:    { fontSize: 11, color: C.blue, marginTop: 2, fontWeight: '600' },
+
   /* ── Logout ── */
-  logoutBtn:  { marginHorizontal: 16, marginTop: 20, borderRadius: 16, overflow: 'hidden' },
+  logoutBtn:  { marginHorizontal: 16, marginTop: 10, borderRadius: 16, overflow: 'hidden' },
   logoutGrad: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 14, paddingVertical: 14, gap: 12,

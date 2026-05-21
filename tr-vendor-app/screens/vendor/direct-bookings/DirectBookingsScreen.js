@@ -11,6 +11,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { getDirectBookings } from '../../api/client';
 import DateFilterModal from '../../../components/DateFilterModal';
 import { ListSkeleton } from '../../../components/SkeletonLoader';
+import { useVerificationGate, VerificationBanner } from '../../../components/VerificationGate';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -78,6 +79,9 @@ export default function DirectBookingsScreen({ navigation }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  // Verification gate — pending vendors can browse direct bookings; adding
+  // a new booking requires verification.
+  const { status: vendorStatus, gate, LockGateModal } = useVerificationGate(navigation);
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -139,8 +143,8 @@ export default function DirectBookingsScreen({ navigation }) {
               <Icon name="calendar" size={20} color={dateFilter.start ? C.g300 : 'rgba(255,255,255,0.75)'} />
               {dateFilter.start && <View style={s.filterDot} />}
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('AddDirectBooking')} style={s.addBtn}>
-              <Icon name="plus" size={22} color="#fff" />
+            <TouchableOpacity onPress={gate(() => navigation.navigate('AddDirectBooking'), 'create direct bookings')} style={s.addBtn}>
+              <Icon name={vendorStatus === 'APPROVED' ? 'plus' : 'lock'} size={22} color="#fff" />
             </TouchableOpacity>
           </View>
 
@@ -170,6 +174,8 @@ export default function DirectBookingsScreen({ navigation }) {
           </View>
         </SafeAreaView>
       </LinearGradient>
+
+      <VerificationBanner status={vendorStatus} navigation={navigation} />
 
       {/* Search */}
       {showSearch && (
@@ -392,9 +398,9 @@ export default function DirectBookingsScreen({ navigation }) {
               </LinearGradient>
               <Text style={s.emptyTitle}>No bookings found</Text>
               <Text style={s.emptySub}>Direct bookings will appear here</Text>
-              <TouchableOpacity style={s.emptyBtn} onPress={() => navigation.navigate('AddDirectBooking')}>
+              <TouchableOpacity style={s.emptyBtn} onPress={gate(() => navigation.navigate('AddDirectBooking'), 'create direct bookings')}>
                 <LinearGradient colors={[C.g700, C.g600]} style={s.emptyBtnGrad}>
-                  <Icon name="plus" size={16} color="#fff" />
+                  <Icon name={vendorStatus === 'APPROVED' ? 'plus' : 'lock'} size={16} color="#fff" />
                   <Text style={s.emptyBtnTxt}>Add First Booking</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -402,6 +408,8 @@ export default function DirectBookingsScreen({ navigation }) {
           )
         }
       />
+
+      {LockGateModal}
 
       <DateFilterModal
         visible={showDateFilter}
