@@ -11,6 +11,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { getVendorFleet, deleteVehicle, getBaseURL } from '../../api/client';
 import { showConfirm, showError, showSuccess } from '../../../services/alertService';
 import { ListSkeleton } from '../../../components/SkeletonLoader';
+import { useVerificationGate, VerificationBanner } from '../../../components/VerificationGate';
 
 const C = {
   g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
@@ -88,6 +89,10 @@ export default function FleetListScreen({ navigation }) {
     await fetchFleet();
     setRefreshing(false);
   }, [fetchFleet]);
+
+  // Verification gate — pending vendors can browse the fleet list but
+  // Add / Delete actions are locked behind a verification prompt.
+  const { status: vendorStatus, gate, LockGateModal } = useVerificationGate(navigation);
 
   const handleDeleteVehicle = (vehicleId) => {
     showConfirm('Delete Vehicle', 'Are you sure you want to delete this vehicle?', async () => {
@@ -265,7 +270,7 @@ export default function FleetListScreen({ navigation }) {
           {/* Delete */}
           <TouchableOpacity
             style={st.vDel}
-            onPress={(e) => { e.stopPropagation(); handleDeleteVehicle(item.id); }}
+            onPress={(e) => { e.stopPropagation(); gate(() => handleDeleteVehicle(item.id), 'delete vehicles')(); }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Icon name="trash-2" size={14} color={C.muted} />
@@ -314,8 +319,8 @@ export default function FleetListScreen({ navigation }) {
             <Text style={st.heroTitle}>My Fleet</Text>
             <Text style={st.heroSub}>{vehicles.length} vehicles · {availableServices.length} services</Text>
           </View>
-          <TouchableOpacity style={st.addBtn} onPress={() => navigation.navigate('AddVehicleScreen')}>
-            <Icon name="plus" size={20} color="#fff" />
+          <TouchableOpacity style={st.addBtn} onPress={gate(() => navigation.navigate('AddVehicleScreen'), 'add vehicles')}>
+            <Icon name={vendorStatus === 'APPROVED' ? 'plus' : 'lock'} size={20} color="#fff" />
           </TouchableOpacity>
         </View>
 
@@ -336,6 +341,9 @@ export default function FleetListScreen({ navigation }) {
           ))}
         </View>
       </LinearGradient>
+
+      {/* Pending-vendor verification banner */}
+      <VerificationBanner status={vendorStatus} navigation={navigation} />
 
       {/* ── ALL SCROLLABLE CONTENT ── */}
       <FlatList
@@ -425,8 +433,8 @@ export default function FleetListScreen({ navigation }) {
                 <Text style={st.emptyTitle}>No Vehicles Found</Text>
                 <Text style={st.emptyMsg}>{vehicles.length === 0 ? 'Add your first vehicle to get started' : 'No vehicles match your filters'}</Text>
                 {vehicles.length === 0 && (
-                  <TouchableOpacity style={st.emptyBtn} onPress={() => navigation.navigate('AddVehicleScreen')}>
-                    <Icon name="plus" size={16} color="#fff" /><Text style={st.emptyBtnTxt}>Add Vehicle</Text>
+                  <TouchableOpacity style={st.emptyBtn} onPress={gate(() => navigation.navigate('AddVehicleScreen'), 'add vehicles')}>
+                    <Icon name={vendorStatus === 'APPROVED' ? 'plus' : 'lock'} size={16} color="#fff" /><Text style={st.emptyBtnTxt}>Add Vehicle</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -434,6 +442,7 @@ export default function FleetListScreen({ navigation }) {
           </View>
         }
       />
+      {LockGateModal}
     </SafeAreaView>
   );
 }

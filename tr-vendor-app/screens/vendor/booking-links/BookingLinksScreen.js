@@ -13,6 +13,7 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import { getBookingLinks, updateBookingLink, getBookingLinkQR } from '../../api/client';
 import CustomAlert from '../../../components/CustomAlert';
 import { ListSkeleton } from '../../../components/SkeletonLoader';
+import { useVerificationGate, VerificationBanner } from '../../../components/VerificationGate';
 
 let RNShare = null;
 let RNFS = null;
@@ -51,6 +52,9 @@ export default function BookingLinksScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  // Verification gate — pending vendors can browse and share existing links,
+  // but toggling active state or customising is locked.
+  const { status: vendorStatus, gate, LockGateModal } = useVerificationGate(navigation);
 
   const [qrModal, setQrModal] = useState(null);
   const [qrDataUrl, setQrDataUrl] = useState(null);
@@ -247,6 +251,8 @@ export default function BookingLinksScreen({ navigation }) {
         </SafeAreaView>
       </LinearGradient>
 
+      <VerificationBanner status={vendorStatus} navigation={navigation} />
+
       <ScrollView
         contentContainerStyle={s.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}
@@ -302,7 +308,7 @@ export default function BookingLinksScreen({ navigation }) {
                     </View>
                   </View>
 
-                  <TouchableOpacity onPress={() => toggleActive(link)} style={s.toggleBtn}>
+                  <TouchableOpacity onPress={gate(() => toggleActive(link), 'change link settings')} style={s.toggleBtn}>
                     <Ionicons
                       name={link.isActive ? 'toggle' : 'toggle-outline'}
                       size={38}
@@ -339,7 +345,7 @@ export default function BookingLinksScreen({ navigation }) {
 
                   <TouchableOpacity
                     style={[s.chip, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}
-                    onPress={() => openCustomize(link)}
+                    onPress={gate(() => openCustomize(link), 'customise booking links')}
                   >
                     <Icon name="settings" size={12} color={C.amber} />
                     <Text style={[s.chipTxt, { color: C.amber }]}>Edit</Text>
@@ -527,6 +533,7 @@ export default function BookingLinksScreen({ navigation }) {
         onClose={hideAlert}
         actions={alert.actions}
       />
+      {LockGateModal}
     </View>
   );
 }

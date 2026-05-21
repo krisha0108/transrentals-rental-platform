@@ -9,6 +9,7 @@ import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { getVendorStaff } from '../../api/client';
 import { ListSkeleton } from '../../../components/SkeletonLoader';
+import { useVerificationGate, VerificationBanner } from '../../../components/VerificationGate';
 
 const C = {
   g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
@@ -43,6 +44,8 @@ export default function StaffListScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [staff, setStaff]           = useState([]);
   const [filter, setFilter]         = useState('all');
+  // Verification gate — pending vendors can view staff but add/edit is locked.
+  const { status: vendorStatus, gate, LockGateModal } = useVerificationGate(navigation);
 
   const fetchStaff = useCallback(async () => {
     try {
@@ -83,9 +86,9 @@ export default function StaffListScreen({ navigation }) {
             </TouchableOpacity>
             <TouchableOpacity
               style={st.addBtn}
-              onPress={() => navigation.navigate('AddStaffScreen')}
+              onPress={gate(() => navigation.navigate('AddStaffScreen'), 'add staff members')}
             >
-              <Icon name="user-plus" size={15} color={C.g400} />
+              <Icon name={vendorStatus === 'APPROVED' ? 'user-plus' : 'lock'} size={15} color={C.g400} />
               <Text style={st.addBtnTxt}>Add Staff</Text>
             </TouchableOpacity>
           </View>
@@ -118,6 +121,9 @@ export default function StaffListScreen({ navigation }) {
           </View>
         </SafeAreaView>
       </LinearGradient>
+
+      {/* Pending-vendor verification banner */}
+      <VerificationBanner status={vendorStatus} navigation={navigation} />
 
       {/* Quick Nav */}
       <View style={st.quickRow}>
@@ -186,7 +192,7 @@ export default function StaffListScreen({ navigation }) {
           </Text>
           {filter === 'all' && (
             <TouchableOpacity
-              onPress={() => navigation.navigate('AddStaffScreen')}
+              onPress={gate(() => navigation.navigate('AddStaffScreen'), 'add staff members')}
               activeOpacity={0.85}
             >
               <LinearGradient
@@ -289,6 +295,7 @@ export default function StaffListScreen({ navigation }) {
           );
         }}
       />
+      {LockGateModal}
     </View>
   );
 }
