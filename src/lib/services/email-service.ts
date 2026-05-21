@@ -1,4 +1,19 @@
 import nodemailer from 'nodemailer';
+import path from 'path';
+import fs from 'fs';
+
+// Read the brand logo once at module load. Using the full colour wordmark
+// (green "Trans" + dark "Rentals" + arrow) on a white plate inside the
+// gradient header — keeps the brand recognisable on first glance.
+// Falls back to null (template hides the <img>) if the file is missing.
+const LOGO_PATH = path.join(process.cwd(), 'public', 'assets', 'logo-trans.png');
+let LOGO_BUFFER: Buffer | null = null;
+try {
+  LOGO_BUFFER = fs.readFileSync(LOGO_PATH);
+} catch {
+  console.warn('[email] logo-white.png not found at', LOGO_PATH, '— OTP emails will render without logo');
+}
+const LOGO_CID = 'transrentals-logo';
 
 // SMTP Configuration
 const smtpPort = parseInt(process.env.SMTP_PORT || '465');
@@ -17,80 +32,165 @@ const transporter = nodemailer.createTransport({
 });
 
 // Email templates
-const getOTPEmailTemplate = (otp: string, type: 'registration' | 'password-reset') => {
+const getOTPEmailTemplate = (otp: string, type: 'registration' | 'password-reset', to?: string) => {
   const subject = type === 'registration'
-    ? 'Verify Your Email - TransRentals'
-    : 'Password Reset OTP - TransRentals';
+    ? 'Verify your email · TransRentals'
+    : 'Your TransRentals password reset code';
+
+  const preheader = type === 'registration'
+    ? `Your verification code is ${otp}. Valid for 10 minutes.`
+    : `Your password reset code is ${otp}. Valid for 10 minutes.`;
 
   const heading = type === 'registration'
-    ? 'Verify Your Email Address'
-    : 'Reset Your Password';
+    ? 'Verify your email address'
+    : 'Reset your TransRentals password';
 
   const message = type === 'registration'
-    ? 'Thank you for registering with TransRentals. Please use the following OTP to verify your email address:'
-    : 'We received a request to reset your password. Please use the following OTP to proceed:';
+    ? 'Welcome to TransRentals! Use the verification code below to confirm this email address and finish setting up your account.'
+    : 'We received a request to reset the password for your TransRentals account. Use the verification code below to proceed.';
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${subject}</title>
-    </head>
-    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
-      <table role="presentation" style="width: 100%; border-collapse: collapse;">
-        <tr>
-          <td align="center" style="padding: 40px 0;">
-            <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-              <!-- Header -->
-              <tr>
-                <td style="padding: 30px 40px; background-color: #1e40af; border-radius: 8px 8px 0 0;">
-                  <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">TransRentals</h1>
-                </td>
-              </tr>
+  const securityNote = type === 'registration'
+    ? 'TransRentals will never ask you to share this code over phone, WhatsApp, or chat. If someone is asking you for it, they are not from our team.'
+    : 'TransRentals will never ask you to share this code over phone, WhatsApp, or chat. If you did not request a password reset, you can safely ignore this email — your account stays secure.';
 
-              <!-- Content -->
-              <tr>
-                <td style="padding: 40px;">
-                  <h2 style="margin: 0 0 20px; color: #1e40af; font-size: 22px;">${heading}</h2>
-                  <p style="margin: 0 0 25px; color: #555555; font-size: 16px; line-height: 1.6;">
-                    ${message}
-                  </p>
+  // Plain-text fallback — improves deliverability (spam filters favour
+  // multipart emails) and renders correctly when an email client blocks HTML.
+  const text = `TransRentals — ${heading}
 
-                  <!-- OTP Box -->
-                  <div style="background-color: #f0f7ff; border: 2px dashed #1e40af; border-radius: 8px; padding: 25px; text-align: center; margin: 25px 0;">
-                    <span style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #1e40af;">${otp}</span>
-                  </div>
+${message}
 
-                  <p style="margin: 25px 0 0; color: #888888; font-size: 14px;">
-                    This OTP is valid for <strong>10 minutes</strong>. Do not share this code with anyone.
-                  </p>
+Your code: ${otp}
+This code expires in 10 minutes and can only be used once.
 
-                  <p style="margin: 20px 0 0; color: #888888; font-size: 14px;">
-                    If you didn't request this, please ignore this email.
-                  </p>
-                </td>
-              </tr>
+${securityNote}
 
-              <!-- Footer -->
-              <tr>
-                <td style="padding: 25px 40px; background-color: #f8f9fa; border-radius: 0 0 8px 8px; border-top: 1px solid #e9ecef;">
-                  <p style="margin: 0; color: #888888; font-size: 12px; text-align: center;">
-                    &copy; ${new Date().getFullYear()} TransRentals. All rights reserved.<br>
-                    India's Largest Vehicle Rental Marketplace
-                  </p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </body>
-    </html>
-  `;
+Need help? Reply to this email or write to support@transrentals.in.
 
-  return { subject, html };
+— Team TransRentals
+${new Date().getFullYear()} TransRentals · India's Vehicle Rental Marketplace
+`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f1f5f4;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;color:#0f172a;">
+  <!-- Preheader (hidden, shown in inbox preview) -->
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${preheader}</div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f1f5f4;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(2,43,26,0.08);">
+
+          <!-- Brand header with gradient -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#022B1A 0%,#045030 50%,#09B368 100%);padding:32px 40px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="vertical-align:middle;">
+                    ${LOGO_BUFFER ? `
+                    <!-- Logo plate — white panel so the full-colour wordmark
+                         (green/dark/arrow) renders crisply on the dark
+                         gradient. Inline CSS width is required because
+                         Gmail ignores the HTML width attribute and would
+                         otherwise render the image at its native size and
+                         crop it inside the plate. -->
+                    <div style="display:inline-block;background:#ffffff;padding:12px 22px;border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,0.18);vertical-align:middle;line-height:0;">
+                      <img src="cid:${LOGO_CID}" alt="TransRentals" width="210" height="40" style="display:block;width:210px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;">
+                    </div>
+                    <div style="margin-top:14px;color:rgba(255,255,255,0.85);font-size:12px;font-weight:500;letter-spacing:0.6px;text-transform:uppercase;">India's Vehicle Rental Marketplace</div>
+                    ` : `
+                    <span style="display:inline-block;vertical-align:middle;">
+                      <span style="display:block;color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.3px;line-height:1.2;">TransRentals</span>
+                      <span style="display:block;color:rgba(255,255,255,0.78);font-size:12px;font-weight:500;letter-spacing:0.4px;text-transform:uppercase;margin-top:4px;">Vehicle Rental Marketplace</span>
+                    </span>
+                    `}
+                  </td>
+                  <td align="right" style="vertical-align:top;">
+                    <span style="display:inline-block;background:rgba(255,255,255,0.18);color:#ffffff;font-size:11px;font-weight:600;padding:6px 12px;border-radius:999px;letter-spacing:0.3px;text-transform:uppercase;border:1px solid rgba(255,255,255,0.22);white-space:nowrap;">TransRentals Support</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px 40px 16px;">
+              <h1 style="margin:0 0 12px;color:#022B1A;font-size:22px;font-weight:700;letter-spacing:-0.3px;">${heading}</h1>
+              <p style="margin:0 0 24px;color:#475569;font-size:15px;line-height:1.65;">
+                Hello,<br>${message}
+              </p>
+
+              <!-- OTP box -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:14px;padding:28px 20px;">
+                    <div style="color:#047857;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;">Your verification code</div>
+                    <div style="font-family:'SF Mono',Menlo,Consolas,monospace;font-size:38px;font-weight:700;letter-spacing:10px;color:#022B1A;line-height:1;">${otp}</div>
+                    <div style="color:#475569;font-size:13px;margin-top:14px;">
+                      Expires in <strong style="color:#022B1A;">10 minutes</strong> · One-time use
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Security note -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;">
+                <tr>
+                  <td style="background:#fffbeb;border-left:4px solid #f59e0b;border-radius:8px;padding:14px 18px;">
+                    <p style="margin:0;color:#78350f;font-size:13px;line-height:1.6;">
+                      <strong>Keep this code private.</strong> ${securityNote}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              ${to ? `
+              <p style="margin:24px 0 0;color:#94a3b8;font-size:12px;line-height:1.6;">
+                This message was sent to <span style="color:#334155;font-weight:600;">${to}</span> because someone${type === 'registration' ? ' tried to register' : ' requested a password reset'} on TransRentals. If that wasn't you, you can ignore this email.
+              </p>` : ''}
+            </td>
+          </tr>
+
+          <!-- Help -->
+          <tr>
+            <td style="padding:8px 40px 32px;">
+              <div style="border-top:1px solid #e2e8f0;padding-top:24px;color:#64748b;font-size:13px;line-height:1.6;">
+                Need help? Write to us at <a href="mailto:support@transrentals.in" style="color:#045030;font-weight:600;text-decoration:none;">support@transrentals.in</a>
+                or visit <a href="https://transrentals.in" style="color:#045030;font-weight:600;text-decoration:none;">transrentals.in</a>.
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f8fafc;padding:22px 40px;border-top:1px solid #e2e8f0;">
+              <p style="margin:0 0 6px;color:#0f172a;font-size:12px;font-weight:600;">TransRentals</p>
+              <p style="margin:0;color:#94a3b8;font-size:11px;line-height:1.6;">
+                India's Vehicle Rental Marketplace · Bike, Car, Bus, Truck & more<br>
+                &copy; ${new Date().getFullYear()} TransRentals. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <p style="margin:18px 0 0;color:#94a3b8;font-size:11px;line-height:1.5;max-width:560px;">
+          This is an automated security message from TransRentals. Please do not reply if you received this in error — contact <a href="mailto:support@transrentals.in" style="color:#64748b;">support@transrentals.in</a> instead.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return { subject, html, text };
 };
 
 // Send OTP Email
@@ -110,13 +210,31 @@ export async function sendOTPEmail(
     console.log('📧 SMTP Debug - Password length:', process.env.SMTP_PASSWORD?.length);
     console.log('📧 SMTP Debug - Host:', process.env.SMTP_HOST, 'Port:', process.env.SMTP_PORT);
 
-    const { subject, html } = getOTPEmailTemplate(otp, type);
+    const { subject, html, text } = getOTPEmailTemplate(otp, type, to);
 
-    const mailOptions = {
-      from: `"TransRentals" <${process.env.SMTP_USER}>`,
+    const mailOptions: nodemailer.SendMailOptions = {
+      // "TransRentals Support" matches the in-email pill — keeps the brand
+      // voice consistent and reassures the recipient the message is from
+      // the official support team rather than an automated security bot.
+      from: `"TransRentals Support" <${process.env.SMTP_USER}>`,
       to,
       subject,
       html,
+      text,
+      headers: {
+        // Helps email clients categorise this as transactional, not marketing.
+        'X-Entity-Ref-ID': `otp-${type}-${Date.now()}`,
+      },
+      // Inline-attach the logo so it renders without the user having to click
+      // "Show images" — Gmail/Outlook block external images by default.
+      ...(LOGO_BUFFER ? {
+        attachments: [{
+          filename: 'transrentals-logo.png',
+          content: LOGO_BUFFER,
+          cid: LOGO_CID,
+          contentDisposition: 'inline',
+        }],
+      } : {}),
     };
 
     await transporter.sendMail(mailOptions);
