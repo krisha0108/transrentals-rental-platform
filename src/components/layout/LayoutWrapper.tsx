@@ -16,6 +16,8 @@ const noLayoutRoutes = [
   '/vendor/',
   '/travel-agent', // all travel-agent dashboard, auth, public lead-capture, booking-share pages
   '/agent/',       // public agent profile pages (e.g. /agent/{slug})
+  '/partner/',     // public vendor profile pages (e.g. /partner/{slug})
+  '/captain/',     // public driver profile pages (e.g. /captain/{slug})
   '/driver/',
   '/customer/',  // all customer pages use CustomerHeader instead
   '/book',

@@ -10,7 +10,9 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
 import axios from 'axios';
-import { getVendorProfile, getVendorBookings, getVendorEarnings, getBaseURL, getSessionToken } from '../../api/client';
+import { getVendorProfile, getVendorBookings, getVendorEarnings, getBaseURL, getSessionToken, apiPatch } from '../../api/client';
+import { fetchInquiries } from '../../api/inquiriesApi';
+import { showConfirm, showSuccess, showError } from '../../../services/alertService';
 import { NotifBadgeContext } from '../../../contexts/NotifBadgeContext';
 import DeviceInfo from 'react-native-device-info';
 import AppEvents, { EVT_NEW_QUOTE, EVT_QUOTE_SENT } from '../../../utils/AppEvents';
@@ -75,6 +77,23 @@ const BOOKINGS_SCREEN_MAP = {
   car: 'CarRentalBookings', packers: 'PackersBookings',
   equipment: 'EquipmentBookings', luxury: 'LuxuryBookings',
 };
+// Inquiry "Send Quote" → each service's existing quote-submission screen
+// (these screens hold the full per-service quote form). Car has no quote
+// form — it's an accept-flow handled inline.
+const SEND_QUOTE_SCREEN = {
+  bike: 'BikeSendQuote', 'self-drive': 'SelfDriveSendQuote',
+  bus: 'BusSendQuote',   truck: 'TruckSendQuote',
+  luxury: 'LuxurySendQuote', packers: 'PackersSendQuote',
+  equipment: 'EquipmentSendQuote',
+};
+// Tapping an inquiry card → that service's full detail screen.
+// (car is a booking, others are quote requests — different param names.)
+const INQUIRY_DETAIL_SCREEN = {
+  bike: 'BikeQuoteRequestDetail', 'self-drive': 'SelfDriveQuoteRequestDetail',
+  bus: 'BusQuoteRequestDetail',   truck: 'TruckQuoteRequestDetail',
+  luxury: 'LuxuryQuoteRequestDetail', packers: 'PackersQuoteRequestDetail',
+  equipment: 'EquipmentQuoteRequestDetail',
+};
 
 // ── Avatar ─────────────────────────────────────────────────────
 function Avatar({ name, size = 40, onPress }) {
@@ -124,6 +143,8 @@ export default function DashboardScreen({ navigation }) {
   const [profile, setProfile]           = useState(null);
   const [earnings, setEarnings]         = useState(null);
   const [bookingsData, setBookingsData]       = useState(null);
+  const [inquiries, setInquiries]             = useState([]);
+  const [inquiriesTotal, setInquiriesTotal]   = useState(0);
   const [todayQuoteCounts, setTodayQuoteCounts] = useState({});
   const [updateInfo, setUpdateInfo]           = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -151,6 +172,15 @@ export default function DashboardScreen({ navigation }) {
           if (er?.success) { setEarnings(er.earnings); setBookingsData(er.bookings); }
         } catch (_) {}
         fetchQuoteCounts();
+        // Pull open inquiries only for this vendor's approved services
+        const slugs = (p.approvedServiceIds || []).map(id => SVC_ID_TO_SERVICE[id]).filter(Boolean);
+        fetchInquiries(slugs, { limit: 5 })
+          .then(({ items }) => {
+            const openItems = items.filter(x => !x.quoted);   // only not-yet-quoted
+            setInquiries(openItems);
+            setInquiriesTotal(openItems.length);
+          })
+          .catch(() => {});
       }
     } catch (_) {}
     finally { setLoading(false); }
@@ -220,6 +250,46 @@ export default function DashboardScreen({ navigation }) {
     setRefreshing(false);
   }, [fetchData, refreshBadge]);
 
+  // Inquiry card action: car = inline accept, everything else = open the
+  // service's full quote form pre-loaded with this request.
+  const handleInquiryAction = useCallback((q) => {
+    if (q.accept) {
+      showConfirm(
+        'Accept booking?',
+        `Accept this ${q.title} request from ${q.customer}?`,
+        async () => {
+          try {
+            const res = await apiPatch(`/vendor/car-bookings/${q.rawId}`, { action: 'accept' });
+            if (res.data?.success) {
+              showSuccess('Booking accepted! Check it under your bookings.');
+              setInquiries(prev => prev.filter(x => x.id !== q.id));
+              setInquiriesTotal(t => Math.max(0, t - 1));
+            } else {
+              showError(res.data?.error || 'Could not accept this booking.');
+            }
+          } catch (e) {
+            showError(e?.response?.data?.error || 'Could not accept this booking.');
+          }
+        },
+        { confirmText: 'Accept' },
+      );
+      return;
+    }
+    const screen = SEND_QUOTE_SCREEN[q.service];
+    if (screen) navigation.navigate(screen, { requestId: q.rawId });
+    else navigation.navigate('AllInquiries');
+  }, [navigation]);
+
+  // Tap a card → open its full detail screen.
+  const openInquiryDetail = useCallback((q) => {
+    if (q.service === 'car') {
+      navigation.navigate('CarRentalBookingDetail', { bookingId: q.rawId, serviceType: 'car' });
+      return;
+    }
+    const screen = INQUIRY_DETAIL_SCREEN[q.service];
+    if (screen) navigation.navigate(screen, { requestId: q.rawId });
+  }, [navigation]);
+
   const vendorStatus   = profile?.status || vendor?.status || VENDOR_STATUS.PENDING;
   const isApproved     = vendorStatus === VENDOR_STATUS.APPROVED;
   const approvedSvcIds = profile?.approvedServiceIds || [];
@@ -254,25 +324,16 @@ export default function DashboardScreen({ navigation }) {
   ];
   const doneCount = steps.filter(s => s.done).length;
 
-  const metrics = [
-    { label: 'Today',  value: bookingsData?.today ?? 0,             unit: 'bookings', icon: 'calendar-outline',   lib: 'ion', color: C.g600,   bg: C.g50    },
-    { label: 'Active', value: bookingsData?.active ?? 0,            unit: 'ongoing',  icon: 'flash-outline',      lib: 'ion', color: C.blue,   bg: C.blueL  },
-    { label: 'Fleet',  value: profile?.fleetsCount ?? 0,            unit: 'vehicles', icon: 'car-outline',        lib: 'ion', color: C.purple, bg: C.purpleL},
-    { label: 'Rating', value: profile?.rating?.toFixed(1) ?? '5.0', unit: '/ 5',     icon: 'star-outline',       lib: 'ion', color: C.amber,  bg: C.amberL },
-  ];
-
   // Fixed icons — use only well-supported MCI / Ionicons names
   const quickActions = [
     { label: 'Add Vehicle',  icon: 'car-outline',          lib: 'ion', color: C.blue,   route: 'AddVehicleScreen' },
     { label: 'Add Staff',    icon: 'people-outline',        lib: 'ion', color: C.purple, route: 'AddStaffScreen' },
-    { label: 'Documents',    icon: 'document-text-outline', lib: 'ion', color: C.g600,   route: 'VendorDocuments' },
-    { label: 'Services',     icon: 'grid-outline',          lib: 'ion', color: C.red,    route: 'VendorServices' },
-    { label: 'Locations',    icon: 'location-outline',      lib: 'ion', color: C.indigo, route: 'VendorLocations' },
     { label: 'Direct Book',  icon: 'book-outline',          lib: 'ion', color: C.orange, route: 'DirectBookings' },
     { label: 'Links',        icon: 'link-outline',          lib: 'ion', color: C.teal,   route: 'BookingLinks' },
-    { label: 'Financials',   icon: 'bar-chart-outline',     lib: 'ion', color: C.indigo, route: 'Financials' },
     { label: 'P2P Market',   icon: 'swap-horizontal-outline',lib:'ion', color: C.cyan,   route: 'P2PDashboard' },
-    { label: 'Earnings',     icon: 'trending-up-outline',   lib: 'ion', color: C.g600,   route: 'EarningsScreen' },
+    { label: 'B2B',          icon: 'briefcase-outline',      lib: 'ion', color: C.indigo, route: 'B2BDashboard' },
+    { label: 'Social',       icon: 'newspaper-outline',      lib: 'ion', color: C.pink,   route: 'SocialFeed' },
+    { label: 'Tracking',     icon: 'navigate-outline',       lib: 'ion', color: C.red,    route: 'VendorTracking' },
   ];
 
   const SERVICES = [
@@ -294,7 +355,10 @@ export default function DashboardScreen({ navigation }) {
 { label: 'Direct Booking', sub: 'Walk-ins',                              icon: 'book-outline',             lib: 'ion', color: C.orange, route: 'DirectBookings' },
     { label: 'Booking Links',  sub: 'Share & track',                         icon: 'link-outline',             lib: 'ion', color: C.indigo, route: 'BookingLinks' },
     { label: 'Financials',     sub: 'P&L reports',                           icon: 'bar-chart-outline',        lib: 'ion', color: C.purple, route: 'Financials' },
+    { label: 'Earnings',       sub: 'Revenue & payouts',                     icon: 'trending-up-outline',      lib: 'ion', color: C.g600,   route: 'EarningsScreen' },
     { label: 'P2P Market',     sub: 'Trade fleet',                           icon: 'swap-horizontal-outline',  lib: 'ion', color: C.teal,   route: 'P2PDashboard' },
+    { label: 'B2B',            sub: 'Marketplace',                           icon: 'briefcase-outline',        lib: 'ion', color: C.cyan,   route: 'B2BDashboard' },
+    { label: 'Live Tracking',  sub: 'Driver GPS',                            icon: 'navigate-outline',         lib: 'ion', color: C.red,    route: 'VendorTracking' },
   ];
 
   const pendingActions = [
@@ -306,6 +370,16 @@ export default function DashboardScreen({ navigation }) {
 
   const growth   = earnings?.growth ?? 0;
   const positive = growth >= 0;
+
+  // Header: show the revenue card only once the vendor is actually earning
+  // (≥ ₹5K this month). Until then the header is action-focused — what a
+  // vendor opens the app for: new inquiries + bookings to act on.
+  const showEarnings = (earnings?.thisMonth || 0) >= 5000;
+  const headerStats = [
+    { label: 'Inquiries', value: inquiriesTotal,               icon: 'mail-unread-outline',    route: 'AllInquiries', hot: inquiriesTotal > 0 },
+    { label: 'Ongoing',   value: bookingsData?.active ?? 0,    icon: 'flash-outline',          route: 'AllBookings', params: { initialTab: 'ongoing' } },
+    { label: 'Completed', value: bookingsData?.completed ?? 0, icon: 'checkmark-done-outline', route: 'AllBookings', params: { initialTab: 'completed' } },
+  ];
 
   // ── Loading skeleton ───────────────────────────────────────────
   if (loading) {
@@ -357,26 +431,14 @@ export default function DashboardScreen({ navigation }) {
 
         {/* Body skeleton */}
         <View style={{ paddingHorizontal: 16, paddingTop: 18, gap: 22 }}>
-          {/* Metrics row */}
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {[0,1,2,3].map(i => (
-              <View key={i} style={sk.metricCard}>
-                <Bone w={28} h={28} r={8} style={{ marginBottom: 8 }} />
-                <Bone w={30} h={18} r={4} style={{ marginBottom: 4 }} />
-                <Bone w={36} h={9} r={3} style={{ marginBottom: 2 }} />
-                <Bone w={28} h={8} r={3} />
-              </View>
-            ))}
-          </View>
-
           {/* Quick actions */}
           <View style={{ gap: 10 }}>
             <Bone w={110} h={13} r={5} />
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-              {[0,1,2,3,4,5,6,7,8,9].map(i => (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, columnGap: 6 }}>
+              {[0,1,2,3,4,5,6,7].map(i => (
                 <View key={i} style={[sk.qaItem, { width: QA_W }]}>
-                  <Bone w={48} h={48} r={24} style={{ marginBottom: 5 }} />
-                  <Bone w={QA_W - 4} h={9} r={3} />
+                  <Bone w={56} h={56} r={28} style={{ marginBottom: 6 }} />
+                  <Bone w={QA_W - 12} h={9} r={3} />
                 </View>
               ))}
             </View>
@@ -452,8 +514,26 @@ export default function DashboardScreen({ navigation }) {
               </View>
             </View>
 
-            {/* Earnings (approved) */}
-            {isApproved && (
+            {/* Action stats (approved, revenue still ramping) — vendor's
+                first-glance: inquiries to quote + bookings to run. */}
+            {isApproved && !showEarnings && (
+              <View style={s.statRow}>
+                {headerStats.map((st, i) => (
+                  <TouchableOpacity key={i} style={s.statCard} activeOpacity={0.8}
+                    onPress={() => navigation.navigate(st.route, st.params)}>
+                    <View style={s.statTop}>
+                      <Ionicons name={st.icon} size={15} color="rgba(255,255,255,0.85)" />
+                      {st.hot && <View style={s.statHotDot} />}
+                    </View>
+                    <Text style={s.statVal}>{st.value}</Text>
+                    <Text style={s.statLbl}>{st.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Earnings (approved, ₹5K+ this month) */}
+            {isApproved && showEarnings && (
               <TouchableOpacity onPress={() => navigation.navigate('EarningsScreen')}
                 activeOpacity={0.88} style={s.earningsCard}>
                 <View style={s.earningsTop}>
@@ -481,7 +561,7 @@ export default function DashboardScreen({ navigation }) {
                     <React.Fragment key={i}>
                       {i > 0 && <View style={s.vLine} />}
                       <View style={s.miniCell}>
-                        <Text style={[s.miniVal, m.accent && { color: C.g400, fontSize: 11 }]}>{m.v}</Text>
+                        <Text style={[s.miniVal, m.accent && { color: C.g400, fontSize: 13 }]}>{m.v}</Text>
                         <Text style={s.miniLbl}>{m.l}</Text>
                       </View>
                     </React.Fragment>
@@ -527,19 +607,70 @@ export default function DashboardScreen({ navigation }) {
         ══════════════════════════════════════════ */}
         <View style={s.body}>
 
-          {/* ── Metrics strip ────────────────────────── */}
-          {isApproved && (
-            <View style={s.metricsRow}>
-              {metrics.map((m, i) => (
-                <View key={i} style={s.metricCard}>
-                  <View style={[s.metricIconBox, { backgroundColor: m.bg }]}>
-                    <Ico lib={m.lib} name={m.icon} size={15} color={m.color} />
-                  </View>
-                  <Text style={s.metricVal}>{m.value}</Text>
-                  <Text style={s.metricLbl}>{m.label}</Text>
-                  <Text style={s.metricUnit}>{m.unit}</Text>
+          {/* ── New Inquiries ───────────────────────────────────────
+              Sits first so vendors see action items "at first sight".
+              Live data: open quote-requests across the vendor's approved
+              services, merged + newest-first (see api/inquiriesApi). */}
+          {isApproved && inquiries.length > 0 && (
+            <View style={s.section}>
+              <View style={s.sectionRow}>
+                <Text style={s.sectionTitle}>New Inquiries</Text>
+                <View style={s.inqCountPill}>
+                  <View style={s.inqLiveDot} />
+                  <Text style={s.inqCountTxt}>{inquiriesTotal} new</Text>
                 </View>
-              ))}
+              </View>
+
+              <View style={{ gap: 10 }}>
+                {inquiries.map((q) => {
+                  const meta = SVC_META[q.service] || { icon: 'help-circle', color: C.muted };
+                  return (
+                    <TouchableOpacity key={q.id} style={s.inqCard} activeOpacity={0.85}
+                      onPress={() => openInquiryDetail(q)}>
+                      {/* Top: service + summary + time/urgency */}
+                      <View style={s.inqTop}>
+                        <View style={[s.inqIconBox, { backgroundColor: meta.color + '14' }]}>
+                          <MaterialCommunityIcons name={meta.icon} size={20} color={meta.color} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.inqTitle} numberOfLines={1}>{q.title}</Text>
+                          {!!q.sub && <Text style={s.inqSub} numberOfLines={1}>{q.sub}</Text>}
+                        </View>
+                        {q.urgent ? (
+                          <View style={s.inqUrgent}>
+                            <Ionicons name="time-outline" size={10} color={C.red} />
+                            <Text style={s.inqUrgentTxt}>{q.expiry}</Text>
+                          </View>
+                        ) : (
+                          <Text style={s.inqAgo}>{q.ago}</Text>
+                        )}
+                      </View>
+
+                      {/* Bottom: customer + action */}
+                      <View style={s.inqBottom}>
+                        <View style={s.inqCustomer}>
+                          <View style={s.inqAvatar}>
+                            <Text style={s.inqAvatarTxt}>{q.customer.charAt(0)}</Text>
+                          </View>
+                          <Text style={s.inqCustomerTxt} numberOfLines={1}>{q.customer}</Text>
+                        </View>
+                        <TouchableOpacity activeOpacity={0.85}
+                          style={[s.inqBtn, q.accept && { backgroundColor: C.blue }]}
+                          onPress={() => handleInquiryAction(q)}>
+                          <Ionicons name={q.accept ? 'checkmark-circle-outline' : 'pricetag-outline'} size={13} color="#fff" />
+                          <Text style={s.inqBtnTxt}>{q.accept ? 'Accept' : 'Send Quote'}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <TouchableOpacity style={s.inqViewAll} activeOpacity={0.7}
+                onPress={() => navigation.navigate('AllInquiries')}>
+                <Text style={s.inqViewAllTxt}>View all inquiries</Text>
+                <Ionicons name="arrow-forward" size={13} color={C.g700} />
+              </TouchableOpacity>
             </View>
           )}
 
@@ -633,9 +764,9 @@ export default function DashboardScreen({ navigation }) {
                 <TouchableOpacity key={i} style={s.qaItem}
                   onPress={() => navigation.navigate(qa.route)} activeOpacity={0.7}>
                   <View style={[s.qaCircle, { backgroundColor: qa.color + '14' }]}>
-                    <Ico lib={qa.lib} name={qa.icon} size={20} color={qa.color} />
+                    <Ico lib={qa.lib} name={qa.icon} size={26} color={qa.color} />
                   </View>
-                  <Text style={s.qaLabel}>{qa.label}</Text>
+                  <Text style={s.qaLabel} numberOfLines={2}>{qa.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -813,12 +944,12 @@ const sk = StyleSheet.create({
 });
 
 const CARD_W = (W - 32 - 10) / 2;   // 2-col grid with 10 gap
-const QA_W   = (W - 32 - 36) / 5;   // 5 per row
+const QA_W   = (W - 32 - 18) / 4;   // 4 per row (16+16 padding, 3 gaps of 6 → 8 actions = balanced 4+4)
 
 const s = StyleSheet.create({
 
   // ── Header ───────────────────────────────────────────────────
-  hero: { paddingHorizontal: 16, paddingBottom: 24, overflow: 'hidden' },
+  hero: { paddingHorizontal: 16, paddingBottom: 14, overflow: 'hidden' },
   deco1: {
     position: 'absolute', width: 200, height: 200, borderRadius: 100,
     backgroundColor: 'rgba(52,211,153,0.07)', top: -60, right: -40,
@@ -827,7 +958,7 @@ const s = StyleSheet.create({
     position: 'absolute', width: 130, height: 130, borderRadius: 65,
     backgroundColor: 'rgba(16,185,129,0.05)', bottom: 0, left: W * 0.35,
   },
-  topBar:   { flexDirection: 'row', alignItems: 'center', paddingTop: 10, marginBottom: 18 },
+  topBar:   { flexDirection: 'row', alignItems: 'center', paddingTop: 8, marginBottom: 12 },
   topLeft:  { flexDirection: 'row', alignItems: 'center', flex: 1 },
   topRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   greeting: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '600', letterSpacing: 0.3 },
@@ -859,26 +990,34 @@ const s = StyleSheet.create({
   // ── Earnings card ──────────────────────────────────────────
   earningsCard: {
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 16, padding: 16,
+    borderRadius: 16, padding: 14,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)',
   },
   earningsTop: {
     flexDirection: 'row', alignItems: 'flex-end',
-    justifyContent: 'space-between', marginBottom: 14,
+    justifyContent: 'space-between', marginBottom: 12,
   },
-  earningsLbl: { fontSize: 9, color: 'rgba(255,255,255,0.45)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 4 },
-  earningsAmt: { fontSize: 32, fontWeight: '900', color: '#fff', letterSpacing: -1 },
-  growthPill:  { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 20 },
-  growthTxt:   { fontSize: 11, fontWeight: '800' },
+  earningsLbl: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: '700', letterSpacing: 1.5, marginBottom: 3 },
+  earningsAmt: { fontSize: 36, fontWeight: '900', color: '#fff', letterSpacing: -1 },
+  growthPill:  { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
+  growthTxt:   { fontSize: 13, fontWeight: '800' },
   miniStrip: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.13)', borderRadius: 10,
-    paddingVertical: 9, paddingHorizontal: 10,
+    paddingVertical: 11, paddingHorizontal: 10,
   },
-  vLine:    { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 6 },
+  vLine:    { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 6 },
   miniCell: { flex: 1, alignItems: 'center' },
-  miniVal:  { fontSize: 12, fontWeight: '800', color: '#fff', marginBottom: 1 },
-  miniLbl:  { fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.38)' },
+  miniVal:  { fontSize: 15, fontWeight: '800', color: '#fff', marginBottom: 2 },
+  miniLbl:  { fontSize: 9.5, fontWeight: '600', color: 'rgba(255,255,255,0.5)' },
+
+  // ── Header action stat cards (shown until revenue ≥ ₹5K) ────
+  statRow:    { flexDirection: 'row', gap: 8 },
+  statCard:   { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14, padding: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.13)' },
+  statTop:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, minHeight: 15 },
+  statHotDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#FCA5A5' },
+  statVal:    { fontSize: 24, fontWeight: '900', color: '#fff', letterSpacing: -0.5 },
+  statLbl:    { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.55)', marginTop: 2 },
 
   // ── Progress (pending) ──────────────────────────────────────
   progressBlock:  { marginBottom: 2 },
@@ -927,11 +1066,39 @@ const s = StyleSheet.create({
   metricLbl:  { fontSize: 9,  fontWeight: '700', color: C.sub },
   metricUnit: { fontSize: 8.5,fontWeight: '500', color: C.muted },
 
+  // ── New Inquiries (mockup) ────────────────────────────────────
+  inqCountPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 20, backgroundColor: C.redL, borderWidth: 1, borderColor: '#FECACA' },
+  inqLiveDot:   { width: 6, height: 6, borderRadius: 3, backgroundColor: C.red },
+  inqCountTxt:  { fontSize: 10, fontWeight: '800', color: C.red },
+  inqCard: {
+    backgroundColor: C.card, borderRadius: 14, padding: 13,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+  },
+  inqTop:     { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  inqIconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  inqTitle:   { fontSize: 13, fontWeight: '800', color: C.text },
+  inqSub:     { fontSize: 11, color: C.sub, marginTop: 2 },
+  inqAgo:     { fontSize: 10, color: C.muted, fontWeight: '600' },
+  inqUrgent:  { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: C.redL, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10 },
+  inqUrgentTxt: { fontSize: 9, fontWeight: '800', color: C.red },
+  inqBottom:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 11, borderTopWidth: 1, borderTopColor: C.border },
+  inqCustomer:    { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  inqAvatar:      { width: 26, height: 26, borderRadius: 13, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
+  inqAvatarTxt:   { fontSize: 11, fontWeight: '800', color: C.g700 },
+  inqCustomerTxt: { fontSize: 12, fontWeight: '600', color: C.text, flex: 1 },
+  inqBtn:    { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: C.g600, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
+  inqBtnTxt: { fontSize: 12, fontWeight: '800', color: '#fff' },
+  inqViewAll:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12, paddingVertical: 11, borderRadius: 12, backgroundColor: C.g50, borderWidth: 1, borderColor: C.g100 },
+  inqViewAllTxt: { fontSize: 12, fontWeight: '800', color: C.g700 },
+
   // ── Quick Actions ─────────────────────────────────────────────
-  qaRow:    { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  qaItem:   { width: QA_W, alignItems: 'center', marginBottom: 2 },
-  qaCircle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 5 },
-  qaLabel:  { fontSize: 9, fontWeight: '700', color: C.sub, textAlign: 'center', lineHeight: 12 },
+  qaRow:    { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, columnGap: 6 },
+  qaItem:   { width: QA_W, alignItems: 'center' },
+  qaCircle: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  // fixed 2-line height so 1-word and 2-word labels keep every cell aligned
+  qaLabel:  { fontSize: 9, fontWeight: '700', color: C.sub, textAlign: 'center', lineHeight: 12, height: 24 },
 
   // ── Services ──────────────────────────────────────────────────
   svcGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },

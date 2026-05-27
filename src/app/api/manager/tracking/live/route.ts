@@ -1,0 +1,150 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/auth-options';
+import { prisma } from '@/lib/db/prisma';
+import { resolveAssetUrl } from '@/lib/utils';
+import logger from '@/lib/security/logger';
+
+export const dynamic = 'force-dynamic';
+
+const STALE_MS = 2 * 60 * 1000;
+
+function deriveStatus(d: any): 'moving' | 'idle' | 'offline' {
+  if (!d.isSharingLocation || !d.locationUpdatedAt) return 'offline';
+  if (Date.now() - new Date(d.locationUpdatedAt).getTime() > STALE_MS) return 'offline';
+  return (d.currentSpeed ?? 0) > 1.4 ? 'moving' : 'idle';
+}
+
+// Vendors have no GPS — they're plotted at their city's coordinates. A
+// deterministic per-vendor jitter (~±2km) keeps multiple vendors in the same
+// city from stacking on one point.
+function jitter(seed: string, lat: number, lng: number) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) & 0x7fffffff;
+  const dLat = ((h % 1000) / 1000 - 0.5) * 0.04;
+  const dLng = (((h >> 10) % 1000) / 1000 - 0.5) * 0.04;
+  return { lat: lat + dLat, lng: lng + dLng };
+}
+
+// GET /api/manager/tracking/live
+// Manager-scoped live tracking: every driver (live GPS) and vendor (at city
+// coords) within the manager's assigned locations. Powers /manager/tracking.
+export async function GET(_request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const manager = await prisma.admin_users.findUnique({
+      where: { id: session.user.id },
+      include: { manager_locations: { include: { locations: true } } },
+    });
+    if (!manager || manager.role !== 'MANAGER') {
+      return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 });
+    }
+
+    // City name → coords (skip locations without coordinates).
+    const coordsByCity = new Map<string, { lat: number; lng: number }>();
+    for (const ml of manager.manager_locations) {
+      const l = ml.locations;
+      if (l.latitude != null && l.longitude != null && !coordsByCity.has(l.name)) {
+        coordsByCity.set(l.name, { lat: l.latitude, lng: l.longitude });
+      }
+    }
+    const cityNames = Array.from(coordsByCity.keys());
+
+    if (cityNames.length === 0) {
+      return NextResponse.json({ success: true, vendors: [], drivers: [], stats: { vendors: 0, drivers: 0, driversLive: 0 } });
+    }
+
+    // Vendors in scope
+    const vendorRows = await prisma.vendors.findMany({
+      where: { city: { in: cityNames } },
+      select: { id: true, businessName: true, city: true, status: true, logo: true, slug: true },
+    });
+    const vendorIds = vendorRows.map((v) => v.id);
+
+    // Driver counts per vendor + vendor-staff driver rows (live GPS) +
+    // independent drivers (platform pool, also live GPS) — all in parallel.
+    const [driverCounts, driverRows, indieRows] = await Promise.all([
+      prisma.vendor_staff.groupBy({
+        by: ['vendorId'],
+        where: { vendorId: { in: vendorIds }, role: 'DRIVER' },
+        _count: { _all: true },
+      }),
+      prisma.vendor_staff.findMany({
+        where: { vendorId: { in: vendorIds }, role: 'DRIVER', currentLat: { not: null }, currentLng: { not: null } },
+        select: {
+          id: true, name: true, phone: true, profilePhoto: true, vendorId: true,
+          isSharingLocation: true, currentLat: true, currentLng: true, currentHeading: true,
+          currentSpeed: true, locationUpdatedAt: true,
+          vendors: { select: { businessName: true } },
+        },
+      }),
+      // Independent drivers aren't tied to a vendor/city, so they're shown
+      // platform-wide once they share a live location.
+      prisma.drivers.findMany({
+        where: { status: 'ACTIVE', currentLat: { not: null }, currentLng: { not: null } },
+        select: {
+          id: true, name: true, phone: true, profilePhoto: true,
+          isSharingLocation: true, currentLat: true, currentLng: true, currentHeading: true,
+          currentSpeed: true, locationUpdatedAt: true,
+        },
+      }),
+    ]);
+    const countByVendor = new Map(driverCounts.map((c) => [c.vendorId, c._count._all]));
+
+    const vendors = vendorRows
+      .filter((v) => v.city && coordsByCity.has(v.city))
+      .map((v) => {
+        const base = coordsByCity.get(v.city as string)!;
+        const pos = jitter(v.id, base.lat, base.lng);
+        return {
+          id: v.id,
+          name: v.businessName,
+          city: v.city,
+          status: v.status,
+          logo: v.logo ? resolveAssetUrl(v.logo) : null,
+          slug: v.slug,
+          driverCount: countByVendor.get(v.id) || 0,
+          lat: pos.lat,
+          lng: pos.lng,
+        };
+      });
+
+    const mapDriver = (d: any, vendorName: string | null, independent: boolean) => ({
+      id: d.id,
+      name: d.name,
+      phone: d.phone,
+      profilePhoto: d.profilePhoto ? resolveAssetUrl(d.profilePhoto) : null,
+      vendorName,
+      independent,
+      status: deriveStatus(d),
+      speed: d.currentSpeed != null ? Math.round(d.currentSpeed * 3.6) : 0,
+      heading: d.currentHeading ?? 0,
+      lat: d.currentLat,
+      lng: d.currentLng,
+      updatedAt: d.locationUpdatedAt,
+    });
+
+    const drivers = [
+      ...driverRows.map((d) => mapDriver(d, d.vendors?.businessName ?? null, false)),
+      ...indieRows.map((d) => mapDriver(d, 'Independent', true)),
+    ];
+
+    return NextResponse.json({
+      success: true,
+      vendors,
+      drivers,
+      stats: {
+        vendors: vendors.length,
+        drivers: drivers.length,
+        vendorDrivers: drivers.filter((d) => !d.independent).length,
+        independentDrivers: drivers.filter((d) => d.independent).length,
+        driversLive: drivers.filter((d) => d.status !== 'offline').length,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Manager live tracking fetch failed', error);
+    return NextResponse.json({ error: 'Failed to load tracking' }, { status: 500 });
+  }
+}

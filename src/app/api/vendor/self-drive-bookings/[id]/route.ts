@@ -36,6 +36,16 @@ export async function GET(
       include: {
         locations: { select: { name: true, slug: true } },
         self_drive_quote_requests: { select: { numberOfVehicles: true } },
+        // Accepted quote → full terms (inclusions/exclusions/km/etc.)
+        self_drive_quotes: {
+          select: {
+            quoteNumber: true, vehicleName: true, vehicleCategory: true,
+            dailyRate: true, securityDeposit: true, grandTotal: true,
+            advancePercent: true, advanceAmount: true, kmLimitPerDay: true,
+            inclusions: true, exclusions: true, termsConditions: true,
+            vendorMessage: true, validTill: true,
+          },
+        },
       },
     });
 
@@ -117,6 +127,24 @@ export async function GET(
         cancellationReason: booking.cancellationReason,
         refundAmount: booking.refundAmount,
         paidAmount: booking.paidAmount,
+        // Full accepted-quote terms for the "Quote Details" section
+        quote: (booking as any).self_drive_quotes ? {
+          quoteNumber:     (booking as any).self_drive_quotes.quoteNumber,
+          vehicleName:     (booking as any).self_drive_quotes.vehicleName,
+          vehicleCategory: (booking as any).self_drive_quotes.vehicleCategory,
+          dailyRate:       (booking as any).self_drive_quotes.dailyRate,
+          securityDeposit: (booking as any).self_drive_quotes.securityDeposit,
+          grandTotal:      (booking as any).self_drive_quotes.grandTotal,
+          advancePercent:  (booking as any).self_drive_quotes.advancePercent,
+          advanceAmount:   (booking as any).self_drive_quotes.advanceAmount,
+          kmLimitPerDay:   (booking as any).self_drive_quotes.kmLimitPerDay,
+          unlimitedKm:     (booking as any).self_drive_quotes.kmLimitPerDay === 0 || (booking as any).self_drive_quotes.kmLimitPerDay === null,
+          inclusions:      (booking as any).self_drive_quotes.inclusions,
+          exclusions:      (booking as any).self_drive_quotes.exclusions,
+          termsConditions: (booking as any).self_drive_quotes.termsConditions,
+          vendorMessage:   (booking as any).self_drive_quotes.vendorMessage,
+          validTill:       (booking as any).self_drive_quotes.validTill?.toISOString() || null,
+        } : null,
       },
     });
   } catch (error: any) {

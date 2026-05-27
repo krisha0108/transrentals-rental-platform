@@ -33,6 +33,9 @@ import NotVerifiedModal from './screens/vendor/auth/NotVerifiedModal';
 
 // Dashboard
 import DashboardScreen from './screens/vendor/dashboard/DashboardScreen';
+import AllInquiriesScreen from './screens/vendor/dashboard/AllInquiriesScreen';
+import AllBookingsScreen from './screens/vendor/dashboard/AllBookingsScreen';
+import TrackingScreen from './screens/vendor/tracking/TrackingScreen';
 
 // Profile & Settings
 import ProfileScreen from './screens/vendor/profile/ProfileScreen';
@@ -732,6 +735,15 @@ export default function App() {
             {/* Quote Requests - now service-specific */}
             {/* Main Bookings Tab Screen (shows all bookings) */}
             <Stack.Screen name="BookingsListScreen" component={BookingsListScreen} />
+
+            {/* Unified Inquiries inbox (mockup) */}
+            <Stack.Screen name="AllInquiries" component={AllInquiriesScreen} />
+
+            {/* Unified Bookings list (ongoing / completed) */}
+            <Stack.Screen name="AllBookings" component={AllBookingsScreen} />
+
+            {/* Live GPS tracking */}
+            <Stack.Screen name="VendorTracking" component={TrackingScreen} />
 
             {/* Fleet Screens */}
             <Stack.Screen name="VehicleDetailScreen" component={VehicleDetailScreen} />

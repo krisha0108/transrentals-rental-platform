@@ -1,0 +1,269 @@
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  StatusBar, RefreshControl, ActivityIndicator,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { getVendorEarnings } from '../../api/client';
+
+const C = {
+  g900: '#022C22', g800: '#065F46', g700: '#047857',
+  g600: '#059669', g500: '#10B981', g400: '#34D399',
+  g100: '#D1FAE5', g50:  '#ECFDF5',
+  bg:     '#F1F5F9', card: '#FFFFFF', border: '#E2E8F0',
+  text:   '#0F172A', sub: '#475569', muted: '#94A3B8',
+  blue:    '#2563EB', purple: '#7C3AED', amber: '#D97706',
+  red:     '#DC2626', orange: '#EA580C',
+  indigo:  '#4F46E5', teal: '#0D9488', pink: '#DB2777', cyan: '#0891B2',
+};
+
+// service tag (from earnings.bookingsList) → icon/color + detail screen
+const SVC_META = {
+  bike:         { name: 'Bike',       icon: 'motorbike',       color: C.amber,  screen: 'BikeBookingDetail',       st: 'bike' },
+  'self-drive': { name: 'Self Drive', icon: 'car-side',        color: C.cyan,   screen: 'SelfDriveBookingDetail',  st: 'self-drive' },
+  'car-rental': { name: 'Car Rental', icon: 'car',             color: C.g600,   screen: 'CarRentalBookingDetail',  st: 'car' },
+  bus:          { name: 'Bus',        icon: 'bus',             color: C.pink,   screen: 'BusBookingDetail',        st: 'bus' },
+  truck:        { name: 'Transporter',icon: 'truck-delivery',  color: C.orange, screen: 'TruckBookingDetail',      st: 'truck' },
+  packers:      { name: 'Packers',    icon: 'package-variant', color: C.purple, screen: 'PackersBookingDetail',    st: 'packers' },
+  equipment:    { name: 'Equipment',  icon: 'crane',           color: C.indigo, screen: 'EquipmentBookingDetail',  st: 'equipment' },
+  luxury:       { name: 'Luxury',     icon: 'car-sports',      color: C.blue,   screen: 'LuxuryBookingDetail',     st: 'luxury' },
+};
+
+const STATUS_META = {
+  COMPLETED:        { label: 'Completed',    color: C.g600 },
+  IN_PROGRESS:      { label: 'In Progress',  color: C.purple },
+  IN_TRANSIT:       { label: 'In Transit',   color: C.purple },
+  LOADING:          { label: 'Loading',      color: C.purple },
+  UNLOADING:        { label: 'Unloading',    color: C.purple },
+  READY_FOR_PICKUP: { label: 'Ready',        color: C.blue },
+  ACCEPTED:         { label: 'Accepted',     color: C.amber },
+  CONFIRMED:        { label: 'Confirmed',    color: C.amber },
+  DRIVER_ASSIGNED:  { label: 'Driver Set',   color: C.amber },
+  VEHICLE_ASSIGNED: { label: 'Vehicle Set',  color: C.amber },
+  ADVANCE_PAID:     { label: 'Advance Paid', color: C.amber },
+};
+
+const fmtDate = (d) => {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }); }
+  catch { return ''; }
+};
+const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`;
+
+export default function AllBookingsScreen({ navigation, route }) {
+  const [list, setList]             = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [tab, setTab]               = useState(route?.params?.initialTab === 'completed' ? 'completed' : 'ongoing');
+  const [svcFilter, setSvcFilter]   = useState('all');
+
+  const load = useCallback(async () => {
+    try {
+      const data = await getVendorEarnings();
+      setList(Array.isArray(data?.bookingsList) ? data.bookingsList : []);
+    } catch (_) { /* ignore */ }
+    finally { setLoading(false); }
+  }, []);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
+
+  const tabItems = useMemo(() => list.filter(b =>
+    tab === 'completed' ? b.status === 'COMPLETED' : b.status !== 'COMPLETED'
+  ), [list, tab]);
+
+  const ongoingCount   = useMemo(() => list.filter(b => b.status !== 'COMPLETED').length, [list]);
+  const completedCount = useMemo(() => list.filter(b => b.status === 'COMPLETED').length, [list]);
+
+  const serviceFilters = useMemo(() => {
+    const present = new Set();
+    tabItems.forEach(b => present.add(b.service));
+    return ['all', ...present];
+  }, [tabItems]);
+
+  const filtered = useMemo(
+    () => tabItems.filter(b => svcFilter === 'all' || b.service === svcFilter),
+    [tabItems, svcFilter],
+  );
+
+  const openDetail = (b) => {
+    const meta = SVC_META[b.service];
+    if (meta?.screen) navigation.navigate(meta.screen, { bookingId: b.id, serviceType: meta.st });
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.g900} />
+
+      {/* Header */}
+      <LinearGradient colors={[C.g900, '#064E3B', C.g700]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hero}>
+        <SafeAreaView edges={['top']}>
+          <View style={s.headerRow}>
+            <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.75}>
+              <Ionicons name="chevron-back" size={20} color="#fff" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={s.headerTitle}>Bookings</Text>
+              <Text style={s.headerSub}>Across all your services</Text>
+            </View>
+          </View>
+
+          <View style={s.toggle}>
+            {[
+              { key: 'ongoing',   label: 'Ongoing',   count: ongoingCount },
+              { key: 'completed', label: 'Completed', count: completedCount },
+            ].map(t => {
+              const active = tab === t.key;
+              return (
+                <TouchableOpacity key={t.key} activeOpacity={0.8}
+                  style={[s.toggleBtn, active && s.toggleBtnActive]} onPress={() => setTab(t.key)}>
+                  <Text style={[s.toggleTxt, active && s.toggleTxtActive]}>{t.label}</Text>
+                  <View style={[s.togglePill, active && s.togglePillActive]}>
+                    <Text style={[s.togglePillTxt, active && s.togglePillTxtActive]}>{t.count}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* Service filter chips */}
+      {serviceFilters.length > 1 && (
+        <View style={s.chipsWrap}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
+            {serviceFilters.map(f => {
+              const active = svcFilter === f;
+              const meta = SVC_META[f];
+              return (
+                <TouchableOpacity key={f} activeOpacity={0.8}
+                  style={[s.chip, active && s.chipActive]} onPress={() => setSvcFilter(f)}>
+                  {meta && <MaterialCommunityIcons name={meta.icon} size={13} color={active ? '#fff' : meta.color} />}
+                  <Text style={[s.chipTxt, active && s.chipTxtActive]}>{f === 'all' ? 'All' : meta?.name || f}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* List */}
+      {loading ? (
+        <View style={s.empty}>
+          <ActivityIndicator size="large" color={C.g600} />
+          <Text style={[s.emptySub, { marginTop: 12 }]}>Loading bookings…</Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g500]} tintColor={C.g400} />}>
+          {filtered.length === 0 ? (
+            <View style={s.empty}>
+              <View style={s.emptyIcon}>
+                <Ionicons name="cube-outline" size={28} color={C.muted} />
+              </View>
+              <Text style={s.emptyTitle}>No {tab} bookings</Text>
+              <Text style={s.emptySub}>
+                {tab === 'ongoing' ? 'Active bookings will show up here.' : 'Completed trips will appear here.'}
+              </Text>
+            </View>
+          ) : (
+            filtered.map((b) => {
+              const meta = SVC_META[b.service] || { name: b.serviceName || b.service, icon: 'cube', color: C.muted };
+              const sm   = STATUS_META[b.status] || { label: b.status, color: C.muted };
+              return (
+                <TouchableOpacity key={`${b.service}:${b.id}`} style={s.card} activeOpacity={0.85}
+                  onPress={() => openDetail(b)}>
+                  <View style={s.cardTop}>
+                    <View style={[s.iconBox, { backgroundColor: meta.color + '14' }]}>
+                      <MaterialCommunityIcons name={meta.icon} size={20} color={meta.color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.cardTitle} numberOfLines={1}>{meta.name}{b.bookingNumber ? ` · ${b.bookingNumber}` : ''}</Text>
+                      {!!b.location && <Text style={s.cardSub} numberOfLines={1}>{b.location}</Text>}
+                    </View>
+                    <View style={[s.statusPill, { backgroundColor: sm.color + '14' }]}>
+                      <Text style={[s.statusTxt, { color: sm.color }]}>{sm.label}</Text>
+                    </View>
+                  </View>
+                  <View style={s.cardBottom}>
+                    <View style={s.customer}>
+                      <View style={s.avatar}><Text style={s.avatarTxt}>{(b.customerName || 'C').charAt(0)}</Text></View>
+                      <Text style={s.customerTxt} numberOfLines={1}>{b.customerName || 'Customer'}</Text>
+                    </View>
+                    <View style={s.metaRight}>
+                      {!!b.date && <Text style={s.dateTxt}>{fmtDate(b.date)}</Text>}
+                      {b.amount > 0 && <Text style={s.amountTxt}>{money(b.amount)}</Text>}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  hero:        { paddingHorizontal: 16, paddingBottom: 16 },
+  headerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 8, marginBottom: 18 },
+  backBtn:     { width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.13)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: '900', color: '#fff', letterSpacing: -0.3 },
+  headerSub:   { fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: '600', marginTop: 2 },
+
+  toggle:          { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: 12, padding: 4, gap: 4 },
+  toggleBtn:       { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9, borderRadius: 9 },
+  toggleBtnActive: { backgroundColor: '#fff' },
+  toggleTxt:       { fontSize: 13, fontWeight: '800', color: 'rgba(255,255,255,0.7)' },
+  toggleTxtActive: { color: C.g800 },
+  togglePill:      { minWidth: 20, paddingHorizontal: 6, height: 18, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  togglePillActive:{ backgroundColor: C.g100 },
+  togglePillTxt:   { fontSize: 10, fontWeight: '800', color: '#fff' },
+  togglePillTxtActive: { color: C.g700 },
+
+  chipsWrap: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
+  chipsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
+  chip:      { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
+  chipActive:{ backgroundColor: C.g600, borderColor: C.g600 },
+  chipTxt:   { fontSize: 12, fontWeight: '700', color: C.sub },
+  chipTxtActive: { color: '#fff' },
+
+  body: { paddingHorizontal: 16, paddingTop: 14, gap: 10 },
+
+  card: {
+    backgroundColor: C.card, borderRadius: 14, padding: 13, borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+  },
+  cardTop:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  iconBox:   { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontSize: 12.5, fontWeight: '800', color: C.text },
+  cardSub:   { fontSize: 11, color: C.sub, marginTop: 2 },
+  statusPill:{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  statusTxt: { fontSize: 9.5, fontWeight: '800' },
+
+  cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 11, borderTopWidth: 1, borderTopColor: C.border },
+  customer:    { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  avatar:      { width: 26, height: 26, borderRadius: 13, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
+  avatarTxt:   { fontSize: 11, fontWeight: '800', color: C.g700 },
+  customerTxt: { fontSize: 12, fontWeight: '600', color: C.text, flex: 1 },
+  metaRight:   { alignItems: 'flex-end' },
+  dateTxt:     { fontSize: 10, color: C.muted, fontWeight: '600' },
+  amountTxt:   { fontSize: 13, fontWeight: '800', color: C.g700, marginTop: 1 },
+
+  empty:      { alignItems: 'center', paddingTop: 60, gap: 6 },
+  emptyIcon:  { width: 60, height: 60, borderRadius: 30, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  emptyTitle: { fontSize: 15, fontWeight: '800', color: C.text, textTransform: 'capitalize' },
+  emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center' },
+});

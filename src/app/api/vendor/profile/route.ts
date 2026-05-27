@@ -34,6 +34,8 @@ async function fetchVendorFromDB(vendorId: string) {
       ifscCode: true,
       accountHolderName: true,
       status: true,
+      slug: true,
+      isProfilePublic: true,
       rating: true,
       totalRatings: true,
       createdAt: true,
@@ -183,6 +185,8 @@ export async function PUT(request: NextRequest) {
       accountNumber,
       ifscCode,
       accountHolderName,
+      slug,
+      isProfilePublic,
     } = body;
 
     // ===== INPUT SANITIZATION =====
@@ -228,6 +232,31 @@ export async function PUT(request: NextRequest) {
     if (accountNumber !== undefined) updateData.accountNumber = accountNumber || null;
     if (ifscCode !== undefined) updateData.ifscCode = ifscCode?.toUpperCase() || null;
     if (accountHolderName !== undefined) updateData.accountHolderName = accountHolderName || null;
+    if (isProfilePublic !== undefined) updateData.isProfilePublic = !!isProfilePublic;
+
+    // Public-profile slug (/partner/<slug>). Normalize to a URL-safe form and
+    // guard uniqueness so we return a friendly error instead of a 500.
+    if (slug !== undefined) {
+      const normalized = String(slug || '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      if (!normalized) {
+        updateData.slug = null;
+      } else if (normalized.length < 3) {
+        return NextResponse.json({ error: 'Slug must be at least 3 characters' }, { status: 400 });
+      } else {
+        const clash = await prisma.vendors.findFirst({
+          where: { slug: normalized, NOT: { id: vendorId } },
+          select: { id: true },
+        });
+        if (clash) {
+          return NextResponse.json({ error: 'That profile link is already taken' }, { status: 409 });
+        }
+        updateData.slug = normalized;
+      }
+    }
 
     const vendor = await prisma.vendors.update({
       where: { id: vendorId },
@@ -253,6 +282,8 @@ export async function PUT(request: NextRequest) {
         ifscCode: true,
         accountHolderName: true,
         status: true,
+        slug: true,
+        isProfilePublic: true,
         rating: true,
         totalRatings: true,
         createdAt: true,

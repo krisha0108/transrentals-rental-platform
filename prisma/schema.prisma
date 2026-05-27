@@ -3735,6 +3735,17 @@ model vendor_staff {
   password           String?
   fcmToken           String?                     @db.Text
   lastLoginAt        DateTime?
+  slug               String?                     @unique(map: "vendor_staff_slug_key")
+  bio                String?                     @db.Text
+  yearsExperience    Int?
+  isProfilePublic    Boolean                     @default(true)
+  currentLat         Float?
+  currentLng         Float?
+  currentHeading     Float?
+  currentSpeed       Float?
+  locationAccuracy   Float?
+  locationUpdatedAt  DateTime?
+  isSharingLocation  Boolean                     @default(false)
   b2b_trips          b2b_trips[]
   b2b_quote_vehicles b2b_vendor_quote_vehicles[]
   staff_attendance   staff_attendance[]
@@ -3808,6 +3819,7 @@ model vendors {
   updatedAt                                                       DateTime                         @updatedAt
   fcmToken                                                        String?                          @db.Text
   slug                                                            String?                          @unique(map: "slug")
+  isProfilePublic                                                 Boolean                          @default(true)
   b2b_trips                                                       b2b_trips[]
   b2b_vendor_quotes                                               b2b_vendor_quotes[]
   bike_bookings_bike_bookings_acceptedVendorIdTovendors           bike_bookings[]                  @relation("bike_bookings_acceptedVendorIdTovendors")
@@ -6183,6 +6195,21 @@ model drivers {
   // App
   fcmToken    String?   @db.Text
   lastLoginAt DateTime?
+
+  // Public profile (shareable /captain/<slug> page)
+  slug            String? @unique(map: "drivers_slug_key")
+  bio             String? @db.Text
+  yearsExperience Int?
+  isProfilePublic Boolean @default(true)
+
+  // Live location (current fix only — for active-trip tracking)
+  currentLat        Float?
+  currentLng        Float?
+  currentHeading    Float?
+  currentSpeed      Float?
+  locationAccuracy  Float?
+  locationUpdatedAt DateTime?
+  isSharingLocation Boolean   @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

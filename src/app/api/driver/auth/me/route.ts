@@ -29,6 +29,10 @@ export async function GET(request: NextRequest) {
         licenseExpiry: (driver as any).licenseExpiry,
         status: driver.status,
         userType: (driver as any).userType,
+        slug: (driver as any).slug ?? null,
+        bio: (driver as any).bio ?? null,
+        yearsExperience: (driver as any).yearsExperience ?? null,
+        isProfilePublic: (driver as any).isProfilePublic ?? true,
         vendor: (driver as any).vendors || null,
       },
     });

@@ -45,6 +45,14 @@ const MENU_SECTIONS = [
     ],
   },
   {
+    section: 'Finance',
+    icon: 'wallet-outline',
+    items: [
+      { name: 'Earnings',   icon: 'trending-up', mcIcon: 'cash-multiple',     route: 'EarningsScreen', color: C.g700,   bg: C.g50 },
+      { name: 'Financials', icon: 'bar-chart-2', mcIcon: 'chart-box-outline', route: 'Financials',     color: C.indigo, bg: C.indigoL },
+    ],
+  },
+  {
     section: 'Support',
     icon: 'headset',
     items: [

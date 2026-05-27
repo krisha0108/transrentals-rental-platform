@@ -187,8 +187,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Update vendor status if all required documents are uploaded
-    const requiredTypes = ['PAN_CARD', 'ADDRESS_PROOF'];
+    // Update vendor status once required documents are uploaded.
+    // Only ADDRESS_PROOF is mandatory now — GST & PAN are optional.
+    const requiredTypes = ['ADDRESS_PROOF'];
     const uploadedDocs = await prisma.vendor_documents.findMany({
       where: {
         vendorId: vendorId,

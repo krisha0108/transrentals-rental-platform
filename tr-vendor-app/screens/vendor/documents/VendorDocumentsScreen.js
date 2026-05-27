@@ -32,10 +32,10 @@ const C = {
 };
 
 const DOCUMENT_TYPES = [
-  { type: 'GST_CERTIFICATE',      name: 'GST Certificate',       required: true,  description: 'GST registration certificate',      icon: 'file-certificate-outline', color: C.g700,   bg: C.g50 },
-  { type: 'PAN_CARD',             name: 'PAN Card',              required: true,  description: 'Business or proprietor PAN',         icon: 'card-account-details-outline', color: C.blue,   bg: C.blueL },
+  { type: 'ADDRESS_PROOF',        name: 'Address Proof',         required: true,  description: 'Current address — Aadhaar card, Voter ID, utility bill or rent agreement', icon: 'map-marker-outline',       color: C.orange, bg: C.orangeL },
+  { type: 'GST_CERTIFICATE',      name: 'GST Certificate',       required: false, description: 'Optional — GST registration certificate', icon: 'file-certificate-outline', color: C.g700,   bg: C.g50 },
+  { type: 'PAN_CARD',             name: 'PAN Card',              required: false, description: 'Optional — business or proprietor PAN',    icon: 'card-account-details-outline', color: C.blue,   bg: C.blueL },
   { type: 'BUSINESS_REGISTRATION',name: 'Business Registration', required: false, description: 'Company registration certificate',    icon: 'domain',                   color: C.indigo, bg: C.indigoL },
-  { type: 'ADDRESS_PROOF',        name: 'Address Proof',         required: true,  description: 'Utility bill, rent agreement, etc.', icon: 'map-marker-outline',       color: C.orange, bg: C.orangeL },
   { type: 'CANCELLED_CHEQUE',     name: 'Cancelled Cheque',      required: false, description: 'For bank verification',              icon: 'bank-outline',             color: C.purple, bg: C.purpleL },
   { type: 'OWNER_AADHAAR',        name: 'Owner Aadhaar',         required: false, description: 'Owner/proprietor Aadhaar card',      icon: 'shield-account-outline',   color: C.amber,  bg: C.amberL },
 ];

@@ -129,20 +129,21 @@ export async function GET(
         createdAt: quoteRequest.createdAt,
       },
       quotes: quotes.map((q) => {
-        // Get vehicle images from fleet if available, otherwise use quote's images
-        let vehicleImages = q.vehicleImages;
-        if (q.vendor_fleets?.images) {
-          let fleetImages = typeof q.vendor_fleets.images === 'string'
-            ? (q.vendor_fleets.images === 'null' ? null : JSON.parse(q.vendor_fleets.images))
-            : q.vendor_fleets.images;
-
-          // Convert object {front: "...", back: "..."} to array ["...", "..."]
-          if (fleetImages && typeof fleetImages === 'object' && !Array.isArray(fleetImages)) {
-            vehicleImages = Object.values(fleetImages).filter(img => img);
-          } else if (Array.isArray(fleetImages)) {
-            vehicleImages = fleetImages;
-          } else {
-            vehicleImages = fleetImages;
+        // Resolve images: prefer the linked fleet vehicle's images, else the
+        // quote's own stored images. Normalize BOTH to a plain array so the
+        // final JSON.stringify never double-encodes an already-stringified value.
+        const rawImages = q.vendor_fleets?.images ?? q.vehicleImages;
+        let imageArr: string[] = [];
+        if (rawImages) {
+          let parsed: any = rawImages;
+          if (typeof parsed === 'string') {
+            try { parsed = parsed === 'null' ? null : JSON.parse(parsed); }
+            catch { parsed = null; }
+          }
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            imageArr = Object.values(parsed).filter((img): img is string => !!img);   // {front,back} → [...]
+          } else if (Array.isArray(parsed)) {
+            imageArr = parsed.filter(Boolean);
           }
         }
 
@@ -154,7 +155,7 @@ export async function GET(
           vehicleBrand: q.vehicleBrand,
           vehicleCategory: q.vehicleCategory,
           registrationNumber: q.registrationNumber,
-          vehicleImages: vehicleImages ? JSON.stringify(vehicleImages) : null,
+          vehicleImages: imageArr.length ? JSON.stringify(imageArr) : null,
           vehicleFeatures: q.vehicleFeatures,
           dailyRate: q.dailyRate,
           totalPrice: q.totalPrice,

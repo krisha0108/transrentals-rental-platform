@@ -36,7 +36,11 @@ export async function GET(
     row.assignedDriverId
       ? prisma.vendor_staff.findUnique({
           where: { id: row.assignedDriverId },
-          select: { id: true, name: true, phone: true, profilePhoto: true },
+          select: {
+            id: true, name: true, phone: true, profilePhoto: true, slug: true,
+            isSharingLocation: true, currentLat: true, currentLng: true,
+            currentHeading: true, locationUpdatedAt: true,
+          },
         })
       : null,
     row.assignedVehicleId
@@ -62,6 +66,34 @@ export async function GET(
     } catch (_) {}
   }
 
+  // Only expose the driver's live position while the trip is actually running
+  // and the driver has opted in to sharing — never leak a stale/idle location.
+  const TRIP_ACTIVE = ['confirmed', 'in_progress'].includes(row.status);
+  const liveLocation =
+    assignedDriver &&
+    TRIP_ACTIVE &&
+    (assignedDriver as any).isSharingLocation &&
+    (assignedDriver as any).currentLat != null &&
+    (assignedDriver as any).currentLng != null
+      ? {
+          lat: (assignedDriver as any).currentLat,
+          lng: (assignedDriver as any).currentLng,
+          heading: (assignedDriver as any).currentHeading ?? null,
+          updatedAt: (assignedDriver as any).locationUpdatedAt ?? null,
+        }
+      : null;
+
+  const driverOut = assignedDriver
+    ? {
+        id: assignedDriver.id,
+        name: assignedDriver.name,
+        phone: assignedDriver.phone,
+        profilePhoto: assignedDriver.profilePhoto,
+        slug: (assignedDriver as any).slug ?? null,
+        liveLocation,
+      }
+    : null;
+
   const booking = {
     bookingNumber: row.bookingNumber,
     status: row.status,
@@ -78,7 +110,7 @@ export async function GET(
     bookingSource: row.bookingSource,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
-    assignedDriver,
+    assignedDriver: driverOut,
     assignedVehicle: assignedVehicle ? {
       id: assignedVehicle.id,
       vehicleName: assignedVehicle.vehicleName,

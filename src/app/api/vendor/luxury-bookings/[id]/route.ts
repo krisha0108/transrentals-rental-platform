@@ -49,7 +49,21 @@ export async function GET(
       },
       include: {
         luxury_quote_requests: true,
-        luxury_quotes: true,
+        luxury_quotes: {
+          select: {
+            quoteNumber: true,
+            vehicleName: true,
+            vehicleCategory: true,
+            totalAmount: true,
+            advancePercent: true,
+            advanceAmount: true,
+            inclusions: true,
+            exclusions: true,
+            termsConditions: true,
+            vendorMessage: true,
+            validTill: true,
+          },
+        },
         locations: true,
         customers: {
           select: {
@@ -86,6 +100,20 @@ export async function GET(
       location: booking.locations,
       customer: booking.customers,
       vendor: booking.vendors_luxury_bookings_acceptedVendorIdTovendors || booking.vendors_luxury_bookings_assignedVendorIdTovendors,
+      // Full accepted-quote terms for the "Quote Details" section
+      quote: booking.luxury_quotes ? {
+        quoteNumber:     booking.luxury_quotes.quoteNumber,
+        vehicleName:     booking.luxury_quotes.vehicleName,
+        vehicleCategory: booking.luxury_quotes.vehicleCategory,
+        totalAmount:     booking.luxury_quotes.totalAmount,
+        advancePercent:  booking.luxury_quotes.advancePercent,
+        advanceAmount:   booking.luxury_quotes.advanceAmount,
+        inclusions:      booking.luxury_quotes.inclusions,
+        exclusions:      booking.luxury_quotes.exclusions,
+        termsConditions: booking.luxury_quotes.termsConditions,
+        vendorMessage:   booking.luxury_quotes.vendorMessage,
+        validTill:       booking.luxury_quotes.validTill?.toISOString() || null,
+      } : null,
     };
 
     return NextResponse.json({ success: true, booking: response });

@@ -42,7 +42,20 @@ export async function GET(
             },
           },
         },
-        equipment_quotes: true,
+        equipment_quotes: {
+          select: {
+            quoteNumber: true,
+            dailyRate: true,
+            securityDeposit: true,
+            totalAmount: true,
+            advancePercent: true,
+            advanceAmount: true,
+            inclusions: true,
+            exclusions: true,
+            termsConditions: true,
+            validTill: true,
+          },
+        },
       },
     });
 
@@ -66,7 +79,24 @@ export async function GET(
       pickupCity: locationName,
     };
 
-    return NextResponse.json({ success: true, booking: transformedBooking });
+    return NextResponse.json({
+      success: true,
+      booking: {
+        ...transformedBooking,
+        quote: booking.equipment_quotes ? {
+          quoteNumber:     booking.equipment_quotes.quoteNumber,
+          dailyRate:       booking.equipment_quotes.dailyRate,
+          securityDeposit: booking.equipment_quotes.securityDeposit,
+          totalAmount:     booking.equipment_quotes.totalAmount,
+          advancePercent:  booking.equipment_quotes.advancePercent,
+          advanceAmount:   booking.equipment_quotes.advanceAmount,
+          inclusions:      booking.equipment_quotes.inclusions,
+          exclusions:      booking.equipment_quotes.exclusions,
+          termsConditions: booking.equipment_quotes.termsConditions,
+          validTill:       booking.equipment_quotes.validTill?.toISOString() || null,
+        } : null,
+      },
+    });
   } catch (error: any) {
     logger.error('Failed to fetch vendor equipment booking', error);
     return NextResponse.json({ error: 'Failed to fetch booking', details: error?.message }, { status: 500 });
