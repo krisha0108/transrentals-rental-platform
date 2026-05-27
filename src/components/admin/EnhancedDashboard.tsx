@@ -27,7 +27,7 @@ interface DashboardStats {
   filter: string;
 }
 
-type FilterType = 'today' | 'yesterday' | 'thisMonth' | 'lastMonth' | 'all';
+type FilterType = 'today' | 'yesterday' | 'thisMonth' | 'lastMonth' | 'all' | 'custom';
 
 const filterLabels: Record<FilterType, string> = {
   today: 'Today',
@@ -35,6 +35,7 @@ const filterLabels: Record<FilterType, string> = {
   thisMonth: 'This Month',
   lastMonth: 'Last Month',
   all: 'All Time',
+  custom: 'Custom Date',
 };
 
 // Modern gradient colors for charts
@@ -63,17 +64,26 @@ const GRADIENT_COLORS = [
 export default function EnhancedDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [filter, setFilter] = useState<FilterType>('today');
+  const [customDate, setCustomDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [chartView, setChartView] = useState<'bar' | 'pie'>('bar');
 
   useEffect(() => {
-    fetchStats(filter);
-  }, [filter]);
+    if (filter === 'custom') {
+      if (customDate) fetchStats('custom');
+    } else {
+      fetchStats(filter);
+    }
+  }, [filter, customDate]);
 
   const fetchStats = async (selectedFilter: FilterType) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/admin/dashboard/stats?filter=${selectedFilter}`);
+      let url = `/api/admin/dashboard/stats?filter=${selectedFilter}`;
+      if (selectedFilter === 'custom' && customDate) {
+        url += `&date=${customDate}`;
+      }
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setStats(data);
@@ -92,6 +102,15 @@ export default function EnhancedDashboard() {
       </div>
     );
   }
+
+  const activeLabel =
+    filter === 'custom' && customDate
+      ? new Date(customDate + 'T00:00:00').toLocaleDateString('en-IN', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : filterLabels[filter];
 
   // Prepare chart data with colors
   const bookingsChartData = stats?.bookingsByService
@@ -156,10 +175,20 @@ export default function EnhancedDashboard() {
                 {filterLabels[filterKey]}
               </button>
             ))}
+            {filter === 'custom' && (
+              <input
+                type="date"
+                value={customDate}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setCustomDate(e.target.value)}
+                disabled={loading}
+                className="px-3 py-2 rounded-lg text-sm border border-purple-300 bg-white shadow-sm focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+            )}
           </div>
           <button
             onClick={() => fetchStats(filter)}
-            disabled={loading}
+            disabled={loading || (filter === 'custom' && !customDate)}
             className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -181,7 +210,7 @@ export default function EnhancedDashboard() {
             </div>
             <p className="text-sm font-medium text-blue-100 mb-1">Total Bookings</p>
             <p className="text-4xl font-bold text-white mb-2">{stats?.totalBookings || 0}</p>
-            <p className="text-xs text-blue-100">{filterLabels[filter]}</p>
+            <p className="text-xs text-blue-100">{activeLabel}</p>
           </div>
         </div>
 
@@ -196,7 +225,7 @@ export default function EnhancedDashboard() {
             </div>
             <p className="text-sm font-medium text-purple-100 mb-1">Quote Requests</p>
             <p className="text-4xl font-bold text-white mb-2">{stats?.totalQuotes || 0}</p>
-            <p className="text-xs text-purple-100">{filterLabels[filter]}</p>
+            <p className="text-xs text-purple-100">{activeLabel}</p>
           </div>
         </div>
 

@@ -51,7 +51,7 @@ async function countDistinctQuoteRequests(
 }
 
 // Helper function to get date ranges based on filter
-function getDateRange(filter: string) {
+function getDateRange(filter: string, customDate?: string) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today);
@@ -70,6 +70,15 @@ function getDateRange(filter: string) {
       return { gte: thisMonthStart };
     case 'lastMonth':
       return { gte: lastMonthStart, lte: lastMonthEnd };
+    case 'custom': {
+      if (customDate && /^\d{4}-\d{2}-\d{2}$/.test(customDate)) {
+        const [year, month, day] = customDate.split('-').map(Number);
+        const start = new Date(year, month - 1, day);
+        const end = new Date(year, month - 1, day + 1);
+        return { gte: start, lt: end };
+      }
+      return {};
+    }
     case 'all':
     default:
       return {};
@@ -85,8 +94,9 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get('filter') || 'today';
+    const customDate = searchParams.get('date') || undefined;
 
-    const dateFilter = getDateRange(filter);
+    const dateFilter = getDateRange(filter, customDate);
 
     // Fetch bookings from all services. CUSTOM_BULK rows live in
     // b2b_bookings.serviceType — count them separately so they show up as
