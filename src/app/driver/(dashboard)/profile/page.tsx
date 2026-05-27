@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ProfileShareCard from '@/components/profile/ProfileShareCard';
 import {
   User,
   Phone,
@@ -177,6 +178,9 @@ export default function DriverProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Public profile share */}
+      <ProfileShareCard kind="driver" showVisibility={false} showSlug={false} />
 
       {/* Contact Info */}
       <div className="bg-white rounded-xl border p-6">

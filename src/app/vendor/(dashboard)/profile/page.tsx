@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import VendorMediaPicker from '@/components/vendor/VendorMediaPicker';
+import ProfileShareCard from '@/components/profile/ProfileShareCard';
 
 interface VendorProfile {
   id: string;
@@ -322,6 +323,10 @@ export default function VendorProfilePage() {
             {error}
           </div>
         )}
+
+        <div className="mb-5">
+          <ProfileShareCard kind="vendor" />
+        </div>
 
         <form onSubmit={handleSubmit} className="columns-1 lg:columns-2 gap-5 space-y-5">
           {/* Business Information */}

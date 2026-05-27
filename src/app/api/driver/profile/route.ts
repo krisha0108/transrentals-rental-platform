@@ -17,6 +17,7 @@ export async function PATCH(request: NextRequest) {
       licenseNumber, licenseType, licenseExpiry,
       bankName, accountHolderName, accountNumber, ifscCode,
       emergencyContact, emergencyPhone,
+      bio, yearsExperience, isProfilePublic, slug,
     } = body;
 
     if (name && !name.trim()) {
@@ -39,7 +40,29 @@ export async function PATCH(request: NextRequest) {
       ...(ifscCode !== undefined && { ifscCode }),
       ...(emergencyContact !== undefined && { emergencyContact }),
       ...(emergencyPhone !== undefined && { emergencyPhone }),
+      // Public profile (/captain/<slug>)
+      ...(bio !== undefined && { bio }),
+      ...(yearsExperience !== undefined && { yearsExperience: yearsExperience === null || yearsExperience === '' ? null : Number(yearsExperience) }),
+      ...(isProfilePublic !== undefined && { isProfilePublic: !!isProfilePublic }),
     };
+
+    // Slug: normalize + ensure unique within the relevant driver table.
+    if (slug !== undefined) {
+      const normalized = String(slug || '')
+        .toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      if (!normalized) {
+        data.slug = null;
+      } else if (normalized.length < 3) {
+        return NextResponse.json({ success: false, error: 'Slug must be at least 3 characters' }, { status: 400 });
+      } else {
+        const model: any = isStaff ? prisma.vendor_staff : prisma.drivers;
+        const clash = await model.findFirst({ where: { slug: normalized, NOT: { id: driver.id } }, select: { id: true } });
+        if (clash) {
+          return NextResponse.json({ success: false, error: 'That profile link is already taken' }, { status: 409 });
+        }
+        data.slug = normalized;
+      }
+    }
 
     if (isStaff) {
       await prisma.vendor_staff.update({ where: { id: driver.id }, data });

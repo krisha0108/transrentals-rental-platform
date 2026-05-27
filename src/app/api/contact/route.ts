@@ -11,6 +11,7 @@ import {
   sanitizePhone,
   stripHtml,
 } from '@/lib/security';
+import { sendInquiryReceived } from '@/lib/whatsapp/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +84,12 @@ export async function POST(request: NextRequest) {
     });
 
     logger.info('Contact form submission', { email: sanitizedData.email });
+
+    sendInquiryReceived({
+      customerPhone: sanitizedData.phone,
+      customerName: sanitizedData.name,
+      subject: sanitizedData.subject,
+    });
   } catch (error) {
     logger.error('Failed to save contact inquiry', error);
     return NextResponse.json(

@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   StatusBar, RefreshControl, ActivityIndicator, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { getBookings } from '../../api/client';
+import { getBookings, getVendorProfile } from '../../api/client';
 
 const C = {
   g900: '#022C22', g800: '#065F46', g700: '#047857', g600: '#059669',
@@ -26,487 +27,345 @@ const C = {
   cyan: '#0891B2',   cyanL: '#ECFEFF',
 };
 
-const SERVICES = [
-  {
-    id: 'bike', name: 'Bike Rental', sub: 'Two-wheeler rentals',
-    icon: 'motorbike', color: C.blue, lightBg: C.blueL,
-    screen: 'BikeBookings', apiService: 'bike',
-    gradColors: ['#1D4ED8', '#2563EB'],
-  },
-  {
-    id: 'car', name: 'Car Rental', sub: 'Chauffeur-driven cars',
-    icon: 'car', color: C.teal, lightBg: C.tealL,
-    screen: 'CarRentalBookings', apiService: 'car',
-    gradColors: ['#0F766E', '#0D9488'],
-  },
-  {
-    id: 'bus', name: 'Bus Rental', sub: 'Group transport',
-    icon: 'bus', color: C.amber, lightBg: C.amberL,
-    screen: 'BusBookings', apiService: 'bus',
-    gradColors: ['#B45309', '#D97706'],
-  },
-  {
-    id: 'truck', name: 'Truck Rental', sub: 'Heavy transport',
-    icon: 'truck-delivery', color: C.orange, lightBg: C.orangeL,
-    screen: 'TruckBookings', apiService: 'truck',
-    gradColors: ['#C2410C', '#EA580C'],
-  },
-  {
-    id: 'luxury', name: 'Luxury Car', sub: 'Premium vehicles',
-    icon: 'car-sports', color: C.indigo, lightBg: C.indigoL,
-    screen: 'LuxuryBookings', apiService: 'luxury',
-    gradColors: ['#4338CA', '#4F46E5'],
-  },
-  {
-    id: 'packers', name: 'Packers & Movers', sub: 'Moving services',
-    icon: 'package-variant', color: C.pink, lightBg: C.pinkL,
-    screen: 'PackersBookings', apiService: 'packers',
-    gradColors: ['#BE185D', '#DB2777'],
-  },
-  {
-    id: 'equipment', name: 'Equipment', sub: 'Heavy machinery',
-    icon: 'crane', color: C.purple, lightBg: C.purpleL,
-    screen: 'EquipmentBookings', apiService: 'equipment',
-    gradColors: ['#6D28D9', '#7C3AED'],
-  },
-  {
-    id: 'self-drive', name: 'Self Drive', sub: 'DIY car rentals',
-    icon: 'car-side', color: C.cyan, lightBg: C.cyanL,
-    screen: 'SelfDriveBookings', apiService: 'self-drive',
-    gradColors: ['#0E7490', '#0891B2'],
-  },
-  {
-    id: 'direct', name: 'Direct Bookings', sub: 'Your own customers',
-    icon: 'book-plus-outline', color: C.g700, lightBg: C.g50,
-    screen: 'DirectBookings', apiService: null,
-    gradColors: [C.g800, C.g600],
-  },
-];
+// service config keyed by app id. apiService → getBookings; detail/st → BookingDetail nav
+const SERVICES = {
+  bike:         { id: 'bike',        name: 'Bike',        icon: 'motorbike',       color: C.blue,   apiService: 'bike',       detail: 'BikeBookingDetail',       st: 'bike' },
+  'self-drive': { id: 'self-drive',  name: 'Self Drive',  icon: 'car-side',        color: C.cyan,   apiService: 'self-drive', detail: 'SelfDriveBookingDetail',  st: 'self-drive' },
+  car:          { id: 'car',         name: 'Car Rental',  icon: 'car',             color: C.teal,   apiService: 'car',        detail: 'CarRentalBookingDetail',  st: 'car' },
+  bus:          { id: 'bus',         name: 'Bus',         icon: 'bus',             color: C.amber,  apiService: 'bus',        detail: 'BusBookingDetail',        st: 'bus' },
+  truck:        { id: 'truck',       name: 'Transporter', icon: 'truck-delivery',  color: C.orange, apiService: 'truck',      detail: 'TruckBookingDetail',      st: 'truck' },
+  luxury:       { id: 'luxury',      name: 'Luxury',      icon: 'car-sports',      color: C.indigo, apiService: 'luxury',     detail: 'LuxuryBookingDetail',     st: 'luxury' },
+  packers:      { id: 'packers',     name: 'Packers',     icon: 'package-variant', color: C.pink,   apiService: 'packers',    detail: 'PackersBookingDetail',    st: 'packers' },
+  equipment:    { id: 'equipment',   name: 'Equipment',   icon: 'crane',           color: C.purple, apiService: 'equipment',  detail: 'EquipmentBookingDetail',  st: 'equipment' },
+};
+const SVC_ID_TO_KEY = {
+  SVC_1: 'bike', SVC_2: 'self-drive', SVC_3: 'bus', SVC_4: 'truck',
+  SVC_5: 'car', SVC_6: 'packers', SVC_7: 'equipment', SVC_8: 'luxury',
+};
 
-const COMPLETED_STATUSES = ['COMPLETED', 'CANCELLED'];
+const STATUS_META = {
+  COMPLETED:        { label: 'Completed',    color: C.g600 },
+  IN_PROGRESS:      { label: 'In Progress',  color: C.purple },
+  IN_TRANSIT:       { label: 'In Transit',   color: C.purple },
+  LOADING:          { label: 'Loading',      color: C.purple },
+  UNLOADING:        { label: 'Unloading',    color: C.purple },
+  READY_FOR_PICKUP: { label: 'Ready',        color: C.blue },
+  ACCEPTED:         { label: 'Accepted',     color: C.amber },
+  CONFIRMED:        { label: 'Confirmed',    color: C.amber },
+  DRIVER_ASSIGNED:  { label: 'Driver Set',   color: C.amber },
+  VEHICLE_ASSIGNED: { label: 'Vehicle Set',  color: C.amber },
+  ADVANCE_PAID:     { label: 'Advance Paid', color: C.amber },
+  CANCELLED:        { label: 'Cancelled',    color: C.red },
+};
 
-export default function BookingsListScreen({ navigation }) {
-  const [counts, setCounts]         = useState({});
-  const [loading, setLoading]       = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [query, setQuery]           = useState('');
+const isCompleted = (s) => s === 'COMPLETED';
+const isActive    = (s) => s !== 'COMPLETED' && s !== 'CANCELLED';
 
-  const fetchCounts = useCallback(async () => {
+const fmtDate = (d) => {
+  if (!d) return '';
+  try { return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }); }
+  catch { return ''; }
+};
+const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`;
+
+function normalize(svc, b) {
+  return {
+    id: b.id,
+    service: svc.id,
+    bookingNumber: b.bookingNumber || '',
+    customer: b.customerName || 'Customer',
+    status: b.status,
+    date: b.pickupDate || b.startDate || b.scheduledDate || b.createdAt,
+    location: b.locationName || [b.pickupCity, b.dropCity].filter(Boolean).join(' → ') || '',
+    amount: b.grandTotal ?? b.totalAmount ?? b.amount ?? 0,
+  };
+}
+
+export default function BookingsListScreen({ navigation, route }) {
+  const [approvedIds, setApprovedIds] = useState(null);   // null = profile not loaded
+  const [bookings, setBookings]       = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [refreshing, setRefreshing]   = useState(false);
+  const [selectedSvc, setSelectedSvc] = useState('all');
+  const [status, setStatus]           = useState(route?.params?.initialStatus === 'completed' ? 'completed' : 'active');
+  const [query, setQuery]             = useState('');
+
+  const approvedServices = useMemo(
+    () => (approvedIds || []).map(id => SERVICES[SVC_ID_TO_KEY[id]]).filter(Boolean),
+    [approvedIds],
+  );
+
+  const loadBookings = useCallback(async (svcs) => {
+    if (!svcs || svcs.length === 0) { setBookings([]); setLoading(false); setRefreshing(false); return; }
     const results = await Promise.allSettled(
-      SERVICES.filter(s => s.apiService).map(async (s) => {
-        try {
-          const res  = await getBookings(s.apiService, { limit: 200 });
-          const list = res?.bookings || [];
-          return {
-            id: s.id,
-            total:     res?.pagination?.total ?? list.length,
-            active:    list.filter(b => !COMPLETED_STATUSES.includes(b.status)).length,
-            completed: list.filter(b => b.status === 'COMPLETED').length,
-          };
-        } catch {
-          return { id: s.id, total: 0, active: 0, completed: 0 };
-        }
+      svcs.map(async (svc) => {
+        const res = await getBookings(svc.apiService, { limit: 100 });
+        return (res?.bookings || []).map(b => normalize(svc, b));
       })
     );
-    const map = {};
-    results.forEach(r => {
-      if (r.status === 'fulfilled' && r.value) map[r.value.id] = r.value;
-    });
-    setCounts(map);
+    const merged = [];
+    results.forEach(r => { if (r.status === 'fulfilled') merged.push(...r.value); });
+    merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+    setBookings(merged);
     setLoading(false);
     setRefreshing(false);
   }, []);
 
-  useEffect(() => { fetchCounts(); }, [fetchCounts]);
-  const onRefresh = () => { setRefreshing(true); fetchCounts(); };
+  // Load profile once → set approved services + sensible default selection.
+  // (Bookings themselves are loaded by the focus effect below once approved
+  // services are known, and reloaded on every tab refocus.)
+  useEffect(() => {
+    getVendorProfile()
+      .then(p => {
+        const ids  = p?.approvedServiceIds || [];
+        const svcs = ids.map(id => SERVICES[SVC_ID_TO_KEY[id]]).filter(Boolean);
+        setSelectedSvc(svcs.length === 2 ? svcs[0].id : 'all');   // 2 → tabs default first
+        setApprovedIds(ids);
+      })
+      .catch(() => { setApprovedIds([]); setLoading(false); });
+  }, []);
 
-  const totalBookings     = Object.values(counts).reduce((s, c) => s + (c.total     || 0), 0);
-  const activeBookings    = Object.values(counts).reduce((s, c) => s + (c.active    || 0), 0);
-  const completedBookings = Object.values(counts).reduce((s, c) => s + (c.completed || 0), 0);
-  const completionRate    = totalBookings > 0 ? Math.round((completedBookings / totalBookings) * 100) : 0;
+  useFocusEffect(useCallback(() => {
+    if (approvedIds !== null) loadBookings(approvedServices);
+  }, [approvedIds, approvedServices, loadBookings]));
+
+  const onRefresh = useCallback(() => { setRefreshing(true); loadBookings(approvedServices); }, [approvedServices, loadBookings]);
+
+  const svcScoped = useMemo(
+    () => bookings.filter(b => selectedSvc === 'all' || b.service === selectedSvc),
+    [bookings, selectedSvc],
+  );
+  const activeCount    = useMemo(() => svcScoped.filter(b => isActive(b.status)).length, [svcScoped]);
+  const completedCount = useMemo(() => svcScoped.filter(b => isCompleted(b.status)).length, [svcScoped]);
+  const svcActiveCount = (id) => bookings.filter(b => b.service === id && isActive(b.status)).length;
 
   const q = query.trim().toLowerCase();
-  const filteredServices = q
-    ? SERVICES.filter(s =>
-        s.name.toLowerCase().includes(q) || s.sub.toLowerCase().includes(q)
-      )
-    : SERVICES;
+  const filtered = useMemo(() => svcScoped.filter(b => {
+    const statusOk = status === 'completed' ? isCompleted(b.status) : isActive(b.status);
+    const qOk = !q || b.customer.toLowerCase().includes(q) || b.bookingNumber.toLowerCase().includes(q);
+    return statusOk && qOk;
+  }), [svcScoped, status, q]);
 
-  // Services that have active bookings right now
-  const activeServices = filteredServices.filter(s => (counts[s.id]?.active ?? 0) > 0);
+  const count = approvedServices.length;
+
+  const openDetail = (b) => {
+    const svc = SERVICES[b.service];
+    if (svc) navigation.navigate(svc.detail, { bookingId: b.id, serviceType: svc.st });
+  };
 
   return (
     <SafeAreaView style={st.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={C.g900} />
 
-      {/* ─────────────── HERO HEADER ─────────────── */}
+      {/* Header */}
       <LinearGradient colors={[C.g900, C.g800, C.g700]} style={st.hero}>
-        <View style={[st.deco, { width: 200, height: 200, top: -80, right: -60, opacity: 0.07 }]} />
-        <View style={[st.deco, { width: 100, height: 100, top: 20,  right: 120, opacity: 0.04 }]} />
-        <View style={[st.deco, { width: 60,  height: 60,  bottom: -20, left: 40, opacity: 0.05 }]} />
-
         <View style={st.heroTop}>
-          <View style={st.heroTitleWrap}>
-            <View style={st.heroBadge}>
-              <Ionicons name="calendar" size={13} color={C.g400} />
-              <Text style={st.heroBadgeTxt}>Bookings Hub</Text>
-            </View>
-            <Text style={st.heroTitle}>All Bookings</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={st.heroTitle}>Bookings</Text>
             <Text style={st.heroSub}>
-              {loading ? 'Loading your data...' : `${totalBookings} bookings across ${SERVICES.length} services`}
+              {loading ? 'Loading…' : `${bookings.length} bookings · ${count} service${count !== 1 ? 's' : ''}`}
             </Text>
           </View>
-          <TouchableOpacity style={st.refreshBtn} onPress={onRefresh}>
-            <Icon name="refresh-cw" size={18} color="rgba(255,255,255,0.8)" />
+          <TouchableOpacity style={st.refreshBtn} onPress={onRefresh} activeOpacity={0.75}>
+            <Icon name="refresh-cw" size={17} color="rgba(255,255,255,0.85)" />
           </TouchableOpacity>
         </View>
 
-        <View style={st.statsRow}>
-          {[
-            { label: 'Total',     value: loading ? '—' : String(totalBookings),     icon: 'layers',       color: C.g400 },
-            { label: 'Active',    value: loading ? '—' : String(activeBookings),    icon: 'activity',     color: '#FCD34D' },
-            { label: 'Completed', value: loading ? '—' : String(completedBookings), icon: 'check-circle', color: '#6EE7B7' },
-            { label: 'Services',  value: String(SERVICES.length),                   icon: 'grid',         color: '#93C5FD' },
-          ].map((stat, i) => (
-            <View key={i} style={st.statBox}>
-              <Icon name={stat.icon} size={14} color={stat.color} style={{ marginBottom: 6 }} />
-              <Text style={st.statVal}>{stat.value}</Text>
-              <Text style={st.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
-        </View>
-      </LinearGradient>
-
-      {/* ─────────────── SEARCH BAR ─────────────── */}
-      <View style={st.searchWrap}>
+        {/* Search */}
         <View style={st.searchBox}>
-          <Icon name="search" size={16} color={C.muted} style={{ marginRight: 8 }} />
+          <Icon name="search" size={15} color="rgba(255,255,255,0.6)" style={{ marginRight: 8 }} />
           <TextInput
             style={st.searchInput}
-            placeholder="Search services…"
-            placeholderTextColor={C.muted}
-            value={query}
-            onChangeText={setQuery}
-            returnKeyType="search"
-            clearButtonMode="while-editing"
-            autoCorrect={false}
+            placeholder="Search customer or booking #"
+            placeholderTextColor="rgba(255,255,255,0.5)"
+            value={query} onChangeText={setQuery}
+            returnKeyType="search" autoCorrect={false}
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Icon name="x" size={15} color={C.muted} />
+              <Icon name="x" size={15} color="rgba(255,255,255,0.6)" />
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </LinearGradient>
 
-      <ScrollView
-        style={st.scroll}
-        contentContainerStyle={st.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />
-        }
-      >
+      {/* ── Service selector (adaptive by count) ── */}
+      {count === 2 && (
+        <View style={st.tabsWrap}>
+          {approvedServices.map(svc => {
+            const on = selectedSvc === svc.id;
+            return (
+              <TouchableOpacity key={svc.id} style={[st.tab, on && st.tabOn]} activeOpacity={0.8}
+                onPress={() => setSelectedSvc(svc.id)}>
+                <MaterialCommunityIcons name={svc.icon} size={16} color={on ? svc.color : C.muted} />
+                <Text style={[st.tabTxt, on && st.tabTxtOn]}>{svc.name}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
 
-        {/* ─────────────── SECTION: ACTIVE NOW ─────────────── */}
-        {!loading && activeServices.length > 0 && (
-          <View style={st.section}>
-            <View style={st.sectionHead}>
-              <View style={st.sectionHeadLeft}>
-                <View style={st.activePulse} />
-                <Text style={st.sectionTitle}>Active Now</Text>
-              </View>
-              <Text style={st.sectionSub}>{activeServices.length} service{activeServices.length > 1 ? 's' : ''} running</Text>
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.activeScroll}>
-              {activeServices.map(svc => (
-                <TouchableOpacity
-                  key={svc.id}
-                  style={st.activeCard}
-                  onPress={() => navigation.navigate(svc.screen)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[st.activeCardAccent, { backgroundColor: svc.color }]} />
-                  <LinearGradient colors={svc.gradColors} style={st.activeIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                    <MaterialCommunityIcons name={svc.icon} size={20} color="#fff" />
-                  </LinearGradient>
-                  <Text style={st.activeCardName} numberOfLines={2}>{svc.name}</Text>
-                  <View style={st.activeCountRow}>
-                    <View style={st.activeDot} />
-                    <Text style={st.activeCountTxt}>{counts[svc.id]?.active} active</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* ─────────────── SECTION: PERFORMANCE ─────────────── */}
-        {!loading && totalBookings > 0 && (
-          <View style={st.section}>
-            <View style={st.sectionHead}>
-              <View style={st.sectionHeadLeft}>
-                <Icon name="trending-up" size={15} color={C.g700} />
-                <Text style={st.sectionTitle}>Performance</Text>
-              </View>
-            </View>
-
-            <View style={st.perfCard}>
-              <View style={st.perfTop}>
-                <View>
-                  <Text style={st.perfLabel}>Completion Rate</Text>
-                  <Text style={st.perfSub}>{completedBookings} of {totalBookings} bookings completed</Text>
-                </View>
-                <Text style={st.perfPct}>{completionRate}%</Text>
-              </View>
-
-              {/* Progress bar */}
-              <View style={st.progressTrack}>
-                <View style={[st.progressFill, { width: `${completionRate}%` }]} />
-              </View>
-
-              {/* Mini breakdown */}
-              <View style={st.perfBreakdown}>
-                <View style={st.perfStat}>
-                  <View style={[st.perfDot, { backgroundColor: '#FCD34D' }]} />
-                  <Text style={st.perfStatTxt}>{activeBookings} active</Text>
-                </View>
-                <View style={st.perfStat}>
-                  <View style={[st.perfDot, { backgroundColor: C.g500 }]} />
-                  <Text style={st.perfStatTxt}>{completedBookings} completed</Text>
-                </View>
-                <View style={st.perfStat}>
-                  <View style={[st.perfDot, { backgroundColor: C.muted }]} />
-                  <Text style={st.perfStatTxt}>{totalBookings - activeBookings - completedBookings} other</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* ─────────────── SECTION: ALL SERVICES ─────────────── */}
-        <View style={st.section}>
-          <View style={st.sectionHead}>
-            <View style={st.sectionHeadLeft}>
-              <Icon name="grid" size={15} color={C.g700} />
-              <Text style={st.sectionTitle}>
-                {q ? 'Results' : 'All Services'}
-              </Text>
-            </View>
-            <View style={st.countPill}>
-              <Text style={st.countPillTxt}>{filteredServices.length}</Text>
-            </View>
-          </View>
-
-          {filteredServices.length === 0 ? (
-            <View style={st.emptyWrap}>
-              <Icon name="search" size={28} color={C.muted} />
-              <Text style={st.emptyTxt}>No services match "{query}"</Text>
-            </View>
-          ) : (
-          <View style={st.listCard}>
-            {filteredServices.map((svc, idx) => {
-              const c     = counts[svc.id];
-              const total  = c?.total  ?? 0;
-              const active = c?.active ?? 0;
-              const isLast = idx === filteredServices.length - 1;
-
+      {count >= 3 && (
+        <View style={st.cardsWrap}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={st.cardsRow}>
+            {[{ id: 'all', name: 'All', icon: 'view-grid', color: C.g700 }, ...approvedServices].map(svc => {
+              const on  = selectedSvc === svc.id;
+              const cnt = svc.id === 'all' ? bookings.filter(b => isActive(b.status)).length : svcActiveCount(svc.id);
               return (
-                <TouchableOpacity
-                  key={svc.id}
-                  style={[st.listRow, !isLast && st.listRowBorder]}
-                  onPress={() => navigation.navigate(svc.screen)}
-                  activeOpacity={0.7}
-                >
-                  {/* Icon */}
-                  <LinearGradient colors={svc.gradColors} style={st.listIcon} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                    <MaterialCommunityIcons name={svc.icon} size={20} color="#fff" />
-                  </LinearGradient>
-
-                  {/* Text */}
-                  <View style={st.listText}>
-                    <Text style={st.listName}>{svc.name}</Text>
-                    <View style={st.listMeta}>
-                      <Text style={st.listSub}>{svc.sub}</Text>
-                      {active > 0 && (
-                        <>
-                          <Text style={st.listMetaDot}>·</Text>
-                          <View style={st.listActiveDot} />
-                          <Text style={st.listActiveTxt}>{active} active</Text>
-                        </>
-                      )}
-                    </View>
+                <TouchableOpacity key={svc.id} style={[st.svcCard, on && st.svcCardOn]} activeOpacity={0.85}
+                  onPress={() => setSelectedSvc(svc.id)}>
+                  <View style={[st.svcCardIcon, { backgroundColor: on ? 'rgba(255,255,255,0.22)' : svc.color + '14' }]}>
+                    <MaterialCommunityIcons name={svc.icon} size={20} color={on ? '#fff' : svc.color} />
                   </View>
-
-                  {/* Right: count + chevron */}
-                  <View style={st.listRight}>
-                    {loading && !c ? (
-                      <ActivityIndicator size="small" color={C.muted} />
-                    ) : (
-                      <View style={[st.listCountChip, { backgroundColor: svc.lightBg }]}>
-                        <Text style={[st.listCount, { color: svc.color }]}>{total}</Text>
-                      </View>
-                    )}
-                    <Icon name="chevron-right" size={16} color={C.muted} style={{ marginLeft: 6 }} />
-                  </View>
+                  <Text style={[st.svcCardName, on && { color: '#fff' }]} numberOfLines={1}>{svc.name}</Text>
+                  <Text style={[st.svcCardCnt, on && { color: 'rgba(255,255,255,0.85)' }]}>{cnt} active</Text>
                 </TouchableOpacity>
               );
             })}
-          </View>
-          )}
+          </ScrollView>
         </View>
+      )}
 
-        <View style={{ height: 100 }} />
-      </ScrollView>
+      {/* ── Active / Completed filter ── */}
+      <View style={st.statusWrap}>
+        {[
+          { key: 'active',    label: 'Active',    count: activeCount },
+          { key: 'completed', label: 'Completed', count: completedCount },
+        ].map(t => {
+          const on = status === t.key;
+          return (
+            <TouchableOpacity key={t.key} style={[st.statusBtn, on && st.statusBtnOn]} activeOpacity={0.8}
+              onPress={() => setStatus(t.key)}>
+              <Text style={[st.statusTxt, on && st.statusTxtOn]}>{t.label}</Text>
+              <View style={[st.statusPill, on && st.statusPillOn]}>
+                <Text style={[st.statusPillTxt, on && st.statusPillTxtOn]}>{t.count}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* ── List ── */}
+      {loading ? (
+        <View style={st.empty}>
+          <ActivityIndicator size="large" color={C.g600} />
+          <Text style={[st.emptySub, { marginTop: 12 }]}>Loading bookings…</Text>
+        </View>
+      ) : count === 0 ? (
+        <View style={st.empty}>
+          <View style={st.emptyIcon}><Ionicons name="cube-outline" size={28} color={C.muted} /></View>
+          <Text style={st.emptyTitle}>No approved services yet</Text>
+          <Text style={st.emptySub}>Bookings appear once your services go live.</Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={st.body} showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[C.g600]} tintColor={C.g600} />}>
+          {filtered.length === 0 ? (
+            <View style={st.empty}>
+              <View style={st.emptyIcon}><Ionicons name={status === 'completed' ? 'checkmark-done-outline' : 'time-outline'} size={28} color={C.muted} /></View>
+              <Text style={st.emptyTitle}>No {status} bookings</Text>
+              <Text style={st.emptySub}>{q ? `Nothing matches "${query}"` : (status === 'active' ? 'Active bookings will show up here.' : 'Completed trips will appear here.')}</Text>
+            </View>
+          ) : (
+            filtered.map(b => {
+              const svc = SERVICES[b.service] || { name: b.service, icon: 'cube', color: C.muted };
+              const sm  = STATUS_META[b.status] || { label: b.status, color: C.muted };
+              return (
+                <TouchableOpacity key={`${b.service}:${b.id}`} style={st.card} activeOpacity={0.85}
+                  onPress={() => openDetail(b)}>
+                  <View style={st.cardTop}>
+                    <View style={[st.cardIcon, { backgroundColor: svc.color + '14' }]}>
+                      <MaterialCommunityIcons name={svc.icon} size={20} color={svc.color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={st.cardTitle} numberOfLines={1}>{svc.name}{b.bookingNumber ? ` · ${b.bookingNumber}` : ''}</Text>
+                      {!!b.location && <Text style={st.cardSub} numberOfLines={1}>{b.location}</Text>}
+                    </View>
+                    <View style={[st.badge, { backgroundColor: sm.color + '14' }]}>
+                      <Text style={[st.badgeTxt, { color: sm.color }]}>{sm.label}</Text>
+                    </View>
+                  </View>
+                  <View style={st.cardBottom}>
+                    <View style={st.customer}>
+                      <View style={st.avatar}><Text style={st.avatarTxt}>{b.customer.charAt(0)}</Text></View>
+                      <Text style={st.customerTxt} numberOfLines={1}>{b.customer}</Text>
+                    </View>
+                    <View style={st.metaRight}>
+                      {!!b.date && <Text style={st.dateTxt}>{fmtDate(b.date)}</Text>}
+                      {b.amount > 0 && <Text style={st.amountTxt}>{money(b.amount)}</Text>}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
 
 const st = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: C.bg },
-  scroll:  { flex: 1 },
-  content: { paddingHorizontal: 16, paddingTop: 16 },
+  safe: { flex: 1, backgroundColor: C.bg },
 
-  /* ─── Search ─── */
-  searchWrap: { paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.g900 },
-  searchBox: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
-  },
-  searchInput: {
-    flex: 1, fontSize: 14, color: '#fff', padding: 0,
-  },
+  hero:      { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14 },
+  heroTop:   { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  heroTitle: { fontSize: 22, fontWeight: '900', color: '#fff', letterSpacing: -0.4 },
+  heroSub:   { fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600', marginTop: 2 },
+  refreshBtn:{ width: 38, height: 38, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
 
-  /* ─── Empty ─── */
-  emptyWrap: { alignItems: 'center', paddingVertical: 32, gap: 10 },
-  emptyTxt:  { fontSize: 13, color: C.muted, fontWeight: '600' },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  searchInput: { flex: 1, fontSize: 14, color: '#fff', padding: 0 },
 
-  /* ─── Hero ─── */
-  hero: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20, overflow: 'hidden' },
-  deco: { position: 'absolute', borderRadius: 999, backgroundColor: '#fff' },
-  heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 },
-  heroTitleWrap: { flex: 1 },
-  heroBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.12)', alignSelf: 'flex-start',
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 8,
-  },
-  heroBadgeTxt: { fontSize: 11, fontWeight: '600', color: C.g400 },
-  heroTitle:    { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  heroSub:      { fontSize: 13, color: 'rgba(255,255,255,0.6)' },
-  refreshBtn: {
-    width: 38, height: 38, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  statsRow: {
-    flexDirection: 'row', gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16, padding: 12,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-  },
-  statBox:   { flex: 1, alignItems: 'center' },
-  statVal:   { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  statLabel: { fontSize: 10, fontWeight: '600', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 0.3 },
+  // 2-service tabs
+  tabsWrap: { flexDirection: 'row', backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border, paddingHorizontal: 16, paddingTop: 12, gap: 8 },
+  tab:      { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11, borderRadius: 10, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, marginBottom: 12 },
+  tabOn:    { backgroundColor: C.g50, borderColor: C.g500 },
+  tabTxt:   { fontSize: 13, fontWeight: '700', color: C.muted },
+  tabTxtOn: { color: C.text },
 
-  /* ─── Section wrapper ─── */
-  section:       { marginBottom: 20 },
-  sectionHead:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionHeadLeft:{ flexDirection: 'row', alignItems: 'center', gap: 7 },
-  sectionTitle:  { fontSize: 15, fontWeight: '800', color: C.text },
-  sectionSub:    { fontSize: 12, color: C.muted },
+  // 3+ service cards (filter)
+  cardsWrap: { backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
+  cardsRow:  { paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
+  svcCard:   { width: 96, padding: 11, borderRadius: 14, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border, alignItems: 'flex-start' },
+  svcCardOn: { backgroundColor: C.g600, borderColor: C.g600 },
+  svcCardIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  svcCardName: { fontSize: 12, fontWeight: '800', color: C.text },
+  svcCardCnt:  { fontSize: 10, fontWeight: '600', color: C.muted, marginTop: 2 },
 
-  /* Active pulse dot */
-  activePulse: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.g500 },
+  // Active / Completed
+  statusWrap:    { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
+  statusBtn:     { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingVertical: 9, borderRadius: 10, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
+  statusBtnOn:   { backgroundColor: C.g900, borderColor: C.g900 },
+  statusTxt:     { fontSize: 13, fontWeight: '800', color: C.sub },
+  statusTxtOn:   { color: '#fff' },
+  statusPill:    { minWidth: 20, paddingHorizontal: 6, height: 18, borderRadius: 9, backgroundColor: C.border, alignItems: 'center', justifyContent: 'center' },
+  statusPillOn:  { backgroundColor: 'rgba(255,255,255,0.22)' },
+  statusPillTxt: { fontSize: 10, fontWeight: '800', color: C.sub },
+  statusPillTxtOn: { color: '#fff' },
 
-  /* ─── Active Now cards (horizontal) ─── */
-  activeScroll: { gap: 10, paddingBottom: 2 },
-  activeCard: {
-    width: 120,
-    backgroundColor: C.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    padding: 14,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  activeCardAccent: { position: 'absolute', top: 0, left: 0, right: 0, height: 3 },
-  activeIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
-  activeCardName: { fontSize: 12, fontWeight: '700', color: C.text, lineHeight: 16, marginBottom: 8 },
-  activeCountRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  activeDot:      { width: 7, height: 7, borderRadius: 4, backgroundColor: C.g500 },
-  activeCountTxt: { fontSize: 11, fontWeight: '700', color: C.g600 },
+  body: { paddingHorizontal: 16, paddingTop: 14, gap: 10 },
 
-  /* ─── Performance card ─── */
-  perfCard: {
-    backgroundColor: C.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  perfTop:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
-  perfLabel: { fontSize: 14, fontWeight: '800', color: C.text, marginBottom: 3 },
-  perfSub:   { fontSize: 12, color: C.muted },
-  perfPct:   { fontSize: 28, fontWeight: '900', color: C.g700, letterSpacing: -1 },
+  card: { backgroundColor: C.card, borderRadius: 14, padding: 13, borderWidth: 1, borderColor: C.border, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  cardTop:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cardIcon:  { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { fontSize: 12.5, fontWeight: '800', color: C.text },
+  cardSub:   { fontSize: 11, color: C.sub, marginTop: 2 },
+  badge:     { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  badgeTxt:  { fontSize: 9.5, fontWeight: '800' },
 
-  progressTrack: { height: 8, backgroundColor: C.border, borderRadius: 4, overflow: 'hidden', marginBottom: 14 },
-  progressFill:  { height: '100%', backgroundColor: C.g500, borderRadius: 4 },
+  cardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 11, borderTopWidth: 1, borderTopColor: C.border },
+  customer:    { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  avatar:      { width: 26, height: 26, borderRadius: 13, backgroundColor: C.g50, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.g100 },
+  avatarTxt:   { fontSize: 11, fontWeight: '800', color: C.g700 },
+  customerTxt: { fontSize: 12, fontWeight: '600', color: C.text, flex: 1 },
+  metaRight:   { alignItems: 'flex-end' },
+  dateTxt:     { fontSize: 10, color: C.muted, fontWeight: '600' },
+  amountTxt:   { fontSize: 13, fontWeight: '800', color: C.g700, marginTop: 1 },
 
-  perfBreakdown: { flexDirection: 'row', gap: 16 },
-  perfStat:      { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  perfDot:       { width: 8, height: 8, borderRadius: 4 },
-  perfStatTxt:   { fontSize: 12, color: C.sub, fontWeight: '500' },
-
-  /* ─── All Services list ─── */
-  countPill: {
-    backgroundColor: C.g700, borderRadius: 20,
-    paddingHorizontal: 8, paddingVertical: 2,
-  },
-  countPillTxt: { fontSize: 11, fontWeight: '700', color: '#fff' },
-
-  listCard: {
-    backgroundColor: C.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  listRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    gap: 13,
-  },
-  listRowBorder: { borderBottomWidth: 1, borderBottomColor: C.border },
-
-  listIcon: { width: 44, height: 44, borderRadius: 13, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
-
-  listText:  { flex: 1 },
-  listName:  { fontSize: 14, fontWeight: '700', color: C.text, marginBottom: 3 },
-  listMeta:  { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  listSub:   { fontSize: 12, color: C.muted },
-  listMetaDot:   { fontSize: 12, color: C.muted },
-  listActiveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.g500 },
-  listActiveTxt: { fontSize: 12, fontWeight: '600', color: C.g600 },
-
-  listRight: { flexDirection: 'row', alignItems: 'center' },
-  listCountChip: {
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 20,
-  },
-  listCount: { fontSize: 13, fontWeight: '800' },
+  empty:      { alignItems: 'center', paddingTop: 70, gap: 6 },
+  emptyIcon:  { width: 60, height: 60, borderRadius: 30, backgroundColor: C.card, borderWidth: 1, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  emptyTitle: { fontSize: 15, fontWeight: '800', color: C.text, textTransform: 'capitalize' },
+  emptySub:   { fontSize: 12, color: C.muted, textAlign: 'center', paddingHorizontal: 30 },
 });

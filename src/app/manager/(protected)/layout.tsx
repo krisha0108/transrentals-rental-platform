@@ -3,13 +3,14 @@
 import React, { useState } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee } from 'lucide-react';
+import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation } from 'lucide-react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { ToastProvider } from '@/components/ui/toast';
 
 const SIDEBAR_LINKS = [
   { href: '/manager/dashboard', label: 'Dashboard', icon: Home },
+  { href: '/manager/tracking', label: 'Live Tracking', icon: Navigation },
   { href: '/manager/b2b', label: 'B2B Bookings', icon: Briefcase },
   { href: '/manager/b2b-companies', label: 'B2B Companies', icon: Building2 },
   { href: '/manager/inquiries', label: 'My Inquiries', icon: FileText },

@@ -34,7 +34,7 @@ export async function GET() {
     // Fallback if DB is unreachable
     return NextResponse.json({
       success: true,
-      latestVersion: '3.0.9',
+      latestVersion: '4.0.5',
       forceUpdate: false,
       updateMessage: 'New features and improvements available.',
       playStoreUrl: 'https://play.google.com/store/apps/details?id=com.transrentalsvenderapp',

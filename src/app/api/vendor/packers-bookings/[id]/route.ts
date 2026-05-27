@@ -47,6 +47,13 @@ export async function GET(
             materialCharges: true,
             gstAmount: true,
             totalAmount: true,
+            quoteNumber: true,
+            advancePercent: true,
+            advanceAmount: true,
+            inclusions: true,
+            exclusions: true,
+            termsConditions: true,
+            validTill: true,
           },
         },
       },
@@ -70,6 +77,16 @@ export async function GET(
       dropCity,
       quoteRequest: booking.packers_quote_requests,
       acceptedQuote: booking.packers_quotes,
+      quote: booking.packers_quotes ? {
+        quoteNumber:     booking.packers_quotes.quoteNumber,
+        totalAmount:     booking.packers_quotes.totalAmount,
+        advancePercent:  booking.packers_quotes.advancePercent,
+        advanceAmount:   booking.packers_quotes.advanceAmount,
+        inclusions:      booking.packers_quotes.inclusions,
+        exclusions:      booking.packers_quotes.exclusions,
+        termsConditions: booking.packers_quotes.termsConditions,
+        validTill:       booking.packers_quotes.validTill?.toISOString() || null,
+      } : null,
     };
 
     return NextResponse.json({ success: true, booking: transformedBooking });

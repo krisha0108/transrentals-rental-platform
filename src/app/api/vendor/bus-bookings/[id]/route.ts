@@ -41,6 +41,14 @@ export async function GET(
             requirements: true,
           },
         },
+        bus_quotes: {
+          select: {
+            quoteNumber: true, vehicleName: true, vehicleCategory: true,
+            totalAmount: true, advancePercent: true, advanceAmount: true,
+            inclusions: true, exclusions: true, termsConditions: true,
+            vendorMessage: true, validTill: true,
+          },
+        },
       },
     });
 
@@ -85,6 +93,19 @@ export async function GET(
       rating: booking.rating,
       customerNotes: booking.customerNotes,
       quoteRequest: booking.bus_quote_requests,
+      quote: booking.bus_quotes ? {
+        quoteNumber:     booking.bus_quotes.quoteNumber,
+        vehicleName:     booking.bus_quotes.vehicleName,
+        vehicleCategory: booking.bus_quotes.vehicleCategory,
+        totalAmount:     booking.bus_quotes.totalAmount,
+        advancePercent:  booking.bus_quotes.advancePercent,
+        advanceAmount:   booking.bus_quotes.advanceAmount,
+        inclusions:      booking.bus_quotes.inclusions,
+        exclusions:      booking.bus_quotes.exclusions,
+        termsConditions: booking.bus_quotes.termsConditions,
+        vendorMessage:   booking.bus_quotes.vendorMessage,
+        validTill:       booking.bus_quotes.validTill?.toISOString() || null,
+      } : null,
       createdAt: booking.createdAt,
       updatedAt: booking.updatedAt,
       droppedAt: booking.droppedAt,

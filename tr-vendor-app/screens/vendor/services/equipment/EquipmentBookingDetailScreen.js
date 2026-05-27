@@ -57,6 +57,7 @@ export default function EquipmentBookingDetailScreen({ route, navigation }) {
   const [otpLoading,    setOtpLoading]    = useState(false);
   const [otpError,      setOtpError]      = useState(null);
   const [otpSuccess,    setOtpSuccess]    = useState(null);
+  const [showQuote,     setShowQuote]     = useState(false);   // collapsible quote details
 
   const fetchBooking = useCallback(async () => {
     if (!bookingId) return;
@@ -310,6 +311,128 @@ export default function EquipmentBookingDetailScreen({ route, navigation }) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.g400} colors={[C.g600]} />
         }
       >
+        {/* ── Status progression: Quoted → Accepted → Pickup OTP ── */}
+        {(() => {
+          const st = booking.status;
+          const acceptedDone = ['ACCEPTED', 'CONFIRMED', 'READY_FOR_PICKUP', 'IN_PROGRESS', 'COMPLETED', 'PAYMENT_VERIFIED'].includes(st);
+          const otpDone      = ['IN_PROGRESS', 'COMPLETED'].includes(st);
+          const steps = [
+            { key: 'quoted',   label: 'Quoted',     done: true },
+            { key: 'accepted', label: 'Accepted',   done: acceptedDone },
+            { key: 'otp',      label: 'Pickup OTP', done: otpDone },
+          ];
+          const curIdx = steps.findIndex(x => !x.done);
+          steps.forEach((x, i) => { x.current = i === curIdx; });
+          return (
+            <View style={s.statusStrip}>
+              {steps.map((stp, i) => (
+                <React.Fragment key={stp.key}>
+                  {i > 0 && <View style={[s.statusLine, steps[i - 1].done && { backgroundColor: C.g500 }]} />}
+                  <View style={s.statusStep}>
+                    <View style={[s.statusDot, stp.done && s.statusDotDone, stp.current && s.statusDotCurrent]}>
+                      {stp.done
+                        ? <Ionicons name="checkmark" size={11} color="#fff" />
+                        : <Text style={[s.statusDotNum, stp.current && { color: '#fff' }]}>{i + 1}</Text>}
+                    </View>
+                    <Text style={[s.statusStepLbl, (stp.done || stp.current) && { color: C.text, fontWeight: '700' }]}>{stp.label}</Text>
+                  </View>
+                </React.Fragment>
+              ))}
+            </View>
+          );
+        })()}
+
+        {/* ── Quote Details (collapsible) ── */}
+        <View style={s.card}>
+          <TouchableOpacity style={s.quoteHead} activeOpacity={0.7} onPress={() => setShowQuote(v => !v)}>
+            <View style={s.cardHead0}>
+              <View style={[s.cardIcon, { backgroundColor: C.g50 }]}>
+                <Ionicons name="document-text-outline" size={15} color={C.g700} />
+              </View>
+              <Text style={s.cardTitle}>Quote Details</Text>
+            </View>
+            <Ionicons name={showQuote ? 'chevron-up' : 'chevron-down'} size={18} color={C.muted} />
+          </TouchableOpacity>
+          {showQuote && (() => {
+            const q = booking.quote || {};
+            const splitList = (v) => (v ? String(v).split(',').map(x => x.trim()).filter(Boolean) : []);
+            const inc   = splitList(q.inclusions);
+            const exc   = splitList(q.exclusions);
+            const terms = splitList(q.termsConditions);
+            const dailyRate = q.dailyRate ?? booking.dailyRate;
+            const deposit   = q.securityDeposit ?? booking.securityDeposit;
+            const total     = q.totalAmount ?? booking.totalAmount;
+            const advance   = q.advanceAmount ?? booking.advancePaid ?? booking.paidAmount;
+            const money = (v) => `₹${Number(v || 0).toLocaleString()}`;
+            return (
+              <View style={s.quoteBody}>
+                {dailyRate ? (
+                  <View style={s.payRow}>
+                    <Text style={s.payLabel}>Daily Rate × {booking.rentalDays || booking.totalDays || 1}</Text>
+                    <Text style={s.payVal}>{money(dailyRate)}</Text>
+                  </View>
+                ) : null}
+                {deposit > 0 ? (
+                  <View style={s.payRow}>
+                    <Text style={s.payLabel}>Security Deposit</Text>
+                    <Text style={s.payVal}>{money(deposit)}</Text>
+                  </View>
+                ) : null}
+                <View style={s.payRow}>
+                  <Text style={[s.payLabel, { fontWeight: '700', color: C.text }]}>Total Quoted</Text>
+                  <Text style={[s.payVal, { color: C.g700 }]}>{money(total)}</Text>
+                </View>
+                {advance > 0 ? (
+                  <View style={s.payRow}>
+                    <Text style={s.payLabel}>Advance{q.advancePercent ? ` (${q.advancePercent}%)` : ''}</Text>
+                    <Text style={s.payVal}>{money(advance)}</Text>
+                  </View>
+                ) : null}
+
+                {/* Inclusions */}
+                {inc.length > 0 && (
+                  <View style={s.quoteSub}>
+                    <Text style={s.quoteSubTitle}>Inclusions</Text>
+                    {inc.map((t, i) => (
+                      <View key={i} style={s.quoteLi}>
+                        <Ionicons name="checkmark-circle" size={13} color={C.g600} />
+                        <Text style={s.quoteLiTxt}>{t}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                {/* Exclusions */}
+                {exc.length > 0 && (
+                  <View style={s.quoteSub}>
+                    <Text style={s.quoteSubTitle}>Exclusions</Text>
+                    {exc.map((t, i) => (
+                      <View key={i} style={s.quoteLi}>
+                        <Ionicons name="close-circle" size={13} color={C.red} />
+                        <Text style={s.quoteLiTxt}>{t}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                {/* Terms */}
+                {terms.length > 0 && (
+                  <View style={s.quoteSub}>
+                    <Text style={s.quoteSubTitle}>Terms & Conditions</Text>
+                    {terms.map((t, i) => (
+                      <View key={i} style={s.quoteLi}>
+                        <Text style={s.quoteBullet}>•</Text>
+                        <Text style={s.quoteLiTxt}>{t}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                {q.validTill ? (
+                  <Text style={s.quoteValid}>Valid until {formatDate(q.validTill)}</Text>
+                ) : null}
+              </View>
+            );
+          })()}
+        </View>
+
         {booking.status === 'PAYMENT_VERIFIED' && booking.isOwnBooking && (
           <View style={s.alertBanner}>
             <View style={[s.alertIconBox, { backgroundColor: C.g100 }]}>
@@ -720,8 +843,29 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
   cardHead:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  cardHead0: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   cardIcon:  { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+
+  // Status progression strip
+  statusStrip: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingVertical: 14, paddingHorizontal: 14, marginBottom: 14 },
+  statusStep:  { alignItems: 'center', width: 66 },
+  statusLine:  { flex: 1, height: 2, backgroundColor: C.border, marginTop: 11 },
+  statusDot:   { width: 24, height: 24, borderRadius: 12, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  statusDotDone:    { backgroundColor: C.g600, borderColor: C.g600 },
+  statusDotCurrent: { backgroundColor: C.blue, borderColor: C.blue },
+  statusDotNum:     { fontSize: 11, fontWeight: '800', color: C.muted },
+  statusStepLbl:    { fontSize: 10, fontWeight: '600', color: C.muted, textAlign: 'center' },
+
+  // Collapsible quote details
+  quoteHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  quoteBody: { marginTop: 14, gap: 10 },
+  quoteSub:      { marginTop: 4, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, gap: 7 },
+  quoteSubTitle: { fontSize: 12, fontWeight: '800', color: C.text, marginBottom: 2 },
+  quoteLi:       { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  quoteLiTxt:    { flex: 1, fontSize: 12.5, color: C.sub, lineHeight: 18 },
+  quoteBullet:   { fontSize: 13, color: C.muted, lineHeight: 18, width: 13, textAlign: 'center' },
+  quoteValid:    { fontSize: 11, color: C.muted, fontStyle: 'italic', marginTop: 6 },
 
   customerRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   avatar:        { width: 46, height: 46, borderRadius: 23, backgroundColor: C.blueL, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: C.blue + '20' },

@@ -8,9 +8,15 @@ import {
   Banknote, RefreshCw, Share2, Copy, Check,
   UserCircle2, Truck, X, ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import LiveMap from '@/components/tracking/LiveMap';
 
+interface LiveLocation {
+  lat: number; lng: number; heading: number | null; updatedAt: string | null;
+}
 interface AssignedDriver {
   id: string; name: string; phone: string; profilePhoto: string | null;
+  slug?: string | null;
+  liveLocation?: LiveLocation | null;
 }
 interface AssignedVehicle {
   id: string; vehicleName: string | null; registrationNumber: string | null;
@@ -155,22 +161,32 @@ export default function BookingTrackPage() {
     }
   };
 
-  const fetchBooking = async () => {
-    setLoading(true);
+  const fetchBooking = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      const res = await fetch(`/api/public/booking-track/${bookingNumber}`);
+      const res = await fetch(`/api/public/booking-track/${bookingNumber}`, { cache: 'no-store' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Not found');
       setBooking(data.booking);
       setLastRefreshed(new Date());
     } catch (e: any) {
-      setError(e.message);
+      if (!silent) setError(e.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => { fetchBooking(); }, [bookingNumber]);
+
+  // While the driver is sharing a live location, quietly refresh so the map
+  // marker keeps moving without a full-page reload.
+  const isLiveTracking = !!booking?.assignedDriver?.liveLocation;
+  useEffect(() => {
+    if (!isLiveTracking) return;
+    const t = setInterval(() => fetchBooking(true), 7000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLiveTracking, bookingNumber]);
 
   const formatDate = (d: string | null) => {
     if (!d) return null;
@@ -219,7 +235,7 @@ export default function BookingTrackPage() {
                 {copied ? 'Link Copied!' : 'Share'}
               </button>
               {/* Refresh button */}
-              <button onClick={fetchBooking} className="flex items-center gap-2 bg-white/10 hover:bg-white/15 border border-white/10 text-white/60 hover:text-white text-sm px-4 py-2 rounded-xl transition">
+              <button onClick={() => fetchBooking()} className="flex items-center gap-2 bg-white/10 hover:bg-white/15 border border-white/10 text-white/60 hover:text-white text-sm px-4 py-2 rounded-xl transition">
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Refresh</span>
                 <span className="text-white/30 text-xs hidden sm:inline">· {lastRefreshed.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
@@ -404,10 +420,49 @@ export default function BookingTrackPage() {
                       )
                     }
                     <div>
-                      <p className="text-white font-bold leading-tight">{booking.assignedDriver.name}</p>
+                      {booking.assignedDriver.slug ? (
+                        <a href={`/captain/${booking.assignedDriver.slug}`} className="text-white font-bold leading-tight hover:underline">
+                          {booking.assignedDriver.name}
+                        </a>
+                      ) : (
+                        <p className="text-white font-bold leading-tight">{booking.assignedDriver.name}</p>
+                      )}
                       <p className="text-white/40 text-xs mt-0.5">{booking.assignedDriver.phone}</p>
                     </div>
                   </div>
+
+                  {/* ── Live location map (only while driver is sharing on an active trip) ── */}
+                  {booking.assignedDriver.liveLocation && (
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="inline-flex items-center gap-1.5 text-emerald-400 text-xs font-semibold">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live location
+                        </span>
+                        <span className="text-white/30 text-[11px]">
+                          {booking.assignedDriver.liveLocation.updatedAt
+                            ? `Updated ${new Date(booking.assignedDriver.liveLocation.updatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
+                            : ''}
+                        </span>
+                      </div>
+                      <div className="rounded-2xl overflow-hidden ring-1 ring-white/10 h-56">
+                        <LiveMap
+                          markers={[{
+                            id: booking.assignedDriver.id,
+                            lat: booking.assignedDriver.liveLocation.lat,
+                            lng: booking.assignedDriver.liveLocation.lng,
+                            heading: booking.assignedDriver.liveLocation.heading,
+                            color: '#10b981',
+                            label: booking.assignedDriver.name,
+                            sublabel: 'On the way',
+                            icon: 'driver',
+                            pulse: true,
+                            photo: booking.assignedDriver.profilePhoto,
+                          }]}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-2">
                     <a href={`tel:${booking.assignedDriver.phone}`}
                        className="flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 text-white text-sm font-semibold transition active:scale-95">

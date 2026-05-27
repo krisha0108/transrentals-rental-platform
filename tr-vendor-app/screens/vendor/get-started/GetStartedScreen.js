@@ -114,8 +114,10 @@ export default function GetStartedScreen({ navigation }) {
   useEffect(() => {
     (async () => {
       try {
-        const res = await getVendorProfile();
-        setVendor(res?.data || null);
+        // getVendorProfile() already returns the profile object (res.data),
+        // so use it directly — do NOT read `.data` again.
+        const profile = await getVendorProfile();
+        setVendor(profile || null);
       } catch {
         // best-effort — still show the static guide content
       } finally {

@@ -24,6 +24,7 @@ import {
   Eye
 } from 'lucide-react';
 import VendorOnboarding from '@/components/vendor/onboarding/VendorOnboarding';
+import VendorLiveLocationCard from '@/components/vendor/VendorLiveLocationCard';
 
 // ── Fade-up on scroll/mount ──
 function AnimateIn({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -413,6 +414,9 @@ export default function VendorDashboard() {
           </div>
         </div>
       </AnimateIn>
+
+      {/* ══════════ Your live location ══════════ */}
+      <VendorLiveLocationCard />
 
       {/* ══════════ Custom Date Picker ══════════ */}
       {timeFilter === 'custom' && (

@@ -48,6 +48,17 @@ export async function GET(
         vendors_bike_bookings_acceptedVendorIdTovendors: { select: { id: true, businessName: true, phone: true } },
         customers: { select: { id: true, name: true, email: true, phone: true } },
         bike_quote_requests: { select: { pickupAddress: true, numberOfVehicles: true } },
+        // Accepted quote → full terms (inclusions/exclusions/km/helmets/etc.)
+        bike_quotes: {
+          select: {
+            quoteNumber: true, vehicleName: true, vehicleBrand: true, vehicleCategory: true,
+            dailyRate: true, securityDeposit: true, grandTotal: true,
+            advancePercent: true, advanceAmount: true,
+            helmetsIncluded: true, kmLimitPerDay: true, extraKmCharge: true,
+            inclusions: true, exclusions: true, termsConditions: true, vendorMessage: true,
+            validTill: true,
+          },
+        },
       },
     });
 
@@ -131,6 +142,27 @@ export async function GET(
           (booking.status === 'PAYMENT_VERIFIED' && isAssigned)
         ),
         isOwnBooking: isAssigned || isAccepted,
+        // Full accepted-quote terms for the "Quote Details" section
+        quote: booking.bike_quotes ? {
+          quoteNumber:     booking.bike_quotes.quoteNumber,
+          vehicleName:     booking.bike_quotes.vehicleName,
+          vehicleBrand:    booking.bike_quotes.vehicleBrand,
+          vehicleCategory: booking.bike_quotes.vehicleCategory,
+          dailyRate:       booking.bike_quotes.dailyRate,
+          securityDeposit: booking.bike_quotes.securityDeposit,
+          grandTotal:      booking.bike_quotes.grandTotal,
+          advancePercent:  booking.bike_quotes.advancePercent,
+          advanceAmount:   booking.bike_quotes.advanceAmount,
+          helmetsIncluded: booking.bike_quotes.helmetsIncluded,
+          kmLimitPerDay:   booking.bike_quotes.kmLimitPerDay,
+          unlimitedKm:     booking.bike_quotes.kmLimitPerDay === 0 || booking.bike_quotes.kmLimitPerDay === null,
+          extraKmCharge:   booking.bike_quotes.extraKmCharge,
+          inclusions:      booking.bike_quotes.inclusions,
+          exclusions:      booking.bike_quotes.exclusions,
+          termsConditions: booking.bike_quotes.termsConditions,
+          vendorMessage:   booking.bike_quotes.vendorMessage,
+          validTill:       booking.bike_quotes.validTill?.toISOString() || null,
+        } : null,
       },
     });
   } catch (error: any) {

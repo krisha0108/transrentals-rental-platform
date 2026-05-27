@@ -25,6 +25,10 @@ const skipLint = true;        // ENABLE linting
 
 const nextConfig = {
   reactStrictMode: false,
+  // react-leaflet v4 ships as ESM; transpile it (and its core) so the client
+  // bundle builds cleanly. The map itself is loaded via dynamic(ssr:false).
+  transpilePackages: ['react-leaflet', '@react-leaflet/core'],
+
   eslint: {
     ignoreDuringBuilds: skipLint,
   },

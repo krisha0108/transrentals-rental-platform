@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
+import { sendBookingConfirmation } from '@/lib/whatsapp/client';
 export const dynamic = 'force-dynamic';
 
 // POST - Customer confirms payment submission (handles bike, car, bus, and equipment bookings)
@@ -44,6 +45,15 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      sendBookingConfirmation({
+        customerPhone: updatedBooking.customerPhone,
+        customerName: updatedBooking.customerName,
+        bookingNumber: updatedBooking.bookingNumber,
+        pickupDate: updatedBooking.pickupDate,
+        vehicleOrService:
+          updatedBooking.acceptedVehicleName || updatedBooking.requestedVehicleName,
+      });
+
       return NextResponse.json({
         success: true,
         message: 'Payment confirmation submitted successfully',
@@ -84,6 +94,14 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      sendBookingConfirmation({
+        customerPhone: updatedBooking.customerPhone,
+        customerName: updatedBooking.customerName,
+        bookingNumber: updatedBooking.bookingNumber,
+        pickupDate: updatedBooking.pickupDate,
+        vehicleOrService: updatedBooking.requestedVehicleName,
+      });
+
       return NextResponse.json({
         success: true,
         message: 'Payment confirmation submitted successfully',
@@ -120,6 +138,14 @@ export async function POST(request: NextRequest) {
           paymentMethod: paymentMethod || 'BANK_TRANSFER',
           paymentStatus: 'PENDING',
         },
+      });
+
+      sendBookingConfirmation({
+        customerPhone: updatedBooking.customerPhone,
+        customerName: updatedBooking.customerName,
+        bookingNumber: updatedBooking.bookingNumber,
+        pickupDate: updatedBooking.pickupDate,
+        vehicleOrService: updatedBooking.vehicleName,
       });
 
       return NextResponse.json({
@@ -161,6 +187,14 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      sendBookingConfirmation({
+        customerPhone: updatedBooking.customerPhone,
+        customerName: updatedBooking.customerName,
+        bookingNumber: updatedBooking.bookingNumber,
+        pickupDate: updatedBooking.pickupDate,
+        vehicleOrService: updatedBooking.vehicleName || updatedBooking.serviceType,
+      });
+
       return NextResponse.json({
         success: true,
         message: 'Payment confirmation submitted successfully',
@@ -196,6 +230,14 @@ export async function POST(request: NextRequest) {
           advancePaid: amount || packersBooking.advanceAmount,
           advancePaidAt: new Date(),
         },
+      });
+
+      sendBookingConfirmation({
+        customerPhone: updatedBooking.customerPhone,
+        customerName: updatedBooking.customerName,
+        bookingNumber: updatedBooking.bookingNumber,
+        pickupDate: updatedBooking.pickupDate,
+        vehicleOrService: updatedBooking.serviceType,
       });
 
       return NextResponse.json({
@@ -234,6 +276,15 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      sendBookingConfirmation({
+        customerPhone: updatedBooking.customerPhone,
+        customerName: updatedBooking.customerName,
+        bookingNumber: updatedBooking.bookingNumber,
+        // equipment uses startDate (no pickupDate field)
+        pickupDate: updatedBooking.startDate,
+        vehicleOrService: updatedBooking.equipmentName,
+      });
+
       return NextResponse.json({
         success: true,
         message: 'Payment confirmation submitted successfully',
@@ -268,6 +319,14 @@ export async function POST(request: NextRequest) {
           paymentMethod: paymentMethod || 'BANK_TRANSFER',
           transactionId: paymentReference,
         },
+      });
+
+      sendBookingConfirmation({
+        customerPhone: updatedBooking.customerPhone,
+        customerName: updatedBooking.customerName,
+        bookingNumber: updatedBooking.bookingNumber,
+        pickupDate: updatedBooking.pickupDate,
+        vehicleOrService: updatedBooking.carCategoryName,
       });
 
       return NextResponse.json({
@@ -310,6 +369,14 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      sendBookingConfirmation({
+        customerPhone: updatedBooking.customerPhone,
+        customerName: updatedBooking.customerName,
+        bookingNumber: updatedBooking.bookingNumber,
+        pickupDate: updatedBooking.pickupDate,
+        vehicleOrService: updatedBooking.carCategoryName || updatedBooking.carCategory,
+      });
+
       return NextResponse.json({
         success: true,
         message: 'Payment confirmation submitted successfully',
@@ -329,6 +396,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (wanderBooking) {
+      // TODO(whatsapp): wander_bookings stores customer details via a relation
+      // (customer.name/.phone) and uses travelDate/bookingId — schema differs
+      // from the other 8 booking types. Add sendBookingConfirmation here once
+      // we decide how to load the customer (include relation, or fetch).
       const updatedBooking = await (prisma as any).wander_bookings.update({
         where: { id: bookingId },
         data: {

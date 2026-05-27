@@ -33,6 +33,7 @@ import {
   Bus,
   FileSpreadsheet,
   Send,
+  Share2,
   Truck,
   Wrench,
   Cog,
@@ -101,6 +102,11 @@ const approvedNavigationItems: NavItem[] = [
     name: 'Dashboard',
     href: '/vendor/dashboard',
     icon: LayoutDashboard,
+  },
+  {
+    name: 'Live Tracking',
+    href: '/vendor/tracking',
+    icon: Navigation,
   },
   {
     name: 'Customer Chats',
@@ -990,6 +996,23 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
                   })}
                 </div>
               )}
+            </div>
+
+            {/* Share Profile — always-visible at the bottom */}
+            <div className="px-4 pb-1">
+              <Link
+                href="/vendor/share-profile"
+                onClick={onClose}
+                className={cn(
+                  'flex items-center gap-3 w-full px-4 py-3 rounded-lg transition',
+                  pathname === '/vendor/share-profile' || pathname?.startsWith('/vendor/share-profile/')
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                )}
+              >
+                <Share2 className="w-5 h-5" />
+                <span className="font-medium">Share Profile</span>
+              </Link>
             </div>
 
             {/* Sign Out Button */}

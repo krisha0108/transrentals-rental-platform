@@ -67,15 +67,16 @@ export async function GET(
         },
         truck_quotes: {
           select: {
-            id: true,
-            baseAmount: true,
-            labourCharges: true,
-            loadingCharges: true,
-            unloadingCharges: true,
-            packagingCharges: true,
-            insuranceCharges: true,
-            tollEstimate: true,
-            gstAmount: true,
+            quoteNumber: true,
+            vehicleName: true,
+            vehicleCategory: true,
+            totalAmount: true,
+            advancePercent: true,
+            advanceAmount: true,
+            inclusions: true,
+            exclusions: true,
+            termsConditions: true,
+            validTill: true,
           },
         },
       },
@@ -123,7 +124,25 @@ export async function GET(
       budgetMax: qr?.budgetMax,
     };
 
-    return NextResponse.json({ success: true, booking: transformedBooking });
+    return NextResponse.json({
+      success: true,
+      booking: {
+        ...transformedBooking,
+        // Full accepted-quote terms for the "Quote Details" section
+        quote: booking.truck_quotes ? {
+          quoteNumber:     booking.truck_quotes.quoteNumber,
+          vehicleName:     booking.truck_quotes.vehicleName,
+          vehicleCategory: booking.truck_quotes.vehicleCategory,
+          totalAmount:     booking.truck_quotes.totalAmount,
+          advancePercent:  booking.truck_quotes.advancePercent,
+          advanceAmount:   booking.truck_quotes.advanceAmount,
+          inclusions:      booking.truck_quotes.inclusions,
+          exclusions:      booking.truck_quotes.exclusions,
+          termsConditions: booking.truck_quotes.termsConditions,
+          validTill:       booking.truck_quotes.validTill?.toISOString() || null,
+        } : null,
+      },
+    });
   } catch (error: any) {
     logger.error('Failed to fetch truck booking', error);
     return NextResponse.json({ error: 'Failed to fetch booking' }, { status: 500 });
