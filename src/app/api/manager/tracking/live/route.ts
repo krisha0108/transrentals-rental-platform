@@ -69,8 +69,11 @@ export async function GET(_request: NextRequest) {
     });
     const vendorIds = vendorRows.map((v) => v.id);
 
-    // Driver counts per vendor + vendor-staff driver rows (live GPS) +
-    // independent drivers (platform pool, also live GPS) — all in parallel.
+    // Driver counts per vendor + ALL vendor-staff drivers + ALL active
+    // independent drivers — regardless of whether GPS is on/off. Offline
+    // drivers list mein dikhte hain par map pe nahi (frontend lat/lng null
+    // wale ko skip karta hai). `deriveStatus` null lat/lng / stale update
+    // ko 'offline' batata hai.
     const [driverCounts, driverRows, indieRows] = await Promise.all([
       prisma.vendor_staff.groupBy({
         by: ['vendorId'],
@@ -78,7 +81,7 @@ export async function GET(_request: NextRequest) {
         _count: { _all: true },
       }),
       prisma.vendor_staff.findMany({
-        where: { vendorId: { in: vendorIds }, role: 'DRIVER', currentLat: { not: null }, currentLng: { not: null } },
+        where: { vendorId: { in: vendorIds }, role: 'DRIVER' },
         select: {
           id: true, name: true, phone: true, profilePhoto: true, vendorId: true,
           isSharingLocation: true, currentLat: true, currentLng: true, currentHeading: true,
@@ -86,10 +89,10 @@ export async function GET(_request: NextRequest) {
           vendors: { select: { businessName: true, city: true } },
         },
       }),
-      // Independent drivers aren't tied to a vendor/city, so they're shown
-      // platform-wide once they share a live location.
+      // Independent drivers aren't tied to a vendor/city — platform-wide,
+      // shown whether GPS is on or off.
       prisma.drivers.findMany({
-        where: { status: 'ACTIVE', currentLat: { not: null }, currentLng: { not: null } },
+        where: { status: 'ACTIVE' },
         select: {
           id: true, name: true, phone: true, profilePhoto: true,
           isSharingLocation: true, currentLat: true, currentLng: true, currentHeading: true,
