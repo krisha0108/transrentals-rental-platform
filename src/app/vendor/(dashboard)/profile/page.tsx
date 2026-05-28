@@ -325,7 +325,7 @@ export default function VendorProfilePage() {
         )}
 
         <div className="mb-5">
-          <ProfileShareCard kind="vendor" />
+          <ProfileShareCard kind="vendor" showVisibility={false} showSlug={false} />
         </div>
 
         <form onSubmit={handleSubmit} className="columns-1 lg:columns-2 gap-5 space-y-5">
