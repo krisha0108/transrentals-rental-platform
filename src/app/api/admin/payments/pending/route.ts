@@ -10,6 +10,26 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const bookingType = searchParams.get('type') || 'all'; // 'bike', 'chauffeur', 'bus', 'all'
+    // Payment-status filter (filters on each booking's `paymentStatus` field):
+    //   pending  → SUBMITTED  (manual proof uploaded, awaiting admin verify)
+    //   approved → PARTIAL/PAID (verified manual + direct/Razorpay paid)
+    //   all      → any booking with payment activity (manual + direct)
+    const paymentStatus = searchParams.get('status') || 'all';
+    const pmtStatuses =
+      paymentStatus === 'pending'  ? ['SUBMITTED']
+      : paymentStatus === 'approved' ? ['PARTIAL', 'PAID']
+      : ['SUBMITTED', 'PARTIAL', 'PAID'];
+
+    // Payment method filter:
+    //   manual → UPI / BANK_TRANSFER (customer uploads proof)
+    //   direct → RAZORPAY / ONLINE   (gateway, auto-confirmed)
+    //   all (default) → no method filter
+    const paymentMethodParam = searchParams.get('method') || 'all';
+    const methodGroups: Record<string, string[]> = {
+      manual: ['UPI', 'BANK_TRANSFER'],
+      direct: ['RAZORPAY', 'ONLINE'],
+    };
+    const methods: string[] | null = methodGroups[paymentMethodParam] || null;
 
     const results: any[] = [];
 
@@ -17,7 +37,8 @@ export async function GET(request: NextRequest) {
     if (bookingType === 'all' || bookingType === 'bike') {
       const bikeBookings = await prisma.bike_bookings.findMany({
         where: {
-          status: 'PAYMENT_SUBMITTED',
+          paymentStatus: { in: pmtStatuses },
+          ...(methods && { paymentMethod: { in: methods } }),
         },
         orderBy: { advancePaymentDate: 'desc' },
         take: 50,
@@ -53,7 +74,8 @@ export async function GET(request: NextRequest) {
     if (bookingType === 'all' || bookingType === 'car' || bookingType === 'self-drive') {
       const carBookings = await prisma.car_bookings.findMany({
         where: {
-          status: 'PAYMENT_SUBMITTED',
+          paymentStatus: { in: pmtStatuses },
+          ...(methods && { paymentMethod: { in: methods } }),
         },
         orderBy: { advancePaymentDate: 'desc' },
         take: 50,
@@ -94,7 +116,8 @@ export async function GET(request: NextRequest) {
     if (bookingType === 'all' || bookingType === 'chauffeur') {
       const chauffeurBookings = await prisma.chauffeur_bookings.findMany({
         where: {
-          status: 'PAYMENT_SUBMITTED',
+          paymentStatus: { in: pmtStatuses },
+          ...(methods && { paymentMethod: { in: methods } }),
           transactionId: { not: null },
         },
         orderBy: { updatedAt: 'desc' },
@@ -131,7 +154,8 @@ export async function GET(request: NextRequest) {
     if (bookingType === 'all' || bookingType === 'bus') {
       const busBookings = await prisma.bus_bookings.findMany({
         where: {
-          status: 'PAYMENT_SUBMITTED',
+          paymentStatus: { in: pmtStatuses },
+          ...(methods && { paymentMethod: { in: methods } }),
         },
         orderBy: { advancePaymentDate: 'desc' },
         take: 50,
@@ -167,7 +191,8 @@ export async function GET(request: NextRequest) {
     if (bookingType === 'all' || bookingType === 'truck') {
       const truckBookings = await prisma.truck_bookings.findMany({
         where: {
-          status: 'PAYMENT_SUBMITTED',
+          paymentStatus: { in: pmtStatuses },
+          ...(methods && { paymentMethod: { in: methods } }),
         },
         orderBy: { advancePaymentDate: 'desc' },
         take: 50,
@@ -203,7 +228,8 @@ export async function GET(request: NextRequest) {
     if (bookingType === 'all' || bookingType === 'equipment') {
       const equipmentBookings = await prisma.equipment_bookings.findMany({
         where: {
-          status: 'PAYMENT_SUBMITTED',
+          paymentStatus: { in: pmtStatuses },
+          ...(methods && { paymentMethod: { in: methods } }),
         },
         orderBy: { advancePaidAt: 'desc' },
         take: 50,
@@ -241,7 +267,8 @@ export async function GET(request: NextRequest) {
     if (bookingType === 'all' || bookingType === 'packers') {
       const packersBookings = await prisma.packers_bookings.findMany({
         where: {
-          status: 'PAYMENT_SUBMITTED',
+          paymentStatus: { in: pmtStatuses },
+          ...(methods && { paymentMethod: { in: methods } }),
         },
         orderBy: { advancePaidAt: 'desc' },
         take: 50,
@@ -278,7 +305,8 @@ export async function GET(request: NextRequest) {
     if (bookingType === 'all' || bookingType === 'luxury') {
       const luxuryBookings = await prisma.luxury_bookings.findMany({
         where: {
-          status: 'PAYMENT_SUBMITTED',
+          paymentStatus: { in: pmtStatuses },
+          ...(methods && { paymentMethod: { in: methods } }),
         },
         include: {
           luxury_quotes: {
@@ -317,43 +345,57 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fetch Wander Bookings with PAYMENT_SUBMITTED status
+    // Wander bookings use a DIFFERENT schema — `advancePaid: Boolean` instead
+    // of the paymentStatus enum the other tables use. Adapt the where here.
+    // Wrapped in try-catch so any per-table schema issue can't take down the
+    // whole admin payments page (defensive — was the root cause of empty UI).
     if (bookingType === 'all' || bookingType === 'wander') {
-      const wanderBookings = await (prisma as any).wander_bookings.findMany({
-        where: { status: 'PAYMENT_SUBMITTED' },
-        include: {
-          customer: { select: { name: true, phone: true, email: true } },
-          quoteRequest: { select: { pickupLocation: true, listing: { select: { title: true } } } },
-        },
-        orderBy: { advancePaidAt: 'desc' },
-        take: 50,
-      });
+      try {
+        // Pending = manual proof awaiting admin → wander has no such state, skip.
+        // Approved/All = payment actually done = advancePaid:true.
+        if (paymentStatus !== 'pending') {
+          const wanderBookings = await (prisma as any).wander_bookings.findMany({
+            where: {
+              advancePaid: true,
+              ...(methods && { paymentMethod: { in: methods } }),
+            },
+            include: {
+              customer: { select: { name: true, phone: true, email: true } },
+              quoteRequest: { select: { pickupLocation: true, listing: { select: { title: true } } } },
+            },
+            orderBy: { advancePaidAt: 'desc' },
+            take: 50,
+          });
 
-      wanderBookings.forEach((b: any) => {
-        const tourName = b.quoteRequest?.listing?.title || b.quoteRequest?.pickupLocation || 'Wander Tour';
-        results.push({
-          id: b.id,
-          bookingNumber: b.bookingId,
-          bookingType: 'wander',
-          customerName: b.customer?.name || 'Customer',
-          customerPhone: b.customer?.phone || '',
-          customerEmail: b.customer?.email || '',
-          serviceType: 'Wander Tour',
-          vehicleName: tourName,
-          location: tourName,
-          pickupDate: b.travelDate,
-          grandTotal: b.amount,
-          advanceAmount: b.advanceAmount,
-          advancePaymentRef: b.advancePaymentRef,
-          advancePaymentProof: b.advancePaymentProof,
-          advancePaymentDate: b.advancePaidAt,
-          paymentMethod: b.paymentMethod,
-          paymentStatus: 'PENDING',
-          status: b.status,
-          createdAt: b.createdAt,
-          updatedAt: b.updatedAt,
-        });
-      });
+          wanderBookings.forEach((b: any) => {
+            const tourName = b.quoteRequest?.listing?.title || b.quoteRequest?.pickupLocation || 'Wander Tour';
+            results.push({
+              id: b.id,
+              bookingNumber: b.bookingId,
+              bookingType: 'wander',
+              customerName: b.customer?.name || 'Customer',
+              customerPhone: b.customer?.phone || '',
+              customerEmail: b.customer?.email || '',
+              serviceType: 'Wander Tour',
+              vehicleName: tourName,
+              location: tourName,
+              pickupDate: b.travelDate,
+              grandTotal: b.amount,
+              advanceAmount: b.advanceAmount,
+              advancePaymentRef: b.advancePaymentRef,
+              advancePaymentProof: b.advancePaymentProof,
+              advancePaymentDate: b.advancePaidAt,
+              paymentMethod: b.paymentMethod,
+              paymentStatus: b.balancePaid ? 'PAID' : 'PARTIAL',
+              status: b.status,
+              createdAt: b.createdAt,
+              updatedAt: b.updatedAt,
+            });
+          });
+        }
+      } catch (e) {
+        logger.error('Wander bookings fetch failed (continuing without)', e);
+      }
     }
 
     // Sort all results by date
