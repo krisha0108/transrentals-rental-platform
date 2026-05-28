@@ -4,7 +4,8 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
-import { sendPushNotification, sendNotificationToCustomer } from '@/lib/services/push-notification-service';
+import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 // GET - Get conversation with messages
@@ -129,10 +130,15 @@ export async function POST(
       );
     }
 
-    // Verify conversation exists
+    // Verify conversation exists. We pull the customer name too so the push
+    // notification shows the real sender instead of a generic "Customer".
     const conversation = await prisma.chat_conversations.findUnique({
       where: { id: conversationId },
-      select: { id: true, vendorId: true, customerId: true, status: true },
+      select: {
+        id: true, vendorId: true, customerId: true, status: true,
+        bookingId: true, bookingType: true,
+        customers: { select: { name: true } },
+      },
     });
 
     if (!conversation) {
@@ -193,32 +199,32 @@ export async function POST(
       },
     });
 
-    // Send FCM push notification for new message (no DB storage)
-    try {
-      const msgPreview = content.length > 60 ? content.substring(0, 60) + '...' : content;
-      if (isFromVendor && conversation.customerId) {
-        // Vendor sent → notify customer
-        await sendNotificationToCustomer(
-          conversation.customerId,
-          { title: '💬 New message from vendor', body: msgPreview },
-          { type: 'chat', screen: 'Chat', conversationId }
-        );
-      } else if (!isFromVendor && conversation.vendorId) {
-        // Customer sent → notify vendor
-        const vendor = await prisma.vendors.findUnique({
-          where: { id: conversation.vendorId },
-          select: { fcmToken: true },
-        });
-        if (vendor?.fcmToken) {
-          await sendPushNotification(
-            vendor.fcmToken,
-            { title: '💬 New message from customer', body: msgPreview },
-            { type: 'chat', screen: 'ChatDetail', conversationId }
-          );
-        }
-      }
-    } catch (notifErr) {
-      console.error('[Chat] Push notification failed:', notifErr);
+    // Send FCM push notification for new message.
+    const msgPreview = content.length > 60 ? content.substring(0, 60) + '…' : content;
+    if (isFromVendor && conversation.customerId) {
+      // Vendor sent → notify customer (legacy single-token call).
+      sendNotificationToCustomer(
+        conversation.customerId,
+        { title: '💬 New message from vendor', body: msgPreview },
+        { type: 'chat', screen: 'Chat', conversationId },
+      ).catch((err) => logger.error('Customer chat push failed', { customerId: conversation.customerId, err }));
+    } else if (!isFromVendor && conversation.vendorId) {
+      // Customer sent → notify vendor. Uses multi-device tokens, chat_channel
+      // sound, and auto-cleans stale FCM tokens. bookingId is included so the
+      // vendor app's deep-link handler can open the ChatScreen (App.js
+      // expects `bookingId`, not `conversationId`). Also saved to the
+      // in-app NotificationsScreen so the vendor sees a record even if the
+      // OS-level banner is suppressed.
+      const displayName = senderName || conversation.customers?.name || 'Customer';
+      sendVendorDirectNotification({
+        vendorId: conversation.vendorId,
+        title: displayName,
+        body: msgPreview,
+        type: 'chat',
+        serviceType: conversation.bookingType || 'general',
+        bookingId: conversation.bookingId || undefined,
+        data: { screen: 'ChatScreen', conversationId },
+      }).catch((err) => logger.error('Vendor chat push failed', { vendorId: conversation.vendorId, conversationId, err }));
     }
 
     // Update quick reply usage if applicable

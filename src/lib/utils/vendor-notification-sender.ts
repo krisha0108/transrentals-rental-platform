@@ -168,6 +168,11 @@ interface VendorDirectNotificationParams {
   bookingId?: string;
   bookingNumber?: string;
   data?: Record<string, string>;
+  // Skip saving to vendor's in-app notifications store. Use for high-frequency
+  // events like chat messages where the conversation already has its own
+  // unread badge on the Chats tab — saving each message would flood the
+  // NotificationsScreen list.
+  pushOnly?: boolean;
 }
 
 // Helper: get all FCM tokens for a vendor (multi-device support)
@@ -219,35 +224,38 @@ async function removeStaleVendorToken(vendorId: string, staleToken: string): Pro
 export async function sendVendorDirectNotification(
   params: VendorDirectNotificationParams
 ): Promise<void> {
-  const { vendorId, title, body, type, serviceType, bookingId, bookingNumber, data: extraData } = params;
+  const { vendorId, title, body, type, serviceType, bookingId, bookingNumber, data: extraData, pushOnly } = params;
 
   try {
-    // 1. Save to vendor's in-app notifications
-    const settingKey = `vendor_notifications_${vendorId}`;
-    const existing = await prisma.settings.findUnique({ where: { key: settingKey } });
-    const notifData: any = existing?.value
-      ? JSON.parse(existing.value as string)
-      : { notifications: [] };
+    // 1. Save to vendor's in-app notifications (skipped for pushOnly events
+    // like chat — those rely on the Chats tab's own unread badge).
+    if (!pushOnly) {
+      const settingKey = `vendor_notifications_${vendorId}`;
+      const existing = await prisma.settings.findUnique({ where: { key: settingKey } });
+      const notifData: any = existing?.value
+        ? JSON.parse(existing.value as string)
+        : { notifications: [] };
 
-    const newNotification = {
-      id: `${type}_${bookingId || Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      type,
-      title,
-      body,
-      bookingId: bookingId || null,
-      bookingNumber: bookingNumber || null,
-      serviceType,
-      read: false,
-      createdAt: new Date().toISOString(),
-    };
+      const newNotification = {
+        id: `${type}_${bookingId || Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        type,
+        title,
+        body,
+        bookingId: bookingId || null,
+        bookingNumber: bookingNumber || null,
+        serviceType,
+        read: false,
+        createdAt: new Date().toISOString(),
+      };
 
-    notifData.notifications = [newNotification, ...(notifData.notifications || [])].slice(0, 50);
+      notifData.notifications = [newNotification, ...(notifData.notifications || [])].slice(0, 50);
 
-    await prisma.settings.upsert({
-      where: { key: settingKey },
-      create: { key: settingKey, value: JSON.stringify(notifData) },
-      update: { value: JSON.stringify(notifData) },
-    });
+      await prisma.settings.upsert({
+        where: { key: settingKey },
+        create: { key: settingKey, value: JSON.stringify(notifData) },
+        update: { value: JSON.stringify(notifData) },
+      });
+    }
 
     // 2. Send FCM push to ALL devices
     const tokens = await getVendorFcmTokens(vendorId);

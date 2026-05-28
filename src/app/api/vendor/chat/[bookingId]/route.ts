@@ -292,6 +292,14 @@ export async function GET(
       success: true,
       messages: transformedMessages,
       customer,
+      // Surface booking meta so the mobile ChatScreen can self-populate its
+      // header (customer name, service badge, booking number) even when it
+      // was opened via a notification deep-link that only carried bookingId.
+      booking: {
+        bookingId,
+        bookingNumber: booking.bookingNumber || null,
+        bookingType,
+      },
       unread_count: conversation.vendorUnread || 0,
     });
   } catch (error) {
