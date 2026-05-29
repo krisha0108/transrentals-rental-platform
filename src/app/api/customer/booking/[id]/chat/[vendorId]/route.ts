@@ -4,7 +4,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
-import { sendPushNotification } from '@/lib/services/push-notification-service';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 export const dynamic = 'force-dynamic';
 
 function generateId(): string {
@@ -287,23 +287,22 @@ export async function POST(
       },
     });
 
-    // Send FCM push to vendor (no DB storage)
-    try {
-      const vendor = await prisma.vendors.findUnique({
-        where: { id: vendorId },
-        select: { fcmToken: true },
-      });
-      if (vendor?.fcmToken) {
-        const msgPreview = message.trim().length > 60 ? message.trim().substring(0, 60) + '...' : message.trim();
-        await sendPushNotification(
-          vendor.fcmToken,
-          { title: '💬 New message from customer', body: msgPreview },
-          { type: 'chat', screen: 'ChatDetail', bookingId }
-        );
-      }
-    } catch (notifErr) {
-      console.error('[CustomerChat] Vendor push notification failed:', notifErr);
-    }
+    // Push notification + in-app entry to vendor. Multi-device, chat channel,
+    // stale-token cleanup. Fire-and-forget so a slow FCM call doesn't block
+    // the message-send response.
+    const msgPreview = message.trim().length > 60 ? message.trim().slice(0, 60) + '…' : message.trim();
+    const customerDisplayName = customerName || 'Customer';
+    sendVendorDirectNotification({
+      vendorId,
+      title: customerDisplayName,
+      body: msgPreview,
+      type: 'chat',
+      serviceType: bookingType,
+      bookingId,
+      data: { screen: 'ChatScreen' },
+    }).catch((err) => {
+      logger.error('Vendor chat push notification failed', { vendorId, bookingId, err });
+    });
 
     // Use display ID for frontend
     const displayCustomerId = effectiveCustomerId || `guest-${bookingId}`;

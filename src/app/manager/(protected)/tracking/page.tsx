@@ -9,13 +9,13 @@ import LiveMap, { LiveMarker } from '@/components/tracking/LiveMap';
 
 interface MgrDriver {
   id: string; name: string; phone: string; profilePhoto: string | null; vendorName: string | null;
-  independent: boolean;
+  city: string | null; independent: boolean;
   status: 'moving' | 'idle' | 'offline'; speed: number; heading: number;
-  lat: number; lng: number; updatedAt: string | null;
+  lat: number | null; lng: number | null; updatedAt: string | null;
 }
 interface MgrVendor {
   id: string; name: string; city: string | null; status: string; logo: string | null;
-  slug: string | null; driverCount: number; lat: number; lng: number;
+  slug: string | null; driverCount: number; lat: number | null; lng: number | null;
 }
 
 const DRIVER_STATUS = {
@@ -40,6 +40,7 @@ export default function ManagerTrackingPage() {
   const [vendors, setVendors] = useState<MgrVendor[]>([]);
   const [stats, setStats] = useState({ vendors: 0, drivers: 0, vendorDrivers: 0, independentDrivers: 0, driversLive: 0 });
   const [filter, setFilter] = useState<Filter>('all');
+  const [cityFilter, setCityFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isLive, setIsLive] = useState(true);
@@ -69,30 +70,45 @@ export default function ManagerTrackingPage() {
   const showIndependent = filter === 'all' || filter === 'independent';
   const showVendors = filter === 'all' || filter === 'vendors';
 
+  // City list for the location filter (from vendors + vendor-driver cities).
+  const cities = useMemo(() => {
+    const set = new Set<string>();
+    vendors.forEach((v) => { if (v.city) set.add(v.city); });
+    drivers.forEach((d) => { if (d.city) set.add(d.city); });
+    return Array.from(set).sort();
+  }, [vendors, drivers]);
+  const cityOk = (c: string | null) => cityFilter === 'all' || c === cityFilter;
+
   const fDrivers = useMemo(
     () => drivers.filter((d) => {
       if (d.independent ? !showIndependent : !showVendorDrivers) return false;
+      // Independent drivers aren't city-scoped — only show under "All cities".
+      if (cityFilter !== 'all' && (d.independent || !cityOk(d.city))) return false;
       return d.name.toLowerCase().includes(q) || (d.vendorName || '').toLowerCase().includes(q);
     }),
-    [drivers, showVendorDrivers, showIndependent, q],
+    [drivers, showVendorDrivers, showIndependent, q, cityFilter],
   );
   const fVendors = useMemo(
-    () => (showVendors ? vendors.filter((v) => v.name.toLowerCase().includes(q) || (v.city || '').toLowerCase().includes(q)) : []),
-    [vendors, showVendors, q],
+    () => (showVendors ? vendors.filter((v) => cityOk(v.city) && (v.name.toLowerCase().includes(q) || (v.city || '').toLowerCase().includes(q))) : []),
+    [vendors, showVendors, q, cityFilter],
   );
 
   const markers: LiveMarker[] = useMemo(() => {
-    const dm: LiveMarker[] = fDrivers.map((d) => ({
-      id: `d_${d.id}`, lat: d.lat, lng: d.lng, heading: d.heading,
-      color: DRIVER_STATUS[d.status].hex, label: d.name,
-      sublabel: d.vendorName || (d.status === 'moving' ? `${d.speed} km/h` : DRIVER_STATUS[d.status].label),
-      icon: 'driver', pulse: d.status !== 'offline', photo: d.profilePhoto,
-    }));
-    const vm: LiveMarker[] = fVendors.map((v) => ({
-      id: `v_${v.id}`, lat: v.lat, lng: v.lng, color: VENDOR_HEX,
-      label: v.name, sublabel: `${v.city || ''}${v.driverCount ? ` · ${v.driverCount} drivers` : ''}`,
-      icon: 'vendor',
-    }));
+    const dm: LiveMarker[] = fDrivers
+      .filter((d) => d.lat != null && d.lng != null)
+      .map((d) => ({
+        id: `d_${d.id}`, lat: d.lat as number, lng: d.lng as number, heading: d.heading,
+        color: DRIVER_STATUS[d.status].hex, label: d.name,
+        sublabel: d.vendorName || (d.status === 'moving' ? `${d.speed} km/h` : DRIVER_STATUS[d.status].label),
+        icon: 'driver', pulse: d.status !== 'offline', photo: d.profilePhoto,
+      }));
+    const vm: LiveMarker[] = fVendors
+      .filter((v) => v.lat != null && v.lng != null)
+      .map((v) => ({
+        id: `v_${v.id}`, lat: v.lat as number, lng: v.lng as number, color: VENDOR_HEX,
+        label: v.name, sublabel: `${v.city || ''}${v.driverCount ? ` · ${v.driverCount} drivers` : ''}`,
+        icon: 'vendor',
+      }));
     return [...vm, ...dm];
   }, [fDrivers, fVendors]);
 
@@ -131,6 +147,19 @@ export default function ManagerTrackingPage() {
           <FilterChip value="independent" label={`Independent (${stats.independentDrivers})`} icon={User} />
           <FilterChip value="vendors" label={`Vendors (${stats.vendors})`} icon={Store} />
         </div>
+        {cities.length > 0 && (
+          <div className="relative">
+            <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
+            <select
+              value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+              className="pl-8 pr-7 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none cursor-pointer"
+            >
+              <option value="all">All cities</option>
+              {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        )}
         <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-full px-3 py-1.5 ml-auto">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {stats.driversLive} drivers live now
         </span>
@@ -192,14 +221,14 @@ export default function ManagerTrackingPage() {
 
         {/* Map */}
         <div className="relative bg-gray-100 rounded-2xl overflow-hidden h-[70vh]">
-          {markers.length === 0 ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+          {/* Map is ALWAYS rendered; an overlay shows when there are no live pins. */}
+          <LiveMap markers={markers} selectedId={selectedId} onMarkerClick={setSelectedId} />
+          {!loading && markers.length === 0 && (
+            <div className="absolute inset-0 z-[500] flex flex-col items-center justify-center text-center px-6 bg-white/70 backdrop-blur-[1px] pointer-events-none">
               <Navigation className="w-10 h-10 text-gray-300 mb-2" />
-              <p className="text-gray-500 font-medium">No locations to show</p>
-              <p className="text-gray-400 text-sm">Vendors plot at their city; drivers appear once they share live location.</p>
+              <p className="text-gray-600 font-medium">No live locations to show</p>
+              <p className="text-gray-400 text-sm">Drivers appear here once they share their live location.</p>
             </div>
-          ) : (
-            <LiveMap markers={markers} selectedId={selectedId} onMarkerClick={setSelectedId} />
           )}
 
           {/* Legend */}

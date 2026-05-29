@@ -104,11 +104,6 @@ const approvedNavigationItems: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
-    name: 'Live Tracking',
-    href: '/vendor/tracking',
-    icon: Navigation,
-  },
-  {
     name: 'Customer Chats',
     href: '/vendor/chat',
     icon: MessageSquare,
@@ -289,6 +284,11 @@ const approvedNavigationItems: NavItem[] = [
       { name: 'Attendance', href: '/vendor/staff/attendance', icon: Clock },
       { name: 'Payroll', href: '/vendor/staff/payroll', icon: CreditCard },
     ],
+  },
+  {
+    name: 'Live Tracking',
+    href: '/vendor/tracking',
+    icon: Navigation,
   },
   {
     name: 'P2P Marketplace',

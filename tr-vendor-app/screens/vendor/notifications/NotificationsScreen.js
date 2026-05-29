@@ -29,9 +29,32 @@ const C = {
   red:    '#DC2626', redL:    '#FEF2F2',
 };
 
+// WhatsApp-style avatar palette — name hashes into one of these so the same
+// contact always gets the same color across notifications.
+const AVATAR_PALETTE = [
+  '#0EA5A4', // teal
+  '#10B981', // emerald (matches brand)
+  '#3B82F6', // blue
+  '#8B5CF6', // violet
+  '#EC4899', // pink
+  '#F59E0B', // amber
+  '#EF4444', // red
+  '#14B8A6', // teal-bright
+  '#6366F1', // indigo
+];
+
+function avatarColorFor(name) {
+  if (!name) return AVATAR_PALETTE[0];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0x7fffffff;
+  return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
+}
+
 // ── Notification type config ───────────────────────────────────
 const NOTIF_CONFIG = {
   quote_request:             { icon: 'file-text',    color: C.purple, bg: C.purpleL },
+  chat:                      { icon: 'message-square', color: C.g600, bg: C.g50    },
+  new_message:               { icon: 'message-square', color: C.g600, bg: C.g50    },
   direct_booking_inquiry:    { icon: 'inbox',         color: C.blue,   bg: C.blueL  },
   booking_new:               { icon: 'calendar',      color: C.blue,   bg: C.blueL  },
   booking_accepted:          { icon: 'check-circle',  color: C.g600,   bg: C.g50    },
@@ -181,6 +204,10 @@ export default function NotificationsScreen({ navigation }) {
       if (s) navigation.navigate(s, { bookingId });
       return;
     }
+    if ((type === 'chat' || type === 'new_message') && bookingId) {
+      navigation.navigate('ChatScreen', { bookingId });
+      return;
+    }
     if (type === 'direct_booking_inquiry' && bookingId) {
       navigation.navigate('DirectBookingDetail', { bookingId }); return;
     }
@@ -211,33 +238,58 @@ export default function NotificationsScreen({ navigation }) {
       );
     }
 
-    const cfg     = NOTIF_CONFIG[item.type] || NOTIF_CONFIG.general;
+    const cfg      = NOTIF_CONFIG[item.type] || NOTIF_CONFIG.general;
     const isUnread = item.read === false;
+    const isChat   = item.type === 'chat' || item.type === 'new_message';
+
+    // Older saved chat notifications had a "💬 " emoji prefix on the title;
+    // strip defensively so the avatar+name render cleanly either way.
+    const cleanTitle = isChat ? (item.title || '').replace(/^💬\s*/, '').trim() : item.title;
+    const initial    = isChat && cleanTitle ? cleanTitle.charAt(0).toUpperCase() : '';
+    const avatarBg   = isChat ? avatarColorFor(cleanTitle) : null;
 
     return (
       <TouchableOpacity
-        style={[s.card, isUnread && s.cardUnread]}
+        style={[s.card, isUnread && (isChat ? s.cardUnreadChat : s.cardUnread)]}
         onPress={() => handleNotificationPress(item)}
         activeOpacity={0.75}
       >
-        {/* Unread left accent bar */}
-        {isUnread && <View style={[s.accentBar, { backgroundColor: cfg.color }]} />}
+        {/* Unread left accent bar — only for non-chat (chat uses bolder title + green time) */}
+        {isUnread && !isChat && <View style={[s.accentBar, { backgroundColor: cfg.color }]} />}
 
-        <View style={[s.iconBox, { backgroundColor: cfg.bg }]}>
-          <Icon name={cfg.icon} size={18} color={cfg.color} />
-        </View>
+        {/* Avatar (chat) — WhatsApp-style; or icon (everything else) */}
+        {isChat ? (
+          <View style={[s.avatar, { backgroundColor: avatarBg }]}>
+            <Text style={s.avatarTxt}>{initial || '?'}</Text>
+          </View>
+        ) : (
+          <View style={[s.iconBox, { backgroundColor: cfg.bg }]}>
+            <Icon name={cfg.icon} size={19} color={cfg.color} />
+          </View>
+        )}
 
         <View style={s.content}>
           <View style={s.cardTop}>
-            <Text style={[s.title, isUnread && s.titleUnread]} numberOfLines={1}>
-              {item.title}
+            <Text
+              style={[isChat ? s.chatName : s.title, isUnread && (isChat ? s.chatNameUnread : s.titleUnread)]}
+              numberOfLines={1}
+            >
+              {cleanTitle || (isChat ? 'New message' : 'Notification')}
             </Text>
-            <Text style={s.time}>{formatTime(item.createdAt)}</Text>
+            <Text style={[s.time, isUnread && (isChat ? s.timeChatUnread : s.timeUnread)]}>
+              {formatTime(item.createdAt)}
+            </Text>
           </View>
-          <Text style={s.body} numberOfLines={2}>{item.body || item.message}</Text>
+          <Text
+            style={[s.body, isChat && s.bodyChat, isChat && isUnread && s.bodyChatUnread]}
+            numberOfLines={2}
+          >
+            {item.body || item.message}
+          </Text>
         </View>
 
-        {isUnread && <View style={[s.dot, { backgroundColor: cfg.color }]} />}
+        {/* Unread pill — WhatsApp-style green dot on the right for chats */}
+        {isUnread && isChat && <View style={[s.unreadDot, { backgroundColor: C.g500 }]} />}
       </TouchableOpacity>
     );
   };
@@ -376,33 +428,57 @@ const s = StyleSheet.create({
 
   // ── Notification card ─────────────────────────────────────────
   card: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    backgroundColor: C.card, borderRadius: 14, padding: 14,
-    marginBottom: 8,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.card, borderRadius: 16, padding: 14,
+    marginBottom: 10,
+    shadowColor: '#0F172A', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
     borderWidth: 1, borderColor: C.border,
     overflow: 'hidden',
   },
   cardUnread: {
     backgroundColor: '#F8FAFF',
     borderColor: '#BFDBFE',
+    shadowOpacity: 0.08, elevation: 3,
+  },
+  // Chat unread — keep card clean white (WhatsApp style) but lift slightly
+  cardUnreadChat: {
+    shadowOpacity: 0.09, elevation: 3,
   },
   accentBar: {
-    position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+    position: 'absolute', left: 0, top: 0, bottom: 0, width: 3.5,
   },
   iconBox: {
-    width: 44, height: 44, borderRadius: 12,
+    width: 44, height: 44, borderRadius: 13,
     alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
-  content:  { flex: 1 },
-  cardTop:  { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 },
-  title:    { fontSize: 13, fontWeight: '600', color: C.sub, flex: 1, marginRight: 8 },
+  // Chat avatar (WhatsApp-style round, no badge)
+  avatar: {
+    width: 48, height: 48, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+  },
+  avatarTxt: {
+    color: '#fff', fontSize: 19, fontWeight: '700', letterSpacing: -0.3,
+  },
+  content:  { flex: 1, minWidth: 0 },
+  cardTop:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 },
+  title:    { fontSize: 13.5, fontWeight: '600', color: C.sub, flex: 1, marginRight: 8 },
   titleUnread: { color: C.text, fontWeight: '700' },
-  time:     { fontSize: 10, color: C.muted, fontWeight: '500', flexShrink: 0 },
+  // Chat name — bigger, like WhatsApp contact name in a chat row
+  chatName: { fontSize: 15, fontWeight: '600', color: C.text, flex: 1, marginRight: 8 },
+  chatNameUnread: { fontWeight: '700' },
+  time:     { fontSize: 10.5, color: C.muted, fontWeight: '500', flexShrink: 0 },
+  timeUnread: { color: C.blue, fontWeight: '700' },
+  // Chat time — turns brand-green for unread (matches WhatsApp's green tint)
+  timeChatUnread: { color: C.g600, fontWeight: '700', fontSize: 11 },
   body:     { fontSize: 12.5, color: C.muted, lineHeight: 18 },
-  dot: {
-    width: 8, height: 8, borderRadius: 4, marginLeft: 8, marginTop: 4, flexShrink: 0,
+  // Chat body — message preview is the content, so it gets more weight
+  bodyChat: { fontSize: 13.5, color: C.sub, lineHeight: 18 },
+  bodyChatUnread: { color: C.text, fontWeight: '500' },
+  // Right-side unread pill for chat (WhatsApp shows a green dot/badge)
+  unreadDot: {
+    width: 10, height: 10, borderRadius: 5,
+    marginLeft: 10, flexShrink: 0,
   },
 
   // ── List ─────────────────────────────────────────────────────

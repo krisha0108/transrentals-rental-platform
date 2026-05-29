@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { sanitizeInput } from '@/lib/utils/sanitize';
 import { smartRateLimit, getClientIdentifier } from '@/lib/utils/smart-rate-limit';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
@@ -205,6 +206,24 @@ export async function POST(
       where: { id: conversationId },
       data: updateData,
     });
+
+    // Notify the recipient. For now only the customer→vendor direction is
+    // pushed (vendor app uses the chat_channel + multi-device tokens) and
+    // also saved to the vendor's in-app NotificationsScreen list.
+    if (sender_type === 'customer' && conversation.vendorId) {
+      const msgPreview = message.trim().length > 60 ? message.trim().slice(0, 60) + '…' : message.trim();
+      sendVendorDirectNotification({
+        vendorId: conversation.vendorId,
+        title: sender_name || 'Customer',
+        body: msgPreview,
+        type: 'chat',
+        serviceType: conversation.bookingType || 'general',
+        bookingId: conversation.bookingId || undefined,
+        data: { screen: 'ChatScreen' },
+      }).catch((err) => {
+        logger.error('Vendor chat push notification failed', { vendorId: conversation.vendorId, conversationId, err });
+      });
+    }
 
     return NextResponse.json({
       success: true,
