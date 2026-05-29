@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import logger from '@/lib/security/logger';
 import crypto from 'crypto';
 
@@ -477,6 +478,23 @@ export async function POST(
         lastSenderType: 'customer',
         vendorUnread: { increment: 1 },
       },
+    });
+
+    // Push notification + in-app entry to the vendor. Fire-and-forget so a
+    // slow FCM call doesn't block the message-send response.
+    const msgPreview = message.trim().length > 60 ? message.trim().slice(0, 60) + '…' : message.trim();
+    const customerDisplayName = customerName || booking.customerName || 'Customer';
+    sendVendorDirectNotification({
+      vendorId,
+      title: customerDisplayName,
+      body: msgPreview,
+      type: 'chat',
+      serviceType: bookingType,
+      bookingId,
+      bookingNumber: booking.bookingNumber || undefined,
+      data: { screen: 'ChatScreen' },
+    }).catch((err) => {
+      logger.error('Vendor chat push notification failed', { vendorId, bookingId, err });
     });
 
     return NextResponse.json({
