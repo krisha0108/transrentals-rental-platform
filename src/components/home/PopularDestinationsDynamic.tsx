@@ -32,7 +32,7 @@ export function PopularDestinationsDynamic() {
             return (
               <Link
                 key={destination.slug}
-                href={`/bike-on-rent/${destination.slug}`}
+                href={`/${destination.slug}`}
                 className="group relative overflow-hidden rounded-xl bg-white shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
               >
                 {/* Image */}

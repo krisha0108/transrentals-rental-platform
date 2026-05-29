@@ -229,6 +229,111 @@ export default function ManagerB2BDetailPage() {
         </div>
       </div>
 
+      {/* Customer Details */}
+      <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="px-4 py-2.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-b flex items-center gap-2 flex-wrap">
+          <User className="w-4 h-4 text-blue-600" />
+          <h3 className="text-sm font-extrabold text-gray-900 uppercase tracking-wider">Customer Details</h3>
+          {booking.travelAgentId && booking.bookingMode === 'PERSONAL' && (
+            <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold border border-indigo-200">
+              🌟 TA · PERSONAL
+            </span>
+          )}
+          {booking.travelAgentId && booking.bookingMode === 'COMPANY' && (
+            <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold border border-purple-200">
+              🏢 TA · COMPANY
+            </span>
+          )}
+        </div>
+        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Name */}
+          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+            <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <User className="w-4 h-4 text-blue-600" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Name</p>
+              <p className="text-sm font-bold text-gray-900 truncate">
+                {booking.customer?.name || booking.customerName || '—'}
+              </p>
+            </div>
+          </div>
+
+          {/* Phone */}
+          {(booking.customer?.phone || booking.customerPhone) ? (
+            <a
+              href={`tel:${booking.customer?.phone || booking.customerPhone}`}
+              className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-green-50 hover:border-green-200 border border-transparent transition"
+            >
+              <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                <Phone className="w-4 h-4 text-green-600" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Phone</p>
+                <p className="text-sm font-bold text-gray-900 truncate">
+                  {booking.customer?.phone || booking.customerPhone}
+                </p>
+                <p className="text-[10px] text-green-600 font-medium mt-0.5">Click to call</p>
+              </div>
+            </a>
+          ) : (
+            <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+              <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                <Phone className="w-4 h-4 text-gray-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Phone</p>
+                <p className="text-sm font-bold text-gray-400">—</p>
+              </div>
+            </div>
+          )}
+
+          {/* Email */}
+          {(booking.customer?.email || booking.customerEmail) ? (
+            <a
+              href={`mailto:${booking.customer?.email || booking.customerEmail}`}
+              className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-amber-50 hover:border-amber-200 border border-transparent transition"
+            >
+              <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <Mail className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Email</p>
+                <p className="text-sm font-bold text-gray-900 truncate">
+                  {booking.customer?.email || booking.customerEmail}
+                </p>
+                <p className="text-[10px] text-amber-600 font-medium mt-0.5">Click to email</p>
+              </div>
+            </a>
+          ) : (
+            <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+              <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                <Mail className="w-4 h-4 text-gray-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Email</p>
+                <p className="text-sm font-bold text-gray-400">—</p>
+              </div>
+            </div>
+          )}
+
+          {/* Company */}
+          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+            <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+              <Building2 className="w-4 h-4 text-purple-600" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">
+                {booking.travelAgentId ? 'Agency' : 'Company'}
+              </p>
+              <p className="text-sm font-bold text-gray-900 truncate">
+                {booking.companyName || booking.customer?.companyName || '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div className="bg-white rounded-xl border p-4 text-center">
