@@ -210,6 +210,25 @@ export default function TravelAgentRegisterPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50 to-teal-50">
+      {/* Sticky top bar */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <img src="/assets/Logo-favicon.png" alt="TransRentals" className="h-8 w-8" />
+            <img src="/assets/logo-trans.png" alt="TransRentals" className="h-7 hidden sm:block" />
+          </Link>
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="w-4 h-4 text-emerald-500" />
+            <span className="text-gray-500 hidden sm:inline">Takes only</span>
+            <span className="font-semibold text-emerald-600">2 minutes</span>
+            <span className="text-gray-300 mx-1">|</span>
+            <Link href="/travel-agent/login" className="text-emerald-600 font-semibold hover:underline">
+              Login
+            </Link>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-4xl mx-auto px-4 py-10 sm:py-12">
 
         {/* Hero headline */}

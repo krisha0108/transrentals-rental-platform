@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { HeroSectionDynamic } from '@/components/home/HeroSectionDynamic';
+import { CustomBookingSection } from '@/components/home/CustomBookingSection';
 import { ServicesGridDynamic } from '@/components/home/ServicesGridDynamic';
 import { PopularDestinationsDynamic } from '@/components/home/PopularDestinationsDynamic';
 import { FeaturesSection } from '@/components/home/FeaturesSection';
@@ -82,8 +83,9 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(homepageSchema) }}
       />
       <HeroSectionDynamic />
-      <FeaturesSection />
       <ServicesGridDynamic />
+      <FeaturesSection />
+      <CustomBookingSection />
       <PopularDestinationsDynamic />
       <HowItWorks />
       <StoriesStrip />

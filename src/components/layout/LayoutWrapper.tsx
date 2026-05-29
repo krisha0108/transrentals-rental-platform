@@ -14,7 +14,7 @@ const noLayoutRoutes = [
   '/subadmin',
   '/manager',
   '/vendor/',
-  '/travel-agent', // all travel-agent dashboard, auth, public lead-capture, booking-share pages
+  '/travel-agent/', // travel-agent dashboard, auth, public lead-capture, booking-share pages (trailing slash so /travel-agents landing page is NOT matched)
   '/agent/',       // public agent profile pages (e.g. /agent/{slug})
   '/partner/',     // public vendor profile pages (e.g. /partner/{slug})
   '/captain/',     // public driver profile pages (e.g. /captain/{slug})
