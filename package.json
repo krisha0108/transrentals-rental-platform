@@ -19,6 +19,7 @@
     "test:coverage": "vitest run --coverage",
     "generate:sitemap": "ts-node scripts/generate-sitemap.ts",
     "generate:redirects": "node scripts/generate-redirects.js",
+    "validate:story-amp": "node scripts/validate-story-amp.mjs",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:generate": "npx prisma generate",

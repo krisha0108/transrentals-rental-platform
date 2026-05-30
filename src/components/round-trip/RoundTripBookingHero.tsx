@@ -92,12 +92,6 @@ export function RoundTripBookingHero({
             >
               Book Round Trip Now
             </a>
-            <a
-              href="tel:+919737965551"
-              className="px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-lg font-semibold text-lg hover:bg-white/20 transition border-2 border-white/30"
-            >
-              📞 Call for Instant Booking
-            </a>
           </div>
 
           {/* Trust Indicators */}

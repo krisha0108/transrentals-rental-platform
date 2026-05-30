@@ -481,16 +481,6 @@ function BookingContent({ location }: { location: string }) {
                 </ul>
               </div>
 
-              {/* Support */}
-              <div className="mt-6 pt-6 border-t text-center">
-                <p className="text-sm text-gray-500">Need help?</p>
-                <a
-                  href="tel:+919737965551"
-                  className="text-emerald-600 font-medium hover:underline"
-                >
-                  Call +91 9737965551
-                </a>
-              </div>
             </div>
           </div>
         </div>

@@ -25,15 +25,9 @@ export async function GET() {
     for (const s of stories) {
       const lastmod = s.updatedAt ?? s.publishedAt ?? undefined;
 
-      // Canonical (React viewer — users land here)
-      entries.push({
-        url:             `${BASE_URL}/stories/${s.slug}`,
-        lastModified:    lastmod,
-        changeFrequency: 'weekly',
-        priority:        0.8,
-      });
-
-      // AMP version — Google Discover picks this up
+      // Only the AMP URL — it is the canonical, indexable web story. The React
+      // viewer at /stories/{slug} canonicalises to this, so listing both would
+      // submit a duplicate/non-canonical URL and confuse indexing.
       entries.push({
         url:             `${BASE_URL}/stories/${s.slug}/amp`,
         lastModified:    lastmod,

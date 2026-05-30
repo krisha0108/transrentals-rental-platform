@@ -364,13 +364,6 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
               <Crown className="w-5 h-5" />
               Get Quotes Now
             </a>
-            <a
-              href="tel:+919737965551"
-              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 border border-white/20"
-            >
-              <Phone className="w-5 h-5" />
-              +91 97379 65551
-            </a>
           </div>
         </div>
       </section>
