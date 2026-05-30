@@ -114,14 +114,6 @@ export default function BikeSubLocationPage({ params }: PageProps) {
             {sl.description}
           </p>
           <div className="flex flex-wrap gap-4">
-            <a
-              href={`https://wa.me/919737965551?text=Hi, I want to rent a bike in ${sl.name}, ${cityName}`}
-              className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Book on WhatsApp
-            </a>
             <Link
               href={`/bike-on-rent/${params.location}`}
               className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-emerald-600 hover:text-emerald-700 transition-colors"

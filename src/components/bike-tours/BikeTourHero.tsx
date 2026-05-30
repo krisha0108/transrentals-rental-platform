@@ -108,15 +108,6 @@ export function BikeTourHero({
               className="flex flex-wrap gap-4"
             >
               <a
-                href={`https://wa.me/${ctaPhone}?text=Hi, I'm interested in the ${title}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-white text-gray-900 font-bold px-7 py-3.5 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all"
-              >
-                <Phone className="w-5 h-5" />
-                {ctaLabel}
-              </a>
-              <a
                 href="#itinerary"
                 className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/30 font-semibold px-7 py-3.5 rounded-xl hover:bg-white/25 transition"
               >

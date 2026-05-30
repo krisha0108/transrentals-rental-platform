@@ -24,13 +24,6 @@ const contactMethods = [
     description: 'Send us an email',
   },
   {
-    icon: MessageCircle,
-    title: 'WhatsApp',
-    value: 'WhatsApp Support',
-    link: WHATSAPP_LINK,
-    description: 'Chat with us',
-  },
-  {
     icon: MapPin,
     title: 'Address',
     value: CONTACT_ADDRESS,
@@ -60,7 +53,6 @@ const contactSchema = {
   mainEntity: {
     '@type': 'Organization',
     name: 'TransRentals',
-    telephone: '+91-9737965551',
     email: 'book@transrentals.in',
     address: {
       '@type': 'PostalAddress',
