@@ -77,20 +77,23 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const story = await getStory(decodeURIComponent(slug));
   if (!story) return { title: 'Story Not Found' };
 
-  const canonicalUrl = `${SITE_URL}/stories/${slug}`;
+  // Web Story canonical = the AMP page itself (it is the indexable story).
+  // This React page is just the interactive viewer; it points its canonical at
+  // the AMP version so Google indexes one rich, valid page instead of two
+  // self-canonical twins fighting each other.
+  const ampUrl = `${SITE_URL}/stories/${slug}/amp`;
 
   return {
     title: story.title,
     description: story.metaDescription || story.description || `Read ${story.title} on TransRentals Web Stories`,
     alternates: {
-      canonical: canonicalUrl,
-      types: { 'application/amphtml+xml': `${SITE_URL}/stories/${slug}/amp` },
+      canonical: ampUrl,
     },
     openGraph: {
       title: story.title,
       description: story.metaDescription || story.description || '',
       type: 'article',
-      url: canonicalUrl,
+      url: ampUrl,
       images: story.coverImage ? [{ url: story.coverImage }] : [],
     },
     twitter: {
@@ -102,17 +105,45 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
+// Pull readable text out of a slide (legacy heading/subtext + canvas text elements)
+function slideText(slide: any): string {
+  const parts: string[] = [];
+  if (slide.heading) parts.push(String(slide.heading));
+  if (slide.subtext) parts.push(String(slide.subtext));
+  const cd = slide.canvasData;
+  const els = Array.isArray(cd) ? cd : (cd && Array.isArray(cd.elements) ? cd.elements : []);
+  for (const el of els) {
+    if (el?.type === 'text' && el.content) parts.push(String(el.content));
+  }
+  return parts.join(' · ');
+}
+
 export default async function StoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const story = await getStory(slug);
 
   if (!story || !story.slides.length) notFound();
 
-  // Required for Google Web Stories AMP pairing — tells Google the AMP version exists.
-  // Without this, Google crawls this page, finds no AMP boilerplate, and logs AMP errors for ALL stories.
   return (
     <>
-      <link rel="amphtml" href={`${SITE_URL}/stories/${slug}/amp`} />
+      {/* Server-rendered, crawlable fallback. The visual experience is the
+          client StoryViewer; this hidden block guarantees Googlebot always sees
+          a real H1 + the story text + cover image even before JS runs. */}
+      <article className="sr-only">
+        <h1>{story.title}</h1>
+        {(story.metaDescription || story.description) && (
+          <p>{story.metaDescription || story.description}</p>
+        )}
+        {story.coverImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={story.coverImage} alt={story.title} />
+        )}
+        {story.slides.map((s) => {
+          const text = slideText(s);
+          return text ? <p key={s.id}>{text}</p> : null;
+        })}
+      </article>
+
       <StoryViewer story={story} />
     </>
   );

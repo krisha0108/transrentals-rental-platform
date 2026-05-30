@@ -196,12 +196,6 @@ export default function CustomBookingPage() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a
-              href="tel:+919737965551"
-              className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition"
-            >
-              📞 Call Us Now
-            </a>
-            <a
               href="https://wa.me/919737965551"
               target="_blank"
               rel="noopener noreferrer"

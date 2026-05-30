@@ -297,7 +297,8 @@ export function Footer() {
               Contact Us
             </h3>
             <ul className="space-y-3">
-              {contactSettings.contactPhone && (
+              {/* Call number temporarily hidden — keep email + WhatsApp */}
+              {false && contactSettings.contactPhone && (
                 <li>
                   <a
                     href={`tel:${contactSettings.contactPhone}`}

@@ -17,13 +17,6 @@ export const metadata: Metadata = {
 
 const contactMethods = [
   {
-    icon: Phone,
-    title: 'Phone',
-    value: process.env.NEXT_PUBLIC_CONTACT_PHONE || '+91-9737965551',
-    link: `tel:${process.env.NEXT_PUBLIC_CONTACT_PHONE}`,
-    description: 'Call us anytime',
-  },
-  {
     icon: Mail,
     title: 'Email',
     value: process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'book@transrentals.in',

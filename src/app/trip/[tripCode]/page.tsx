@@ -400,10 +400,6 @@ export default function TripPage() {
             <h3 className="text-xs text-gray-400 font-medium uppercase tracking-wider">Need Help?</h3>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <a href="tel:9737965551" className="flex items-center gap-2.5 flex-1 bg-teal-50 hover:bg-teal-100 transition rounded-xl px-4 py-3">
-              <Phone className="w-4 h-4 text-teal-600" />
-              <span className="text-sm font-medium text-teal-800">9737965551</span>
-            </a>
             <a href="mailto:book@transrentals.in" className="flex items-center gap-2.5 flex-1 bg-teal-50 hover:bg-teal-100 transition rounded-xl px-4 py-3">
               <Mail className="w-4 h-4 text-teal-600" />
               <span className="text-sm font-medium text-teal-800">book@transrentals.in</span>

@@ -52,12 +52,6 @@ export function RouteNotAvailable({
             >
               📝 Request Custom Quote
             </a>
-            <a
-              href="tel:+919737965551"
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold hover:bg-blue-700 transition"
-            >
-              📞 Call: +91 97379 65551
-            </a>
           </div>
 
           <p className="text-sm text-gray-500">

@@ -23,14 +23,7 @@ export function StickyCallBar() {
 
   return (
     <div className="fixed bottom-16 left-0 right-0 z-40 md:hidden flex shadow-lg">
-      <a
-        href={`tel:${PHONE}`}
-        className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white py-3 font-semibold text-sm active:bg-emerald-700"
-      >
-        <Phone className="w-4 h-4" />
-        <span>{PHONE_DISPLAY}</span>
-      </a>
-      <div className="w-px bg-emerald-700" />
+      {/* Call button temporarily removed — WhatsApp only */}
       <a
         href={WA_URL}
         target="_blank"
