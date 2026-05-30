@@ -95,13 +95,6 @@ export default function MiniTruckSubLocationPage({ params }: PageProps) {
           </h1>
           <p className="text-lg text-gray-600 mb-6 max-w-2xl">{sl.description}</p>
           <div className="flex flex-wrap gap-4">
-            <a
-              href={`https://wa.me/919737965551?text=Hi, I want to rent a mini truck in ${sl.name}, ${cityName}`}
-              className="inline-flex items-center gap-2 bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-700 transition-colors"
-              target="_blank" rel="noopener noreferrer"
-            >
-              Book on WhatsApp
-            </a>
             <Link
               href={`/mini-truck-rental/${params.location}`}
               className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-orange-600 hover:text-orange-700 transition-colors"

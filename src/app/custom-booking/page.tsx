@@ -194,16 +194,6 @@ export default function CustomBookingPage() {
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
             Our event specialists are available 24/7 to help you plan the perfect transport solution
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <a
-              href="https://wa.me/919737965551"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-green-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-green-600 transition"
-            >
-              💬 WhatsApp
-            </a>
-          </div>
         </div>
       </section>
     </>

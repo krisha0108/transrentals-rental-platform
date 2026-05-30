@@ -320,17 +320,7 @@ export function Footer() {
                   </a>
                 </li>
               )}
-              <li>
-                <a
-                  href={WHATSAPP_LINK ?? '/contact'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-                >
-                  <MessageCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>WhatsApp Support</span>
-                </a>
-              </li>
+              {/* WhatsApp Support temporarily removed */}
               <li className="flex items-start gap-2 text-sm">
                 <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 {CONTACT_ADDRESS_LINK ? (

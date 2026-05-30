@@ -96,13 +96,6 @@ export default function LuxurySubLocationPage({ params }: PageProps) {
           </h1>
           <p className="text-lg text-purple-200 mb-6 max-w-2xl">{sl.description}</p>
           <div className="flex flex-wrap gap-4">
-            <a
-              href={`https://wa.me/919737965551?text=Hi, I want to rent a luxury car in ${sl.name}, ${cityName}`}
-              className="inline-flex items-center gap-2 bg-amber-500 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-amber-400 transition-colors"
-              target="_blank" rel="noopener noreferrer"
-            >
-              <Crown className="w-4 h-4" /> Get Quotes on WhatsApp
-            </a>
             <Link
               href={`/luxury-car-rental/${params.location}`}
               className="inline-flex items-center gap-2 bg-white/10 text-white border border-white/20 px-6 py-3 rounded-lg font-semibold hover:bg-white/20 transition-colors"

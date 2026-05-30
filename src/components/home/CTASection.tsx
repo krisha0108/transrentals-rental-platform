@@ -40,23 +40,6 @@ export function CTASection() {
             </Button>
           </div>
 
-          {/* Contact Options */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-8 border-t border-white/20">
-            <a
-              href={WHATSAPP_LINK ?? '/contact'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 text-white hover:text-primary-100 transition-colors"
-            >
-              <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
-                <MessageCircle className="w-5 h-5" />
-              </div>
-              <div className="text-left">
-                <div className="text-sm text-primary-100">WhatsApp Us</div>
-                <div className="font-semibold">24/7 Support</div>
-              </div>
-            </a>
-          </div>
         </div>
       </div>
     </section>
