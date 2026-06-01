@@ -61,6 +61,7 @@ model admin_users {
   travel_agent_documents_uploaded travel_agent_documents[]   @relation("travel_agent_documents_uploadedBy")
   travel_agent_documents          travel_agent_documents[]   @relation("travel_agent_documents_verifiedBy")
   vendor_tag_assignments          vendor_tag_assignments[]
+  driver_tag_assignments          driver_tag_assignments[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -3925,6 +3926,39 @@ enum vendor_tag {
   NO_RESPONSE
   VEHICLE_DETAILS_PENDING
   ACTIVE_VENDOR
+  SUSPENDED
+}
+
+// Driver CRM tags — manager follow-up layer, independent of driver status.
+// Drivers come from two tables (standalone `drivers` + `vendor_staff`), so the
+// assignment is polymorphic: (driverId, source) identifies the driver. No hard
+// FK to either driver table for that reason; assignedById still FKs admin_users.
+model driver_tag_assignments {
+  id           String       @id @default(cuid())
+  driverId     String
+  source       String       @default("standalone") // 'standalone' | 'vendor'
+  tag          driver_tag
+  assignedById String?
+  createdAt    DateTime     @default(now())
+  admin_users  admin_users? @relation(fields: [assignedById], references: [id])
+
+  @@unique([driverId, source, tag])
+  @@index([tag])
+  @@index([driverId])
+  @@index([assignedById], map: "driver_tag_assignments_assignedById_fkey")
+}
+
+enum driver_tag {
+  FOLLOW_UP_REQUIRED
+  CONNECTED
+  RESPONDED
+  DOCUMENTS_PENDING
+  DOCUMENTS_VERIFIED
+  WRONG_DRIVER_DETAILS
+  NOT_INTERESTED
+  NO_RESPONSE
+  VEHICLE_DETAILS_PENDING
+  ACTIVE_DRIVER
   SUSPENDED
 }
 
