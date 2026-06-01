@@ -1170,17 +1170,11 @@ export function CarRentalBookingHero({
   ];
   const resolvedTrustBadges = trustBadges ?? defaultTrustBadges;
 
-  if (loadingData) {
-    return (
-      <section
-        className={`relative bg-gradient-to-br ${themeColors.gradient} text-white py-20`}
-      >
-        <div className="container-custom flex justify-center">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
-      </section>
-    );
-  }
+  // NOTE: We intentionally do NOT early-return a short spinner while loadingData.
+  // Doing so rendered the hero at ~190px first, then jumped to full height after
+  // the client-side fetch — a massive layout shift (CLS ~0.87). Instead we always
+  // render the full hero structure (SSR'd at the correct height) and show inline
+  // skeletons only for the data-dependent block (the package grid below).
 
   return (
     <section
@@ -1360,7 +1354,7 @@ export function CarRentalBookingHero({
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Select Package
                           </label>
-                          {loadingPackages ? (
+                          {(loadingData || loadingPackages) ? (
                             <div className="grid grid-cols-3 gap-2">
                               {[1, 2, 3].map((i) => (
                                 <div key={i} className="p-3 rounded-lg border-2 border-gray-100 animate-pulse">
