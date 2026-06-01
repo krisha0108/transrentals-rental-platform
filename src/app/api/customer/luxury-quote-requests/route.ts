@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
 import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
+import { createB2BBookingSafe } from '@/lib/b2b/booking-number';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +16,10 @@ function generateRequestNumber(): string {
     .toString()
     .padStart(5, '0');
   return `${prefix}-${year}-${random}`;
+}
+
+function generateB2BId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
 }
 
 /**
@@ -52,6 +58,7 @@ export async function POST(request: NextRequest) {
       decorationType,
       budgetMin,
       budgetMax,
+      taBookingMode, numberOfVehicles, numberOfEmployees, // Phase 7 — TA Personal/Company
     } = body;
 
     // Validate required fields
@@ -67,6 +74,78 @@ export async function POST(request: NextRequest) {
         { success: false, message: 'Trip details are required (pickupCity, pickupDate, vehicle_category)' },
         { status: 400 }
       );
+    }
+
+    // ============ TRAVEL AGENT — COMPANY FLOW ============
+    // COMPANY-mode TA bookings route into b2b_bookings (manager queue).
+    // PERSONAL falls through to the normal quote-request flow (auto-tagged below).
+    if (taBookingMode === 'COMPANY') {
+      let taCustomer: any = null;
+      if (customerId) taCustomer = await prisma.customers.findUnique({ where: { id: customerId } });
+      if (!taCustomer && customerEmail) {
+        taCustomer = await prisma.customers.findFirst({ where: { email: String(customerEmail).toLowerCase() } });
+      }
+      if (!taCustomer && customerPhone) {
+        taCustomer = await prisma.customers.findFirst({ where: { phone: customerPhone } });
+      }
+      if (taCustomer) {
+        const linkedRows: any[] = await (prisma as any).$queryRawUnsafe(
+          `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`, taCustomer.id,
+        );
+        const linkedTravelAgentId: string | null = linkedRows[0]?.linkedTravelAgentId || null;
+        if (linkedTravelAgentId) {
+          const agentRows: any[] = await (prisma as any).$queryRawUnsafe(
+            `SELECT agencyName, ownerName, phone FROM travel_agents WHERE id = ? LIMIT 1`, linkedTravelAgentId,
+          );
+          const agencyName = agentRows[0]?.agencyName || taCustomer.name;
+          const agentPhone: string | null = agentRows[0]?.phone || null;
+          let resolvedCustomerPhone: string = taCustomer.phone;
+          if (agentPhone && (typeof resolvedCustomerPhone !== 'string' || resolvedCustomerPhone.startsWith('ta-'))) {
+            resolvedCustomerPhone = agentPhone;
+          }
+          const luxuryPreference = {
+            vehicleCategoryName: vehicleCategoryName || vehicle_category || 'Luxury Car',
+            occasion: occasion || null,
+            specificModel: specificModel || null,
+            needChauffeur, needDecoration,
+            decorationType: decorationType || null,
+            packageType: packageType || null,
+            requirements: requirements || null,
+          };
+          const taBooking = await createB2BBookingSafe('TA-CO', {
+            id: generateB2BId(),
+            customerId: taCustomer.id,
+            customerName: taCustomer.name,
+            customerEmail: taCustomer.email,
+            customerPhone: resolvedCustomerPhone,
+            companyName: agencyName,
+            serviceType: 'luxury',
+            vehiclesRequired: numberOfVehicles && parseInt(numberOfVehicles) > 0 ? parseInt(numberOfVehicles) : 1,
+            passengerCount: passengers ? parseInt(String(passengers)) : null,
+            vehicleCategory: vehicleCategoryName || vehicle_category || 'Luxury Car',
+            pickupLocation: pickupCity ? String(pickupCity).trim() : null,
+            dropLocation: dropCity ? String(dropCity).trim() : null,
+            tripType: tripType || 'local',
+            scheduledDate: new Date(pickupDate),
+            scheduledTime: pickupTime || '10:00',
+            returnDate: returnDate ? new Date(returnDate) : null,
+            returnTime: returnTime || null,
+            specialNotes: JSON.stringify(luxuryPreference),
+            status: 'OPEN_FOR_QUOTES',
+            travelAgentId: linkedTravelAgentId,
+            bookingMode: taBookingMode,
+          });
+          return NextResponse.json({
+            success: true,
+            isTravelAgent: true,
+            bookingMode: taBookingMode,
+            message: 'Company luxury car booking sent to manager. Quote will be shared shortly.',
+            booking: { id: taBooking.id, bookingNumber: taBooking.bookingNumber, status: taBooking.status },
+            redirect_to: `/customer/b2b-bookings/${taBooking.id}?customer_id=${taCustomer.id}`,
+          });
+        }
+      }
+      // Couldn't link → fall through to the normal quote-request flow.
     }
 
     // Find location
@@ -137,6 +216,31 @@ export async function POST(request: NextRequest) {
         source: body.source || 'web',
       },
     });
+
+    // Travel-agent PERSONAL tagging (COMPANY already returned above).
+    try {
+      let lookupId: string | null = customerId || null;
+      if (!lookupId && customerEmail) {
+        const c = await prisma.customers.findFirst({ where: { email: String(customerEmail).toLowerCase() }, select: { id: true } });
+        if (c) lookupId = c.id;
+      }
+      if (!lookupId && customerPhone) {
+        const c = await prisma.customers.findFirst({ where: { phone: String(customerPhone) }, select: { id: true } });
+        if (c) lookupId = c.id;
+      }
+      if (lookupId) {
+        const linkRows: any[] = await (prisma as any).$queryRawUnsafe(
+          `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`, lookupId,
+        );
+        const agentId = linkRows[0]?.linkedTravelAgentId || null;
+        if (agentId) {
+          await (prisma as any).$executeRawUnsafe(
+            `UPDATE luxury_quote_requests SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
+            agentId, 'PERSONAL', quoteRequest.id,
+          );
+        }
+      }
+    } catch (e) { console.error('[customer/luxury-quote-requests] TA tag failed', e); }
 
     logger.info(`Luxury quote request created: ${requestNumber}`, {
       customerId,

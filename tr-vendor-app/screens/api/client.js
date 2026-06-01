@@ -172,34 +172,52 @@ async function createInstance() {
       const status = error.response?.status;
       const url = error.config?.url;
 
-      // Log all errors for debugging
-      console.error('[API Error]', {
-        url,
-        status,
-        message: error.message,
-        code: error.code,
-        data: error.response?.data,
-      });
+      // Log all errors for debugging.
+      // Inline-formatted so Metro/RN console shows the URL+status+message
+      // directly instead of a collapsed "Object" you have to click to expand.
+      const method = (error.config?.method || '').toUpperCase();
+      const statusLabel = status || error.code || 'NETWORK';
+      const dataPreview = error.response?.data ? ` | ${JSON.stringify(error.response.data).slice(0, 200)}` : '';
+      console.error(
+        `[API Error] ${method} ${url || '(unknown url)'} → ${statusLabel} : ${error.message}${dataPreview}`
+      );
 
       if (status === 401) {
         console.error('[Auth] 401 Unauthorized for:', url);
         console.error('[Auth] Response:', error.response?.data);
 
-        // Don't clear session for login/register endpoints
-        if (!url?.includes('/auth/mobile-login') && !url?.includes('/register')) {
+        // Detect "wrong user type" 401s — these mean the call hit a vendor
+        // endpoint with a TA token (or vice versa), NOT that the session
+        // expired. We must NEVER logout for these; just let the caller
+        // handle the error and the session stays valid.
+        const errMsg = String(error.response?.data?.error || '');
+        const isWrongUserType =
+          /Invalid token - not a (vendor|travel agent) token/i.test(errMsg);
+
+        // Other endpoints that legitimately produce 401 without meaning
+        // the session is bad:
+        //  - login/register flows (no session yet by design)
+        //  - /fcm-token (push registration may hit the wrong user-type)
+        const isAuthFlow = url?.includes('/auth/mobile-login') || url?.includes('/register');
+        const isFcmRegister = url?.includes('/fcm-token');
+
+        if (!isAuthFlow && !isFcmRegister && !isWrongUserType) {
           console.log('[Auth] Clearing session due to 401');
           await clearSession();
+        } else {
+          console.log(
+            '[Auth] 401 ignored (',
+            isWrongUserType ? 'wrong user type' : 'non-critical endpoint',
+            '):', url
+          );
         }
       }
 
-      // Network errors
+      // Network errors — inline-formatted (see [API Error] note above for why).
       if (error.code === 'ECONNABORTED' || error.message === 'Network Error') {
-        console.error('[Network] Connection issue:', {
-          baseURL: error.config?.baseURL,
-          url: error.config?.url,
-          method: error.config?.method,
-          timeout: error.config?.timeout,
-        });
+        console.error(
+          `[Network] Connection issue: ${(error.config?.method || '').toUpperCase()} ${error.config?.baseURL || ''}${error.config?.url || ''} (timeout=${error.config?.timeout}ms) — likely "adb reverse tcp:3000 tcp:3000" missing or backend down`
+        );
       }
 
       return Promise.reject(error);
@@ -509,6 +527,39 @@ export async function uploadVendorDocument(formData) {
     });
     throw error;
   }
+}
+
+/**
+ * Upload a single image for vendor social posts (multipart via fetch — axios
+ * FormData is unreliable on RN Android). Returns { success, url, uploaded }.
+ * `file` is an RN asset shape { uri, name?, type? }.
+ */
+export async function uploadVendorImage(file, folder = 'social') {
+  const baseURL = await getBaseURL();
+  const sessionToken = await getSessionToken();
+  if (!sessionToken) throw new Error('No session token found');
+
+  const fd = new FormData();
+  fd.append('file', {
+    uri: file.uri,
+    name: file.name || `photo-${Date.now()}.jpg`,
+    type: file.type || 'image/jpeg',
+  });
+  fd.append('folder', folder);
+
+  const response = await fetch(`${baseURL}/api/vendor/social/upload`, {
+    method: 'POST',
+    headers: {
+      'X-Session-Token': sessionToken,
+      // Don't set Content-Type — let fetch set the multipart boundary.
+    },
+    body: fd,
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Image upload failed');
+  }
+  return data; // { success, url, uploaded }
 }
 
 /**

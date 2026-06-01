@@ -20,6 +20,8 @@ import {
   TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD,
   TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD,
 } from '../../../theme';
+import TravelAgentBookingToggle from '../../components/TravelAgentBookingToggle';
+import { isTravelAgentCustomer } from '../../utils/isTravelAgent';
 
 const HOME_TYPES = [
   { label: '1 BHK',          value: 'BHK_1',          icon: 'home-outline' },
@@ -79,6 +81,8 @@ export default function PackerMoverScreen() {
   const [otherDetails, setOtherDetails] = useState('');
   const [isPhoneModal, setIsPhoneModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Phase 7 — TA Personal/Company toggle (self-gates on linkedTravelAgentId).
+  const [taState, setTaState] = useState({ mode: 'PERSONAL', vehicleCount: '1', employeeCount: '' });
   const [expandedIndex, setExpandedIndex] = useState(null);
 
   // ── shifting scope ──
@@ -287,7 +291,26 @@ export default function PackerMoverScreen() {
         budgetMax: null,
       };
 
+      // Phase 7 — TA Personal/Company fields (only for travel-agent customers).
+      if (isTravelAgentCustomer(customerData)) {
+        payload.taBookingMode = taState.mode;
+        payload.numberOfVehicles = taState.mode === 'COMPANY'
+          ? (parseInt(taState.vehicleCount) || 1)
+          : 1;
+        payload.numberOfEmployees = taState.mode === 'COMPANY' && taState.employeeCount
+          ? parseInt(taState.employeeCount)
+          : null;
+      }
+
       const response = await bookingService.createPackersQuoteRequest(payload);
+
+      // TA COMPANY booking routes into b2b_bookings → open the B2B detail.
+      if (response.bookingMode === 'COMPANY' && response.booking) {
+        setDestination(''); setOtherDetails('');
+        navigation.navigate('B2BBookingDetail', { bookingId: response.booking.id });
+        return;
+      }
+
       if (response.success || response.quoteRequest) {
         setDestination(''); setOtherDetails('');
         alert('Quote request submitted!\n\nVendors will send quotes within 24-48 hours.');
@@ -800,6 +823,9 @@ export default function PackerMoverScreen() {
               </View>
             </View>
           )}
+
+          {/* Phase 7 — Personal/Company toggle (renders only for TA customers) */}
+          <TravelAgentBookingToggle value={taState} onChange={setTaState} />
 
           <TouchableOpacity style={[styles.submitBtnWrap, isSubmitting && { opacity: 0.4 }]}
             onPress={handleSubmit} disabled={isSubmitting} activeOpacity={0.85}>

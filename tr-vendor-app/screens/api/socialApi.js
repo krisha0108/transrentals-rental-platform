@@ -18,8 +18,8 @@ export const getSocialSaved = (cursor) => {
   return apiGet(`/vendor/social/posts?${p.toString()}`);
 };
 export const getSocialCategories = () => apiGet('/admin/social/categories');
-export const createSocialPost = (content, categoryId) =>
-  apiPost('/vendor/social/posts', { content, categoryId });
+export const createSocialPost = (content, categoryId, images) =>
+  apiPost('/vendor/social/posts', { content, categoryId, images });
 export const deleteSocialPost = (postId) => apiDelete(`/vendor/social/posts/${postId}`);
 export const toggleLike = (postId) => apiPost(`/vendor/social/posts/${postId}/like`);
 export const toggleSave = (postId) => apiPost(`/vendor/social/posts/${postId}/save`);

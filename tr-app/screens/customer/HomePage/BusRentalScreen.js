@@ -25,6 +25,8 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { locationService, bookingService } from '../../services';
 import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
+import TravelAgentBookingToggle from '../../components/TravelAgentBookingToggle';
+import { isTravelAgentCustomer } from '../../utils/isTravelAgent';
 
 const { width } = Dimensions.get('window');
 const GREEN = '#09B368';
@@ -121,6 +123,8 @@ export default function BusRentalScreen() {
   const [otherDetails, setOtherDetails] = useState('');
   const [isPhoneModal, setIsPhoneModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Phase 7 — TA Personal/Company toggle (self-gates on linkedTravelAgentId).
+  const [taState, setTaState] = useState({ mode: 'PERSONAL', vehicleCount: '1', employeeCount: '' });
 
   const [startDate, setStartDate] = useState(new Date());
   const [returnDate, setReturnDate] = useState(
@@ -432,9 +436,29 @@ export default function BusRentalScreen() {
         source: 'app',
       };
 
+      // Phase 7 — TA Personal/Company fields (only for travel-agent customers).
+      if (isTravelAgentCustomer(customerData)) {
+        payload.taBookingMode = taState.mode;
+        payload.numberOfVehicles = taState.mode === 'COMPANY'
+          ? (parseInt(taState.vehicleCount) || 1)
+          : 1;
+        payload.numberOfEmployees = taState.mode === 'COMPANY' && taState.employeeCount
+          ? parseInt(taState.employeeCount)
+          : null;
+      }
+
       console.log('Bus booking payload:', payload);
 
       const response = await bookingService.createBusQuoteRequest(payload);
+
+      // TA COMPANY booking routes into b2b_bookings → open the B2B detail.
+      if (response.bookingMode === 'COMPANY' && response.booking) {
+        setDestination('');
+        setOtherDetails('');
+        setTotalPassengers('');
+        navigation.navigate('B2BBookingDetail', { bookingId: response.booking.id });
+        return;
+      }
 
       if (response.success || response.quoteRequest || response.booking) {
         alert('Bus booking submitted ✅\n\nVendors will send quotes within 24-48 hours.');
@@ -876,6 +900,9 @@ export default function BusRentalScreen() {
             placeholderTextColor="#9CA3AF"
             multiline
           />
+
+          {/* Phase 7 — Personal/Company toggle (renders only for TA customers) */}
+          <TravelAgentBookingToggle value={taState} onChange={setTaState} />
 
           <TouchableOpacity
             style={[styles.submitBtn, isSubmitting && { opacity: 0.4 }]}

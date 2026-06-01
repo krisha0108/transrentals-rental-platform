@@ -8,6 +8,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import logger from '@/lib/security/logger';
 import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
+import { createB2BBookingSafe } from '@/lib/b2b/booking-number';
+import crypto from 'crypto';
 export const dynamic = 'force-dynamic';
 
 function generateRequestNumber(): string {
@@ -15,6 +17,10 @@ function generateRequestNumber(): string {
   const year = new Date().getFullYear();
   const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
   return `${prefix}-${year}-${random}`;
+}
+
+function generateB2BId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
 }
 
 // POST - Customer creates a Packers Quote Request
@@ -61,6 +67,7 @@ export async function POST(request: NextRequest) {
       preferredDate, isFlexibleDate, flexibleDateRange,
       needPacking, needUnpacking, needStorage, storageDays, needInsurance, insuranceValue,
       requirements, budgetMin, budgetMax,
+      taBookingMode, numberOfVehicles, numberOfEmployees, // Phase 7 — TA Personal/Company
     } = body;
 
     // ===== INPUT SANITIZATION (XSS Protection) =====
@@ -110,6 +117,75 @@ export async function POST(request: NextRequest) {
     today.setHours(0, 0, 0, 0);
     if (preferred < today) {
       return NextResponse.json({ error: 'Preferred date cannot be in the past' }, { status: 400 });
+    }
+
+    // ============ TRAVEL AGENT — COMPANY FLOW ============
+    // COMPANY-mode TA bookings route into b2b_bookings (manager queue).
+    // PERSONAL-mode falls through to the normal quote-request flow (and is
+    // auto-tagged bookingMode='PERSONAL' further down).
+    if (taBookingMode === 'COMPANY') {
+      let taCustomer: any = null;
+      if (customerId) taCustomer = await prisma.customers.findUnique({ where: { id: customerId } });
+      if (!taCustomer && customerEmail) {
+        taCustomer = await prisma.customers.findFirst({ where: { email: String(customerEmail).toLowerCase() } });
+      }
+      if (!taCustomer && customerPhone) {
+        taCustomer = await prisma.customers.findFirst({ where: { phone: customerPhone } });
+      }
+      if (taCustomer) {
+        const linkedRows: any[] = await (prisma as any).$queryRawUnsafe(
+          `SELECT linkedTravelAgentId FROM customers WHERE id = ? LIMIT 1`, taCustomer.id,
+        );
+        const linkedTravelAgentId: string | null = linkedRows[0]?.linkedTravelAgentId || null;
+        if (linkedTravelAgentId) {
+          const agentRows: any[] = await (prisma as any).$queryRawUnsafe(
+            `SELECT agencyName, ownerName, phone FROM travel_agents WHERE id = ? LIMIT 1`, linkedTravelAgentId,
+          );
+          const agencyName = agentRows[0]?.agencyName || taCustomer.name;
+          const agentPhone: string | null = agentRows[0]?.phone || null;
+          let resolvedCustomerPhone: string = taCustomer.phone;
+          if (agentPhone && (typeof resolvedCustomerPhone !== 'string' || resolvedCustomerPhone.startsWith('ta-'))) {
+            resolvedCustomerPhone = agentPhone;
+          }
+          const packersPreference = {
+            shiftingType, propertySize: propertySize || null,
+            needPacking: needPacking !== false, needUnpacking: needUnpacking || false,
+            needStorage: needStorage || false, storageDays: storageDays || null,
+            needInsurance: needInsurance || false, insuranceValue: insuranceValue || null,
+            hasHeavyItems: hasHeavyItems || false, hasFragileItems: hasFragileItems || false,
+            hasVehicle: hasVehicle || false, requirements: requirements || null,
+          };
+          const taBooking = await createB2BBookingSafe('TA-CO', {
+            id: generateB2BId(),
+            customerId: taCustomer.id,
+            customerName: taCustomer.name,
+            customerEmail: taCustomer.email,
+            customerPhone: resolvedCustomerPhone,
+            companyName: agencyName,
+            serviceType: 'packers',
+            vehiclesRequired: numberOfVehicles && parseInt(numberOfVehicles) > 0 ? parseInt(numberOfVehicles) : 1,
+            vehicleCategory: shiftingType || 'Packers & Movers',
+            pickupLocation: pickupCity ? String(pickupCity).trim() : null,
+            dropLocation: dropCity ? String(dropCity).trim() : null,
+            tripType: serviceType || 'home-intercity',
+            scheduledDate: new Date(preferredDate),
+            scheduledTime: '09:00',
+            specialNotes: JSON.stringify(packersPreference),
+            status: 'OPEN_FOR_QUOTES',
+            travelAgentId: linkedTravelAgentId,
+            bookingMode: taBookingMode,
+          });
+          return NextResponse.json({
+            success: true,
+            isTravelAgent: true,
+            bookingMode: taBookingMode,
+            message: 'Company packers & movers booking sent to manager. Quote will be shared shortly.',
+            booking: { id: taBooking.id, bookingNumber: taBooking.bookingNumber, status: taBooking.status },
+            redirect_to: `/customer/b2b-bookings/${taBooking.id}?customer_id=${taCustomer.id}`,
+          });
+        }
+      }
+      // Couldn't link → fall through to the normal quote-request flow.
     }
 
     // MySQL is case-insensitive by default with utf8mb4_general_ci collation

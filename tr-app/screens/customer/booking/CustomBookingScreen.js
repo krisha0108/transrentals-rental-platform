@@ -19,6 +19,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { fleetService, locationService } from '../../services';
 import api from '../../api';
+// Phase 7 — TA Personal/Company toggle (self-gated).
+import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
+import { isTravelAgentCustomer, getCachedCustomer } from '../../../utils/isTravelAgent';
 
 const ACCENT = '#7C3AED';     // purple/indigo to match web's bulk event branding
 const ACCENT_DARK = '#5B21B6';
@@ -616,6 +619,8 @@ export default function CustomBookingScreen() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  // Phase 7 — TA booking-mode state.
+  const [taState, setTaState] = useState({ mode: 'PERSONAL', vehicleCount: '1', employeeCount: '' });
 
   // Preload customer info if available
   useEffect(() => {
@@ -889,6 +894,9 @@ export default function CustomBookingScreen() {
     try {
       const startIso = toIsoDate(startDate);
       const endIso = toIsoDate(endDate);
+      // Phase 7 — pull cached customer once to inspect linkedTravelAgentId.
+      const cachedCustomer = await getCachedCustomer();
+      const isTA = isTravelAgentCustomer(cachedCustomer);
       const payload = {
         bookingType: 'custom-bulk',
         customerInfo: {
@@ -896,6 +904,16 @@ export default function CustomBookingScreen() {
           email: customerEmail.trim(),
           phone: customerPhone.trim(),
         },
+        // Phase 7 — top-level TA fields (some backend routes read these here).
+        ...(isTA && {
+          taBookingMode: taState.mode,
+          numberOfVehicles: taState.mode === 'COMPANY'
+            ? (parseInt(taState.vehicleCount) || 1)
+            : 1,
+          numberOfEmployees: taState.mode === 'COMPANY' && taState.employeeCount
+            ? parseInt(taState.employeeCount)
+            : null,
+        }),
         bookingData: {
           service_id: 99,
           service_name: 'Custom Bulk Booking',
@@ -1426,6 +1444,9 @@ export default function CustomBookingScreen() {
       <TextInput style={styles.input} value={customerEmail} onChangeText={setCustomerEmail} placeholder="you@example.com" placeholderTextColor="#9CA3AF" keyboardType="email-address" autoCapitalize="none" />
       <Text style={styles.label}>Phone (10-digit)</Text>
       <TextInput style={styles.input} value={customerPhone} onChangeText={(t) => setCustomerPhone(t.replace(/\D/g, '').slice(0, 10))} placeholder="98xxxxxxxx" placeholderTextColor="#9CA3AF" keyboardType="phone-pad" maxLength={10} />
+
+      {/* Phase 7 — TA Personal/Company toggle (self-gated). */}
+      <TravelAgentBookingToggle value={taState} onChange={setTaState} />
 
       <View style={styles.reviewCard}>
         <Text style={styles.sectionTitle}>Quick Review</Text>

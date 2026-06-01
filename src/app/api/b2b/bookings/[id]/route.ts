@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import { authorizeB2BBookingAccess } from '@/lib/auth/b2b-booking-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,19 +107,19 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'B2B booking not found' }, { status: 404 });
     }
 
-    // Enrich with TA fields (columns not yet in generated Prisma client)
-    let travelAgentId: string | null = null;
-    let bookingMode: string | null = null;
-    try {
-      const taRows: any[] = await (prisma as any).$queryRawUnsafe(
-        `SELECT travelAgentId, bookingMode FROM b2b_bookings WHERE id = ? LIMIT 1`,
-        id,
+    // Authorize: staff/vendor see everything; a travel agent or customer may
+    // only read their OWN booking. travelAgentId / bookingMode are real columns
+    // now, so they come back on `booking` directly (no raw-SQL enrichment).
+    const access = await authorizeB2BBookingAccess(request, {
+      customerId: booking.customerId,
+      travelAgentId: booking.travelAgentId,
+    });
+    if (!access.ok) {
+      return NextResponse.json(
+        { error: access.error || 'Unauthorized' },
+        { status: access.status || 401 },
       );
-      travelAgentId = taRows[0]?.travelAgentId || null;
-      bookingMode = taRows[0]?.bookingMode || null;
-    } catch { /* columns may not exist in older deployments */ }
-    (booking as any).travelAgentId = travelAgentId;
-    (booking as any).bookingMode = bookingMode;
+    }
 
     // Strip OTP from trips (should not be exposed in booking detail)
     const sanitizedTrips = booking.trips.map(({ otp, otpGeneratedAt, ...rest }: any) => rest);

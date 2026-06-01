@@ -14,6 +14,19 @@ import { authorInclude, formatAuthor, vendorShapedAuthor } from './author';
 
 const PAGE_SIZE = 20;
 
+// social_posts.images is stored as a JSON-string array of URLs. Parse safely
+// for responses; never throw on malformed data.
+function parseImages(val: any): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  try {
+    const arr = JSON.parse(val);
+    return Array.isArray(arr) ? arr.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
 // Build a where-clause fragment that matches rows authored by THIS actor,
 // regardless of whether they're vendor- or agent-authored.
 function actorPostsWhere(actor: SocialActor) {
@@ -43,6 +56,7 @@ function uniqueByPostAndActor(actor: SocialActor, postId: string) {
 function serializePost(post: any, actor: SocialActor) {
   return {
     ...post,
+    images: parseImages(post.images),
     // keep `vendor` populated for backwards compat — agent-authored posts
     // get a vendor-shaped projection so existing vendor UI keeps rendering.
     vendor: vendorShapedAuthor(post),
@@ -164,7 +178,7 @@ export async function getFeed(
 // ── Create post ──────────────────────────────────────────────────────────────
 export async function createPost(
   actor: SocialActor,
-  { content, categoryId }: { content: string; categoryId: string },
+  { content, categoryId, images }: { content: string; categoryId: string; images?: string[] },
 ) {
   if (!content?.trim()) throw new SocialError('Content is required', 400);
   if (!categoryId) throw new SocialError('Category is required', 400);
@@ -172,11 +186,17 @@ export async function createPost(
   const category = await prisma.social_categories.findUnique({ where: { id: categoryId } });
   if (!category || !category.isActive) throw new SocialError('Invalid category', 400);
 
+  // Keep only valid string URLs; cap to 4 to match the composer limit.
+  const cleanImages = Array.isArray(images)
+    ? images.filter((u) => typeof u === 'string' && u.trim()).slice(0, 4)
+    : [];
+
   const post = await prisma.social_posts.create({
     data: {
       ...actorAuthorData(actor),
       categoryId,
       content: content.trim(),
+      images: cleanImages.length ? JSON.stringify(cleanImages) : null,
     },
     include: {
       ...authorInclude,
@@ -187,6 +207,7 @@ export async function createPost(
   return {
     post: {
       ...post,
+      images: parseImages(post.images),
       vendor: vendorShapedAuthor(post),
       agent: post.agent ?? null,
       author: formatAuthor(post),

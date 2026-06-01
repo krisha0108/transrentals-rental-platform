@@ -17,6 +17,7 @@ import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidStyle, AndroidImportance, EventType } from '@notifee/react-native';
 import axios from 'axios';
 import { debugAuthState, getSessionToken, getVendorNotificationsUnreadCount, saveVendorFcmToken } from './screens/api/client';
+import { saveTravelAgentFcmToken } from './screens/api/travelAgentClient';
 import OfflineBanner from './components/OfflineBanner';
 import GlobalAlert from './components/GlobalAlert';
 import { NotifBadgeContext } from './contexts/NotifBadgeContext';
@@ -30,6 +31,57 @@ import VendorLoginScreen from './screens/vendor/auth/VendorLoginScreen';
 import VendorRegisterScreen from './screens/vendor/auth/VendorRegisterScreen';
 import ForgotPasswordScreen from './screens/vendor/auth/ForgotPasswordScreen';
 import NotVerifiedModal from './screens/vendor/auth/NotVerifiedModal';
+
+// Travel Agent — Auth, Dashboard, Onboarding, Placeholders (Phase 1)
+import TravelAgentRegisterScreen from './screens/travel-agent/auth/TravelAgentRegisterScreen';
+import TravelAgentForgotPasswordScreen from './screens/travel-agent/auth/TravelAgentForgotPasswordScreen';
+import TravelAgentBottomNavigation from './screens/travel-agent/TravelAgentBottomNavigation';
+// Phase 1 onboarding placeholders for TravelAgentDocuments + TravelAgentGetStarted
+// were both upgraded to real screens (DocumentsScreen in P4, GetStartedScreen here).
+import TAGetStartedScreen from './screens/travel-agent/onboarding/GetStartedScreen';
+import TAAgencyProfileScreen from './screens/travel-agent/profile/AgencyProfileScreen';
+import TAComingSoonScreen from './screens/travel-agent/_shared/TAComingSoonScreen';
+
+// Travel Agent — Phase 2 (CRM Core: Leads + Pipeline + Follow-ups + Notifications)
+import TAPipelineScreen from './screens/travel-agent/leads/PipelineScreen';
+import TAFollowUpsScreen from './screens/travel-agent/leads/FollowUpsScreen';
+import TAAddEditLeadScreen from './screens/travel-agent/leads/AddEditLeadScreen';
+import TALeadDetailScreen from './screens/travel-agent/leads/LeadDetailScreen';
+import TANotificationsScreen from './screens/travel-agent/notifications/NotificationsScreen';
+
+// Travel Agent — Phase 3 (Bookings + Listings: Tours / Properties / Fleet / Quote Requests)
+import TAAddEditBookingScreen from './screens/travel-agent/bookings/AddEditBookingScreen';
+import TABookingDetailScreen from './screens/travel-agent/bookings/BookingDetailScreen';
+import TASelfBookingDetailScreen from './screens/travel-agent/bookings/SelfBookingDetailScreen';
+import TAToursListScreen from './screens/travel-agent/tours/ToursListScreen';
+import TAAddEditTourScreen from './screens/travel-agent/tours/AddEditTourScreen';
+import TATourPreviewScreen from './screens/travel-agent/tours/TourPreviewScreen';
+import TATourQuoteRequestsScreen from './screens/travel-agent/tours/TourQuoteRequestsScreen';
+import TAPropertiesListScreen from './screens/travel-agent/properties/PropertiesListScreen';
+import TAAddEditPropertyScreen from './screens/travel-agent/properties/AddEditPropertyScreen';
+import TAFleetListScreen from './screens/travel-agent/fleet/FleetListScreen';
+import TAAddEditFleetScreen from './screens/travel-agent/fleet/AddEditFleetScreen';
+import TAFleetCalendarScreen from './screens/travel-agent/fleet/FleetCalendarScreen';
+import TAFleetInsuranceScreen from './screens/travel-agent/fleet/FleetInsuranceScreen';
+
+// Travel Agent — Phase 4 (Money + Docs: Earnings / Payments / Bank Details / Documents)
+import TAEarningsScreen from './screens/travel-agent/earnings/EarningsScreen';
+import TAPaymentsScreen from './screens/travel-agent/payments/PaymentsScreen';
+import TABankDetailsListScreen from './screens/travel-agent/bank/BankDetailsListScreen';
+import TAAddBankAccountScreen from './screens/travel-agent/bank/AddBankAccountScreen';
+import TADocumentsScreen from './screens/travel-agent/documents/DocumentsScreen';
+
+// Travel Agent — Phase 5 (Communications: Customer Chats + Capture Links)
+import TAChatThreadScreen from './screens/travel-agent/chats/ChatThreadScreen';
+import TACaptureLinksListScreen from './screens/travel-agent/capture-links/CaptureLinksListScreen';
+import TAAddEditCaptureLinkScreen from './screens/travel-agent/capture-links/AddEditCaptureLinkScreen';
+
+// Travel Agent — Phase 6 (Social Network: Feed / Create / Messages / Chat / Profile)
+import TASocialFeedScreen from './screens/travel-agent/social/SocialFeedScreen';
+import TACreatePostScreen from './screens/travel-agent/social/CreatePostScreen';
+import TASocialMessagesListScreen from './screens/travel-agent/social/SocialMessagesListScreen';
+import TASocialChatScreen from './screens/travel-agent/social/SocialChatScreen';
+import TASocialProfileScreen from './screens/travel-agent/social/SocialProfileScreen';
 
 // Dashboard
 import DashboardScreen from './screens/vendor/dashboard/DashboardScreen';
@@ -359,6 +411,35 @@ function SplashScreenWrapper() {
       if (token && token.length > 0) {
         console.log('[App] ✅ Token found! User is authenticated');
 
+        // --- Travel Agent session takes precedence ---
+        // Set by loginUnified/loginTravelAgentDirect on TA login. We check TA
+        // first because a TA session never coexists with vendor data (each
+        // login clears the opposite type), but defending in this order keeps
+        // the routing deterministic.
+        const travelAgentStr = await AsyncStorage.getItem('travel_agent');
+        if (travelAgentStr) {
+          try {
+            const ta = JSON.parse(travelAgentStr);
+            console.log('[App] 🧳 Travel Agent Status:', ta.status);
+            if (ta.status === 'DOCUMENTS_PENDING') {
+              console.log('[App] 📄 TA → Documents');
+              navigation.replace('TravelAgentDocuments');
+              return;
+            }
+            if (ta.status === 'REJECTED' || ta.status === 'SUSPENDED') {
+              // Don't auto-login a blocked TA; bounce to login with a notice.
+              console.log('[App] ⛔ TA blocked status, routing to login');
+              navigation.replace('VendorLoginScreen');
+              return;
+            }
+            console.log('[App] 🏠 TA → TravelAgentDashboard');
+            navigation.replace('TravelAgentDashboard');
+            return;
+          } catch (e) {
+            console.error('[App] ❌ Error parsing travel_agent:', e);
+          }
+        }
+
         if (vendorStr) {
           try {
             const vendor = JSON.parse(vendorStr);
@@ -504,10 +585,13 @@ const BOOKING_DETAIL_SCREEN_MAP = {
 };
 
 function getNotifChannelForType(type) {
-  if (type === 'payment_received' || type === 'payment' || type === 'advance_paid') {
+  // Travel-agent notification types are UPPERCASE (PAYMENT/CHAT/BOOKING/LEAD/
+  // SYSTEM); map them onto the same channels vendors use so TAs get distinct
+  // per-type sounds. LEAD/SYSTEM fall through to the default channel.
+  if (type === 'payment_received' || type === 'payment' || type === 'advance_paid' || type === 'PAYMENT') {
     return { channelId: 'payment_channel', sound: 'payment' };
   }
-  if (type === 'chat' || type === 'new_message') {
+  if (type === 'chat' || type === 'new_message' || type === 'CHAT') {
     return { channelId: 'chat_channel', sound: 'chat' };
   }
   if (type === 'trip_started') {
@@ -520,15 +604,73 @@ function getNotifChannelForType(type) {
     type === 'booking_confirmed' ||
     type === 'booking_assigned' ||
     type === 'booking_accepted' ||
-    type === 'quote_accepted'
+    type === 'quote_accepted' ||
+    type === 'BOOKING'
   ) {
     return { channelId: 'booking_confirmed_channel', sound: 'booking_confirmed' };
   }
   return { channelId: 'default_v3', sound: 'notification_sound' };
 }
 
+// Travel-agent push routing. TA pushes carry `source: 'travel-agent'` and a
+// web-style `link` (e.g. /travel-agent/leads/<id>); map that to the native TA
+// screen. Detail screens all read their entity via route param `id`.
+function navigateTravelAgent(data) {
+  const nav = navigationRef.current;
+  if (!nav) return true;
+
+  const link = data.link || '';
+  if (!link) {
+    nav.navigate('TANotifications');
+    return true;
+  }
+
+  // /travel-agent/leads/<id> → ['leads','<id>'];  /social/messages/<id> too.
+  const parts = link.split('?')[0].replace(/^\/+/, '').split('/');
+  const seg = parts[0] === 'travel-agent' ? parts.slice(1) : parts;
+  const section = seg[0];
+
+  switch (section) {
+    case 'leads':
+      if (seg[1]) nav.navigate('TALeadDetail', { id: seg[1] });
+      else nav.navigate('TravelAgentDashboard', { screen: 'TALeads' });
+      return true;
+    case 'bookings':
+      if (seg[1]) nav.navigate('TABookingDetail', { id: seg[1] });
+      else nav.navigate('TravelAgentDashboard', { screen: 'TABookings' });
+      return true;
+    case 'chats':
+      if (seg[1]) nav.navigate('TAChatThread', { id: seg[1] });
+      else nav.navigate('TravelAgentDashboard', { screen: 'TAChats' });
+      return true;
+    case 'social':
+      // /travel-agent/social/messages/<id>
+      if (seg[1] === 'messages' && seg[2]) nav.navigate('TASocialChat', { id: seg[2] });
+      else nav.navigate('TASocialFeed');
+      return true;
+    case 'documents':
+      nav.navigate('TADocuments');
+      return true;
+    case 'profile':
+      nav.navigate('TAProfile');
+      return true;
+    case 'dashboard':
+      nav.navigate('TravelAgentDashboard');
+      return true;
+    default:
+      nav.navigate('TANotifications');
+      return true;
+  }
+}
+
 function navigateByData(data) {
   if (!data || !navigationRef.current) return;
+
+  // Travel-agent pushes route through their own screen map.
+  if (data.source === 'travel-agent') {
+    navigateTravelAgent(data);
+    return;
+  }
 
   const screen = data.screen;
   const bookingId = data.booking_id || data.bookingId;
@@ -565,6 +707,16 @@ export default function App() {
     try {
       const token = await getSessionToken();
       if (!token) return; // not logged in yet — skip
+
+      // Skip the vendor unread-count endpoint when a Travel Agent is
+      // logged in — same reason as the FCM skip (401 from wrong user type
+      // would otherwise trip the global logout interceptor). TA badge is
+      // handled separately by the TA bottom-nav.
+      try {
+        const taCached = await AsyncStorage.getItem('travel_agent');
+        if (taCached) return;
+      } catch {}
+
       const res = await getVendorNotificationsUnreadCount();
       setUnreadCount(res?.unreadCount || 0);
     } catch {
@@ -671,15 +823,30 @@ export default function App() {
   async function getTokenAndSend() {
     const token = await getSessionToken();
     if (!token) return; // not logged in yet — skip
+
+    // Detect session type. Travel agents get the FCM token sent to the
+    // TA-side endpoint (/travel-agent/fcm-token); vendors go to the legacy
+    // /vendor/fcm-token. Calling the wrong endpoint returns 401 which used
+    // to trigger a global logout, so we MUST route correctly.
+    let isTravelAgent = false;
+    try {
+      isTravelAgent = !!(await AsyncStorage.getItem('travel_agent'));
+    } catch {}
+
     const fcmToken = await messaging().getToken();
     console.log('FCM Token:', fcmToken);
-    if (fcmToken) {
-      try {
+    if (!fcmToken) return;
+
+    try {
+      if (isTravelAgent) {
+        await saveTravelAgentFcmToken(fcmToken);
+        console.log('[FCM] Token sent to backend (travel_agent)');
+      } else {
         await saveVendorFcmToken(fcmToken);
-        console.log('FCM token sent to backend');
-      } catch (error) {
-        console.log('Error sending FCM token:', error.message);
+        console.log('[FCM] Token sent to backend (vendor)');
       }
+    } catch (error) {
+      console.log('[FCM] Error sending FCM token:', error?.message);
     }
   }
 
@@ -713,6 +880,13 @@ export default function App() {
           <Stack.Screen name="VendorDocuments" component={VendorDocumentsScreen} />
           <Stack.Screen name="VendorServices" component={VendorServicesScreen} />
           <Stack.Screen name="VendorLocations" component={VendorLocationsScreen} />
+
+          {/* Travel Agent — Auth + Dashboard + Onboarding (Phase 1, Docs upgraded in P4) */}
+          <Stack.Screen name="TravelAgentRegisterScreen" component={TravelAgentRegisterScreen} />
+          <Stack.Screen name="TravelAgentForgotPasswordScreen" component={TravelAgentForgotPasswordScreen} />
+          <Stack.Screen name="TravelAgentDashboard" component={TravelAgentBottomNavigation} />
+          <Stack.Screen name="TravelAgentDocuments" component={TADocumentsScreen} />
+          <Stack.Screen name="TravelAgentGetStarted" component={TAGetStartedScreen} />
 
           {/* Modal Screens */}
           <Stack.Group screenOptions={{ presentation: 'modal' }}>
@@ -912,6 +1086,57 @@ export default function App() {
             <Stack.Screen name="SelfDriveTemplates" component={SelfDriveTemplatesScreen} />
             <Stack.Screen name="SelfDriveCreateTemplate" component={SelfDriveCreateTemplateScreen} />
             <Stack.Screen name="SelfDriveEditTemplate" component={SelfDriveEditTemplateScreen} />
+
+            {/* Travel Agent — Phase 3 listings (real screens) */}
+            <Stack.Screen name="TATours" component={TAToursListScreen} />
+            <Stack.Screen name="TAAddEditTour" component={TAAddEditTourScreen} />
+            <Stack.Screen name="TATourPreview" component={TATourPreviewScreen} />
+            <Stack.Screen name="TAProperties" component={TAPropertiesListScreen} />
+            <Stack.Screen name="TAAddEditProperty" component={TAAddEditPropertyScreen} />
+            <Stack.Screen name="TAFleet" component={TAFleetListScreen} />
+            <Stack.Screen name="TAAddEditFleet" component={TAAddEditFleetScreen} />
+            <Stack.Screen name="TAFleetCalendar" component={TAFleetCalendarScreen} />
+            <Stack.Screen name="TAFleetInsurance" component={TAFleetInsuranceScreen} />
+
+            {/* Phase 3 Bookings add/edit + detail (list lives in the bottom-nav TABookings tab) */}
+            <Stack.Screen name="TAAddEditBooking" component={TAAddEditBookingScreen} />
+            <Stack.Screen name="TABookingDetail" component={TABookingDetailScreen} />
+            <Stack.Screen name="TASelfBookingDetail" component={TASelfBookingDetailScreen} />
+
+            {/* CRM (Phase 2 / 3 / 5) */}
+            <Stack.Screen name="TAPipeline" component={TAPipelineScreen} />
+            <Stack.Screen name="TAFollowUps" component={TAFollowUpsScreen} />
+            <Stack.Screen name="TAAddEditLead" component={TAAddEditLeadScreen} />
+            <Stack.Screen name="TALeadDetail" component={TALeadDetailScreen} />
+            <Stack.Screen name="TACaptureLinks" component={TACaptureLinksListScreen} />
+            <Stack.Screen name="TAAddEditCaptureLink" component={TAAddEditCaptureLinkScreen} />
+            <Stack.Screen name="TAChatThread" component={TAChatThreadScreen} />
+            <Stack.Screen name="TATourQuoteRequests" component={TATourQuoteRequestsScreen} />
+
+            {/* Money + Docs (Phase 4) */}
+            <Stack.Screen name="TAEarnings" component={TAEarningsScreen} />
+            <Stack.Screen name="TAPayments" component={TAPaymentsScreen} />
+            <Stack.Screen name="TABankDetails" component={TABankDetailsListScreen} />
+            <Stack.Screen name="TAAddBankAccount" component={TAAddBankAccountScreen} />
+
+            {/* Social Network (Phase 6) */}
+            <Stack.Screen name="TASocialFeed" component={TASocialFeedScreen} />
+            <Stack.Screen name="TACreatePost" component={TACreatePostScreen} />
+            <Stack.Screen name="TASocialMessages" component={TASocialMessagesListScreen} />
+            <Stack.Screen name="TASocialChat" component={TASocialChatScreen} />
+            <Stack.Screen name="TASocialProfile" component={TASocialProfileScreen} />
+            {/* TASocialSaved reuses the feed with the Saved tab pre-selected */}
+            <Stack.Screen
+              name="TASocialSaved"
+              component={TASocialFeedScreen}
+              initialParams={{ initialTab: "saved" }}
+            />
+
+            {/* Account */}
+            <Stack.Screen name="TANotifications" component={TANotificationsScreen} />
+            <Stack.Screen name="TADocuments" component={TADocumentsScreen} />
+            <Stack.Screen name="TAProfile" component={TAAgencyProfileScreen} />
+            <Stack.Screen name="TAGetStarted" component={TAGetStartedScreen} />
 
           </Stack.Group>
         </Stack.Navigator>

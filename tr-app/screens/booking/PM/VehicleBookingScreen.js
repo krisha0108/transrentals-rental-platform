@@ -19,6 +19,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useRoute } from '@react-navigation/native'
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
+import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
+import { getTravelAgentContext } from '../../../utils/isTravelAgent';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
 
 
@@ -94,6 +96,8 @@ const VehicleBookingScreen = () => {
   
   const [TruckTypes, setTruckTypes] = useState(truckTypesList);
   const [officeShifting, setOfficeShifting] = useState('');
+  // Phase 7 — Travel Agent Personal/Company booking mode
+  const [taState, setTaState] = useState({ mode: 'PERSONAL', vehicleCount: '1', employeeCount: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
 
@@ -216,9 +220,22 @@ const handleBookingSubmit = async () => {
       vehicle_shifting: officeShifting, // Value to store for office_shifting
       shifting_type: selectedService,
       // car_type:selectedVehicleTyes,
-      total_passengers: 4, 
+      total_passengers: 4,
       other_info: otherDetails,
     };
+
+    // Phase 7 — TA fields (only when TA customer).
+    const { isTravelAgent } = await getTravelAgentContext();
+    if (isTravelAgent) {
+      payload.ta_booking_mode = taState.mode;
+      payload.number_of_vehicles = taState.mode === 'COMPANY'
+        ? (parseInt(taState.vehicleCount) || 1)
+        : 1;
+      payload.number_of_employees = taState.mode === 'COMPANY' && taState.employeeCount
+        ? parseInt(taState.employeeCount)
+        : null;
+    }
+
     console.log("📦 Payload:", payload);
     const response = await axios.post("https://app.transrentals.in/api/store-vehicle-booking", payload, {
       headers: {
@@ -427,6 +444,8 @@ const handleBookingSubmit = async () => {
               value={otherDetails}
               onChangeText={setOtherDetails}
             />
+            {/* Phase 7 — TA Personal/Company toggle (self-gated). */}
+            <TravelAgentBookingToggle value={taState} onChange={setTaState} />
             <View style={styles.rowButtons}>
               <TouchableOpacity style={styles.navBtn} onPress={prevStep}>
                 <Text style={styles.nextBtnText}>{'<-'}</Text>
