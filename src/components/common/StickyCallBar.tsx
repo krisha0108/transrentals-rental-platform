@@ -16,30 +16,6 @@ const PHONE_DISPLAY = '+91 97379 65551';
 const WA_URL = `https://wa.me/${PHONE}?text=Hi, I want to book a rental service`;
 
 export function StickyCallBar() {
-  const pathname = usePathname();
-  const isServicePage = SERVICE_PATHS.some((p) => pathname?.startsWith(p));
-
-  if (!isServicePage) return null;
-
-  return (
-    <div className="fixed bottom-16 left-0 right-0 z-40 md:hidden flex shadow-lg">
-      <a
-        href={`tel:${PHONE}`}
-        className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white py-3 font-semibold text-sm active:bg-emerald-700"
-      >
-        <Phone className="w-4 h-4" />
-        <span>{PHONE_DISPLAY}</span>
-      </a>
-      <div className="w-px bg-emerald-700" />
-      <a
-        href={WA_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 text-white py-3 font-semibold text-sm active:bg-emerald-600"
-      >
-        <MessageCircle className="w-4 h-4" />
-        <span>WhatsApp</span>
-      </a>
-    </div>
-  );
+  // Both call and WhatsApp company CTAs removed — render nothing.
+  return null;
 }

@@ -73,20 +73,29 @@ const SERVICE_SHORT = {
 export default function ChatScreen({ route, navigation }) {
   const {
     bookingId: initialBookingId,
-    customerName,
+    customerName: customerNameParam,
     bookingNumber: initialBookingNumber,
     serviceType: initialServiceType,
-    customerAvatar,
+    customerAvatar: customerAvatarParam,
     customerBookings,  // array of all bookings for this customer
   } = route.params || {};
 
+  // Header metadata. When this screen is opened from ChatListScreen, route
+  // params carry everything we need. When it's opened via a notification
+  // deep-link, only bookingId arrives — these states are then backfilled
+  // from the /api/vendor/chat/[bookingId] response (customer + booking).
+  const [customerName, setCustomerName]     = useState(customerNameParam || null);
+  const [customerAvatar, setCustomerAvatar] = useState(customerAvatarParam || null);
+  const [bookingNumber, setBookingNumber]   = useState(initialBookingNumber || null);
+  const [bookingType, setBookingType]       = useState(initialServiceType || null);
+
   const allBookings = customerBookings && customerBookings.length > 0
     ? customerBookings
-    : [{ bookingId: initialBookingId, bookingNumber: initialBookingNumber, bookingType: initialServiceType }];
+    : [{ bookingId: initialBookingId, bookingNumber, bookingType }];
 
   const [activeBookingId, setActiveBookingId] = useState(initialBookingId);
   const activeBooking = allBookings.find((b) => b.bookingId === activeBookingId) || allBookings[0];
-  const activeServiceType = activeBooking?.bookingType || initialServiceType;
+  const activeServiceType = activeBooking?.bookingType || bookingType;
 
   const svc = SERVICE_MAP[activeServiceType] || { label: activeServiceType || 'Booking', color: C.g700, bg: C.g50, icon: 'car' };
   const customerInitial = (customerName || 'C').charAt(0).toUpperCase();
@@ -115,6 +124,13 @@ export default function ChatScreen({ route, navigation }) {
     try {
       const response = await getChatMessages(activeBookingId);
       setMessages(response?.messages || []);
+      // Backfill header meta from API when route.params were sparse (e.g.,
+      // notification deep-link with only bookingId). Don't overwrite values
+      // that ChatListScreen explicitly passed — those are richer.
+      if (response?.customer?.name) setCustomerName((cur) => cur || response.customer.name);
+      if (response?.customer?.image) setCustomerAvatar((cur) => cur || response.customer.image);
+      if (response?.booking?.bookingNumber) setBookingNumber((cur) => cur || response.booking.bookingNumber);
+      if (response?.booking?.bookingType) setBookingType((cur) => cur || response.booking.bookingType);
     } catch (error) {
       console.log('Error fetching messages:', error);
     } finally {
@@ -392,7 +408,7 @@ export default function ChatScreen({ route, navigation }) {
             <MaterialCommunityIcons name={svc.icon} size={10} color="#fff" style={{ marginRight: 3 }} />
             <Text style={st.svcChipTxt}>{svc.label}</Text>
           </View>
-          <Text style={st.headerBkNum}>#{activeBooking?.bookingNumber || initialBookingNumber}</Text>
+          <Text style={st.headerBkNum}>#{activeBooking?.bookingNumber || bookingNumber || ''}</Text>
         </View>
       </View>
 

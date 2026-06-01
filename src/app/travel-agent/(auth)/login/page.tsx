@@ -84,6 +84,25 @@ export default function TravelAgentLoginPage() {
         </div>
       )}
 
+      {/* ── Top nav ── */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <img src="/assets/Logo-favicon.png" alt="TransRentals" className="h-8 w-8" />
+            <img src="/assets/logo-trans.png" alt="TransRentals" className="h-7 hidden sm:block" />
+          </Link>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-gray-400 hidden sm:inline">New travel agent?</span>
+            <Link
+              href="/travel-agent/register"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-1.5 rounded-full transition-colors"
+            >
+              Register Free
+            </Link>
+          </div>
+        </div>
+      </div>
+
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div className="hidden lg:block">

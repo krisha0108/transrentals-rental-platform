@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   CreditCard,
   CheckCircle,
@@ -56,28 +56,40 @@ export default function PaymentsPage() {
   const [payments, setPayments] = useState<PendingPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'bike' | 'chauffeur' | 'bus' | 'car' | 'truck' | 'equipment' | 'packers' | 'luxury' | 'wander'>('all');
+  const [dayFilter, setDayFilter] = useState<'all' | 'today' | 'yesterday' | 'last7' | 'last30'>('all');
+  const [statusFilter, setStatusFilter] = useState<'pending' | 'approved' | 'all'>('all');
+  const [methodFilter, setMethodFilter] = useState<'all' | 'manual' | 'direct'>('all');
   const [selectedPayment, setSelectedPayment] = useState<PendingPayment | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyNotes, setVerifyNotes] = useState('');
 
-  useEffect(() => {
-    fetchPayments();
-  }, [filter]);
-
-  const fetchPayments = async () => {
+  // useCallback gives fetchPayments a stable identity that only changes when
+  // the filters change — avoids stale-closure issues on the initial render.
+  const fetchPayments = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/admin/payments/pending?type=${filter}`);
+      const response = await fetch(
+        `/api/admin/payments/pending?type=${filter}&status=${statusFilter}&method=${methodFilter}`,
+        { cache: 'no-store' },
+      );
       const data = await response.json();
       if (data.success) {
         setPayments(data.bookings || []);
+      } else {
+        setPayments([]);
       }
     } catch (err) {
       console.error('Failed to fetch payments:', err);
+      setPayments([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filter, statusFilter, methodFilter]);
+
+  // Fire whenever the stable fetcher changes (i.e., any backend filter changes).
+  useEffect(() => {
+    fetchPayments();
+  }, [fetchPayments]);
 
   const handleVerify = async (action: 'verify' | 'reject') => {
     if (!selectedPayment) return;
@@ -137,13 +149,36 @@ export default function PaymentsPage() {
     return badges[type] || { label: type, className: 'bg-gray-100 text-gray-700' };
   };
 
+  // Client-side day filter on the already-fetched payments (uses createdAt).
+  const displayedPayments = useMemo(() => {
+    if (dayFilter === 'all') return payments;
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    let gte = todayStart;
+    let lt: Date | null = null;
+    if (dayFilter === 'yesterday') {
+      gte = new Date(todayStart); gte.setDate(gte.getDate() - 1);
+      lt = todayStart;
+    } else if (dayFilter === 'last7') {
+      gte = new Date(todayStart); gte.setDate(gte.getDate() - 6);
+    } else if (dayFilter === 'last30') {
+      gte = new Date(todayStart); gte.setDate(gte.getDate() - 29);
+    }
+    return payments.filter((p) => {
+      const d = new Date(p.createdAt);
+      if (d < gte) return false;
+      if (lt && d >= lt) return false;
+      return true;
+    });
+  }, [payments, dayFilter]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Verification</h1>
-          <p className="text-gray-600">Verify customer payments to confirm bookings</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Payments</h1>
+          <p className="text-gray-600">All bookings with payment — manual proof + direct (Razorpay). Verify pending ones.</p>
         </div>
         <Button onClick={fetchPayments} variant="outline" className="gap-2">
           <RefreshCw className="w-4 h-4" />
@@ -151,8 +186,87 @@ export default function PaymentsPage() {
         </Button>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-gray-200 pb-4 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      {/* Unified filters card — Status · Date · Service rows */}
+      <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
+      {/* Payment status (server-side) */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide w-16 shrink-0">Status</span>
+        {[
+          { key: 'pending',  label: 'Pending',  className: 'bg-amber-600 border-amber-600' },
+          { key: 'approved', label: 'Approved', className: 'bg-emerald-600 border-emerald-600' },
+          { key: 'all',      label: 'All',      className: 'bg-gray-700 border-gray-700' },
+        ].map((s) => (
+          <button
+            key={s.key}
+            onClick={() => setStatusFilter(s.key as any)}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-xs font-semibold border transition',
+              statusFilter === s.key
+                ? `${s.className} text-white shadow-sm`
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50',
+            )}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Day filter — client-side */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide w-16 shrink-0">Date</span>
+        {[
+          { key: 'all',       label: 'All time' },
+          { key: 'today',     label: 'Today' },
+          { key: 'yesterday', label: 'Yesterday' },
+          { key: 'last7',     label: 'Last 7 days' },
+          { key: 'last30',    label: 'Last 30 days' },
+        ].map((d) => (
+          <button
+            key={d.key}
+            onClick={() => setDayFilter(d.key as any)}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-xs font-semibold border transition',
+              dayFilter === d.key
+                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50',
+            )}
+          >
+            {d.label}
+          </button>
+        ))}
+        {dayFilter !== 'all' && (
+          <span className="text-xs text-gray-500 ml-1">· {displayedPayments.length} of {payments.length} shown</span>
+        )}
+      </div>
+
+      {/* Payment method (server-side: manual / direct / all) */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide w-16 shrink-0">Method</span>
+        {[
+          { key: 'all',    label: 'All',    className: 'bg-gray-700 border-gray-700' },
+          { key: 'manual', label: 'Manual', className: 'bg-amber-600 border-amber-600' },
+          { key: 'direct', label: 'Direct', className: 'bg-indigo-600 border-indigo-600' },
+        ].map((m) => (
+          <button
+            key={m.key}
+            onClick={() => setMethodFilter(m.key as any)}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-xs font-semibold border transition',
+              methodFilter === m.key
+                ? `${m.className} text-white shadow-sm`
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50',
+            )}
+          >
+            {m.label}
+          </button>
+        ))}
+        <span className="text-[10px] text-gray-400 ml-1">Manual = UPI / Bank transfer · Direct = Razorpay / Online</span>
+      </div>
+
+      {/* Service tabs row */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide w-16 shrink-0">Service</span>
+        <div className="flex gap-2 overflow-x-auto flex-1 pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         <button
           onClick={() => setFilter('all')}
           className={cn(
@@ -163,7 +277,7 @@ export default function PaymentsPage() {
           )}
         >
           <Clock className="w-4 h-4" />
-          All Pending ({payments.length})
+          All ({displayedPayments.length})
         </button>
         <button
           onClick={() => setFilter('bike')}
@@ -273,6 +387,8 @@ export default function PaymentsPage() {
           <Compass className="w-4 h-4" />
           Wander Tours
         </button>
+        </div>
+      </div>
       </div>
 
       {/* Payments List */}
@@ -280,14 +396,14 @@ export default function PaymentsPage() {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
         </div>
-      ) : payments.length === 0 ? (
+      ) : displayedPayments.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-xl">
           <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">No payments to verify</p>
+          <p className="text-gray-600">{statusFilter === 'approved' ? 'No approved payments yet' : statusFilter === 'all' ? 'No payments to show' : 'No pending payments to verify'}</p>
         </div>
       ) : (
         <div className="grid gap-4">
-          {payments.map((payment) => {
+          {displayedPayments.map((payment) => {
             const badge = getBookingTypeBadge(payment.bookingType);
             return (
               <div
@@ -367,24 +483,33 @@ export default function PaymentsPage() {
                   </div>
 
                   <div className="flex flex-row lg:flex-col gap-2">
-                    <Button
-                      onClick={() => setSelectedPayment(payment)}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Verify
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setSelectedPayment(payment);
-                        setVerifyNotes('');
-                      }}
-                      variant="outline"
-                      className="text-red-600 border-red-200 hover:bg-red-50"
-                    >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Reject
-                    </Button>
+                    {payment.paymentStatus === 'SUBMITTED' ? (
+                      <>
+                        <Button
+                          onClick={() => setSelectedPayment(payment)}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Verify
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setSelectedPayment(payment);
+                            setVerifyNotes('');
+                          }}
+                          variant="outline"
+                          className="text-red-600 border-red-200 hover:bg-red-50"
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Reject
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg px-3 py-2 text-sm font-semibold">
+                        <CheckCircle className="w-4 h-4" />
+                        {payment.paymentStatus === 'PAID' ? 'Paid' : 'Verified'}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

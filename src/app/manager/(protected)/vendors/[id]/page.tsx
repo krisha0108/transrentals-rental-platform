@@ -42,8 +42,28 @@ import {
   KeyRound,
   Copy,
   RefreshCw,
+  Tag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+// Manager-managed CRM tags — mirrors the vendor list page. Server validates
+// against the same enum (see /api/manager/vendors/[id]/tags).
+const VENDOR_TAGS = [
+  { key: 'FOLLOW_UP_REQUIRED',     label: 'Follow-Up Required',     color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  { key: 'CONNECTED',              label: 'Connected',              color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { key: 'RESPONDED',              label: 'Responded',              color: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
+  { key: 'DOCUMENTS_PENDING',      label: 'Documents Pending',      color: 'bg-orange-100 text-orange-700 border-orange-200' },
+  { key: 'DOCUMENTS_VERIFIED',     label: 'Documents Verified',     color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  { key: 'WRONG_VENDOR_DETAILS',   label: 'Wrong Vendor Details',   color: 'bg-rose-100 text-rose-700 border-rose-200' },
+  { key: 'NOT_INTERESTED',         label: 'Not Interested',         color: 'bg-gray-200 text-gray-700 border-gray-300' },
+  { key: 'NO_RESPONSE',            label: 'No Response',            color: 'bg-stone-100 text-stone-700 border-stone-200' },
+  { key: 'VEHICLE_DETAILS_PENDING', label: 'Vehicle Details Pending', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+  { key: 'ACTIVE_VENDOR',          label: 'Active Vendor',          color: 'bg-green-100 text-green-700 border-green-200' },
+  { key: 'SUSPENDED',              label: 'Suspended',              color: 'bg-purple-100 text-purple-700 border-purple-200' },
+] as const;
+const TAG_BY_KEY: Record<string, { label: string; color: string }> = Object.fromEntries(
+  VENDOR_TAGS.map((t) => [t.key, { label: t.label, color: t.color }])
+);
 
 interface VendorDocument {
   id: string;
@@ -129,6 +149,7 @@ interface Vendor {
   gstNumber: string | null;
   panNumber: string | null;
   status: string;
+  tags: string[];
   rejectionReason: string | null;
   createdAt: string;
   approvedAt: string | null;
@@ -178,6 +199,9 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<{ type: string; id?: string } | null>(null);
+  // CRM tags
+  const [tagEditorOpen, setTagEditorOpen] = useState(false);
+  const [tagSaving, setTagSaving] = useState<string | null>(null);
   // Set-password modal state
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -267,6 +291,37 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   useEffect(() => {
     fetchVendor();
   }, [id]);
+
+  // Optimistic CRM tag toggle — adds/removes locally, then syncs server.
+  // Rolls back on failure. Mirrors the vendor list page behaviour.
+  const handleToggleTag = async (tag: string, present: boolean) => {
+    if (!vendor) return;
+    setTagSaving(tag);
+    const prev = vendor.tags || [];
+    setVendor(v => v ? {
+      ...v,
+      tags: present ? prev.filter(t => t !== tag) : [...prev, tag],
+    } : v);
+    try {
+      const res = present
+        ? await fetch(`/api/manager/vendors/${id}/tags?tag=${tag}`, { method: 'DELETE' })
+        : await fetch(`/api/manager/vendors/${id}/tags`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tag }),
+          });
+      if (!res.ok) throw new Error('Server rejected tag change');
+      const data = await res.json();
+      if (Array.isArray(data?.tags)) {
+        setVendor(v => v ? { ...v, tags: data.tags } : v);
+      }
+    } catch (e) {
+      setVendor(v => v ? { ...v, tags: prev } : v);
+      alert('Could not update tag. Please try again.');
+    } finally {
+      setTagSaving(null);
+    }
+  };
 
   const handleVendorAction = async (action: string, reason?: string) => {
     setActionLoading(action);
@@ -801,6 +856,77 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
             </span>
           </div>
           <p className="text-gray-600">Vendor ID: {vendor.id}</p>
+
+          {/* CRM tags — add/remove manager follow-up tags (same as vendor list) */}
+          <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+            {(vendor.tags || []).map((t) => {
+              const meta = TAG_BY_KEY[t];
+              if (!meta) return null;
+              const saving = tagSaving === t;
+              return (
+                <span
+                  key={t}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${meta.color} ${saving ? 'opacity-50' : ''}`}
+                >
+                  <Tag className="w-3 h-3" />
+                  {meta.label}
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => handleToggleTag(t, true)}
+                    className="ml-0.5 hover:opacity-70"
+                    title="Remove tag"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setTagEditorOpen(o => !o)}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-dashed border-gray-300 text-gray-500 hover:bg-gray-50 hover:border-gray-400"
+            >
+              <Plus className="w-3 h-3" />
+              {(vendor.tags || []).length === 0 ? 'Add tag' : 'Edit tags'}
+            </button>
+          </div>
+
+          {tagEditorOpen && (
+            <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg max-w-2xl">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-700">Toggle tags</span>
+                <button
+                  type="button"
+                  onClick={() => setTagEditorOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {VENDOR_TAGS.map((t) => {
+                  const present = (vendor.tags || []).includes(t.key);
+                  const saving = tagSaving === t.key;
+                  return (
+                    <button
+                      key={t.key}
+                      type="button"
+                      disabled={saving}
+                      onClick={() => handleToggleTag(t.key, present)}
+                      className={`px-2 py-1 rounded-full text-xs font-medium border transition ${
+                        present
+                          ? `${t.color} ring-1 ring-offset-1 ring-current`
+                          : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-100'
+                      } ${saving ? 'opacity-50' : ''}`}
+                    >
+                      {present ? '✓ ' : '+ '}{t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Quick Actions */}

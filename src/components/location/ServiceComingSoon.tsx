@@ -90,13 +90,6 @@ export function ServiceComingSoon({
               <p className="text-indigo-100 mb-6">Contact us and we'll try to arrange it for you!</p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a
-                  href="tel:+919737965551"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 font-semibold rounded-xl hover:bg-indigo-50 transition-colors"
-                >
-                  <Phone className="w-5 h-5" />
-                  +91 9737965551
-                </a>
-                <a
                   href="mailto:book@transrentals.in"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 text-white font-semibold rounded-xl hover:bg-white/20 transition-colors border border-white/30"
                 >

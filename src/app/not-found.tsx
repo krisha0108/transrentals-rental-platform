@@ -103,24 +103,6 @@ export default function NotFound() {
           <p className="text-gray-600 mb-8">
             Our customer support team is available 24/7 to assist you
           </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <a
-              href="tel:+919737965551"
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition"
-            >
-              <Phone className="w-5 h-5" />
-              +91 97379 65551
-            </a>
-            <a
-              href="https://wa.me/919737965551"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-green-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-green-700 transition"
-            >
-              <MessageCircle className="w-5 h-5" />
-              WhatsApp
-            </a>
-          </div>
         </div>
       </div>
     </div>

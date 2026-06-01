@@ -3739,11 +3739,6 @@ export function ChatBookingHero({
       addUserMessage('Skip');
       const firstName = bookingData.name?.split(' ')[0] || 'Guest';
       showBookingSuccessMessage(firstName, bookingData.lastBookingId || 'TR', bookingData.lastBookingRedirect);
-    } else if (action === 'whatsapp') {
-      window.open(
-        `https://wa.me/${WHATSAPP_NUMBER_DIGITS}?text=I want to track my booking`,
-        '_blank'
-      );
     } else if (action === 'download-app') {
       addUserMessage('I want to download the app');
       addShiviMessage(

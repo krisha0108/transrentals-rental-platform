@@ -24,10 +24,10 @@ export function ServicesGridDynamic() {
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Our Services in {currentCity.name}
+            More Services in {currentCity.name}
           </h2>
           <p className="text-lg text-gray-600">
-            Choose from our wide range of vehicle rental services in {currentCity.name} and across India
+            Explore our wide range of vehicle rental services in {currentCity.name} and across India
           </p>
         </div>
 

@@ -82,6 +82,9 @@ export async function GET(
         admin_users: {
           select: { id: true, name: true, email: true },
         },
+        vendor_tag_assignments: {
+          select: { tag: true },
+        },
         vendor_fleets: {
           orderBy: { createdAt: 'desc' },
           include: {
@@ -128,12 +131,14 @@ export async function GET(
       vendor_approved_locations,
       vendor_fleets,
       admin_users,
+      vendor_tag_assignments,
       _count,
       ...rest
     } = vendor;
 
     const safeVendor = {
       ...rest,
+      tags: (vendor_tag_assignments || []).map((t: any) => t.tag),
       documents: vendor_documents?.map((doc: any) => ({
         ...doc,
         verifiedBy: doc.admin_users,

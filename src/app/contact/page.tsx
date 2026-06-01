@@ -17,25 +17,11 @@ export const metadata: Metadata = {
 
 const contactMethods = [
   {
-    icon: Phone,
-    title: 'Phone',
-    value: process.env.NEXT_PUBLIC_CONTACT_PHONE || '+91-9737965551',
-    link: `tel:${process.env.NEXT_PUBLIC_CONTACT_PHONE}`,
-    description: 'Call us anytime',
-  },
-  {
     icon: Mail,
     title: 'Email',
     value: process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'book@transrentals.in',
     link: `mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`,
     description: 'Send us an email',
-  },
-  {
-    icon: MessageCircle,
-    title: 'WhatsApp',
-    value: 'WhatsApp Support',
-    link: WHATSAPP_LINK,
-    description: 'Chat with us',
   },
   {
     icon: MapPin,
@@ -67,7 +53,6 @@ const contactSchema = {
   mainEntity: {
     '@type': 'Organization',
     name: 'TransRentals',
-    telephone: '+91-9737965551',
     email: 'book@transrentals.in',
     address: {
       '@type': 'PostalAddress',
@@ -107,38 +92,43 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Contact Methods */}
+      {/* Contact Form + Methods */}
       <section className="py-16 bg-white">
         <div className="container-custom">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-            {contactMethods.map((method, index) => (
-              <div
-                key={index}
-                className="bg-gray-50 rounded-lg p-6 text-center hover:shadow-lg transition-shadow"
-              >
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
-                  <method.icon className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  {method.title}
-                </h3>
-                {method.link ? (
-                  <a
-                    href={method.link}
-                    className="text-primary font-semibold hover:underline block mb-1"
-                  >
-                    {method.value}
-                  </a>
-                ) : (
-                  <p className="text-primary font-semibold mb-1">{method.value}</p>
-                )}
-                <p className="text-sm text-gray-600">{method.description}</p>
-              </div>
-            ))}
-          </div>
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+            {/* Left: Contact Form (50%) */}
+            <ContactForm />
 
-          {/* Contact Form */}
-          <ContactForm />
+            {/* Right: Contact Methods (50%) */}
+            <div className="space-y-6">
+              {contactMethods.map((method, index) => (
+                <div
+                  key={index}
+                  className="flex items-start gap-4 bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow"
+                >
+                  <div className="flex-shrink-0 inline-flex items-center justify-center w-14 h-14 bg-primary/10 rounded-full">
+                    <method.icon className="w-7 h-7 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">
+                      {method.title}
+                    </h3>
+                    {method.link ? (
+                      <a
+                        href={method.link}
+                        className="text-primary font-semibold hover:underline block mb-1"
+                      >
+                        {method.value}
+                      </a>
+                    ) : (
+                      <p className="text-primary font-semibold mb-1">{method.value}</p>
+                    )}
+                    <p className="text-sm text-gray-600">{method.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

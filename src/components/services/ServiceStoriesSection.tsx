@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { ChevronRight, Play, Zap, ArrowRight } from 'lucide-react';
 
@@ -25,10 +26,17 @@ function StoryCard({ story }: { story: Story }) {
         style={{ aspectRatio: '9/16' }}
       >
         {cover ? (
-          <img
+          // next/image: resizes the (often 1–2 MB) cover down to the 200px card
+          // width and lazy-loads it. The strip sits at page bottom, so eager raw
+          // <img> was pulling multi-MB PNGs into the initial load. fill + sizes
+          // lets the optimizer serve a ~200px WebP (~30–50 KB) instead.
+          <Image
             src={cover}
             alt={story.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            fill
+            sizes="200px"
+            loading="lazy"
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-[#09B368] via-[#065f35] to-[#022c1a] flex items-center justify-center">

@@ -42,15 +42,21 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 });
     }
 
-    // City name → coords (skip locations without coordinates).
+    // All assigned cities by NAME. Coords are OPTIONAL — used only to center
+    // vendor pins on the map. (Previously cityNames was built only from cities
+    // that HAD coords, so on a DB where locations lack lat/lng the manager saw
+    // nothing. Scoping must never depend on coords.)
     const coordsByCity = new Map<string, { lat: number; lng: number }>();
+    const cityNameSet = new Set<string>();
     for (const ml of manager.manager_locations) {
       const l = ml.locations;
+      if (!l?.name) continue;
+      cityNameSet.add(l.name);
       if (l.latitude != null && l.longitude != null && !coordsByCity.has(l.name)) {
         coordsByCity.set(l.name, { lat: l.latitude, lng: l.longitude });
       }
     }
-    const cityNames = Array.from(coordsByCity.keys());
+    const cityNames = Array.from(cityNameSet);
 
     if (cityNames.length === 0) {
       return NextResponse.json({ success: true, vendors: [], drivers: [], stats: { vendors: 0, drivers: 0, driversLive: 0 } });
@@ -63,8 +69,11 @@ export async function GET(_request: NextRequest) {
     });
     const vendorIds = vendorRows.map((v) => v.id);
 
-    // Driver counts per vendor + vendor-staff driver rows (live GPS) +
-    // independent drivers (platform pool, also live GPS) — all in parallel.
+    // Driver counts per vendor + ALL vendor-staff drivers + ALL active
+    // independent drivers — regardless of whether GPS is on/off. Offline
+    // drivers list mein dikhte hain par map pe nahi (frontend lat/lng null
+    // wale ko skip karta hai). `deriveStatus` null lat/lng / stale update
+    // ko 'offline' batata hai.
     const [driverCounts, driverRows, indieRows] = await Promise.all([
       prisma.vendor_staff.groupBy({
         by: ['vendorId'],
@@ -72,18 +81,18 @@ export async function GET(_request: NextRequest) {
         _count: { _all: true },
       }),
       prisma.vendor_staff.findMany({
-        where: { vendorId: { in: vendorIds }, role: 'DRIVER', currentLat: { not: null }, currentLng: { not: null } },
+        where: { vendorId: { in: vendorIds }, role: 'DRIVER' },
         select: {
           id: true, name: true, phone: true, profilePhoto: true, vendorId: true,
           isSharingLocation: true, currentLat: true, currentLng: true, currentHeading: true,
           currentSpeed: true, locationUpdatedAt: true,
-          vendors: { select: { businessName: true } },
+          vendors: { select: { businessName: true, city: true } },
         },
       }),
-      // Independent drivers aren't tied to a vendor/city, so they're shown
-      // platform-wide once they share a live location.
+      // Independent drivers aren't tied to a vendor/city — platform-wide,
+      // shown whether GPS is on or off.
       prisma.drivers.findMany({
-        where: { status: 'ACTIVE', currentLat: { not: null }, currentLng: { not: null } },
+        where: { status: 'ACTIVE' },
         select: {
           id: true, name: true, phone: true, profilePhoto: true,
           isSharingLocation: true, currentLat: true, currentLng: true, currentHeading: true,
@@ -93,23 +102,23 @@ export async function GET(_request: NextRequest) {
     ]);
     const countByVendor = new Map(driverCounts.map((c) => [c.vendorId, c._count._all]));
 
-    const vendors = vendorRows
-      .filter((v) => v.city && coordsByCity.has(v.city))
-      .map((v) => {
-        const base = coordsByCity.get(v.city as string)!;
-        const pos = jitter(v.id, base.lat, base.lng);
-        return {
-          id: v.id,
-          name: v.businessName,
-          city: v.city,
-          status: v.status,
-          logo: v.logo ? resolveAssetUrl(v.logo) : null,
-          slug: v.slug,
-          driverCount: countByVendor.get(v.id) || 0,
-          lat: pos.lat,
-          lng: pos.lng,
-        };
-      });
+    // Include ALL in-scope vendors in the list. Only those whose city has
+    // coords get a map position (lat/lng); the rest are null (list-only).
+    const vendors = vendorRows.map((v) => {
+      const base = v.city ? coordsByCity.get(v.city) : undefined;
+      const pos = base ? jitter(v.id, base.lat, base.lng) : null;
+      return {
+        id: v.id,
+        name: v.businessName,
+        city: v.city,
+        status: v.status,
+        logo: v.logo ? resolveAssetUrl(v.logo) : null,
+        slug: v.slug,
+        driverCount: countByVendor.get(v.id) || 0,
+        lat: pos ? pos.lat : null,
+        lng: pos ? pos.lng : null,
+      };
+    });
 
     const mapDriver = (d: any, vendorName: string | null, independent: boolean) => ({
       id: d.id,
@@ -117,6 +126,7 @@ export async function GET(_request: NextRequest) {
       phone: d.phone,
       profilePhoto: d.profilePhoto ? resolveAssetUrl(d.profilePhoto) : null,
       vendorName,
+      city: d.vendors?.city ?? null,
       independent,
       status: deriveStatus(d),
       speed: d.currentSpeed != null ? Math.round(d.currentSpeed * 3.6) : 0,

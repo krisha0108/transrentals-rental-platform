@@ -23,6 +23,8 @@ import {
   ChevronRight,
   Building2,
   MapPin,
+  BookOpen,
+  UserPlus,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -268,67 +270,139 @@ export default function TravelAgentsLandingPage() {
       </section>
 
       {/* ── Benefits ── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full mb-3">
-            <Star className="w-3 h-3" /> Why TransRentals
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">
-            Everything you need to run a travel agency
-          </h2>
-          <p className="text-gray-600 mt-3">
-            Built for solo agents and growing agencies — replace 5 spreadsheets with one
-            beautiful dashboard.
-          </p>
-        </div>
+      <section className="relative overflow-hidden bg-gradient-to-b from-white via-emerald-50/60 to-sky-50/50 py-16 sm:py-24">
+        {/* Decorative blobs */}
+        <div className="absolute top-20 -left-10 w-72 h-72 bg-emerald-300/30 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-10 -right-10 w-80 h-80 bg-sky-300/30 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/3 left-1/2 w-64 h-64 bg-amber-200/25 rounded-full blur-3xl pointer-events-none" />
+        {/* Dot pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.06] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, #047857 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+          }}
+        />
+        {/* Dotted flight-path arc */}
+        <svg
+          className="absolute top-10 left-0 w-full h-48 text-emerald-400/40 pointer-events-none hidden sm:block"
+          viewBox="0 0 1440 200"
+          fill="none"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M-20,170 C320,40 720,20 1080,90 C1240,120 1380,90 1460,40"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeDasharray="2 10"
+            strokeLinecap="round"
+          />
+        </svg>
+        {/* Ghost compass */}
+        <Compass className="absolute -bottom-10 -left-10 w-72 h-72 text-emerald-600/[0.04] pointer-events-none hidden lg:block" />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {BENEFITS.map((b) => (
-            <div
-              key={b.title}
-              className="group bg-white border border-gray-200 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-900/5 rounded-2xl p-6 transition-all"
-            >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow group-hover:scale-110 transition-transform">
-                <b.icon className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-lg font-extrabold text-gray-900 mt-4">{b.title}</h3>
-              <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">{b.desc}</p>
-            </div>
-          ))}
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="inline-flex items-center gap-1.5 bg-white/80 backdrop-blur border border-emerald-200 text-emerald-700 text-[11px] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-full mb-4 shadow-sm">
+              <Star className="w-3 h-3" /> Why TransRentals
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">
+              Everything you need to <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">run a travel agency</span>
+            </h2>
+            <p className="text-gray-600 mt-4 leading-relaxed">
+              Built for solo agents and growing agencies — replace 5 spreadsheets with one
+              beautiful dashboard.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {BENEFITS.map((b, i) => {
+              const accents = [
+                { ring: 'hover:border-emerald-300', shadow: 'hover:shadow-emerald-200/40', iconBg: 'from-emerald-500 to-teal-600', blob: 'bg-emerald-200/40', bar: 'from-emerald-500 to-teal-500' },
+                { ring: 'hover:border-sky-300', shadow: 'hover:shadow-sky-200/40', iconBg: 'from-sky-500 to-blue-600', blob: 'bg-sky-200/40', bar: 'from-sky-500 to-blue-500' },
+                { ring: 'hover:border-amber-300', shadow: 'hover:shadow-amber-200/40', iconBg: 'from-amber-500 to-orange-600', blob: 'bg-amber-200/40', bar: 'from-amber-500 to-orange-500' },
+                { ring: 'hover:border-purple-300', shadow: 'hover:shadow-purple-200/40', iconBg: 'from-purple-500 to-fuchsia-600', blob: 'bg-purple-200/40', bar: 'from-purple-500 to-fuchsia-500' },
+                { ring: 'hover:border-rose-300', shadow: 'hover:shadow-rose-200/40', iconBg: 'from-rose-500 to-pink-600', blob: 'bg-rose-200/40', bar: 'from-rose-500 to-pink-500' },
+                { ring: 'hover:border-teal-300', shadow: 'hover:shadow-teal-200/40', iconBg: 'from-teal-500 to-emerald-600', blob: 'bg-teal-200/40', bar: 'from-teal-500 to-emerald-500' },
+              ];
+              const a = accents[i % accents.length];
+              return (
+                <div
+                  key={b.title}
+                  className={`group relative bg-white/90 backdrop-blur border border-gray-200 ${a.ring} hover:shadow-2xl ${a.shadow} rounded-2xl p-6 transition-all overflow-hidden hover:-translate-y-1`}
+                >
+                  {/* Top accent bar */}
+                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${a.bar} opacity-70 group-hover:opacity-100 transition-opacity`} />
+                  {/* Card decorative blob */}
+                  <div className={`absolute -top-12 -right-12 w-36 h-36 ${a.blob} rounded-full blur-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity`} />
+                  <div className={`relative w-12 h-12 rounded-xl bg-gradient-to-br ${a.iconBg} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-transform`}>
+                    <b.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="relative text-lg font-extrabold text-gray-900 mt-4">{b.title}</h3>
+                  <p className="relative text-sm text-gray-600 mt-1.5 leading-relaxed">{b.desc}</p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
       {/* ── How it works ── */}
-      <section className="bg-gradient-to-b from-emerald-50/40 via-sky-50/40 to-amber-50/40 py-16 sm:py-24">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full mb-3">
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-700 to-sky-800 py-16 sm:py-24 text-white">
+        {/* Decorative blobs */}
+        <div className="absolute top-0 -left-20 w-80 h-80 bg-amber-400/30 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 -right-20 w-80 h-80 bg-sky-400/30 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-emerald-400/20 rounded-full blur-3xl pointer-events-none" />
+        {/* Dot pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.08] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+          }}
+        />
+        {/* Floating plane silhouette */}
+        <div className="absolute top-10 right-[8%] text-white/5 pointer-events-none hidden md:block">
+          <Plane className="w-40 h-40 -rotate-12" />
+        </div>
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <span className="inline-flex items-center gap-1.5 bg-amber-400/20 backdrop-blur border border-amber-300/40 text-amber-100 text-[11px] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-full mb-4">
               <Plane className="w-3 h-3" /> How it works
             </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900">
-              From signup to first booking — in a day
+            <h2 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight">
+              From signup to first booking — <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-300">in a day</span>
             </h2>
+            <p className="text-emerald-100/90 mt-4">
+              Three steps. No technical skills required.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 relative">
             {/* Connector line on desktop */}
             <div
-              className="hidden md:block absolute top-12 left-[16%] right-[16%] h-px border-t-2 border-dashed border-emerald-300"
+              className="hidden md:block absolute top-12 left-[16%] right-[16%] h-px border-t-2 border-dashed border-amber-300/40"
               aria-hidden="true"
             />
             {STEPS.map((s) => (
               <div
                 key={s.n}
-                className="relative bg-white rounded-2xl border border-emerald-100 p-6 text-center shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all"
+                className="group relative bg-white/10 hover:bg-white/15 backdrop-blur border border-white/20 hover:border-amber-300/50 rounded-2xl p-6 text-center shadow-xl hover:-translate-y-1 transition-all overflow-hidden"
               >
-                <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-lg ring-4 ring-white">
+                {/* Ghost step number watermark */}
+                <span className="absolute -top-3 right-3 text-8xl font-black text-white/[0.07] select-none pointer-events-none leading-none">
+                  {s.n}
+                </span>
+                <div className="relative w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-900/40 ring-4 ring-white/20 group-hover:scale-110 transition-transform">
                   <s.icon className="w-7 h-7" />
                 </div>
-                <p className="mt-4 inline-block text-[11px] font-extrabold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                <p className="mt-4 inline-block text-[11px] font-extrabold text-amber-950 bg-amber-300 px-2 py-0.5 rounded-full uppercase tracking-widest">
                   Step {s.n}
                 </p>
-                <h3 className="mt-2 text-lg font-extrabold text-gray-900">{s.title}</h3>
-                <p className="text-sm text-gray-600 mt-1">{s.desc}</p>
+                <h3 className="mt-2 text-lg font-extrabold text-white">{s.title}</h3>
+                <p className="text-sm text-emerald-100/90 mt-1.5 leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
@@ -336,43 +410,84 @@ export default function TravelAgentsLandingPage() {
       </section>
 
       {/* ── Trust band / live profile preview ── */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div>
-            <span className="inline-flex items-center gap-1 bg-sky-50 text-sky-700 text-[11px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full mb-3">
-              <Globe className="w-3 h-3" /> Your shareable profile
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">
-              A beautiful page customers actually want to share
-            </h2>
-            <p className="text-gray-600 mt-4 leading-relaxed">
-              Every agent gets a polished public profile with hero, tours, stays, vehicles, and
-              direct Call/WhatsApp buttons. No website needed — share one link and you&apos;re live.
-            </p>
-            <ul className="space-y-2.5 mt-6">
-              {[
-                'Share via WhatsApp, Instagram bio, business cards',
-                'Mobile-first design that converts visitors into leads',
-                'SEO-friendly URLs like /agent/your-name',
-                'Verified badge after KYC for instant trust',
-              ].map((line) => (
-                <li key={line} className="flex items-start gap-2 text-sm text-gray-700">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/travel-agent/register"
-              className="inline-flex items-center gap-1.5 mt-7 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm px-5 py-3 rounded-xl shadow"
-            >
-              Claim your profile <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
+      <section className="relative overflow-hidden bg-gradient-to-b from-white via-sky-50/40 to-emerald-50/40 py-16 sm:py-24">
+        {/* Decorative blobs */}
+        <div className="absolute top-10 left-[8%] w-72 h-72 bg-sky-300/30 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-10 right-[5%] w-80 h-80 bg-amber-200/30 rounded-full blur-3xl pointer-events-none" />
+        {/* Dot pattern */}
+        <div
+          className="absolute inset-0 opacity-[0.05] pointer-events-none"
+          style={{
+            backgroundImage: 'radial-gradient(circle, #0369a1 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+          }}
+        />
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            <div className="relative">
+              {/* Soft accent behind text */}
+              <div className="absolute -top-6 -left-6 w-24 h-24 bg-sky-400/20 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute top-12 -left-2 w-3 h-3 bg-amber-400 rounded-full shadow-lg shadow-amber-400/50 pointer-events-none" />
+
+              <span className="relative inline-flex items-center gap-1.5 bg-white/80 backdrop-blur border border-sky-200 text-sky-700 text-[11px] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-full mb-4 shadow-sm">
+                <Globe className="w-3 h-3" /> Your shareable profile
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight">
+                A beautiful page customers <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-emerald-600">actually want to share</span>
+              </h2>
+              <p className="text-gray-600 mt-4 leading-relaxed">
+                Every agent gets a polished public profile with hero, tours, stays, vehicles, and
+                direct Call/WhatsApp buttons. No website needed — share one link and you&apos;re live.
+              </p>
+              <ul className="space-y-2.5 mt-6">
+                {[
+                  'Share via WhatsApp, Instagram bio, business cards',
+                  'Mobile-first design that converts visitors into leads',
+                  'SEO-friendly URLs like /agent/your-name',
+                  'Verified badge after KYC for instant trust',
+                ].map((line) => (
+                  <li
+                    key={line}
+                    className="flex items-start gap-2.5 text-sm text-gray-700 bg-white/70 backdrop-blur border border-emerald-100 rounded-xl px-3 py-2.5 shadow-sm"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                    <span className="font-medium">{line}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/travel-agent/register"
+                className="inline-flex items-center gap-1.5 mt-7 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm px-6 py-3.5 rounded-xl shadow-lg shadow-emerald-900/20 hover:scale-[1.02] transition-all"
+              >
+                Claim your profile <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
 
           {/* Profile preview mock */}
           <div className="relative">
             <div className="absolute -inset-3 bg-gradient-to-br from-amber-300/30 via-emerald-300/30 to-sky-300/30 rounded-3xl blur-2xl pointer-events-none" />
+
+            {/* Floating live chips */}
+            <div className="absolute -top-4 -left-3 sm:-left-5 z-20 hidden sm:flex items-center gap-1.5 bg-white rounded-xl shadow-xl shadow-emerald-900/10 px-3 py-2 border border-emerald-100 -rotate-3">
+              <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                <Target className="w-4 h-4" />
+              </span>
+              <div className="leading-tight">
+                <p className="text-[11px] font-extrabold text-gray-900">New lead!</p>
+                <p className="text-[9px] text-gray-500">Goa 4N · just now</p>
+              </div>
+            </div>
+            <div className="absolute -bottom-4 -right-3 sm:-right-5 z-20 hidden sm:flex items-center gap-1.5 bg-white rounded-xl shadow-xl shadow-amber-900/10 px-3 py-2 border border-amber-100 rotate-3">
+              <span className="w-7 h-7 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
+                <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+              </span>
+              <div className="leading-tight">
+                <p className="text-[11px] font-extrabold text-gray-900">4.9 rating</p>
+                <p className="text-[9px] text-gray-500">238 reviews</p>
+              </div>
+            </div>
+
             <div className="relative bg-gradient-to-br from-sky-600 via-emerald-700 to-teal-900 rounded-3xl p-6 text-white shadow-2xl overflow-hidden">
               <div
                 className="absolute inset-0 opacity-25 pointer-events-none"
@@ -419,6 +534,7 @@ export default function TravelAgentsLandingPage() {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </section>
@@ -473,6 +589,121 @@ export default function TravelAgentsLandingPage() {
               <p className="mt-3 text-sm text-gray-600 leading-relaxed">{f.a}</p>
             </details>
           ))}
+        </div>
+      </section>
+
+      {/* ── Guide CTA ── */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-12 sm:pb-16">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-emerald-900 to-teal-900 p-8 sm:p-12 text-white shadow-2xl">
+          <div
+            className="absolute inset-0 opacity-25 pointer-events-none"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 15% 20%, #fbbf24 0%, transparent 35%), radial-gradient(circle at 85% 80%, #10b981 0%, transparent 40%)',
+            }}
+          />
+          <div
+            className="absolute inset-0 opacity-[0.06] pointer-events-none"
+            style={{
+              backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
+              backgroundSize: '22px 22px',
+            }}
+          />
+
+          <div className="relative grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12 items-center">
+            {/* Left — copy + CTA */}
+            <div className="lg:col-span-2">
+              <span className="inline-flex items-center gap-1.5 bg-emerald-400/20 backdrop-blur border border-emerald-300/30 text-emerald-100 text-[11px] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-full mb-4">
+                <BookOpen className="w-3 h-3" /> Official Guide
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold leading-tight tracking-tight">
+                The complete travel agent journey
+              </h2>
+              <p className="text-emerald-100/90 mt-4 leading-relaxed">
+                20 steps across 5 phases — from signing up to running daily operations. Every
+                module explained, UI previews included, with direct links straight into the
+                dashboard.
+              </p>
+              <div className="mt-7 flex flex-col sm:flex-row gap-3">
+                <Link
+                  href="/guide/travel-agent"
+                  className="inline-flex items-center justify-center gap-2 bg-white text-emerald-700 hover:bg-emerald-50 font-extrabold text-base px-6 py-3.5 rounded-xl shadow-xl shadow-black/20 hover:scale-[1.02] transition-all"
+                >
+                  Open full guide <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/travel-agent/register"
+                  className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur border border-white/30 text-white font-bold text-base px-6 py-3.5 rounded-xl"
+                >
+                  Skip, sign up
+                </Link>
+              </div>
+            </div>
+
+            {/* Right — 5 phase chips */}
+            <div className="lg:col-span-3 space-y-2.5">
+              {[
+                {
+                  letter: 'A',
+                  icon: UserPlus,
+                  title: 'Onboarding',
+                  desc: 'Sign up · KYC · Get verified',
+                  steps: 6,
+                },
+                {
+                  letter: 'B',
+                  icon: Compass,
+                  title: 'List Your Inventory',
+                  desc: 'Tours · Stays · Fleet · Public profile',
+                  steps: 4,
+                },
+                {
+                  letter: 'C',
+                  icon: Target,
+                  title: 'Capture Leads',
+                  desc: 'Capture links · Lead inbox · Tour quote requests',
+                  steps: 3,
+                },
+                {
+                  letter: 'D',
+                  icon: TrendingUp,
+                  title: 'Convert to Bookings',
+                  desc: 'Pipeline · Follow-ups · Chat & booking share',
+                  steps: 3,
+                },
+                {
+                  letter: 'E',
+                  icon: Sparkles,
+                  title: 'Run Your Agency',
+                  desc: 'Dashboard · Bookings · Payments · Social',
+                  steps: 4,
+                },
+              ].map((p) => (
+                <Link
+                  key={p.letter}
+                  href={`/guide/travel-agent#phase-${p.letter}`}
+                  className="group flex items-center gap-4 bg-white/10 hover:bg-white/15 backdrop-blur border border-white/20 hover:border-amber-300/50 rounded-2xl px-4 py-3 transition-all"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-amber-400 text-amber-950 flex items-center justify-center font-extrabold text-lg shrink-0 shadow-lg shadow-amber-900/30">
+                    {p.letter}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p.icon className="w-3.5 h-3.5 text-emerald-200" />
+                      <p className="text-base font-extrabold text-white">{p.title}</p>
+                    </div>
+                    <p className="text-[12px] text-emerald-100/80 mt-0.5">{p.desc}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] font-bold text-emerald-100 bg-white/10 border border-white/20 px-2 py-1 rounded-full whitespace-nowrap">
+                      {p.steps} steps
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-emerald-200 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

@@ -1318,16 +1318,6 @@ function LuxuryBookingContent({ location }: { location: string }) {
                 </ul>
               </div>
 
-              {/* Support */}
-              <div className="mt-6 pt-6 border-t bg-gradient-to-r from-amber-50 to-yellow-50 -mx-6 -mb-6 p-6 rounded-b-2xl">
-                <p className="text-sm text-gray-600 mb-1">Need Help?</p>
-                <a
-                  href="tel:+919737965551"
-                  className="text-amber-700 font-bold text-lg hover:underline"
-                >
-                  +91 97379 65551
-                </a>
-              </div>
             </div>
           </div>
         </div>
