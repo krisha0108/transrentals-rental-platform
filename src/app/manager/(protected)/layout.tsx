@@ -17,6 +17,7 @@ const SIDEBAR_LINKS = [
   { href: '/manager/contact-inquiries', label: 'Contact Inquiries', icon: Mail },
   { href: '/manager/bookings', label: 'My Bookings', icon: Briefcase },
   { href: '/manager/vendors', label: 'Vendors', icon: Store },
+  { href: '/manager/drivers', label: 'Drivers', icon: Users },
   { href: '/manager/travel-agents', label: 'Travel Agents', icon: Plane },
   { href: '/manager/vendor-performance', label: 'Performance', icon: TrendingUp },
   { href: '/manager/chats', label: 'Chats', icon: MessageSquare },

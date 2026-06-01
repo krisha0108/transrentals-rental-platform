@@ -137,9 +137,9 @@ export function ContactForm() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="w-full">
       <div className="bg-gray-50 rounded-lg p-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">
           Send Us a Message
         </h2>
         <form className="space-y-6" onSubmit={handleContactFormSubmit}>
