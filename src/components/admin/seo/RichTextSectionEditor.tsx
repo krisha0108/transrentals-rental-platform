@@ -56,6 +56,9 @@ export function RichTextSectionEditor({ value, onChange, placeholder }: {
   const [uploading, setUploading] = useState(false);
   const [htmlMode, setHtmlMode] = useState(false);
   const [rawHtml, setRawHtml] = useState(value || '');
+  // Tracks the last HTML this editor itself emitted, so we can tell an external
+  // value change (e.g. AI rewrite) apart from the echo of the user's own typing.
+  const lastEmittedRef = React.useRef(value);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -71,6 +74,7 @@ export function RichTextSectionEditor({ value, onChange, placeholder }: {
     content: value || '',
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
+      lastEmittedRef.current = html;
       setRawHtml(html);
       onChange(html);
     },
@@ -80,6 +84,20 @@ export function RichTextSectionEditor({ value, onChange, placeholder }: {
       },
     },
   });
+
+  // Sync EXTERNAL value changes (e.g. "Rewrite with AI") into the editor.
+  // We skip when the incoming value is just the echo of our own onUpdate, so
+  // typing never triggers a setContent (which would jump the cursor).
+  React.useEffect(() => {
+    if (!editor) return;
+    if (value !== lastEmittedRef.current) {
+      lastEmittedRef.current = value;
+      if (value !== editor.getHTML()) {
+        editor.commands.setContent(value || '', false);
+      }
+      setRawHtml(value || '');
+    }
+  }, [value, editor]);
 
   if (!editor) return null;
 

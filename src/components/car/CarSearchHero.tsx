@@ -147,11 +147,12 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               {/* Pickup Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700 mb-2">
                   <Calendar className="w-4 h-4 inline mr-1" />
                   Pickup Date
                 </label>
                 <input
+                  id="pickupDate"
                   type="date"
                   min={minBookingDate}
                   value={pickupDate}
@@ -176,12 +177,14 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
 
               {/* Pickup Time */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="pickupTime" className="block text-sm font-medium text-gray-700 mb-2">
                   <Clock className="w-4 h-4 inline mr-1" />
                   Pickup Time
                 </label>
                 <select
+                  id="pickupTime"
                   value={pickupTime}
+                  aria-label="Pickup time"
                   onChange={(e) => {
                     setPickupTime(e.target.value);
                     setErrors({ ...errors, pickupTime: '' });
@@ -206,11 +209,12 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
 
               {/* Drop Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="dropDate" className="block text-sm font-medium text-gray-700 mb-2">
                   <Calendar className="w-4 h-4 inline mr-1" />
                   Drop-off Date
                 </label>
                 <input
+                  id="dropDate"
                   type="date"
                   min={pickupDate || minBookingDate}
                   value={dropDate}
@@ -230,12 +234,14 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
 
               {/* Drop Time */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="dropTime" className="block text-sm font-medium text-gray-700 mb-2">
                   <Clock className="w-4 h-4 inline mr-1" />
                   Drop-off Time
                 </label>
                 <select
+                  id="dropTime"
                   value={dropTime}
+                  aria-label="Drop-off time"
                   onChange={(e) => {
                     setDropTime(e.target.value);
                     setErrors({ ...errors, dropTime: '' });

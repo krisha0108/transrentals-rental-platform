@@ -99,7 +99,7 @@ export default async function TrackingScripts() {
       {settings.facebookPixelId && (
         <Script
           id="facebook-pixel"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               !function(f,b,e,v,n,t,s)
@@ -121,7 +121,7 @@ export default async function TrackingScripts() {
       {settings.microsoftClarityId && (
         <Script
           id="microsoft-clarity"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               (function(c,l,a,r,i,t,y){
@@ -138,7 +138,7 @@ export default async function TrackingScripts() {
       {settings.hotjarId && (
         <Script
           id="hotjar"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               (function(h,o,t,j,a,r){
@@ -158,7 +158,7 @@ export default async function TrackingScripts() {
       {settings.customHeadScripts && (
         <Script
           id="custom-head-scripts"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: settings.customHeadScripts,
           }}

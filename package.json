@@ -150,5 +150,14 @@
   "bugs": {
     "url": "https://github.com/saurav1702/transrentals-new/issues"
   },
-  "homepage": "https://github.com/saurav1702/transrentals-new#readme"
+  "homepage": "https://github.com/saurav1702/transrentals-new#readme",
+  "browserslist": [
+    "chrome >= 92",
+    "edge >= 92",
+    "firefox >= 90",
+    "safari >= 15.4",
+    "ios_saf >= 15.4",
+    "samsung >= 16",
+    "not dead"
+  ]
 }

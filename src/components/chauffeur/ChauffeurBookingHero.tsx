@@ -322,15 +322,9 @@ export function ChauffeurBookingHero({ city, citySlug }: ChauffeurBookingHeroPro
   // Get selected package details
   const selectedPackage = localPackages.find(p => p.id === selectedPackageId);
 
-  if (loadingData) {
-    return (
-      <section className="relative bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white py-20">
-        <div className="container-custom flex justify-center">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
-      </section>
-    );
-  }
+  // No early spinner-return on loadingData — it shrank the hero then jumped to
+  // full height after the client fetch (CLS). We render the full hero now and
+  // show a skeleton only for the data-dependent package grid (below).
 
   return (
     <section className="relative bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white overflow-hidden">
@@ -504,20 +498,27 @@ export function ChauffeurBookingHero({ city, citySlug }: ChauffeurBookingHeroPro
                             Select Package
                           </label>
                           <div className="grid grid-cols-3 gap-2">
-                            {uniquePackages.slice(0, 3).map((pkg) => (
-                              <button
-                                key={pkg.id}
-                                onClick={() => setSelectedPackageId(pkg.id)}
-                                className={`p-3 rounded-lg border-2 text-center transition ${
-                                  selectedPackage?.hours === pkg.hours && selectedPackage?.kms === pkg.kms
-                                    ? 'border-emerald-500 bg-emerald-50'
-                                    : 'border-gray-200 hover:border-emerald-200'
-                                }`}
-                              >
-                                <div className="font-semibold text-gray-900">{pkg.hours} Hrs</div>
-                                <div className="text-xs text-gray-500">{pkg.kms} Km</div>
-                              </button>
-                            ))}
+                            {loadingData
+                              ? [1, 2, 3].map((i) => (
+                                  <div key={i} className="p-3 rounded-lg border-2 border-gray-100 animate-pulse">
+                                    <div className="h-4 bg-gray-200 rounded mb-1.5 mx-auto w-12" />
+                                    <div className="h-3 bg-gray-100 rounded mx-auto w-10" />
+                                  </div>
+                                ))
+                              : uniquePackages.slice(0, 3).map((pkg) => (
+                                  <button
+                                    key={pkg.id}
+                                    onClick={() => setSelectedPackageId(pkg.id)}
+                                    className={`p-3 rounded-lg border-2 text-center transition ${
+                                      selectedPackage?.hours === pkg.hours && selectedPackage?.kms === pkg.kms
+                                        ? 'border-emerald-500 bg-emerald-50'
+                                        : 'border-gray-200 hover:border-emerald-200'
+                                    }`}
+                                  >
+                                    <div className="font-semibold text-gray-900">{pkg.hours} Hrs</div>
+                                    <div className="text-xs text-gray-500">{pkg.kms} Km</div>
+                                  </button>
+                                ))}
                           </div>
                         </div>
 

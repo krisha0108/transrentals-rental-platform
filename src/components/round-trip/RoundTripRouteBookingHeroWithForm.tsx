@@ -202,15 +202,9 @@ export function RoundTripRouteBookingHeroWithForm({
     setShowBookingModal(true);
   };
 
-  if (loadingData) {
-    return (
-      <section className="relative bg-gradient-to-br from-purple-900 via-indigo-800 to-blue-900 text-white py-20">
-        <div className="container-custom flex justify-center">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
-      </section>
-    );
-  }
+  // No early spinner-return on loadingData — it shrank the hero then jumped to
+  // full height after the client fetch (CLS). Route info & price come from props
+  // and the form selects render at fixed height, so render the full hero now.
 
   return (
     <section className="relative bg-gradient-to-br from-purple-900 via-indigo-800 to-blue-900 text-white overflow-hidden">

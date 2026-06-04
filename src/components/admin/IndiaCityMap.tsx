@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { MapPin, RefreshCw, BarChart3, Navigation, ChevronDown, X } from 'lucide-react';
+import 'leaflet/dist/leaflet.css';
 
 const CITY_COORDS: Record<string, [number, number]> = {
   Mumbai: [19.076, 72.8777], Delhi: [28.7041, 77.1025], 'New Delhi': [28.6139, 77.209],
