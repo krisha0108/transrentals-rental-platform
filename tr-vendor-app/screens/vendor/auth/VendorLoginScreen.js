@@ -21,7 +21,9 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import messaging from '@react-native-firebase/messaging';
 import CustomAlert from '../../CustomAlertmahek';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { loginVendorDirect } from '../../api/client';
+// Unified mobile login — same endpoint detects vendor/staff/travel_agent
+// and returns `userType` so we route to the right dashboard.
+import { loginUnified } from '../../api/travelAgentClient';
 
 const BRAND = {
   primary: '#1FC77A',        // fresh green (light theme friendly)
@@ -105,35 +107,61 @@ export default function LoginScreen({ navigation }) {
     try {
       setLoading(true);
 
-      // Use new Next.js backend API
-      const result = await loginVendorDirect(email, password, fcmToken);
+      // Unified login — backend detects whether the credentials belong to a
+      // vendor, staff, or travel agent and returns `userType` accordingly.
+      const result = await loginUnified(email, password, fcmToken);
 
-      if (result.success && result.vendor) {
+      if (!result?.success) {
+        showAlert('Login Failed', 'Unexpected response. Please try again.');
+        return;
+      }
+
+      // --- TRAVEL AGENT ---
+      if (result.userType === 'travel_agent' && result.travelAgent) {
+        const ta = result.travelAgent;
+        if (ta.status === 'DOCUMENTS_PENDING') {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'TravelAgentDocuments' }],
+          });
+        } else if (ta.status === 'REJECTED') {
+          showAlert(
+            'Application Rejected',
+            ta.rejectionReason || 'Your application was rejected. Please contact support.'
+          );
+        } else {
+          // PENDING / UNDER_REVIEW / APPROVED — all land on the TA dashboard.
+          // The dashboard itself applies the approval gate (reduced menu for non-approved).
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'TravelAgentDashboard' }],
+          });
+        }
+        return;
+      }
+
+      // --- VENDOR / STAFF (existing flow) ---
+      if (result.vendor) {
         const { vendor } = result;
-
-        // Check vendor status and redirect accordingly
         if (vendor.status === 'DOCUMENTS_PENDING') {
-          // Redirect to document upload
           navigation.reset({
             index: 0,
             routes: [{ name: 'VendorDocuments' }],
           });
         } else if (vendor.status === 'PENDING_APPROVAL') {
-          // Show pending approval message
           showAlert('Pending Approval', 'Your account is under review. We will notify you once approved.');
         } else if (vendor.status === 'APPROVED' || vendor.status === 'ACTIVE') {
-          // Go to dashboard
           navigation.reset({
             index: 0,
             routes: [{ name: 'VendorDashboard' }],
           });
         } else {
-          // Default to dashboard
           navigation.navigate('VendorDashboard');
         }
-      } else {
-        showAlert('Login Failed', 'Unexpected response. Please try again.');
+        return;
       }
+
+      showAlert('Login Failed', 'Unexpected response. Please try again.');
     } catch (error) {
       const errorMessage = error?.response?.data?.error
         || error?.message
@@ -278,7 +306,17 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.rowBetween}>
               <View />
               <TouchableOpacity
-                onPress={() => navigation.navigate('ForgotPasswordScreen')}
+                onPress={() =>
+                  Alert.alert(
+                    'Reset password',
+                    'Which account type is this?',
+                    [
+                      { text: 'Vendor', onPress: () => navigation.navigate('ForgotPasswordScreen') },
+                      { text: 'Travel Agent', onPress: () => navigation.navigate('TravelAgentForgotPasswordScreen') },
+                      { text: 'Cancel', style: 'cancel' },
+                    ]
+                  )
+                }
               >
                 <Text style={styles.link}>Forgot password?</Text>
               </TouchableOpacity>
@@ -308,13 +346,30 @@ export default function LoginScreen({ navigation }) {
               <View style={styles.separator} />
             </View>
 
-            {/* Register */}
-            <View style={styles.centerRow}>
-              <Text style={styles.smallText}>New to TransRentals? </Text>
+            {/* Register options — vendor or travel agent (same login form, different signup) */}
+            <View style={styles.registerBlock}>
+              <Text style={[styles.smallText, { textAlign: 'center', marginBottom: 10 }]}>
+                New to TransRentals?
+              </Text>
+
               <TouchableOpacity
+                style={styles.registerLink}
                 onPress={() => navigation.navigate('VendorRegisterScreen')}
+                activeOpacity={0.7}
               >
-                <Text style={styles.linkBold}>Create an account</Text>
+                <Ionicons name="storefront-outline" size={18} color={BRAND.primaryDark} />
+                <Text style={styles.linkBold}>Register as Vendor</Text>
+                <Ionicons name="chevron-forward" size={16} color={BRAND.primaryDark} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.registerLink}
+                onPress={() => navigation.navigate('TravelAgentRegisterScreen')}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="airplane-outline" size={18} color={BRAND.primaryDark} />
+                <Text style={styles.linkBold}>Register as Travel Agent</Text>
+                <Ionicons name="chevron-forward" size={16} color={BRAND.primaryDark} />
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -545,6 +600,24 @@ const styles = StyleSheet.create({
     color: BRAND.primaryDark,
     fontWeight: '800',
     fontSize: 14,
+    flex: 1,
+    marginLeft: 10,
+  },
+
+  registerBlock: {
+    width: '100%',
+    marginTop: 4,
+  },
+  registerLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5FFFA',
+    borderWidth: 1,
+    borderColor: '#CFF5E2',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginTop: 8,
   },
 
   footerNote: {

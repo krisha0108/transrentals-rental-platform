@@ -25,7 +25,7 @@ import {
 interface AuthorBase { id: string; businessName: string; ownerName: string; logo?: string; city?: string; }
 interface Category { id: string; name: string; isSOS: boolean; }
 interface Post {
-  id: string; content: string; createdAt: string;
+  id: string; content: string; images?: string[]; createdAt: string;
   vendor: AuthorBase; category: Category;
   author?: { type: 'vendor' | 'agent'; id: string; name: string; ownerName: string | null; logo: string | null; city: string | null };
   likedByMe: boolean; savedByMe: boolean; followedByMe: boolean;
@@ -686,6 +686,17 @@ function PostCard({ post, currentAgentId, onLike, onSave, onDelete, onComment, o
               {expanded ? 'Show less' : 'Read more'}
             </button>
           )}
+          {Array.isArray(post.images) && post.images.length > 0 && (
+            <div className={`mt-3 grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+              {post.images.map((url, i) => (
+                <a key={i} href={url} target="_blank" rel="noreferrer"
+                  className={`block overflow-hidden rounded-xl border border-gray-100 ${post.images!.length === 3 && i === 0 ? 'col-span-2' : ''}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="" className="w-full h-full max-h-80 object-cover" />
+                </a>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
@@ -702,7 +713,11 @@ function PostCard({ post, currentAgentId, onLike, onSave, onDelete, onComment, o
               <MessageCircle className="w-4 h-4" />
               {post.commentsCount > 0 && post.commentsCount}
             </button>
-            <button onClick={() => onShareInChat(post)} title="Share to chat"
+            <button onClick={() => onShareInChat(post)} title="Share in chat"
+              className="inline-flex items-center px-2.5 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all">
+              <Send className="w-4 h-4" />
+            </button>
+            <button onClick={shareWA} title="Share to other app"
               className="inline-flex items-center px-2.5 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all">
               <Share2 className="w-4 h-4" />
             </button>
@@ -785,6 +800,7 @@ function SocialFeedContent() {
   );
   const [feedFilter, setFeedFilter] = useState<'all' | 'sos' | 'general'>('all');
   const [showGibberish, setShowGibberish] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [oldSOSCollapsed, setOldSOSCollapsed] = useState(true);
 
   // Resolve the current agent's id + agency name for ownership + Account card.
@@ -807,7 +823,14 @@ function SocialFeedContent() {
       (feedFilter === 'sos' && p.category.isSOS) ||
       (feedFilter === 'general' && !p.category.isSOS)
     )
-    .filter(p => showGibberish || !p.category.isSOS || p.content.trim().length >= 10);
+    .filter(p => showGibberish || !p.category.isSOS || p.content.trim().length >= 10)
+    .filter(p => {
+      const q = searchQuery.trim().toLowerCase();
+      if (!q) return true;
+      const author = p.author?.name || (p as any).vendor?.businessName || (p as any).agent?.agencyName || '';
+      const hay = [p.content, author, p.category?.name].filter(Boolean).join(' ').toLowerCase();
+      return hay.includes(q);
+    });
 
   const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
   const oldSOSCount = filteredPosts.filter(
@@ -926,7 +949,7 @@ function SocialFeedContent() {
           <div className="hidden md:flex flex-1 max-w-md mx-4">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input type="text" placeholder="Search agents, vendors, posts..." className="w-full pl-10 pr-4 py-2 bg-gray-100 hover:bg-gray-50 focus:bg-white border border-transparent focus:border-purple-300 focus:ring-2 focus:ring-purple-100 rounded-full text-sm outline-none transition-all" />
+              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search posts by content, author, category..." className="w-full pl-10 pr-4 py-2 bg-gray-100 hover:bg-gray-50 focus:bg-white border border-transparent focus:border-purple-300 focus:ring-2 focus:ring-purple-100 rounded-full text-sm outline-none transition-all" />
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">

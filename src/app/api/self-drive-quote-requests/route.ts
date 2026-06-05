@@ -5,6 +5,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { calculateRentalDuration } from '@/lib/utils';
 import logger from '@/lib/security/logger';
 import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
+import { createB2BBookingSafe } from '@/lib/b2b/booking-number';
 import crypto from 'crypto';
 export const dynamic = 'force-dynamic';
 
@@ -133,10 +134,6 @@ export async function POST(request: NextRequest) {
       }
 
       const bookingId = generateB2BId();
-      // For travel-agent COMPANY booking, prefix the booking number with TA-CO.
-      const bookingNumber = isLinkedTaCompany
-        ? `TA-CO-${new Date().getFullYear()}-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`
-        : generateB2BBookingNumber();
 
       // Build vehicle preference JSON for specialNotes
       const vehiclePreference = {
@@ -171,10 +168,10 @@ export async function POST(request: NextRequest) {
         } catch { /* fall back */ }
       }
 
-      const booking = await prisma.b2b_bookings.create({
-        data: {
+      const booking = await createB2BBookingSafe(
+        isLinkedTaCompany ? 'TA-CO' : 'B2B',
+        {
           id: bookingId,
-          bookingNumber,
           customerId: customer.id,
           customerName: customer.name,
           customerEmail: customer.email,
@@ -193,18 +190,12 @@ export async function POST(request: NextRequest) {
           returnTime: dropTime || null,
           specialNotes: JSON.stringify(vehiclePreference),
           status: 'OPEN_FOR_QUOTES',
+          // Tag travel-agent COMPANY bookings inline (real columns now).
+          ...(isLinkedTaCompany && linkedTravelAgentId
+            ? { travelAgentId: linkedTravelAgentId, bookingMode: 'COMPANY' }
+            : {}),
         },
-      });
-
-      // Tag the b2b row for travel-agent COMPANY bookings.
-      if (isLinkedTaCompany && linkedTravelAgentId) {
-        try {
-          await (prisma as any).$executeRawUnsafe(
-            `UPDATE b2b_bookings SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
-            linkedTravelAgentId, 'COMPANY', booking.id,
-          );
-        } catch (e) { console.error('[self-drive-quote-requests] TA b2b tag failed', e); }
-      }
+      );
 
       return NextResponse.json({
         success: true,

@@ -27,6 +27,7 @@ import {
 } from 'react-native-responsive-screen';
 import { IMAGE_BASE_URL } from '../../api';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED } from '../../../theme';
+import { useTravelAgent } from '../../../utils/isTravelAgent';
 
 const CARD_BORDER  = '#F0F2F5';
 
@@ -91,6 +92,10 @@ const SettingScreen = ({ navigation }) => {
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Phase 7 — Travel-Agent detection for Company Bookings entry card
+  const { isTravelAgent, customer: taCustomer } = useTravelAgent();
+  const agencyName = taCustomer?.agencyName || taCustomer?.linkedTravelAgentName || '';
 
   // Entrance animations
   const profileSlide = useRef(new Animated.Value(30)).current;
@@ -324,6 +329,34 @@ Download now and make your next ride hassle-free!
               onPress={() => navigation.navigate('MyBookings')}
             />
           </View>
+
+          {/* Phase 7 — Travel Agent: dedicated Company Bookings entry. Only renders for TA shadow customers. */}
+          {isTravelAgent && (
+            <TouchableOpacity
+              style={styles.taBanner}
+              onPress={() => navigation.navigate('B2BBookingsList')}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={['#4F46E5', '#059669']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={styles.taBannerInner}
+              >
+                <View style={styles.taBannerIcon}>
+                  <Ionicons name="briefcase" size={20} color="#fff" />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.taBannerTitle} numberOfLines={1}>
+                    Company Bookings
+                  </Text>
+                  <Text style={styles.taBannerSub} numberOfLines={1}>
+                    {agencyName ? `${agencyName} · B2B requests & quotes` : 'B2B requests & quotes from manager'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
           {/* ── Connect With Us ── */}
           <View style={styles.section}>
@@ -571,6 +604,46 @@ const styles = StyleSheet.create({
     paddingTop: wp('4%'),
     paddingBottom: wp('2%'),
     gap: 4,
+  },
+
+  // Phase 7 — TA banner: sits between Quick Actions and Connect With Us.
+  taBanner: {
+    marginHorizontal: wp('4%'),
+    marginTop: hp('1%'),
+    marginBottom: hp('0.5%'),
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#4F46E5',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  taBannerInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.6%'),
+    gap: wp('3%'),
+  },
+  taBannerIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taBannerTitle: {
+    fontSize: wp('3.8%'),
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  taBannerSub: {
+    fontSize: wp('3%'),
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
   },
   actionCard: {
     alignItems: 'center',

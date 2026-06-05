@@ -64,6 +64,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
 
+    // Capture links are public-facing — only approved agents may create them
+    // (mirrors the web client gate; now enforced server-side too).
+    const agent = await prisma.travel_agents.findUnique({
+      where: { id: auth.travelAgentId },
+      select: { status: true },
+    });
+    if (agent?.status !== 'APPROVED') {
+      return NextResponse.json(
+        { error: 'Your account must be approved before creating capture links.' },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const { title, description, defaultTripType } = body;
     if (!title || !String(title).trim()) {

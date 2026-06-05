@@ -85,6 +85,44 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PATCH — set an existing account as primary (demotes others). Avoids the
+// duplicate-row problem of re-POSTing to flip primary.
+export async function PATCH(request: NextRequest) {
+  try {
+    const auth = await getTravelAgentAuth(request);
+    if (!auth.authenticated || !auth.travelAgentId) {
+      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id } = body;
+    if (!id) {
+      return NextResponse.json({ error: 'Account id is required' }, { status: 400 });
+    }
+
+    const account = await prisma.travel_agent_bank_accounts.findUnique({ where: { id } });
+    if (!account || account.travelAgentId !== auth.travelAgentId || !account.isActive) {
+      return NextResponse.json({ error: 'Bank account not found' }, { status: 404 });
+    }
+
+    await prisma.$transaction([
+      prisma.travel_agent_bank_accounts.updateMany({
+        where: { travelAgentId: auth.travelAgentId, isPrimary: true },
+        data: { isPrimary: false },
+      }),
+      prisma.travel_agent_bank_accounts.update({ where: { id }, data: { isPrimary: true } }),
+    ]);
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    logger.error('Set primary travel agent bank account error', error);
+    return NextResponse.json(
+      { error: 'Failed to set primary account', details: error?.message },
+      { status: 500 },
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const auth = await getTravelAgentAuth(request);

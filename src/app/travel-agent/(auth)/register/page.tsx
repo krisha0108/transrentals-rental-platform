@@ -67,13 +67,15 @@ export default function TravelAgentRegisterPage() {
     pincode: '',
   });
 
+  // Canonical 7 — kept identical to web profile + mobile app so the stored
+  // agencyType value renders consistently everywhere (value === label).
   const agencyTypes = [
     'Solo Travel Agent',
     'Travel Agency',
+    'Corporate / In-house Travel Desk',
+    'DMC (Destination Management Co.)',
+    'OTA (Online Travel Agency)',
     'Tour Operator',
-    'Destination Management Company (DMC)',
-    'Online Travel Agency (OTA)',
-    'Corporate Travel Agency',
     'Other',
   ];
 

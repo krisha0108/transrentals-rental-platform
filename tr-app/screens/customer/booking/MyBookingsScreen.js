@@ -26,6 +26,7 @@ import {
 } from 'react-native-responsive-screen';
 import api, { BASE_URL } from '../../api';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
+import { useTravelAgent } from '../../../utils/isTravelAgent';
 
 // Service types with icons and colors
 const SERVICES = [
@@ -72,6 +73,10 @@ const MyBookingsScreen = ({route}) => {
   const [searchVisible, setSearchVisible] = useState(false);
   const [showExpiredQuotesOnly, setShowExpiredQuotesOnly] = useState(false);
   const [tempExpiredOnly, setTempExpiredOnly] = useState(false);
+
+  // Phase 7 — TA detection for "Company Bookings" entry banner
+  const { isTravelAgent, customer: taCustomer } = useTravelAgent();
+  const agencyName = taCustomer?.agencyName || taCustomer?.linkedTravelAgentName || '';
 
   // Update filter when navigating with new params
   useEffect(() => {
@@ -720,6 +725,34 @@ const MyBookingsScreen = ({route}) => {
         </View>
       )}
 
+      {/* Phase 7 — Travel-Agent banner: cross-link to company bookings list. */}
+      {isTravelAgent && (
+        <TouchableOpacity
+          style={styles.taBanner}
+          onPress={() => navigation.navigate('B2BBookingsList')}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={['#4F46E5', '#059669']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.taBannerInner}
+          >
+            <View style={styles.taBannerIcon}>
+              <Ionicons name="briefcase" size={18} color="#fff" />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.taBannerTitle} numberOfLines={1}>
+                Company Bookings {agencyName ? `· ${agencyName}` : ''}
+              </Text>
+              <Text style={styles.taBannerSub} numberOfLines={1}>
+                B2B requests submitted as a travel agent
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#fff" />
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
+
       {/* Bookings List */}
       <ScrollView
         style={styles.bookingsList}
@@ -1247,6 +1280,45 @@ const styles = StyleSheet.create({
   },
 
   // Bookings List
+  // Phase 7 — TA banner styles (sits between filter chips and bookings list).
+  taBanner: {
+    marginHorizontal: wp('4%'),
+    marginBottom: hp('1%'),
+    borderRadius: 14,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#4F46E5',
+    shadowOpacity: 0.22,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  taBannerInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('3.5%'),
+    paddingVertical: hp('1.3%'),
+    gap: wp('2.5%'),
+  },
+  taBannerIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taBannerTitle: {
+    fontSize: wp('3.5%'),
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  taBannerSub: {
+    fontSize: wp('2.8%'),
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 1,
+  },
+
   bookingsList: {
     flex: 1,
   },

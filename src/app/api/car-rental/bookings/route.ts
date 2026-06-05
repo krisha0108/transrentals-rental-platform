@@ -7,6 +7,7 @@ import { sanitizeInput, isValidEmail, isValidPhone, sanitizePhone } from '@/lib/
 import { smartRateLimit, detectDuplicate, getClientIdentifier, hashBookingData } from '@/lib/utils/smart-rate-limit';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
+import { createB2BBookingSafe } from '@/lib/b2b/booking-number';
 
 export const dynamic = 'force-dynamic';
 
@@ -224,11 +225,6 @@ export async function POST(request: NextRequest) {
           ? parseInt(numberOfVehicles)
           : 1;
 
-      const taBookingNumber = `TA-CO-${new Date()
-        .getFullYear()}-${Math.floor(Math.random() * 100000)
-        .toString()
-        .padStart(5, '0')}`;
-
       // Fetch agent for companyName/agencyName + real phone (for the b2b row)
       const agentRows: any[] = await (prisma as any).$queryRawUnsafe(
         `SELECT agencyName, ownerName, phone FROM travel_agents WHERE id = ? LIMIT 1`,
@@ -245,37 +241,28 @@ export async function POST(request: NextRequest) {
         resolvedCustomerPhone = agentPhone;
       }
 
-      const taBooking = await prisma.b2b_bookings.create({
-        data: {
-          bookingNumber: taBookingNumber,
-          customerId: customer.id,
-          customerName: customer.name,
-          customerEmail: customer.email,
-          customerPhone: resolvedCustomerPhone,
-          companyName: agencyName,
-          serviceType: 'car',
-          vehiclesRequired: vehiclesReq,
-          passengerCount: numberOfEmployees ? parseInt(numberOfEmployees) : null,
-          vehicleCategory: carCategoryName || null,
-          pickupLocation: pickupCity,
-          dropLocation: dropCity || null,
-          tripType: tripType,
-          scheduledDate: pickup,
-          scheduledTime: pickupTime,
-          returnDate: ret,
-          returnTime: returnTime || null,
-          specialNotes: customerNotes || null,
-          status: 'OPEN_FOR_QUOTES',
-        },
+      const taBooking = await createB2BBookingSafe('TA-CO', {
+        customerId: customer.id,
+        customerName: customer.name,
+        customerEmail: customer.email,
+        customerPhone: resolvedCustomerPhone,
+        companyName: agencyName,
+        serviceType: 'car',
+        vehiclesRequired: vehiclesReq,
+        passengerCount: numberOfEmployees ? parseInt(numberOfEmployees) : null,
+        vehicleCategory: carCategoryName || null,
+        pickupLocation: pickupCity,
+        dropLocation: dropCity || null,
+        tripType: tripType,
+        scheduledDate: pickup,
+        scheduledTime: pickupTime,
+        returnDate: ret,
+        returnTime: returnTime || null,
+        specialNotes: customerNotes || null,
+        status: 'OPEN_FOR_QUOTES',
+        travelAgentId: linkedTravelAgentId,
+        bookingMode: taMode,
       });
-
-      // Set TA fields via raw SQL (columns not in generated client yet)
-      await (prisma as any).$executeRawUnsafe(
-        `UPDATE b2b_bookings SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
-        linkedTravelAgentId,
-        taMode,
-        taBooking.id,
-      );
 
       const token = await new SignJWT({
         customerId: customer.id,

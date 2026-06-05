@@ -5939,6 +5939,7 @@ model social_posts {
   agentId              String?
   categoryId           String
   content              String                 @db.Text
+  images               String?                @db.Text // JSON array of uploaded image URLs
   isActive             Boolean                @default(true)
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt

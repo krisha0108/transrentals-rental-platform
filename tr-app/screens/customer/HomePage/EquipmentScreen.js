@@ -28,6 +28,8 @@ import DateTimePicker, {
 import { locationService, bookingService, fleetService } from '../../services';
 import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
+import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
+import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
 import LinearGradient from 'react-native-linear-gradient';
 import { widthPercentageToDP as wp, heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
@@ -90,6 +92,8 @@ export default function EquipmentScreen() {
   const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [customerData, setCustomerData] = useState(null);
   const [isB2BCustomer, setIsB2BCustomer] = useState(false);
+  // Phase 7 — Travel Agent Personal/Company booking mode
+  const [taState, setTaState] = useState({ mode: 'PERSONAL', vehicleCount: '1', employeeCount: '' });
   // remote
   const [allLocations, setAllLocations] = useState([]);
   const [equipmentTypes, setEquipmentTypes] = useState([]);
@@ -335,6 +339,16 @@ export default function EquipmentScreen() {
         requirements: otherDetails?.trim() || null,
         budgetMin: null,
         budgetMax: null,
+        // Phase 7 — TA fields (only when TA customer).
+        ...(isTravelAgentCustomer(customerData) && {
+          taBookingMode: taState.mode,
+          numberOfVehicles: taState.mode === 'COMPANY'
+            ? (parseInt(taState.vehicleCount) || 1)
+            : 1,
+          numberOfEmployees: taState.mode === 'COMPANY' && taState.employeeCount
+            ? parseInt(taState.employeeCount)
+            : null,
+        }),
       };
 
       console.log('Equipment quote request payload:', payload);
@@ -729,6 +743,9 @@ export default function EquipmentScreen() {
               </View>
             </View>
           )}
+
+          {/* Phase 7 — TA Personal/Company toggle (self-gated). */}
+          <TravelAgentBookingToggle value={taState} onChange={setTaState} />
 
           {/* SUBMIT */}
           <TouchableOpacity

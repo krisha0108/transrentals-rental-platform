@@ -32,6 +32,8 @@ import b2bService from '../../services/b2bService';
 import { TEAL_DEEP, TEAL_MID, TEAL, TEAL_LIGHT, BG, CARD, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED, SHADOW_SM, SHADOW_MD } from '../../../theme';
 import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
+import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
+import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
 
 const { width } = Dimensions.get('window');
 
@@ -44,6 +46,8 @@ export default function LuxuryCarRentalScreen() {
   const [showBookingAlert, setShowBookingAlert] = useState(false);
   const [alertModal, setAlertModal] = useState({ visible: false, type: '', title: '', message: '' });
   const [customerData, setCustomerData] = useState(null);
+  // Phase 7 — Travel Agent Personal/Company booking mode
+  const [taState, setTaState] = useState({ mode: 'PERSONAL', vehicleCount: '1', employeeCount: '' });
   const [isB2BCustomer, setIsB2BCustomer] = useState(false);
   const [bookingPurpose, setBookingPurpose] = useState('personal'); // 'personal' | 'company'
   const [numberOfVehicles, setNumberOfVehicles] = useState('1');
@@ -345,13 +349,26 @@ export default function LuxuryCarRentalScreen() {
         needDecoration,
         decorationType: needDecoration ? decorationType : null,
         source: 'app',
+        // Phase 7 — TA fields (only when TA customer).
+        ...(isTravelAgentCustomer(customerData) && {
+          taBookingMode: taState.mode,
+          numberOfVehicles: taState.mode === 'COMPANY'
+            ? (parseInt(taState.vehicleCount) || 1)
+            : 1,
+          numberOfEmployees: taState.mode === 'COMPANY' && taState.employeeCount
+            ? parseInt(taState.employeeCount)
+            : null,
+        }),
       };
 
       const response = await api.post('/customer/luxury-quote-requests', requestData);
 
-      if (response.data.success) {
+      // TA COMPANY booking routes into b2b_bookings → open the B2B detail.
+      if (response.data.bookingMode === 'COMPANY' && response.data.booking) {
+        setAlertModal({ visible: true, type: 'success', title: 'Company Booking Created!', message: `Your company luxury booking ${response.data.booking.bookingNumber || ''} has been sent to your manager. Quote will be shared shortly.`, onClose: () => navigation.navigate('B2BBookingDetail', { bookingId: response.data.booking.id }) });
+      } else if (response.data.success) {
         const newRequestId = response.data.quoteRequest?.id;
-        setAlertModal({ visible: true, type: 'success', title: 'Request Submitted!', message: `Quote request submitted successfully!\n\nRequest Number: ${response.data.quoteRequest.requestNumber}\n\nVendors will send you quotes within 24-48 hours.`, onClose: () => navigation.navigate('LuxuryQuoteDetail', { requestId: newRequestId }) });
+        setAlertModal({ visible: true, type: 'success', title: 'Request Submitted!', message: `Quote request submitted successfully!\n\nRequest Number: ${response.data.quoteRequest?.requestNumber || ''}\n\nVendors will send you quotes within 24-48 hours.`, onClose: () => navigation.navigate('LuxuryQuoteDetail', { requestId: newRequestId }) });
       }
     } catch (error) {
       console.error('Error submitting luxury quote request:', error);
@@ -994,6 +1011,9 @@ export default function LuxuryCarRentalScreen() {
             )}
           </View>
         )}
+
+        {/* Phase 7 — TA Personal/Company toggle (self-gated). */}
+        <TravelAgentBookingToggle value={taState} onChange={setTaState} />
 
         {/* Submit Button */}
         <TouchableOpacity

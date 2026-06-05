@@ -75,6 +75,7 @@ export async function PATCH(
       notes,
       status,
       referenceTitle,
+      referenceId,
     } = body;
 
     const updateData: any = {};
@@ -98,6 +99,7 @@ export async function PATCH(
     if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
     if (notes !== undefined) updateData.notes = notes || null;
     if (referenceTitle !== undefined) updateData.referenceTitle = referenceTitle || null;
+    if (referenceId !== undefined) updateData.referenceId = referenceId || null;
     if (status !== undefined && VALID_STATUS.includes(status)) updateData.status = status;
 
     const updated = await prisma.travel_agent_bookings.update({

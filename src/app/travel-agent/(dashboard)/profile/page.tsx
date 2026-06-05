@@ -15,11 +15,18 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
+// Canonical agency types — kept in sync with the mobile app
+// (tr-vendor-app TravelAgentRegisterScreen / AgencyProfileScreen) so the
+// stored value renders consistently on both web and app. value === label.
 const AGENCY_TYPES = [
-  { value: 'SOLO', label: 'Solo Agent' },
-  { value: 'AGENCY', label: 'Travel Agency' },
-  { value: 'CORPORATE', label: 'Corporate / Tour Operator' },
-];
+  'Solo Travel Agent',
+  'Travel Agency',
+  'Corporate / In-house Travel Desk',
+  'DMC (Destination Management Co.)',
+  'OTA (Online Travel Agency)',
+  'Tour Operator',
+  'Other',
+].map((t) => ({ value: t, label: t }));
 
 interface ProfileData {
   agencyName: string;
@@ -45,7 +52,7 @@ export default function TravelAgentProfilePage() {
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<ProfileData>({
     agencyName: '',
-    agencyType: 'AGENCY',
+    agencyType: '',
     ownerName: '',
     email: '',
     phone: '',
@@ -75,7 +82,7 @@ export default function TravelAgentProfilePage() {
           const json = await res.json();
           setData({
             agencyName: json.agencyName || '',
-            agencyType: json.agencyType || 'AGENCY',
+            agencyType: json.agencyType || '',
             ownerName: json.ownerName || '',
             email: json.email || '',
             phone: json.phone || '',

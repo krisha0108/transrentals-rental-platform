@@ -243,6 +243,22 @@ export default function TravelAgentNotificationsPage() {
     } catch { /* leave optimistic */ }
   };
 
+  const clearAll = async () => {
+    if (bulkBusy || items.length === 0) return;
+    if (typeof window !== 'undefined' && !window.confirm('Clear all notifications? This cannot be undone.')) return;
+    setBulkBusy(true);
+    setItems([]);
+    setUnreadCount(0);
+    try {
+      await fetch('/api/travel-agent/notifications', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ all: true }),
+      });
+    } catch { /* leave optimistic */ }
+    setBulkBusy(false);
+  };
+
   return (
     <div className="p-4 sm:p-6 max-w-3xl mx-auto">
       {/* Header */}
@@ -259,11 +275,18 @@ export default function TravelAgentNotificationsPage() {
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">Updates about your leads, payments, bookings and chats</p>
         </div>
-        <button onClick={markAllRead} disabled={unreadCount === 0 || bulkBusy}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-gray-700 hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-          <CheckCheck className="h-3.5 w-3.5" />
-          Mark all read
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={markAllRead} disabled={unreadCount === 0 || bulkBusy}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-gray-700 hover:border-emerald-400 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            <CheckCheck className="h-3.5 w-3.5" />
+            Mark all read
+          </button>
+          <button onClick={clearAll} disabled={items.length === 0 || bulkBusy}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-red-600 hover:border-red-400 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            <Trash2 className="h-3.5 w-3.5" />
+            Clear all
+          </button>
+        </div>
       </div>
 
       {/* Filter tabs */}

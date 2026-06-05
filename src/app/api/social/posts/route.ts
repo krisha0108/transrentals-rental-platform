@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (!actor) return NextResponse.json({ error: error || 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const result = await createPost(actor, { content: body?.content, categoryId: body?.categoryId });
+    const result = await createPost(actor, { content: body?.content, categoryId: body?.categoryId, images: body?.images });
     return NextResponse.json(result, { status: 201 });
   } catch (e: any) {
     if (e instanceof SocialError) return NextResponse.json({ error: e.message }, { status: e.status });

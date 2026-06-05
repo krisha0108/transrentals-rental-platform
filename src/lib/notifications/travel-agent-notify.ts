@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/db/prisma';
 import logger from '@/lib/security/logger';
+import { sendTravelAgentPush } from '@/lib/utils/fcm-helper';
 
 export type TravelAgentNotificationType =
   | 'LEAD'
@@ -21,6 +22,16 @@ export interface NotifyTravelAgentInput {
   body: string;
   link?: string;
   metadata?: Record<string, any>;
+}
+
+/** Build the FCM data payload (string-only values) from a notification input. */
+function buildPushData(input: NotifyTravelAgentInput): Record<string, string> {
+  const data: Record<string, string> = {
+    type: input.type,
+    source: 'travel-agent',
+  };
+  if (input.link) data.link = input.link;
+  return data;
 }
 
 export async function notifyTravelAgent(
@@ -44,6 +55,20 @@ export async function notifyTravelAgent(
       type: input.type,
       error,
     });
+  }
+
+  // Fire the phone push separately so a push failure never voids the saved
+  // in-app notification (and vice-versa). sendTravelAgentPush swallows its
+  // own errors, but guard anyway to stay non-blocking.
+  try {
+    await sendTravelAgentPush({
+      travelAgentId,
+      title: input.title,
+      body: input.body,
+      data: buildPushData(input),
+    });
+  } catch (error) {
+    logger.error('notifyTravelAgent push failed', { travelAgentId, error });
   }
 }
 
@@ -70,4 +95,18 @@ export async function notifyTravelAgents(
       error,
     });
   }
+
+  // Push to every agent's devices in parallel; individual failures are
+  // isolated so one bad token set can't block the rest.
+  const pushData = buildPushData(input);
+  await Promise.allSettled(
+    travelAgentIds.map((travelAgentId) =>
+      sendTravelAgentPush({
+        travelAgentId,
+        title: input.title,
+        body: input.body,
+        data: pushData,
+      }),
+    ),
+  );
 }

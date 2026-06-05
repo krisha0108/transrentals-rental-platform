@@ -12,12 +12,28 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { getSocialCategories, createSocialPost } from '../../api/socialApi';
+import { uploadVendorImage, getFullImageURL } from '../../api/client';
+
+const MAX_IMAGES = 4;
+
+// getFullImageURL is async (resolves the base URL), so resolve into state.
+function RemoteThumb({ url, style }) {
+  const [uri, setUri] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    getFullImageURL(url).then((u) => { if (alive) setUri(u); });
+    return () => { alive = false; };
+  }, [url]);
+  return <Image source={uri ? { uri } : undefined} style={style} />;
+}
 
 const G = {
   bg: '#F8FAFC', surface: '#FFFFFF', text: '#1E293B', muted: '#64748B',
@@ -38,6 +54,40 @@ export default function CreatePostScreen({ navigation }) {
   const [catModalVisible, setCatModalVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loadingCats, setLoadingCats] = useState(true);
+  const [images, setImages] = useState([]);
+  const [uploadingImg, setUploadingImg] = useState(false);
+
+  const pickImages = async () => {
+    const room = MAX_IMAGES - images.length;
+    if (room <= 0) { Alert.alert('Limit reached', `Up to ${MAX_IMAGES} images.`); return; }
+    let res;
+    try {
+      res = await launchImageLibrary({ mediaType: 'photo', selectionLimit: room, quality: 0.8 });
+    } catch (e) { return; }
+    if (!res || res.didCancel || !res.assets?.length) return;
+    setUploadingImg(true);
+    try {
+      const urls = [];
+      for (const asset of res.assets.slice(0, room)) {
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          Alert.alert('Too large', 'Each image must be under 5 MB.');
+          continue;
+        }
+        const out = await uploadVendorImage(
+          { uri: asset.uri, name: asset.fileName, type: asset.type },
+          'social',
+        );
+        if (out?.url) urls.push(out.url);
+      }
+      if (urls.length) setImages((prev) => [...prev, ...urls]);
+    } catch (e) {
+      console.log('[CreatePost] image upload error', e);
+      Alert.alert('Upload failed', 'Could not upload image. Please try again.');
+    } finally {
+      setUploadingImg(false);
+    }
+  };
+  const removeImage = (i) => setImages((prev) => prev.filter((_, idx) => idx !== i));
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -69,7 +119,7 @@ export default function CreatePostScreen({ navigation }) {
     }
     setSubmitting(true);
     try {
-      await createSocialPost(content.trim(), selectedCategory.id);
+      await createSocialPost(content.trim(), selectedCategory.id, images);
       Alert.alert('Posted!', 'Your post has been published.', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
@@ -155,6 +205,28 @@ export default function CreatePostScreen({ navigation }) {
               <Text style={[styles.charCounter, content.length > MAX_CHARS * 0.9 && styles.charCounterWarning]}>
                 {content.length}/{MAX_CHARS}
               </Text>
+            </View>
+          </View>
+
+          {/* Photos */}
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Photos (optional · up to {MAX_IMAGES})</Text>
+            <View style={styles.imageRow}>
+              {images.map((url, i) => (
+                <View key={i} style={styles.imageThumbWrap}>
+                  <RemoteThumb url={url} style={styles.imageThumb} />
+                  <TouchableOpacity style={styles.imageRemove} onPress={() => removeImage(i)}>
+                    <Icon name="x" size={13} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {images.length < MAX_IMAGES && (
+                <TouchableOpacity style={styles.imageAdd} onPress={pickImages} disabled={uploadingImg}>
+                  {uploadingImg
+                    ? <ActivityIndicator size="small" color={G.violet} />
+                    : <><Icon name="image" size={20} color={G.violet} /><Text style={styles.imageAddText}>Add</Text></>}
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -288,6 +360,14 @@ const styles = StyleSheet.create({
   contentInput: { fontSize: 15, color: G.text, lineHeight: 22, minHeight: 120 },
   charCounter: { textAlign: 'right', fontSize: 11, color: G.muted, marginTop: 8 },
   charCounterWarning: { color: G.orange },
+
+  // Photos
+  imageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  imageThumbWrap: { width: 84, height: 84, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: G.border },
+  imageThumb: { width: '100%', height: '100%' },
+  imageRemove: { position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
+  imageAdd: { width: 84, height: 84, borderRadius: 12, borderWidth: 1.5, borderColor: G.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 3, backgroundColor: G.surface },
+  imageAddText: { fontSize: 11, fontWeight: '700', color: G.violet },
 
   // Tips
   tipsCard: {
