@@ -14,7 +14,7 @@ import { prisma } from '@/lib/db/prisma';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { CITY_SEO } from '@/data/city-seo-content';
 import { RelatedServices } from '@/components/services/RelatedServices';
@@ -360,7 +360,7 @@ export default async function BikeLocationPage({ params }: PageProps) {
       <BikeSearchHero city={locationName} citySlug={params.location} pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined} pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined} />
 
       {/* Available Bikes - Dynamic from Database */}
-      <ServiceFleetDisplay
+      <LazyServiceFleetDisplay
         serviceSlug="bike-on-rent"
         locationSlug={params.location}
         title={`Bikes Available for Rent in ${locationName}`}

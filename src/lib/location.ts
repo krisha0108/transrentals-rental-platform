@@ -480,17 +480,22 @@ export async function detectUserLocation(options?: { forceRefresh?: boolean }): 
     return data;
   }
 
-  // 3. Try browser GPS detection first (most accurate)
+  // 3. Try browser GPS detection first (most accurate) - only if already granted
   try {
-    const browserCity = await detectLocationByBrowser();
-    if (browserCity) {
-      const data: LocationData = {
-        city: browserCity,
-        detectionMethod: 'browser',
-        timestamp: Date.now(),
-      };
-      saveLocation(data);
-      return data;
+    const permission = await checkGeolocationPermission();
+    if (permission === 'granted') {
+      const browserCity = await detectLocationByBrowser();
+      if (browserCity) {
+        const data: LocationData = {
+          city: browserCity,
+          detectionMethod: 'browser',
+          timestamp: Date.now(),
+        };
+        saveLocation(data);
+        return data;
+      }
+    } else {
+      console.log('🔐 Geolocation permission status is not granted, skipping automatic GPS prompt');
     }
   } catch (error) {
     console.error('Browser geolocation failed:', error);

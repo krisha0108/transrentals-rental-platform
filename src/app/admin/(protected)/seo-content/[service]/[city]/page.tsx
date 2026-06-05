@@ -89,6 +89,7 @@ export default function SeoContentEditPage({
 
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiCustomInstructions, setAiCustomInstructions] = useState('');
+  const [rewritingField, setRewritingField] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -212,6 +213,82 @@ export default function SeoContentEditPage({
     }
   }
 
+  // ── Per-field / per-section AI rewrite ──────────────────────────────────────
+  // Generate-only: fills the field/section locally; admin reviews then clicks Save.
+  async function rewriteField(
+    field: 'pageHeading' | 'pageDescription' | 'metaTitle' | 'metaDescription',
+    current: string,
+    setter: (v: string) => void,
+  ) {
+    if (rewritingField) return;
+    setRewritingField(field);
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/seo-content/generate-section', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceSlug: params.service,
+          citySlug: params.city,
+          target: { kind: 'field', field },
+          currentContent: current || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || `HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      if (typeof json.content === 'string') setter(json.content);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setRewritingField(null);
+    }
+  }
+
+  async function rewriteSection(section: SectionConfig): Promise<string | null> {
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/seo-content/generate-section', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceSlug: params.service,
+          citySlug: params.city,
+          target: { kind: 'section', section },
+          currentContent: section.content || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || `HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      return typeof json.content === 'string' ? json.content : null;
+    } catch (err) {
+      setError((err as Error).message);
+      return null;
+    }
+  }
+
+  const rewriteBtn = (
+    field: 'pageHeading' | 'pageDescription' | 'metaTitle' | 'metaDescription',
+    current: string,
+    setter: (v: string) => void,
+  ) => (
+    <button
+      type="button"
+      onClick={() => rewriteField(field, current, setter)}
+      disabled={rewritingField !== null}
+      title="Rewrite just this field with AI"
+      className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:text-purple-900 disabled:opacity-50"
+    >
+      {rewritingField === field ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+      {rewritingField === field ? 'Writing…' : 'Rewrite'}
+    </button>
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -322,6 +399,7 @@ export default function SeoContentEditPage({
               onChange={setSections}
               sectionHints={sectionMeta.hints}
               getDefaultContent={(id) => sectionMeta.defaultContent[id] ?? ''}
+              onRewrite={rewriteSection}
             />
           </div>
         </div>
@@ -333,7 +411,10 @@ export default function SeoContentEditPage({
             <h3 className="font-semibold text-emerald-900 mb-1">Page Content</h3>
             <p className="text-xs text-emerald-700 mb-3">Visible on the page — hero heading and supporting line.</p>
             <div className="mb-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Page Heading (H1)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">Page Heading (H1)</label>
+                {rewriteBtn('pageHeading', pageHeading, setPageHeading)}
+              </div>
               <input
                 type="text"
                 value={pageHeading}
@@ -343,7 +424,10 @@ export default function SeoContentEditPage({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Page Description</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">Page Description</label>
+                {rewriteBtn('pageDescription', pageDescription, setPageDescription)}
+              </div>
               <textarea
                 value={pageDescription}
                 onChange={(e) => setPageDescription(e.target.value)}
@@ -361,9 +445,12 @@ export default function SeoContentEditPage({
             <div className="mb-3">
               <div className="flex items-baseline justify-between mb-1">
                 <label className="block text-sm font-medium text-gray-700">Meta Title</label>
-                <span className={`text-xs ${metaTitleLen >= 50 && metaTitleLen <= 60 ? 'text-green-600' : 'text-amber-600'}`}>
-                  {metaTitleLen} / 50-60
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs ${metaTitleLen >= 50 && metaTitleLen <= 60 ? 'text-green-600' : 'text-amber-600'}`}>
+                    {metaTitleLen} / 50-60
+                  </span>
+                  {rewriteBtn('metaTitle', metaTitle, setMetaTitle)}
+                </div>
               </div>
               <input
                 type="text"
@@ -375,9 +462,12 @@ export default function SeoContentEditPage({
             <div className="mb-3">
               <div className="flex items-baseline justify-between mb-1">
                 <label className="block text-sm font-medium text-gray-700">Meta Description</label>
-                <span className={`text-xs ${metaDescLen >= 140 && metaDescLen <= 158 ? 'text-green-600' : 'text-amber-600'}`}>
-                  {metaDescLen} / 140-158
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs ${metaDescLen >= 140 && metaDescLen <= 158 ? 'text-green-600' : 'text-amber-600'}`}>
+                    {metaDescLen} / 140-158
+                  </span>
+                  {rewriteBtn('metaDescription', metaDescription, setMetaDescription)}
+                </div>
               </div>
               <textarea
                 value={metaDescription}

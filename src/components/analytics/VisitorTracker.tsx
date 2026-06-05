@@ -428,17 +428,25 @@ function VisitorTrackerInner() {
       }
     };
 
-    // Track duration of previous page, then track new page view
-    trackPrevDuration().then(() => {
-      trackPageView(pathname);
-      startTimeRef.current = Date.now();
-      lastPathRef.current = pathname;
-      scrollMilestonesRef.current.clear();
-      vitalsReportedRef.current = false;
+    // Track duration of previous page, then track new page view when idle
+    const startTracking = () => {
+      trackPrevDuration().then(() => {
+        trackPageView(pathname);
+        startTimeRef.current = Date.now();
+        lastPathRef.current = pathname;
+        scrollMilestonesRef.current.clear();
+        vitalsReportedRef.current = false;
 
-      // Track web vitals for this page
-      trackWebVitals();
-    });
+        // Track web vitals for this page
+        trackWebVitals();
+      });
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      window.requestIdleCallback(() => startTracking());
+    } else {
+      setTimeout(startTracking, 200);
+    }
 
     // Track duration when user leaves the page
     const handleBeforeUnload = () => {

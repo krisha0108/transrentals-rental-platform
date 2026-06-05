@@ -144,7 +144,6 @@ Disallow: /taxi-service/
 Disallow: /taxi-service-in-*/
 Disallow: /tempo-traveller-rental/
 Disallow: /luxury-car-rental-in-*/
-Disallow: /car-rental-in-*/
 Disallow: /one-way-taxi-cab/
 Disallow: /airport-taxi/
 Disallow: /locations/
@@ -212,7 +211,6 @@ Disallow: /taxi-service/
 Disallow: /taxi-service-in-*/
 Disallow: /tempo-traveller-rental/
 Disallow: /luxury-car-rental-in-*/
-Disallow: /car-rental-in-*/
 Disallow: /one-way-taxi-cab/
 Disallow: /airport-taxi/
 Disallow: /locations/

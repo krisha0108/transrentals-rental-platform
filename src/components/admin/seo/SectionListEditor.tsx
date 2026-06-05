@@ -18,7 +18,7 @@
 import React, { useState } from 'react';
 import {
   ArrowUp, ArrowDown, Eye, EyeOff, Pencil, Trash2, Plus, Info, GripVertical,
-  Check, X as XIcon, Type,
+  Check, X as XIcon, Type, Sparkles, Loader2,
 } from 'lucide-react';
 import type { SectionConfig } from '@/lib/city-sections';
 import { RichTextSectionEditor } from './RichTextSectionEditor';
@@ -31,17 +31,36 @@ export function SectionListEditor({
   onChange,
   sectionHints,
   getDefaultContent,
+  onRewrite,
 }: {
   sections: SectionConfig[];
   onChange: (next: SectionConfig[]) => void;
   sectionHints?: Record<string, string>;
   getDefaultContent?: (sectionId: string) => string;
+  /** If provided, each section shows a "Rewrite with AI" button. Returns the new
+   *  content (HTML or FAQ-JSON) for that section, or null on failure. */
+  onRewrite?: (section: SectionConfig) => Promise<string | null>;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [addingSection, setAddingSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState('');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
+  const [rewritingId, setRewritingId] = useState<string | null>(null);
+
+  const handleRewrite = async (section: SectionConfig) => {
+    if (!onRewrite || rewritingId) return;
+    setRewritingId(section.id);
+    try {
+      const next = await onRewrite(section);
+      if (next != null) {
+        setContent(section.id, next);
+        setExpandedId(section.id); // open so the admin can review the new content
+      }
+    } finally {
+      setRewritingId(null);
+    }
+  };
 
   const move = (idx: number, dir: -1 | 1) => {
     const next = [...sections];
@@ -198,6 +217,22 @@ export function SectionListEditor({
                 <span className="px-1.5 py-0.5 bg-violet-100 text-violet-700 text-xs font-semibold rounded shrink-0">
                   Content set
                 </span>
+              )}
+
+              {onRewrite && (
+                <button
+                  onClick={() => handleRewrite(section)}
+                  disabled={rewritingId !== null}
+                  title="Rewrite just this section with AI"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition shrink-0 bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50"
+                >
+                  {rewritingId === section.id ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3 h-3" />
+                  )}
+                  {rewritingId === section.id ? 'Writing…' : 'Rewrite AI'}
+                </button>
               )}
 
               <button
