@@ -251,6 +251,13 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [uploadDocNumber, setUploadDocNumber] = useState('');
   const [uploading, setUploading] = useState(false);
 
+  // Resubmit modal state
+  const [resubmitDoc, setResubmitDoc] = useState<VendorDocument | null>(null);
+  const [resubmitMode, setResubmitMode] = useState<'choose' | 'request' | 'upload' | null>(null);
+  const [resubmitReason, setResubmitReason] = useState('');
+  const [resubmitFile, setResubmitFile] = useState<File | null>(null);
+  const [resubmitLoading, setResubmitLoading] = useState(false);
+
   // Check if document URL is accessible
   useEffect(() => {
     if (selectedDocument) {
@@ -633,6 +640,74 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
       alert('Upload failed. Please try again.');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const openResubmitModal = (doc: VendorDocument) => {
+    setResubmitDoc(doc);
+    setResubmitMode('choose');
+    setResubmitReason('');
+    setResubmitFile(null);
+  };
+
+  const closeResubmitModal = () => {
+    setResubmitDoc(null);
+    setResubmitMode(null);
+    setResubmitReason('');
+    setResubmitFile(null);
+  };
+
+  const handleRequestResubmit = async () => {
+    if (!resubmitDoc) return;
+    setResubmitLoading(true);
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}/documents`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentId: resubmitDoc.id,
+          action: 'RESUBMIT_REQUIRED',
+          rejectionReason: resubmitReason.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        closeResubmitModal();
+        await fetchVendor();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to request resubmission');
+      }
+    } catch {
+      alert('Network error. Please try again.');
+    } finally {
+      setResubmitLoading(false);
+    }
+  };
+
+  const handleResubmitUpload = async () => {
+    if (!resubmitDoc || !resubmitFile) return;
+    setResubmitLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', resubmitFile);
+      formData.append('documentType', resubmitDoc.documentType);
+      if (resubmitReason.trim()) formData.append('documentNumber', resubmitReason.trim());
+
+      const res = await fetch(`/api/manager/vendors/${id}/documents`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        closeResubmitModal();
+        await fetchVendor();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Upload failed');
+      }
+    } catch {
+      alert('Upload failed. Please try again.');
+    } finally {
+      setResubmitLoading(false);
     }
   };
 
@@ -1374,10 +1449,12 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                             ? 'bg-green-100 text-green-800'
                             : doc.status === 'REJECTED'
                             ? 'bg-red-100 text-red-800'
+                            : doc.status === 'RESUBMIT_REQUIRED'
+                            ? 'bg-orange-100 text-orange-800'
                             : 'bg-yellow-100 text-yellow-800'
                         }`}
                       >
-                        {doc.status}
+                        {doc.status === 'RESUBMIT_REQUIRED' ? 'RESUBMIT' : doc.status}
                       </span>
                       <button
                         onClick={() => setSelectedDocument(doc)}
@@ -1386,6 +1463,16 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                       >
                         <Eye className="w-5 h-5" />
                       </button>
+                      <Button
+                        size="sm"
+                        onClick={() => openResubmitModal(doc)}
+                        disabled={!!actionLoading}
+                        title="Request resubmission or upload on behalf"
+                        className="bg-orange-500 hover:bg-orange-600 text-white"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-1" />
+                        Resubmit
+                      </Button>
                       {doc.status === 'PENDING' && (
                         <>
                           <Button
@@ -1412,10 +1499,10 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                       )}
                     </div>
                   </div>
-                  {doc.status === 'REJECTED' && doc.rejectionReason && (
-                    <div className="mt-3 ml-16 p-3 bg-red-50 rounded-lg">
-                      <p className="text-sm text-red-700">
-                        <strong>Rejection Reason:</strong> {doc.rejectionReason}
+                  {(doc.status === 'REJECTED' || doc.status === 'RESUBMIT_REQUIRED') && doc.rejectionReason && (
+                    <div className={`mt-3 ml-16 p-3 rounded-lg ${doc.status === 'RESUBMIT_REQUIRED' ? 'bg-orange-50' : 'bg-red-50'}`}>
+                      <p className={`text-sm ${doc.status === 'RESUBMIT_REQUIRED' ? 'text-orange-700' : 'text-red-700'}`}>
+                        <strong>{doc.status === 'RESUBMIT_REQUIRED' ? 'Resubmit Reason:' : 'Rejection Reason:'}</strong> {doc.rejectionReason}
                       </p>
                     </div>
                   )}
@@ -2756,6 +2843,138 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                 <p className="mt-2 text-sm text-red-600">
                   Rejection Reason: {selectedDocument.rejectionReason}
                 </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Resubmit Modal ───────────────────────────────────────────── */}
+      {resubmitDoc && resubmitMode && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => !resubmitLoading && closeResubmitModal()}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-orange-500" />
+                <h3 className="font-bold text-gray-900 text-base">
+                  Resubmit Document
+                </h3>
+              </div>
+              <button
+                onClick={closeResubmitModal}
+                disabled={resubmitLoading}
+                className="text-gray-400 hover:text-gray-700 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="px-5 py-4 space-y-4">
+              {/* Doc name */}
+              <p className="text-sm text-gray-600">
+                Document:{' '}
+                <span className="font-semibold text-gray-900">
+                  {documentTypeLabels[resubmitDoc.documentType] || resubmitDoc.documentType.replace(/_/g, ' ')}
+                </span>
+              </p>
+
+              {/* Choose mode */}
+              {resubmitMode === 'choose' && (
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <button
+                    onClick={() => setResubmitMode('request')}
+                    className="flex flex-col items-center gap-2 p-4 border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 rounded-xl text-center transition"
+                  >
+                    <RefreshCw className="w-7 h-7 text-orange-500" />
+                    <span className="text-sm font-semibold text-gray-800">Request from Vendor</span>
+                    <span className="text-xs text-gray-500">Notify vendor to re-upload this document</span>
+                  </button>
+                  <button
+                    onClick={() => setResubmitMode('upload')}
+                    className="flex flex-col items-center gap-2 p-4 border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 rounded-xl text-center transition"
+                  >
+                    <Upload className="w-7 h-7 text-blue-500" />
+                    <span className="text-sm font-semibold text-gray-800">Upload on Behalf</span>
+                    <span className="text-xs text-gray-500">Upload the new document yourself</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Request vendor resubmit */}
+              {resubmitMode === 'request' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Reason / Message to vendor <span className="text-gray-400">(optional)</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={resubmitReason}
+                      onChange={(e) => setResubmitReason(e.target.value)}
+                      placeholder="e.g. Document is blurry, please upload a clearer version"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-400 focus:border-orange-400 resize-none"
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => setResubmitMode('choose')}
+                      disabled={resubmitLoading}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition disabled:opacity-50"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleRequestResubmit}
+                      disabled={resubmitLoading}
+                      className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {resubmitLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                      Request Resubmit
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Manager uploads on behalf */}
+              {resubmitMode === 'upload' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      New Document File <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp,.pdf"
+                      onChange={(e) => setResubmitFile(e.target.files?.[0] || null)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">JPG, PNG, WebP, PDF · max 25 MB</p>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => setResubmitMode('choose')}
+                      disabled={resubmitLoading}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm hover:bg-gray-50 transition disabled:opacity-50"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleResubmitUpload}
+                      disabled={!resubmitFile || resubmitLoading}
+                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {resubmitLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      Upload Document
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           </div>

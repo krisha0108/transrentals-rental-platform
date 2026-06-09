@@ -1744,25 +1744,25 @@ model form_submissions {
 }
 
 model helpdesk_tickets {
-  id              String                  @id
-  ticketNo        String                  @unique
-  customerId      String?
-  travelAgentId   String?
-  submitterType   String?                 @default("customer")
-  heading         String
-  problem         String                  @db.Text
-  bookingId       String?
-  bookingType     String?
-  status          helpdesk_tickets_status @default(OPEN)
-  priority        String                  @default("NORMAL")
-  images          String?                 @db.Text
-  resolvedBy      String?
-  resolvedAt      DateTime?
-  resolution      String?                 @db.Text
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-  customers       customers?              @relation(fields: [customerId], references: [id])
-  travel_agents   travel_agents?          @relation(fields: [travelAgentId], references: [id])
+  id            String                  @id
+  ticketNo      String                  @unique
+  customerId    String?
+  travelAgentId String?
+  submitterType String?                 @default("customer")
+  heading       String
+  problem       String                  @db.Text
+  bookingId     String?
+  bookingType   String?
+  status        helpdesk_tickets_status @default(OPEN)
+  priority      String                  @default("NORMAL")
+  images        String?                 @db.Text
+  resolvedBy    String?
+  resolvedAt    DateTime?
+  resolution    String?                 @db.Text
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  customers     customers?              @relation(fields: [customerId], references: [id])
+  travel_agents travel_agents?          @relation(fields: [travelAgentId], references: [id])
 
   @@index([createdAt])
   @@index([customerId])
@@ -3895,8 +3895,8 @@ model vendors {
   wander_listings                                                 wander_listings[]
   wander_quotes                                                   wander_quotes[]
 
-  vendor_bank_accounts vendor_bank_accounts[]
-  vendor_call_logs     vendor_call_logs[]
+  vendor_bank_accounts   vendor_bank_accounts[]
+  vendor_call_logs       vendor_call_logs[]
   vendor_tag_assignments vendor_tag_assignments[]
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
@@ -3906,12 +3906,12 @@ model vendors {
 }
 
 model vendor_tag_assignments {
-  id           String      @id @default(cuid())
+  id           String       @id @default(cuid())
   vendorId     String
   tag          vendor_tag
   assignedById String?
-  createdAt    DateTime    @default(now())
-  vendors      vendors     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+  vendors      vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   admin_users  admin_users? @relation(fields: [assignedById], references: [id])
 
   @@unique([vendorId, tag])
@@ -5169,6 +5169,7 @@ enum vendor_documents_status {
   PENDING
   APPROVED
   REJECTED
+  RESUBMIT_REQUIRED
 }
 
 enum helpdesk_tickets_status {
@@ -6649,18 +6650,18 @@ model travel_agent_tours {
 }
 
 model travel_agent_properties {
-  id            String                     @id @default(cuid())
-  travelAgentId String
-  name          String
-  slug          String?
-  propertyType  travel_agent_property_type @default(RESORT)
-  description   String?                    @db.Text
-  address       String?                    @db.Text
-  city          String?
-  state         String?
-  pincode       String?
-  latitude      Float?
-  longitude     Float?
+  id                 String                     @id @default(cuid())
+  travelAgentId      String
+  name               String
+  slug               String?
+  propertyType       travel_agent_property_type @default(RESORT)
+  description        String?                    @db.Text
+  address            String?                    @db.Text
+  city               String?
+  state              String?
+  pincode            String?
+  latitude           Float?
+  longitude          Float?
   totalRooms         Int                        @default(1)
   bedroomsCount      Int?
   bathroomsCount     Int?
@@ -6677,15 +6678,15 @@ model travel_agent_properties {
   rules              String?                    @db.LongText
   checkInTime        String?
   checkOutTime       String?
-  coverImage    String?
-  galleryImages String?                    @db.LongText
-  isActive      Boolean                    @default(true)
-  isPublic      Boolean                    @default(false)
-  totalBookings Int                        @default(0)
-  rating        Float?                     @default(0)
-  totalRatings  Int                        @default(0)
-  createdAt     DateTime                   @default(now())
-  updatedAt     DateTime                   @updatedAt
+  coverImage         String?
+  galleryImages      String?                    @db.LongText
+  isActive           Boolean                    @default(true)
+  isPublic           Boolean                    @default(false)
+  totalBookings      Int                        @default(0)
+  rating             Float?                     @default(0)
+  totalRatings       Int                        @default(0)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
 
   travel_agents travel_agents @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
 

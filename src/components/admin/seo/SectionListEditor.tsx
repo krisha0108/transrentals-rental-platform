@@ -32,6 +32,7 @@ export function SectionListEditor({
   sectionHints,
   getDefaultContent,
   onRewrite,
+  aiDisabled = false,
 }: {
   sections: SectionConfig[];
   onChange: (next: SectionConfig[]) => void;
@@ -40,6 +41,8 @@ export function SectionListEditor({
   /** If provided, each section shows a "Rewrite with AI" button. Returns the new
    *  content (HTML or FAQ-JSON) for that section, or null on failure. */
   onRewrite?: (section: SectionConfig) => Promise<string | null>;
+  /** When true, AI rewrite buttons are disabled (e.g. DeepSeek balance empty). */
+  aiDisabled?: boolean;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [addingSection, setAddingSection] = useState(false);
@@ -220,19 +223,30 @@ export function SectionListEditor({
               )}
 
               {onRewrite && (
-                <button
-                  onClick={() => handleRewrite(section)}
-                  disabled={rewritingId !== null}
-                  title="Rewrite just this section with AI"
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition shrink-0 bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50"
-                >
-                  {rewritingId === section.id ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3 h-3" />
+                <div className="relative group/aibtn shrink-0">
+                  <button
+                    onClick={() => handleRewrite(section)}
+                    disabled={rewritingId !== null || aiDisabled}
+                    title={aiDisabled ? 'DeepSeek balance empty — recharge to enable AI' : 'Rewrite just this section with AI'}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                      aiDisabled
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50'
+                    }`}
+                  >
+                    {rewritingId === section.id ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3" />
+                    )}
+                    {rewritingId === section.id ? 'Writing…' : 'Rewrite AI'}
+                  </button>
+                  {aiDisabled && (
+                    <div className="absolute right-0 top-full mt-1.5 w-52 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl z-20 hidden group-hover/aibtn:block pointer-events-none">
+                      DeepSeek balance is empty. Recharge at platform.deepseek.com
+                    </div>
                   )}
-                  {rewritingId === section.id ? 'Writing…' : 'Rewrite AI'}
-                </button>
+                </div>
               )}
 
               <button

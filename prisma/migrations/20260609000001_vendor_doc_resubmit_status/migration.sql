@@ -1,0 +1,3 @@
+-- Add RESUBMIT_REQUIRED status to vendor_documents
+ALTER TABLE `vendor_documents`
+  MODIFY COLUMN `status` ENUM('PENDING', 'APPROVED', 'REJECTED', 'RESUBMIT_REQUIRED') NOT NULL DEFAULT 'PENDING';

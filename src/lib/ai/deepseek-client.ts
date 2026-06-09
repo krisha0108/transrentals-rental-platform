@@ -1,9 +1,7 @@
 /**
  * DeepSeek API client — single point of contact with the model.
  *
- * Reads DEEPSEEK_API_KEY and DEEPSEEK_MODEL from env. The same key is used by
- * the command-center FastAPI service; both apps read from their respective
- * environments so this module has no dependency on that codebase.
+ * Reads DEEPSEEK_API_KEY and DEEPSEEK_MODEL from env.
  */
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';

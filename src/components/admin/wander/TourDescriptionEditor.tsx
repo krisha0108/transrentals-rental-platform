@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
@@ -13,12 +13,17 @@ import {
   Highlighter, Eraser,
 } from 'lucide-react';
 
+export interface TourDescriptionEditorRef {
+  setContent: (html: string) => void;
+}
+
 interface Props {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
   minHeight?: number;
   maxHeight?: number;
+  editorRef?: React.MutableRefObject<TourDescriptionEditorRef | null>;
 }
 
 const HEADING_OPTIONS = [
@@ -59,6 +64,7 @@ export default function TourDescriptionEditor({
   placeholder = 'Describe the tour, what makes it special, what travelers will experience…',
   minHeight = 180,
   maxHeight = 320,
+  editorRef,
 }: Props) {
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -90,6 +96,16 @@ export default function TourDescriptionEditor({
       },
     },
   });
+
+  useEffect(() => {
+    if (editorRef && editor) {
+      editorRef.current = {
+        setContent: (html: string) => {
+          editor.commands.setContent(html, true);
+        },
+      };
+    }
+  }, [editor, editorRef]);
 
   const applyLink = useCallback(() => {
     if (!editor) return;
