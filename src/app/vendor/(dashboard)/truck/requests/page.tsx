@@ -255,11 +255,6 @@ export default function VendorTruckRequestsPage() {
                       <Package className="w-4 h-4" />
                       {GOODS_TYPES[request.goodsType] || request.goodsType}
                     </div>
-                    {request.budgetMax && (
-                      <p className="text-sm text-gray-500">
-                        Budget: ₹{request.budgetMin?.toLocaleString()} - ₹{request.budgetMax?.toLocaleString()}
-                      </p>
-                    )}
                   </div>
                 </div>
 

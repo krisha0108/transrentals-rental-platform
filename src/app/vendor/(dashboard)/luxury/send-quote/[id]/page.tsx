@@ -484,14 +484,8 @@ export default function SendQuotePage() {
             </p>
           </div>
         </div>
-        {(request.budgetMax || request.requirements || request.needDecoration) && (
+        {(request.requirements || request.needDecoration) && (
           <div className="mt-4 pt-4 border-t border-purple-200 grid md:grid-cols-3 gap-4 text-sm">
-            {request.budgetMax && (
-              <div>
-                <span className="text-purple-700 font-medium">Budget: </span>
-                <span className="font-bold">₹{request.budgetMin?.toLocaleString() || 0} - ₹{request.budgetMax.toLocaleString()}</span>
-              </div>
-            )}
             {request.needDecoration && (
               <div>
                 <span className="text-purple-700 font-medium">Decoration: </span>

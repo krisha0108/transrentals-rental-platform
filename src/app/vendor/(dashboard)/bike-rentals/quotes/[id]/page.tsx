@@ -873,31 +873,6 @@ export default function VendorBikeQuoteDetailPage() {
             </div>
           )}
 
-          {/* Budget Hint */}
-          {(quote.request.budgetMin || quote.request.budgetMax) && (
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50/50 rounded-xl border border-blue-200 overflow-hidden">
-              <div className="px-3.5 py-2.5 border-b border-blue-100">
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-blue-500" />
-                  Customer Budget
-                </h3>
-              </div>
-              <div className="px-3.5 py-2.5">
-                <p className="text-base font-extrabold text-blue-700">
-                  {quote.request.budgetMin && quote.request.budgetMax
-                    ? `₹${quote.request.budgetMin.toLocaleString()} – ₹${quote.request.budgetMax.toLocaleString()}`
-                    : quote.request.budgetMin
-                    ? `Min: ₹${quote.request.budgetMin.toLocaleString()}`
-                    : `Max: ₹${quote.request.budgetMax?.toLocaleString()}`}
-                </p>
-                {quote.grandTotal <= (quote.request.budgetMax || Infinity) && (
-                  <p className="text-xs text-emerald-600 font-semibold mt-0.5 flex items-center gap-0.5">
-                    <CheckCircle className="w-2.5 h-2.5" /> Within budget
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

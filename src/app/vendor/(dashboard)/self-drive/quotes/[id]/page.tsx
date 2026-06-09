@@ -937,31 +937,6 @@ export default function VendorSelfDriveQuoteDetailPage() {
             </div>
           )}
 
-          {/* Budget */}
-          {(quote.request.budgetMin || quote.request.budgetMax) && (
-            <div className="bg-gradient-to-br from-emerald-50 to-emerald-50/50 rounded-xl border border-emerald-200 overflow-hidden">
-              <div className="px-3.5 py-2.5 border-b border-emerald-100">
-                <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> Customer Budget
-                </h3>
-              </div>
-              <div className="px-3.5 py-2.5">
-                <p className="text-base font-extrabold text-emerald-700">
-                  {quote.request.budgetMin && quote.request.budgetMax
-                    ? `₹${quote.request.budgetMin.toLocaleString()} – ₹${quote.request.budgetMax.toLocaleString()}`
-                    : quote.request.budgetMin
-                    ? `Min: ₹${quote.request.budgetMin.toLocaleString()}`
-                    : `Max: ₹${quote.request.budgetMax?.toLocaleString()}`}
-                </p>
-                {(quote.grandTotal || 0) <= (quote.request.budgetMax || Infinity) && (
-                  <p className="text-xs text-emerald-600 font-semibold mt-0.5 flex items-center gap-0.5">
-                    <CheckCircle className="w-2.5 h-2.5" /> Within budget
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Booking Card (for accepted) */}
           {isWon && booking && (
             <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-4 text-white">
