@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Zap, ChevronLeft, Loader2, AlertCircle, Search, MapPin, X,
-  Image as ImageIcon, Save, Send, Trash2, Eye,
+  Image as ImageIcon, Save, Send, Trash2, Eye, Sparkles, RefreshCw,
 } from 'lucide-react';
-import TourDescriptionEditor from '@/components/admin/wander/TourDescriptionEditor';
+import TourDescriptionEditor, { type TourDescriptionEditorRef } from '@/components/admin/wander/TourDescriptionEditor';
 import WanderQuickPreviewModal from '@/components/admin/wander/WanderQuickPreviewModal';
 
 const DURATION_OPTIONS = [
@@ -42,6 +42,10 @@ export default function TravelAgentQuickAddTourPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
+  const descEditorRef = useRef<TourDescriptionEditorRef | null>(null);
 
   const update = (key: string, value: any) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -100,6 +104,50 @@ export default function TravelAgentQuickAddTourPage() {
   function removeImage(idx: number) {
     update('images', form.images.filter((_: any, i: number) => i !== idx));
   }
+
+  useEffect(() => {
+    fetch('/api/travel-agent/tours/ai-status')
+      .then((r) => r.json())
+      .then((d) => setAiAvailable(d.available !== false))
+      .catch(() => setAiAvailable(true));
+  }, []);
+
+  async function generateAIDescription() {
+    if (!form.title.trim()) { setAiError('Add a tour title first — AI uses it to write the description.'); return; }
+    setAiLoading(true); setAiError('');
+    try {
+      const res = await fetch('/api/travel-agent/tours/ai-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title,
+          destination: selectedLocation?.displayName || selectedLocation?.name || '',
+          duration: form.duration === 'Custom' ? form.customDuration : form.duration,
+          basePrice: form.basePrice,
+          mode: 'full',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 502 && data.error?.includes('402')) {
+          setAiAvailable(false);
+          setAiError('');
+          return;
+        }
+        setAiError(data.error || 'AI generation failed');
+        return;
+      }
+      const html = `<p>${data.description}</p>`;
+      update('description', html);
+      descEditorRef.current?.setContent(html);
+    } catch {
+      setAiError('Network error. Please try again.');
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  const aiDisabled = aiAvailable === false;
 
   function validate(forPublish: boolean): string {
     if (!form.categoryId) return 'Please select a category';
@@ -324,11 +372,51 @@ export default function TravelAgentQuickAddTourPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-700">Description</label>
+              <div className="relative group">
+                <button
+                  type="button"
+                  onClick={generateAIDescription}
+                  disabled={aiLoading || aiDisabled || aiAvailable === null}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm
+                    ${aiDisabled
+                      ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-violet-500 to-indigo-500 text-white hover:from-violet-600 hover:to-indigo-600 disabled:opacity-60'
+                    }`}
+                >
+                  {aiLoading
+                    ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Generating…</>
+                    : aiAvailable === null
+                    ? <><Sparkles className="w-3.5 h-3.5 opacity-50" /> AI…</>
+                    : aiDisabled
+                    ? <><Sparkles className="w-3.5 h-3.5" /> AI Unavailable</>
+                    : <><Sparkles className="w-3.5 h-3.5" /> Generate with AI</>
+                  }
+                </button>
+                {aiDisabled && (
+                  <div className="absolute right-0 top-full mt-1.5 z-20 w-56 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition pointer-events-none">
+                    DeepSeek balance is empty. Recharge at{' '}
+                    <span className="text-violet-300 font-medium">platform.deepseek.com</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            {aiError && (
+              <div className="mb-2 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {aiError}
+                <button onClick={() => setAiError('')} className="ml-auto"><X className="w-3 h-3" /></button>
+              </div>
+            )}
             <TourDescriptionEditor
               content={form.description}
               onChange={(html: string) => update('description', html)}
+              editorRef={descEditorRef}
             />
+            <p className="mt-1.5 text-xs text-gray-400">
+              Use the toolbar for bullet points, headings, bold, and more. AI generates based on title, location, duration & price.
+            </p>
           </div>
 
           <div>
