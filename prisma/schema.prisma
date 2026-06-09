@@ -1744,25 +1744,29 @@ model form_submissions {
 }
 
 model helpdesk_tickets {
-  id          String                  @id
-  ticketNo    String                  @unique
-  customerId  String?
-  heading     String
-  problem     String                  @db.Text
-  bookingId   String?
-  bookingType String?
-  status      helpdesk_tickets_status @default(OPEN)
-  priority    String                  @default("NORMAL")
-  images      String?                 @db.Text
-  resolvedBy  String?
-  resolvedAt  DateTime?
-  resolution  String?                 @db.Text
-  createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
-  customers   customers?              @relation(fields: [customerId], references: [id])
+  id              String                  @id
+  ticketNo        String                  @unique
+  customerId      String?
+  travelAgentId   String?
+  submitterType   String?                 @default("customer")
+  heading         String
+  problem         String                  @db.Text
+  bookingId       String?
+  bookingType     String?
+  status          helpdesk_tickets_status @default(OPEN)
+  priority        String                  @default("NORMAL")
+  images          String?                 @db.Text
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  resolution      String?                 @db.Text
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  customers       customers?              @relation(fields: [customerId], references: [id])
+  travel_agents   travel_agents?          @relation(fields: [travelAgentId], references: [id])
 
   @@index([createdAt])
   @@index([customerId])
+  @@index([travelAgentId])
   @@index([status])
 }
 
@@ -5939,6 +5943,7 @@ model social_posts {
   agentId              String?
   categoryId           String
   content              String                 @db.Text
+  images               String?                @db.Text // JSON array of uploaded image URLs
   isActive             Boolean                @default(true)
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
@@ -6428,6 +6433,7 @@ model travel_agents {
   conv_agent1                     vendor_conversations[]            @relation("conv_agent1")
   conv_agent2                     vendor_conversations[]            @relation("conv_agent2")
   vendor_messages_sent            vendor_messages[]                 @relation("msg_agent_sender")
+  helpdesk_tickets                helpdesk_tickets[]
 
   @@index([approvedById], map: "travel_agents_approvedById_fkey")
   @@index([email])
@@ -6655,14 +6661,22 @@ model travel_agent_properties {
   pincode       String?
   latitude      Float?
   longitude     Float?
-  totalRooms    Int                        @default(1)
-  startingPrice Float?
-  amenities     String?                    @db.LongText
-  inclusions    String?                    @db.LongText
-  exclusions    String?                    @db.LongText
-  rules         String?                    @db.LongText
-  checkInTime   String?
-  checkOutTime  String?
+  totalRooms         Int                        @default(1)
+  bedroomsCount      Int?
+  bathroomsCount     Int?
+  maxGuests          Int?
+  startingPrice      Float?
+  minNights          Int?                       @default(1)
+  maxNights          Int?
+  cancellationPolicy String?
+  landmark           String?
+  highlights         String?                    @db.Text
+  amenities          String?                    @db.LongText
+  inclusions         String?                    @db.LongText
+  exclusions         String?                    @db.LongText
+  rules              String?                    @db.LongText
+  checkInTime        String?
+  checkOutTime       String?
   coverImage    String?
   galleryImages String?                    @db.LongText
   isActive      Boolean                    @default(true)

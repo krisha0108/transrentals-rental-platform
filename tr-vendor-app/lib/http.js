@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Same URL config as screens/api/client.js
 const DEFAULT_PROD = "https://transrentals.in";
-const DEFAULT_DEV_ANDROID = "http://192.168.29.73:3000"; // Updated to correct IP
+const DEFAULT_DEV_ANDROID = "http://localhost:3000"; // Physical device via ADB reverse
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
 function getBaseURL() {

@@ -147,3 +147,181 @@ export async function sendBatchFCMNotifications(
   const promises = notifications.map(notification => sendFCMNotification(notification));
   await Promise.allSettled(promises);
 }
+
+// ==================== Travel Agent push ====================
+// TA devices register their FCM tokens via /api/travel-agent/fcm-token, which
+// stores up to 10 tokens in the `settings` table under this key, plus keeps
+// the latest in `travel_agents.fcmToken` for backward compatibility.
+const TA_FCM_SETTINGS_KEY = (agentId: string) => `travel_agent_fcm_tokens_${agentId}`;
+
+// TA notification type → Android channel + sound. Channel ids must match those
+// registered by createNotificationChannels() in the vendor app. Types not
+// listed here (LEAD, SYSTEM) fall back to the default channel.
+const TA_CHANNEL_BY_TYPE: Record<string, { channelId: string; sound: string }> = {
+  PAYMENT: { channelId: 'payment_channel', sound: 'payment' },
+  CHAT: { channelId: 'chat_channel', sound: 'chat' },
+  BOOKING: { channelId: 'booking_confirmed_channel', sound: 'booking_confirmed' },
+};
+
+interface SendTravelAgentPushParams {
+  travelAgentId: string;
+  title: string;
+  body: string;
+  data?: Record<string, string>;
+  image?: string | null;
+}
+
+/** Collect every FCM token registered for a travel agent (de-duplicated). */
+async function getTravelAgentTokens(travelAgentId: string): Promise<string[]> {
+  const tokens = new Set<string>();
+
+  const settingsRow = await prisma.settings.findUnique({
+    where: { key: TA_FCM_SETTINGS_KEY(travelAgentId) },
+  });
+  if (settingsRow?.value) {
+    try {
+      const parsed = JSON.parse(settingsRow.value as string);
+      for (const t of parsed?.tokens || []) {
+        if (t?.token) tokens.add(t.token);
+      }
+    } catch {
+      // malformed settings blob — ignore, fall back to the column token
+    }
+  }
+
+  const agent = await (prisma as any).travel_agents.findUnique({
+    where: { id: travelAgentId },
+    select: { fcmToken: true },
+  });
+  if (agent?.fcmToken) tokens.add(agent.fcmToken);
+
+  return Array.from(tokens);
+}
+
+/** Remove tokens Firebase reports as permanently invalid from both stores. */
+async function pruneTravelAgentTokens(
+  travelAgentId: string,
+  invalidTokens: string[]
+): Promise<void> {
+  if (invalidTokens.length === 0) return;
+  const invalid = new Set(invalidTokens);
+  try {
+    const key = TA_FCM_SETTINGS_KEY(travelAgentId);
+    const row = await prisma.settings.findUnique({ where: { key } });
+    if (row?.value) {
+      const parsed = JSON.parse(row.value as string);
+      parsed.tokens = (parsed.tokens || []).filter((t: any) => !invalid.has(t?.token));
+      await prisma.settings.update({ where: { key }, data: { value: JSON.stringify(parsed) } });
+    }
+
+    const agent = await (prisma as any).travel_agents.findUnique({
+      where: { id: travelAgentId },
+      select: { fcmToken: true },
+    });
+    if (agent?.fcmToken && invalid.has(agent.fcmToken)) {
+      await (prisma as any).travel_agents.update({
+        where: { id: travelAgentId },
+        data: { fcmToken: null },
+      });
+    }
+  } catch (error) {
+    logger.error('Failed to prune travel agent FCM tokens', error);
+  }
+}
+
+/**
+ * Send an FCM push to all of a travel agent's registered devices.
+ * Mirrors sendFCMNotification but is multi-device aware (multicast) and
+ * sources tokens from the TA token stores.
+ * @returns true if at least one device was delivered to.
+ */
+export async function sendTravelAgentPush(
+  params: SendTravelAgentPushParams
+): Promise<boolean> {
+  const { travelAgentId, title, body, data = {}, image } = params;
+
+  initFirebase();
+  if (!admin) {
+    logger.warn('TA FCM push skipped - Firebase Admin not available');
+    return false;
+  }
+
+  try {
+    const tokens = await getTravelAgentTokens(travelAgentId);
+    if (tokens.length === 0) {
+      logger.warn(`No FCM token found for travel_agent: ${travelAgentId}`);
+      return false;
+    }
+
+    if (!admin.apps.length) {
+      logger.error('Firebase Admin not initialized');
+      return false;
+    }
+
+    // Pick the Android channel (and its sound) from the notification type so
+    // BACKGROUND/quit notifications — shown by the OS straight from this
+    // payload — match the per-type channels the app registers. These ids must
+    // stay in sync with createNotificationChannels() in the vendor app.
+    const channel = TA_CHANNEL_BY_TYPE[data.type] || {
+      channelId: 'default_v3',
+      sound: 'notification_sound',
+    };
+
+    const message = {
+      tokens,
+      notification: {
+        title,
+        body,
+        ...(image && image !== 'null' ? { imageUrl: image } : {}),
+      },
+      data: {
+        ...data,
+        timestamp: Date.now().toString(),
+      },
+      android: {
+        priority: 'high' as const,
+        notification: {
+          channelId: channel.channelId,
+          sound: channel.sound,
+          priority: 'high' as const,
+          defaultSound: true,
+          defaultVibrateTimings: true,
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            badge: 1,
+          },
+        },
+      },
+    };
+
+    const response = await admin.messaging().sendEachForMulticast(message);
+    logger.info(
+      `TA FCM push: ${response.successCount}/${tokens.length} delivered for ${travelAgentId}`
+    );
+
+    // Clear out tokens that are permanently dead so they don't pile up.
+    if (response.failureCount > 0) {
+      const invalid: string[] = [];
+      response.responses.forEach((r: any, i: number) => {
+        const code = r?.error?.code;
+        if (
+          !r.success &&
+          (code === 'messaging/invalid-registration-token' ||
+            code === 'messaging/registration-token-not-registered')
+        ) {
+          invalid.push(tokens[i]);
+        }
+      });
+      await pruneTravelAgentTokens(travelAgentId, invalid);
+    }
+
+    return response.successCount > 0;
+  } catch (error: any) {
+    logger.error('Failed to send travel agent FCM push', error);
+    return false;
+  }
+}

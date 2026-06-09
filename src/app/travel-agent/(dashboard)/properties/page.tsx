@@ -1,23 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
-  Loader2,
-  Plus,
-  Building2,
-  Search,
-  Edit2,
-  Trash2,
-  MapPin,
-  Globe,
-  Lock,
-  Power,
-  PowerOff,
-  Bed,
+  Loader2, Plus, Building2, Search, Edit2, Trash2, MapPin,
+  Globe, Lock, Power, PowerOff, Bed, Star, Users, Bath,
+  ChevronDown, TrendingUp, CheckSquare,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useTravelAgentVerification } from '@/contexts/TravelAgentVerificationContext';
+import { AMENITY_LABEL_MAP, parseAmenities, CANCELLATION_POLICIES } from '@/lib/property-amenities';
 
 interface Property {
   id: string;
@@ -27,35 +19,61 @@ interface Property {
   city: string | null;
   state: string | null;
   totalRooms: number;
+  bedroomsCount: number | null;
+  bathroomsCount: number | null;
+  maxGuests: number | null;
   startingPrice: number | null;
   coverImage: string | null;
+  amenities: string | null;
+  description: string | null;
+  inclusions: string | null;
+  highlights: string | null;
+  cancellationPolicy: string | null;
+  minNights: number | null;
   isActive: boolean;
   isPublic: boolean;
   totalBookings: number;
+  rating: number | null;
+  totalRatings: number;
   createdAt: string;
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  RESORT: 'Resort',
-  HOTEL: 'Hotel',
-  HOMESTAY: 'Homestay',
-  APARTMENT: 'Apartment',
-  VILLA: 'Villa',
-  GUEST_HOUSE: 'Guest House',
-  HOSTEL: 'Hostel',
-  ROOMS: 'Rooms',
-  OTHER: 'Other',
+  RESORT: 'Resort', HOTEL: 'Hotel', HOMESTAY: 'Homestay',
+  APARTMENT: 'Apartment', VILLA: 'Villa', GUEST_HOUSE: 'Guest House',
+  HOSTEL: 'Hostel', ROOMS: 'Rooms', OTHER: 'Other',
 };
+
+const TYPE_COLORS: Record<string, string> = {
+  RESORT: 'bg-cyan-100 text-cyan-800', HOTEL: 'bg-blue-100 text-blue-800',
+  HOMESTAY: 'bg-green-100 text-green-800', APARTMENT: 'bg-purple-100 text-purple-800',
+  VILLA: 'bg-pink-100 text-pink-800', GUEST_HOUSE: 'bg-orange-100 text-orange-800',
+  HOSTEL: 'bg-yellow-100 text-yellow-800', ROOMS: 'bg-gray-100 text-gray-700',
+  OTHER: 'bg-gray-100 text-gray-700',
+};
+
+function completeness(p: Property): number {
+  const checks = [
+    !!p.name,
+    !!p.description,
+    !!p.city,
+    !!p.coverImage,
+    !!p.startingPrice,
+    !!p.amenities,
+    !!p.inclusions,
+  ];
+  return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+}
 
 export default function PropertiesListPage() {
   const { showToast } = useToast();
   const { isApproved, openVerificationModal } = useTravelAgentVerification();
   const [properties, setProperties] = useState<Property[]>([]);
-  const [stats, setStats] = useState({ total: 0, active: 0, published: 0 });
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
+  const [sortBy, setSortBy] = useState('newest');
 
   const load = async () => {
     setLoading(true);
@@ -67,60 +85,59 @@ export default function PropertiesListPage() {
       if (res.ok) {
         const json = await res.json();
         setProperties(json.properties || []);
-        setStats(json.stats);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, typeFilter]);
+  useEffect(() => { load(); }, [search, typeFilter]); // eslint-disable-line
+
+  const sorted = useMemo(() => {
+    const arr = [...properties];
+    if (sortBy === 'price_asc') return arr.sort((a, b) => (a.startingPrice || 0) - (b.startingPrice || 0));
+    if (sortBy === 'price_desc') return arr.sort((a, b) => (b.startingPrice || 0) - (a.startingPrice || 0));
+    if (sortBy === 'rating') return arr.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    if (sortBy === 'name') return arr.sort((a, b) => a.name.localeCompare(b.name));
+    return arr; // newest first (default from API)
+  }, [properties, sortBy]);
+
+  const stats = useMemo(() => ({
+    total: properties.length,
+    active: properties.filter((p) => p.isActive).length,
+    published: properties.filter((p) => p.isPublic).length,
+    avgRating: properties.filter((p) => (p.totalRatings || 0) > 0).length > 0
+      ? (properties.reduce((s, p) => s + (p.rating || 0), 0) / properties.filter((p) => (p.totalRatings || 0) > 0).length).toFixed(1)
+      : null,
+  }), [properties]);
 
   const togglePublic = async (p: Property) => {
-    if (!p.isPublic && !isApproved) {
-      openVerificationModal();
-      return;
-    }
+    if (!p.isPublic && !isApproved) { openVerificationModal(); return; }
     const res = await fetch(`/api/travel-agent/properties/${p.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isPublic: !p.isPublic }),
     });
-    if (res.ok) {
-      showToast({ type: 'success', title: p.isPublic ? 'Property unpublished' : 'Property published' });
-      await load();
-    } else {
-      const j = await res.json();
-      showToast({ type: 'error', title: j.error || 'Failed' });
-    }
+    if (res.ok) { showToast({ type: 'success', title: p.isPublic ? 'Property unpublished' : 'Property published' }); load(); }
+    else { const j = await res.json(); showToast({ type: 'error', title: j.error || 'Failed' }); }
   };
 
   const toggleActive = async (p: Property) => {
     const res = await fetch(`/api/travel-agent/properties/${p.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: !p.isActive }),
     });
-    if (res.ok) {
-      showToast({ type: 'success', title: p.isActive ? 'Deactivated' : 'Activated' });
-      await load();
-    }
+    if (res.ok) { showToast({ type: 'success', title: p.isActive ? 'Deactivated' : 'Activated' }); load(); }
   };
 
   const deleteProperty = async (id: string) => {
     if (!confirm('Permanently delete this property?')) return;
     const res = await fetch(`/api/travel-agent/properties/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      showToast({ type: 'success', title: 'Property deleted' });
-      await load();
-    }
+    if (res.ok) { showToast({ type: 'success', title: 'Property deleted' }); load(); }
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
@@ -128,9 +145,7 @@ export default function PropertiesListPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Properties</h1>
-            <p className="text-sm text-gray-500">
-              {stats.total} total • {stats.active} active • {stats.published} published
-            </p>
+            <p className="text-sm text-gray-500">Manage your hotels, resorts, villas & stays</p>
           </div>
         </div>
         <Link
@@ -141,13 +156,31 @@ export default function PropertiesListPage() {
         </Link>
       </div>
 
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Total', value: stats.total, icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Active', value: stats.active, icon: Power, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: 'Published', value: stats.published, icon: Globe, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Avg Rating', value: stats.avgRating ?? '—', icon: Star, color: 'text-amber-600', bg: 'bg-amber-50' },
+        ].map(({ label, value, icon: Icon, color, bg }) => (
+          <div key={label} className="bg-white rounded-2xl border border-gray-200 p-4 flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center`}>
+              <Icon className={`w-4.5 h-4.5 ${color}`} />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
+              <p className="text-xl font-bold text-gray-900 leading-none">{value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setSearch(searchInput.trim());
-            }}
+            onSubmit={(e) => { e.preventDefault(); setSearch(searchInput.trim()); }}
             className="flex-1 relative"
           >
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -165,125 +198,268 @@ export default function PropertiesListPage() {
             className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
           >
             <option value="ALL">All Types</option>
-            {Object.entries(TYPE_LABELS).map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
+            {Object.entries(TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          >
+            <option value="newest">Newest First</option>
+            <option value="name">Name A–Z</option>
+            <option value="rating">Top Rated</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
           </select>
         </div>
       </div>
 
+      {/* Grid */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
         </div>
-      ) : properties.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-          <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-600 font-medium mb-1">No properties added yet</p>
-          <p className="text-sm text-gray-400 mb-4">
-            List your resort, hotel, rooms or villa to start accepting bookings
-          </p>
-          <Link
-            href="/travel-agent/properties/add"
-            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl"
-          >
-            <Plus className="w-4 h-4" /> Add Property
-          </Link>
-        </div>
+      ) : sorted.length === 0 ? (
+        <EmptyState />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {properties.map((p) => (
-            <div
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {sorted.map((p) => (
+            <PropertyCard
               key={p.id}
-              className={`bg-white rounded-2xl border overflow-hidden ${
-                p.isActive ? 'border-gray-200' : 'border-gray-200 opacity-60'
-              }`}
-            >
-              <div className="aspect-[16/9] bg-gradient-to-br from-emerald-100 to-teal-100 relative">
-                {p.coverImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.coverImage} alt={p.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Building2 className="w-12 h-12 text-emerald-400" />
-                  </div>
-                )}
-                <div className="absolute top-2 left-2 flex gap-1.5">
-                  {p.isPublic ? (
-                    <span className="inline-flex items-center gap-1 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      <Globe className="w-2.5 h-2.5" /> PUBLIC
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 bg-gray-700 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      <Lock className="w-2.5 h-2.5" /> DRAFT
-                    </span>
-                  )}
-                  <span className="inline-flex bg-white/90 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    {TYPE_LABELS[p.propertyType]}
-                  </span>
-                </div>
-                {p.startingPrice && (
-                  <div className="absolute bottom-2 right-2 bg-white/95 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full">
-                    ₹{p.startingPrice.toLocaleString('en-IN')}/night
-                  </div>
-                )}
-              </div>
-
-              <div className="p-4">
-                <p className="font-bold text-gray-900 line-clamp-1">{p.name}</p>
-                <div className="flex items-center gap-3 text-xs text-gray-500 mt-1.5">
-                  {p.city && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> {p.city}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1">
-                    <Bed className="w-3 h-3" /> {p.totalRooms} room{p.totalRooms !== 1 ? 's' : ''}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-gray-100">
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => togglePublic(p)}
-                      title={p.isPublic ? 'Unpublish' : 'Publish'}
-                      className={`p-1.5 rounded-lg border ${
-                        p.isPublic
-                          ? 'border-green-200 text-green-700 hover:bg-green-50'
-                          : 'border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-700'
-                      }`}
-                    >
-                      {p.isPublic ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                    </button>
-                    <button
-                      onClick={() => toggleActive(p)}
-                      title={p.isActive ? 'Deactivate' : 'Activate'}
-                      className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-amber-300 hover:text-amber-700"
-                    >
-                      {p.isActive ? <PowerOff className="w-3.5 h-3.5" /> : <Power className="w-3.5 h-3.5" />}
-                    </button>
-                    <button
-                      onClick={() => deleteProperty(p.id)}
-                      title="Delete"
-                      className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <Link
-                    href={`/travel-agent/properties/${p.id}/edit`}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" /> Edit
-                  </Link>
-                </div>
-              </div>
-            </div>
+              p={p}
+              onTogglePublic={() => togglePublic(p)}
+              onToggleActive={() => toggleActive(p)}
+              onDelete={() => deleteProperty(p.id)}
+            />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function PropertyCard({
+  p,
+  onTogglePublic,
+  onToggleActive,
+  onDelete,
+}: {
+  p: Property;
+  onTogglePublic: () => void;
+  onToggleActive: () => void;
+  onDelete: () => void;
+}) {
+  const pct = completeness(p);
+  const amenityIds = parseAmenities(p.amenities);
+  const topAmenities = amenityIds.slice(0, 4).map((id) => AMENITY_LABEL_MAP[id]).filter(Boolean);
+  const cancelPolicy = CANCELLATION_POLICIES.find((c) => c.value === p.cancellationPolicy);
+
+  return (
+    <div className={`bg-white rounded-2xl border overflow-hidden flex flex-col ${p.isActive ? 'border-gray-200' : 'border-gray-200 opacity-60'}`}>
+      {/* Photo */}
+      <div className="relative aspect-[4/3] bg-gradient-to-br from-emerald-50 to-teal-100">
+        {p.coverImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={p.coverImage} alt={p.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-gray-300">
+            <Building2 className="w-10 h-10" />
+            <span className="text-xs font-medium">No photo</span>
+          </div>
+        )}
+        {/* Badges top-left */}
+        <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5">
+          {p.isPublic ? (
+            <span className="inline-flex items-center gap-1 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+              <Globe className="w-2.5 h-2.5" /> PUBLIC
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 bg-gray-700/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+              <Lock className="w-2.5 h-2.5" /> DRAFT
+            </span>
+          )}
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${TYPE_COLORS[p.propertyType] || 'bg-gray-100 text-gray-700'}`}>
+            {TYPE_LABELS[p.propertyType]}
+          </span>
+        </div>
+        {/* Price badge */}
+        {p.startingPrice && (
+          <div className="absolute bottom-2.5 right-2.5 bg-white/95 text-emerald-700 text-xs font-bold px-2.5 py-1 rounded-full shadow">
+            ₹{p.startingPrice.toLocaleString('en-IN')}/night
+          </div>
+        )}
+        {/* Min nights */}
+        {p.minNights && p.minNights > 1 && (
+          <div className="absolute bottom-2.5 left-2.5 bg-white/90 text-gray-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
+            {p.minNights} night min
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="p-4 flex flex-col flex-1 gap-3">
+        {/* Name + rating */}
+        <div>
+          <p className="font-bold text-gray-900 line-clamp-1 text-base">{p.name}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            {(p.totalRatings || 0) > 0 ? (
+              <span className="flex items-center gap-0.5 text-xs font-semibold text-amber-600">
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                {(p.rating || 0).toFixed(1)}
+                <span className="text-gray-400 font-normal ml-0.5">({p.totalRatings})</span>
+              </span>
+            ) : (
+              <span className="text-xs text-gray-400">No reviews yet</span>
+            )}
+            {p.totalBookings > 0 && (
+              <span className="text-xs text-gray-400">· {p.totalBookings} booking{p.totalBookings !== 1 ? 's' : ''}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Location */}
+        {(p.city || p.state) && (
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <MapPin className="w-3 h-3 shrink-0" />
+            <span className="line-clamp-1">{[p.city, p.state].filter(Boolean).join(', ')}</span>
+          </div>
+        )}
+
+        {/* Capacity row */}
+        <div className="flex items-center gap-3 text-xs text-gray-600 flex-wrap">
+          <span className="flex items-center gap-1">
+            <Bed className="w-3.5 h-3.5 text-gray-400" />
+            {p.totalRooms} room{p.totalRooms !== 1 ? 's' : ''}
+          </span>
+          {p.bedroomsCount && (
+            <span className="flex items-center gap-1">
+              <Bed className="w-3.5 h-3.5 text-gray-400" />
+              {p.bedroomsCount} bed{p.bedroomsCount !== 1 ? 's' : ''}
+            </span>
+          )}
+          {p.bathroomsCount && (
+            <span className="flex items-center gap-1">
+              <Bath className="w-3.5 h-3.5 text-gray-400" />
+              {p.bathroomsCount} bath{p.bathroomsCount !== 1 ? 's' : ''}
+            </span>
+          )}
+          {p.maxGuests && (
+            <span className="flex items-center gap-1">
+              <Users className="w-3.5 h-3.5 text-gray-400" />
+              {p.maxGuests} guests
+            </span>
+          )}
+        </div>
+
+        {/* Amenity chips */}
+        {topAmenities.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {topAmenities.map((label) => (
+              <span key={label} className="text-[10px] font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                {label}
+              </span>
+            ))}
+            {amenityIds.length > 4 && (
+              <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">
+                +{amenityIds.length - 4} more
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Cancellation policy */}
+        {cancelPolicy && (
+          <span className="text-[10px] font-semibold text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full self-start">
+            {cancelPolicy.label} cancellation
+          </span>
+        )}
+
+        {/* Completeness bar */}
+        <div className="mt-auto">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-semibold text-gray-400 flex items-center gap-1">
+              <CheckSquare className="w-3 h-3" /> Listing completeness
+            </span>
+            <span className={`text-[10px] font-bold ${pct === 100 ? 'text-emerald-600' : pct >= 70 ? 'text-amber-600' : 'text-red-500'}`}>
+              {pct}%
+            </span>
+          </div>
+          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-emerald-500' : pct >= 70 ? 'bg-amber-400' : 'bg-red-400'}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+          <div className="flex items-center gap-1.5">
+            <ActionBtn
+              onClick={onTogglePublic}
+              title={p.isPublic ? 'Unpublish' : 'Publish'}
+              active={p.isPublic}
+              activeClass="border-green-200 text-green-700 bg-green-50"
+              icon={p.isPublic ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+            />
+            <ActionBtn
+              onClick={onToggleActive}
+              title={p.isActive ? 'Deactivate' : 'Activate'}
+              active={false}
+              activeClass=""
+              icon={p.isActive ? <PowerOff className="w-3.5 h-3.5 text-amber-600" /> : <Power className="w-3.5 h-3.5 text-gray-500" />}
+            />
+            <ActionBtn
+              onClick={onDelete}
+              title="Delete"
+              active={false}
+              activeClass=""
+              className="border-red-200 text-red-600 hover:bg-red-50"
+              icon={<Trash2 className="w-3.5 h-3.5" />}
+            />
+          </div>
+          <Link
+            href={`/travel-agent/properties/${p.id}/edit`}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg"
+          >
+            <Edit2 className="w-3.5 h-3.5" /> Edit
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActionBtn({ onClick, title, active, activeClass, className = '', icon }: {
+  onClick: () => void; title: string; active: boolean; activeClass: string; className?: string; icon: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`p-1.5 rounded-lg border transition ${active ? activeClass : 'border-gray-200 text-gray-500 hover:border-gray-300'} ${className}`}
+    >
+      {icon}
+    </button>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-14 text-center">
+      <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <Building2 className="w-8 h-8 text-emerald-400" />
+      </div>
+      <p className="text-gray-700 font-semibold text-lg mb-1">No properties yet</p>
+      <p className="text-sm text-gray-400 mb-5 max-w-xs mx-auto">
+        List your resort, hotel, villa or homestay to start receiving booking requests.
+      </p>
+      <Link
+        href="/travel-agent/properties/add"
+        className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl"
+      >
+        <Plus className="w-4 h-4" /> Add Your First Property
+      </Link>
     </div>
   );
 }

@@ -72,10 +72,14 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
+    const ratedProps = properties.filter((p) => (p.totalRatings || 0) > 0);
     const stats = {
       total: properties.length,
       active: properties.filter((p) => p.isActive).length,
       published: properties.filter((p) => p.isPublic).length,
+      avgRating: ratedProps.length > 0
+        ? Number((ratedProps.reduce((s, p) => s + (p.rating || 0), 0) / ratedProps.length).toFixed(1))
+        : null,
     };
 
     return NextResponse.json({ properties, stats });
@@ -104,10 +108,18 @@ export async function POST(request: NextRequest) {
       city,
       state,
       pincode,
+      landmark,
       latitude,
       longitude,
       totalRooms,
+      bedroomsCount,
+      bathroomsCount,
+      maxGuests,
       startingPrice,
+      minNights,
+      maxNights,
+      cancellationPolicy,
+      highlights,
       amenities,
       inclusions,
       exclusions,
@@ -139,10 +151,18 @@ export async function POST(request: NextRequest) {
         city: city || null,
         state: state || null,
         pincode: pincode || null,
+        landmark: landmark || null,
         latitude: latitude ? Number(latitude) : null,
         longitude: longitude ? Number(longitude) : null,
         totalRooms: totalRooms ? Number(totalRooms) : 1,
+        bedroomsCount: bedroomsCount ? Number(bedroomsCount) : null,
+        bathroomsCount: bathroomsCount ? Number(bathroomsCount) : null,
+        maxGuests: maxGuests ? Number(maxGuests) : null,
         startingPrice: startingPrice ? Number(startingPrice) : null,
+        minNights: minNights ? Number(minNights) : 1,
+        maxNights: maxNights ? Number(maxNights) : null,
+        cancellationPolicy: cancellationPolicy || null,
+        highlights: highlights || null,
         amenities: amenities || null,
         inclusions: inclusions || null,
         exclusions: exclusions || null,

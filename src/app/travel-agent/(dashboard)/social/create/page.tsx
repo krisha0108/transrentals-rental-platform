@@ -4,10 +4,10 @@
 // endpoint) so the new post lands in the unified feed visible to both
 // agents and vendors.
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Zap, Send, ChevronDown, Search, X, Check, Compass } from 'lucide-react';
+import { ArrowLeft, Zap, Send, ChevronDown, Search, X, Check, Compass, ImagePlus, Loader2 } from 'lucide-react';
 
 interface Category { id: string; name: string; slug: string; isSOS: boolean; description?: string; }
 
@@ -116,21 +116,59 @@ function CategoryDropdown({
   );
 }
 
-export default function AgentCreatePostPage() {
+function AgentCreatePostInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [content, setContent] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [loadingCats, setLoadingCats] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const MAX_IMAGES = 4;
+  const uploadImages = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const room = MAX_IMAGES - images.length;
+    if (room <= 0) { setError(`Up to ${MAX_IMAGES} images.`); return; }
+    setUploading(true); setError('');
+    try {
+      const picked = Array.from(files).slice(0, room);
+      const urls: string[] = [];
+      for (const file of picked) {
+        if (file.size > 5 * 1024 * 1024) { setError('Each image must be under 5 MB.'); continue; }
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('folder', 'social');
+        const res = await fetch('/api/travel-agent/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (res.ok && data.url) urls.push(data.url);
+      }
+      if (urls.length) setImages((prev) => [...prev, ...urls]);
+    } catch {
+      setError('Image upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+  const removeImage = (i: number) => setImages((prev) => prev.filter((_, idx) => idx !== i));
 
   useEffect(() => {
     fetch('/api/admin/social/categories').then(r => r.json()).then(d => {
-      setCategories((d.categories || []).filter((c: any) => c.isActive));
+      const active: Category[] = (d.categories || []).filter((c: any) => c.isActive);
+      setCategories(active);
       setLoadingCats(false);
+      // If ?sos=1 in URL, auto-select the first SOS category
+      if (searchParams.get('sos') === '1') {
+        const first = active.find(c => c.isSOS);
+        if (first) setSelectedCategory(first.id);
+      }
     });
-  }, []);
+  }, [searchParams]);
 
   const selectedCat = categories.find(c => c.id === selectedCategory);
   const isSOS = selectedCat?.isSOS ?? false;
@@ -145,7 +183,7 @@ export default function AgentCreatePostPage() {
       const res = await fetch('/api/social/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: content.trim(), categoryId: selectedCategory }),
+        body: JSON.stringify({ content: content.trim(), categoryId: selectedCategory, images }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Failed to post'); return; }
@@ -222,6 +260,34 @@ export default function AgentCreatePostPage() {
           </div>
         </div>
 
+        {/* Photos */}
+        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+          <label className="block text-[13px] font-bold text-gray-800 mb-2">
+            Photos <span className="font-normal text-gray-400">(optional · up to {MAX_IMAGES})</span>
+          </label>
+          <div className="flex flex-wrap gap-3">
+            {images.map((url, i) => (
+              <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="w-full h-full object-cover" />
+                <button type="button" onClick={() => removeImage(i)}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+            {images.length < MAX_IMAGES && (
+              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors disabled:opacity-50">
+                {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
+                <span className="text-[11px] font-semibold">{uploading ? 'Uploading' : 'Add'}</span>
+              </button>
+            )}
+          </div>
+          <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
+            onChange={(e) => uploadImages(e.target.files)} />
+        </div>
+
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600 flex items-center gap-2">
             <X className="h-4 w-4" /> {error}
@@ -243,5 +309,13 @@ export default function AgentCreatePostPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function AgentCreatePostPage() {
+  return (
+    <Suspense fallback={null}>
+      <AgentCreatePostInner />
+    </Suspense>
   );
 }

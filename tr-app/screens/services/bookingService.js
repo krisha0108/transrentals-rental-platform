@@ -91,6 +91,15 @@ const bookingService = {
       advancePaid: bookingData.advancePaid,
       transactionId: bookingData.transactionId,
       paymentMethod: bookingData.paymentMethod,
+      // Existing B2B passthrough
+      isB2B: bookingData.isB2B,
+      numberOfVehicles: bookingData.numberOfVehicles,
+      numberOfPersons: bookingData.numberOfPersons,
+      // Phase 7 — TA passthrough so backend (car-rental/bookings/route.ts:218)
+      // can detect COMPANY-mode travel-agent bookings and route them into
+      // b2b_bookings instead of creating a normal customer booking.
+      taBookingMode: bookingData.taBookingMode,
+      numberOfEmployees: bookingData.numberOfEmployees,
       // Source tracking
       source: 'app',
     };

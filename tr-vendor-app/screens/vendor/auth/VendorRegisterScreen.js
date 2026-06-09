@@ -35,7 +35,7 @@ const BRAND = {
   purple: "#8B5CF6",
 };
 
-const { width } = Dimensions.get("window");
+const { width, height: SCREEN_H } = Dimensions.get("window");
 
 const BUSINESS_TYPES = [
   'Sole Proprietor',
@@ -112,6 +112,44 @@ export default function VendorRegisterScreen({ navigation }) {
       }),
     ]).start();
   }, [fade, slide]);
+
+  // floating icons
+  const L = 6;
+  const R = width - 32;
+  const FLOAT_ICONS = [
+    // LEFT SIDE
+    { name: 'calendar',    color: '#0A7A4B', size: 22, x: L,     startY: SCREEN_H * 0.06, delay: 0,    duration: 3400 },
+    { name: 'bicycle',     color: '#DB2777', size: 22, x: L + 2, startY: SCREEN_H * 0.18, delay: 550,  duration: 3000 },
+    { name: 'people',      color: '#7C3AED', size: 20, x: L,     startY: SCREEN_H * 0.30, delay: 250,  duration: 3200 },
+    { name: 'car-sport',   color: '#1e6bb8', size: 22, x: L + 2, startY: SCREEN_H * 0.43, delay: 800,  duration: 3800 },
+    { name: 'bus',         color: '#D97706', size: 22, x: L,     startY: SCREEN_H * 0.56, delay: 350,  duration: 3100 },
+    { name: 'location',    color: '#0A7A4B', size: 20, x: L + 2, startY: SCREEN_H * 0.68, delay: 650,  duration: 3500 },
+    { name: 'trending-up', color: '#DB2777', size: 19, x: L,     startY: SCREEN_H * 0.80, delay: 150,  duration: 3600 },
+    // RIGHT SIDE
+    { name: 'airplane',    color: '#1e6bb8', size: 22, x: R,     startY: SCREEN_H * 0.05, delay: 400,  duration: 3300 },
+    { name: 'map',         color: '#0A7A4B', size: 22, x: R - 2, startY: SCREEN_H * 0.17, delay: 900,  duration: 3100 },
+    { name: 'bar-chart',   color: '#D97706', size: 20, x: R,     startY: SCREEN_H * 0.29, delay: 100,  duration: 3700 },
+    { name: 'card',        color: '#DB2777', size: 22, x: R - 2, startY: SCREEN_H * 0.41, delay: 600,  duration: 2900 },
+    { name: 'train',       color: '#7C3AED', size: 22, x: R,     startY: SCREEN_H * 0.54, delay: 300,  duration: 3400 },
+    { name: 'briefcase',   color: '#1e6bb8', size: 20, x: R - 2, startY: SCREEN_H * 0.66, delay: 750,  duration: 3500 },
+    { name: 'key',         color: '#0A7A4B', size: 19, x: R,     startY: SCREEN_H * 0.79, delay: 500,  duration: 3200 },
+  ];
+  const floatAnims = useRef(FLOAT_ICONS.map((_, i) => new Animated.Value(i % 2 === 0 ? 0 : 0.5))).current;
+
+  useEffect(() => {
+    const anims = FLOAT_ICONS.map((cfg, i) => {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.delay(cfg.delay),
+          Animated.timing(floatAnims[i], { toValue: 1, duration: cfg.duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(floatAnims[i], { toValue: 0, duration: cfg.duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+      return loop;
+    });
+    return () => anims.forEach(a => a.stop());
+  }, []);
 
   const handleChange = (field, value) =>
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -271,6 +309,27 @@ export default function VendorRegisterScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
+
+      {/* Floating icons — full screen overlay */}
+      <View style={styles.floatOverlay} pointerEvents="none">
+        {FLOAT_ICONS.map((cfg, i) => (
+          <Animated.View
+            key={i}
+            style={[
+              styles.floatIcon,
+              {
+                left: cfg.x,
+                top: cfg.startY,
+                opacity: floatAnims[i].interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.10, 0.25, 0.10] }),
+                transform: [{ translateY: floatAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) }],
+              },
+            ]}
+          >
+            <Ionicons name={cfg.name} size={cfg.size} color={cfg.color} />
+          </Animated.View>
+        ))}
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
@@ -290,8 +349,15 @@ export default function VendorRegisterScreen({ navigation }) {
               { opacity: fade, transform: [{ translateY: slide }] },
             ]}
           >
-            <View style={styles.brandBadge}>
-              <Image source={require('../../../assets/logo-white-tr.png')} style={{width:40, height:40}} />
+            <View style={styles.brandRow}>
+              <View style={styles.brandBadge}>
+                <Image source={require('../../../assets/logo-white-tr.png')} style={{width:40, height:40}} />
+              </View>
+              <Image
+                source={require('../../../assets/logo-trans.png')}
+                style={styles.brandWordmark}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.brandTitle}>Become a Vendor Partner</Text>
             <Text style={styles.brandTagline}>
@@ -840,6 +906,8 @@ export default function VendorRegisterScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BRAND.bg },
+  floatOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 },
+  floatIcon: { position: 'absolute' },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 20,
@@ -940,6 +1008,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
   },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 },
+  brandWordmark: { height: 28, width: 140 },
   brandBadge: {
     width: 44,
     height: 44,
@@ -952,7 +1022,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 6 },
     elevation: 4,
-    marginBottom: 10,
   },
   brandTitle: {
     fontSize: 22,

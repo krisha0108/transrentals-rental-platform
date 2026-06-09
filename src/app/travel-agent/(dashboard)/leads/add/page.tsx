@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Loader2, ArrowLeft, Save, Target } from 'lucide-react';
+import { Loader2, ArrowLeft, Save, Target, Map } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
 const TRIP_TYPES = [
@@ -35,6 +35,7 @@ export default function AddLeadPage() {
   const router = useRouter();
   const { showToast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [tours, setTours] = useState<{ id: string; title: string }[]>([]);
 
   const [form, setForm] = useState({
     customerName: '',
@@ -53,7 +54,15 @@ export default function AddLeadPage() {
     priority: 'WARM',
     nextFollowUp: '',
     assignedToName: '',
+    tourId: '',
   });
+
+  useEffect(() => {
+    fetch('/api/travel-agent/tours?limit=100&status=ACTIVE')
+      .then((r) => r.json())
+      .then((d) => setTours(d?.tours || []))
+      .catch(() => {});
+  }, []);
 
   const update = (key: keyof typeof form, value: any) => setForm((p) => ({ ...p, [key]: value }));
 
@@ -150,6 +159,27 @@ export default function AddLeadPage() {
               ))}
             </select>
           </Field>
+
+          {tours.length > 0 && (
+            <Field label="Link to Tour (optional)">
+              <div className="relative">
+                <Map className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 pointer-events-none" />
+                <select
+                  value={form.tourId}
+                  onChange={(e) => update('tourId', e.target.value)}
+                  className={`${inputCls} pl-9`}
+                >
+                  <option value="">— Not linked to a tour —</option>
+                  {tours.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Select if this enquiry is for a specific tour package you've listed.</p>
+            </Field>
+          )}
           <Field label="Destination">
             <input
               type="text"

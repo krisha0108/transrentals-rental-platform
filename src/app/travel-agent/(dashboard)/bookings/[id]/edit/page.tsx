@@ -15,11 +15,14 @@ export default function EditBookingPage({ params }: { params: { id: string } }) 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [bookingType, setBookingType] = useState('CUSTOM');
+  const [tours, setTours] = useState<any[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
 
   const [form, setForm] = useState({
     customerName: '',
     customerPhone: '',
     customerEmail: '',
+    referenceId: '',
     referenceTitle: '',
     pickupLocation: '',
     dropLocation: '',
@@ -47,6 +50,7 @@ export default function EditBookingPage({ params }: { params: { id: string } }) 
             customerName: b.customerName || '',
             customerPhone: b.customerPhone || '',
             customerEmail: b.customerEmail || '',
+            referenceId: b.referenceId || '',
             referenceTitle: b.referenceTitle || '',
             pickupLocation: b.pickupLocation || '',
             dropLocation: b.dropLocation || '',
@@ -69,6 +73,20 @@ export default function EditBookingPage({ params }: { params: { id: string } }) 
     };
     load();
   }, [id]);
+
+  // Load tours/properties for the reference picker (parity with the add page).
+  useEffect(() => {
+    (async () => {
+      try {
+        const [t, p] = await Promise.all([
+          fetch('/api/travel-agent/tours').then((r) => (r.ok ? r.json() : { tours: [] })),
+          fetch('/api/travel-agent/properties').then((r) => (r.ok ? r.json() : { properties: [] })),
+        ]);
+        setTours(t.tours || []);
+        setProperties(p.properties || []);
+      } catch { /* picker just stays empty → free-text fallback */ }
+    })();
+  }, []);
 
   const update = (k: keyof typeof form, v: any) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -108,6 +126,11 @@ export default function EditBookingPage({ params }: { params: { id: string } }) 
   }
 
   const isProperty = bookingType === 'PROPERTY';
+  const referenceOptions = isProperty
+    ? properties.map((p) => ({ value: p.id, label: p.name }))
+    : bookingType === 'TOUR'
+      ? tours.map((t) => ({ value: t.id, label: t.title }))
+      : [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -153,14 +176,36 @@ export default function EditBookingPage({ params }: { params: { id: string } }) 
               className={inputCls}
             />
           </Field>
-          <Field label="Reference Title">
-            <input
-              type="text"
-              value={form.referenceTitle}
-              onChange={(e) => update('referenceTitle', e.target.value)}
-              className={inputCls}
-            />
-          </Field>
+          {referenceOptions.length > 0 && (
+            <Field label={`Pick a ${isProperty ? 'property' : 'tour'} (optional)`}>
+              <select
+                value={form.referenceId}
+                onChange={(e) => {
+                  const opt = referenceOptions.find((o) => o.value === e.target.value);
+                  update('referenceId', e.target.value);
+                  update('referenceTitle', opt?.label || '');
+                }}
+                className={inputCls}
+              >
+                <option value="">— Custom (no reference) —</option>
+                {referenceOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+          {!form.referenceId && (
+            <Field label="Reference Title (free-text)">
+              <input
+                type="text"
+                value={form.referenceTitle}
+                onChange={(e) => update('referenceTitle', e.target.value)}
+                className={inputCls}
+              />
+            </Field>
+          )}
         </Section>
 
         <Section title="Trip Dates">

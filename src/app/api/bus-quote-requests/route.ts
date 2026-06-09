@@ -8,6 +8,7 @@ import { smartRateLimit, detectDuplicate, getClientIdentifier, hashBookingData }
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { sendQuoteRequestNotificationToVendors } from '@/lib/utils/vendor-notification-sender';
+import { createB2BBookingSafe } from '@/lib/b2b/booking-number';
 import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -247,10 +248,6 @@ export async function POST(request: NextRequest) {
           }
 
           const taBookingId = generateB2BId();
-          const taBookingNumber = `TA-CO-${new Date()
-            .getFullYear()}-${Math.floor(Math.random() * 100000)
-            .toString()
-            .padStart(5, '0')}`;
 
           const busPreference = {
             vehicleCategoryName: vehicleCategoryName || 'Standard Bus',
@@ -262,37 +259,29 @@ export async function POST(request: NextRequest) {
             routeDetails: routeDetails || null,
           };
 
-          const taBooking = await prisma.b2b_bookings.create({
-            data: {
-              id: taBookingId,
-              bookingNumber: taBookingNumber,
-              customerId: taCustomer.id,
-              customerName: taCustomer.name,
-              customerEmail: taCustomer.email,
-              customerPhone: resolvedCustomerPhone,
-              companyName: agencyName,
-              serviceType: 'bus',
-              vehiclesRequired: vehiclesReq,
-              passengerCount: passengers ? parseInt(String(passengers)) : null,
-              vehicleCategory: vehicleCategoryName || 'Standard Bus',
-              pickupLocation: pickupCity ? String(pickupCity).trim() : null,
-              dropLocation: dropCity ? String(dropCity).trim() : null,
-              tripType: tripType || 'outstation',
-              scheduledDate: new Date(pickupDate),
-              scheduledTime: pickupTime || '06:00',
-              returnDate: returnDate ? new Date(returnDate) : null,
-              returnTime: returnTime || null,
-              specialNotes: JSON.stringify(busPreference),
-              status: 'OPEN_FOR_QUOTES',
-            },
+          const taBooking = await createB2BBookingSafe('TA-CO', {
+            id: taBookingId,
+            customerId: taCustomer.id,
+            customerName: taCustomer.name,
+            customerEmail: taCustomer.email,
+            customerPhone: resolvedCustomerPhone,
+            companyName: agencyName,
+            serviceType: 'bus',
+            vehiclesRequired: vehiclesReq,
+            passengerCount: passengers ? parseInt(String(passengers)) : null,
+            vehicleCategory: vehicleCategoryName || 'Standard Bus',
+            pickupLocation: pickupCity ? String(pickupCity).trim() : null,
+            dropLocation: dropCity ? String(dropCity).trim() : null,
+            tripType: tripType || 'outstation',
+            scheduledDate: new Date(pickupDate),
+            scheduledTime: pickupTime || '06:00',
+            returnDate: returnDate ? new Date(returnDate) : null,
+            returnTime: returnTime || null,
+            specialNotes: JSON.stringify(busPreference),
+            status: 'OPEN_FOR_QUOTES',
+            travelAgentId: linkedTravelAgentId,
+            bookingMode: taBookingMode,
           });
-
-          await (prisma as any).$executeRawUnsafe(
-            `UPDATE b2b_bookings SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
-            linkedTravelAgentId,
-            taBookingMode,
-            taBooking.id,
-          );
 
           return NextResponse.json({
             success: true,

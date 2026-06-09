@@ -211,7 +211,13 @@ export default function CustomerB2BBookingDetailPage() {
 
   async function fetchBooking() {
     try {
-      const res = await fetch(`/api/b2b/bookings/${params.id}`);
+      const token =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('customerToken') || localStorage.getItem('token')
+          : null;
+      const res = await fetch(`/api/b2b/bookings/${params.id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       if (data.status === 'success') { setBooking(data.booking); setTripStats(data.tripStats); }
     } catch (e) { console.error(e); }

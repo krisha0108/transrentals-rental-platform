@@ -26,6 +26,8 @@ import fleetService from '../../services/fleetService';
 import api, { BASE_URL } from '../../api';
 import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
+import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
+import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
 
 /* ── Premium Dark Teal Design System ── */
 const TEAL_DEEP = '#064E3B';
@@ -131,6 +133,9 @@ const SelfDriveFleetScreen = () => {
   const [numberOfVehicles, setNumberOfVehicles] = useState('1');
   const [numberOfPersons, setNumberOfPersons] = useState('');
   const [isB2BCustomer, setIsB2BCustomer] = useState(false);
+
+  // Phase 7 — Travel Agent Personal/Company booking mode
+  const [taState, setTaState] = useState({ mode: 'PERSONAL', vehicleCount: '1', employeeCount: '' });
 
   // State for home delivery
   const [isDeliveryRequested, setIsDeliveryRequested] = useState(false);
@@ -308,6 +313,18 @@ const SelfDriveFleetScreen = () => {
         quoteRequestData.isB2B = true;
         quoteRequestData.numberOfVehicles = numberOfVehicles || '1';
         quoteRequestData.numberOfPersons = numberOfPersons || null;
+      }
+
+      // Phase 7 — TA fields (only when TA customer).
+      const isTA = isTravelAgentCustomer(customer);
+      if (isTA) {
+        quoteRequestData.taBookingMode = taState.mode;
+        quoteRequestData.numberOfVehicles = taState.mode === 'COMPANY'
+          ? (parseInt(taState.vehicleCount) || 1)
+          : 1;
+        quoteRequestData.numberOfEmployees = taState.mode === 'COMPANY' && taState.employeeCount
+          ? parseInt(taState.employeeCount)
+          : null;
       }
 
       const response = await fleetService.createSelfDriveQuoteRequest(quoteRequestData);
@@ -1112,6 +1129,9 @@ const SelfDriveFleetScreen = () => {
                 )}
               </View>
             )}
+
+            {/* Phase 7 — TA Personal/Company toggle (self-gated). */}
+            <TravelAgentBookingToggle value={taState} onChange={setTaState} />
 
             {/* Home Delivery Option */}
             <View style={styles.deliverySection}>

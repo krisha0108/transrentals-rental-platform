@@ -49,8 +49,10 @@
     "react-native-skeleton-placeholder": "^5.2.4",
     "react-native-svg": "^15.12.0",
     "react-native-vector-icons": "^10.2.0",
+    "react-native-view-shot": "^5.1.0",
     "react-native-webview": "^13.16.1",
-    "recyclerlistview": "^4.2.3"
+    "recyclerlistview": "^4.2.3",
+    "transrentals-web": "file:.."
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
