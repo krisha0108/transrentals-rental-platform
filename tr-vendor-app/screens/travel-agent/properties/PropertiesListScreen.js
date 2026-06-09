@@ -47,6 +47,24 @@ const TYPE_META = {
 const INR = (n) =>
   n == null || isNaN(Number(n)) ? null : `₹${Number(n).toLocaleString("en-IN")}`;
 
+const AMENITY_LABEL_MAP = {
+  wifi: "WiFi", ac: "AC", pool: "Pool", gym: "Gym", restaurant: "Restaurant",
+  free_parking: "Parking", elevator: "Lift", breakfast: "Breakfast", spa: "Spa",
+  rooftop: "Rooftop", garden: "Garden", bbq: "BBQ", beach_access: "Beach",
+  cctv: "CCTV", kitchen: "Kitchen", minibar: "Minibar", hot_water: "Hot Water",
+  tv: "TV", washer: "Washer", heating: "Heating", conference_room: "Conf. Room",
+};
+
+function parseAmenityIds(raw) {
+  if (!raw) return [];
+  try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; }
+}
+
+function completenessScore(p) {
+  const checks = [!!p.name, !!p.description, !!p.city, !!p.coverImage, !!p.startingPrice, !!p.amenities, !!p.inclusions];
+  return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+}
+
 export default function PropertiesListScreen({ navigation }) {
   const [properties, setProperties] = useState([]);
   const [stats, setStats] = useState(null);
@@ -190,39 +208,43 @@ export default function PropertiesListScreen({ navigation }) {
           <StatCell value={stats.active ?? 0} label="Active" icon="checkmark-circle" color={C.blue} />
           <View style={styles.statDivider} />
           <StatCell value={stats.published ?? 0} label="Public" icon="globe" color={C.purple} />
+          <View style={styles.statDivider} />
+          <StatCell value={stats.avgRating ?? "—"} label="Avg Rating" icon="star" color={C.amber} />
         </View>
       )}
 
       {/* ===== Type filter chips ===== */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chipsRow}
-        style={{ flexGrow: 0 }}
-      >
-        <Chip
-          label="All"
-          icon="apps"
-          count={properties.length}
-          active={typeFilter === "ALL"}
-          onPress={() => setTypeFilter("ALL")}
-          color={C.emerald600}
-        />
-        {PROPERTY_TYPE.map((t) => {
-          const meta = TYPE_META[t] || TYPE_META.OTHER;
-          return (
-            <Chip
-              key={t}
-              label={meta.label}
-              icon={meta.icon}
-              count={typeCounts[t] || 0}
-              active={typeFilter === t}
-              onPress={() => setTypeFilter(t)}
-              color={meta.color}
-            />
-          );
-        })}
-      </ScrollView>
+      <View style={styles.filterWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+        >
+          <TypeChip
+            label="All"
+            icon="apps"
+            count={properties.length}
+            active={typeFilter === "ALL"}
+            onPress={() => setTypeFilter("ALL")}
+            color={C.emerald600}
+          />
+          {PROPERTY_TYPE.map((t) => {
+            const meta = TYPE_META[t] || TYPE_META.OTHER;
+            const cnt = typeCounts[t] || 0;
+            return (
+              <TypeChip
+                key={t}
+                label={meta.label}
+                icon={meta.icon}
+                count={cnt}
+                active={typeFilter === t}
+                onPress={() => setTypeFilter(t)}
+                color={meta.color}
+              />
+            );
+          })}
+        </ScrollView>
+      </View>
 
       {error && (
         <View style={styles.errorBox}>
@@ -330,42 +352,33 @@ function StatCell({ value, label, icon, color }) {
   );
 }
 
-function Chip({ label, icon, count, active, onPress, color }) {
+function TypeChip({ label, icon, count, active, onPress, color }) {
   return (
     <TouchableOpacity
       onPress={onPress}
-      style={[
-        styles.chip,
-        active && { backgroundColor: `${color}18`, borderColor: color },
-      ]}
-      activeOpacity={0.85}
+      activeOpacity={0.78}
+      style={styles.typeChipWrap}
     >
-      <Ionicons name={icon} size={13} color={active ? color : C.subText} />
-      <Text
-        style={[
-          styles.chipText,
-          active && { color, fontWeight: "800" },
-        ]}
-      >
+      <View style={[
+        styles.typeChipIcon,
+        active
+          ? { backgroundColor: color }
+          : { backgroundColor: C.card, borderColor: C.border, borderWidth: 1 },
+      ]}>
+        <Ionicons name={icon} size={20} color={active ? "#fff" : C.subText} />
+        {count > 0 && (
+          <View style={[styles.typeChipBadge, { backgroundColor: active ? "rgba(255,255,255,0.3)" : C.emerald50 }]}>
+            <Text style={[styles.typeChipBadgeText, { color: active ? "#fff" : C.emerald700 }]}>{count}</Text>
+          </View>
+        )}
+      </View>
+      <Text style={[
+        styles.typeChipLabel,
+        active && { color, fontWeight: "800" },
+      ]}>
         {label}
       </Text>
-      {count > 0 && (
-        <View
-          style={[
-            styles.chipBadge,
-            active && { backgroundColor: color },
-          ]}
-        >
-          <Text
-            style={[
-              styles.chipBadgeText,
-              active && { color: "#fff" },
-            ]}
-          >
-            {count}
-          </Text>
-        </View>
-      )}
+      {active && <View style={[styles.typeChipDot, { backgroundColor: color }]} />}
     </TouchableOpacity>
   );
 }
@@ -376,47 +389,47 @@ function PropertyCard({ property, onPress, onToggleActive, onTogglePublish, onDe
   const priceLabel = INR(property.startingPrice);
   const meta = TYPE_META[property.propertyType] || TYPE_META.OTHER;
   const cityLine = [property.city, property.state].filter(Boolean).join(", ");
+  const amenityIds = parseAmenityIds(property.amenities);
+  const topAmenities = amenityIds.slice(0, 4).map((id) => AMENITY_LABEL_MAP[id]).filter(Boolean);
+  const pct = completenessScore(property);
+  const hasRating = (property.totalRatings || 0) > 0;
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.92}>
-      {/* Cover image (180px hero) */}
+      {/* Cover */}
       <View style={styles.coverWrap}>
         {property.coverImage ? (
-          <RemoteImage
-            source={{ uri: property.coverImage }}
-            style={styles.cover}
-            resizeMode="cover"
-          />
+          <RemoteImage source={{ uri: property.coverImage }} style={styles.cover} resizeMode="cover" />
         ) : (
-          <LinearGradient
-            colors={[`${meta.color}22`, `${meta.color}08`]}
-            style={[styles.cover, styles.coverPlaceholder]}
-          >
+          <LinearGradient colors={[`${meta.color}22`, `${meta.color}08`]} style={[styles.cover, styles.coverPlaceholder]}>
             <Ionicons name={meta.icon} size={44} color={meta.color} />
+            <Text style={{ color: meta.color, fontSize: 11, fontWeight: "700", marginTop: 4 }}>No photo</Text>
           </LinearGradient>
         )}
+        <LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.55)"]} style={styles.coverOverlay} />
 
-        {/* Gradient overlay (bottom-up) for text readability */}
-        <LinearGradient
-          colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.55)"]}
-          style={styles.coverOverlay}
-        />
-
-        {/* Top-left type pill (color-themed) */}
         <View style={[styles.typePill, { backgroundColor: meta.color }]}>
           <Ionicons name={meta.icon} size={11} color="#fff" />
           <Text style={styles.typePillText}>{meta.label}</Text>
         </View>
 
-        {/* Top-right public badge */}
-        {property.isPublic && (
+        {isPublic ? (
           <View style={styles.publicBadge}>
             <Ionicons name="globe" size={10} color="#fff" />
-            <Text style={styles.publicBadgeText}>PUBLIC</Text>
+            <Text style={styles.publicBadgeText}>PUBLISHED</Text>
+          </View>
+        ) : (
+          <View style={styles.globeOnlyBadge}>
+            <Ionicons name="globe-outline" size={16} color="rgba(255,255,255,0.85)" />
           </View>
         )}
 
-        {/* Bottom: title + city laid over the dark gradient overlay */}
+        {priceLabel && (
+          <View style={styles.priceBadge}>
+            <Text style={styles.priceBadgeText}>{priceLabel}<Text style={{ fontSize: 9, fontWeight: "600" }}>/night</Text></Text>
+          </View>
+        )}
+
         <View style={styles.coverFooter}>
           <Text style={styles.coverTitle} numberOfLines={1}>{property.name}</Text>
           {!!cityLine && (
@@ -428,79 +441,95 @@ function PropertyCard({ property, onPress, onToggleActive, onTogglePublish, onDe
         </View>
       </View>
 
-      {/* Body: rooms + price + chevron */}
+      {/* Body */}
       <View style={styles.cardBody}>
+        {/* Rating + bookings */}
+        <View style={styles.ratingRow}>
+          {hasRating ? (
+            <View style={styles.starsWrap}>
+              <Ionicons name="star" size={12} color="#F59E0B" />
+              <Text style={styles.ratingText}>{(property.rating || 0).toFixed(1)}</Text>
+              <Text style={styles.ratingCount}>({property.totalRatings})</Text>
+            </View>
+          ) : (
+            <Text style={styles.noRating}>No reviews yet</Text>
+          )}
+          {property.totalBookings > 0 && (
+            <Text style={styles.bookingCount}>· {property.totalBookings} booking{property.totalBookings !== 1 ? "s" : ""}</Text>
+          )}
+        </View>
+
+        {/* Capacity row */}
         <View style={styles.metaPills}>
           {property.totalRooms > 0 && (
             <View style={styles.metaPill}>
               <Ionicons name="bed" size={11} color={C.text} />
-              <Text style={styles.metaPillText}>
-                {property.totalRooms} {property.totalRooms > 1 ? "rooms" : "room"}
-              </Text>
+              <Text style={styles.metaPillText}>{property.totalRooms} rooms</Text>
             </View>
           )}
-          {property.totalCapacity > 0 && (
+          {property.bedroomsCount > 0 && (
+            <View style={styles.metaPill}>
+              <Ionicons name="bed-outline" size={11} color={C.text} />
+              <Text style={styles.metaPillText}>{property.bedroomsCount} bed{property.bedroomsCount !== 1 ? "s" : ""}</Text>
+            </View>
+          )}
+          {property.bathroomsCount > 0 && (
+            <View style={styles.metaPill}>
+              <Ionicons name="water-outline" size={11} color={C.text} />
+              <Text style={styles.metaPillText}>{property.bathroomsCount} bath{property.bathroomsCount !== 1 ? "s" : ""}</Text>
+            </View>
+          )}
+          {property.maxGuests > 0 && (
             <View style={styles.metaPill}>
               <Ionicons name="people" size={11} color={C.text} />
-              <Text style={styles.metaPillText}>{property.totalCapacity} guests</Text>
-            </View>
-          )}
-          {property.status && property.status !== "ACTIVE" && (
-            <View
-              style={[
-                styles.metaPill,
-                {
-                  backgroundColor:
-                    property.status === "INACTIVE" ? C.amberLight : "#FEE2E2",
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.metaPillText,
-                  {
-                    color:
-                      property.status === "INACTIVE" ? C.amber : C.red,
-                    fontWeight: "800",
-                  },
-                ]}
-              >
-                {property.status}
-              </Text>
+              <Text style={styles.metaPillText}>{property.maxGuests} guests</Text>
             </View>
           )}
         </View>
 
-        <View style={styles.priceRow}>
-          {priceLabel ? (
-            <View>
-              <Text style={styles.priceFromLabel}>Starting from</Text>
-              <Text style={styles.priceLabel}>
-                {priceLabel} <Text style={styles.priceUnit}>/ night</Text>
-              </Text>
-            </View>
-          ) : (
-            <Text style={styles.priceOnRequest}>Price on request</Text>
-          )}
-          <View style={styles.chevWrap}>
-            <Ionicons name="chevron-forward" size={18} color={C.emerald600} />
+        {/* Amenity chips */}
+        {topAmenities.length > 0 && (
+          <View style={styles.amenityChipsRow}>
+            {topAmenities.map((label) => (
+              <View key={label} style={styles.amenityChipSmall}>
+                <Text style={styles.amenityChipSmallText}>{label}</Text>
+              </View>
+            ))}
+            {amenityIds.length > 4 && (
+              <View style={[styles.amenityChipSmall, { backgroundColor: C.emerald50 }]}>
+                <Text style={[styles.amenityChipSmallText, { color: C.emerald700 }]}>+{amenityIds.length - 4}</Text>
+              </View>
+            )}
           </View>
-        </View>
+        )}
 
-        {/* E4 — active + publish toggles + delete */}
+        {/* Completeness bar */}
+        {pct < 100 && (
+          <View style={styles.completenessWrap}>
+            <View style={styles.completenessHeader}>
+              <Text style={styles.completenessLabel}>Profile {pct}% complete</Text>
+            </View>
+            <View style={styles.completenessTrack}>
+              <View style={[styles.completenessBar, {
+                width: `${pct}%`,
+                backgroundColor: pct >= 70 ? C.amber : C.red,
+              }]} />
+            </View>
+          </View>
+        )}
+
+        {/* Actions */}
         <View style={styles.propActions}>
           <TouchableOpacity
             style={[styles.propActBtn, { backgroundColor: isActive ? C.emerald50 : C.amberLight }]}
-            onPress={onToggleActive}
-            activeOpacity={0.85}
+            onPress={onToggleActive} activeOpacity={0.85}
           >
             <Ionicons name={isActive ? "checkmark-circle" : "pause-circle"} size={14} color={isActive ? C.emerald600 : C.amber} />
             <Text style={[styles.propActText, { color: isActive ? C.emerald600 : C.amber }]}>{isActive ? "Active" : "Inactive"}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.propActBtn, { backgroundColor: isPublic ? "#EDE9FE" : "#F1F5F9" }]}
-            onPress={onTogglePublish}
-            activeOpacity={0.85}
+            onPress={onTogglePublish} activeOpacity={0.85}
           >
             <Ionicons name={isPublic ? "globe" : "globe-outline"} size={14} color={isPublic ? C.purple : C.subText} />
             <Text style={[styles.propActText, { color: isPublic ? C.purple : C.subText }]}>{isPublic ? "Public" : "Publish"}</Text>
@@ -548,16 +577,29 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 10.5, color: C.subText, fontWeight: "700", marginTop: 1, letterSpacing: 0.3 },
   statDivider: { width: 1, height: 28, backgroundColor: C.border },
 
-  // Type filter chips
-  chipsRow: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 8, gap: 8, flexDirection: "row" },
-  chip: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999,
-    backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
+  // Type filter
+  filterWrap: {
+    backgroundColor: C.card,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+    shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
-  chipText: { fontSize: 12, color: C.text, fontWeight: "600" },
-  chipBadge: { minWidth: 18, paddingHorizontal: 5, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#E2E8F0" },
-  chipBadgeText: { fontSize: 10, fontWeight: "800", color: C.text },
+  chipsRow: { paddingHorizontal: 12, paddingVertical: 10, gap: 4 },
+  typeChipWrap: { alignItems: "center", paddingHorizontal: 10, paddingVertical: 6 },
+  typeChipIcon: {
+    width: 52, height: 52, borderRadius: 16,
+    alignItems: "center", justifyContent: "center",
+    position: "relative",
+  },
+  typeChipBadge: {
+    position: "absolute", top: -4, right: -4,
+    minWidth: 16, height: 16, borderRadius: 8,
+    alignItems: "center", justifyContent: "center",
+    paddingHorizontal: 3,
+  },
+  typeChipBadgeText: { fontSize: 9, fontWeight: "800" },
+  typeChipLabel: { fontSize: 10.5, color: C.subText, fontWeight: "600", marginTop: 5, textAlign: "center" },
+  typeChipDot: { width: 4, height: 4, borderRadius: 2, marginTop: 3 },
 
   errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginVertical: 6, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
   errorText: { color: C.red, fontSize: 12.5, flex: 1 },
@@ -605,6 +647,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(16,185,129,0.95)",
   },
   publicBadgeText: { color: "#fff", fontSize: 10, fontWeight: "800", letterSpacing: 0.4 },
+  globeOnlyBadge: {
+    position: "absolute", top: 10, right: 10,
+    width: 28, height: 28, borderRadius: 14,
+    alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
 
   // Body
   cardBody: { padding: 14 },
@@ -612,15 +660,32 @@ const styles = StyleSheet.create({
   metaPill: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: "#F1F5F9" },
   metaPillText: { fontSize: 11, color: C.text, fontWeight: "700" },
 
-  priceRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  priceFromLabel: { fontSize: 10, color: C.subText, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase" },
-  priceLabel: { fontSize: 16, color: C.emerald700, fontWeight: "900", marginTop: 1 },
-  priceUnit: { fontSize: 11, color: C.subText, fontWeight: "600" },
-  priceOnRequest: { fontSize: 13, color: C.subText, fontWeight: "700", fontStyle: "italic" },
-  chevWrap: { width: 30, height: 30, borderRadius: 15, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center" },
+  // Price badge on image
+  priceBadge: { position: "absolute", bottom: 44, right: 12, backgroundColor: "rgba(255,255,255,0.95)", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  priceBadgeText: { color: C.emerald700, fontSize: 12, fontWeight: "800" },
+
+  // Rating row
+  ratingRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 },
+  starsWrap: { flexDirection: "row", alignItems: "center", gap: 3 },
+  ratingText: { fontSize: 12.5, fontWeight: "800", color: C.amber },
+  ratingCount: { fontSize: 11, color: C.subText, fontWeight: "600" },
+  noRating: { fontSize: 11.5, color: C.subText, fontStyle: "italic" },
+  bookingCount: { fontSize: 11, color: C.subText },
+
+  // Amenity chips (small, on list card)
+  amenityChipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 5, marginBottom: 8 },
+  amenityChipSmall: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: "#F1F5F9" },
+  amenityChipSmallText: { fontSize: 10.5, fontWeight: "700", color: C.text },
+
+  // Completeness bar
+  completenessWrap: { marginBottom: 10 },
+  completenessHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
+  completenessLabel: { fontSize: 10.5, color: C.subText, fontWeight: "600" },
+  completenessTrack: { height: 4, backgroundColor: "#E2E8F0", borderRadius: 2, overflow: "hidden" },
+  completenessBar: { height: "100%", borderRadius: 2 },
 
   // E4 actions
-  propActions: { flexDirection: "row", gap: 8, marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border },
+  propActions: { flexDirection: "row", gap: 8, paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border },
   propActBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 8, borderRadius: 8 },
   propActDel: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, backgroundColor: "#FEF2F2" },
   propActText: { fontSize: 12, fontWeight: "800" },

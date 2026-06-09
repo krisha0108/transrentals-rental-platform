@@ -157,6 +157,7 @@ export async function POST(request: NextRequest) {
       priority,
       assignedToName,
       nextFollowUp,
+      tourId,
     } = body;
 
     if (!customerName || !customerPhone) {
@@ -186,6 +187,7 @@ export async function POST(request: NextRequest) {
         priority: VALID_PRIORITY.includes(priority) ? priority : 'WARM',
         assignedToName: assignedToName || null,
         nextFollowUp: nextFollowUp ? new Date(nextFollowUp) : null,
+        tourId: tourId || null,
       },
     });
 

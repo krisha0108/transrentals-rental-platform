@@ -6,8 +6,8 @@
 // (user requested).
 //
 // Backend: GET / POST (multipart) / DELETE on /api/travel-agent/documents.
-// Required: GST_CERTIFICATE, PAN_CARD, ADDRESS_PROOF. Backend auto-promotes
-// status to UNDER_REVIEW once all 3 are uploaded.
+// Required: ADDRESS_PROOF only (GST & PAN are now optional). Backend auto-promotes
+// status to UNDER_REVIEW once the required doc(s) are uploaded.
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Image,
@@ -51,9 +51,9 @@ const C = {
 // Per-type meta: icon (Ionicons), accent color, hint text. `required` flag is
 // the source of truth for which docs the backend enforces.
 const DOC_META = {
-  GST_CERTIFICATE:      { label: "GST Certificate",     icon: "receipt",          color: C.emerald600, required: true,  hint: "Download from gst.gov.in" },
-  PAN_CARD:             { label: "PAN Card",            icon: "card",             color: C.blue,       required: true,  hint: "Front side, clearly visible" },
   ADDRESS_PROOF:        { label: "Address Proof",       icon: "home",             color: C.amber,      required: true,  hint: "Aadhaar / Electricity / Rental" },
+  GST_CERTIFICATE:      { label: "GST Certificate",     icon: "receipt",          color: C.emerald600, required: false, hint: "Download from gst.gov.in" },
+  PAN_CARD:             { label: "PAN Card",            icon: "card",             color: C.blue,       required: false, hint: "Front side, clearly visible" },
   AGENCY_REGISTRATION:  { label: "Agency Registration", icon: "business",         color: C.purple,     required: false, hint: "Shop & Establishment / Partnership" },
   IATA_CERTIFICATE:     { label: "IATA Certificate",    icon: "airplane",         color: "#06B6D4",    required: false, hint: "If applicable" },
   TRAVEL_AGENT_LICENSE: { label: "Travel Agent License", icon: "ribbon",          color: "#EC4899",    required: false, hint: "State-issued license" },

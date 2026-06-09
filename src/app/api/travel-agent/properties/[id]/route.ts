@@ -68,10 +68,18 @@ export async function PATCH(
       city,
       state,
       pincode,
+      landmark,
       latitude,
       longitude,
       totalRooms,
+      bedroomsCount,
+      bathroomsCount,
+      maxGuests,
       startingPrice,
+      minNights,
+      maxNights,
+      cancellationPolicy,
+      highlights,
       amenities,
       inclusions,
       exclusions,
@@ -109,11 +117,19 @@ export async function PATCH(
     if (city !== undefined) updateData.city = city || null;
     if (state !== undefined) updateData.state = state || null;
     if (pincode !== undefined) updateData.pincode = pincode || null;
+    if (landmark !== undefined) updateData.landmark = landmark || null;
     if (latitude !== undefined) updateData.latitude = latitude ? Number(latitude) : null;
     if (longitude !== undefined) updateData.longitude = longitude ? Number(longitude) : null;
     if (totalRooms !== undefined) updateData.totalRooms = Number(totalRooms) || 1;
+    if (bedroomsCount !== undefined) updateData.bedroomsCount = bedroomsCount ? Number(bedroomsCount) : null;
+    if (bathroomsCount !== undefined) updateData.bathroomsCount = bathroomsCount ? Number(bathroomsCount) : null;
+    if (maxGuests !== undefined) updateData.maxGuests = maxGuests ? Number(maxGuests) : null;
     if (startingPrice !== undefined)
       updateData.startingPrice = startingPrice ? Number(startingPrice) : null;
+    if (minNights !== undefined) updateData.minNights = minNights ? Number(minNights) : 1;
+    if (maxNights !== undefined) updateData.maxNights = maxNights ? Number(maxNights) : null;
+    if (cancellationPolicy !== undefined) updateData.cancellationPolicy = cancellationPolicy || null;
+    if (highlights !== undefined) updateData.highlights = highlights || null;
     if (amenities !== undefined) updateData.amenities = amenities || null;
     if (inclusions !== undefined) updateData.inclusions = inclusions || null;
     if (exclusions !== undefined) updateData.exclusions = exclusions || null;

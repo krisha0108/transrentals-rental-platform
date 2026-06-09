@@ -128,6 +128,7 @@ const SECTIONS = [
       { key: "TANotifications", icon: "notifications", label: "Notifications",  color: C.red },
       { key: "TADocuments",     icon: "document-text", label: "Documents",      color: C.amber },
       { key: "TAProfile",       icon: "person",        label: "Agency Profile", color: C.emerald600 },
+      { key: "TASupport",       icon: "help-circle",   label: "Help & Support", color: C.blue },
       { key: "TAGetStarted",    icon: "rocket",        label: "Get Started",    color: C.purple },
     ],
   },
@@ -396,18 +397,43 @@ export default function MoreScreen({ navigation }) {
           </View>
         ))}
 
-        {/* ===== Logout ===== */}
-        <TouchableOpacity
-          style={styles.logoutBtn}
-          onPress={handleLogout}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="log-out-outline" size={16} color={C.red} />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
+        {/* ===== Logout card ===== */}
+        <View style={styles.logoutCard}>
+          {/* User info row */}
+          <View style={styles.logoutUserRow}>
+            <LinearGradient
+              colors={[aColor, shade(aColor, -18)]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.logoutAvatar}
+            >
+              <Text style={styles.logoutAvatarText}>{initials(agencyName)}</Text>
+            </LinearGradient>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.logoutName} numberOfLines={1}>{agencyName}</Text>
+              {!!agent?.email && (
+                <Text style={styles.logoutEmail} numberOfLines={1}>{agent.email}</Text>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.logoutDivider} />
+
+          {/* Logout button */}
+          <TouchableOpacity
+            style={styles.logoutBtn}
+            onPress={handleLogout}
+            activeOpacity={0.82}
+          >
+            <View style={styles.logoutIconWrap}>
+              <Ionicons name="log-out-outline" size={18} color={C.red} />
+            </View>
+            <Text style={styles.logoutText}>Log Out</Text>
+            <Ionicons name="chevron-forward" size={16} color="#FCA5A5" />
+          </TouchableOpacity>
+        </View>
 
         {/* App version footer */}
-        <Text style={styles.versionText}>TransRentals · Travel Agent</Text>
+        <Text style={styles.versionText}>TransRentals · Travel Agent · v1.0</Text>
       </ScrollView>
     </View>
   );
@@ -514,13 +540,37 @@ const styles = StyleSheet.create({
   gatedBadge: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: C.amberLight },
   gatedBadgeText: { color: "#A16207", fontSize: 9, fontWeight: "900", letterSpacing: 0.4 },
 
-  // Logout
-  logoutBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-    marginHorizontal: 14, marginTop: 22, paddingVertical: 14, borderRadius: 14,
-    backgroundColor: C.card, borderWidth: 1.5, borderColor: "#FCA5A5",
+  // Logout card
+  logoutCard: {
+    marginHorizontal: 14, marginTop: 22,
+    backgroundColor: C.card, borderRadius: 16,
+    borderWidth: 1, borderColor: C.border,
+    overflow: "hidden",
+    shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 2,
   },
-  logoutText: { color: C.red, fontWeight: "900", fontSize: 13.5, letterSpacing: 0.3 },
+  logoutUserRow: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingHorizontal: 14, paddingVertical: 14,
+  },
+  logoutAvatar: {
+    width: 44, height: 44, borderRadius: 13,
+    alignItems: "center", justifyContent: "center",
+  },
+  logoutAvatarText: { color: "#fff", fontWeight: "900", fontSize: 15 },
+  logoutName: { fontSize: 14, fontWeight: "800", color: C.ink },
+  logoutEmail: { fontSize: 11.5, color: C.subText, fontWeight: "600", marginTop: 2 },
+  logoutDivider: { height: 1, backgroundColor: "#FEE2E2", marginHorizontal: 0 },
+  logoutBtn: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    paddingHorizontal: 14, paddingVertical: 14,
+    backgroundColor: "#FFF5F5",
+  },
+  logoutIconWrap: {
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: "#FEE2E2",
+    alignItems: "center", justifyContent: "center",
+  },
+  logoutText: { flex: 1, color: C.red, fontWeight: "800", fontSize: 14 },
 
-  versionText: { fontSize: 10.5, color: C.subText, textAlign: "center", marginTop: 14, fontWeight: "700", letterSpacing: 0.5 },
+  versionText: { fontSize: 10.5, color: C.subText, textAlign: "center", marginTop: 16, marginBottom: 4, fontWeight: "700", letterSpacing: 0.5 },
 });

@@ -40,6 +40,7 @@ import {
   unassignTravelAgentLeadVehicle,
   startTravelAgentChatFromLead,
   listTravelAgentFleet,
+  listTravelAgentBankAccounts,
   LEAD_STATUS,
   LEAD_PRIORITY,
 } from "../../api/travelAgentClient";
@@ -161,6 +162,9 @@ export default function LeadDetailScreen({ navigation, route }) {
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
+
+  // Bank gate modal
+  const [showBankGate, setShowBankGate] = useState(false);
 
   // A1 — Quote modal
   const [showQuoteModal, setShowQuoteModal] = useState(false);
@@ -415,8 +419,21 @@ export default function LeadDetailScreen({ navigation, route }) {
   };
 
   // ── A1: Quote ──
-  const openQuoteModal = () => {
+  const openQuoteModal = async () => {
     if (!lead) return;
+
+    // Bank details check — customer advance payment requires a bank account
+    try {
+      const bankRes = await listTravelAgentBankAccounts();
+      const accounts = bankRes?.accounts || [];
+      if (accounts.length === 0) {
+        setShowBankGate(true);
+        return;
+      }
+    } catch {
+      // If check fails, allow proceeding (don't block on network error)
+    }
+
     setQAmount(lead.quotedAmount != null ? String(lead.quotedAmount) : (lead.estimatedValue != null ? String(lead.estimatedValue) : ""));
     if (lead.quoteAdvanceAmount != null) {
       setQAdvMode("FIXED");
@@ -899,10 +916,44 @@ export default function LeadDetailScreen({ navigation, route }) {
           })
         )}
 
+        {/* ===== Source Tour ===== */}
+        {!!lead.sourceTour && (
+          <>
+            <SectionLabel icon="map" label="SOURCE TOUR" />
+            <TouchableOpacity
+              style={[styles.card, { flexDirection: "row", alignItems: "center", gap: 12 }]}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate("TATourPreview", { id: lead.sourceTour.id })}
+            >
+              {!!lead.sourceTour.coverImage ? (
+                <RemoteImage
+                  source={{ uri: lead.sourceTour.coverImage }}
+                  style={{ width: 56, height: 56, borderRadius: 10, backgroundColor: C.border }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={{ width: 56, height: 56, borderRadius: 10, backgroundColor: C.emerald50, alignItems: "center", justifyContent: "center" }}>
+                  <Ionicons name="map" size={24} color={C.emerald600} />
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 13, fontWeight: "800", color: C.ink }} numberOfLines={2}>
+                  {lead.sourceTour.title}
+                </Text>
+                <Text style={{ fontSize: 11, color: C.subText, marginTop: 3 }}>
+                  This lead came from a tour inquiry
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={C.subText} />
+            </TouchableOpacity>
+          </>
+        )}
+
         {/* ===== Meta ===== */}
         <SectionLabel icon="information-circle" label="LEAD META" />
         <View style={styles.card}>
           <InfoRow icon="git-network" label="Source" value={lead.source || "—"} />
+          {!!lead.captureLink && <InfoRow icon="link" label="Capture link" value={lead.captureLink.title || lead.captureLink.slug} />}
           <InfoRow icon="person-circle" label="Assigned to" value={lead.assignedToName || "—"} />
           <InfoRow icon="time-outline" label="Created" value={formatRelative(lead.createdAt)} />
           {!!lead.lostReason && <InfoRow icon="alert-circle" label="Lost reason" value={lead.lostReason} />}
@@ -1271,6 +1322,47 @@ export default function LeadDetailScreen({ navigation, route }) {
                   <Text style={styles.modalPrimaryBtnText}>Assign vehicle</Text>
                 </>
               )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Bank Gate Modal ── */}
+      <Modal visible={showBankGate} transparent animationType="fade" onRequestClose={() => setShowBankGate(false)}>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
+          <View style={{ backgroundColor: "#fff", borderRadius: 24, padding: 28, width: "100%", alignItems: "center" }}>
+            {/* Icon */}
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: "#FEF3C7", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+              <Ionicons name="card" size={34} color={C.amber} />
+            </View>
+
+            {/* Title */}
+            <Text style={{ fontSize: 18, fontWeight: "800", color: C.ink, textAlign: "center", marginBottom: 10 }}>
+              Bank Details Required
+            </Text>
+
+            {/* Description */}
+            <Text style={{ fontSize: 13.5, color: C.subText, textAlign: "center", lineHeight: 21, marginBottom: 28 }}>
+              Add a bank account before sending a quote.{"\n"}
+              Customers pay the advance directly to your account — without it, you can't receive payments.
+            </Text>
+
+            {/* Add Bank Details button */}
+            <TouchableOpacity
+              style={{ width: "100%", backgroundColor: C.emerald600, borderRadius: 14, paddingVertical: 15, alignItems: "center", marginBottom: 12 }}
+              activeOpacity={0.85}
+              onPress={() => { setShowBankGate(false); navigation.navigate("TABankDetails"); }}
+            >
+              <Text style={{ fontSize: 15, fontWeight: "800", color: "#fff" }}>Add Bank Details</Text>
+            </TouchableOpacity>
+
+            {/* Cancel */}
+            <TouchableOpacity
+              style={{ paddingVertical: 10 }}
+              activeOpacity={0.7}
+              onPress={() => setShowBankGate(false)}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "700", color: C.subText }}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>

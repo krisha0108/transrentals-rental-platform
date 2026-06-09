@@ -6,7 +6,7 @@
 //
 // POST /api/travel-agent/leads      (create)
 // PATCH /api/travel-agent/leads/[id] (edit)
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -28,6 +28,7 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import {
   createTravelAgentLead,
   updateTravelAgentLead,
+  listTravelAgentTours,
   LEAD_PRIORITY,
   LEAD_SOURCE,
 } from "../../api/travelAgentClient";
@@ -105,6 +106,7 @@ export default function AddEditLeadScreen({ navigation, route }) {
     customerEmail: existing?.customerEmail || "",
     source: existing?.source || "MANUAL",
     tripType: existing?.tripType || "",
+    tourId: existing?.tourId || "",
     pickupLocation: existing?.pickupLocation || "",
     dropLocation: existing?.dropLocation || "",
     destination: existing?.destination || "",
@@ -118,10 +120,18 @@ export default function AddEditLeadScreen({ navigation, route }) {
     assignedToName: existing?.assignedToName || "",
     nextFollowUp: existing?.nextFollowUp || null,
   }));
+  const [tours, setTours] = useState([]);
   const [saving, setSaving] = useState(false);
   const [pickerType, setPickerType] = useState(null);
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [showTripTypeModal, setShowTripTypeModal] = useState(false);
+  const [showTourModal, setShowTourModal] = useState(false);
+
+  useEffect(() => {
+    listTravelAgentTours({ status: "ACTIVE" })
+      .then((d) => setTours(d?.tours || []))
+      .catch(() => {});
+  }, []);
 
   const update = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -142,6 +152,7 @@ export default function AddEditLeadScreen({ navigation, route }) {
       customerEmail: form.customerEmail.trim() || null,
       source: form.source || "MANUAL",
       tripType: form.tripType || null,
+      tourId: form.tourId || null,
       pickupLocation: form.pickupLocation.trim() || null,
       dropLocation: form.dropLocation.trim() || null,
       destination: form.destination.trim() || null,
@@ -174,6 +185,7 @@ export default function AddEditLeadScreen({ navigation, route }) {
   };
 
   const selectedTripType = TRIP_TYPES.find((t) => t.value === form.tripType);
+  const selectedTour = tours.find((t) => t.id === form.tourId);
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
@@ -270,6 +282,17 @@ export default function AddEditLeadScreen({ navigation, route }) {
                 onClear={form.tripType ? () => update("tripType", "") : null}
               />
             </Field>
+            {tours.length > 0 && (
+              <Field label="Link to tour (optional)">
+                <PickerBtn
+                  value={selectedTour?.title}
+                  placeholder="Select a tour package"
+                  leftIcon="map"
+                  onPress={() => setShowTourModal(true)}
+                  onClear={form.tourId ? () => update("tourId", "") : null}
+                />
+              </Field>
+            )}
             <Field label="Destination">
               <TextInput
                 style={styles.input}
@@ -494,6 +517,19 @@ export default function AddEditLeadScreen({ navigation, route }) {
         selected={form.tripType}
         onClose={() => setShowTripTypeModal(false)}
         onSelect={(v) => { update("tripType", v); setShowTripTypeModal(false); }}
+      />
+
+      {/* Tour picker modal */}
+      <PickerModal
+        visible={showTourModal}
+        title="Link to tour"
+        options={[
+          { value: "", label: "— Not linked to a tour —", icon: "close-circle-outline" },
+          ...tours.map((t) => ({ value: t.id, label: t.title, icon: "map" })),
+        ]}
+        selected={form.tourId}
+        onClose={() => setShowTourModal(false)}
+        onSelect={(v) => { update("tourId", v); setShowTourModal(false); }}
       />
     </View>
   );

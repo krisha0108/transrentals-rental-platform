@@ -63,7 +63,8 @@ function shade(hex, pct) {
   );
 }
 
-export default function CreatePostScreen({ navigation }) {
+export default function CreatePostScreen({ navigation, route }) {
+  const preSelectSOS = !!route?.params?.isSOS;
   const [content, setContent] = useState("");
   const [images, setImages] = useState([]);
   const [categoryId, setCategoryId] = useState(null);
@@ -78,6 +79,11 @@ export default function CreatePostScreen({ navigation }) {
         const data = await listSocialCategories();
         const list = Array.isArray(data) ? data : data?.categories || [];
         setCategories(list);
+        // Pre-select first SOS category if launched via SOS shortcut
+        if (preSelectSOS) {
+          const first = list.find((c) => c.isSOS);
+          if (first) setCategoryId(first.id);
+        }
       } catch (e) {
         console.log("[CreatePost] categories load failed:", e?.message);
       }
@@ -88,9 +94,9 @@ export default function CreatePostScreen({ navigation }) {
         if (ta) setAgent(ta);
       } catch {}
     })();
-  }, []);
+  }, [preSelectSOS]);
 
-  const canSubmit = content.trim().length >= 2 && !posting;
+  const canSubmit = content.trim().length >= 2 && !!categoryId && !posting;
   const charsLeft = MAX_CHARS - content.length;
   const overLimit = content.length > MAX_CHARS;
   const showWarn = content.length >= WARN_AT;

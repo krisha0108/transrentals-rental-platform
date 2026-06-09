@@ -25,6 +25,8 @@ import {
   createTravelAgentTour,
   replaceTravelAgentTour, // PUT — auto-flips isPublic based on status
   deleteTravelAgentTour,
+  getTravelAgentProfile, // for the KYC-document gate before creating tours
+  generateTourDescription, // AI: short description from title
   listTravelAgentCategories,
   searchTravelAgentLocations,
   listTravelAgentFleet,
@@ -33,6 +35,7 @@ import {
   TOUR_CANCELLATION_POLICY,
 } from "../../api/travelAgentClient";
 import ImagePickerField from "../_shared/ImagePickerField";
+import RemoteImage from "../_shared/RemoteImage"; // resolves relative /uploads URLs
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const TOUR_DRAFT_KEY = "ta_tour_draft_v1"; // #6d — only used for new (un-saved) tours
@@ -69,6 +72,40 @@ const CANCEL_META = {
   MODERATE: { label: "Moderate", color: C.amber, bg: C.amberLight, desc: "Partial refund window" },
   STRICT:   { label: "Strict",   color: C.red,   bg: C.redLight,   desc: "Limited / no refund" },
 };
+
+// #6c — Quick-add duration presets (mirrors the web quick-add page).
+const DURATION_OPTIONS = [
+  "Half Day (4-5 hrs)", "Full Day (8-10 hrs)", "2 Days 1 Night",
+  "3 Days 2 Nights", "4 Days 3 Nights", "5 Days 4 Nights",
+  "6 Days 5 Nights", "7 Days 6 Nights", "Custom",
+];
+
+// Detailed-add step wizard — mirrors the web /travel-agent/tours/add flow.
+const DETAIL_STEPS = [
+  { title: "Category & Title",     sub: "Pick a category and name your tour",   icon: "pricetag" },
+  { title: "Location & Places",    sub: "Where does this tour go?",              icon: "location" },
+  { title: "Overview",             sub: "Describe it, set duration & highlights", icon: "document-text" },
+  { title: "Itinerary",            sub: "Add time-based stops & breaks",          icon: "map" },
+  { title: "Pricing & Vehicle",    sub: "Price, vehicles & booking policies",     icon: "cash" },
+  { title: "Inclusions & Images",  sub: "What's included, excluded + photos",     icon: "images" },
+];
+
+// Itinerary stop emojis (mirrors the web builder).
+const STOP_EMOJIS = ["🏖", "🏰", "⛪", "🌅", "🍽", "🌊", "🏝", "🌙", "🚗", "🎭", "🛕", "🏔", "🦁", "🌿", "🎪", "📍"];
+
+// Preset inclusions / exclusions (mirror the web detailed add page).
+const COMMON_INCLUSIONS = [
+  "Hotel Pickup & Drop", "AC Vehicle", "Professional Driver",
+  "Breakfast", "Lunch", "Dinner", "Hotel Stay",
+  "Tour Guide", "Entry Tickets", "Fuel Charges",
+  "Toll Charges", "Parking Charges", "Bottled Water",
+];
+const COMMON_EXCLUSIONS = [
+  "Entry Tickets (if any)", "Water Sports Activities",
+  "Lunch & Personal Expenses", "Club Entry Fees",
+  "Tips & Gratuities", "Travel Insurance",
+  "Camera Fees", "Alcohol", "Room Service",
+];
 
 // Parse any of: array, JSON string, or null
 function toArr(v) {
@@ -120,9 +157,28 @@ export default function AddEditTourScreen({ navigation, route }) {
     advancePaymentValue: existing?.advancePaymentValue != null ? String(existing.advancePaymentValue) : "",
     tourStartDate: existing?.tourStartDate || null,
     tourEndDate: existing?.tourEndDate || null,
+    isFixedDate: !!(existing?.tourStartDate || existing?.tourEndDate),
     termsConditions: existing?.termsConditions || "", // #2
+    // #6c — quick-add duration preset (web parity)
+    quickDuration: existing?.duration || "",
+    quickCustomDuration: "",
   }));
-  const createMode = route?.params?.createMode === "QUICK" ? "QUICK" : "DETAILED"; // #6c
+  // #6c — create mode. QUICK = essentials only, DETAILED = full form. If the screen
+  // is opened without an explicit mode (e.g. dashboard "Add Tour" or empty-state add),
+  // we ask the user via an in-screen chooser before revealing the form.
+  const initialMode =
+    route?.params?.createMode === "QUICK" ? "QUICK"
+    : route?.params?.createMode === "DETAILED" ? "DETAILED"
+    : null;
+  const [mode, setMode] = useState(isEdit ? "DETAILED" : initialMode);
+  const [showModeChooser, setShowModeChooser] = useState(!isEdit && initialMode === null);
+  const [showDocGate, setShowDocGate] = useState(false); // KYC gate modal
+  const [showPreview, setShowPreview] = useState(false); // live tour preview modal
+  const [detailStep, setDetailStep] = useState(1); // detailed-mode wizard step (1-6)
+  const [aiLoading, setAiLoading] = useState(false); // AI short-description generation
+  const [aiQuickLoading, setAiQuickLoading] = useState(false); // AI quick-tour description
+  const [descSelection, setDescSelection] = useState({ start: 0, end: 0 });
+  const isQuick = mode === "QUICK";
 
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState({ images: true, basics: true, catloc: false, content: false, vehicles: false, advanced: false });
@@ -218,16 +274,137 @@ export default function AddEditTourScreen({ navigation, route }) {
     return c;
   }, [form]);
 
+  // AI: write the short description from the current title (+ destination/duration).
+  const handleAiDescription = async () => {
+    if (!form.title.trim()) {
+      return Alert.alert("Add a title first", "AI uses the tour title to write the description.");
+    }
+    try {
+      setAiLoading(true);
+      const dur = form.quickDuration === "Custom" ? form.quickCustomDuration : form.quickDuration;
+      const res = await generateTourDescription({
+        title: form.title.trim(),
+        destination: form.destination || "",
+        duration: dur || "",
+      });
+      if (res?.description) update("shortDescription", String(res.description).slice(0, 120));
+    } catch (e) {
+      Alert.alert("AI write failed", e?.response?.data?.error || e?.message || "Please try again.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Quick tour: insert bullet/list prefix at cursor position
+  const insertDescFormat = (prefix) => {
+    const text = form.description;
+    const { start, end } = descSelection;
+    const isLineStart = start === 0 || text[start - 1] === "\n";
+    const toInsert = isLineStart ? prefix : "\n" + prefix;
+    update("description", text.slice(0, start) + toInsert + text.slice(end));
+  };
+
+  // AI: write the quick-tour description from title + destination + duration + price
+  const handleQuickAiDescription = async () => {
+    if (!form.title.trim()) {
+      return Alert.alert("Add a title first", "AI uses the tour title to write the description.");
+    }
+    try {
+      setAiQuickLoading(true);
+      const dur = form.quickDuration === "Custom" ? form.quickCustomDuration : form.quickDuration;
+      const res = await generateTourDescription({
+        title: form.title.trim(),
+        destination: form.destination || "",
+        duration: dur || "",
+        basePrice: form.basePrice || "",
+        mode: "full",
+      });
+      if (res?.description) update("description", res.description);
+    } catch (e) {
+      Alert.alert("AI write failed", e?.response?.data?.error || e?.message || "Please try again.");
+    } finally {
+      setAiQuickLoading(false);
+    }
+  };
+
   const save = async ({ publish = false } = {}) => {
+    if (saving) return;
     if (!form.title.trim()) return Alert.alert("Required", "Title is required.");
+
+    // KYC gate (new tours only): a travel agent must SUBMIT their documents before
+    // they can add tours. We check the live status — DOCUMENTS_PENDING / PENDING means
+    // the required KYC doc (Address Proof) hasn't been uploaded yet.
+    if (!isEdit) {
+      setSaving(true);
+      let docsPending = false;
+      try {
+        const profile = await getTravelAgentProfile();
+        docsPending = ["DOCUMENTS_PENDING", "PENDING"].includes(profile?.status);
+      } catch { /* offline / fetch failed — don't hard-block, let the save proceed */ }
+      if (docsPending) {
+        setSaving(false);
+        setShowDocGate(true); // show the custom KYC gate modal
+        return;
+      }
+      // docs OK — reset saving so validation early-returns below don't leave the
+      // buttons stuck disabled. The save branches set saving=true again themselves.
+      setSaving(false);
+    }
+
     const resolvedStatus = publish ? "ACTIVE" : "DRAFT";
+
+    // #6c — Quick mode: mirror the web quick-add validation + payload exactly.
+    if (isQuick) {
+      const finalDuration = form.quickDuration === "Custom"
+        ? form.quickCustomDuration.trim()
+        : form.quickDuration;
+      if (!form.categoryId) return Alert.alert("Required", "Please select a category.");
+      if (publish && !form.mainLocationId) return Alert.alert("Required", "Main location is required to publish.");
+      if (publish && !finalDuration) return Alert.alert("Required", "Duration is required to publish.");
+
+      const quickPayload = {
+        categoryId: form.categoryId,
+        subCategoryId: form.subCategoryId || null,
+        category: form.categoryName || null,
+        title: form.title.trim(),
+        mainLocationId: form.mainLocationId || null,
+        destination: form.destination?.trim() || null,
+        duration: finalDuration || null,
+        description: form.description.trim() || null,
+        basePrice: form.basePrice ? Number(form.basePrice) : null,
+        startingPrice: form.basePrice ? Number(form.basePrice) : null,
+        priceType: form.basePrice ? "PER_PERSON" : "ON_REQUEST",
+        coverImage: form.coverImage || form.galleryImages[0] || null,
+        galleryImages: form.galleryImages,
+        images: form.coverImage ? [form.coverImage, ...form.galleryImages] : form.galleryImages,
+        createMode: "QUICK",
+        status: resolvedStatus,
+        ...(publish ? { publish: true } : {}),
+      };
+      try {
+        setSaving(true);
+        await createTravelAgentTour(quickPayload);
+        try { await AsyncStorage.removeItem(TOUR_DRAFT_KEY); } catch {}
+        navigation.navigate("TATours"); // land on the tours list (web parity)
+      } catch (e) {
+        Alert.alert("Error", e?.response?.data?.error || e?.message || "Failed to save tour");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
 
     // Shape fields to match the web editor so customer-facing pages render
     // identically regardless of which platform created the tour.
-    const days = form.durationDays ? Number(form.durationDays) : 1;
-    const nights = form.durationNights ? Number(form.durationNights) : 0;
-    const durationLabel =
-      `${days} Day${days !== 1 ? "s" : ""}` + (nights ? ` ${nights} Night${nights !== 1 ? "s" : ""}` : "");
+    // Duration: prefer the preset dropdown (web parity). Parse days/nights from it
+    // for the backend fields; fall back to the legacy day/night inputs.
+    const presetDuration = form.quickDuration === "Custom" ? form.quickCustomDuration.trim() : form.quickDuration;
+    const pdDays = presetDuration ? Number((presetDuration.match(/(\d+)\s*Day/i) || [])[1] || 0) : 0;
+    const pdNights = presetDuration ? Number((presetDuration.match(/(\d+)\s*Night/i) || [])[1] || 0) : 0;
+    const days = pdDays || (form.durationDays ? Number(form.durationDays) : 1);
+    const nights = pdNights || (form.durationNights ? Number(form.durationNights) : 0);
+    const durationLabel = presetDuration ||
+      (`${days} Day${days !== 1 ? "s" : ""}` + (nights ? ` ${nights} Night${nights !== 1 ? "s" : ""}` : ""));
     // Group tiers: web shape is { groupSize, price }.
     const groupTiers = (form.priceType === "PER_GROUP" ? form.priceTiers : [])
       .filter((t) => t && t.price)
@@ -255,7 +432,11 @@ export default function AddEditTourScreen({ navigation, route }) {
       highlights: form.highlights,
       inclusions: form.inclusions,
       exclusions: form.exclusions,
-      itinerary: form.itinerary,
+      itinerary: form.itinerary.map((s) => ({
+        ...s,
+        title: s.type === "break" ? (s.breakNote || s.title || "Break") : s.title,
+        activities: (s.activities || []).filter((a) => a && String(a).trim()),
+      })),
       // Phase 9 / D — backend auto-stringifies array fields (priceTiers, customPlaces, vehicleIds)
       categoryId: form.categoryId || null,
       subCategoryId: form.subCategoryId || null,
@@ -271,10 +452,10 @@ export default function AddEditTourScreen({ navigation, route }) {
       requireAdvancePayment: form.requireAdvancePayment,
       advancePaymentType: form.requireAdvancePayment ? form.advancePaymentType : null,
       advancePaymentValue: form.requireAdvancePayment && form.advancePaymentValue ? Number(form.advancePaymentValue) : null,
-      tourStartDate: form.tourStartDate || null,
-      tourEndDate: form.tourEndDate || null,
+      tourStartDate: form.isFixedDate ? (form.tourStartDate || null) : null,
+      tourEndDate: form.isFixedDate ? (form.tourEndDate || null) : null,
       termsConditions: form.termsConditions.trim() || null, // #2
-      createMode, // #6c
+      createMode: mode || "DETAILED", // #6c
       status: resolvedStatus,
       ...(publish ? { publish: true } : {}),
     };
@@ -285,7 +466,9 @@ export default function AddEditTourScreen({ navigation, route }) {
       else await createTravelAgentTour(payload);
       if (!isEdit) { try { await AsyncStorage.removeItem(TOUR_DRAFT_KEY); } catch {} } // #6d
       update("status", resolvedStatus);
-      navigation.goBack();
+      // New tour → go to the tours list (web parity); edit → return to where we came from.
+      if (isEdit) navigation.goBack();
+      else navigation.navigate("TATours");
     } catch (e) {
       Alert.alert("Error", e?.response?.data?.error || e?.message || "Failed to save tour");
     } finally {
@@ -307,6 +490,22 @@ export default function AddEditTourScreen({ navigation, route }) {
     ]);
   };
 
+  // ---- Live preview values (how a traveller will see the tour) ----
+  const previewImages = (form.coverImage
+    ? [form.coverImage, ...form.galleryImages.filter((u) => u !== form.coverImage)]
+    : form.galleryImages
+  ).filter(Boolean);
+  const previewDuration =
+    (form.quickDuration === "Custom" ? form.quickCustomDuration : form.quickDuration) ||
+    [
+      form.durationDays && `${form.durationDays} Day${Number(form.durationDays) !== 1 ? "s" : ""}`,
+      form.durationNights && `${form.durationNights} Night${Number(form.durationNights) !== 1 ? "s" : ""}`,
+    ].filter(Boolean).join(" ");
+  const previewPrice =
+    form.priceType === "ON_REQUEST" || !form.basePrice
+      ? "On request"
+      : `₹${form.basePrice}${form.priceType === "PER_GROUP" ? " / group" : " / person"}`;
+
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar barStyle="light-content" backgroundColor={C.emerald700} />
@@ -325,9 +524,12 @@ export default function AddEditTourScreen({ navigation, route }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.headerTitle}>{isEdit ? "Edit Tour" : "Create New Tour"}</Text>
               <Text style={styles.headerSub}>
-                {completedSections}/4 sections complete · {form.status}
+                {isQuick ? "Quick add · essentials" : `Step ${detailStep} of 6`} · {form.status}
               </Text>
             </View>
+            <TouchableOpacity onPress={() => setShowPreview(true)} style={styles.iconBtn}>
+              <Ionicons name="eye-outline" size={22} color="#fff" />
+            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.headerSaveBtn, !canSave && { opacity: 0.5 }]}
               onPress={() => save({ publish: false })}
@@ -341,33 +543,230 @@ export default function AddEditTourScreen({ navigation, route }) {
             </TouchableOpacity>
           </View>
 
-          {/* Mini progress dots */}
-          <View style={styles.progressRow}>
-            {["Images", "Basics", "Content", "Pricing"].map((label, i) => (
-              <View key={label} style={styles.progressItem}>
-                <View style={[styles.progressDot, i < completedSections && styles.progressDotDone]}>
-                  {i < completedSections && <Ionicons name="checkmark" size={9} color={C.emerald700} />}
+          {/* Mini progress dots — replaced by the detailed step wizard indicator */}
+          {false && (
+            <View style={styles.progressRow}>
+              {["Images", "Basics", "Content", "Pricing"].map((label, i) => (
+                <View key={label} style={styles.progressItem}>
+                  <View style={[styles.progressDot, i < completedSections && styles.progressDotDone]}>
+                    {i < completedSections && <Ionicons name="checkmark" size={9} color={C.emerald700} />}
+                  </View>
+                  <Text style={styles.progressLabel} numberOfLines={1}>{label}</Text>
                 </View>
-                <Text style={styles.progressLabel} numberOfLines={1}>{label}</Text>
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          )}
         </SafeAreaView>
       </LinearGradient>
 
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
-          {/* ===== Images ===== */}
-          <SectionToggle
-            icon="image"
-            color={C.purple}
-            label="Images"
-            sub={`${form.coverImage ? "Cover ✓" : "No cover"} · ${form.galleryImages.length} gallery`}
-            open={expanded.images}
-            onToggle={() => setExpanded((s) => ({ ...s, images: !s.images }))}
-          />
-          {expanded.images && (
+          {/* Quick-mode banner — switch to detailed anytime */}
+          {isQuick && (
+            <TouchableOpacity style={styles.quickBanner} onPress={() => setMode("DETAILED")} activeOpacity={0.85}>
+              <Ionicons name="flash" size={16} color={C.amber} />
+              <Text style={styles.quickBannerText}>Quick mode — only the essentials. </Text>
+              <Text style={styles.quickBannerLink}>Add full details ›</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* ========================= QUICK MODE FORM ========================= */}
+          {/* Mirrors the web /travel-agent/tours/add/quick page: category grid,    */}
+          {/* title, DB location search, duration preset, base price, desc, images. */}
+          {isQuick && (
+          <>
+            {/* Category (required) — grid from DB */}
+            <SectionToggle icon="pricetags" color={C.blue} label="Category *" sub={form.categoryName || "Choose a tour category"} open showChevron={false} onToggle={() => {}} />
+            <Card>
+              {categories.length === 0 ? (
+                <Text style={styles.helper}>Loading categories…</Text>
+              ) : (
+                <View style={styles.catGrid}>
+                  {categories.map((cat) => {
+                    const active = form.categoryId === cat.id;
+                    return (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[styles.catChip, active && styles.catChipActive]}
+                        onPress={() => {
+                          update("categoryId", cat.id);
+                          update("subCategoryId", null);
+                          update("categoryName", cat.name);
+                        }}
+                        activeOpacity={0.85}
+                      >
+                        {!!cat.icon && <Text style={styles.catChipIcon}>{cat.icon}</Text>}
+                        <Text style={[styles.catChipText, active && styles.catChipTextActive]} numberOfLines={1}>
+                          {cat.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </Card>
+
+            {/* Tour details: title, location, duration, price */}
+            <SectionToggle icon="information-circle" color={C.emerald600} label="Tour details" sub="Title, location, duration & price" open showChevron={false} onToggle={() => {}} />
+            <Card>
+              <Field label="Tour title *">
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g. Goa 3-day beach getaway"
+                  placeholderTextColor="#A3B3C2"
+                  value={form.title}
+                  onChangeText={(v) => update("title", v)}
+                  maxLength={120}
+                />
+              </Field>
+
+              {/* Main location — DB search (same source as web) */}
+              <Field label="Main location" helper="Search & link a city/area from your database.">
+                {form.mainLocationId ? (
+                  <View style={styles.locSelected}>
+                    <Ionicons name="checkmark-circle" size={14} color={C.emerald600} />
+                    <Text style={styles.locSelectedText}>Linked: {form.destination}</Text>
+                    <TouchableOpacity
+                      onPress={() => { update("mainLocationId", null); update("destination", ""); }}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Ionicons name="close-circle" size={16} color={C.subText} />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <>
+                    <View style={styles.iconInputWrap}>
+                      <View style={[styles.iconInputIcon, { backgroundColor: `${C.red}22` }]}>
+                        <Ionicons name="search" size={14} color={C.red} />
+                      </View>
+                      <TextInput
+                        style={[styles.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
+                        placeholder="Search city or location…"
+                        placeholderTextColor="#A3B3C2"
+                        value={locQuery}
+                        onChangeText={setLocQuery}
+                      />
+                    </View>
+                    {locSearching && <Text style={styles.helper}>Searching…</Text>}
+                    {locResults.length > 0 && (
+                      <View style={styles.locResults}>
+                        {locResults.map((l) => (
+                          <TouchableOpacity
+                            key={l.id}
+                            style={styles.locRow}
+                            onPress={() => {
+                              update("mainLocationId", l.id);
+                              update("destination", l.name);
+                              setLocQuery("");
+                              setLocResults([]);
+                            }}
+                          >
+                            <Ionicons name="location-outline" size={14} color={C.subText} />
+                            <Text style={styles.locName} numberOfLines={1}>{l.name}</Text>
+                            {!!l.type && <Text style={styles.locType}>{l.type}</Text>}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </>
+                )}
+              </Field>
+
+              {/* Duration preset (web parity) */}
+              <Field label="Duration">
+                <View style={styles.durWrap}>
+                  {DURATION_OPTIONS.map((d) => {
+                    const active = form.quickDuration === d;
+                    return (
+                      <TouchableOpacity
+                        key={d}
+                        style={[styles.durChip, active && styles.durChipActive]}
+                        onPress={() => update("quickDuration", d)}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={[styles.durChipText, active && styles.durChipTextActive]}>{d}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {form.quickDuration === "Custom" && (
+                  <TextInput
+                    style={[styles.input, { marginTop: 8 }]}
+                    placeholder="e.g. 10 Days 9 Nights"
+                    placeholderTextColor="#A3B3C2"
+                    value={form.quickCustomDuration}
+                    onChangeText={(v) => update("quickCustomDuration", v)}
+                  />
+                )}
+              </Field>
+
+              {/* Base price */}
+              <Field label="Base price" helper="Per person · leave blank for “On request”.">
+                <View style={styles.prefixInputWrap}>
+                  <View style={styles.prefixBox}><Text style={styles.prefixText}>₹</Text></View>
+                  <TextInput
+                    style={[styles.input, styles.prefixInput]}
+                    placeholder="0"
+                    placeholderTextColor="#A3B3C2"
+                    keyboardType="number-pad"
+                    value={form.basePrice}
+                    onChangeText={(v) => update("basePrice", v.replace(/[^\d.]/g, ""))}
+                  />
+                </View>
+              </Field>
+            </Card>
+
+            {/* Description */}
+            <SectionToggle icon="document-text" color={C.blue} label="Description" sub="Short overview (optional)" open showChevron={false} onToggle={() => {}} />
+            <Card>
+              <Field label="Description">
+                {/* Formatting toolbar */}
+                <View style={styles.fmtToolbar}>
+                  {[
+                    { label: "•  Bullet", insert: "• " },
+                    { label: "1.  List", insert: "1. " },
+                    { label: "✓  Check", insert: "✓ " },
+                    { label: "—  Dash", insert: "— " },
+                  ].map(({ label, insert }) => (
+                    <TouchableOpacity key={label} style={styles.fmtBtn} onPress={() => insertDescFormat(insert)} activeOpacity={0.7}>
+                      <Text style={styles.fmtBtnText}>{label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {/* AI-powered TextArea */}
+                <View style={styles.aiInputWrap}>
+                  <TextInput
+                    style={[styles.input, styles.inputMultilineRich, { flex: 1, paddingRight: 48, marginBottom: 0 }]}
+                    placeholder="Describe the tour for travellers…"
+                    placeholderTextColor="#A3B3C2"
+                    value={form.description}
+                    onChangeText={(v) => update("description", v)}
+                    onSelectionChange={(e) => setDescSelection(e.nativeEvent.selection)}
+                    multiline
+                    numberOfLines={6}
+                    textAlignVertical="top"
+                  />
+                  <TouchableOpacity
+                    onPress={handleQuickAiDescription}
+                    disabled={aiQuickLoading}
+                    style={[styles.aiInlineBtn, { top: 8, bottom: "auto" }]}
+                    activeOpacity={0.85}
+                  >
+                    {aiQuickLoading
+                      ? <ActivityIndicator size="small" color={C.purple} />
+                      : <Ionicons name="sparkles" size={18} color={C.purple} />}
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={handleQuickAiDescription} disabled={aiQuickLoading} style={styles.aiHintRow} activeOpacity={0.7}>
+                  <Ionicons name="sparkles" size={12} color={C.purple} />
+                  <Text style={styles.aiHintText}>{aiQuickLoading ? "Writing…" : "Write with AI from the title"}</Text>
+                </TouchableOpacity>
+              </Field>
+            </Card>
+
+            {/* Images */}
+            <SectionToggle icon="image" color={C.purple} label="Images" sub={`${form.coverImage ? "Cover ✓" : "No cover"} · ${form.galleryImages.length} gallery`} open showChevron={false} onToggle={() => {}} />
             <Card>
               <ImagePickerField
                 label="Cover image"
@@ -385,120 +784,50 @@ export default function AddEditTourScreen({ navigation, route }) {
                 folder="tours"
               />
             </Card>
+          </>
           )}
 
-          {/* ===== Basics ===== */}
-          <SectionToggle
-            icon="information-circle"
-            color={C.emerald600}
-            label="Basics"
-            sub={form.title ? `${form.title.slice(0, 30)}${form.title.length > 30 ? "…" : ""}` : "Title + location + price"}
-            open={expanded.basics}
-            onToggle={() => setExpanded((s) => ({ ...s, basics: !s.basics }))}
-          />
-          {expanded.basics && (
+          {/* ===================== DETAILED MODE SECTIONS ===================== */}
+          {!isQuick && (
+          <>
+          {/* ===== Step indicator ===== */}
+          <View style={styles.stepperRow}>
+            {DETAIL_STEPS.map((s, i) => {
+              const n = i + 1;
+              const done = detailStep > n;
+              const current = detailStep === n;
+              return (
+                <React.Fragment key={s.title}>
+                  {i > 0 && <View style={[styles.stepperLine, detailStep >= n && styles.stepperLineDone]} />}
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setDetailStep(n)}
+                    style={[styles.stepperDot, current && styles.stepperDotCurrent, done && styles.stepperDotDone]}
+                  >
+                    {done
+                      ? <Ionicons name="checkmark" size={15} color="#fff" />
+                      : <Text style={[styles.stepperNum, current && { color: "#fff" }]}>{n}</Text>}
+                  </TouchableOpacity>
+                </React.Fragment>
+              );
+            })}
+          </View>
+
+          {/* Step header — icon + title + subtitle */}
+          <View style={styles.stepHead}>
+            <View style={styles.stepHeadIcon}>
+              <Ionicons name={DETAIL_STEPS[detailStep - 1].icon} size={20} color={C.emerald600} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.stepHeadTitle}>{DETAIL_STEPS[detailStep - 1].title}</Text>
+              <Text style={styles.stepHeadSub}>Step {detailStep} of 6 · {DETAIL_STEPS[detailStep - 1].sub}</Text>
+            </View>
+          </View>
+
+          {/* ===== STEP 1 — Category & Title ===== */}
+          {detailStep === 1 && (
             <Card>
-              <Field label="Title *">
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Manali 4N5D Honeymoon Package"
-                  placeholderTextColor="#A3B3C2"
-                  value={form.title}
-                  onChangeText={(v) => update("title", v)}
-                />
-              </Field>
-              <Field label="Destination">
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Manali, Kullu"
-                  placeholderTextColor="#A3B3C2"
-                  value={form.destination}
-                  onChangeText={(v) => update("destination", v)}
-                />
-              </Field>
-              <Field label="Short description" helper={`${form.shortDescription.length}/120 — shown on cards`}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="One-line teaser"
-                  placeholderTextColor="#A3B3C2"
-                  value={form.shortDescription}
-                  onChangeText={(v) => update("shortDescription", v)}
-                  maxLength={120}
-                />
-              </Field>
-
-              <View style={styles.row2}>
-                <Field label="Days" style={{ flex: 1 }}>
-                  <NumberInput value={form.durationDays} placeholder="4" onChange={(v) => update("durationDays", v)} icon="sunny" color={C.amber} />
-                </Field>
-                <Field label="Nights" style={{ flex: 1 }}>
-                  <NumberInput value={form.durationNights} placeholder="3" onChange={(v) => update("durationNights", v)} icon="moon" color={C.purple} />
-                </Field>
-              </View>
-
-              <Field label="Price type">
-                <View style={styles.priceTypeRow}>
-                  {TOUR_PRICE_TYPE.map((pt) => {
-                    const meta = PRICE_TYPE_META[pt];
-                    const active = form.priceType === pt;
-                    return (
-                      <TouchableOpacity
-                        key={pt}
-                        style={[
-                          styles.priceTypeBtn,
-                          active && { backgroundColor: `${meta.color}22`, borderColor: meta.color },
-                        ]}
-                        onPress={() => update("priceType", pt)}
-                        activeOpacity={0.85}
-                      >
-                        <Ionicons name={meta.icon} size={16} color={active ? meta.color : C.subText} />
-                        <Text
-                          style={[
-                            styles.priceTypeText,
-                            active && { color: meta.color, fontWeight: "800" },
-                          ]}
-                        >
-                          {meta.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </Field>
-
-              {form.priceType !== "ON_REQUEST" && (
-                <Field label="Base price">
-                  <View style={styles.prefixInputWrap}>
-                    <View style={styles.prefixBox}><Text style={styles.prefixText}>₹</Text></View>
-                    <TextInput
-                      style={[styles.input, styles.prefixInput]}
-                      placeholder="12500"
-                      placeholderTextColor="#A3B3C2"
-                      keyboardType="number-pad"
-                      value={form.basePrice}
-                      onChangeText={(v) => update("basePrice", v.replace(/[^\d.]/g, ""))}
-                    />
-                  </View>
-                </Field>
-              )}
-
-              {form.priceType === "PER_GROUP" && (
-                <PriceTierEditor tiers={form.priceTiers} onChange={(v) => update("priceTiers", v)} />
-              )}
-            </Card>
-          )}
-
-          {/* ===== Category & location (D1/D2) ===== */}
-          <SectionToggle
-            icon="pricetags" color={C.blue}
-            label="Category & location"
-            sub={form.categoryName || (form.mainLocationId ? form.destination : "Tag a category & main location")}
-            open={expanded.catloc}
-            onToggle={() => setExpanded((s) => ({ ...s, catloc: !s.catloc }))}
-          />
-          {expanded.catloc && (
-            <Card>
-              <Field label="Category">
+              <Field label="Category *">
                 <TouchableOpacity style={styles.pickerBtn} onPress={() => setShowCategoryModal(true)} activeOpacity={0.85}>
                   <Ionicons name="pricetag" size={15} color={C.blue} />
                   <Text style={[styles.pickerBtnText, !form.categoryName && { color: "#A3B3C2" }]} numberOfLines={1}>
@@ -507,243 +836,221 @@ export default function AddEditTourScreen({ navigation, route }) {
                   <Ionicons name="chevron-down" size={16} color={C.subText} />
                 </TouchableOpacity>
               </Field>
-
-              <Field label="Main location" helper="Links the tour to a city/area for discovery.">
-                <View style={styles.iconInputWrap}>
-                  <View style={[styles.iconInputIcon, { backgroundColor: `${C.red}22` }]}>
-                    <Ionicons name="location" size={14} color={C.red} />
-                  </View>
-                  <TextInput
-                    style={[styles.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
-                    placeholder={form.destination ? `Current: ${form.destination}` : "Type a city / area…"}
-                    placeholderTextColor="#A3B3C2"
-                    value={locQuery}
-                    onChangeText={setLocQuery}
-                  />
-                </View>
-                {locSearching && <Text style={styles.helper}>Searching…</Text>}
-                {locResults.length > 0 && (
-                  <View style={styles.locResults}>
-                    {locResults.map((l) => (
-                      <TouchableOpacity
-                        key={l.id}
-                        style={styles.locRow}
-                        onPress={() => {
-                          update("mainLocationId", l.id);
-                          update("destination", l.name);
-                          setLocQuery("");
-                          setLocResults([]);
-                        }}
-                      >
-                        <Ionicons name="location-outline" size={14} color={C.subText} />
-                        <Text style={styles.locName} numberOfLines={1}>{l.name}</Text>
-                        {!!l.type && <Text style={styles.locType}>{l.type}</Text>}
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-                {!!form.mainLocationId && (
-                  <View style={styles.locSelected}>
-                    <Ionicons name="checkmark-circle" size={13} color={C.emerald600} />
-                    <Text style={styles.locSelectedText}>Linked: {form.destination}</Text>
-                    <TouchableOpacity onPress={() => update("mainLocationId", null)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                      <Ionicons name="close-circle" size={14} color={C.subText} />
-                    </TouchableOpacity>
-                  </View>
-                )}
+              <Field label="Title *">
+                <TextInput style={styles.input} placeholder="e.g. Manali 4N5D Honeymoon Package" placeholderTextColor="#A3B3C2" value={form.title} onChangeText={(v) => update("title", v)} />
               </Field>
-
-              <TagListEditor
-                label="Pickup areas / points"
-                accentColor={C.red}
-                icon="navigate"
-                placeholder="e.g. Mall Road hotels, Bus stand"
-                items={form.pickupAreas}
-                onChange={(v) => update("pickupAreas", v)}
-              />
+              <Field label="Short description" helper={`${form.shortDescription.length}/120 — shown on cards`}>
+                <View style={styles.aiInputWrap}>
+                  <TextInput
+                    style={[styles.input, { flex: 1, marginBottom: 0, paddingRight: 44 }]}
+                    placeholder="One-line teaser"
+                    placeholderTextColor="#A3B3C2"
+                    value={form.shortDescription}
+                    onChangeText={(v) => update("shortDescription", v)}
+                    maxLength={120}
+                    multiline
+                  />
+                  <TouchableOpacity
+                    onPress={handleAiDescription}
+                    disabled={aiLoading}
+                    style={styles.aiInlineBtn}
+                    activeOpacity={0.85}
+                  >
+                    {aiLoading
+                      ? <ActivityIndicator size="small" color={C.purple} />
+                      : <Ionicons name="sparkles" size={18} color={C.purple} />}
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={handleAiDescription} disabled={aiLoading} style={styles.aiHintRow} activeOpacity={0.7}>
+                  <Ionicons name="sparkles" size={12} color={C.purple} />
+                  <Text style={styles.aiHintText}>{aiLoading ? "Writing…" : "Write with AI from the title"}</Text>
+                </TouchableOpacity>
+              </Field>
             </Card>
           )}
 
-          {/* ===== Content ===== */}
-          <SectionToggle
-            icon="document-text"
-            color={C.blue}
-            label="Content"
-            sub={`${form.highlights.length}H · ${form.inclusions.length}I · ${form.exclusions.length}E · ${form.itinerary.length} days`}
-            open={expanded.content}
-            onToggle={() => setExpanded((s) => ({ ...s, content: !s.content }))}
-          />
-          {expanded.content && (
+          {/* ===== STEP 2 — Location & Places ===== */}
+          {detailStep === 2 && (
+            <Card>
+              <Field label="Main location" helper="Search & link a city/area from your database.">
+                {form.mainLocationId ? (
+                  <View style={styles.locSelected}>
+                    <Ionicons name="checkmark-circle" size={14} color={C.emerald600} />
+                    <Text style={styles.locSelectedText}>Linked: {form.destination}</Text>
+                    <TouchableOpacity onPress={() => { update("mainLocationId", null); update("destination", ""); }} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                      <Ionicons name="close-circle" size={16} color={C.subText} />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <>
+                    <View style={styles.iconInputWrap}>
+                      <View style={[styles.iconInputIcon, { backgroundColor: `${C.red}22` }]}>
+                        <Ionicons name="search" size={14} color={C.red} />
+                      </View>
+                      <TextInput
+                        style={[styles.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
+                        placeholder="Search city or location…"
+                        placeholderTextColor="#A3B3C2"
+                        value={locQuery}
+                        onChangeText={setLocQuery}
+                      />
+                    </View>
+                    {locSearching && <Text style={styles.helper}>Searching…</Text>}
+                    {locResults.length > 0 && (
+                      <View style={styles.locResults}>
+                        {locResults.map((l) => (
+                          <TouchableOpacity key={l.id} style={styles.locRow} onPress={() => { update("mainLocationId", l.id); update("destination", l.name); setLocQuery(""); setLocResults([]); }}>
+                            <Ionicons name="location-outline" size={14} color={C.subText} />
+                            <Text style={styles.locName} numberOfLines={1}>{l.name}</Text>
+                            {!!l.type && <Text style={styles.locType}>{l.type}</Text>}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </>
+                )}
+              </Field>
+              <TagListEditor label="Places covered" accentColor={C.blue} icon="pin" placeholder="e.g. Solang Valley, Hadimba Temple" items={form.customPlaces} onChange={(v) => update("customPlaces", v)} />
+              <TagListEditor label="Pickup areas / points" accentColor={C.red} icon="navigate" placeholder="e.g. Mall Road hotels, Bus stand" items={form.pickupAreas} onChange={(v) => update("pickupAreas", v)} />
+            </Card>
+          )}
+
+          {/* ===== STEP 3 — Overview ===== */}
+          {detailStep === 3 && (
             <Card>
               <Field label="Full description">
-                <TextInput
-                  style={[styles.input, styles.inputMultiline]}
-                  placeholder="Detailed tour description…"
-                  placeholderTextColor="#A3B3C2"
-                  value={form.description}
-                  onChangeText={(v) => update("description", v)}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
+                <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Detailed tour description…" placeholderTextColor="#A3B3C2" value={form.description} onChangeText={(v) => update("description", v)} multiline numberOfLines={4} textAlignVertical="top" />
+              </Field>
+              {/* Duration — preset dropdown (web parity) */}
+              <Field label="Duration">
+                <View style={styles.durWrap}>
+                  {DURATION_OPTIONS.map((d) => {
+                    const active = form.quickDuration === d;
+                    return (
+                      <TouchableOpacity key={d} style={[styles.durChip, active && styles.durChipActive]} onPress={() => update("quickDuration", d)} activeOpacity={0.85}>
+                        <Text style={[styles.durChipText, active && styles.durChipTextActive]}>{d}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {form.quickDuration === "Custom" && (
+                  <TextInput style={[styles.input, { marginTop: 8 }]} placeholder="e.g. 10 Days 9 Nights" placeholderTextColor="#A3B3C2" value={form.quickCustomDuration} onChangeText={(v) => update("quickCustomDuration", v)} />
+                )}
               </Field>
 
-              <TagListEditor
-                label="Highlights"
-                accentColor={C.amber}
-                icon="star"
-                placeholder="e.g. Rohtang Pass excursion"
-                items={form.highlights}
-                onChange={(v) => update("highlights", v)}
-              />
-              <TagListEditor
-                label="Inclusions"
-                accentColor={C.emerald600}
-                icon="checkmark-circle"
-                placeholder="e.g. Daily breakfast & dinner"
-                items={form.inclusions}
-                onChange={(v) => update("inclusions", v)}
-              />
-              <TagListEditor
-                label="Exclusions"
-                accentColor={C.red}
-                icon="close-circle"
-                placeholder="e.g. Personal expenses"
-                items={form.exclusions}
-                onChange={(v) => update("exclusions", v)}
-              />
-              <TagListEditor
-                label="Places covered"
-                accentColor={C.blue}
-                icon="pin"
-                placeholder="e.g. Solang Valley, Hadimba Temple"
-                items={form.customPlaces}
-                onChange={(v) => update("customPlaces", v)}
-              />
+              <TagListEditor label="Highlights" accentColor={C.amber} icon="star" placeholder="e.g. Rohtang Pass excursion" items={form.highlights} onChange={(v) => update("highlights", v)} />
 
-              <ItineraryEditor items={form.itinerary} onChange={(v) => update("itinerary", v)} />
-            </Card>
-          )}
-
-          {/* ===== Vehicles (D5) ===== */}
-          <SectionToggle
-            icon="car-sport" color={C.emerald600}
-            label="Vehicles"
-            sub={form.vehicleIds.length ? `${form.vehicleIds.length} attached` : "Attach fleet vehicles (optional)"}
-            open={expanded.vehicles}
-            onToggle={() => setExpanded((s) => ({ ...s, vehicles: !s.vehicles }))}
-          />
-          {expanded.vehicles && (
-            <Card>
-              {fleet.length === 0 ? (
-                <Text style={styles.helper}>No vehicles in your fleet yet. Add them under Fleet.</Text>
-              ) : (
-                fleet.map((v) => {
-                  const sel = form.vehicleIds.includes(v.id);
-                  return (
-                    <TouchableOpacity
-                      key={v.id}
-                      style={[styles.vehSelRow, sel && styles.vehSelRowActive]}
-                      onPress={() => toggleVehicle(v.id)}
-                      activeOpacity={0.85}
-                    >
-                      <Ionicons name={sel ? "checkbox" : "square-outline"} size={20} color={sel ? C.emerald600 : C.subText} />
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={styles.vehSelName} numberOfLines={1}>{v.vehicleName || "Vehicle"}</Text>
-                        <Text style={styles.vehSelSub} numberOfLines={1}>
-                          {[v.registrationNumber, v.seatingCapacity ? `${v.seatingCapacity} seats` : null].filter(Boolean).join(" · ") || v.vehicleType}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })
+              {/* Fixed tour dates — toggle (web parity) */}
+              <Field label="Fixed tour dates">
+                <TouchableOpacity
+                  style={[styles.checkRow, form.isFixedDate && styles.checkRowActive]}
+                  onPress={() => {
+                    const next = !form.isFixedDate;
+                    update("isFixedDate", next);
+                    if (!next) { update("tourStartDate", null); update("tourEndDate", null); }
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name={form.isFixedDate ? "checkbox" : "square-outline"} size={20} color={form.isFixedDate ? C.emerald600 : C.subText} />
+                  <Text style={[styles.checkRowText, form.isFixedDate && { color: C.emerald700 }]}>
+                    This tour only runs between specific dates
+                  </Text>
+                </TouchableOpacity>
+              </Field>
+              {form.isFixedDate && (
+                <View style={styles.row2}>
+                  <Field label="Start date" style={{ flex: 1 }}>
+                    <DateBtn value={fmtD(form.tourStartDate)} onPress={() => setDatePicker("tourStartDate")} onClear={form.tourStartDate ? () => update("tourStartDate", null) : null} />
+                  </Field>
+                  <Field label="End date" style={{ flex: 1 }}>
+                    <DateBtn value={fmtD(form.tourEndDate)} onPress={() => setDatePicker("tourEndDate")} onClear={form.tourEndDate ? () => update("tourEndDate", null) : null} />
+                  </Field>
+                </View>
               )}
             </Card>
           )}
 
-          {/* ===== Advanced ===== */}
-          <SectionToggle
-            icon="settings"
-            color={C.amber}
-            label="Advanced"
-            sub={`${form.cancellationPolicy} cancellation · ${form.advanceNoticeHours}h notice`}
-            open={expanded.advanced}
-            onToggle={() => setExpanded((s) => ({ ...s, advanced: !s.advanced }))}
-          />
-          {expanded.advanced && (
+          {/* ===== STEP 4 — Itinerary ===== */}
+          {detailStep === 4 && (
             <Card>
+              <ItineraryEditor items={form.itinerary} onChange={(v) => update("itinerary", v)} />
+            </Card>
+          )}
+
+          {/* ===== STEP 5 — Pricing & Vehicle ===== */}
+          {detailStep === 5 && (
+            <Card>
+              <Field label="Pricing type">
+                <View style={styles.priceTypeRow}>
+                  {TOUR_PRICE_TYPE.map((pt) => {
+                    const meta = PRICE_TYPE_META[pt];
+                    const active = form.priceType === pt;
+                    return (
+                      <TouchableOpacity key={pt} style={[styles.priceTypeBtn, active && { backgroundColor: `${meta.color}22`, borderColor: meta.color }]} onPress={() => update("priceType", pt)} activeOpacity={0.85}>
+                        <Ionicons name={meta.icon} size={16} color={active ? meta.color : C.subText} />
+                        <Text style={[styles.priceTypeText, active && { color: meta.color, fontWeight: "800" }]}>{meta.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </Field>
+              {form.priceType !== "ON_REQUEST" && (
+                <Field label="Base price">
+                  <View style={styles.prefixInputWrap}>
+                    <View style={styles.prefixBox}><Text style={styles.prefixText}>₹</Text></View>
+                    <TextInput style={[styles.input, styles.prefixInput]} placeholder="12500" placeholderTextColor="#A3B3C2" keyboardType="number-pad" value={form.basePrice} onChangeText={(v) => update("basePrice", v.replace(/[^\d.]/g, ""))} />
+                  </View>
+                </Field>
+              )}
+              {form.priceType === "PER_GROUP" && (
+                <PriceTierEditor tiers={form.priceTiers} onChange={(v) => update("priceTiers", v)} />
+              )}
+
+              <Field label="Vehicles (optional)">
+                {fleet.length === 0 ? (
+                  <Text style={styles.helper}>No vehicles in your fleet yet. Add them under Fleet.</Text>
+                ) : (
+                  fleet.map((v) => {
+                    const sel = form.vehicleIds.includes(v.id);
+                    return (
+                      <TouchableOpacity key={v.id} style={[styles.vehSelRow, sel && styles.vehSelRowActive]} onPress={() => toggleVehicle(v.id)} activeOpacity={0.85}>
+                        <Ionicons name={sel ? "checkbox" : "square-outline"} size={20} color={sel ? C.emerald600 : C.subText} />
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={styles.vehSelName} numberOfLines={1}>{v.vehicleName || "Vehicle"}</Text>
+                          <Text style={styles.vehSelSub} numberOfLines={1}>{[v.registrationNumber, v.seatingCapacity ? `${v.seatingCapacity} seats` : null].filter(Boolean).join(" · ") || v.vehicleType}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </Field>
+
+              <Field label="Advance notice required">
+                <NumberInput value={form.advanceNoticeHours} placeholder="24" onChange={(v) => update("advanceNoticeHours", v)} icon="time" color={C.blue} suffix="hrs" />
+              </Field>
+
               <Field label="Cancellation policy">
                 <View style={styles.cancelRow}>
                   {TOUR_CANCELLATION_POLICY.map((p) => {
                     const meta = CANCEL_META[p];
                     const active = form.cancellationPolicy === p;
                     return (
-                      <TouchableOpacity
-                        key={p}
-                        style={[
-                          styles.cancelBtn,
-                          active && { backgroundColor: meta.bg, borderColor: meta.color },
-                        ]}
-                        onPress={() => update("cancellationPolicy", p)}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={[styles.cancelLabel, active && { color: meta.color, fontWeight: "800" }]}>
-                          {meta.label}
-                        </Text>
-                        <Text style={[styles.cancelDesc, active && { color: meta.color, opacity: 0.85 }]} numberOfLines={2}>
-                          {meta.desc}
-                        </Text>
+                      <TouchableOpacity key={p} style={[styles.cancelBtn, active && { backgroundColor: meta.bg, borderColor: meta.color }]} onPress={() => update("cancellationPolicy", p)} activeOpacity={0.85}>
+                        <Text style={[styles.cancelLabel, active && { color: meta.color, fontWeight: "800" }]}>{meta.label}</Text>
+                        <Text style={[styles.cancelDesc, active && { color: meta.color, opacity: 0.85 }]} numberOfLines={2}>{meta.desc}</Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
               </Field>
               <Field label="Cancellation notes">
-                <TextInput
-                  style={[styles.input, styles.inputMultiline]}
-                  placeholder="Refund timeline, exceptions…"
-                  placeholderTextColor="#A3B3C2"
-                  value={form.cancellationNotes}
-                  onChangeText={(v) => update("cancellationNotes", v)}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
-              </Field>
-              <Field label="Terms & conditions">
-                <TextInput
-                  style={[styles.input, styles.inputMultiline]}
-                  placeholder="Inclusions, exclusions, booking terms…"
-                  placeholderTextColor="#A3B3C2"
-                  value={form.termsConditions}
-                  onChangeText={(v) => update("termsConditions", v)}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
-              </Field>
-              <Field label="Advance notice required">
-                <NumberInput
-                  value={form.advanceNoticeHours}
-                  placeholder="24"
-                  onChange={(v) => update("advanceNoticeHours", v)}
-                  icon="time"
-                  color={C.blue}
-                  suffix="hrs"
-                />
+                <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Refund timeline, exceptions…" placeholderTextColor="#A3B3C2" value={form.cancellationNotes} onChangeText={(v) => update("cancellationNotes", v)} multiline numberOfLines={3} textAlignVertical="top" />
               </Field>
 
-              {/* Advance payment (D6) */}
               <Field label="Advance payment">
-                <TouchableOpacity
-                  style={[styles.checkRow, form.requireAdvancePayment && styles.checkRowActive]}
-                  onPress={() => update("requireAdvancePayment", !form.requireAdvancePayment)}
-                  activeOpacity={0.85}
-                >
+                <TouchableOpacity style={[styles.checkRow, form.requireAdvancePayment && styles.checkRowActive]} onPress={() => update("requireAdvancePayment", !form.requireAdvancePayment)} activeOpacity={0.85}>
                   <Ionicons name={form.requireAdvancePayment ? "checkbox" : "square-outline"} size={20} color={form.requireAdvancePayment ? C.emerald600 : C.subText} />
-                  <Text style={[styles.checkRowText, form.requireAdvancePayment && { color: C.emerald700 }]}>
-                    Collect an advance to confirm booking
-                  </Text>
+                  <Text style={[styles.checkRowText, form.requireAdvancePayment && { color: C.emerald700 }]}>Collect an advance to confirm booking</Text>
                 </TouchableOpacity>
               </Field>
               {form.requireAdvancePayment && (
@@ -758,28 +1065,26 @@ export default function AddEditTourScreen({ navigation, route }) {
                     </View>
                   </Field>
                   <Field label="Value" style={{ flex: 1 }}>
-                    <TextInput
-                      style={styles.input}
-                      keyboardType="number-pad"
-                      placeholder={form.advancePaymentType === "PERCENTAGE" ? "e.g. 30" : "e.g. 5000"}
-                      placeholderTextColor="#A3B3C2"
-                      value={form.advancePaymentValue}
-                      onChangeText={(v) => update("advancePaymentValue", v.replace(/[^0-9]/g, ""))}
-                    />
+                    <TextInput style={styles.input} keyboardType="number-pad" placeholder={form.advancePaymentType === "PERCENTAGE" ? "e.g. 30" : "e.g. 5000"} placeholderTextColor="#A3B3C2" value={form.advancePaymentValue} onChangeText={(v) => update("advancePaymentValue", v.replace(/[^0-9]/g, ""))} />
                   </Field>
                 </View>
               )}
-
-              {/* Fixed tour dates (D6) */}
-              <View style={styles.row2}>
-                <Field label="Fixed start (optional)" style={{ flex: 1 }}>
-                  <DateBtn value={fmtD(form.tourStartDate)} onPress={() => setDatePicker("tourStartDate")} onClear={form.tourStartDate ? () => update("tourStartDate", null) : null} />
-                </Field>
-                <Field label="Fixed end (optional)" style={{ flex: 1 }}>
-                  <DateBtn value={fmtD(form.tourEndDate)} onPress={() => setDatePicker("tourEndDate")} onClear={form.tourEndDate ? () => update("tourEndDate", null) : null} />
-                </Field>
-              </View>
             </Card>
+          )}
+
+          {/* ===== STEP 6 — Inclusions & Images ===== */}
+          {detailStep === 6 && (
+            <Card>
+              <PresetTagEditor label="Tour Includes" icon="checkmark-circle" accentColor={C.emerald600} presets={COMMON_INCLUSIONS} items={form.inclusions} onChange={(v) => update("inclusions", v)} placeholder="Type custom inclusion & add" />
+              <PresetTagEditor label="Tour Excludes" icon="close-circle" accentColor={C.red} presets={COMMON_EXCLUSIONS} items={form.exclusions} onChange={(v) => update("exclusions", v)} placeholder="Type custom exclusion & add" />
+              <ImagePickerField label="Cover image" value={form.coverImage} onChange={(v) => update("coverImage", v)} folder="tours" helperText="Main image shown on tour cards & previews." />
+              <ImagePickerField label="Gallery (up to 8)" multi max={8} value={form.galleryImages} onChange={(v) => update("galleryImages", v)} folder="tours" />
+              <Field label="Terms & conditions">
+                <TextInput style={[styles.input, styles.inputMultiline]} placeholder="Inclusions, exclusions, booking terms…" placeholderTextColor="#A3B3C2" value={form.termsConditions} onChangeText={(v) => update("termsConditions", v)} multiline numberOfLines={4} textAlignVertical="top" />
+              </Field>
+            </Card>
+          )}
+          </>
           )}
 
           {/* ===== Delete (edit mode only) ===== */}
@@ -803,36 +1108,54 @@ export default function AddEditTourScreen({ navigation, route }) {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Sticky dual-action bar */}
+      {/* Sticky action bar — wizard nav in detailed mode, save/publish otherwise */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={[styles.draftBtn, !canSave && { opacity: 0.4 }]}
-          onPress={() => save({ publish: false })}
-          disabled={!canSave}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="save-outline" size={16} color={C.emerald600} />
-          <Text style={styles.draftBtnText}>Save as draft</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.publishBtnWrap, !canSave && { opacity: 0.5 }]}
-          onPress={() => save({ publish: true })}
-          disabled={!canSave}
-          activeOpacity={0.9}
-        >
-          <LinearGradient
-            colors={[C.emerald600, C.emerald700]}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={styles.publishBtnInner}
+        {/* Back (detailed steps 2-6) */}
+        {!isQuick && detailStep > 1 && (
+          <TouchableOpacity style={styles.draftBtn} onPress={() => setDetailStep((s) => Math.max(1, s - 1))} activeOpacity={0.85}>
+            <Ionicons name="arrow-back" size={16} color={C.emerald600} />
+            <Text style={styles.draftBtnText}>Back</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Save as draft (quick mode) */}
+        {isQuick && (
+          <TouchableOpacity
+            style={[styles.draftBtn, !canSave && { opacity: 0.4 }]}
+            onPress={() => save({ publish: false })}
+            disabled={!canSave}
+            activeOpacity={0.85}
           >
-            {saving ? <ActivityIndicator size="small" color="#fff" /> : (
-              <>
-                <Ionicons name="checkmark-circle" size={16} color="#fff" />
-                <Text style={styles.publishBtnText}>Publish Tour</Text>
-              </>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
+            <Ionicons name="save-outline" size={16} color={C.emerald600} />
+            <Text style={styles.draftBtnText}>Save draft</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Next (detailed steps 1-5) OR Publish (last step / quick) */}
+        {!isQuick && detailStep < 6 ? (
+          <TouchableOpacity style={styles.publishBtnWrap} onPress={() => setDetailStep((s) => Math.min(6, s + 1))} activeOpacity={0.9}>
+            <LinearGradient colors={[C.emerald600, C.emerald700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.publishBtnInner}>
+              <Text style={styles.publishBtnText}>Next</Text>
+              <Ionicons name="arrow-forward" size={16} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.publishBtnWrap, !canSave && { opacity: 0.5 }]}
+            onPress={() => save({ publish: true })}
+            disabled={!canSave}
+            activeOpacity={0.9}
+          >
+            <LinearGradient colors={[C.emerald600, C.emerald700]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.publishBtnInner}>
+              {saving ? <ActivityIndicator size="small" color="#fff" /> : (
+                <>
+                  <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                  <Text style={styles.publishBtnText}>Publish Tour</Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Category picker modal (D1) */}
@@ -857,6 +1180,175 @@ export default function AddEditTourScreen({ navigation, route }) {
         onConfirm={(d) => { if (datePicker) update(datePicker, d.toISOString()); setDatePicker(null); }}
         onCancel={() => setDatePicker(null)}
       />
+
+      {/* Live tour preview — how a traveller will see this tour */}
+      {showPreview && (
+        <View style={styles.previewOverlay}>
+          <View style={styles.previewSheet}>
+            <View style={styles.previewHeader}>
+              <Text style={styles.previewHeaderTitle}>Preview</Text>
+              <TouchableOpacity onPress={() => setShowPreview(false)} style={styles.previewClose}>
+                <Ionicons name="close" size={22} color={C.ink} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+              {previewImages.length > 0 ? (
+                <RemoteImage source={{ uri: previewImages[0] }} style={styles.previewCover} resizeMode="cover" />
+              ) : (
+                <View style={[styles.previewCover, styles.previewCoverEmpty]}>
+                  <Ionicons name="image-outline" size={34} color={C.subText} />
+                  <Text style={styles.previewEmptyText}>No cover image</Text>
+                </View>
+              )}
+
+              <View style={styles.previewBody}>
+                {!!form.categoryName && (
+                  <View style={styles.previewBadge}>
+                    <Text style={styles.previewBadgeText}>{form.categoryName}</Text>
+                  </View>
+                )}
+                <Text style={styles.previewTitle}>{form.title || "Untitled tour"}</Text>
+
+                <View style={styles.previewMetaRow}>
+                  {!!form.destination && (
+                    <View style={styles.previewMeta}>
+                      <Ionicons name="location-outline" size={15} color={C.emerald600} />
+                      <Text style={styles.previewMetaText}>{form.destination}</Text>
+                    </View>
+                  )}
+                  {!!previewDuration && (
+                    <View style={styles.previewMeta}>
+                      <Ionicons name="time-outline" size={15} color={C.emerald600} />
+                      <Text style={styles.previewMetaText}>{previewDuration}</Text>
+                    </View>
+                  )}
+                </View>
+
+                <Text style={styles.previewPrice}>{previewPrice}</Text>
+
+                {!!form.description && (
+                  <>
+                    <Text style={styles.previewSectionLabel}>ABOUT THIS TOUR</Text>
+                    <Text style={styles.previewDesc}>{form.description}</Text>
+                  </>
+                )}
+
+                {previewImages.length > 1 && (
+                  <>
+                    <Text style={styles.previewSectionLabel}>GALLERY</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                      {previewImages.slice(1).map((uri, i) => (
+                        <RemoteImage key={i} source={{ uri }} style={styles.previewThumb} resizeMode="cover" />
+                      ))}
+                    </ScrollView>
+                  </>
+                )}
+              </View>
+            </ScrollView>
+
+            <View style={styles.previewFooter}>
+              <Ionicons name="eye-outline" size={14} color={C.subText} />
+              <Text style={styles.previewFooterText}>This is how travellers will see your tour.</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* KYC document gate — shown when a TA tries to add a tour before submitting docs */}
+      {showDocGate && (
+        <View style={styles.gateOverlay}>
+          <View style={styles.gateCard}>
+            <View style={styles.gateIconWrap}>
+              <Ionicons name="document-text" size={32} color={C.amber} />
+              <View style={styles.gateLockBadge}>
+                <Ionicons name="lock-closed" size={11} color="#fff" />
+              </View>
+            </View>
+
+            <Text style={styles.gateTitle}>Complete your documents first</Text>
+            <Text style={styles.gateMsg}>
+              Upload your KYC document (Address Proof) to start adding tours. It only takes a minute.
+            </Text>
+
+            <View style={styles.gateStepsRow}>
+              <View style={styles.gateStep}>
+                <View style={styles.gateStepDotDone}><Ionicons name="checkmark" size={11} color="#fff" /></View>
+                <Text style={styles.gateStepText}>Account created</Text>
+              </View>
+              <View style={styles.gateStepLine} />
+              <View style={styles.gateStep}>
+                <View style={styles.gateStepDotCurrent}><Text style={styles.gateStepDotNum}>2</Text></View>
+                <Text style={[styles.gateStepText, { color: C.ink, fontWeight: "800" }]}>Upload document</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.gatePrimary}
+              activeOpacity={0.9}
+              onPress={() => { setShowDocGate(false); navigation.navigate("TADocuments"); }}
+            >
+              <LinearGradient
+                colors={[C.emerald600, C.emerald700]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={styles.gatePrimaryInner}
+              >
+                <Ionicons name="cloud-upload" size={17} color="#fff" />
+                <Text style={styles.gatePrimaryText}>Upload document</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.gateSecondary} onPress={() => setShowDocGate(false)}>
+              <Text style={styles.gateSecondaryText}>Not now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* #6c — Quick vs Detailed chooser (when opened without a pre-selected mode) */}
+      {showModeChooser && (
+        <View style={styles.chooserOverlay}>
+          <View style={styles.chooserCard}>
+            <View style={styles.chooserHandle} />
+            <Text style={styles.chooserTitle}>How do you want to add this tour?</Text>
+            <Text style={styles.chooserSub}>You can switch modes anytime.</Text>
+
+            <TouchableOpacity
+              style={styles.chooserOpt}
+              activeOpacity={0.85}
+              onPress={() => { setMode("QUICK"); setShowModeChooser(false); }}
+            >
+              <View style={[styles.chooserIcon, { backgroundColor: C.amberLight }]}>
+                <Ionicons name="flash" size={20} color={C.amber} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.chooserOptTitle}>Quick Add</Text>
+                <Text style={styles.chooserOptDesc}>Title, price & cover image — publish in seconds.</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={C.subText} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.chooserOpt}
+              activeOpacity={0.85}
+              onPress={() => { setMode("DETAILED"); setShowModeChooser(false); }}
+            >
+              <View style={[styles.chooserIcon, { backgroundColor: C.emerald50 }]}>
+                <Ionicons name="list" size={20} color={C.emerald600} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.chooserOptTitle}>Detailed Add</Text>
+                <Text style={styles.chooserOptDesc}>Full form — itinerary, inclusions, vehicles & more.</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={C.subText} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.chooserCancel} onPress={() => navigation.goBack()}>
+              <Text style={styles.chooserCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -1008,6 +1500,81 @@ function NumberInput({ value, placeholder, onChange, icon, color, suffix }) {
   );
 }
 
+// Preset-chip selector + custom add (mirrors the web inclusions/exclusions UI).
+function PresetTagEditor({ label, icon, accentColor, presets, items, onChange, placeholder }) {
+  const [text, setText] = useState("");
+  const list = items || [];
+  const toggle = (p) => onChange(list.includes(p) ? list.filter((x) => x !== p) : [...list, p]);
+  const remove = (p) => onChange(list.filter((x) => x !== p));
+  const addCustom = () => {
+    const t = text.trim();
+    setText("");
+    if (!t || list.includes(t)) return;
+    onChange([...list, t]);
+  };
+  return (
+    <View style={styles.field}>
+      <View style={styles.tagHeader}>
+        <Ionicons name={icon} size={13} color={accentColor} />
+        <Text style={[styles.fieldLabel, { color: accentColor, marginBottom: 0 }]}>{label}</Text>
+        {list.length > 0 && (
+          <View style={[styles.tagCountBadge, { backgroundColor: `${accentColor}1A` }]}>
+            <Text style={[styles.tagCountText, { color: accentColor }]}>{list.length}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Preset chips — tap to toggle */}
+      <View style={styles.presetWrap}>
+        {presets.map((p) => {
+          const active = list.includes(p);
+          return (
+            <TouchableOpacity
+              key={p}
+              onPress={() => toggle(p)}
+              activeOpacity={0.8}
+              style={[styles.presetChip, active && { borderColor: accentColor, backgroundColor: `${accentColor}14` }]}
+            >
+              {active && <Ionicons name="checkmark" size={12} color={accentColor} />}
+              <Text style={[styles.presetChipText, active && { color: accentColor, fontWeight: "800" }]}>{p}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Custom add */}
+      <View style={styles.presetAddRow}>
+        <TextInput
+          style={[styles.input, { flex: 1, marginBottom: 0 }]}
+          placeholder={placeholder}
+          placeholderTextColor="#A3B3C2"
+          value={text}
+          onChangeText={setText}
+          onSubmitEditing={addCustom}
+          returnKeyType="done"
+        />
+        <TouchableOpacity onPress={addCustom} style={[styles.presetAddBtn, { backgroundColor: accentColor }]} activeOpacity={0.85}>
+          <Ionicons name="add" size={18} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Selected items — removable */}
+      {list.length > 0 && (
+        <View style={styles.selectedWrap}>
+          {list.map((p) => (
+            <View key={p} style={[styles.selectedChip, { backgroundColor: `${accentColor}14`, borderColor: `${accentColor}55` }]}>
+              <Text style={[styles.selectedChipText, { color: accentColor }]} numberOfLines={1}>{p}</Text>
+              <TouchableOpacity onPress={() => remove(p)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                <Ionicons name="close" size={13} color={accentColor} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 function TagListEditor({ label, accentColor, icon, placeholder, items, onChange }) {
   const [draft, setDraft] = useState("");
   const add = () => {
@@ -1070,143 +1637,134 @@ function TagListEditor({ label, accentColor, icon, placeholder, items, onChange 
 const DAY_EMOJIS = ["📍", "🏔️", "🏞️", "🛕", "🏖️", "🍽️", "🚗", "🚌", "🏕️", "⛰️", "🌄", "🎒", "✈️", "🏨"];
 
 function ItineraryEditor({ items, onChange }) {
-  const add = () => {
-    const day = (items?.length || 0) + 1;
-    onChange([...(items || []), { day, title: "", description: "", emoji: "📍", activities: [] }]);
-  };
-  const update = (idx, k, v) => {
-    const next = items.slice();
+  const [emojiOpen, setEmojiOpen] = useState(null);
+  const list = items || [];
+
+  const addStop = () => onChange([...list, { id: Date.now(), type: "stop", emoji: "📍", time: "", title: "", description: "", activities: [""], timeSpent: "" }]);
+  const addBreak = () => onChange([...list, { id: Date.now() + 1, type: "break", emoji: "☕", time: "", title: "Break", breakNote: "", description: "", activities: [], timeSpent: "" }]);
+  const updateStop = (idx, k, v) => {
+    const next = list.slice();
     next[idx] = { ...next[idx], [k]: v };
     onChange(next);
   };
-  const remove = (idx) => {
-    const next = items.slice();
+  const removeStop = (idx) => {
+    const next = list.slice();
     next.splice(idx, 1);
-    next.forEach((it, i) => (it.day = i + 1));
     onChange(next);
   };
-  // #6b — reorder days; keep the `day` number sequential after a swap
   const move = (idx, dir) => {
     const j = idx + dir;
-    if (j < 0 || j >= items.length) return;
-    const next = items.slice();
-    const tmp = next[idx];
-    next[idx] = next[j];
-    next[j] = tmp;
-    next.forEach((it, i) => (it.day = i + 1));
+    if (j < 0 || j >= list.length) return;
+    const next = list.slice();
+    const tmp = next[idx]; next[idx] = next[j]; next[j] = tmp;
     onChange(next);
   };
-  const addActivity = (idx, text) => {
-    const t = String(text || "").trim();
-    if (!t) return;
-    const cur = items[idx].activities || [];
-    if (cur.includes(t)) return;
-    update(idx, "activities", [...cur, t]);
+  const addActivity = (idx) => updateStop(idx, "activities", [...(list[idx].activities || []), ""]);
+  const updateActivity = (idx, ai, v) => {
+    const cur = (list[idx].activities || []).slice();
+    cur[ai] = v;
+    updateStop(idx, "activities", cur);
   };
   const removeActivity = (idx, ai) => {
-    const cur = (items[idx].activities || []).slice();
+    const cur = (list[idx].activities || []).slice();
     cur.splice(ai, 1);
-    update(idx, "activities", cur);
+    updateStop(idx, "activities", cur);
   };
+
   return (
     <View style={styles.field}>
-      <View style={styles.tagHeader}>
-        <Ionicons name="map" size={13} color={C.purple} />
-        <Text style={[styles.fieldLabel, { color: C.purple, marginBottom: 0 }]}>Itinerary</Text>
-        {items?.length > 0 && (
-          <View style={[styles.tagCountBadge, { backgroundColor: C.purpleLight }]}>
-            <Text style={[styles.tagCountText, { color: C.purple }]}>{items.length} days</Text>
+      <Text style={styles.itinHint}>Add time-based stops — use ↑ ↓ to reorder.</Text>
+
+      {list.map((it, i) => {
+        const isBreak = it.type === "break";
+        return (
+          <View key={it.id || i} style={[styles.itinCard, isBreak && styles.itinCardBreak]}>
+            {/* Header row */}
+            <View style={[styles.itinHeadRow, !isBreak && styles.itinHeadRowStop]}>
+              {isBreak ? (
+                <View style={styles.itinBreakIcon}><Ionicons name="cafe" size={15} color={C.emerald600} /></View>
+              ) : (
+                <TouchableOpacity onPress={() => setEmojiOpen(emojiOpen === i ? null : i)} style={styles.itinEmojiBtn} activeOpacity={0.8}>
+                  <Text style={{ fontSize: 20 }}>{it.emoji || "📍"}</Text>
+                </TouchableOpacity>
+              )}
+              <TextInput style={styles.itinTimeInput} placeholder="Time" placeholderTextColor="#A3B3C2" value={it.time || ""} onChangeText={(v) => updateStop(i, "time", v)} />
+              <TextInput
+                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                placeholder={isBreak ? "Break note (e.g. Lunch)" : "Stop name (e.g. Fort Aguada)"}
+                placeholderTextColor="#A3B3C2"
+                value={isBreak ? (it.breakNote || "") : (it.title || "")}
+                onChangeText={(v) => updateStop(i, isBreak ? "breakNote" : "title", v)}
+              />
+              {isBreak && <View style={styles.itinBreakBadge}><Text style={styles.itinBreakBadgeText}>BREAK</Text></View>}
+              <TouchableOpacity onPress={() => move(i, -1)} disabled={i === 0} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={{ opacity: i === 0 ? 0.3 : 1, marginLeft: 6 }}>
+                <Ionicons name="arrow-up" size={16} color={C.subText} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => move(i, 1)} disabled={i === list.length - 1} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={{ opacity: i === list.length - 1 ? 0.3 : 1, marginLeft: 6 }}>
+                <Ionicons name="arrow-down" size={16} color={C.subText} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => removeStop(i)} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} style={{ marginLeft: 6 }}>
+                <Ionicons name="trash-outline" size={15} color={C.red} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Emoji palette */}
+            {!isBreak && emojiOpen === i && (
+              <View style={styles.itinEmojiPalette}>
+                {STOP_EMOJIS.map((em) => (
+                  <TouchableOpacity key={em} onPress={() => { updateStop(i, "emoji", em); setEmojiOpen(null); }} style={styles.itinEmojiOpt} activeOpacity={0.8}>
+                    <Text style={{ fontSize: 18 }}>{em}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Body */}
+            {isBreak ? (
+              <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
+                <TextInput style={[styles.input, { marginBottom: 0 }]} placeholder="Duration (e.g. 45 minutes)" placeholderTextColor="#A3B3C2" value={it.timeSpent || ""} onChangeText={(v) => updateStop(i, "timeSpent", v)} />
+              </View>
+            ) : (
+              <View style={{ padding: 12, gap: 8 }}>
+                <TextInput style={[styles.input, styles.inputMultiline, { marginBottom: 0 }]} placeholder="Description of this stop…" placeholderTextColor="#A3B3C2" value={it.description || ""} onChangeText={(v) => updateStop(i, "description", v)} multiline numberOfLines={2} textAlignVertical="top" />
+                <Text style={styles.itinSubLabel}>Activities / Highlights at this stop</Text>
+                {(it.activities || []).map((act, ai) => (
+                  <View key={ai} style={styles.itinActRow}>
+                    <Text style={styles.itinBullet}>•</Text>
+                    <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} placeholder="e.g. Lighthouse viewpoint" placeholderTextColor="#A3B3C2" value={act} onChangeText={(v) => updateActivity(i, ai, v)} />
+                    {(it.activities || []).length > 1 && (
+                      <TouchableOpacity onPress={() => removeActivity(i, ai)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                        <Ionicons name="close" size={15} color={C.subText} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+                <TouchableOpacity onPress={() => addActivity(i)} style={styles.itinAddAct} activeOpacity={0.8}>
+                  <Ionicons name="add" size={14} color={C.emerald600} />
+                  <Text style={styles.itinAddActText}>Add activity</Text>
+                </TouchableOpacity>
+                <View style={styles.itinTimeSpentRow}>
+                  <Ionicons name="time-outline" size={15} color={C.subText} />
+                  <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} placeholder="Time spent (e.g. 45 minutes)" placeholderTextColor="#A3B3C2" value={it.timeSpent || ""} onChangeText={(v) => updateStop(i, "timeSpent", v)} />
+                </View>
+              </View>
+            )}
           </View>
-        )}
-        <View style={{ flex: 1 }} />
-        <TouchableOpacity onPress={add} style={styles.addDayBtn} activeOpacity={0.85}>
-          <Ionicons name="add" size={14} color="#fff" />
-          <Text style={styles.addDayText}>Add day</Text>
+        );
+      })}
+
+      {list.length === 0 && <Text style={styles.helper}>Add stops and breaks to outline the tour timeline.</Text>}
+
+      <View style={styles.itinAddRow}>
+        <TouchableOpacity onPress={addStop} style={styles.itinAddBtn} activeOpacity={0.85}>
+          <Ionicons name="add" size={16} color={C.emerald600} />
+          <Text style={styles.itinAddBtnText}>Add Stop</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={addBreak} style={styles.itinAddBtn} activeOpacity={0.85}>
+          <Ionicons name="cafe" size={15} color={C.emerald600} />
+          <Text style={styles.itinAddBtnText}>Add Break</Text>
         </TouchableOpacity>
       </View>
-      {(!items || items.length === 0) ? (
-        <Text style={styles.helper}>Tap "Add day" to outline the daily plan.</Text>
-      ) : (
-        items.map((it, i) => (
-          <View key={i} style={styles.dayRow}>
-            <LinearGradient
-              colors={[C.emerald500, C.emerald600]}
-              style={styles.dayBadge}
-            >
-              <Text style={styles.dayBadgeText}>{it.day || i + 1}</Text>
-            </LinearGradient>
-            <View style={styles.dayContent}>
-              <View style={styles.dayHeaderRow}>
-                <Text style={styles.dayLabel}>Day {it.day || i + 1}</Text>
-                <View style={{ flex: 1 }} />
-                <TouchableOpacity onPress={() => move(i, -1)} disabled={i === 0} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={{ marginRight: 10, opacity: i === 0 ? 0.3 : 1 }}>
-                  <Ionicons name="arrow-up" size={16} color={C.purple} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => move(i, 1)} disabled={i === items.length - 1} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={{ marginRight: 10, opacity: i === items.length - 1 ? 0.3 : 1 }}>
-                  <Ionicons name="arrow-down" size={16} color={C.purple} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => remove(i)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Ionicons name="trash-outline" size={15} color={C.red} />
-                </TouchableOpacity>
-              </View>
-              {/* #6b — emoji picker */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
-                {DAY_EMOJIS.map((em) => {
-                  const sel = (it.emoji || "📍") === em;
-                  return (
-                    <TouchableOpacity
-                      key={em}
-                      onPress={() => update(i, "emoji", em)}
-                      style={[styles.emojiChip, sel && styles.emojiChipSel]}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={{ fontSize: 16 }}>{em}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-              <TextInput
-                style={[styles.input, { marginBottom: 6 }]}
-                placeholder="Time (e.g. 09:00 AM) — optional"
-                placeholderTextColor="#A3B3C2"
-                value={it.time || ""}
-                onChangeText={(v) => update(i, "time", v)}
-              />
-              <TextInput
-                style={[styles.input, { marginBottom: 6 }]}
-                placeholder="Title (e.g. Arrival in Manali)"
-                placeholderTextColor="#A3B3C2"
-                value={it.title || ""}
-                onChangeText={(v) => update(i, "title", v)}
-              />
-              <TextInput
-                style={[styles.input, styles.inputMultiline]}
-                placeholder="What happens this day…"
-                placeholderTextColor="#A3B3C2"
-                value={it.description || ""}
-                onChangeText={(v) => update(i, "description", v)}
-                multiline
-                numberOfLines={2}
-                textAlignVertical="top"
-              />
-              {/* #6b — per-day activities */}
-              {(it.activities || []).length > 0 && (
-                <View style={styles.activityWrap}>
-                  {(it.activities || []).map((a, ai) => (
-                    <View key={ai} style={styles.activityChip}>
-                      <Text style={styles.activityChipText}>{a}</Text>
-                      <TouchableOpacity onPress={() => removeActivity(i, ai)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                        <Ionicons name="close" size={13} color={C.purple} />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
-              <ActivityAdder onAdd={(t) => addActivity(i, t)} />
-            </View>
-          </View>
-        ))
-      )}
     </View>
   );
 }
@@ -1394,4 +1952,210 @@ const styles = StyleSheet.create({
   catRowText: { flex: 1, fontSize: 14, color: C.ink, fontWeight: "800" },
   subCatRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 9, paddingHorizontal: 12, marginLeft: 18 },
   subCatText: { fontSize: 13, color: C.text, fontWeight: "600" },
+
+  // #6c — quick-mode banner
+  quickBanner: {
+    flexDirection: "row", alignItems: "center", flexWrap: "wrap",
+    backgroundColor: C.amberLight, borderWidth: 1, borderColor: "#FDE68A",
+    borderRadius: 12, paddingVertical: 11, paddingHorizontal: 14, marginBottom: 12,
+  },
+  quickBannerText: { fontSize: 12.5, color: "#92400E", fontWeight: "600" },
+  quickBannerLink: { fontSize: 12.5, color: C.emerald700, fontWeight: "800" },
+
+  // #6c — quick-mode category grid
+  catGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  catChip: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12,
+    borderWidth: 1, borderColor: C.border, backgroundColor: "#fff",
+  },
+  catChipActive: { borderColor: C.emerald500, backgroundColor: C.emerald50 },
+  catChipIcon: { fontSize: 14 },
+  catChipText: { fontSize: 13, fontWeight: "700", color: C.text, maxWidth: 130 },
+  catChipTextActive: { color: C.emerald700 },
+
+  // #6c — quick-mode duration chips
+  durWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  durChip: {
+    paddingHorizontal: 12, paddingVertical: 9, borderRadius: 999,
+    borderWidth: 1, borderColor: C.border, backgroundColor: "#F8FAFC",
+  },
+  durChipActive: { borderColor: C.emerald500, backgroundColor: C.emerald50 },
+  durChipText: { fontSize: 12.5, fontWeight: "700", color: C.text },
+  durChipTextActive: { color: C.emerald700 },
+
+  // Detailed-mode step wizard
+  stepperRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 4, marginTop: 4, marginBottom: 14 },
+  stepperDot: {
+    width: 30, height: 30, borderRadius: 15, backgroundColor: "#E5E7EB",
+    alignItems: "center", justifyContent: "center",
+  },
+  stepperDotCurrent: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: C.emerald600,
+    borderWidth: 3, borderColor: C.emerald50,
+    shadowColor: C.emerald600, shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 3,
+  },
+  stepperDotDone: { backgroundColor: C.emerald500 },
+  stepperNum: { fontSize: 13, fontWeight: "800", color: C.subText },
+  stepperLine: { flex: 1, height: 3, backgroundColor: "#E5E7EB", borderRadius: 2, marginHorizontal: 2 },
+  stepperLineDone: { backgroundColor: C.emerald500 },
+  stepHead: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14, marginTop: 2 },
+  stepHeadIcon: {
+    width: 44, height: 44, borderRadius: 13, backgroundColor: C.emerald50,
+    alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#D1FAE5",
+  },
+  stepHeadTitle: { fontSize: 17, fontWeight: "800", color: C.ink, letterSpacing: -0.2 },
+  stepHeadSub: { fontSize: 12, color: C.subText, marginTop: 2, fontWeight: "500" },
+
+  // Quick tour description formatting toolbar
+  fmtToolbar: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 10 },
+  fmtBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: C.border, backgroundColor: "#F8FAFC" },
+  fmtBtnText: { fontSize: 12, fontWeight: "700", color: C.ink },
+  inputMultilineRich: { minHeight: 200, paddingTop: 12, paddingBottom: 12, fontSize: 14, lineHeight: 22 },
+
+  // AI "write with AI" affordance on the short description
+  aiInputWrap: { flexDirection: "row", alignItems: "flex-start" },
+  aiInlineBtn: {
+    position: "absolute", right: 6, top: 0, bottom: 0, width: 38,
+    alignItems: "center", justifyContent: "center",
+  },
+  aiHintRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
+  aiHintText: { fontSize: 12, fontWeight: "700", color: C.purple },
+
+  // Itinerary (time-based stops + breaks)
+  itinHint: { fontSize: 12.5, color: C.subText, marginBottom: 10, fontWeight: "600" },
+  itinCard: { borderWidth: 1, borderColor: C.border, borderRadius: 14, backgroundColor: "#fff", marginBottom: 10, overflow: "hidden" },
+  itinCardBreak: { borderColor: "#A7F3D0", backgroundColor: C.emerald50 },
+  itinHeadRow: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 10 },
+  itinHeadRowStop: { backgroundColor: "#F8FAFC", borderBottomWidth: 1, borderBottomColor: C.border },
+  itinEmojiBtn: { width: 34, height: 34, borderRadius: 9, backgroundColor: "#fff", borderWidth: 1, borderColor: C.border, alignItems: "center", justifyContent: "center" },
+  itinBreakIcon: { width: 30, height: 30, borderRadius: 9, backgroundColor: "#D1FAE5", alignItems: "center", justifyContent: "center" },
+  itinTimeInput: { width: 78, borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingHorizontal: 8, height: 40, fontSize: 13, color: C.ink, backgroundColor: "#fff" },
+  itinBreakBadge: { backgroundColor: "#D1FAE5", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999 },
+  itinBreakBadgeText: { fontSize: 9, fontWeight: "900", color: C.emerald700, letterSpacing: 0.4 },
+  itinEmojiPalette: { flexDirection: "row", flexWrap: "wrap", gap: 4, padding: 10, backgroundColor: "#F8FAFC", borderBottomWidth: 1, borderBottomColor: C.border },
+  itinEmojiOpt: { width: 34, height: 34, borderRadius: 8, alignItems: "center", justifyContent: "center", backgroundColor: "#fff", borderWidth: 1, borderColor: C.border },
+  itinSubLabel: { fontSize: 11.5, fontWeight: "700", color: C.subText, marginTop: 2 },
+  itinActRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  itinBullet: { fontSize: 16, color: C.subText, fontWeight: "800" },
+  itinAddAct: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", paddingVertical: 4 },
+  itinAddActText: { fontSize: 12.5, fontWeight: "700", color: C.emerald600 },
+  itinTimeSpentRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  itinAddRow: { flexDirection: "row", gap: 10, marginTop: 4 },
+  itinAddBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    paddingVertical: 13, borderRadius: 12, borderWidth: 1.5, borderColor: "#A7F3D0", borderStyle: "dashed", backgroundColor: C.emerald50,
+  },
+  itinAddBtnText: { fontSize: 13, fontWeight: "800", color: C.emerald700 },
+
+  // Preset tag editor (inclusions / exclusions)
+  presetWrap: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginBottom: 10 },
+  presetChip: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999,
+    borderWidth: 1, borderColor: C.border, backgroundColor: "#fff",
+  },
+  presetChipText: { fontSize: 12, fontWeight: "600", color: C.subText },
+  presetAddRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  presetAddBtn: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  selectedWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 10 },
+  selectedChip: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1, maxWidth: "100%",
+  },
+  selectedChipText: { fontSize: 12, fontWeight: "700", flexShrink: 1 },
+
+  // #6c — Quick/Detailed chooser overlay
+  chooserOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(15,23,42,0.55)", justifyContent: "flex-end",
+  },
+  chooserCard: {
+    backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    paddingHorizontal: 18, paddingTop: 10, paddingBottom: 28,
+  },
+  chooserHandle: { alignSelf: "center", width: 42, height: 5, borderRadius: 3, backgroundColor: C.border, marginBottom: 14 },
+  chooserTitle: { fontSize: 18, fontWeight: "800", color: C.ink },
+  chooserSub: { fontSize: 13, color: C.subText, marginTop: 4, marginBottom: 16 },
+  chooserOpt: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    backgroundColor: "#F8FAFC", borderWidth: 1, borderColor: C.border,
+    borderRadius: 14, padding: 14, marginBottom: 10,
+  },
+  chooserIcon: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  chooserOptTitle: { fontSize: 15, fontWeight: "800", color: C.ink },
+  chooserOptDesc: { fontSize: 12, color: C.subText, marginTop: 2, lineHeight: 16 },
+  chooserCancel: { alignItems: "center", paddingVertical: 12, marginTop: 4 },
+  chooserCancelText: { fontSize: 14, fontWeight: "700", color: C.subText },
+
+  // KYC document gate modal
+  gateOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(15,23,42,0.6)", alignItems: "center", justifyContent: "center", padding: 26,
+  },
+  gateCard: {
+    width: "100%", maxWidth: 360, backgroundColor: C.card, borderRadius: 22,
+    paddingHorizontal: 22, paddingTop: 26, paddingBottom: 18, alignItems: "center",
+    shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 10,
+  },
+  gateIconWrap: {
+    width: 72, height: 72, borderRadius: 36, backgroundColor: C.amberLight,
+    alignItems: "center", justifyContent: "center", marginBottom: 16,
+  },
+  gateLockBadge: {
+    position: "absolute", bottom: -2, right: -2, width: 26, height: 26, borderRadius: 13,
+    backgroundColor: C.amber, alignItems: "center", justifyContent: "center",
+    borderWidth: 2.5, borderColor: C.card,
+  },
+  gateTitle: { fontSize: 18.5, fontWeight: "800", color: C.ink, textAlign: "center" },
+  gateMsg: { fontSize: 13.5, color: C.subText, textAlign: "center", marginTop: 8, lineHeight: 20 },
+
+  gateStepsRow: { flexDirection: "row", alignItems: "center", marginTop: 18, marginBottom: 4, paddingHorizontal: 4 },
+  gateStep: { alignItems: "center", gap: 5, width: 92 },
+  gateStepDotDone: { width: 24, height: 24, borderRadius: 12, backgroundColor: C.emerald600, alignItems: "center", justifyContent: "center" },
+  gateStepDotCurrent: { width: 24, height: 24, borderRadius: 12, backgroundColor: C.amber, alignItems: "center", justifyContent: "center" },
+  gateStepDotNum: { color: "#fff", fontWeight: "800", fontSize: 12 },
+  gateStepText: { fontSize: 11, color: C.subText, fontWeight: "600", textAlign: "center" },
+  gateStepLine: { flex: 1, height: 2, backgroundColor: C.border, marginBottom: 18, marginHorizontal: 2 },
+
+  gatePrimary: {
+    width: "100%", borderRadius: 14, overflow: "hidden", marginTop: 18,
+    shadowColor: C.emerald600, shadowOpacity: 0.3, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 4,
+  },
+  gatePrimaryInner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 52 },
+  gatePrimaryText: { color: "#fff", fontSize: 15.5, fontWeight: "800" },
+  gateSecondary: { width: "100%", alignItems: "center", paddingVertical: 13, marginTop: 2 },
+  gateSecondaryText: { fontSize: 14, fontWeight: "700", color: C.subText },
+
+  // Live preview modal
+  previewOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(15,23,42,0.6)", justifyContent: "flex-end" },
+  previewSheet: {
+    backgroundColor: C.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    maxHeight: "92%", overflow: "hidden",
+  },
+  previewHeader: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 18, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  previewHeaderTitle: { fontSize: 17, fontWeight: "800", color: C.ink },
+  previewClose: { width: 34, height: 34, borderRadius: 17, backgroundColor: "#F1F5F9", alignItems: "center", justifyContent: "center" },
+  previewCover: { width: "100%", height: 210, backgroundColor: "#EEF2F7" },
+  previewCoverEmpty: { alignItems: "center", justifyContent: "center", gap: 6 },
+  previewEmptyText: { fontSize: 12.5, color: C.subText, fontWeight: "600" },
+  previewBody: { padding: 18 },
+  previewBadge: { alignSelf: "flex-start", backgroundColor: C.emerald50, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, marginBottom: 10 },
+  previewBadgeText: { fontSize: 11, fontWeight: "800", color: C.emerald700, letterSpacing: 0.3 },
+  previewTitle: { fontSize: 21, fontWeight: "800", color: C.ink, letterSpacing: -0.3 },
+  previewMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 14, marginTop: 10 },
+  previewMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
+  previewMetaText: { fontSize: 13.5, color: C.text, fontWeight: "600" },
+  previewPrice: { fontSize: 20, fontWeight: "900", color: C.emerald700, marginTop: 14 },
+  previewSectionLabel: { fontSize: 11.5, fontWeight: "800", color: C.subText, letterSpacing: 1, marginTop: 20, marginBottom: 8 },
+  previewDesc: { fontSize: 14, color: C.text, lineHeight: 21 },
+  previewThumb: { width: 96, height: 96, borderRadius: 12, backgroundColor: "#EEF2F7" },
+  previewFooter: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+    paddingVertical: 12, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: "#F8FAFC",
+  },
+  previewFooterText: { fontSize: 12, color: C.subText, fontWeight: "600" },
 });

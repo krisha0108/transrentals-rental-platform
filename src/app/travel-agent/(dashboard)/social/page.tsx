@@ -971,7 +971,7 @@ function SocialFeedContent() {
       {/* ── Story / Quick Action Row ── */}
       <div className="bg-white border-b border-gray-100 py-4 px-4 sm:px-6 overflow-visible">
         <div className="flex gap-4 sm:gap-6 overflow-x-auto scrollbar-hide snap-x">
-          <Link href="/travel-agent/social/create" className="group flex flex-col items-center gap-2 flex-shrink-0 snap-start">
+          <Link href="/travel-agent/social/create?sos=1" className="group flex flex-col items-center gap-2 flex-shrink-0 snap-start">
             <div className="p-[3px] rounded-full bg-gradient-to-br from-red-500 via-rose-500 to-orange-500 shadow-lg shadow-red-200/50 group-hover:shadow-xl group-hover:shadow-red-300/60 transition-all duration-300">
               <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white flex items-center justify-center group-hover:bg-red-50 transition-colors">
                 <AlertOctagon className="w-6 h-6 sm:w-7 sm:h-7 text-red-500 animate-wiggle" />
@@ -1145,7 +1145,7 @@ function SocialFeedContent() {
               <Sparkles className="w-4 h-4 text-purple-600" /> Quick Post
             </h3>
             <div className="grid grid-cols-2 gap-2">
-              <Link href="/travel-agent/social/create" className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-100 text-red-700 hover:bg-red-200 text-[12px] font-semibold transition-colors active:scale-95">
+              <Link href="/travel-agent/social/create?sos=1" className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-100 text-red-700 hover:bg-red-200 text-[12px] font-semibold transition-colors active:scale-95">
                 <Zap className="w-3.5 h-3.5" /> SOS
               </Link>
               <Link href="/travel-agent/social/create" className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-purple-100 text-purple-700 hover:bg-purple-200 text-[12px] font-semibold transition-colors active:scale-95">

@@ -51,24 +51,35 @@ export default function ImagePickerField({
         quality: 0.85,
         selectionLimit: multi ? remaining : 1,
       });
-      if (res.didCancel || !res.assets?.length) return;
+      if (res.didCancel) return;
+      if (!res.assets?.length) {
+        Alert.alert("No image selected", "Please select an image and try again.");
+        return;
+      }
       setBusy(true);
       const uploaded = [];
+      const failures = [];
       for (const asset of res.assets) {
         try {
           const file = assetToRNFile(asset);
           const out = await uploadTravelAgentImage(file, folder);
           if (out?.url) uploaded.push(out.url);
+          else failures.push(asset.fileName || "image");
         } catch (err) {
-          console.log("[Upload] one image failed:", err?.message);
+          failures.push(`${asset.fileName || "image"}: ${err?.response?.data?.error || err?.message || "upload failed"}`);
         }
       }
-      if (uploaded.length === 0) {
-        Alert.alert("Upload failed", "Could not upload image. Please try again.");
+      if (failures.length > 0 && uploaded.length === 0) {
+        Alert.alert("Upload failed", failures.join("\n"));
         return;
       }
-      if (multi) onChange([...urls, ...uploaded]);
-      else onChange(uploaded[0]);
+      if (failures.length > 0) {
+        Alert.alert("Some images failed", failures.join("\n"));
+      }
+      if (uploaded.length > 0) {
+        if (multi) onChange([...urls, ...uploaded]);
+        else onChange(uploaded[0]);
+      }
     } catch (e) {
       Alert.alert("Error", e?.message || "Failed to pick image");
     } finally {

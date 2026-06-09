@@ -33,7 +33,6 @@ import {
   deleteSocialPostComment,
 } from "../../api/travelAgentClient";
 import RemoteImage from "../_shared/RemoteImage";
-import SectionOpsBar from "../_shared/SectionOpsBar";
 
 const C = {
   emerald600: "#059669",
@@ -362,6 +361,14 @@ export default function SocialFeedScreen({ navigation, route }) {
               <Text style={styles.headerSub}>Vendor + Agent network</Text>
             </View>
             <TouchableOpacity
+              onPress={() => navigation.navigate("TACreatePost", { isSOS: true })}
+              style={styles.sosBtn}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="alert-circle" size={14} color="#fff" />
+              <Text style={styles.sosBtnText}>SOS</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={() => navigation.navigate("TASocialMessages")}
               style={styles.msgBtn}
               activeOpacity={0.85}
@@ -373,43 +380,32 @@ export default function SocialFeedScreen({ navigation, route }) {
         </SafeAreaView>
       </LinearGradient>
 
-      <SectionOpsBar navigation={navigation} group="social" active="TASocialFeed" />
-
-      {/* ===== Feed tabs =====
-          Wrapped in a fixed-height bar so the horizontal ScrollView never
-          gets squeezed by flex parents on Android (previously the chips
-          were clipping at the top/bottom). */}
+      {/* ===== Main tabs — full-width underline style ===== */}
       <View style={styles.tabsBar}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabsRowContent}
-        >
-          {FEED_TABS.map((t) => {
-            const active = tab === t.key;
-            return (
-              <TouchableOpacity
-                key={t.key}
-                style={[
-                  styles.tab,
-                  active && { backgroundColor: `${t.color}18`, borderColor: t.color },
-                ]}
-                onPress={() => setTab(t.key)}
-                activeOpacity={0.85}
-              >
-                <Ionicons name={t.icon} size={13} color={active ? t.color : C.subText} />
-                <Text style={[styles.tabText, active && { color: t.color, fontWeight: "800" }]}>
-                  {t.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        {FEED_TABS.map((t) => {
+          const active = tab === t.key;
+          const hasSOS = t.key === "sos" && sosAuthors.length > 0;
+          return (
+            <TouchableOpacity
+              key={t.key}
+              style={styles.tab}
+              onPress={() => setTab(t.key)}
+              activeOpacity={0.8}
+            >
+              <View style={styles.tabInner}>
+                <Ionicons name={t.icon} size={15} color={active ? t.color : C.subText} />
+                <Text style={[styles.tabText, active && { color: t.color }]}>{t.label}</Text>
+                {hasSOS && <View style={styles.tabDot} />}
+              </View>
+              {active && <View style={[styles.tabUnderline, { backgroundColor: t.color }]} />}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      {/* Free-text search (all tabs) */}
+      {/* ===== Search bar ===== */}
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={16} color={C.subText} />
+        <Ionicons name="search" size={15} color={C.subText} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search posts, people, category…"
@@ -420,34 +416,54 @@ export default function SocialFeedScreen({ navigation, route }) {
         />
         {!!feedSearch && (
           <TouchableOpacity onPress={() => setFeedSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close-circle" size={16} color={C.subText} />
+            <Ionicons name="close-circle" size={15} color={C.subText} />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Category filter (feed tab only) */}
-      {tab === "feed" && categories.length > 0 && (
-        <View style={styles.catChipBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingHorizontal: 12 }}>
+      {/* ===== Category + view filter chips (feed tab only) ===== */}
+      {tab === "feed" && (
+        <View style={styles.filterRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRowContent}>
+            {/* View filter: All posts vs General only */}
             <TouchableOpacity
-              style={[styles.catChip, !categoryFilter && styles.catChipActive]}
-              onPress={() => setCategoryFilter(null)}
+              style={[styles.filterChip, feedView === "all" && styles.filterChipActive]}
+              onPress={() => { setFeedView("all"); setCategoryFilter(null); }}
             >
-              <Text style={[styles.catChipText, !categoryFilter && { color: C.emerald700, fontWeight: "800" }]}>All</Text>
+              <Ionicons name="apps" size={11} color={feedView === "all" && !categoryFilter ? C.emerald700 : C.subText} />
+              <Text style={[styles.filterChipText, feedView === "all" && !categoryFilter && styles.filterChipTextActive]}>All</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.filterChip, feedView === "general" && styles.filterChipActive]}
+              onPress={() => { setFeedView("general"); setCategoryFilter(null); }}
+            >
+              <Ionicons name="newspaper" size={11} color={feedView === "general" ? C.emerald700 : C.subText} />
+              <Text style={[styles.filterChipText, feedView === "general" && styles.filterChipTextActive]}>General</Text>
+            </TouchableOpacity>
+            {/* Separator */}
+            <View style={styles.filterSep} />
+            {/* Category chips */}
             {categories.map((c) => {
               const active = categoryFilter === c.id;
+              const chipColor = c.isSOS ? C.red : C.emerald700;
               return (
                 <TouchableOpacity
                   key={c.id}
-                  style={[styles.catChip, active && styles.catChipActive]}
-                  onPress={() => setCategoryFilter(active ? null : c.id)}
+                  style={[styles.filterChip, active && { backgroundColor: `${chipColor}15`, borderColor: chipColor }]}
+                  onPress={() => { setCategoryFilter(active ? null : c.id); setFeedView("all"); }}
                 >
-                  {c.isSOS && <Ionicons name="alert-circle" size={11} color={active ? C.red : C.subText} />}
-                  <Text style={[styles.catChipText, active && { color: C.emerald700, fontWeight: "800" }]} numberOfLines={1}>{c.name}</Text>
+                  <Ionicons name={c.isSOS ? "alert-circle" : "pricetag"} size={11} color={active ? chipColor : C.subText} />
+                  <Text style={[styles.filterChipText, active && { color: chipColor, fontWeight: "800" }]} numberOfLines={1}>{c.name}</Text>
                 </TouchableOpacity>
               );
             })}
+            {/* Old SOS toggle */}
+            {hiddenOldSosCount > 0 && (
+              <TouchableOpacity style={styles.filterChip} onPress={() => setShowOldSos(v => !v)}>
+                <Ionicons name="time" size={11} color={C.subText} />
+                <Text style={styles.filterChipText}>{showOldSos ? "Hide old" : `+${hiddenOldSosCount} old`}</Text>
+              </TouchableOpacity>
+            )}
           </ScrollView>
         </View>
       )}
@@ -457,26 +473,6 @@ export default function SocialFeedScreen({ navigation, route }) {
           <Ionicons name="alert-circle-outline" size={16} color={C.red} />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity onPress={() => fetchPage()}><Text style={styles.errorRetry}>Retry</Text></TouchableOpacity>
-        </View>
-      )}
-
-      {tab === "feed" && (
-        <View style={styles.curationBar}>
-          <TouchableOpacity style={[styles.curChip, feedView === "all" && styles.curChipActive]} onPress={() => setFeedView("all")}>
-            <Text style={[styles.curChipText, feedView === "all" && { color: C.emerald700, fontWeight: "800" }]}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.curChip, feedView === "general" && styles.curChipActive]} onPress={() => setFeedView("general")}>
-            <Text style={[styles.curChipText, feedView === "general" && { color: C.emerald700, fontWeight: "800" }]}>General</Text>
-          </TouchableOpacity>
-          <View style={{ flex: 1 }} />
-          {hiddenOldSosCount > 0 && (
-            <TouchableOpacity onPress={() => setShowOldSos(true)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-              <Text style={styles.curLink}>Show {hiddenOldSosCount} older SOS</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={() => setShowFlagged((v) => !v)} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-            <Text style={styles.curLink}>{showFlagged ? "Hide flagged" : "Show flagged"}</Text>
-          </TouchableOpacity>
         </View>
       )}
 
@@ -605,20 +601,36 @@ export default function SocialFeedScreen({ navigation, route }) {
         />
       )}
 
-      {/* ===== Floating FAB ===== */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate("TACreatePost")}
-        activeOpacity={0.85}
-      >
-        <LinearGradient
-          colors={[C.emerald500, C.emerald700]}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.fabInner}
+      {/* ===== Floating FABs (SOS + General) ===== */}
+      <View style={styles.fabGroup}>
+        <TouchableOpacity
+          style={styles.fabSOS}
+          onPress={() => navigation.navigate("TACreatePost", { isSOS: true })}
+          activeOpacity={0.85}
         >
-          <Ionicons name="create" size={24} color="#fff" />
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={["#DC2626", "#991B1B"]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.fabInner}
+          >
+            <Ionicons name="alert-circle" size={18} color="#fff" />
+            <Text style={styles.fabSOSLabel}>SOS</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => navigation.navigate("TACreatePost")}
+          activeOpacity={0.85}
+        >
+          <LinearGradient
+            colors={[C.emerald500, C.emerald700]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.fabInner}
+          >
+            <Ionicons name="create" size={24} color="#fff" />
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
 
       <ShareInChatModal post={sharePost} onClose={() => setSharePost(null)} />
 
@@ -1634,6 +1646,12 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
   headerSub: { fontSize: 11.5, color: "rgba(255,255,255,0.85)", fontWeight: "600", marginTop: 2 },
 
+  sosBtn: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 11, paddingVertical: 7, borderRadius: 999,
+    backgroundColor: C.red, marginRight: 6,
+  },
+  sosBtnText: { color: "#fff", fontWeight: "900", fontSize: 11 },
   msgBtn: {
     flexDirection: "row", alignItems: "center", gap: 5,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
@@ -1641,29 +1659,52 @@ const styles = StyleSheet.create({
   },
   msgBtnText: { color: C.emerald700, fontWeight: "800", fontSize: 12 },
 
-  // Tabs (under header, in white strip)
-  // Fixed-height wrapping bar so the ScrollView reliably renders the chips
-  // without clipping on Android. minHeight = chip (≈34) + padding (≈20).
+  // ── Main tabs — underline style (Instagram-like) ──────────────────────────
   tabsBar: {
+    flexDirection: "row",
     backgroundColor: C.card,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
-    minHeight: 56,
-    justifyContent: "center",
   },
-  tabsRowContent: {
-    paddingHorizontal: 16, paddingVertical: 10, gap: 8,
-    flexDirection: "row", alignItems: "center",
+  tab: { flex: 1, alignItems: "center", paddingTop: 10, paddingBottom: 0 },
+  tabInner: { flexDirection: "row", alignItems: "center", gap: 5, paddingBottom: 10 },
+  tabText: { fontSize: 12, fontWeight: "700", color: C.subText },
+  tabUnderline: { height: 2.5, borderRadius: 2, width: "80%", marginTop: 0 },
+  tabDot: {
+    width: 6, height: 6, borderRadius: 3,
+    backgroundColor: C.red,
+    position: "absolute", top: -1, right: -8,
   },
-  tab: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999,
-    backgroundColor: "#FAFBFC", borderWidth: 1, borderColor: C.border,
-    minHeight: 34,
-  },
-  tabText: { fontSize: 12.5, fontWeight: "700", color: C.subText },
 
-  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 10, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
+  // ── Search bar ──────────────────────────────────────────────────────────
+  searchBar: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    marginHorizontal: 12, marginVertical: 8,
+    paddingHorizontal: 12, height: 38,
+    borderRadius: 10, backgroundColor: C.card,
+    borderWidth: 1, borderColor: C.border,
+  },
+  searchInput: { flex: 1, fontSize: 13, color: C.ink, padding: 0 },
+
+  // ── Combined filter row (feed tab only) ────────────────────────────────
+  filterRow: {
+    backgroundColor: C.card,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+    paddingVertical: 6,
+  },
+  filterRowContent: { paddingHorizontal: 12, gap: 6, flexDirection: "row", alignItems: "center" },
+  filterChip: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 999, backgroundColor: C.bg,
+    borderWidth: 1, borderColor: C.border,
+  },
+  filterChipActive: { backgroundColor: C.emerald50, borderColor: C.emerald600 },
+  filterChipText: { fontSize: 11.5, color: C.subText, fontWeight: "700", maxWidth: 120 },
+  filterChipTextActive: { color: C.emerald700, fontWeight: "800" },
+  filterSep: { width: 1, height: 18, backgroundColor: C.border, marginHorizontal: 2 },
+
+  errorBox: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 16, marginTop: 6, padding: 10, backgroundColor: "#FEF2F2", borderRadius: 10, borderWidth: 1, borderColor: "#FECACA" },
   errorText: { color: C.red, fontSize: 12.5, flex: 1 },
   errorRetry: { color: C.red, fontWeight: "800", fontSize: 12.5 },
 
@@ -1672,21 +1713,6 @@ const styles = StyleSheet.create({
 
   listContent: { padding: 14, paddingBottom: 100 },
   emptyWrap: { flexGrow: 1, justifyContent: "center", padding: 16 },
-
-  // Category filter chips
-  catChipBar: { paddingVertical: 8, backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-  catChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
-  catChipActive: { backgroundColor: C.emerald50, borderColor: C.emerald600 },
-  catChipText: { fontSize: 12, color: C.text, fontWeight: "700", maxWidth: 130 },
-
-  // #9 — curation bar
-  searchBar: { flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 12, marginTop: 8, paddingHorizontal: 12, height: 40, borderRadius: 10, backgroundColor: C.card, borderWidth: 1, borderColor: C.border },
-  searchInput: { flex: 1, fontSize: 13.5, color: C.ink, padding: 0 },
-  curationBar: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: C.card, borderBottomWidth: 1, borderBottomColor: C.border },
-  curChip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: C.bg, borderWidth: 1, borderColor: C.border },
-  curChipActive: { backgroundColor: C.emerald50, borderColor: C.emerald600 },
-  curChipText: { fontSize: 11.5, color: C.text, fontWeight: "700" },
-  curLink: { fontSize: 11, color: C.emerald600, fontWeight: "800", marginLeft: 10 },
 
   // SOS story strip (E6)
   storyStrip: { marginBottom: 12, paddingVertical: 12, backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.border, paddingHorizontal: 12 },
@@ -1880,11 +1906,16 @@ const styles = StyleSheet.create({
   commentsSendInner: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   // FAB
+  fabGroup: { position: "absolute", right: 18, bottom: 22, flexDirection: "column", alignItems: "center", gap: 10 },
   fab: {
-    position: "absolute", right: 18, bottom: 22, width: 58, height: 58, borderRadius: 29,
-    overflow: "hidden",
+    width: 58, height: 58, borderRadius: 29, overflow: "hidden",
     shadowColor: C.emerald600, shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 8,
   },
+  fabSOS: {
+    width: 52, height: 52, borderRadius: 26, overflow: "hidden",
+    shadowColor: C.red, shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+  },
+  fabSOSLabel: { color: "#fff", fontWeight: "900", fontSize: 10, marginTop: 1 },
   fabInner: { flex: 1, alignItems: "center", justifyContent: "center" },
 
   // Share-in-Chat modal

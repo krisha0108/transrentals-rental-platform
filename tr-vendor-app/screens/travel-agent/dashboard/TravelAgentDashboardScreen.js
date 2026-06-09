@@ -21,6 +21,8 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import LinearGradient from "react-native-linear-gradient";
 import {
   getCurrentTravelAgent,
+  getTravelAgentProfile,
+  updateCachedTravelAgent,
   getTravelAgentDashboard,
   getTravelAgentEarnings,
   getTravelAgentUnreadCount,
@@ -113,8 +115,18 @@ export default function TravelAgentDashboardScreen({ navigation }) {
 
   const load = useCallback(async () => {
     try {
+      // Pull the LIVE profile so onboarding steps reflect reality (e.g. docs just
+      // submitted → status UNDER_REVIEW). Falls back to the cached agent if offline.
+      const fetchAgent = async () => {
+        const cached = await getCurrentTravelAgent();
+        try {
+          const fresh = await getTravelAgentProfile();
+          if (fresh?.status) { updateCachedTravelAgent(fresh).catch(() => {}); return { ...cached, ...fresh }; }
+        } catch {}
+        return cached;
+      };
       const [ta, d, e, u, leadsRes, bookingsRes] = await Promise.all([
-        getCurrentTravelAgent(),
+        fetchAgent(),
         getTravelAgentDashboard().catch(() => null),
         getTravelAgentEarnings("month").catch(() => null),
         getTravelAgentUnreadCount().catch(() => null),
@@ -182,7 +194,10 @@ export default function TravelAgentDashboardScreen({ navigation }) {
   ];
 
   // Onboarding steps for non-approved
-  const docsDone = !!agent?.documentsCount && agent.documentsCount >= 3;
+  // Docs are "done" once the required KYC doc (Address Proof) is submitted — the
+  // backend flips status away from DOCUMENTS_PENDING/PENDING at that point.
+  const docsSubmitted = !!agent?.status && !["DOCUMENTS_PENDING", "PENDING"].includes(agent.status);
+  const docsDone = docsSubmitted || (!!agent?.documentsCount && agent.documentsCount >= 1);
   const bankDone = !!agent?.bankAccountsCount && agent.bankAccountsCount >= 1;
   const profileDone = !!(agent?.agencyName && agent?.ownerName && (agent?.address || agent?.city) && agent?.gstNumber);
   const steps = [
@@ -195,7 +210,7 @@ export default function TravelAgentDashboardScreen({ navigation }) {
   // Pending setup grid (when not approved)
   const pendingActions = [
     { name: "Complete profile", desc: "Agency details & GST",  icon: "person",          color: C.g600,   route: "TAProfile",   done: profileDone },
-    { name: "Upload documents", desc: "GST, PAN, address proof", icon: "document-text", color: C.amber,  route: "TADocuments", done: docsDone },
+    { name: "Upload documents", desc: "Address proof (KYC)", icon: "document-text", color: C.amber,  route: "TADocuments", done: docsDone },
     { name: "Add bank account", desc: "Receive payouts",        icon: "card",            color: C.blue,   route: "TABankDetails", done: bankDone },
   ];
 
@@ -434,6 +449,41 @@ export default function TravelAgentDashboardScreen({ navigation }) {
             )}
           </SafeAreaView>
         </LinearGradient>
+
+        {/* ══════════ Incomplete-step alert banners ══════════ */}
+        {!bankDone && (
+          <TouchableOpacity
+            style={s.alertBanner}
+            onPress={() => navigation.navigate("TABankDetails")}
+            activeOpacity={0.85}
+          >
+            <View style={[s.alertIcon, { backgroundColor: "#FEE2E2" }]}>
+              <Ionicons name="card-outline" size={16} color={C.red} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.alertTitle, { color: C.red }]}>Bank details missing</Text>
+              <Text style={s.alertSub}>Add your bank account to receive payouts</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={C.red} />
+          </TouchableOpacity>
+        )}
+
+        {!docsDone && (
+          <TouchableOpacity
+            style={[s.alertBanner, { backgroundColor: "#FFF7ED", borderColor: "#FED7AA" }]}
+            onPress={() => navigation.navigate("TADocuments")}
+            activeOpacity={0.85}
+          >
+            <View style={[s.alertIcon, { backgroundColor: "#FFEDD5" }]}>
+              <Ionicons name="document-text-outline" size={16} color={C.orange} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.alertTitle, { color: C.orange }]}>Address proof not uploaded</Text>
+              <Text style={s.alertSub}>Upload your identity & address documents</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={C.orange} />
+          </TouchableOpacity>
+        )}
 
         {/* ══════════════════ BODY ══════════════════ */}
         <View style={s.body}>
@@ -752,6 +802,17 @@ export default function TravelAgentDashboardScreen({ navigation }) {
 
 /* ───────── Styles (closely mirrors vendor dashboard) ───────── */
 const s = StyleSheet.create({
+  // ── Alert banners ──
+  alertBanner: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    marginHorizontal: 16, marginTop: 10,
+    backgroundColor: "#FEF2F2", borderWidth: 1, borderColor: "#FECACA",
+    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11,
+  },
+  alertIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  alertTitle: { fontSize: 13, fontWeight: "800" },
+  alertSub: { fontSize: 11, color: "#64748B", fontWeight: "600", marginTop: 1 },
+
   // ── Header ──
   hero: { paddingHorizontal: 16, paddingBottom: 14, overflow: "hidden" },
   deco1: {

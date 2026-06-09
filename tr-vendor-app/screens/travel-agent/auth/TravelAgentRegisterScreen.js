@@ -1,8 +1,10 @@
 // screens/travel-agent/auth/TravelAgentRegisterScreen.js
-// 2-step travel agent registration. Mirrors VendorRegisterScreen layout/styling
-// for in-app visual consistency, but collects agency fields and hits the
+// 2-step travel agent registration. Collects agency fields and hits the
 // /api/travel-agent/register endpoint. On success, auto-logs the agent in
 // and navigates to the document upload screen.
+//
+// UI: minimal / professional redesign — flat single-surface form, slim progress
+// bar, hairline section headers. Functionality, fields and validations unchanged.
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
@@ -14,12 +16,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Dimensions,
   Animated,
   Easing,
   Image,
   Modal,
+  StatusBar,
+  Dimensions,
 } from "react-native";
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 import Ionicons from "react-native-vector-icons/Ionicons";
 import CustomAlert from "../../CustomAlertmahek";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -28,21 +33,20 @@ import {
   loginTravelAgentDirect,
 } from "../../api/travelAgentClient";
 
-const BRAND = {
-  primary: "#1FC77A",
-  primaryDark: "#12AD66",
-  ink: "#0F1720",
+const C = {
+  primary: "#12AD66",
+  primaryDark: "#0E9457",
+  primarySoft: "#E8F7F0",
+  ink: "#0F172A",
   text: "#334155",
-  subText: "#64748B",
-  bg: "#F6F8FB",
-  card: "#FFFFFF",
-  border: "#E6EDF5",
+  sub: "#64748B",
+  faint: "#94A3B8",
+  bg: "#FFFFFF",
+  field: "#F8FAFC",
+  border: "#E2E8F0",
+  borderStrong: "#CBD5E1",
   error: "#EF4444",
-  blue: "#3B82F6",
-  purple: "#8B5CF6",
 };
-
-const { width } = Dimensions.get("window");
 
 // Agency types — mirror web register options
 const AGENCY_TYPES = [
@@ -63,6 +67,47 @@ const STATES = [
   "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
   "Uttar Pradesh", "Uttarakhand", "West Bengal", "Delhi", "Chandigarh",
 ];
+
+// ---- Stable presentational helpers (module scope so inputs keep focus) ----
+const SectionHeader = ({ label, hint }) => (
+  <View style={styles.sectionHeader}>
+    <Text style={styles.sectionLabel}>{label}</Text>
+    {!!hint && <Text style={styles.sectionHint}>{hint}</Text>}
+    <View style={styles.sectionRule} />
+  </View>
+);
+
+const Field = ({ label, icon, required, valid, invalid, helper, children }) => (
+  <View style={styles.inputGroup}>
+    <Text style={styles.label}>
+      {label}
+      {required && <Text style={styles.req}> *</Text>}
+    </Text>
+    <View style={[styles.inputWrap, valid && styles.inputOK, invalid && styles.inputError]}>
+      {!!icon && <Ionicons name={icon} size={18} color={C.faint} style={styles.leftIcon} />}
+      {children}
+    </View>
+    {!!helper && <Text style={[styles.helperText, invalid && styles.helperError]}>{helper}</Text>}
+  </View>
+);
+
+const PrimaryButton = ({ onPress, disabled, loading: btnLoading, label, icon = "arrow-forward", style }) => (
+  <TouchableOpacity
+    onPress={onPress}
+    disabled={disabled || btnLoading}
+    activeOpacity={0.85}
+    style={[styles.cta, disabled && styles.ctaDisabled, style]}
+  >
+    {btnLoading ? (
+      <ActivityIndicator size="small" color="#fff" />
+    ) : (
+      <>
+        <Text style={styles.ctaText}>{label}</Text>
+        <Ionicons name={icon} size={18} color="#fff" />
+      </>
+    )}
+  </TouchableOpacity>
+);
 
 export default function TravelAgentRegisterScreen({ navigation }) {
   const [step, setStep] = useState(1);
@@ -102,13 +147,50 @@ export default function TravelAgentRegisterScreen({ navigation }) {
 
   // Entrance animation
   const fade = useRef(new Animated.Value(0)).current;
-  const slide = useRef(new Animated.Value(20)).current;
+  const slide = useRef(new Animated.Value(16)).current;
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fade, { toValue: 1, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(slide, { toValue: 0, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(fade, { toValue: 1, duration: 400, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(slide, { toValue: 0, duration: 400, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
     ]).start();
   }, [fade, slide]);
+
+  // Floating icons
+  const L = 6;
+  const R = SCREEN_W - 32;
+  const FLOAT_ICONS = [
+    // LEFT SIDE
+    { name: "calendar",    color: "#0A7A4B", size: 22, x: L,     startY: SCREEN_H * 0.06, delay: 0,    duration: 3400 },
+    { name: "bicycle",     color: "#DB2777", size: 22, x: L + 2, startY: SCREEN_H * 0.18, delay: 550,  duration: 3000 },
+    { name: "people",      color: "#7C3AED", size: 20, x: L,     startY: SCREEN_H * 0.30, delay: 250,  duration: 3200 },
+    { name: "car-sport",   color: "#1e6bb8", size: 22, x: L + 2, startY: SCREEN_H * 0.43, delay: 800,  duration: 3800 },
+    { name: "bus",         color: "#D97706", size: 22, x: L,     startY: SCREEN_H * 0.56, delay: 350,  duration: 3100 },
+    { name: "location",    color: "#0A7A4B", size: 20, x: L + 2, startY: SCREEN_H * 0.68, delay: 650,  duration: 3500 },
+    { name: "trending-up", color: "#DB2777", size: 19, x: L,     startY: SCREEN_H * 0.80, delay: 150,  duration: 3600 },
+    // RIGHT SIDE
+    { name: "airplane",    color: "#1e6bb8", size: 22, x: R,     startY: SCREEN_H * 0.05, delay: 400,  duration: 3300 },
+    { name: "map",         color: "#0A7A4B", size: 22, x: R - 2, startY: SCREEN_H * 0.17, delay: 900,  duration: 3100 },
+    { name: "bar-chart",   color: "#D97706", size: 20, x: R,     startY: SCREEN_H * 0.29, delay: 100,  duration: 3700 },
+    { name: "card",        color: "#DB2777", size: 22, x: R - 2, startY: SCREEN_H * 0.41, delay: 600,  duration: 2900 },
+    { name: "train",       color: "#7C3AED", size: 22, x: R,     startY: SCREEN_H * 0.54, delay: 300,  duration: 3400 },
+    { name: "briefcase",   color: "#1e6bb8", size: 20, x: R - 2, startY: SCREEN_H * 0.66, delay: 750,  duration: 3500 },
+    { name: "key",         color: "#0A7A4B", size: 19, x: R,     startY: SCREEN_H * 0.79, delay: 500,  duration: 3200 },
+  ];
+  const floatAnims = useRef(FLOAT_ICONS.map((_, i) => new Animated.Value(i % 2 === 0 ? 0 : 0.5))).current;
+  useEffect(() => {
+    const anims = FLOAT_ICONS.map((cfg, i) => {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.delay(cfg.delay),
+          Animated.timing(floatAnims[i], { toValue: 1, duration: cfg.duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(floatAnims[i], { toValue: 0, duration: cfg.duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+      return loop;
+    });
+    return () => anims.forEach(a => a.stop());
+  }, []);
 
   const handleChange = (field, value) =>
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -142,14 +224,23 @@ export default function TravelAgentRegisterScreen({ navigation }) {
     );
   }, [formData, isEmailValid, isPhoneValid, isPasswordValid, passwordsMatch]);
 
+  const validateStep1 = () => {
+    if (!formData.agencyName.trim()) { showAlert("Required", "Agency name is required"); return false; }
+    if (!formData.ownerName.trim()) { showAlert("Required", "Owner name is required"); return false; }
+    if (!isEmailValid) { showAlert("Invalid Email", "Please enter a valid email"); return false; }
+    if (!isPhoneValid) { showAlert("Invalid Phone", "Please enter a valid 10-digit phone number"); return false; }
+    if (!isPasswordValid) { showAlert("Weak Password", "Password must be at least 8 characters"); return false; }
+    if (!passwordsMatch) { showAlert("Password Mismatch", "Passwords do not match"); return false; }
+    return true;
+  };
+
   const handleNextStep = () => {
-    if (!formData.agencyName.trim()) return showAlert("Required", "Agency name is required");
-    if (!formData.ownerName.trim()) return showAlert("Required", "Owner name is required");
-    if (!isEmailValid) return showAlert("Invalid Email", "Please enter a valid email");
-    if (!isPhoneValid) return showAlert("Invalid Phone", "Please enter a valid 10-digit phone number");
-    if (!isPasswordValid) return showAlert("Weak Password", "Password must be at least 8 characters");
-    if (!passwordsMatch) return showAlert("Password Mismatch", "Passwords do not match");
-    setStep(2);
+    if (validateStep1()) setStep(2);
+  };
+
+  // Skip the optional business-details step and register straight away
+  const handleSkipRegister = () => {
+    if (validateStep1()) handleRegister();
   };
 
   const handleRegister = async () => {
@@ -203,47 +294,42 @@ export default function TravelAgentRegisterScreen({ navigation }) {
     }
   };
 
-  // Success screen
+  // ===== Success screen =====
   if (success) {
     return (
       <SafeAreaView style={styles.safe}>
+        <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
         <View style={styles.successContainer}>
           <View style={styles.successIcon}>
-            <Ionicons name="checkmark-circle" size={80} color={BRAND.primary} />
+            <Ionicons name="checkmark" size={44} color={C.primary} />
           </View>
-          <Text style={styles.successTitle}>Registration Successful!</Text>
+          <Text style={styles.successTitle}>Registration successful</Text>
           <Text style={styles.successText}>
             Your travel agent account has been created. Please login and upload your business
             documents for verification.
           </Text>
 
           <View style={styles.stepsCard}>
-            <Text style={styles.stepsTitle}>Next Steps:</Text>
-            <View style={styles.stepItem}>
-              <View style={styles.stepNumber}><Text style={styles.stepNumberText}>1</Text></View>
-              <Text style={styles.stepText}>Login to your account</Text>
-            </View>
-            <View style={styles.stepItem}>
-              <View style={styles.stepNumber}><Text style={styles.stepNumberText}>2</Text></View>
-              <Text style={styles.stepText}>Upload business documents (GST, PAN, etc.)</Text>
-            </View>
-            <View style={styles.stepItem}>
-              <View style={styles.stepNumber}><Text style={styles.stepNumberText}>3</Text></View>
-              <Text style={styles.stepText}>Add bank details for payouts</Text>
-            </View>
-            <View style={styles.stepItem}>
-              <View style={styles.stepNumber}><Text style={styles.stepNumberText}>4</Text></View>
-              <Text style={styles.stepText}>Start managing leads, tours & bookings!</Text>
-            </View>
+            <Text style={styles.stepsTitle}>Next steps</Text>
+            {[
+              "Login to your account",
+              "Upload business documents (GST, PAN, etc.)",
+              "Add bank details for payouts",
+              "Start managing leads, tours & bookings!",
+            ].map((t, i) => (
+              <View key={i} style={[styles.stepItem, i === 3 && { marginBottom: 0 }]}>
+                <View style={styles.stepNumber}><Text style={styles.stepNumberText}>{i + 1}</Text></View>
+                <Text style={styles.stepText}>{t}</Text>
+              </View>
+            ))}
           </View>
 
-          <TouchableOpacity
-            style={styles.cta}
+          <PrimaryButton
+            label="Go to login"
+            icon="arrow-forward"
+            style={{ width: "100%" }}
             onPress={() => navigation.navigate("VendorLoginScreen")}
-          >
-            <Ionicons name="log-in-outline" size={20} color="#fff" />
-            <Text style={styles.ctaText}>Go to Login</Text>
-          </TouchableOpacity>
+          />
         </View>
       </SafeAreaView>
     );
@@ -251,208 +337,199 @@ export default function TravelAgentRegisterScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+
+      {/* Floating icons overlay */}
+      <View style={styles.floatOverlay} pointerEvents="none">
+        {FLOAT_ICONS.map((cfg, i) => (
+          <Animated.View
+            key={i}
+            style={[
+              styles.floatIcon,
+              {
+                left: cfg.x,
+                top: cfg.startY,
+                opacity: floatAnims[i].interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.10, 0.25, 0.10] }),
+                transform: [{ translateY: floatAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) }],
+              },
+            ]}
+          >
+            <Ionicons name={cfg.name} size={cfg.size} color={cfg.color} />
+          </Animated.View>
+        ))}
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <View style={styles.bgBlobA} />
-          <View style={styles.bgBlobB} />
-
-          {/* Header */}
-          <Animated.View
-            style={[styles.headerWrap, { opacity: fade, transform: [{ translateY: slide }] }]}
-          >
-            <View style={styles.brandBadge}>
-              <Image source={require("../../../assets/logo-white-tr.png")} style={{ width: 40, height: 40 }} />
-            </View>
-            <Text style={styles.brandTitle}>Become a Travel Agent</Text>
-            <Text style={styles.brandTagline}>
-              Join TransRentals — manage leads, tours, properties, and bookings end-to-end.
-            </Text>
-          </Animated.View>
-
-          {/* Progress Steps */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressStep}>
-              <View style={[styles.progressCircle, step >= 1 && styles.progressCircleActive]}>
-                {step > 1 ? (
-                  <Ionicons name="checkmark" size={16} color="#fff" />
-                ) : (
-                  <Text style={[styles.progressNumber, step >= 1 && styles.progressNumberActive]}>1</Text>
-                )}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.View style={{ opacity: fade, transform: [{ translateY: slide }] }}>
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.logoRow}>
+                <View style={styles.logoBadge}>
+                  <Image source={require("../../../assets/logo-white-tr.png")} style={{ width: 30, height: 30 }} />
+                </View>
+                <Image
+                  source={require("../../../assets/logo-trans.png")}
+                  style={styles.logoWordmark}
+                  resizeMode="contain"
+                />
               </View>
-              <Text style={[styles.progressLabel, step >= 1 && styles.progressLabelActive]}>Basic Info</Text>
+              <Text style={styles.title}>Become a Travel Agent</Text>
+              <Text style={styles.subtitle}>
+                Manage leads, tours, properties and bookings — all in one place.
+              </Text>
             </View>
-            <View style={[styles.progressLine, step >= 2 && styles.progressLineActive]} />
-            <View style={styles.progressStep}>
-              <View style={[styles.progressCircle, step >= 2 && styles.progressCircleActive]}>
-                <Text style={[styles.progressNumber, step >= 2 && styles.progressNumberActive]}>2</Text>
-              </View>
-              <Text style={[styles.progressLabel, step >= 2 && styles.progressLabelActive]}>Business Details</Text>
-            </View>
-          </View>
 
-          {/* Card */}
-          <Animated.View
-            style={[styles.card, { opacity: fade, transform: [{ translateY: slide }] }]}
-          >
+            {/* Progress */}
+            <View style={styles.progressBlock}>
+              <View style={styles.progressTopRow}>
+                <Text style={styles.progressStepText}>
+                  Step {step} of 2 · <Text style={{ color: C.ink, fontWeight: "700" }}>
+                    {step === 1 ? "Basic Info" : "Business Details"}
+                  </Text>
+                </Text>
+                <Text style={styles.progressPct}>{step === 1 ? "50%" : "100%"}</Text>
+              </View>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: step === 1 ? "50%" : "100%" }]} />
+              </View>
+            </View>
+
             {/* Step 1 */}
             {step === 1 && (
               <>
-                {/* Section: Agency Information */}
-                <View style={styles.sectionHeader}>
-                  <View style={styles.sectionIconWrap}>
-                    <Ionicons name="airplane" size={18} color={BRAND.blue} />
-                  </View>
-                  <View>
-                    <Text style={styles.sectionTitle}>Agency Information</Text>
-                    <Text style={styles.sectionSubtitle}>Tell us about your agency</Text>
-                  </View>
-                </View>
+                <SectionHeader label="AGENCY" />
 
-                {/* Agency Name */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Agency Name *</Text>
-                  <View style={[styles.inputWrap, formData.agencyName.trim().length >= 2 && styles.inputOK]}>
-                    <Ionicons name="briefcase-outline" size={18} color={BRAND.subText} style={styles.leftIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Your Agency Name"
-                      placeholderTextColor="#A3B3C2"
-                      value={formData.agencyName}
-                      onChangeText={(v) => handleChange("agencyName", v)}
-                    />
-                  </View>
-                </View>
+                <Field label="Agency Name" required valid={formData.agencyName.trim().length >= 2} icon="briefcase-outline">
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Your agency name"
+                    placeholderTextColor={C.faint}
+                    value={formData.agencyName}
+                    onChangeText={(v) => handleChange("agencyName", v)}
+                  />
+                  {formData.agencyName.trim().length >= 2 && (
+                    <Ionicons name="checkmark-circle" size={20} color={C.primary} style={styles.rightIcon} />
+                  )}
+                </Field>
 
-                {/* Agency Type */}
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Agency Type</Text>
-                  <TouchableOpacity
-                    style={styles.inputWrap}
-                    onPress={() => setShowAgencyTypeModal(true)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="business-outline" size={18} color={BRAND.subText} style={styles.leftIcon} />
+                  <TouchableOpacity style={styles.inputWrap} onPress={() => setShowAgencyTypeModal(true)} activeOpacity={0.7}>
+                    <Ionicons name="business-outline" size={18} color={C.faint} style={styles.leftIcon} />
                     <Text style={[styles.dropdownText, !formData.agencyType && styles.dropdownPlaceholder]}>
-                      {formData.agencyType || "Select Agency Type"}
+                      {formData.agencyType || "Select agency type"}
                     </Text>
-                    <Ionicons name="chevron-down" size={20} color={BRAND.subText} style={styles.rightIcon} />
+                    <Ionicons name="chevron-down" size={20} color={C.faint} style={styles.rightIcon} />
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.divider} />
+                <SectionHeader label="CONTACT" />
 
-                {/* Section: Contact */}
-                <View style={styles.sectionHeader}>
-                  <View style={styles.sectionIconWrap}>
-                    <Ionicons name="person" size={18} color={BRAND.primary} />
-                  </View>
-                  <View>
-                    <Text style={styles.sectionTitle}>Contact Information</Text>
-                    <Text style={styles.sectionSubtitle}>Your contact details</Text>
-                  </View>
-                </View>
-
-                {/* Owner Name */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Owner/Contact Name *</Text>
-                  <View style={[styles.inputWrap, formData.ownerName.trim().length >= 2 && styles.inputOK]}>
-                    <Ionicons name="person-outline" size={18} color={BRAND.subText} style={styles.leftIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Full Name"
-                      placeholderTextColor="#A3B3C2"
-                      value={formData.ownerName}
-                      onChangeText={(v) => handleChange("ownerName", v)}
-                    />
-                  </View>
-                </View>
-
-                {/* Email */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Email *</Text>
-                  <View
-                    style={[
-                      styles.inputWrap,
-                      formData.email && (isEmailValid ? styles.inputOK : styles.inputError),
-                    ]}
-                  >
-                    <Ionicons name="mail-outline" size={18} color={BRAND.subText} style={styles.leftIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="agency@example.com"
-                      placeholderTextColor="#A3B3C2"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      value={formData.email}
-                      onChangeText={(v) => handleChange("email", v)}
-                    />
-                  </View>
-                  {formData.email && !isEmailValid && (
-                    <Text style={styles.helperError}>Please enter a valid email</Text>
+                <Field label="Owner / Contact Name" required valid={formData.ownerName.trim().length >= 2} icon="person-outline">
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Full name"
+                    placeholderTextColor={C.faint}
+                    value={formData.ownerName}
+                    onChangeText={(v) => handleChange("ownerName", v)}
+                  />
+                  {formData.ownerName.trim().length >= 2 && (
+                    <Ionicons name="checkmark-circle" size={20} color={C.primary} style={styles.rightIcon} />
                   )}
-                </View>
+                </Field>
+
+                <Field
+                  label="Email"
+                  required
+                  icon="mail-outline"
+                  valid={!!formData.email && isEmailValid}
+                  invalid={!!formData.email && !isEmailValid}
+                  helper={formData.email && !isEmailValid ? "Please enter a valid email" : undefined}
+                >
+                  <TextInput
+                    style={styles.input}
+                    placeholder="agency@example.com"
+                    placeholderTextColor={C.faint}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={formData.email}
+                    onChangeText={(v) => handleChange("email", v)}
+                  />
+                  {!!formData.email && (
+                    <Ionicons
+                      name={isEmailValid ? "checkmark-circle" : "alert-circle"}
+                      size={20}
+                      color={isEmailValid ? C.primary : C.error}
+                      style={styles.rightIcon}
+                    />
+                  )}
+                </Field>
 
                 {/* Phone */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Phone *</Text>
+                  <Text style={styles.label}>Phone<Text style={styles.req}> *</Text></Text>
                   <View
                     style={[
                       styles.inputWrap,
                       formData.phone && (isPhoneValid ? styles.inputOK : styles.inputError),
                     ]}
                   >
-                    <Ionicons name="call-outline" size={18} color={BRAND.subText} style={styles.leftIcon} />
+                    <View style={styles.phonePrefix}>
+                      <Text style={styles.phonePrefixText}>+91</Text>
+                    </View>
                     <TextInput
-                      style={styles.input}
+                      style={styles.phoneInput}
                       placeholder="9737965551"
-                      placeholderTextColor="#A3B3C2"
+                      placeholderTextColor={C.faint}
                       keyboardType="phone-pad"
                       value={formData.phone}
                       onChangeText={(v) => handleChange("phone", v.replace(/\D/g, ""))}
                       maxLength={10}
                     />
+                    {!!formData.phone && (
+                      <Ionicons
+                        name={isPhoneValid ? "checkmark-circle" : "alert-circle"}
+                        size={20}
+                        color={isPhoneValid ? C.primary : C.error}
+                        style={styles.rightIcon}
+                      />
+                    )}
                   </View>
                   {formData.phone && !isPhoneValid && (
                     <Text style={styles.helperError}>Please enter a valid 10-digit phone number</Text>
                   )}
                 </View>
 
-                <View style={styles.divider} />
-
-                {/* Section: Security */}
-                <View style={styles.sectionHeader}>
-                  <View style={styles.sectionIconWrap}>
-                    <Ionicons name="shield-checkmark" size={18} color={BRAND.purple} />
-                  </View>
-                  <View>
-                    <Text style={styles.sectionTitle}>Account Security</Text>
-                    <Text style={styles.sectionSubtitle}>Create a strong password</Text>
-                  </View>
-                </View>
+                <SectionHeader label="SECURITY" />
 
                 {/* Password */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Password *</Text>
+                  <Text style={styles.label}>Password<Text style={styles.req}> *</Text></Text>
                   <View
                     style={[
                       styles.inputWrap,
                       formData.password && (isPasswordValid ? styles.inputOK : styles.inputError),
                     ]}
                   >
-                    <Ionicons name="lock-closed-outline" size={18} color={BRAND.subText} style={styles.leftIcon} />
+                    <Ionicons name="lock-closed-outline" size={18} color={C.faint} style={styles.leftIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="Min 8 characters"
-                      placeholderTextColor="#A3B3C2"
+                      placeholderTextColor={C.faint}
                       secureTextEntry={!isPasswordVisible}
                       value={formData.password}
                       onChangeText={(v) => handleChange("password", v)}
                     />
                     <TouchableOpacity onPress={() => setIsPasswordVisible((v) => !v)} style={styles.eyeBtn}>
-                      <Ionicons name={isPasswordVisible ? "eye" : "eye-off"} size={18} color={BRAND.subText} />
+                      <Ionicons name={isPasswordVisible ? "eye" : "eye-off"} size={18} color={C.faint} />
                     </TouchableOpacity>
                   </View>
                   {!!formData.password && (() => {
@@ -466,7 +543,7 @@ export default function TravelAgentRegisterScreen({ navigation }) {
                     return (
                       <View style={styles.pwStrengthRow}>
                         {[1, 2, 3, 4, 5].map((i) => (
-                          <View key={i} style={[styles.pwStrengthSeg, { backgroundColor: i <= s ? color : "#E8EEF6" }]} />
+                          <View key={i} style={[styles.pwStrengthSeg, { backgroundColor: i <= s ? color : C.border }]} />
                         ))}
                         <Text style={[styles.pwStrengthText, { color }]}>{label}</Text>
                       </View>
@@ -479,24 +556,24 @@ export default function TravelAgentRegisterScreen({ navigation }) {
 
                 {/* Confirm Password */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Confirm Password *</Text>
+                  <Text style={styles.label}>Confirm Password<Text style={styles.req}> *</Text></Text>
                   <View
                     style={[
                       styles.inputWrap,
                       formData.confirmPassword && (passwordsMatch ? styles.inputOK : styles.inputError),
                     ]}
                   >
-                    <Ionicons name="lock-closed-outline" size={18} color={BRAND.subText} style={styles.leftIcon} />
+                    <Ionicons name="lock-closed-outline" size={18} color={C.faint} style={styles.leftIcon} />
                     <TextInput
                       style={styles.input}
-                      placeholder="Confirm your password"
-                      placeholderTextColor="#A3B3C2"
+                      placeholder="Re-enter your password"
+                      placeholderTextColor={C.faint}
                       secureTextEntry={!isConfirmPasswordVisible}
                       value={formData.confirmPassword}
                       onChangeText={(v) => handleChange("confirmPassword", v)}
                     />
                     <TouchableOpacity onPress={() => setIsConfirmPasswordVisible((v) => !v)} style={styles.eyeBtn}>
-                      <Ionicons name={isConfirmPasswordVisible ? "eye" : "eye-off"} size={18} color={BRAND.subText} />
+                      <Ionicons name={isConfirmPasswordVisible ? "eye" : "eye-off"} size={18} color={C.faint} />
                     </TouchableOpacity>
                   </View>
                   {formData.confirmPassword && !passwordsMatch && (
@@ -504,14 +581,22 @@ export default function TravelAgentRegisterScreen({ navigation }) {
                   )}
                 </View>
 
-                {/* Continue */}
+                <PrimaryButton label="Continue" onPress={handleNextStep} disabled={!isStep1Valid} />
+
+                {/* Skip optional business details and register directly */}
                 <TouchableOpacity
-                  style={[styles.cta, !isStep1Valid && styles.ctaDisabled]}
-                  onPress={handleNextStep}
-                  disabled={!isStep1Valid}
+                  style={styles.skipBtn}
+                  onPress={handleSkipRegister}
+                  disabled={loading}
+                  activeOpacity={0.7}
                 >
-                  <Text style={styles.ctaText}>Continue to Address</Text>
-                  <Ionicons name="arrow-forward" size={18} color="#fff" />
+                  {loading ? (
+                    <ActivityIndicator size="small" color={C.primary} />
+                  ) : (
+                    <Text style={styles.skipText}>
+                      Skip & register without business details
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </>
             )}
@@ -519,71 +604,42 @@ export default function TravelAgentRegisterScreen({ navigation }) {
             {/* Step 2 */}
             {step === 2 && (
               <>
-                {/* Tax */}
-                <View style={styles.sectionHeader}>
-                  <View style={styles.sectionIconWrap}>
-                    <Ionicons name="document-text" size={18} color={BRAND.blue} />
-                  </View>
-                  <View>
-                    <Text style={styles.sectionTitle}>Tax Information</Text>
-                    <Text style={styles.sectionSubtitle}>Business registration details (Optional)</Text>
-                  </View>
-                </View>
+                <SectionHeader label="TAX INFORMATION" hint="Optional" />
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>GST Number</Text>
-                  <View style={styles.inputWrap}>
-                    <Ionicons name="document-text-outline" size={18} color={BRAND.subText} style={styles.leftIcon} />
-                    <TextInput
-                      style={[styles.input, { textTransform: "uppercase" }]}
-                      placeholder="22AAAAA0000A1Z5"
-                      placeholderTextColor="#A3B3C2"
-                      value={formData.gstNumber}
-                      onChangeText={(v) => handleChange("gstNumber", v.toUpperCase())}
-                      maxLength={15}
-                      autoCapitalize="characters"
-                    />
-                  </View>
-                  <Text style={styles.helperText}>Optional — can be added later</Text>
-                </View>
+                <Field label="GST Number" icon="document-text-outline" helper="Can be added later">
+                  <TextInput
+                    style={[styles.input, { textTransform: "uppercase" }]}
+                    placeholder="22AAAAA0000A1Z5"
+                    placeholderTextColor={C.faint}
+                    value={formData.gstNumber}
+                    onChangeText={(v) => handleChange("gstNumber", v.toUpperCase())}
+                    maxLength={15}
+                    autoCapitalize="characters"
+                  />
+                </Field>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>PAN Number</Text>
-                  <View style={styles.inputWrap}>
-                    <Ionicons name="card-outline" size={18} color={BRAND.subText} style={styles.leftIcon} />
-                    <TextInput
-                      style={[styles.input, { textTransform: "uppercase" }]}
-                      placeholder="AAAAA0000A"
-                      placeholderTextColor="#A3B3C2"
-                      value={formData.panNumber}
-                      onChangeText={(v) => handleChange("panNumber", v.toUpperCase())}
-                      maxLength={10}
-                      autoCapitalize="characters"
-                    />
-                  </View>
-                </View>
+                <Field label="PAN Number" icon="card-outline">
+                  <TextInput
+                    style={[styles.input, { textTransform: "uppercase" }]}
+                    placeholder="AAAAA0000A"
+                    placeholderTextColor={C.faint}
+                    value={formData.panNumber}
+                    onChangeText={(v) => handleChange("panNumber", v.toUpperCase())}
+                    maxLength={10}
+                    autoCapitalize="characters"
+                  />
+                </Field>
 
-                <View style={styles.divider} />
-
-                {/* Address */}
-                <View style={styles.sectionHeader}>
-                  <View style={styles.sectionIconWrap}>
-                    <Ionicons name="location" size={18} color={BRAND.primary} />
-                  </View>
-                  <View>
-                    <Text style={styles.sectionTitle}>Business Address</Text>
-                    <Text style={styles.sectionSubtitle}>Where is your agency located?</Text>
-                  </View>
-                </View>
+                <SectionHeader label="BUSINESS ADDRESS" />
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Street Address</Text>
-                  <View style={[styles.inputWrap, { height: 80, alignItems: "flex-start", paddingTop: 12 }]}>
-                    <Ionicons name="location-outline" size={18} color={BRAND.subText} style={[styles.leftIcon, { top: 16 }]} />
+                  <View style={[styles.inputWrap, styles.textareaWrap]}>
+                    <Ionicons name="location-outline" size={18} color={C.faint} style={[styles.leftIcon, { top: 16 }]} />
                     <TextInput
                       style={[styles.input, { textAlignVertical: "top", paddingTop: 0 }]}
                       placeholder="Street address, building name, etc."
-                      placeholderTextColor="#A3B3C2"
+                      placeholderTextColor={C.faint}
                       value={formData.address}
                       onChangeText={(v) => handleChange("address", v)}
                       multiline
@@ -592,109 +648,81 @@ export default function TravelAgentRegisterScreen({ navigation }) {
                   </View>
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>City</Text>
-                  <View style={styles.inputWrap}>
-                    <Ionicons name="business-outline" size={18} color={BRAND.subText} style={styles.leftIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="City"
-                      placeholderTextColor="#A3B3C2"
-                      value={formData.city}
-                      onChangeText={(v) => handleChange("city", v)}
-                    />
-                  </View>
-                </View>
+                <Field label="City" icon="business-outline">
+                  <TextInput
+                    style={styles.input}
+                    placeholder="City"
+                    placeholderTextColor={C.faint}
+                    value={formData.city}
+                    onChangeText={(v) => handleChange("city", v)}
+                  />
+                </Field>
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>State</Text>
-                  <TouchableOpacity
-                    style={styles.inputWrap}
-                    onPress={() => setShowStateModal(true)}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="map-outline" size={18} color={BRAND.subText} style={styles.leftIcon} />
+                  <TouchableOpacity style={styles.inputWrap} onPress={() => setShowStateModal(true)} activeOpacity={0.7}>
+                    <Ionicons name="map-outline" size={18} color={C.faint} style={styles.leftIcon} />
                     <Text style={[styles.dropdownText, !formData.state && styles.dropdownPlaceholder]}>
-                      {formData.state || "Select State"}
+                      {formData.state || "Select state"}
                     </Text>
-                    <Ionicons name="chevron-down" size={20} color={BRAND.subText} style={styles.rightIcon} />
+                    <Ionicons name="chevron-down" size={20} color={C.faint} style={styles.rightIcon} />
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Pincode</Text>
-                  <View style={styles.inputWrap}>
-                    <Ionicons name="navigate-outline" size={18} color={BRAND.subText} style={styles.leftIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="380001"
-                      placeholderTextColor="#A3B3C2"
-                      keyboardType="number-pad"
-                      value={formData.pincode}
-                      onChangeText={(v) => handleChange("pincode", v.replace(/\D/g, ""))}
-                      maxLength={6}
-                    />
-                  </View>
-                </View>
+                <Field label="Pincode" icon="navigate-outline">
+                  <TextInput
+                    style={styles.input}
+                    placeholder="380001"
+                    placeholderTextColor={C.faint}
+                    keyboardType="number-pad"
+                    value={formData.pincode}
+                    onChangeText={(v) => handleChange("pincode", v.replace(/\D/g, ""))}
+                    maxLength={6}
+                  />
+                </Field>
 
                 {/* Buttons */}
                 <View style={styles.buttonRow}>
-                  <TouchableOpacity style={styles.backBtn} onPress={() => setStep(1)}>
-                    <Ionicons name="arrow-back" size={18} color={BRAND.text} />
+                  <TouchableOpacity style={styles.backBtn} onPress={() => setStep(1)} activeOpacity={0.8}>
+                    <Ionicons name="arrow-back" size={18} color={C.text} />
                     <Text style={styles.backBtnText}>Back</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[styles.cta, { flex: 1 }, loading && styles.ctaDisabled]}
+                  <PrimaryButton
+                    label="Create Account"
                     onPress={handleRegister}
+                    loading={loading}
                     disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <>
-                        <Text style={styles.ctaText}>Create Travel Agent Account</Text>
-                        <Ionicons name="arrow-forward" size={18} color="#fff" />
-                      </>
-                    )}
-                  </TouchableOpacity>
+                    style={{ flex: 1, marginTop: 0 }}
+                  />
                 </View>
+
+                {/* Skip the optional business details and register now */}
+                <TouchableOpacity
+                  style={styles.skipBtn}
+                  onPress={handleRegister}
+                  disabled={loading}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.skipText}>Skip for now &amp; create account</Text>
+                </TouchableOpacity>
               </>
             )}
 
-            <View style={styles.separatorRow}>
-              <View style={styles.separator} />
-              <Text style={styles.separatorText}>or</Text>
-              <View style={styles.separator} />
-            </View>
-
             {/* Login link */}
-            <View style={styles.centerRow}>
+            <View style={styles.loginRow}>
               <Text style={styles.smallText}>Already have an account? </Text>
               <TouchableOpacity onPress={() => navigation.navigate("VendorLoginScreen")}>
-                <Text style={styles.linkBold}>Login here</Text>
+                <Text style={styles.linkBold}>Login</Text>
               </TouchableOpacity>
             </View>
-          </Animated.View>
 
-          {/* Benefits */}
-          <View style={styles.benefitsCard}>
-            <Text style={styles.benefitsTitle}>Why Partner with TransRentals?</Text>
-            <View style={styles.benefitsRow}>
-              <View style={styles.benefitItem}>
-                <Text style={styles.benefitNumber}>CRM</Text>
-                <Text style={styles.benefitLabel}>Leads & Pipeline</Text>
-              </View>
-              <View style={styles.benefitItem}>
-                <Text style={styles.benefitNumber}>Tours</Text>
-                <Text style={styles.benefitLabel}>+ Properties</Text>
-              </View>
-              <View style={styles.benefitItem}>
-                <Text style={styles.benefitNumber}>24/7</Text>
-                <Text style={styles.benefitLabel}>Support</Text>
-              </View>
+            {/* Trust note */}
+            <View style={styles.trustRow}>
+              <Ionicons name="shield-checkmark-outline" size={15} color={C.faint} />
+              <Text style={styles.trustText}>Your details are kept private & secure.</Text>
             </View>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -714,35 +742,28 @@ export default function TravelAgentRegisterScreen({ navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Agency Type</Text>
               <TouchableOpacity style={styles.modalClose} onPress={() => setShowAgencyTypeModal(false)}>
-                <Ionicons name="close" size={24} color={BRAND.text} />
+                <Ionicons name="close" size={22} color={C.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
               {AGENCY_TYPES.map((type) => (
                 <TouchableOpacity
                   key={type}
-                  style={[
-                    styles.modalItem,
-                    formData.agencyType === type && styles.modalItemSelected,
-                  ]}
+                  style={[styles.modalItem, formData.agencyType === type && styles.modalItemSelected]}
                   onPress={() => {
                     handleChange("agencyType", type);
                     setShowAgencyTypeModal(false);
                   }}
                 >
-                  <Text
-                    style={[
-                      styles.modalItemText,
-                      formData.agencyType === type && styles.modalItemTextSelected,
-                    ]}
-                  >
+                  <Text style={[styles.modalItemText, formData.agencyType === type && styles.modalItemTextSelected]}>
                     {type}
                   </Text>
                   {formData.agencyType === type && (
-                    <Ionicons name="checkmark-circle" size={22} color={BRAND.blue} />
+                    <Ionicons name="checkmark-circle" size={22} color={C.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -760,10 +781,11 @@ export default function TravelAgentRegisterScreen({ navigation }) {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select State</Text>
               <TouchableOpacity style={styles.modalClose} onPress={() => setShowStateModal(false)}>
-                <Ionicons name="close" size={24} color={BRAND.text} />
+                <Ionicons name="close" size={22} color={C.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
@@ -776,13 +798,11 @@ export default function TravelAgentRegisterScreen({ navigation }) {
                     setShowStateModal(false);
                   }}
                 >
-                  <Text
-                    style={[styles.modalItemText, formData.state === state && styles.modalItemTextSelected]}
-                  >
+                  <Text style={[styles.modalItemText, formData.state === state && styles.modalItemTextSelected]}>
                     {state}
                   </Text>
                   {formData.state === state && (
-                    <Ionicons name="checkmark-circle" size={22} color={BRAND.blue} />
+                    <Ionicons name="checkmark-circle" size={22} color={C.primary} />
                   )}
                 </TouchableOpacity>
               ))}
@@ -795,170 +815,135 @@ export default function TravelAgentRegisterScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BRAND.bg },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 32,
-    alignItems: "center",
-  },
+  safe: { flex: 1, backgroundColor: C.bg },
+  floatOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 },
+  floatIcon: { position: "absolute" },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 12, paddingBottom: 36 },
 
-  // Success
-  successContainer: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
-  successIcon: { marginBottom: 24 },
-  successTitle: { fontSize: 24, fontWeight: "800", color: BRAND.ink, marginBottom: 12, textAlign: "center" },
-  successText: { fontSize: 15, color: BRAND.subText, textAlign: "center", marginBottom: 24, lineHeight: 22 },
-  stepsCard: {
-    width: "100%", backgroundColor: BRAND.card, borderRadius: 16, padding: 20, marginBottom: 24,
-    borderWidth: 1, borderColor: BRAND.border,
-  },
-  stepsTitle: { fontSize: 16, fontWeight: "700", color: BRAND.ink, marginBottom: 16 },
-  stepItem: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  stepNumber: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: BRAND.primary,
-    alignItems: "center", justifyContent: "center", marginRight: 12,
-  },
-  stepNumberText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  stepText: { fontSize: 14, color: BRAND.text },
-
-  // Background blobs
-  bgBlobA: {
-    position: "absolute", top: -60, right: -40, width: 220, height: 220,
-    backgroundColor: "#DFF9EC", borderRadius: 999, opacity: 0.6,
-  },
-  bgBlobB: {
-    position: "absolute", bottom: -80, left: -50, width: 260, height: 260,
-    backgroundColor: "#EAF3FF", borderRadius: 999, opacity: 0.55,
-  },
-
-  headerWrap: { width: "100%", maxWidth: 520, alignItems: "center", marginTop: 8, marginBottom: 12 },
-  brandBadge: {
-    width: 44, height: 44, borderRadius: 12, backgroundColor: BRAND.primary,
+  // ===== Header =====
+  header: { alignItems: "flex-start", marginBottom: 22 },
+  logoRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 18 },
+  logoBadge: {
+    width: 48, height: 48, borderRadius: 14, backgroundColor: C.primary,
     alignItems: "center", justifyContent: "center",
-    shadowColor: BRAND.primary, shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 6 },
-    elevation: 4, marginBottom: 10,
   },
-  brandTitle: { fontSize: 22, fontWeight: "800", color: BRAND.ink },
-  brandTagline: { fontSize: 13.5, color: BRAND.subText, marginTop: 6, textAlign: "center" },
+  logoWordmark: { height: 28, width: 140 },
+  title: { fontSize: 24, fontWeight: "800", color: C.ink, letterSpacing: -0.3 },
+  subtitle: { fontSize: 14, color: C.sub, marginTop: 6, lineHeight: 20 },
 
-  // Progress
-  progressContainer: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", marginBottom: 24,
-    width: "100%", maxWidth: 380, paddingHorizontal: 20,
-  },
-  progressStep: { alignItems: "center" },
-  progressCircle: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: "#E5E7EB",
-    alignItems: "center", justifyContent: "center", marginBottom: 6, borderWidth: 2, borderColor: "transparent",
-  },
-  progressCircleActive: {
-    backgroundColor: BRAND.blue, borderColor: "#DBEAFE",
-    shadowColor: BRAND.blue, shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3,
-  },
-  progressNumber: { fontSize: 14, fontWeight: "700", color: "#9CA3AF" },
-  progressNumberActive: { color: "#fff" },
-  progressLabel: { fontSize: 12, color: BRAND.subText, fontWeight: "600" },
-  progressLabelActive: { color: BRAND.blue, fontWeight: "700" },
-  progressLine: { flex: 1, height: 3, backgroundColor: "#E5E7EB", marginHorizontal: 12, marginBottom: 24, borderRadius: 2 },
-  progressLineActive: { backgroundColor: BRAND.blue },
+  // ===== Progress =====
+  progressBlock: { marginBottom: 24 },
+  progressTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
+  progressStepText: { fontSize: 13, color: C.sub, fontWeight: "500" },
+  progressPct: { fontSize: 13, color: C.primary, fontWeight: "700" },
+  progressTrack: { height: 6, borderRadius: 3, backgroundColor: C.border, overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 3, backgroundColor: C.primary },
 
-  card: {
-    width: "100%", maxWidth: 520, backgroundColor: BRAND.card, borderRadius: 18, padding: 20,
-    borderWidth: 1, borderColor: BRAND.border,
-    shadowColor: "#0B1020", shadowOpacity: 0.06, shadowRadius: 18, shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
-  },
+  // ===== Section header =====
+  sectionHeader: { flexDirection: "row", alignItems: "center", marginTop: 10, marginBottom: 14 },
+  sectionLabel: { fontSize: 12, fontWeight: "800", color: C.faint, letterSpacing: 1.2 },
+  sectionHint: { fontSize: 11, fontWeight: "600", color: C.faint, marginLeft: 8, fontStyle: "italic" },
+  sectionRule: { flex: 1, height: 1, backgroundColor: C.border, marginLeft: 12 },
 
-  sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 16, marginTop: 4 },
-  sectionIconWrap: {
-    width: 40, height: 40, borderRadius: 10, backgroundColor: "#F8FAFC",
-    alignItems: "center", justifyContent: "center", marginRight: 12, borderWidth: 1, borderColor: BRAND.border,
-  },
-  sectionTitle: { fontSize: 15, fontWeight: "700", color: BRAND.ink, marginBottom: 2 },
-  sectionSubtitle: { fontSize: 12, color: BRAND.subText },
-
-  divider: { height: 1, backgroundColor: BRAND.border, marginVertical: 20 },
-
+  // ===== Inputs =====
   inputGroup: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: "700", color: BRAND.text, marginBottom: 8 },
+  label: { fontSize: 13, fontWeight: "600", color: C.text, marginBottom: 7 },
+  req: { color: C.primary, fontWeight: "800" },
   inputWrap: {
-    flexDirection: "row", alignItems: "center", backgroundColor: "#FBFDFF",
-    borderWidth: 1.5, borderColor: BRAND.border, borderRadius: 12, height: 54,
+    flexDirection: "row", alignItems: "center", backgroundColor: C.field,
+    borderWidth: 1, borderColor: C.border, borderRadius: 12, height: 52,
   },
-  input: { flex: 1, paddingLeft: 44, paddingRight: 44, fontSize: 15, color: "#0F1720", fontWeight: "500" },
+  textareaWrap: { height: 80, alignItems: "flex-start", paddingTop: 12 },
+  input: { flex: 1, paddingLeft: 42, paddingRight: 42, fontSize: 15, color: C.ink, fontWeight: "500" },
   leftIcon: { position: "absolute", left: 14 },
   rightIcon: { position: "absolute", right: 14 },
-  eyeBtn: { position: "absolute", right: 12, height: "100%", width: 40, alignItems: "center", justifyContent: "center" },
+  eyeBtn: { position: "absolute", right: 10, height: "100%", width: 40, alignItems: "center", justifyContent: "center" },
 
-  dropdownText: { flex: 1, paddingLeft: 44, paddingRight: 44, fontSize: 15, color: "#0F1720", fontWeight: "500" },
-  dropdownPlaceholder: { color: "#A3B3C2", fontWeight: "400" },
-
-  inputOK: { borderColor: "#CFF5E2", backgroundColor: "#F5FFFA" },
-  inputError: { borderColor: "#FBD5D5", backgroundColor: "#FFF8F8" },
-  helperError: { color: BRAND.error, fontSize: 12.5, marginTop: 6 },
-  pwStrengthRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },
-  pwStrengthSeg: { width: 24, height: 5, borderRadius: 3 },
-  pwStrengthText: { marginLeft: 6, fontWeight: "800", fontSize: 12 },
-  helperText: { color: BRAND.subText, fontSize: 12, marginTop: 4 },
-
-  buttonRow: { flexDirection: "row", gap: 12, marginTop: 10 },
-  backBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center", height: 52,
-    paddingHorizontal: 20, borderRadius: 14, borderWidth: 1, borderColor: BRAND.border,
-    backgroundColor: BRAND.card, gap: 6,
+  // Phone +91 prefix
+  phonePrefix: {
+    height: "100%", justifyContent: "center", paddingLeft: 14, paddingRight: 12,
+    borderRightWidth: 1, borderRightColor: C.border, marginRight: 12,
   },
-  backBtnText: { fontSize: 15, fontWeight: "600", color: BRAND.text },
+  phonePrefixText: { fontSize: 15, fontWeight: "700", color: C.text },
+  phoneInput: { flex: 1, paddingRight: 42, fontSize: 15, color: C.ink, fontWeight: "500" },
+
+  dropdownText: { flex: 1, paddingLeft: 42, paddingRight: 42, fontSize: 15, color: C.ink, fontWeight: "500" },
+  dropdownPlaceholder: { color: C.faint, fontWeight: "400" },
+
+  inputOK: { borderColor: C.primary, backgroundColor: "#FFFFFF" },
+  inputError: { borderColor: C.error, backgroundColor: "#FFFFFF" },
+  helperText: { color: C.sub, fontSize: 12, marginTop: 6 },
+  helperError: { color: C.error, fontSize: 12.5, marginTop: 6 },
+
+  pwStrengthRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 },
+  pwStrengthSeg: { flex: 1, height: 4, borderRadius: 2 },
+  pwStrengthText: { marginLeft: 6, fontWeight: "700", fontSize: 12 },
+
+  // ===== Buttons =====
+  buttonRow: { flexDirection: "row", gap: 12, marginTop: 22, alignItems: "stretch" },
+  backBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center", height: 54,
+    paddingHorizontal: 22, borderRadius: 12, borderWidth: 1, borderColor: C.borderStrong,
+    backgroundColor: C.bg, gap: 6,
+  },
+  backBtnText: { fontSize: 15, fontWeight: "600", color: C.text },
 
   cta: {
-    height: 54, borderRadius: 12, backgroundColor: BRAND.blue,
-    alignItems: "center", justifyContent: "center", marginTop: 16,
-    flexDirection: "row", gap: 8,
-    shadowColor: BRAND.blue, shadowOpacity: 0.3, shadowRadius: 16, shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    height: 54, borderRadius: 12, backgroundColor: C.primary,
+    alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8,
+    marginTop: 24,
   },
-  ctaDisabled: { backgroundColor: "#93C5FD", shadowOpacity: 0.15 },
-  ctaText: { color: "#fff", fontSize: 16.5, fontWeight: "700", letterSpacing: 0.2 },
+  ctaDisabled: { backgroundColor: "#A7D9C0" },
+  ctaText: { color: "#fff", fontSize: 16, fontWeight: "700", letterSpacing: 0.2 },
 
-  separatorRow: { marginVertical: 14, gap: 8, flexDirection: "row", alignItems: "center" },
-  separator: { flex: 1, height: 1, backgroundColor: BRAND.border },
-  separatorText: { color: BRAND.subText, fontSize: 12.5 },
+  skipBtn: { height: 46, alignItems: "center", justifyContent: "center", marginTop: 10 },
+  skipText: { color: C.primaryDark, fontSize: 14, fontWeight: "700", textDecorationLine: "underline" },
 
-  centerRow: { alignItems: "center", flexDirection: "row", justifyContent: "center" },
-  smallText: { color: BRAND.subText, fontSize: 13.5 },
-  linkBold: { color: BRAND.primaryDark, fontWeight: "800", fontSize: 14 },
+  // ===== Footer =====
+  loginRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 24 },
+  smallText: { color: C.sub, fontSize: 14 },
+  linkBold: { color: C.primaryDark, fontWeight: "800", fontSize: 14 },
+  trustRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 16 },
+  trustText: { color: C.faint, fontSize: 12 },
 
-  // Benefits
-  benefitsCard: {
-    width: "100%", maxWidth: 520, marginTop: 20, padding: 20,
-    backgroundColor: "#EFF6FF", borderRadius: 16, borderWidth: 1, borderColor: "#DBEAFE",
+  // ===== Success =====
+  successContainer: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24, backgroundColor: C.bg },
+  successIcon: {
+    width: 84, height: 84, borderRadius: 42, backgroundColor: C.primarySoft,
+    alignItems: "center", justifyContent: "center", marginBottom: 24,
   },
-  benefitsTitle: { fontSize: 16, fontWeight: "700", color: BRAND.ink, textAlign: "center", marginBottom: 20 },
-  benefitsRow: { flexDirection: "row", justifyContent: "space-around" },
-  benefitItem: {
-    alignItems: "center", paddingVertical: 12, paddingHorizontal: 8,
-    backgroundColor: BRAND.card, borderRadius: 12, minWidth: 70,
-    borderWidth: 1, borderColor: "#E0E7FF",
+  successTitle: { fontSize: 22, fontWeight: "800", color: C.ink, marginBottom: 10, textAlign: "center" },
+  successText: { fontSize: 14.5, color: C.sub, textAlign: "center", marginBottom: 28, lineHeight: 21 },
+  stepsCard: {
+    width: "100%", backgroundColor: C.field, borderRadius: 14, padding: 20, marginBottom: 24,
+    borderWidth: 1, borderColor: C.border,
   },
-  benefitNumber: { fontSize: 18, fontWeight: "800", color: BRAND.blue, marginBottom: 4 },
-  benefitLabel: { fontSize: 11, color: BRAND.subText, textAlign: "center", fontWeight: "600" },
+  stepsTitle: { fontSize: 13, fontWeight: "800", color: C.faint, letterSpacing: 1, marginBottom: 16, textTransform: "uppercase" },
+  stepItem: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
+  stepNumber: {
+    width: 26, height: 26, borderRadius: 13, backgroundColor: C.primary,
+    alignItems: "center", justifyContent: "center", marginRight: 12,
+  },
+  stepNumberText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  stepText: { fontSize: 14, color: C.text, flex: 1 },
 
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: "flex-end" },
+  // ===== Modal =====
+  modalOverlay: { flex: 1, backgroundColor: "rgba(15, 23, 42, 0.5)", justifyContent: "flex-end" },
   modalContent: {
-    backgroundColor: BRAND.card, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    paddingTop: 20, paddingBottom: 32, maxHeight: "70%",
+    backgroundColor: C.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22,
+    paddingTop: 10, paddingBottom: 32, maxHeight: "72%",
   },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, marginBottom: 16 },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: BRAND.ink },
+  modalHandle: { alignSelf: "center", width: 42, height: 5, borderRadius: 3, backgroundColor: C.border, marginBottom: 10 },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, marginBottom: 14 },
+  modalTitle: { fontSize: 17, fontWeight: "800", color: C.ink },
   modalClose: { padding: 4 },
   modalList: { paddingHorizontal: 20 },
   modalItem: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingVertical: 16, paddingHorizontal: 16, marginBottom: 8,
-    backgroundColor: "#F8FAFC", borderRadius: 12, borderWidth: 1.5, borderColor: BRAND.border,
+    paddingVertical: 15, paddingHorizontal: 16, marginBottom: 8,
+    backgroundColor: C.field, borderRadius: 12, borderWidth: 1, borderColor: C.border,
   },
-  modalItemSelected: { backgroundColor: "#EFF6FF", borderColor: BRAND.blue },
-  modalItemText: { fontSize: 15, color: BRAND.text, fontWeight: "500" },
-  modalItemTextSelected: { color: BRAND.blue, fontWeight: "700" },
+  modalItemSelected: { backgroundColor: C.primarySoft, borderColor: C.primary },
+  modalItemText: { fontSize: 15, color: C.text, fontWeight: "500" },
+  modalItemTextSelected: { color: C.primaryDark, fontWeight: "700" },
 });

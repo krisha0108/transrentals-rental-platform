@@ -622,6 +622,13 @@ export async function revokeTravelAgentBookingShare(id) {
 
 // ==================== TOURS ====================
 export const TOUR_STATUS = ["DRAFT", "ACTIVE", "PAUSED", "INACTIVE"];
+// AI: generate tour description. mode "full" = comprehensive 80-100 word description;
+// mode "short" (default) = one-liner ≤ 120 chars for tour cards.
+export async function generateTourDescription({ title, destination, duration, basePrice, mode } = {}) {
+  const res = await apiPost("/travel-agent/tours/ai-description", { title, destination, duration, basePrice, mode });
+  return res.data; // { description }
+}
+
 export const TOUR_PRICE_TYPE = ["PER_PERSON", "PER_GROUP", "ON_REQUEST"];
 export const TOUR_CANCELLATION_POLICY = ["FLEXIBLE", "MODERATE", "STRICT"];
 export const TOUR_CREATE_MODE = ["QUICK", "DETAILED"];
@@ -907,9 +914,9 @@ export async function deleteTravelAgentBankAccount(id) {
 // optional `documentNumber`.
 
 export const DOCUMENT_TYPES = [
+  "ADDRESS_PROOF",
   "GST_CERTIFICATE",
   "PAN_CARD",
-  "ADDRESS_PROOF",
   "AGENCY_REGISTRATION",
   "IATA_CERTIFICATE",
   "TRAVEL_AGENT_LICENSE",
@@ -919,7 +926,8 @@ export const DOCUMENT_TYPES = [
   "BANK_DETAILS",
   "OTHER",
 ];
-export const REQUIRED_DOCUMENT_TYPES = ["GST_CERTIFICATE", "PAN_CARD", "ADDRESS_PROOF"];
+// Only Address Proof is mandatory now. GST & PAN moved to optional.
+export const REQUIRED_DOCUMENT_TYPES = ["ADDRESS_PROOF"];
 export const DOCUMENT_STATUS = ["PENDING", "VERIFIED", "REJECTED"];
 
 export async function listTravelAgentDocuments() {
@@ -1152,4 +1160,15 @@ export async function sendSocialMessage(conversationId, content) {
     { content }
   );
   return res.data; // { message }
+}
+
+// ==================== SUPPORT TICKETS ====================
+export async function submitSupportTicket({ subject, category, message }) {
+  const res = await apiPost("/travel-agent/support/tickets", { subject, category, message });
+  return res.data; // { success, ticketNo }
+}
+
+export async function getMySupportTickets() {
+  const res = await apiGet("/travel-agent/support/tickets");
+  return res.data; // { tickets }
 }

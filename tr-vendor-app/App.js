@@ -17,7 +17,7 @@ import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidStyle, AndroidImportance, EventType } from '@notifee/react-native';
 import axios from 'axios';
 import { debugAuthState, getSessionToken, getVendorNotificationsUnreadCount, saveVendorFcmToken } from './screens/api/client';
-import { saveTravelAgentFcmToken } from './screens/api/travelAgentClient';
+import { saveTravelAgentFcmToken, getTravelAgentProfile } from './screens/api/travelAgentClient';
 import OfflineBanner from './components/OfflineBanner';
 import GlobalAlert from './components/GlobalAlert';
 import { NotifBadgeContext } from './contexts/NotifBadgeContext';
@@ -75,6 +75,9 @@ import TADocumentsScreen from './screens/travel-agent/documents/DocumentsScreen'
 import TAChatThreadScreen from './screens/travel-agent/chats/ChatThreadScreen';
 import TACaptureLinksListScreen from './screens/travel-agent/capture-links/CaptureLinksListScreen';
 import TAAddEditCaptureLinkScreen from './screens/travel-agent/capture-links/AddEditCaptureLinkScreen';
+
+// Travel Agent — Phase 7 (Help & Support)
+import TASupportScreen from './screens/travel-agent/support/TASupportScreen';
 
 // Travel Agent — Phase 6 (Social Network: Feed / Create / Messages / Chat / Profile)
 import TASocialFeedScreen from './screens/travel-agent/social/SocialFeedScreen';
@@ -419,7 +422,19 @@ function SplashScreenWrapper() {
         const travelAgentStr = await AsyncStorage.getItem('travel_agent');
         if (travelAgentStr) {
           try {
-            const ta = JSON.parse(travelAgentStr);
+            let ta = JSON.parse(travelAgentStr);
+            // Refresh the live status from the server so routing isn't driven by a
+            // stale cache. e.g. after the agent uploads documents, the status flips
+            // to UNDER_REVIEW and they should land on the dashboard, not Documents.
+            try {
+              const fresh = await getTravelAgentProfile();
+              if (fresh?.status) {
+                ta = { ...ta, ...fresh };
+                await AsyncStorage.setItem('travel_agent', JSON.stringify(ta));
+              }
+            } catch (e) {
+              // offline / fetch failed — fall back to the cached status
+            }
             console.log('[App] 🧳 Travel Agent Status:', ta.status);
             if (ta.status === 'DOCUMENTS_PENDING') {
               console.log('[App] 📄 TA → Documents');
@@ -1137,6 +1152,7 @@ export default function App() {
             <Stack.Screen name="TADocuments" component={TADocumentsScreen} />
             <Stack.Screen name="TAProfile" component={TAAgencyProfileScreen} />
             <Stack.Screen name="TAGetStarted" component={TAGetStartedScreen} />
+            <Stack.Screen name="TASupport" component={TASupportScreen} />
 
           </Stack.Group>
         </Stack.Navigator>

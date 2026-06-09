@@ -4,8 +4,8 @@
 // endpoint) so the new post lands in the unified feed visible to both
 // agents and vendors.
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Zap, Send, ChevronDown, Search, X, Check, Compass, ImagePlus, Loader2 } from 'lucide-react';
 
@@ -116,8 +116,9 @@ function CategoryDropdown({
   );
 }
 
-export default function AgentCreatePostPage() {
+function AgentCreatePostInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [content, setContent] = useState('');
@@ -158,10 +159,16 @@ export default function AgentCreatePostPage() {
 
   useEffect(() => {
     fetch('/api/admin/social/categories').then(r => r.json()).then(d => {
-      setCategories((d.categories || []).filter((c: any) => c.isActive));
+      const active: Category[] = (d.categories || []).filter((c: any) => c.isActive);
+      setCategories(active);
       setLoadingCats(false);
+      // If ?sos=1 in URL, auto-select the first SOS category
+      if (searchParams.get('sos') === '1') {
+        const first = active.find(c => c.isSOS);
+        if (first) setSelectedCategory(first.id);
+      }
     });
-  }, []);
+  }, [searchParams]);
 
   const selectedCat = categories.find(c => c.id === selectedCategory);
   const isSOS = selectedCat?.isSOS ?? false;
@@ -302,5 +309,13 @@ export default function AgentCreatePostPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function AgentCreatePostPage() {
+  return (
+    <Suspense fallback={null}>
+      <AgentCreatePostInner />
+    </Suspense>
   );
 }
