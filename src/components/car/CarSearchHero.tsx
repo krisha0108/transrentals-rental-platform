@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin, Search, Car, Shield, Star, Zap, KeyRound, AlertCircle, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, Search, Car, Shield, Star, Zap, KeyRound, AlertCircle, X, ChevronRight } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -296,6 +296,21 @@ export function CarSearchHero({ city, citySlug, pageHeading, pageDescription }: 
               <Search className="w-5 h-5 mr-2" />
               Search Available Cars
             </Button>
+
+            {/* Car Rental (with driver) promo link */}
+            <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2.5 text-xs mt-3">
+              <div className="flex items-center gap-2 text-indigo-800">
+                <Car className="w-4 h-4 shrink-0" />
+                <span>Need a driver? Book a car with a professional chauffeur.</span>
+              </div>
+              <a
+                href={`/car-rental${citySlug ? `/${citySlug}` : ''}`}
+                className="font-bold text-indigo-600 hover:text-indigo-700 underline flex items-center gap-0.5 shrink-0 ml-3"
+              >
+                Car Rental
+                <ChevronRight className="w-3 h-3" />
+              </a>
+            </div>
           </motion.div>
 
           {/* Trust Badges */}
