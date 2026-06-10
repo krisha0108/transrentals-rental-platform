@@ -205,17 +205,17 @@ export function VehicleRentalSchema({
         '@type': 'OfferCatalog',
         name: `${serviceName} - Available Vehicles`,
         itemListElement: vehicles.slice(0, 10).map((vehicle) => ({
-          '@type': 'Product',
-          name: vehicle.name,
-          description: `Rent ${vehicle.name} in ${city || 'India'}. Book ${vehicle.brand} ${vehicle.name} online.`,
-          brand: { '@type': 'Brand', name: vehicle.brand },
-          image: vehicle.image || 'https://transrentals.in/images/og-image.jpg',
-          offers: {
-            '@type': 'Offer',
-            price: vehicle.price,
-            priceCurrency: 'INR',
-            availability: 'https://schema.org/InStock',
-            seller: ORGANIZATION,
+          '@type': 'Offer',
+          price: vehicle.price,
+          priceCurrency: 'INR',
+          availability: 'https://schema.org/InStock',
+          seller: ORGANIZATION,
+          itemOffered: {
+            '@type': 'Product',
+            name: vehicle.name,
+            description: `Rent ${vehicle.name} in ${city || 'India'}. Book online at TransRentals.`,
+            brand: { '@type': 'Brand', name: vehicle.brand },
+            image: vehicle.image || 'https://transrentals.in/images/og-image.jpg',
           },
         })),
       },
@@ -622,7 +622,7 @@ export function BikeServiceSchema({
     <>
       <BreadcrumbSchema items={breadcrumbs} />
       <VehicleRentalSchema
-        serviceName={city ? `${serviceName} in ${city}` : serviceName}
+        serviceName={serviceName}
         description={description}
         city={city}
         serviceSlug={serviceSlug}
