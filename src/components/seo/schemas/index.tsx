@@ -200,33 +200,47 @@ export function VehicleRentalSchema({
         worstRating: 1,
       },
     }),
-    ...(vehicles.length > 0 && {
-      hasOfferCatalog: {
-        '@type': 'OfferCatalog',
+  };
+
+  const vehicleListSchema = vehicles.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
         name: `${serviceName} - Available Vehicles`,
-        itemListElement: vehicles.slice(0, 10).map((vehicle) => ({
-          '@type': 'Offer',
-          price: vehicle.price,
-          priceCurrency: 'INR',
-          availability: 'https://schema.org/InStock',
-          seller: ORGANIZATION,
-          itemOffered: {
+        itemListElement: vehicles.slice(0, 10).map((vehicle, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          item: {
             '@type': 'Product',
             name: vehicle.name,
             description: `Rent ${vehicle.name} in ${city || 'India'}. Book online at TransRentals.`,
             brand: { '@type': 'Brand', name: vehicle.brand },
             image: vehicle.image || 'https://transrentals.in/images/og-image.jpg',
+            offers: {
+              '@type': 'Offer',
+              price: vehicle.price,
+              priceCurrency: 'INR',
+              availability: 'https://schema.org/InStock',
+              seller: ORGANIZATION,
+            },
           },
         })),
-      },
-    }),
-  };
+      }
+    : null;
 
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
+      {vehicleListSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(vehicleListSchema) }}
+        />
+      )}
+    </>
   );
 }
 
