@@ -207,8 +207,9 @@ export function VehicleRentalSchema({
         itemListElement: vehicles.slice(0, 10).map((vehicle) => ({
           '@type': 'Product',
           name: vehicle.name,
+          description: `Rent ${vehicle.name} in ${city || 'India'}. Book ${vehicle.brand} ${vehicle.name} online.`,
           brand: { '@type': 'Brand', name: vehicle.brand },
-          ...(vehicle.image && { image: vehicle.image }),
+          image: vehicle.image || 'https://transrentals.in/images/og-image.jpg',
           offers: {
             '@type': 'Offer',
             price: vehicle.price,
