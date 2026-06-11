@@ -5,6 +5,7 @@ import { createJob, summarizeJob, type BulkTarget } from '@/lib/ai/bulk-job-stor
 import { startJobInBackground } from '@/lib/ai/bulk-runner';
 import { SERVICE_LABELS } from '@/lib/ai/prompts/page-content';
 import { getCityBySlug } from '@/data/indian-cities';
+import { prisma } from '@/lib/db/prisma';
 
 const MAX_TARGETS_PER_JOB = 1000;
 
@@ -30,6 +31,21 @@ export async function POST(request: NextRequest) {
   const validTargets: BulkTarget[] = [];
   const invalidTargets: Array<{ target: any; reason: string }> = [];
 
+  // Pre-fetch active DB slugs for cities not in the static data
+  const rawCitySlugs = rawTargets
+    .filter((t) => t && typeof t.citySlug === 'string' && !getCityBySlug(t.citySlug))
+    .map((t) => t.citySlug as string);
+  const dbCitySlugs = new Set(
+    rawCitySlugs.length
+      ? (
+          await prisma.locations.findMany({
+            where: { slug: { in: rawCitySlugs }, isActive: true },
+            select: { slug: true },
+          })
+        ).map((l) => l.slug)
+      : [],
+  );
+
   const seen = new Set<string>();
   for (const t of rawTargets) {
     if (!t || typeof t.serviceSlug !== 'string' || typeof t.citySlug !== 'string') {
@@ -40,7 +56,7 @@ export async function POST(request: NextRequest) {
       invalidTargets.push({ target: t, reason: `unknown serviceSlug "${t.serviceSlug}"` });
       continue;
     }
-    if (!getCityBySlug(t.citySlug)) {
+    if (!getCityBySlug(t.citySlug) && !dbCitySlugs.has(t.citySlug)) {
       invalidTargets.push({ target: t, reason: `unknown citySlug "${t.citySlug}"` });
       continue;
     }
