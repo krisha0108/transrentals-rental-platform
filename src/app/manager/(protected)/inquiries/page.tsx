@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Loader2,
@@ -102,6 +102,7 @@ export default function ManagerInquiriesPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -199,7 +200,9 @@ export default function ManagerInquiriesPage() {
           i.requestNumber?.toLowerCase().includes(term) ||
           i.customerName?.toLowerCase().includes(term) ||
           i.customerPhone?.includes(term) ||
-          i.locationName?.toLowerCase().includes(term)
+          i.customerEmail?.toLowerCase().includes(term) ||
+          i.locationName?.toLowerCase().includes(term) ||
+          i.serviceName?.toLowerCase().includes(term)
       );
     }
 
@@ -208,9 +211,20 @@ export default function ManagerInquiriesPage() {
       filtered = filtered.filter((i) => (i.source || 'web') === sourceFilter);
     }
 
+    // Apply location filter
+    if (locationFilter !== 'all') {
+      filtered = filtered.filter((i) => i.locationName === locationFilter);
+    }
+
     setFilteredInquiries(filtered);
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, sourceFilter, dateFilter, inquiries]);
+  }, [searchTerm, statusFilter, sourceFilter, locationFilter, dateFilter, inquiries]);
+
+  const uniqueLocations = useMemo(() => {
+    const set = new Set<string>();
+    inquiries.forEach((i) => { if (i.locationName) set.add(i.locationName); });
+    return Array.from(set).sort();
+  }, [inquiries]);
 
   // Pagination
   const totalPages = Math.ceil(filteredInquiries.length / itemsPerPage);
@@ -341,7 +355,7 @@ export default function ManagerInquiriesPage() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by booking #, customer, phone, location..."
+                placeholder="Search by request #, customer, phone, email, location, service..."
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
@@ -376,6 +390,21 @@ export default function ManagerInquiriesPage() {
                 <option value="QUOTED">Quoted ({stats.quoted})</option>
                 <option value="ACCEPTED">Accepted ({stats.accepted})</option>
                 <option value="REJECTED">Rejected ({stats.rejected})</option>
+              </select>
+            </div>
+
+            {/* Location Filter */}
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <select
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[160px]"
+              >
+                <option value="all">All Locations</option>
+                {uniqueLocations.map((loc) => (
+                  <option key={loc} value={loc}>{loc}</option>
+                ))}
               </select>
             </div>
 

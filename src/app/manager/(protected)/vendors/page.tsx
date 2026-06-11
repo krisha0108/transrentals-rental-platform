@@ -90,6 +90,8 @@ export default function ManagerVendorsPage() {
   const [sortBy, setSortBy] = useState('date_desc');
   const [tagEditorOpenFor, setTagEditorOpenFor] = useState<string | null>(null);
   const [tagSaving, setTagSaving] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 25;
 
   const fetchVendors = async () => {
     try {
@@ -179,6 +181,12 @@ export default function ManagerVendorsPage() {
     return list;
   }, [allVendors, search, locationFilter, serviceFilter, statusFilter, tagFilter, sortBy]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [search, locationFilter, serviceFilter, statusFilter, tagFilter, sortBy]);
+
+  const totalPages = Math.ceil(vendors.length / ITEMS_PER_PAGE);
+  const paginatedVendors = vendors.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
   const activeFilterCount = [
     search, locationFilter !== 'all' ? locationFilter : '', serviceFilter !== 'all' ? serviceFilter : '',
     statusFilter !== 'all' ? statusFilter : '', tagFilter !== 'all' ? tagFilter : '',
@@ -243,6 +251,7 @@ export default function ManagerVendorsPage() {
           <p className="text-gray-500 mt-1">
             {vendors.length} of {allVendors.length} vendors
             {activeFilterCount > 0 && <span className="ml-1 text-green-600 font-medium">({activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active)</span>}
+            {totalPages > 1 && <span className="ml-1 text-gray-400">· Page {currentPage}/{totalPages}</span>}
           </p>
         </div>
         <button onClick={handleRefresh} disabled={isRefreshing}
@@ -417,7 +426,7 @@ export default function ManagerVendorsPage() {
           </div>
         ) : (
           <div className="divide-y">
-            {vendors.map((vendor) => {
+            {paginatedVendors.map((vendor) => {
               const statusConfig = STATUS_CONFIG[vendor.status] || STATUS_CONFIG.PENDING;
               const StatusIcon = statusConfig.icon;
               const isTagEditorOpen = tagEditorOpenFor === vendor.id;
@@ -571,6 +580,72 @@ export default function ManagerVendorsPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white rounded-xl border shadow-sm px-4 py-3">
+          <p className="text-sm text-gray-500">
+            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, vendors.length)} of {vendors.length} vendors
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-2 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              «
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => p - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              Prev
+            </button>
+
+            {/* Page number buttons — show up to 5 around current */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+              .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis');
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((item, idx) =>
+                item === 'ellipsis' ? (
+                  <span key={`e${idx}`} className="px-2 py-1.5 text-xs text-gray-400">…</span>
+                ) : (
+                  <button
+                    key={item}
+                    onClick={() => setCurrentPage(item as number)}
+                    className={`px-3 py-1.5 text-xs rounded-lg border transition ${
+                      currentPage === item
+                        ? 'bg-green-600 text-white border-green-600 font-semibold'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+
+            <button
+              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              Next
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-2 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              »
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

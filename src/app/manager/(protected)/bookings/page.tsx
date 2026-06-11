@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Loader2,
@@ -129,6 +129,7 @@ export default function ManagerBookingsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -209,8 +210,10 @@ export default function ManagerBookingsPage() {
           b.bookingNumber?.toLowerCase().includes(term) ||
           b.customerName?.toLowerCase().includes(term) ||
           b.customerPhone?.includes(term) ||
+          b.customerEmail?.toLowerCase().includes(term) ||
           b.locationName?.toLowerCase().includes(term) ||
-          b.vendorName?.toLowerCase().includes(term)
+          b.vendorName?.toLowerCase().includes(term) ||
+          b.serviceName?.toLowerCase().includes(term)
       );
     }
 
@@ -219,9 +222,14 @@ export default function ManagerBookingsPage() {
       filtered = filtered.filter((b) => (b.source || 'web') === sourceFilter);
     }
 
+    // Apply location filter
+    if (locationFilter !== 'all') {
+      filtered = filtered.filter((b) => (b.locationName || b.deliveryCity || '') === locationFilter);
+    }
+
     setFilteredBookings(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [searchTerm, bookings, dateFilter, sourceFilter]);
+  }, [searchTerm, bookings, dateFilter, sourceFilter, locationFilter]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -244,6 +252,16 @@ export default function ManagerBookingsPage() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  // Unique locations derived from all fetched bookings
+  const uniqueLocations = useMemo(() => {
+    const set = new Set<string>();
+    bookings.forEach((b) => {
+      const loc = b.locationName || b.deliveryCity;
+      if (loc) set.add(loc);
+    });
+    return Array.from(set).sort();
+  }, [bookings]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
@@ -342,7 +360,7 @@ export default function ManagerBookingsPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by booking #, customer, phone, location..."
+              placeholder="Search by booking #, customer, phone, email, location, service..."
               className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
           </div>
@@ -376,6 +394,21 @@ export default function ManagerBookingsPage() {
                 <option key={filter.value} value={filter.value}>
                   {filter.label}
                 </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Location Filter */}
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[160px]"
+            >
+              <option value="all">All Locations</option>
+              {uniqueLocations.map((loc) => (
+                <option key={loc} value={loc}>{loc}</option>
               ))}
             </select>
           </div>

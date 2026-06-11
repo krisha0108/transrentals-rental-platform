@@ -32,14 +32,16 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const statusChip = (searchParams.get('status') || 'all').toUpperCase();
     const tagFilter = searchParams.get('tag') || 'all';
+    const sourceFilter = searchParams.get('source') || 'all'; // 'all' | 'standalone' | 'vendor'
+    const licenseStatus = searchParams.get('licenseStatus') || 'all'; // 'all' | 'expired' | 'expiring' | 'valid' | 'none'
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
     // Translate the UI status chip into per-table status filters.
     let driverStatusIn: string[] | null = null;
     let staffStatusIn: string[] | null = null;
-    let includeStandalone = true;
-    let includeVendor = true;
+    let includeStandalone = sourceFilter !== 'vendor';
+    let includeVendor = sourceFilter !== 'standalone';
 
     if (statusChip === 'PENDING') {
       driverStatusIn = ['PENDING'];
@@ -75,6 +77,25 @@ export async function GET(request: NextRequest) {
         { phone: { contains: search } },
         { licenseNumber: { contains: search } },
       ];
+    }
+
+    // License status filter
+    if (licenseStatus !== 'all') {
+      const now = new Date();
+      const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      if (licenseStatus === 'expired') {
+        driverWhere.licenseExpiry = { lt: now };
+        staffWhere.licenseExpiry = { lt: now };
+      } else if (licenseStatus === 'expiring') {
+        driverWhere.licenseExpiry = { gte: now, lte: in30Days };
+        staffWhere.licenseExpiry = { gte: now, lte: in30Days };
+      } else if (licenseStatus === 'valid') {
+        driverWhere.licenseExpiry = { gt: in30Days };
+        staffWhere.licenseExpiry = { gt: in30Days };
+      } else if (licenseStatus === 'none') {
+        driverWhere.licenseNumber = null;
+        staffWhere.licenseNumber = null;
+      }
     }
 
     // Tag delegate may be undefined until the client is regenerated for the new
