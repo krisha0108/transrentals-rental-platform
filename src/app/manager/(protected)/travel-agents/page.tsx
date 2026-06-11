@@ -15,6 +15,9 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  MapPin,
+  Building2,
+  X,
 } from 'lucide-react';
 
 interface TravelAgent {
@@ -59,8 +62,12 @@ export default function ManagerTravelAgentsPage() {
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, pages: 0 });
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [cityFilter, setCityFilter] = useState('ALL');
+  const [agencyTypeFilter, setAgencyTypeFilter] = useState('ALL');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [cities, setCities] = useState<string[]>([]);
+  const [agencyTypes, setAgencyTypes] = useState<string[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -69,6 +76,8 @@ export default function ManagerTravelAgentsPage() {
       params.append('page', pagination.page.toString());
       params.append('limit', pagination.limit.toString());
       if (statusFilter !== 'ALL') params.append('status', statusFilter);
+      if (cityFilter !== 'ALL') params.append('city', cityFilter);
+      if (agencyTypeFilter !== 'ALL') params.append('agencyType', agencyTypeFilter);
       if (search) params.append('search', search);
 
       const res = await fetch(`/api/manager/travel-agents?${params}`);
@@ -76,6 +85,8 @@ export default function ManagerTravelAgentsPage() {
         const data = await res.json();
         setAgents(data.travelAgents);
         setPagination(data.pagination);
+        if (data.cities?.length) setCities(data.cities);
+        if (data.agencyTypes?.length) setAgencyTypes(data.agencyTypes);
       }
     } finally {
       setLoading(false);
@@ -84,7 +95,17 @@ export default function ManagerTravelAgentsPage() {
 
   useEffect(() => {
     load();
-  }, [pagination.page, statusFilter, search]);
+  }, [pagination.page, statusFilter, cityFilter, agencyTypeFilter, search]);
+
+  const activeFilterCount = [
+    statusFilter !== 'ALL', cityFilter !== 'ALL', agencyTypeFilter !== 'ALL', !!search,
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setStatusFilter('ALL'); setCityFilter('ALL'); setAgencyTypeFilter('ALL');
+    setSearch(''); setSearchInput('');
+    setPagination((p) => ({ ...p, page: 1 }));
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,25 +135,51 @@ export default function ManagerTravelAgentsPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
+          {/* Search */}
           <form onSubmit={handleSearch} className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search by agency, owner, email or phone..."
+              placeholder="Search by agency, owner, email, phone or city..."
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </form>
+
+          {/* City */}
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <select
+              value={cityFilter}
+              onChange={(e) => { setCityFilter(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
+              className="pl-9 pr-8 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white appearance-none min-w-[150px]"
+            >
+              <option value="ALL">All Cities</option>
+              {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+
+          {/* Agency Type */}
+          <div className="relative">
+            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <select
+              value={agencyTypeFilter}
+              onChange={(e) => { setAgencyTypeFilter(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
+              className="pl-9 pr-8 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white appearance-none min-w-[160px]"
+            >
+              <option value="ALL">All Types</option>
+              {agencyTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+
+          {/* Status */}
           <select
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPagination((p) => ({ ...p, page: 1 }));
-            }}
-            className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+            onChange={(e) => { setStatusFilter(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
+            className="px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white min-w-[160px]"
           >
             <option value="ALL">All Statuses</option>
             <option value="PENDING">Pending</option>
@@ -144,6 +191,39 @@ export default function ManagerTravelAgentsPage() {
             <option value="BLOCKED">Blocked</option>
           </select>
         </div>
+
+        {/* Active filter chips */}
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {search && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <Search className="w-3 h-3" /> "{search}"
+                <button onClick={() => { setSearch(''); setSearchInput(''); }}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
+            {cityFilter !== 'ALL' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                <MapPin className="w-3 h-3" /> {cityFilter}
+                <button onClick={() => { setCityFilter('ALL'); setPagination((p) => ({ ...p, page: 1 })); }}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
+            {agencyTypeFilter !== 'ALL' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                <Building2 className="w-3 h-3" /> {agencyTypeFilter}
+                <button onClick={() => { setAgencyTypeFilter('ALL'); setPagination((p) => ({ ...p, page: 1 })); }}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
+            {statusFilter !== 'ALL' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                {statusConfig[statusFilter]?.label || statusFilter}
+                <button onClick={() => { setStatusFilter('ALL'); setPagination((p) => ({ ...p, page: 1 })); }}><X className="w-3 h-3 ml-0.5" /></button>
+              </span>
+            )}
+            <button onClick={clearFilters} className="text-xs text-gray-400 hover:text-red-500 underline transition">
+              Clear all
+            </button>
+          </div>
+        )}
       </div>
 
       {loading ? (

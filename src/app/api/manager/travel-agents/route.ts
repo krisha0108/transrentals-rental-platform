@@ -28,23 +28,26 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const search = searchParams.get('search');
+    const city = searchParams.get('city');
+    const agencyType = searchParams.get('agencyType');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
     const where: any = {};
-    if (status && status !== 'ALL') {
-      where.status = status;
-    }
+    if (status && status !== 'ALL') where.status = status;
+    if (city && city !== 'ALL') where.city = city;
+    if (agencyType && agencyType !== 'ALL') where.agencyType = agencyType;
     if (search) {
       where.OR = [
         { agencyName: { contains: search } },
         { ownerName: { contains: search } },
         { email: { contains: search } },
         { phone: { contains: search } },
+        { city: { contains: search } },
       ];
     }
 
-    const [agents, total] = await Promise.all([
+    const [agents, total, distinctCities, distinctTypes] = await Promise.all([
       prisma.travel_agents.findMany({
         where,
         include: {
@@ -63,6 +66,8 @@ export async function GET(request: NextRequest) {
         take: limit,
       }),
       prisma.travel_agents.count({ where }),
+      prisma.travel_agents.findMany({ where: { city: { not: null } }, select: { city: true }, distinct: ['city'], orderBy: { city: 'asc' } }),
+      prisma.travel_agents.findMany({ where: { agencyType: { not: null } }, select: { agencyType: true }, distinct: ['agencyType'], orderBy: { agencyType: 'asc' } }),
     ]);
 
     const safeAgents = agents.map(({ password, _count, ...rest }) => ({
@@ -78,12 +83,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       travelAgents: safeAgents,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      cities: distinctCities.map((r) => r.city).filter(Boolean),
+      agencyTypes: distinctTypes.map((r) => r.agencyType).filter(Boolean),
     });
   } catch (error: any) {
     logger.error('Manager list travel agents error', error);
