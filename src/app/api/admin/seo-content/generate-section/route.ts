@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { generateSingleTarget, GenerateError } from '@/lib/ai/seo-content-generator';
 import { SERVICE_LABELS } from '@/lib/ai/prompts/page-content';
+import { prisma } from '@/lib/db/prisma';
 import type { RewriteTarget, RewriteFieldKey } from '@/lib/ai/prompts/single-section';
 
 // POST — rewrite ONE section or ONE hero/meta field of a (service, city) page.
@@ -69,6 +70,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'target.kind must be "field" or "section"' }, { status: 400 });
   }
 
+  const dbLocation = await prisma.locations.findFirst({
+    where: { slug: citySlug, isActive: true },
+    select: { name: true },
+  });
+
   const startedAt = Date.now();
   try {
     const result = await generateSingleTarget({
@@ -78,6 +84,7 @@ export async function POST(request: NextRequest) {
       currentContent,
       customInstructions,
       temperature,
+      cityNameFallback: dbLocation?.name,
     });
     return NextResponse.json({
       success: true,

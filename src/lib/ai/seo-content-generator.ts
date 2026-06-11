@@ -42,6 +42,7 @@ export type GenerateOptions = {
   citySlug: string;
   customInstructions?: string;
   temperature?: number;
+  cityNameFallback?: string;
 };
 
 export type GenerateResult = {
@@ -131,7 +132,10 @@ export async function generatePageContent(opts: GenerateOptions): Promise<Genera
     );
   }
 
-  const cityContext = buildCityContext(opts.citySlug);
+  const cityContext = buildCityContext(
+    opts.citySlug,
+    opts.cityNameFallback ? { name: opts.cityNameFallback } : undefined,
+  );
   if (!cityContext) {
     throw new GenerateError(`Unknown citySlug "${opts.citySlug}" — not in indian-cities.ts`);
   }
@@ -215,6 +219,7 @@ export type GenerateSectionsOptions = {
   sections?: SectionConfig[];
   customInstructions?: string;
   temperature?: number;
+  cityNameFallback?: string;
 };
 
 export type GenerateSectionsResult = {
@@ -283,7 +288,10 @@ export async function generateSectionsContent(
     );
   }
 
-  const cityContext = buildCityContext(opts.citySlug);
+  const cityContext = buildCityContext(
+    opts.citySlug,
+    opts.cityNameFallback ? { name: opts.cityNameFallback } : undefined,
+  );
   if (!cityContext) {
     throw new GenerateError(`Unknown citySlug "${opts.citySlug}" — not in indian-cities.ts`);
   }
@@ -355,6 +363,7 @@ export type GenerateSingleOptions = {
   currentContent?: string;
   customInstructions?: string;
   temperature?: number;
+  cityNameFallback?: string;
 };
 
 export type GenerateSingleResult = {
@@ -379,7 +388,10 @@ export async function generateSingleTarget(
     );
   }
 
-  const cityContext = buildCityContext(opts.citySlug);
+  const cityContext = buildCityContext(
+    opts.citySlug,
+    opts.cityNameFallback ? { name: opts.cityNameFallback } : undefined,
+  );
   if (!cityContext) {
     throw new GenerateError(`Unknown citySlug "${opts.citySlug}" — not in indian-cities.ts`);
   }
