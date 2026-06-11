@@ -1,7 +1,14 @@
 import Link from 'next/link';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
-import { MessageSquare, Mail, Phone, Search, Calendar } from 'lucide-react';
+import { MessageSquare, Mail, Phone, Search, Calendar, AlertCircle, Clock, CheckCircle, XCircle } from 'lucide-react';
+
+const STATUS_META: Record<string, { label: string; pill: string; icon: React.ElementType }> = {
+  NEW:         { label: 'New',         pill: 'bg-blue-50 text-blue-700 border-blue-200',    icon: AlertCircle },
+  IN_PROGRESS: { label: 'In Progress', pill: 'bg-amber-50 text-amber-700 border-amber-200', icon: Clock },
+  RESOLVED:    { label: 'Resolved',    pill: 'bg-green-50 text-green-700 border-green-200', icon: CheckCircle },
+  CLOSED:      { label: 'Closed',      pill: 'bg-gray-100 text-gray-600 border-gray-200',   icon: XCircle },
+};
 
 const ITEMS_PER_PAGE = 25;
 
@@ -26,13 +33,17 @@ const buildPaginationRange = (current: number, total: number, window = 5) => {
   return pages;
 };
 
+const VALID_STATUS_FILTERS = ['NEW', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
+
 export default async function ContactInquiriesPage({
   searchParams,
 }: {
-  searchParams?: { page?: string; search?: string };
+  searchParams?: { page?: string; search?: string; status?: string };
 }) {
   const page = Math.max(1, Number(searchParams?.page) || 1);
   const search = searchParams?.search?.trim() || '';
+  const statusParam = searchParams?.status?.trim() || '';
+  const statusFilter = VALID_STATUS_FILTERS.includes(statusParam) ? statusParam : '';
   const skip = (page - 1) * ITEMS_PER_PAGE;
   const now = new Date();
   const todayStart = new Date(now);
@@ -40,19 +51,22 @@ export default async function ContactInquiriesPage({
   const weekStart = new Date(now);
   weekStart.setDate(weekStart.getDate() - 7);
 
-  const where: Prisma.contact_inquiriesWhereInput = search
-    ? {
-        OR: [
-          { name: { contains: search } },
-          { email: { contains: search } },
-          { phone: { contains: search } },
-          { subject: { contains: search } },
-          { message: { contains: search } },
-        ],
-      }
-    : {};
+  const where: Prisma.contact_inquiriesWhereInput = {
+    ...(statusFilter ? { status: statusFilter } : {}),
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search } },
+            { email: { contains: search } },
+            { phone: { contains: search } },
+            { subject: { contains: search } },
+            { message: { contains: search } },
+          ],
+        }
+      : {}),
+  };
 
-  const [inquiries, total, todayCount, weekCount] = await Promise.all([
+  const [inquiries, total, todayCount, weekCount, statusCounts] = await Promise.all([
     prisma.contact_inquiries.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -62,14 +76,25 @@ export default async function ContactInquiriesPage({
     prisma.contact_inquiries.count({ where }),
     prisma.contact_inquiries.count({ where: { createdAt: { gte: todayStart } } }),
     prisma.contact_inquiries.count({ where: { createdAt: { gte: weekStart } } }),
+    prisma.contact_inquiries.groupBy({ by: ['status'], _count: { id: true } }),
   ]);
+  const countByStatus = Object.fromEntries(statusCounts.map((r) => [r.status, r._count.id]));
 
   const totalPages = Math.max(1, Math.ceil(total / ITEMS_PER_PAGE));
 
   const createPageLink = (target: number) => {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
+    if (statusFilter) params.set('status', statusFilter);
     if (target > 1) params.set('page', target.toString());
+    const qs = params.toString();
+    return qs ? `/manager/contact-inquiries?${qs}` : '/manager/contact-inquiries';
+  };
+
+  const createFilterLink = (newStatus: string) => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (newStatus) params.set('status', newStatus);
     const qs = params.toString();
     return qs ? `/manager/contact-inquiries?${qs}` : '/manager/contact-inquiries';
   };
@@ -99,8 +124,42 @@ export default async function ContactInquiriesPage({
         ))}
       </div>
 
+      {/* Status filter chips */}
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href={createFilterLink('')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium border transition ${
+            !statusFilter ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+          }`}
+        >
+          All ({total + (statusFilter ? 0 : 0)})
+        </Link>
+        {VALID_STATUS_FILTERS.map((s) => {
+          const meta = STATUS_META[s];
+          const Icon = meta.icon;
+          const count = countByStatus[s] || 0;
+          const isActive = statusFilter === s;
+          return (
+            <Link
+              key={s}
+              href={createFilterLink(s)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium border transition ${
+                isActive ? `${meta.pill} ring-2 ring-offset-1 ring-current` : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {meta.label}
+              <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${isActive ? 'bg-white/60' : 'bg-slate-100 text-slate-500'}`}>
+                {count}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+
       {/* Search */}
       <form method="get" className="flex gap-3">
+        {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -117,7 +176,7 @@ export default async function ContactInquiriesPage({
         >
           Search
         </button>
-        {search && (
+        {(search || statusFilter) && (
           <Link
             href="/manager/contact-inquiries"
             className="px-5 py-2.5 rounded-2xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition"
@@ -144,6 +203,7 @@ export default async function ContactInquiriesPage({
                 <th className="px-6 py-3">Customer</th>
                 <th className="px-6 py-3">Subject</th>
                 <th className="px-6 py-3">Message</th>
+                <th className="px-6 py-3">Status</th>
                 <th className="px-6 py-3">Date</th>
                 <th className="px-6 py-3">Action</th>
               </tr>
@@ -151,7 +211,7 @@ export default async function ContactInquiriesPage({
             <tbody className="divide-y divide-slate-100">
               {inquiries.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center text-slate-400">
+                  <td colSpan={7} className="px-6 py-16 text-center text-slate-400">
                     <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
                     <p className="font-medium">No inquiries found</p>
                     {search && <p className="text-xs mt-1">Try a different search term</p>}
@@ -181,6 +241,18 @@ export default async function ContactInquiriesPage({
                     </td>
                     <td className="px-6 py-4 max-w-[240px]">
                       <p className="text-slate-500 text-xs truncate">{previewText(inq.message)}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      {(() => {
+                        const meta = STATUS_META[inq.status] || STATUS_META.NEW;
+                        const Icon = meta.icon;
+                        return (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${meta.pill}`}>
+                            <Icon className="w-3 h-3" />
+                            {meta.label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-xs text-slate-400 whitespace-nowrap">
                       <span className="flex items-center gap-1">

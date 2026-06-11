@@ -24,6 +24,8 @@ import {
   Tag,
   Plus,
   X,
+  Filter,
+  UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -101,13 +103,22 @@ export default function DriversPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [tagFilter, setTagFilter] = useState<string>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [licenseFilter, setLicenseFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   // CRM tag editing (per-row)
   const [tagEditorOpenFor, setTagEditorOpenFor] = useState<string | null>(null);
   const [tagSaving, setTagSaving] = useState<string | null>(null);
 
-  const fetchDrivers = async (page: number, currentStatus: string, currentSearch: string, currentTag: string) => {
+  const fetchDrivers = async (
+    page: number,
+    currentStatus: string,
+    currentSearch: string,
+    currentTag: string,
+    currentSource: string,
+    currentLicense: string,
+  ) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -115,6 +126,8 @@ export default function DriversPage() {
       params.append('limit', '20');
       if (currentStatus !== 'all') params.append('status', currentStatus);
       if (currentTag !== 'all') params.append('tag', currentTag);
+      if (currentSource !== 'all') params.append('source', currentSource);
+      if (currentLicense !== 'all') params.append('licenseStatus', currentLicense);
       if (currentSearch) params.append('search', currentSearch);
 
       const res = await fetch(`/api/manager/drivers?${params}`);
@@ -132,8 +145,8 @@ export default function DriversPage() {
   };
 
   useEffect(() => {
-    fetchDrivers(pagination.page, statusFilter, search, tagFilter);
-  }, [pagination.page, statusFilter, search, tagFilter]);
+    fetchDrivers(pagination.page, statusFilter, search, tagFilter, sourceFilter, licenseFilter);
+  }, [pagination.page, statusFilter, search, tagFilter, sourceFilter, licenseFilter]);
 
   // Optimistic per-row tag toggle — adds/removes locally, then syncs server.
   // Rolls back on failure. Tags are keyed by (driverId, source).
@@ -248,9 +261,10 @@ export default function DriversPage() {
         })}
       </div>
 
-      {/* Search + tag filter */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border">
+      {/* Search + filters */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
+          {/* Search */}
           <form onSubmit={handleSearch} className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -263,14 +277,43 @@ export default function DriversPage() {
               />
             </div>
           </form>
-          <div className="relative sm:w-64">
+
+          {/* Source filter */}
+          <div className="relative sm:w-44">
+            <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <select
+              value={sourceFilter}
+              onChange={(e) => { setSourceFilter(e.target.value); setPagination((prev) => ({ ...prev, page: 1 })); }}
+              className="w-full pl-10 pr-8 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 text-sm bg-white appearance-none"
+            >
+              <option value="all">All Drivers</option>
+              <option value="standalone">Direct Only</option>
+              <option value="vendor">Vendor Only</option>
+            </select>
+          </div>
+
+          {/* License status filter */}
+          <div className="relative sm:w-52">
+            <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <select
+              value={licenseFilter}
+              onChange={(e) => { setLicenseFilter(e.target.value); setPagination((prev) => ({ ...prev, page: 1 })); }}
+              className="w-full pl-10 pr-8 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 text-sm bg-white appearance-none"
+            >
+              <option value="all">All Licenses</option>
+              <option value="valid">Valid</option>
+              <option value="expiring">Expiring (30 days)</option>
+              <option value="expired">Expired</option>
+              <option value="none">Not Provided</option>
+            </select>
+          </div>
+
+          {/* Tag filter */}
+          <div className="relative sm:w-56">
             <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <select
               value={tagFilter}
-              onChange={(e) => {
-                setTagFilter(e.target.value);
-                setPagination((prev) => ({ ...prev, page: 1 }));
-              }}
+              onChange={(e) => { setTagFilter(e.target.value); setPagination((prev) => ({ ...prev, page: 1 })); }}
               className="w-full pl-10 pr-8 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 text-sm bg-white appearance-none"
             >
               <option value="all">All Tags</option>
@@ -280,14 +323,42 @@ export default function DriversPage() {
             </select>
           </div>
         </div>
-        {tagFilter !== 'all' && (
-          <div className="mt-2">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border bg-gray-100 text-gray-700 border-gray-200">
-              <Tag className="w-3 h-3" /> {TAG_BY_KEY[tagFilter]?.label || tagFilter}
-              <button type="button" onClick={() => { setTagFilter('all'); setPagination((prev) => ({ ...prev, page: 1 })); }}>
-                <X className="w-3 h-3 ml-0.5" />
-              </button>
-            </span>
+
+        {/* Active filter chips */}
+        {(tagFilter !== 'all' || sourceFilter !== 'all' || licenseFilter !== 'all') && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {sourceFilter !== 'all' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border bg-indigo-50 text-indigo-700 border-indigo-200">
+                <UserCheck className="w-3 h-3" /> {sourceFilter === 'standalone' ? 'Direct' : 'Vendor'}
+                <button type="button" onClick={() => { setSourceFilter('all'); setPagination((prev) => ({ ...prev, page: 1 })); }}>
+                  <X className="w-3 h-3 ml-0.5" />
+                </button>
+              </span>
+            )}
+            {licenseFilter !== 'all' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border bg-amber-50 text-amber-700 border-amber-200">
+                <IdCard className="w-3 h-3" />
+                {{ valid: 'Valid License', expiring: 'Expiring Soon', expired: 'Expired', none: 'No License' }[licenseFilter]}
+                <button type="button" onClick={() => { setLicenseFilter('all'); setPagination((prev) => ({ ...prev, page: 1 })); }}>
+                  <X className="w-3 h-3 ml-0.5" />
+                </button>
+              </span>
+            )}
+            {tagFilter !== 'all' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border bg-gray-100 text-gray-700 border-gray-200">
+                <Tag className="w-3 h-3" /> {TAG_BY_KEY[tagFilter]?.label || tagFilter}
+                <button type="button" onClick={() => { setTagFilter('all'); setPagination((prev) => ({ ...prev, page: 1 })); }}>
+                  <X className="w-3 h-3 ml-0.5" />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => { setSourceFilter('all'); setLicenseFilter('all'); setTagFilter('all'); setPagination((prev) => ({ ...prev, page: 1 })); }}
+              className="text-xs text-gray-400 hover:text-red-500 underline transition"
+            >
+              Clear all
+            </button>
           </div>
         )}
       </div>
