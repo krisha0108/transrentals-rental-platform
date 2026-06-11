@@ -63,9 +63,24 @@ function inferTerrain(city: City): TerrainType {
   return 'plains';
 }
 
-export function buildCityContext(citySlug: string): CityContext | null {
+export function buildCityContext(
+  citySlug: string,
+  fallback?: { name: string; state?: string | null },
+): CityContext | null {
   const city = getCityBySlug(citySlug);
-  if (!city) return null;
+  if (!city) {
+    if (!fallback) return null;
+    return {
+      slug: citySlug,
+      name: fallback.name,
+      state: fallback.state ?? 'India',
+      stateCode: '',
+      tier: 3,
+      keywords: [citySlug],
+      priority: 5,
+      terrain: 'plains',
+    };
+  }
 
   const seo = CITY_SEO[citySlug];
   const rich = CITY_RICH[citySlug];
