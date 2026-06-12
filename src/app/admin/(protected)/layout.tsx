@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { SessionProvider } from 'next-auth/react';
 import { AdminSidebar } from '@/components/admin/layout/AdminSidebar';
+import { AdminChatWidget } from '@/components/admin/ChatWidget';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Menu } from 'lucide-react';
@@ -49,6 +50,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+      <AdminChatWidget />
     </div>
   );
 }
