@@ -67,6 +67,7 @@ export default function EnhancedDashboard() {
   const [customDate, setCustomDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [chartView, setChartView] = useState<'bar' | 'pie'>('bar');
+  const [serviceFilter, setServiceFilter] = useState<string>('all');
 
   useEffect(() => {
     if (filter === 'custom') {
@@ -113,7 +114,7 @@ export default function EnhancedDashboard() {
       : filterLabels[filter];
 
   // Prepare chart data with colors
-  const bookingsChartData = stats?.bookingsByService
+  const allBookingsChartData = stats?.bookingsByService
     ? Object.entries(stats.bookingsByService).map(([name, value], index) => ({
         name,
         value,
@@ -121,13 +122,36 @@ export default function EnhancedDashboard() {
       }))
     : [];
 
-  const quotesChartData = stats?.quotesByService
+  const allQuotesChartData = stats?.quotesByService
     ? Object.entries(stats.quotesByService).map(([name, value], index) => ({
         name,
         value,
         fill: CHART_COLORS[index % CHART_COLORS.length],
       }))
     : [];
+
+  // Apply service filter
+  const bookingsChartData = serviceFilter === 'all'
+    ? allBookingsChartData
+    : allBookingsChartData.filter((d) => d.name === serviceFilter);
+
+  const quotesChartData = serviceFilter === 'all'
+    ? allQuotesChartData
+    : allQuotesChartData.filter((d) => d.name === serviceFilter);
+
+  const filteredTotalBookings = serviceFilter === 'all'
+    ? (stats?.totalBookings ?? 0)
+    : (stats?.bookingsByService?.[serviceFilter] ?? 0);
+
+  const filteredTotalQuotes = serviceFilter === 'all'
+    ? (stats?.totalQuotes ?? 0)
+    : (stats?.quotesByService?.[serviceFilter] ?? 0);
+
+  // All unique service names for the dropdown
+  const allServiceNames = [
+    ...Object.keys(stats?.bookingsByService ?? {}),
+    ...Object.keys(stats?.quotesByService ?? {}),
+  ].filter((v, i, a) => a.indexOf(v) === i).sort();
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -157,16 +181,17 @@ export default function EnhancedDashboard() {
       )}
 
       {/* Filter Buttons */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 shadow-md border border-blue-100">
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 shadow-md border border-blue-100 space-y-3">
+        {/* Row 1 — Time Period */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-sm font-bold text-gray-800">📅 Time Period:</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-bold text-gray-800 flex-shrink-0">📅 Time Period:</span>
             {(Object.keys(filterLabels) as FilterType[]).map((filterKey) => (
               <button
                 key={filterKey}
                 onClick={() => setFilter(filterKey)}
                 disabled={loading}
-                className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                   filter === filterKey
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg scale-105'
                     : 'bg-white text-gray-700 hover:bg-gray-50 shadow-sm hover:shadow-md'
@@ -189,11 +214,44 @@ export default function EnhancedDashboard() {
           <button
             onClick={() => fetchStats(filter)}
             disabled={loading || (filter === 'custom' && !customDate)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-semibold transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-blue-200/50" />
+
+        {/* Row 2 — Service Filter */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-bold text-gray-800 flex-shrink-0">🔧 Service:</span>
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5 flex-1 scrollbar-hide">
+            <button
+              onClick={() => setServiceFilter('all')}
+              className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                serviceFilter === 'all'
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg scale-105'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 shadow-sm hover:shadow-md'
+              }`}
+            >
+              All Services
+            </button>
+            {allServiceNames.map((name) => (
+              <button
+                key={name}
+                onClick={() => setServiceFilter(name)}
+                className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  serviceFilter === name
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg scale-105'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 shadow-sm hover:shadow-md'
+                }`}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -208,8 +266,10 @@ export default function EnhancedDashboard() {
                 <Calendar className="w-6 h-6 text-white" />
               </div>
             </div>
-            <p className="text-sm font-medium text-blue-100 mb-1">Total Bookings</p>
-            <p className="text-4xl font-bold text-white mb-2">{stats?.totalBookings || 0}</p>
+            <p className="text-sm font-medium text-blue-100 mb-1">
+              {serviceFilter === 'all' ? 'Total Bookings' : `${serviceFilter} Bookings`}
+            </p>
+            <p className="text-4xl font-bold text-white mb-2">{filteredTotalBookings}</p>
             <p className="text-xs text-blue-100">{activeLabel}</p>
           </div>
         </div>
@@ -223,8 +283,10 @@ export default function EnhancedDashboard() {
                 <FileText className="w-6 h-6 text-white" />
               </div>
             </div>
-            <p className="text-sm font-medium text-purple-100 mb-1">Quote Requests</p>
-            <p className="text-4xl font-bold text-white mb-2">{stats?.totalQuotes || 0}</p>
+            <p className="text-sm font-medium text-purple-100 mb-1">
+              {serviceFilter === 'all' ? 'Quote Requests' : `${serviceFilter} Quotes`}
+            </p>
+            <p className="text-4xl font-bold text-white mb-2">{filteredTotalQuotes}</p>
             <p className="text-xs text-purple-100">{activeLabel}</p>
           </div>
         </div>
@@ -300,7 +362,7 @@ export default function EnhancedDashboard() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Bookings by Service</h2>
-                <p className="text-sm text-gray-500">Total: <span className="font-bold text-blue-600">{stats?.totalBookings || 0}</span></p>
+                <p className="text-sm text-gray-500">Total: <span className="font-bold text-blue-600">{filteredTotalBookings}</span></p>
               </div>
             </div>
           </div>
@@ -365,7 +427,7 @@ export default function EnhancedDashboard() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Quote Requests by Service</h2>
-                <p className="text-sm text-gray-500">Total: <span className="font-bold text-purple-600">{stats?.totalQuotes || 0}</span></p>
+                <p className="text-sm text-gray-500">Total: <span className="font-bold text-purple-600">{filteredTotalQuotes}</span></p>
               </div>
             </div>
           </div>
