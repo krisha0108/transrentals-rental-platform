@@ -181,6 +181,14 @@ export default function ManagerVendorsPage() {
     return list;
   }, [allVendors, search, locationFilter, serviceFilter, statusFilter, tagFilter, sortBy]);
 
+  // Stats derived from the filtered list so they update with filters
+  const filteredStats = useMemo(() => ({
+    total: vendors.length,
+    approved: vendors.filter(v => v.status === 'APPROVED').length,
+    pending: vendors.filter(v => ['PENDING', 'DOCUMENTS_PENDING', 'UNDER_REVIEW'].includes(v.status)).length,
+    suspended: vendors.filter(v => v.status === 'SUSPENDED').length,
+  }), [vendors]);
+
   // Reset to page 1 when filters change
   useEffect(() => { setCurrentPage(1); }, [search, locationFilter, serviceFilter, statusFilter, tagFilter, sortBy]);
 
@@ -262,13 +270,12 @@ export default function ManagerVendorsPage() {
       </div>
 
       {/* Stats */}
-      {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Total',     value: stats.total,     icon: Store,        color: 'bg-gray-100 text-gray-600',   valColor: 'text-gray-900' },
-            { label: 'Approved',  value: stats.approved,  icon: CheckCircle,  color: 'bg-green-100 text-green-600', valColor: 'text-green-600' },
-            { label: 'Pending',   value: stats.pending,   icon: Clock,        color: 'bg-yellow-100 text-yellow-600', valColor: 'text-yellow-600' },
-            { label: 'Suspended', value: stats.suspended, icon: AlertCircle,  color: 'bg-purple-100 text-purple-600', valColor: 'text-purple-600' },
+            { label: 'Total',     value: filteredStats.total,     icon: Store,        color: 'bg-gray-100 text-gray-600',   valColor: 'text-gray-900' },
+            { label: 'Approved',  value: filteredStats.approved,  icon: CheckCircle,  color: 'bg-green-100 text-green-600', valColor: 'text-green-600' },
+            { label: 'Pending',   value: filteredStats.pending,   icon: Clock,        color: 'bg-yellow-100 text-yellow-600', valColor: 'text-yellow-600' },
+            { label: 'Suspended', value: filteredStats.suspended, icon: AlertCircle,  color: 'bg-purple-100 text-purple-600', valColor: 'text-purple-600' },
           ].map(({ label, value, icon: Icon, color, valColor }) => (
             <div key={label} className="bg-white rounded-xl p-4 border shadow-sm">
               <div className="flex items-center gap-3">
@@ -280,8 +287,7 @@ export default function ManagerVendorsPage() {
               </div>
             </div>
           ))}
-        </div>
-      )}
+      </div>
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border p-4 space-y-3">
