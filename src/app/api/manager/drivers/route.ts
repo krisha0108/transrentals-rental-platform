@@ -104,6 +104,8 @@ export async function GET(request: NextRequest) {
 
     // Tag filter — orthogonal to status. Resolve the (driverId, source) pairs
     // carrying the selected tag, then constrain each source's query by id.
+    let standaloneTagIds: string[] = [];
+    let vendorTagIds: string[] = [];
     if (tagFilter !== 'all') {
       const tagged = driverTags
         ? await driverTags.findMany({
@@ -111,12 +113,56 @@ export async function GET(request: NextRequest) {
             select: { driverId: true, source: true },
           }).catch(() => [] as any[])
         : [];
-      const standaloneIds = (tagged as any[]).filter((t) => t.source === 'standalone').map((t) => t.driverId);
-      const vendorIds = (tagged as any[]).filter((t) => t.source === 'vendor').map((t) => t.driverId);
-      if (standaloneIds.length) driverWhere.id = { in: standaloneIds };
+      standaloneTagIds = (tagged as any[]).filter((t) => t.source === 'standalone').map((t) => t.driverId);
+      vendorTagIds = (tagged as any[]).filter((t) => t.source === 'vendor').map((t) => t.driverId);
+      if (standaloneTagIds.length) driverWhere.id = { in: standaloneTagIds };
       else includeStandalone = false;
-      if (vendorIds.length) staffWhere.id = { in: vendorIds };
+      if (vendorTagIds.length) staffWhere.id = { in: vendorTagIds };
       else includeVendor = false;
+    }
+
+    // Stats where clauses — same filters as main query but WITHOUT status so each
+    // status chip shows the count within the current search/source/license/tag scope.
+    const driverWhereForStats: any = {};
+    const staffWhereForStats: any = { role: 'DRIVER' };
+    if (search) {
+      driverWhereForStats.OR = [
+        { name: { contains: search } },
+        { email: { contains: search } },
+        { phone: { contains: search } },
+        { licenseNumber: { contains: search } },
+      ];
+      staffWhereForStats.OR = [
+        { name: { contains: search } },
+        { email: { contains: search } },
+        { phone: { contains: search } },
+        { licenseNumber: { contains: search } },
+      ];
+    }
+    if (licenseStatus !== 'all') {
+      const now = new Date();
+      const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      if (licenseStatus === 'expired') {
+        driverWhereForStats.licenseExpiry = { lt: now };
+        staffWhereForStats.licenseExpiry = { lt: now };
+      } else if (licenseStatus === 'expiring') {
+        driverWhereForStats.licenseExpiry = { gte: now, lte: in30Days };
+        staffWhereForStats.licenseExpiry = { gte: now, lte: in30Days };
+      } else if (licenseStatus === 'valid') {
+        driverWhereForStats.licenseExpiry = { gt: in30Days };
+        staffWhereForStats.licenseExpiry = { gt: in30Days };
+      } else if (licenseStatus === 'none') {
+        driverWhereForStats.licenseNumber = null;
+        staffWhereForStats.licenseNumber = null;
+      }
+    }
+    let includeStandaloneForStats = sourceFilter !== 'vendor';
+    let includeVendorForStats = sourceFilter !== 'standalone';
+    if (tagFilter !== 'all') {
+      if (standaloneTagIds.length) driverWhereForStats.id = { in: standaloneTagIds };
+      else includeStandaloneForStats = false;
+      if (vendorTagIds.length) staffWhereForStats.id = { in: vendorTagIds };
+      else includeVendorForStats = false;
     }
 
     // For pagination, we fetch enough from each side that any interleaving still
@@ -128,8 +174,6 @@ export async function GET(request: NextRequest) {
     const [
       driverRows, driverTotal,
       staffRows, staffTotal,
-      // Stats across both tables (unaffected by status filter so the chips
-      // always show the correct counts to switch into).
       driverPending, driverActive, driverSuspended, driverInactive,
       staffActive, staffOnLeave, staffInactive, staffTerminated,
     ] = await Promise.all([
@@ -143,7 +187,7 @@ export async function GET(request: NextRequest) {
           _count: { select: { chauffeur_bookings: true, driver_vehicles: true } },
         },
         orderBy: { createdAt: 'desc' },
-        take: includeVendor ? upperBound : upperBound, // fetch up to upperBound either way
+        take: upperBound,
       }) : Promise.resolve([] as any[]),
       includeStandalone ? prisma.drivers.count({ where: driverWhere }) : Promise.resolve(0),
 
@@ -163,14 +207,15 @@ export async function GET(request: NextRequest) {
       }) : Promise.resolve([] as any[]),
       includeVendor ? prisma.vendor_staff.count({ where: staffWhere }) : Promise.resolve(0),
 
-      prisma.drivers.count({ where: { status: 'PENDING' } }),
-      prisma.drivers.count({ where: { status: 'ACTIVE' } }),
-      prisma.drivers.count({ where: { status: 'SUSPENDED' } }),
-      prisma.drivers.count({ where: { status: 'INACTIVE' } }),
-      prisma.vendor_staff.count({ where: { role: 'DRIVER', status: 'ACTIVE' } }),
-      prisma.vendor_staff.count({ where: { role: 'DRIVER', status: 'ON_LEAVE' } }),
-      prisma.vendor_staff.count({ where: { role: 'DRIVER', status: 'INACTIVE' } }),
-      prisma.vendor_staff.count({ where: { role: 'DRIVER', status: 'TERMINATED' } }),
+      // Stats per status within the current filter scope (search, source, license, tag)
+      includeStandaloneForStats ? prisma.drivers.count({ where: { ...driverWhereForStats, status: 'PENDING' } }) : Promise.resolve(0),
+      includeStandaloneForStats ? prisma.drivers.count({ where: { ...driverWhereForStats, status: 'ACTIVE' } }) : Promise.resolve(0),
+      includeStandaloneForStats ? prisma.drivers.count({ where: { ...driverWhereForStats, status: 'SUSPENDED' } }) : Promise.resolve(0),
+      includeStandaloneForStats ? prisma.drivers.count({ where: { ...driverWhereForStats, status: 'INACTIVE' } }) : Promise.resolve(0),
+      includeVendorForStats ? prisma.vendor_staff.count({ where: { ...staffWhereForStats, status: 'ACTIVE' } }) : Promise.resolve(0),
+      includeVendorForStats ? prisma.vendor_staff.count({ where: { ...staffWhereForStats, status: 'ON_LEAVE' } }) : Promise.resolve(0),
+      includeVendorForStats ? prisma.vendor_staff.count({ where: { ...staffWhereForStats, status: 'INACTIVE' } }) : Promise.resolve(0),
+      includeVendorForStats ? prisma.vendor_staff.count({ where: { ...staffWhereForStats, status: 'TERMINATED' } }) : Promise.resolve(0),
     ]);
 
     // Normalize both sources into one shape with `source` and an effectiveStatus

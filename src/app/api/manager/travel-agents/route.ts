@@ -47,7 +47,15 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const [agents, total, distinctCities, distinctTypes] = await Promise.all([
+    // Stats base — same filters as main query but without status so each chip
+    // shows the count within the current search/city/agencyType scope.
+    const whereForStats: any = {};
+    if (city && city !== 'ALL') whereForStats.city = city;
+    if (agencyType && agencyType !== 'ALL') whereForStats.agencyType = agencyType;
+    if (search) whereForStats.OR = where.OR;
+
+    const [agents, total, distinctCities, distinctTypes,
+      statsTotal, statsApproved, statsPending, statsRejected] = await Promise.all([
       prisma.travel_agents.findMany({
         where,
         include: {
@@ -68,6 +76,10 @@ export async function GET(request: NextRequest) {
       prisma.travel_agents.count({ where }),
       prisma.travel_agents.findMany({ where: { city: { not: null } }, select: { city: true }, distinct: ['city'], orderBy: { city: 'asc' } }),
       prisma.travel_agents.findMany({ where: { agencyType: { not: null } }, select: { agencyType: true }, distinct: ['agencyType'], orderBy: { agencyType: 'asc' } }),
+      prisma.travel_agents.count({ where: whereForStats }),
+      prisma.travel_agents.count({ where: { ...whereForStats, status: 'APPROVED' } }),
+      prisma.travel_agents.count({ where: { ...whereForStats, status: { in: ['PENDING', 'DOCUMENTS_PENDING', 'UNDER_REVIEW'] } } }),
+      prisma.travel_agents.count({ where: { ...whereForStats, status: { in: ['REJECTED', 'SUSPENDED', 'BLOCKED'] } } }),
     ]);
 
     const safeAgents = agents.map(({ password, _count, ...rest }) => ({
@@ -86,6 +98,12 @@ export async function GET(request: NextRequest) {
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
       cities: distinctCities.map((r) => r.city).filter(Boolean),
       agencyTypes: distinctTypes.map((r) => r.agencyType).filter(Boolean),
+      stats: {
+        total: statsTotal,
+        approved: statsApproved,
+        pending: statsPending,
+        rejected: statsRejected,
+      },
     });
   } catch (error: any) {
     logger.error('Manager list travel agents error', error);

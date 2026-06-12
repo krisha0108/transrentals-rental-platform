@@ -18,6 +18,7 @@ import {
   MapPin,
   Building2,
   X,
+  Users,
 } from 'lucide-react';
 
 interface TravelAgent {
@@ -68,6 +69,7 @@ export default function ManagerTravelAgentsPage() {
   const [searchInput, setSearchInput] = useState('');
   const [cities, setCities] = useState<string[]>([]);
   const [agencyTypes, setAgencyTypes] = useState<string[]>([]);
+  const [stats, setStats] = useState({ total: 0, approved: 0, pending: 0, rejected: 0 });
 
   const load = async () => {
     setLoading(true);
@@ -87,6 +89,7 @@ export default function ManagerTravelAgentsPage() {
         setPagination(data.pagination);
         if (data.cities?.length) setCities(data.cities);
         if (data.agencyTypes?.length) setAgencyTypes(data.agencyTypes);
+        if (data.stats) setStats(data.stats);
       }
     } finally {
       setLoading(false);
@@ -132,6 +135,54 @@ export default function ManagerTravelAgentsPage() {
           >
             View Pending Approvals
           </Link>
+        </div>
+      </div>
+
+      {/* Stats cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl border border-gray-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center">
+              <Users className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+              <p className="text-xs text-gray-500">Total</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-green-50 rounded-xl flex items-center justify-center">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{stats.approved}</p>
+              <p className="text-xs text-gray-500">Approved</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-yellow-50 rounded-xl flex items-center justify-center">
+              <Clock className="w-4 h-4 text-yellow-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
+              <p className="text-xs text-gray-500">Pending</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center">
+              <XCircle className="w-4 h-4 text-red-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{stats.rejected}</p>
+              <p className="text-xs text-gray-500">Rejected / Blocked</p>
+            </div>
+          </div>
         </div>
       </div>
 
