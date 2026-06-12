@@ -16,12 +16,17 @@ export const ADMIN_TOOLS = [
     function: {
       name: 'get_booking_stats',
       description:
-        'Get booking counts by status. Optionally filter by date range or booking type (car/bike/chauffeur/truck/all).',
+        'Get booking counts by status. Optionally filter by date range or booking type (car/bike/chauffeur/truck/all). Use period for "today", "yesterday", "thisMonth", "lastMonth".',
       parameters: {
         type: 'object',
         properties: {
-          startDate: { type: 'string', description: 'Start date YYYY-MM-DD' },
-          endDate: { type: 'string', description: 'End date YYYY-MM-DD' },
+          period: {
+            type: 'string',
+            enum: ['today', 'yesterday', 'thisMonth', 'lastMonth', 'all'],
+            description: 'Predefined time period',
+          },
+          startDate: { type: 'string', description: 'Custom start date YYYY-MM-DD' },
+          endDate: { type: 'string', description: 'Custom end date YYYY-MM-DD' },
           type: {
             type: 'string',
             enum: ['car', 'bike', 'chauffeur', 'truck', 'all'],
@@ -93,14 +98,21 @@ export const ADMIN_TOOLS = [
     function: {
       name: 'get_inquiry_info',
       description:
-        'Get self-drive quote request (inquiry) counts by status, or list recent inquiries.',
+        'Get quote/inquiry counts across ALL services (bike, car/self-drive, bus, truck, equipment, luxury, packers). Supports date filtering by period or custom date range. Returns total and per-service breakdown.',
       parameters: {
         type: 'object',
         properties: {
-          status: {
+          period: {
             type: 'string',
-            enum: ['PENDING', 'QUOTES_RECEIVED', 'QUOTE_ACCEPTED', 'BOOKING_CONFIRMED', 'CANCELLED'],
-            description: 'Filter by status',
+            enum: ['today', 'yesterday', 'thisMonth', 'lastMonth', 'all'],
+            description: 'Predefined time period. Use this for questions like "yesterday", "this month", etc.',
+          },
+          startDate: { type: 'string', description: 'Custom start date YYYY-MM-DD (alternative to period)' },
+          endDate: { type: 'string', description: 'Custom end date YYYY-MM-DD (alternative to period)' },
+          service: {
+            type: 'string',
+            enum: ['bike', 'car', 'bus', 'truck', 'equipment', 'luxury', 'packers', 'all'],
+            description: 'Filter by service type (default all)',
           },
           limit: { type: 'number', description: 'Max recent inquiries to show (default 5)' },
         },
@@ -256,6 +268,31 @@ export async function executeTool(name: string, input: ToolInput): Promise<strin
 
 // ── Tool implementations ──────────────────────────────────────────────────────
 
+function resolveDateFilter(period?: string, startDate?: string, endDate?: string) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (period === 'today') return { gte: today };
+  if (period === 'yesterday') {
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return { gte: yesterday, lt: today };
+  }
+  if (period === 'thisMonth') return { gte: new Date(now.getFullYear(), now.getMonth(), 1) };
+  if (period === 'lastMonth') {
+    return {
+      gte: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+      lte: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59),
+    };
+  }
+  if (startDate || endDate) {
+    return {
+      ...(startDate ? { gte: new Date(startDate) } : {}),
+      ...(endDate ? { lte: new Date(endDate) } : {}),
+    };
+  }
+  return undefined;
+}
+
 async function getOverviewStats() {
   const [
     totalVendors, approvedVendors, pendingVendors,
@@ -305,10 +342,9 @@ async function getOverviewStats() {
   };
 }
 
-async function getBookingStats({ startDate, endDate, type = 'all' }: ToolInput) {
-  const dateFilter = (startDate || endDate)
-    ? { createdAt: { ...(startDate ? { gte: new Date(startDate) } : {}), ...(endDate ? { lte: new Date(endDate) } : {}) } }
-    : {};
+async function getBookingStats({ startDate, endDate, period, type = 'all' }: ToolInput) {
+  const dateRange = resolveDateFilter(period, startDate, endDate);
+  const dateFilter = dateRange ? { createdAt: dateRange } : {};
 
   if (type === 'car') {
     const [total, active, completed, cancelled] = await Promise.all([
@@ -438,26 +474,79 @@ async function getDriverInfo({ search, status, limit = 10 }: ToolInput) {
   return { total, pending, active, suspended, inactive, list };
 }
 
-async function getInquiryInfo({ status, limit = 5 }: ToolInput) {
-  const where: any = {};
-  if (status) where.status = status;
+async function getInquiryInfo({ period, startDate, endDate, service = 'all', limit = 5 }: ToolInput) {
+  const dateRange = resolveDateFilter(period, startDate, endDate);
+  const dateFilter = dateRange ? { createdAt: dateRange } : {};
 
-  const [total, pending, quotesReceived, accepted, confirmed, cancelled, recent] = await Promise.all([
-    prisma.self_drive_quote_requests.count({ where }),
-    prisma.self_drive_quote_requests.count({ where: { ...where, status: 'PENDING' } }),
-    prisma.self_drive_quote_requests.count({ where: { ...where, status: 'QUOTES_RECEIVED' } }),
-    prisma.self_drive_quote_requests.count({ where: { ...where, status: 'QUOTE_ACCEPTED' } }),
-    prisma.self_drive_quote_requests.count({ where: { ...where, status: 'BOOKING_CONFIRMED' } }),
-    prisma.self_drive_quote_requests.count({ where: { ...where, status: 'CANCELLED' } }),
-    prisma.self_drive_quote_requests.findMany({
-      where,
-      select: { id: true, customerName: true, pickupCity: true, status: true, createdAt: true },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    }).catch(() => []),
+  const countTable = async (model: any, extra: any = {}) =>
+    model.count({ where: { ...dateFilter, ...extra } }).catch(() => 0);
+
+  // Query all quote request tables in parallel
+  const [
+    bikeTotal, bikePending,
+    carTotal, carPending, carQuotesReceived, carAccepted, carConfirmed, carCancelled,
+    busTotal, busPending,
+    truckTotal, truckPending,
+    equipmentTotal, equipmentPending,
+    luxuryTotal, luxuryPending,
+    packersTotal, packersPending,
+  ] = await Promise.all([
+    countTable(prisma.bike_quote_requests),
+    countTable(prisma.bike_quote_requests, { status: 'PENDING' }),
+    countTable(prisma.self_drive_quote_requests),
+    countTable(prisma.self_drive_quote_requests, { status: 'PENDING' }),
+    countTable(prisma.self_drive_quote_requests, { status: 'QUOTES_RECEIVED' }),
+    countTable(prisma.self_drive_quote_requests, { status: 'QUOTE_ACCEPTED' }),
+    countTable(prisma.self_drive_quote_requests, { status: 'BOOKING_CONFIRMED' }),
+    countTable(prisma.self_drive_quote_requests, { status: 'CANCELLED' }),
+    countTable(prisma.bus_quote_requests),
+    countTable(prisma.bus_quote_requests, { status: 'PENDING' }),
+    countTable(prisma.truck_quote_requests),
+    countTable(prisma.truck_quote_requests, { status: 'PENDING' }),
+    countTable(prisma.equipment_quote_requests),
+    countTable(prisma.equipment_quote_requests, { status: 'PENDING' }),
+    countTable(prisma.luxury_quote_requests),
+    countTable(prisma.luxury_quote_requests, { status: 'PENDING' }),
+    countTable(prisma.packers_quote_requests),
+    countTable(prisma.packers_quote_requests, { status: 'PENDING' }),
   ]);
 
-  return { total, pending, quotesReceived, accepted, confirmed, cancelled, recent };
+  const byService = {
+    'Car / Self-Drive': { total: carTotal, pending: carPending, quotesReceived: carQuotesReceived, accepted: carAccepted, confirmed: carConfirmed, cancelled: carCancelled },
+    'Bike Rental':      { total: bikeTotal, pending: bikePending },
+    'Bus Rental':       { total: busTotal, pending: busPending },
+    'Truck Rental':     { total: truckTotal, pending: truckPending },
+    'Equipment':        { total: equipmentTotal, pending: equipmentPending },
+    'Luxury Cars':      { total: luxuryTotal, pending: luxuryPending },
+    'Packers & Movers': { total: packersTotal, pending: packersPending },
+  };
+
+  const grandTotal = bikeTotal + carTotal + busTotal + truckTotal + equipmentTotal + luxuryTotal + packersTotal;
+  const grandPending = bikePending + carPending + busPending + truckPending + equipmentPending + luxuryPending + packersPending;
+
+  // Recent inquiries — use car/self-drive as main source (most detailed schema)
+  const recent = await prisma.self_drive_quote_requests.findMany({
+    where: dateFilter,
+    select: { id: true, customerName: true, pickupCity: true, status: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  }).catch(() => []);
+
+  const result: any = {
+    period: period ?? (startDate || endDate ? `${startDate ?? ''}–${endDate ?? ''}` : 'all time'),
+    grandTotal,
+    grandPending,
+    byService,
+    recentCarInquiries: recent,
+  };
+
+  // If specific service requested, highlight it
+  if (service !== 'all') {
+    const key = Object.keys(byService).find((k) => k.toLowerCase().includes(service.toLowerCase()));
+    if (key) result.filtered = { service: key, ...(byService as any)[key] };
+  }
+
+  return result;
 }
 
 async function getRevenueStats({ startDate, endDate }: ToolInput) {
