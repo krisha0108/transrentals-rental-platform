@@ -302,6 +302,16 @@ export default function ManagerBookingsPage() {
     return pages;
   };
 
+  const bookingStats = useMemo(() => {
+    const active = filteredBookings.filter((b) =>
+      ['PAYMENT_VERIFIED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'READY_FOR_PICKUP', 'IN_PROGRESS'].includes(b.status)
+    ).length;
+    const completed = filteredBookings.filter((b) => b.status === 'COMPLETED').length;
+    const cancelled = filteredBookings.filter((b) => ['CANCELLED', 'EXPIRED', 'REFUNDED'].includes(b.status)).length;
+    const revenue = filteredBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+    return { total: filteredBookings.length, active, completed, cancelled, revenue };
+  }, [filteredBookings]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -329,6 +339,26 @@ export default function ManagerBookingsPage() {
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           Refresh
         </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Total',     value: bookingStats.total,     icon: Calendar,      color: 'bg-gray-100 text-gray-600',    valColor: 'text-gray-900' },
+          { label: 'Active',    value: bookingStats.active,    icon: Clock,         color: 'bg-blue-100 text-blue-600',    valColor: 'text-blue-600' },
+          { label: 'Completed', value: bookingStats.completed, icon: CheckCircle,   color: 'bg-green-100 text-green-600',  valColor: 'text-green-600' },
+          { label: 'Cancelled', value: bookingStats.cancelled, icon: XCircle,       color: 'bg-red-100 text-red-500',      valColor: 'text-red-500' },
+        ].map(({ label, value, icon: Icon, color, valColor }) => (
+          <div key={label} className="bg-white rounded-xl p-4 border shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${color}`}><Icon className="w-5 h-5" /></div>
+              <div>
+                <p className={`text-2xl font-bold ${valColor}`}>{value}</p>
+                <p className="text-xs text-gray-500">{label}</p>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Date Filters */}

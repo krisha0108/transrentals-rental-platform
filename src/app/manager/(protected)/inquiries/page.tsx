@@ -107,13 +107,7 @@ export default function ManagerInquiriesPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [stats, setStats] = useState({
-    pending: 0,
-    quoted: 0,
-    accepted: 0,
-    rejected: 0,
-    total: 0,
-  });
+  const [stats, setStats] = useState({ total: 0, pending: 0, quoted: 0, accepted: 0, rejected: 0 });
 
   const fetchInquiries = async () => {
     try {
@@ -128,15 +122,6 @@ export default function ManagerInquiriesPage() {
         const inquiryBookings = data.inquiries || [];
         setInquiries(inquiryBookings);
         setServices(data.services || []);
-
-        // Calculate stats
-        setStats({
-          pending: inquiryBookings.filter((b: any) => b.status === 'PENDING').length,
-          quoted: inquiryBookings.filter((b: any) => b.status === 'QUOTED').length,
-          accepted: inquiryBookings.filter((b: any) => b.status === 'ACCEPTED').length,
-          rejected: inquiryBookings.filter((b: any) => b.status === 'REJECTED').length,
-          total: inquiryBookings.length,
-        });
       } else {
         setError(data.error || 'Failed to fetch inquiries');
       }
@@ -218,6 +203,13 @@ export default function ManagerInquiriesPage() {
 
     setFilteredInquiries(filtered);
     setCurrentPage(1);
+    setStats({
+      total:    filtered.length,
+      pending:  filtered.filter((i) => i.status === 'PENDING').length,
+      quoted:   filtered.filter((i) => i.status === 'QUOTED').length,
+      accepted: filtered.filter((i) => i.status === 'ACCEPTED').length,
+      rejected: filtered.filter((i) => i.status === 'REJECTED').length,
+    });
   }, [searchTerm, statusFilter, sourceFilter, locationFilter, dateFilter, inquiries]);
 
   const uniqueLocations = useMemo(() => {
