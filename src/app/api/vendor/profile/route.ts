@@ -5,6 +5,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { sanitizeInput } from '@/lib/utils/sanitize';
 import { smartRateLimit, getClientIdentifier } from '@/lib/utils/smart-rate-limit';
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 export const dynamic = 'force-dynamic';
 
 // In-flight request coalescing: multiple parallel calls for same vendorId share one DB query
@@ -122,6 +123,7 @@ export async function GET(request: NextRequest) {
     }
     const vendorId = auth.vendorId;
 
+
     // Coalesce parallel requests for the same vendor into a single DB query
     let pending = inFlightProfiles.get(vendorId);
     if (!pending) {
@@ -153,6 +155,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     // ===== RATE LIMITING =====
     const clientId = getClientIdentifier(request);

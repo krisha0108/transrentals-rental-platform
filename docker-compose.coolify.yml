@@ -50,6 +50,12 @@ services:
       - "coolify.deployment.rollback_on_failure=true"
       - "coolify.deployment.max_retry=3"
 
+      # Traefik: route 502/503 errors to maintenance page
+      - "traefik.http.middlewares.tr-errors.errors.status=502,503"
+      - "traefik.http.middlewares.tr-errors.errors.service=transrentals-maintenance@docker"
+      - "traefik.http.middlewares.tr-errors.errors.query=/"
+      - "traefik.http.routers.transrentals-app.middlewares=tr-errors"
+
     # Port mapping (Coolify will handle proxy)
     ports:
       - "${APP_PORT:-3000}:3000"
@@ -75,6 +81,25 @@ services:
         max-size: "10m"
         max-file: "5"
         labels: "coolify.managed"
+
+  # Maintenance page — stays alive during deployments
+  # Traefik routes 502/503 errors from the main app to this service
+  transrentals-maintenance:
+    build:
+      context: ./maintenance
+      dockerfile: Dockerfile
+    container_name: transrentals-maintenance
+    restart: unless-stopped
+    networks:
+      - transrentals-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.transrentals-maintenance.loadbalancer.server.port=80"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "2m"
+        max-file: "2"
 
 networks:
   transrentals-network:

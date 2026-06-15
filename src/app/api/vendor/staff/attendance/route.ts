@@ -6,6 +6,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 // Helper to generate a cuid-like unique ID
 function generateId(): string {
@@ -25,6 +26,7 @@ export async function GET(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
     const { searchParams } = new URL(request.url);
 
     const month = parseInt(searchParams.get('month') || String(new Date().getMonth()));
@@ -136,6 +138,10 @@ export async function POST(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
     const body = await request.json();
 
     // Handle bulk marking

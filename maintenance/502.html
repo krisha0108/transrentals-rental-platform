@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Back Soon — TransRentals</title>
+  <meta name="robots" content="noindex" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #059669;
+      --green-dark: #047857;
+      --green-light: #d1fae5;
+      --gray-900: #111827;
+      --gray-700: #374151;
+      --gray-500: #6b7280;
+      --gray-100: #f3f4f6;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-900);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 1rem;
+    }
+
+    /* ── Road strip ── */
+    .road {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 80px;
+      background: #1f2937;
+      border-top: 3px solid #374151;
+    }
+    .road-line {
+      position: absolute;
+      top: 50%; left: -120px;
+      transform: translateY(-50%);
+      width: 80px; height: 6px;
+      background: #f59e0b;
+      border-radius: 3px;
+      animation: roadLine 1.6s linear infinite;
+    }
+    .road-line:nth-child(2) { animation-delay: -0.53s; left: calc(-120px + 33%); }
+    .road-line:nth-child(3) { animation-delay: -1.06s; left: calc(-120px + 66%); }
+    @keyframes roadLine {
+      from { transform: translateY(-50%) translateX(0); }
+      to   { transform: translateY(-50%) translateX(calc(100vw + 240px)); }
+    }
+
+    /* ── Moving car ── */
+    .car-track {
+      position: fixed;
+      bottom: 14px; left: -180px;
+      animation: carMove 4s linear infinite;
+      font-size: 56px;
+      line-height: 1;
+      filter: drop-shadow(0 0 12px rgba(5,150,105,0.6));
+    }
+    @keyframes carMove {
+      from { left: -180px; }
+      to   { left: calc(100vw + 180px); }
+    }
+
+    /* ── Main card ── */
+    .card {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 1.25rem;
+      padding: 2.5rem 2rem;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+      margin-bottom: 100px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--green-light);
+      color: var(--green-dark);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.85rem;
+      border-radius: 9999px;
+      margin-bottom: 1.5rem;
+    }
+    .badge::before { content: '●'; font-size: 0.5rem; animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .icon-wrap {
+      font-size: 3.5rem;
+      margin-bottom: 1rem;
+      animation: bounce 2s ease-in-out infinite;
+    }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+    h1 {
+      font-size: clamp(1.4rem, 4vw, 1.9rem);
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 0.75rem;
+      line-height: 1.25;
+    }
+    h1 span { color: var(--green); }
+
+    .subtitle {
+      color: #9ca3af;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 1.75rem;
+    }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      background: #374151;
+      border-radius: 9999px;
+      height: 6px;
+      margin-bottom: 0.5rem;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green), #34d399);
+      border-radius: 9999px;
+      animation: progress 30s linear forwards;
+    }
+    @keyframes progress { from{width:5%} to{width:95%} }
+
+    .progress-label {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-bottom: 1.75rem;
+    }
+    .progress-label strong { color: #d1d5db; }
+
+    /* ── Divider ── */
+    .divider {
+      border: none;
+      border-top: 1px solid #374151;
+      margin: 0 0 1.5rem;
+    }
+
+    /* ── Contact strip ── */
+    .contact-row {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .contact-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--green);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: opacity 0.15s;
+    }
+    .contact-link:hover { opacity: 0.8; }
+    .contact-link svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ── Refresh note ── */
+    .refresh-note {
+      margin-top: 1.75rem;
+      font-size: 0.8rem;
+      color: #4b5563;
+    }
+    #countdown { color: var(--green); font-weight: 700; }
+
+    /* ── Logo ── */
+    .logo {
+      position: fixed;
+      top: 1.1rem; left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+    }
+    .logo img {
+      height: 36px;
+      width: auto;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo">
+    <img src="logo.png" alt="TransRentals" />
+  </div>
+
+  <!-- Road -->
+  <div class="road">
+    <div class="road-line"></div>
+    <div class="road-line"></div>
+    <div class="road-line"></div>
+  </div>
+
+  <!-- Animated car -->
+  <div class="car-track">🚗</div>
+
+  <!-- Main card -->
+  <div class="card">
+    <div class="badge">Deployment in progress</div>
+
+    <div class="icon-wrap">🔧</div>
+
+    <h1>Our fleet is getting<br /><span>a quick tune-up</span></h1>
+
+    <p class="subtitle">
+      We're upgrading our systems to serve you better — faster speeds,
+      smoother rides, and smarter bookings are on the way.<br />
+      We'll be back on the road in just a moment.
+    </p>
+
+    <div class="progress-wrap">
+      <div class="progress-bar"></div>
+    </div>
+    <p class="progress-label">Warming up the engine… <strong>almost ready</strong></p>
+
+    <hr class="divider" />
+
+    <div class="contact-row">
+      <a class="contact-link" href="mailto:support@transrentals.in">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,12 2,6"/></svg>
+        Email Support
+      </a>
+    </div>
+
+    <p class="refresh-note">
+      Page auto-refreshes in <span id="countdown">30</span>s &nbsp;·&nbsp;
+      <a href="/" style="color:#059669;text-decoration:none;font-weight:600">Refresh now →</a>
+    </p>
+  </div>
+
+  <script>
+    // Auto-refresh countdown
+    let seconds = 30;
+    const el = document.getElementById('countdown');
+    const timer = setInterval(() => {
+      seconds--;
+      if (el) el.textContent = seconds;
+      if (seconds <= 0) { clearInterval(timer); location.reload(); }
+    }, 1000);
+
+    // Cycle through different vehicles on the road
+    const vehicles = ['🚗','🚕','🚙','🚌','🚎','🏍️','🚐','🛻'];
+    let v = 0;
+    const car = document.querySelector('.car-track');
+    car.addEventListener('animationiteration', () => {
+      v = (v + 1) % vehicles.length;
+      car.textContent = vehicles[v];
+    });
+  </script>
+</body>
+</html>

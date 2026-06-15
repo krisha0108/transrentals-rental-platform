@@ -7,6 +7,7 @@ import crypto from 'crypto';
 
 import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 export const dynamic = 'force-dynamic';
 
 // Helper to generate a unique ID
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -184,6 +186,10 @@ export async function POST(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
 
     // Get vendor
@@ -500,6 +506,10 @@ export async function PATCH(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const body = await request.json();
     const { quoteId, ...updateData } = body;

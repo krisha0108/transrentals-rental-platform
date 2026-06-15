@@ -18,9 +18,10 @@ async function vendorActor(request: NextRequest): Promise<SocialActor | null> {
   if (!auth.authenticated || !auth.vendorId) return null;
   const vendor = await prisma.vendors.findUnique({
     where: { id: auth.vendorId },
-    select: { id: true, businessName: true, ownerName: true, logo: true, city: true },
+    select: { id: true, businessName: true, ownerName: true, logo: true, city: true, status: true },
   });
   if (!vendor) return null;
+  if (vendor.status === 'REJECTED' || vendor.status === 'SUSPENDED' || vendor.status === 'BLOCKED') return null;
   return {
     type: 'vendor',
     id: vendor.id,

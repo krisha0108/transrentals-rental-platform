@@ -12,6 +12,7 @@ import { existsSync } from 'fs';
 import logger from '@/lib/security/logger';
 import { validateFile, ALLOWED_MIME_TYPES, FILE_SIZE_LIMITS } from '@/lib/security/file-validation';
 import { scanFile, isClamAVAvailable } from '@/lib/security/antivirus';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '24');
@@ -127,6 +129,10 @@ export async function POST(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     // SECURITY: Check vendor status before allowing uploads
     const statusCheck = await checkVendorStatus(vendorId);
@@ -262,6 +268,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     // SECURITY: Check vendor status before allowing deletion
     const statusCheck = await checkVendorStatus(vendorId);

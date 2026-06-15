@@ -5,6 +5,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 export const dynamic = 'force-dynamic';
 
 function generateId(): string {
@@ -18,7 +19,8 @@ export async function GET(request: NextRequest) {
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
-    const vendorId = auth.vendorId;
+    const vendorId = auth.vendorId!;
+
 
     // Get all parent services with their sub-services
     const allServices = await prisma.services.findMany({
@@ -79,7 +81,11 @@ export async function DELETE(request: NextRequest) {
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
-    const vendorId = auth.vendorId;
+    const vendorId = auth.vendorId!;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const { searchParams } = new URL(request.url);
     const serviceId = searchParams.get('serviceId');
@@ -138,7 +144,20 @@ export async function POST(request: NextRequest) {
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
-    const vendorId = auth.vendorId;
+    const vendorId = auth.vendorId!;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
+
+    // Block rejected vendors from submitting new requests
+    const vendor = await prisma.vendors.findUnique({
+      where: { id: vendorId },
+      select: { status: true },
+    });
+    if (!vendor || vendor.status === 'REJECTED') {
+      return NextResponse.json({ error: 'Your account has been rejected. You cannot submit new requests.' }, { status: 403 });
+    }
 
     const body = await request.json();
     const { serviceId, message, experience } = body;

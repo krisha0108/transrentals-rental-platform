@@ -10,6 +10,7 @@ import { sendNotificationToCustomer } from '@/lib/services/push-notification-ser
 import logger from '@/lib/security/logger';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
 import { canStartTrip } from '@/lib/utils/booking-date-guard';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 export const dynamic = 'force-dynamic';
 
 // POST - Vendor starts Bus Booking trip (with OTP verification)
@@ -24,6 +25,10 @@ export async function POST(
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     // Get vendor
     const vendor = await prisma.vendors.findFirst({

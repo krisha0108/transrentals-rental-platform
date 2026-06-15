@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   try {
     const auth = await getVendorAuth(request);
     if (!auth.authenticated || !auth.vendorId) return NextResponse.json({ error: auth.error }, { status: 401 });
+
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const _guard = await vendorStatusGuard(auth.vendorId!);
+    if (_guard.blocked) return _guard.response;
 
     const existing = await (prisma as any).wander_listings.findFirst({
       where: { id: params.id, vendorId: auth.vendorId },
@@ -76,6 +82,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   try {
     const auth = await getVendorAuth(request);
     if (!auth.authenticated || !auth.vendorId) return NextResponse.json({ error: auth.error }, { status: 401 });
+
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const _guard = await vendorStatusGuard(auth.vendorId!);
+    if (_guard.blocked) return _guard.response;
 
     const existing = await (prisma as any).wander_listings.findFirst({
       where: { id: params.id, vendorId: auth.vendorId },

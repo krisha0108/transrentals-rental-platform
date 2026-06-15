@@ -8,6 +8,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
 import { releaseDatesForBooking } from '@/lib/utils/fleet-availability';
 import { sendVendorDirectNotification } from '@/lib/utils/vendor-notification-sender';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 export const dynamic = 'force-dynamic';
 
 // GET - Get Equipment Booking details for vendor
@@ -20,9 +21,11 @@ export async function GET(
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
+    const vendorId = auth.vendorId!;
+
 
     const vendor = await prisma.vendors.findFirst({
-      where: { id: auth.vendorId },
+      where: { id: vendorId },
       select: { id: true },
     });
 
@@ -118,7 +121,7 @@ export async function PATCH(
     }
 
     const vendor = await prisma.vendors.findFirst({
-      where: { id: auth.vendorId },
+      where: { id: vendorId },
       select: { id: true },
     });
 

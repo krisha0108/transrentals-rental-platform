@@ -6,6 +6,7 @@ import { sendFCMNotification } from '@/lib/utils/fcm-helper';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 export const dynamic = 'force-dynamic';
 
 function generateId(): string {
@@ -25,6 +26,7 @@ export async function GET(
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
 
     const { bookingId } = await params;
 
@@ -324,6 +326,10 @@ export async function POST(
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const { bookingId } = await params;
     const body = await request.json();

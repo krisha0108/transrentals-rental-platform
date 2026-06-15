@@ -3,6 +3,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +22,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const formData = await request.formData();
     const single = formData.get('file') as File | null;

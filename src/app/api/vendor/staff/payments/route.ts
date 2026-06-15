@@ -4,6 +4,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 export const dynamic = 'force-dynamic';
 
 // GET - Fetch payroll data for a month/year (calculated from attendance)
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
     const { searchParams } = new URL(request.url);
     const month = parseInt(searchParams.get('month') || String(new Date().getMonth()));
     const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
@@ -143,6 +145,10 @@ export async function POST(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
     const body = await request.json();
     const { staffId, month, year, netSalary, paymentMethod, transactionId, remarks } = body;
 
