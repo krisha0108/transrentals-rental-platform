@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
 import { releaseDatesForBooking } from '@/lib/utils/fleet-availability';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,9 +20,11 @@ export async function GET(
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
+    const vendorId = auth.vendorId!;
+
 
     const vendor = await prisma.vendors.findFirst({
-      where: { id: auth.vendorId },
+      where: { id: vendorId },
       select: { id: true },
     });
 
@@ -86,7 +89,7 @@ export async function GET(
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
-    if (booking.vendorId !== auth.vendorId) {
+    if (booking.vendorId !== vendorId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -163,7 +166,7 @@ export async function PATCH(
         }
 
         const vendor = await prisma.vendors.findFirst({
-            where: { id: auth.vendorId },
+            where: { id: vendorId },
             select: { id: true },
         });
 

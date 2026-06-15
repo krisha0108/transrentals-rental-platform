@@ -4,6 +4,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ export async function GET(
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
     const { id } = await params;
 
     const quote = await prisma.bus_quotes.findFirst({
@@ -115,6 +117,10 @@ export async function PATCH(
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
     const { id } = await params;
     const body = await request.json();
     const { action } = body;

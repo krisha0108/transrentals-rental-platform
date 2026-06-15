@@ -4,6 +4,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import { getBlockedDatesForFleet, blockDatesManually } from '@/lib/utils/fleet-availability';
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +19,12 @@ export async function GET(
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
+    const vendorId = auth.vendorId!;
+
 
     // Verify vendor owns this fleet vehicle
     const vehicle = await prisma.vendor_fleets.findFirst({
-      where: { id, vendorId: auth.vendorId },
+      where: { id, vendorId: vendorId },
       select: { id: true },
     });
 
@@ -57,10 +60,15 @@ export async function POST(
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
+    const vendorId = auth.vendorId!;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     // Verify vendor owns this fleet vehicle
     const vehicle = await prisma.vendor_fleets.findFirst({
-      where: { id, vendorId: auth.vendorId },
+      where: { id, vendorId: vendorId },
       select: { id: true },
     });
 
@@ -88,7 +96,7 @@ export async function POST(
       );
     }
 
-    const blockedDate = await blockDatesManually(id, start, end, auth.vendorId, notes);
+    const blockedDate = await blockDatesManually(id, start, end, vendorId, notes);
 
     return NextResponse.json({
       success: true,
@@ -112,6 +120,11 @@ export async function DELETE(
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
+    const vendorId = auth.vendorId!;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const { searchParams } = new URL(request.url);
     const blockId = searchParams.get('blockId');
@@ -137,7 +150,7 @@ export async function DELETE(
     }
 
     // Verify vendor owns this vehicle
-    if (blockedDate.vendor_fleets.vendorId !== auth.vendorId) {
+    if (blockedDate.vendor_fleets.vendorId !== vendorId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

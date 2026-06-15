@@ -5,6 +5,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 export const dynamic = 'force-dynamic';
 
 // Map mobile app status tabs to database status values
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
     logger.info('Fetching bus bookings for vendor', { vendorId });
 
     // Get vendor
@@ -198,6 +200,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     // Get counts
     const [

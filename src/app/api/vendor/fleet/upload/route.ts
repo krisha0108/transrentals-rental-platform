@@ -11,6 +11,7 @@ import { validateImage } from '@/lib/security/file-validation';
 import { scanFile, isClamAVAvailable } from '@/lib/security/antivirus';
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,10 @@ export async function POST(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     // SECURITY: Check vendor status before allowing uploads
     const vendor = await prisma.vendors.findUnique({

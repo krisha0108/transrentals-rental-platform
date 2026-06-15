@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import Anthropic from '@anthropic-ai/sdk';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,6 +64,10 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const _guard = await vendorStatusGuard(auth.vendorId!);
+    if (_guard.blocked) return _guard.response;
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey || apiKey === 'your-anthropic-api-key-here') {

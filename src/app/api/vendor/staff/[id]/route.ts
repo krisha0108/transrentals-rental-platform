@@ -5,6 +5,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import bcrypt from 'bcryptjs';
 
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 export const dynamic = 'force-dynamic';
 
 // GET - Get single staff details
@@ -22,6 +23,7 @@ export async function GET(
     }
 
     const vendorId = auth.vendorId;
+
     const resolvedParams = 'then' in params ? await params : params;
     const { id } = resolvedParams;
 
@@ -104,6 +106,10 @@ export async function PATCH(
     }
 
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
     const resolvedParams = 'then' in params ? await params : params;
     const { id } = resolvedParams;
 
@@ -271,6 +277,10 @@ export async function DELETE(
     }
 
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
     const resolvedParams = 'then' in params ? await params : params;
     const { id } = resolvedParams;
 

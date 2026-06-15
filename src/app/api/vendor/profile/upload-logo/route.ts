@@ -9,6 +9,7 @@ import { existsSync } from 'fs';
 
 import logger from '@/lib/security/logger';
 import { validateFile, ALLOWED_MIME_TYPES, FILE_SIZE_LIMITS } from '@/lib/security/file-validation';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 export const dynamic = 'force-dynamic';
 
 // Increase body size limit for file uploads (10MB)
@@ -25,6 +26,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
     console.log('[Upload API] Vendor ID:', vendorId);
 
     console.log('[Upload API] Parsing form data...');

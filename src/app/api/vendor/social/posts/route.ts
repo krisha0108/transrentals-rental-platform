@@ -22,9 +22,12 @@ async function vendorActorFromRequest(request: NextRequest): Promise<{ actor: So
   }
   const vendor = await prisma.vendors.findUnique({
     where: { id: auth.vendorId },
-    select: { id: true, businessName: true, ownerName: true, logo: true, city: true },
+    select: { id: true, businessName: true, ownerName: true, logo: true, city: true, status: true },
   });
   if (!vendor) return { actor: null, status: 401, error: 'Vendor not found' };
+  if (vendor.status === 'REJECTED' || vendor.status === 'SUSPENDED' || vendor.status === 'BLOCKED') {
+    return { actor: null, status: 403, error: 'Your account is not authorized for this action.' };
+  }
   return {
     actor: {
       type: 'vendor',

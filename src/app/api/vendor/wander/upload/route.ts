@@ -4,6 +4,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { validateImage } from '@/lib/security/file-validation';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,11 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await getVendorAuth(request);
     if (!auth.authenticated || !auth.vendorId) return NextResponse.json({ error: auth.error }, { status: 401 });
+
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const _guard = await vendorStatusGuard(auth.vendorId!);
+    if (_guard.blocked) return _guard.response;
 
     const formData = await request.formData();
     const files = formData.getAll('files') as File[];

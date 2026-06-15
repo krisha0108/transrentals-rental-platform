@@ -9,6 +9,7 @@ import { sendNotificationToCustomer, sendPushNotification } from '@/lib/services
 import { saveDriverNotification } from '@/lib/utils/driver-notification-sender';
 
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 export const dynamic = 'force-dynamic';
 
 // Helper to generate OTP
@@ -28,6 +29,10 @@ export async function POST(
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     // Get vendor
     const vendor = await prisma.vendors.findFirst({

@@ -8,6 +8,7 @@ import logger from '@/lib/security/logger';
 import { validateVendorDocument } from '@/lib/security/file-validation';
 import { scanFile, isClamAVAvailable } from '@/lib/security/antivirus';
 import {
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
   saveVendorDocument,
   generateSecureFilename,
   initializeStorage,
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
 
     const documents = await prisma.vendor_documents.findMany({
       where: { vendorId },
@@ -68,6 +70,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const formData = await request.formData();
     const file = formData.get('file') as File;

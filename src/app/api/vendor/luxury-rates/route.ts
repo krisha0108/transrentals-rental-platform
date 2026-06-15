@@ -7,6 +7,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { LUXURY_LOCAL_PACKAGES, LUXURY_CAR_CATEGORIES } from '@/lib/luxury-pricing';
 
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 export const dynamic = 'force-dynamic';
 
 // GET - Get vendor's luxury local rates
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
 
 
     // Get vendor
@@ -98,6 +100,10 @@ export async function POST(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const body = await request.json();
     const {
@@ -201,6 +207,10 @@ export async function PATCH(request: NextRequest) {
 
     const vendorId = auth.vendorId;
 
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
+
     const body = await request.json();
     const {
       id,
@@ -271,6 +281,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

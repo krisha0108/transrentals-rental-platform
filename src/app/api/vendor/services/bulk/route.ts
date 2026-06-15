@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 import crypto from 'crypto';
 
 import { prisma } from '@/lib/db/prisma';
@@ -22,6 +23,9 @@ export async function POST(request: NextRequest) {
     if (!auth) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const guard = await vendorStatusGuard(auth.vendorId);
+    if (guard.blocked) return guard.response;
 
     const body = await request.json();
     const { serviceIds, message, experience } = body;

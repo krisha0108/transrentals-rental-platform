@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
-
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 import { prisma } from '@/lib/db/prisma';
 import { transformPrismaResponse } from '@/lib/utils/api-transform';
@@ -20,6 +20,9 @@ export async function POST(
     if (!auth) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const guard = await vendorStatusGuard(auth.vendorId!);
+    if (guard.blocked) return guard.response;
 
     const resolvedParams = 'then' in params ? await params : params;
     const { id: bookingId } = resolvedParams;

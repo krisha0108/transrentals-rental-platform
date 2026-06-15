@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 // Helper to generate a cuid-like unique ID
 function generateId(): string {
@@ -218,6 +219,10 @@ export async function PATCH(
       );
     }
 
+    // Block rejected/suspended/blocked vendors from write operations
+    const _guard = await vendorStatusGuard(auth.vendorId!);
+    if (_guard.blocked) return _guard.response;
+
     const { id } = await params;
 
     // Parse request body
@@ -349,6 +354,10 @@ export async function PUT(
         { status: 401 }
       );
     }
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const _guard = await vendorStatusGuard(auth.vendorId!);
+    if (_guard.blocked) return _guard.response;
 
     const { id } = await params;
 
@@ -558,6 +567,10 @@ export async function DELETE(
         { status: 401 }
       );
     }
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const _guard = await vendorStatusGuard(auth.vendorId!);
+    if (_guard.blocked) return _guard.response;
 
     const { id } = await params;
 

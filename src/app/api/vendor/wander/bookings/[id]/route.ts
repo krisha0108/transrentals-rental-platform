@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { canStartTrip } from '@/lib/utils/booking-date-guard';
 import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +52,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   try {
     const auth = await getVendorAuth(request);
     if (!auth.authenticated || !auth.vendorId)
-      return NextResponse.json({ error: auth.error }, { status: 401 });
+      return NextResponse.json({ error: auth.error }
+    // Block rejected/suspended/blocked vendors from write operations
+    const _guard = await vendorStatusGuard(auth.vendorId!);
+    if (_guard.blocked) return _guard.response;
+, { status: 401 });
 
     const { action, invoiceNotes } = await request.json();
 
