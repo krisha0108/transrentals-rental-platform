@@ -7,8 +7,8 @@ import crypto from 'crypto';
 import logger from '@/lib/security/logger';
 import { validateVendorDocument } from '@/lib/security/file-validation';
 import { scanFile, isClamAVAvailable } from '@/lib/security/antivirus';
-import {
 import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
+import {
   saveVendorDocument,
   generateSecureFilename,
   initializeStorage,

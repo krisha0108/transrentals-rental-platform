@@ -52,11 +52,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   try {
     const auth = await getVendorAuth(request);
     if (!auth.authenticated || !auth.vendorId)
-      return NextResponse.json({ error: auth.error }
+      return NextResponse.json({ error: auth.error }, { status: 401 });
+
     // Block rejected/suspended/blocked vendors from write operations
     const _guard = await vendorStatusGuard(auth.vendorId!);
     if (_guard.blocked) return _guard.response;
-, { status: 401 });
 
     const { action, invoiceNotes } = await request.json();
 
