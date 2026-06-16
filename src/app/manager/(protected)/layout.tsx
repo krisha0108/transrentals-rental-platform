@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Menu, X, Home, FileText, MapPin, Briefcase, LogOut, Users, Store, MessageSquare, Headphones, TrendingUp, Building2, IndianRupee, Navigation, Plane, Mail } from 'lucide-react';
@@ -117,8 +117,13 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/manager/login');
+    }
+  }, [status, router]);
+
   if (status === 'unauthenticated') {
-    router.push('/manager/login');
     return null;
   }
 
