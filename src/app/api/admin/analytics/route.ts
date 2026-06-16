@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
-import { getCached, setCached, buildCacheKey } from '@/lib/utils/analytics-cache';
+import { getOrCompute, buildCacheKey } from '@/lib/utils/analytics-cache';
 import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
@@ -16,8 +16,10 @@ export async function GET(request: NextRequest) {
     const section = searchParams.get('section') || 'all';
 
     const cacheKey = buildCacheKey('analytics', { range, section });
-    const cached = getCached(cacheKey);
-    if (cached) return NextResponse.json({ ...cached, _cached: true });
+
+    const responseData = await getOrCompute(cacheKey, async () => {
+    // Kill runaway queries after 25 s (MariaDB max_statement_time, in seconds)
+    try { await prisma.$executeRaw`SET SESSION max_statement_time = 25`; } catch { /* non-fatal */ }
 
     const now = new Date();
     const startDate = new Date();
@@ -227,7 +229,7 @@ export async function GET(request: NextRequest) {
       sessions: activeSessions.map((s) => ({ currentPage: s.currentPage, device: s.device, browser: s.browser, country: s.country, pageCount: s.pageCount, hasInteracted: s.hasInteracted, hasChatted: s.hasChatted, hasSubmittedForm: s.hasSubmittedForm, startTime: s.startTime, lastActivity: s.lastActivity })),
     };
 
-    const responseData = {
+    return {
       summary: { totalViews, uniqueVisitors, todayViews, todayVisitors, avgViewsPerDay: Math.round(totalViews / Math.max(chartData.length, 1)), activeVisitors: realTimeStats.activeVisitors },
       traffic: { deviceBreakdown, browserBreakdown, trafficSources, topPages, topReferrers, chartData },
       forms: { stats: formStats, topPages: topFormPages, recent: recentForms },
@@ -237,7 +239,8 @@ export async function GET(request: NextRequest) {
       realTime: realTimeStats,
       recent: { visits: recentVisits, forms: recentForms, chats: recentChats },
     };
-    setCached(cacheKey, responseData);
+    }); // end getOrCompute
+
     return NextResponse.json(responseData);
   } catch (error) {
     logger.error('Error fetching analytics', error);
