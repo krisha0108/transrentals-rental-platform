@@ -580,3 +580,20 @@ body.modal-open {
   transform-origin: center;
   animation: tr-driver-pulse 1.8s ease-out infinite;
 }
+
+/* Fleet locations scrollbar */
+.fleet-locations-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.fleet-locations-scroll::-webkit-scrollbar-track {
+  background: #f9fafb;
+  border-radius: 10px;
+}
+.fleet-locations-scroll::-webkit-scrollbar-thumb {
+  background: #6ee7b7;
+  border-radius: 10px;
+}
+.fleet-locations-scroll::-webkit-scrollbar-thumb:hover {
+  background: #34d399;
+}

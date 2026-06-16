@@ -43,11 +43,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Some locations not found' }, { status: 404 });
     }
 
-    // Get already approved locations
+    // Get already approved locations (only active ones)
     const alreadyApproved = await prisma.vendor_approved_locations.findMany({
       where: {
         vendorId: auth.vendorId,
         locationId: { in: locationIds },
+        isActive: true,
       },
       select: { locationId: true },
     });
