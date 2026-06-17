@@ -634,12 +634,28 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [profileExpanded, setProfileExpanded] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const [vendorLogo, setVendorLogo] = useState<string | null>(null);
   // Open & unquoted request counts — drive the sidebar badges next to
   // "Bulk Bookings" and "B2B Corporate" so vendors notice new requests.
   const [openBulkCount, setOpenBulkCount] = useState(0);
   const [openB2bCount, setOpenB2bCount] = useState(0);
 
   const isApproved = vendorStatus === 'APPROVED';
+
+  // Fetch vendor logo once on mount
+  useEffect(() => {
+    const cached = sessionStorage.getItem('vendor_logo_cache');
+    if (cached) { setVendorLogo(cached); return; }
+    fetch('/api/vendor/profile', { cache: 'no-store' })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.logo) {
+          setVendorLogo(data.logo);
+          sessionStorage.setItem('vendor_logo_cache', data.logo);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Poll unread customer-chat count for the sidebar badge. Refreshes every 30s
   // and on tab refocus so the number stays roughly live without a websocket.
@@ -953,8 +969,19 @@ export function VendorSidebar({ isOpen, onClose, vendorStatus, approvedServiceId
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-white" />
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                    {vendorLogo ? (
+                      <img
+                        src={vendorLogo}
+                        alt={vendorName}
+                        className="w-full h-full object-cover"
+                        onError={() => setVendorLogo(null)}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                    )}
                   </div>
                   <div className="text-left">
                     <p className="font-medium text-sm truncate max-w-[120px]">{vendorName}</p>
