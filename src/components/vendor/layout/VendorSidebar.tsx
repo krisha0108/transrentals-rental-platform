@@ -64,7 +64,6 @@ import {
   Smile,
   History,
   User,
-  Image,
   Compass,
   MapIcon,
   Ban,
@@ -626,7 +625,6 @@ const pendingNavigationItems: NavItem[] = [
 const profileItems: NavItem[] = [
   { name: 'Business Profile', href: '/vendor/profile', icon: Building2 },
   { name: 'Documents', href: '/vendor/documents', icon: FileText },
-  { name: 'Media Library', href: '/vendor/media', icon: Image },
   { name: 'Bank Details', href: '/vendor/bank-details', icon: DollarSign },
 ];
 
