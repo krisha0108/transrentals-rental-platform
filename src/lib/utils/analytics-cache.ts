@@ -53,13 +53,13 @@ export async function getOrCompute<T>(
 // Legacy sync helpers kept for any other routes that import them
 const _legacyCache = new Map<string, { data: any; expiresAt: number }>();
 
-export function getCached(key: string): any | null {
+export function getCached<T = any>(key: string): T | null {
   const entry = _legacyCache.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expiresAt) { _legacyCache.delete(key); return null; }
-  return entry.data;
+  return entry.data as T;
 }
 
-export function setCached(key: string, data: any, ttlMs = TTL_SECONDS * 1000): void {
+export function setCached<T = any>(key: string, data: T, ttlMs = TTL_SECONDS * 1000): void {
   _legacyCache.set(key, { data, expiresAt: Date.now() + ttlMs });
 }
