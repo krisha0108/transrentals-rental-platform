@@ -106,6 +106,13 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  // Must be before any early returns — hooks cannot be called conditionally
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/manager/login');
+    }
+  }, [status, router]);
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -116,12 +123,6 @@ function ManagerLayoutContent({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/manager/login');
-    }
-  }, [status, router]);
 
   if (status === 'unauthenticated') {
     return null;
