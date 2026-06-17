@@ -60,7 +60,6 @@ class RedisCache {
 
       this.redis = new Redis(redisUrl);
 
-      await this.redis.connect();
       this.useInMemory = false;
       logger.info('Redis cache connected');
     } catch (error) {
