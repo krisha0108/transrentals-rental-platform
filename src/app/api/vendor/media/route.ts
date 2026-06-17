@@ -1,18 +1,20 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
-
-import { vendorAuthOptions } from '@/lib/auth/vendor-auth-options';
 import { prisma } from '@/lib/db/prisma';
-import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
+import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
 import { validateFile, ALLOWED_MIME_TYPES, FILE_SIZE_LIMITS } from '@/lib/security/file-validation';
 import { scanFile, isClamAVAvailable } from '@/lib/security/antivirus';
 import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
+
+function generateId(): string {
+  return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +40,7 @@ async function checkVendorStatus(vendorId: string): Promise<{ allowed: boolean; 
 export async function GET(request: NextRequest) {
   try {
     const auth = await getVendorAuth(request);
-    if (!auth) {
+    if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -124,7 +126,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const auth = await getVendorAuth(request);
-    if (!auth) {
+    if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -227,6 +229,7 @@ export async function POST(request: NextRequest) {
         // Save to database with vendorId
         const mediaRecord = await prisma.media.create({
           data: {
+            id: generateId(),
             filename,
             originalName: fileItem.name,
             mimeType: fileItem.type,
@@ -263,7 +266,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const auth = await getVendorAuth(request);
-    if (!auth) {
+    if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

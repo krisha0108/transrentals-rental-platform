@@ -185,6 +185,7 @@ export async function PUT(request: NextRequest) {
       city,
       state,
       pincode,
+      logo,
       description,
       website,
       bankName,
@@ -232,6 +233,7 @@ export async function PUT(request: NextRequest) {
     if (city !== undefined) updateData.city = city || null;
     if (state !== undefined) updateData.state = state || null;
     if (pincode !== undefined) updateData.pincode = pincode || null;
+    if (logo !== undefined) updateData.logo = logo || null;
     if (description !== undefined) updateData.description = description || null;
     if (website !== undefined) updateData.website = website || null;
     if (bankName !== undefined) updateData.bankName = bankName || null;

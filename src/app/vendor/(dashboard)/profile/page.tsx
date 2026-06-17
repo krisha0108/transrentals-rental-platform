@@ -153,6 +153,8 @@ export default function VendorProfilePage() {
         setProfile(data);
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
+        // Clear sidebar logo cache so it picks up the new logo
+        try { sessionStorage.removeItem('vendor_logo_cache'); } catch { /* ignore */ }
       } else {
         const errorData = await res.json();
         setError(errorData.error || 'Failed to update profile');
