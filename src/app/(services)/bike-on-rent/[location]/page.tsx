@@ -149,11 +149,11 @@ const getLocationFaqs = (locationName: string) => [
 
 // Schema vehicles data
 const schemaVehicles = [
-  { name: 'Honda Activa 6G', brand: 'Honda', price: 299 },
-  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 799 },
-  { name: 'TVS Jupiter', brand: 'TVS', price: 349 },
-  { name: 'KTM Duke 200', brand: 'KTM', price: 999 },
-  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 899 },
+  { name: 'Honda Activa 6G', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/fleet/honda-activa-6g.jpg' },
+  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 799, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'TVS Jupiter', brand: 'TVS', price: 349, image: 'https://transrentals.in/images/scooters/jupiter.jpg' },
+  { name: 'KTM Duke 200', brand: 'KTM', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default async function BikeLocationPage({ params }: PageProps) {

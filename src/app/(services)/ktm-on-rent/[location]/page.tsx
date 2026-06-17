@@ -93,10 +93,10 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'KTM Duke 200', brand: 'KTM', price: 999 },
-  { name: 'KTM Duke 390', brand: 'KTM', price: 1499 },
-  { name: 'KTM RC 200', brand: 'KTM', price: 1099 },
-  { name: 'KTM RC 390', brand: 'KTM', price: 1599 },
+  { name: 'KTM Duke 200', brand: 'KTM', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'KTM Duke 390', brand: 'KTM', price: 1499, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'KTM RC 200', brand: 'KTM', price: 1099, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'KTM RC 390', brand: 'KTM', price: 1599, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default async function KTMLocationPage({ params }: PageProps) {
@@ -191,7 +191,7 @@ export default async function KTMLocationPage({ params }: PageProps) {
           title={`Available KTM Bikes in ${locationName}`}
         />
 
-        <WhyRentHere locationName={locationName} />
+        <WhyRentHere locationName={locationName} />
 
         <NearbyLocations
           locationSlug={params.location}

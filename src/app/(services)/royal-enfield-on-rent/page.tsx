@@ -55,11 +55,11 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 599 },
-  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 799 },
-  { name: 'Royal Enfield Meteor 350', brand: 'Royal Enfield', price: 699 },
-  { name: 'Royal Enfield Hunter 350', brand: 'Royal Enfield', price: 649 },
-  { name: 'Royal Enfield Interceptor 650', brand: 'Royal Enfield', price: 999 },
+  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 599, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 799, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Meteor 350', brand: 'Royal Enfield', price: 699, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Hunter 350', brand: 'Royal Enfield', price: 649, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Interceptor 650', brand: 'Royal Enfield', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default function RoyalEnfieldOnRentPage() {

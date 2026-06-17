@@ -57,11 +57,11 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Honda Activa 6G', brand: 'Honda', price: 299 },
-  { name: 'TVS Jupiter', brand: 'TVS', price: 299 },
-  { name: 'Suzuki Access 125', brand: 'Suzuki', price: 349 },
-  { name: 'Honda Dio', brand: 'Honda', price: 299 },
-  { name: 'TVS Ntorq 125', brand: 'TVS', price: 399 },
+  { name: 'Honda Activa 6G', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/scooters/activa-6g.jpg' },
+  { name: 'TVS Jupiter', brand: 'TVS', price: 299, image: 'https://transrentals.in/images/scooters/jupiter.jpg' },
+  { name: 'Suzuki Access 125', brand: 'Suzuki', price: 349, image: 'https://transrentals.in/images/scooters/access-125.jpg' },
+  { name: 'Honda Dio', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/scooters/dio.jpg' },
+  { name: 'TVS Ntorq 125', brand: 'TVS', price: 399, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default function ActivaOnRentPage() {

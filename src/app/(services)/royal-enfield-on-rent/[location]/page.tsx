@@ -94,10 +94,10 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 899 },
-  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 1099 },
-  { name: 'Royal Enfield Meteor 350', brand: 'Royal Enfield', price: 999 },
-  { name: 'Royal Enfield Hunter 350', brand: 'Royal Enfield', price: 899 },
+  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 1099, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Meteor 350', brand: 'Royal Enfield', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Hunter 350', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
@@ -197,7 +197,7 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
         title={`Available Royal Enfield Bikes in ${locationName}`}
       />
 
-      <WhyRentHere locationName={locationName} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location}

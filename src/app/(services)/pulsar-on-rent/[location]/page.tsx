@@ -93,10 +93,10 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 499 },
-  { name: 'Bajaj Pulsar 180', brand: 'Bajaj', price: 599 },
-  { name: 'Bajaj Pulsar NS200', brand: 'Bajaj', price: 699 },
-  { name: 'Bajaj Pulsar RS200', brand: 'Bajaj', price: 799 },
+  { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 499, image: 'https://transrentals.in/images/fleet/bajaj-pulsar-150.jpg' },
+  { name: 'Bajaj Pulsar 180', brand: 'Bajaj', price: 599, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Bajaj Pulsar NS200', brand: 'Bajaj', price: 699, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Bajaj Pulsar RS200', brand: 'Bajaj', price: 799, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default async function PulsarLocationPage({ params }: PageProps) {
@@ -215,7 +215,7 @@ export default async function PulsarLocationPage({ params }: PageProps) {
           title={`Available Pulsar Bikes in ${locationName}`}
         />
 
-        <WhyRentHere locationName={locationName} />
+        <WhyRentHere locationName={locationName} />
 
         <NearbyLocations
           locationSlug={params.location}

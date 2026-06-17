@@ -93,10 +93,10 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'TVS Apache RTR 160', brand: 'TVS', price: 499 },
-  { name: 'TVS Apache RTR 180', brand: 'TVS', price: 549 },
-  { name: 'TVS Apache RTR 200 4V', brand: 'TVS', price: 699 },
-  { name: 'TVS Apache RR 310', brand: 'TVS', price: 1299 },
+  { name: 'TVS Apache RTR 160', brand: 'TVS', price: 499, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'TVS Apache RTR 180', brand: 'TVS', price: 549, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'TVS Apache RTR 200 4V', brand: 'TVS', price: 699, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'TVS Apache RR 310', brand: 'TVS', price: 1299, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default async function ApacheLocationPage({ params }: PageProps) {
@@ -191,7 +191,7 @@ export default async function ApacheLocationPage({ params }: PageProps) {
           title={`Available Apache Bikes in ${locationName}`}
         />
 
-        <WhyRentHere locationName={locationName} />
+        <WhyRentHere locationName={locationName} />
 
         <NearbyLocations
           locationSlug={params.location}

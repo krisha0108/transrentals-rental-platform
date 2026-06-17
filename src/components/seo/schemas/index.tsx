@@ -215,7 +215,7 @@ export function VehicleRentalSchema({
             name: vehicle.name,
             description: `Rent ${vehicle.name} in ${city || 'India'}. Book online at TransRentals.`,
             brand: { '@type': 'Brand', name: vehicle.brand },
-            image: vehicle.image || 'https://transrentals.in/images/og-image.jpg',
+            image: vehicle.image || 'https://transrentals.in/images/fleet/default-bike.jpg',
             offers: {
               '@type': 'Offer',
               price: vehicle.price,

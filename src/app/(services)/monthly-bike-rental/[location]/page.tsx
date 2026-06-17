@@ -104,11 +104,11 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
   ];
 
   const schemaVehicles = [
-    { name: 'Honda Activa 6G', brand: 'Honda', price: 2999 },
-    { name: 'TVS Jupiter', brand: 'TVS', price: 3499 },
-    { name: 'Hero Splendor Plus', brand: 'Hero', price: 3999 },
-    { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 4999 },
-    { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 9999 },
+    { name: 'Honda Activa 6G', brand: 'Honda', price: 2999, image: 'https://transrentals.in/images/fleet/honda-activa-6g.jpg' },
+    { name: 'TVS Jupiter', brand: 'TVS', price: 3499, image: 'https://transrentals.in/images/scooters/jupiter.jpg' },
+    { name: 'Hero Splendor Plus', brand: 'Hero', price: 3999, image: 'https://transrentals.in/images/fleet/hero-splendor-plus.jpg' },
+    { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 4999, image: 'https://transrentals.in/images/fleet/bajaj-pulsar-150.jpg' },
+    { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 9999, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
   ];
 
   const [seoData, scContent] = await Promise.all([
