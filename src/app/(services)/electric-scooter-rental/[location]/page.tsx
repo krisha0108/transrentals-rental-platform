@@ -93,9 +93,9 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
   ];
 
   const schemaVehicles = [
-    { name: 'Ola S1 Pro', brand: 'Ola Electric', price: 499 },
-    { name: 'Ather 450X', brand: 'Ather Energy', price: 599 },
-    { name: 'TVS iQube', brand: 'TVS', price: 449 },
+    { name: 'Ola S1 Pro', brand: 'Ola Electric', price: 499, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+    { name: 'Ather 450X', brand: 'Ather Energy', price: 599, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+    { name: 'TVS iQube', brand: 'TVS', price: 449, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
   ];
 
   const [seoData, scContent] = await Promise.all([

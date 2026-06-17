@@ -93,10 +93,10 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Hero Splendor Plus', brand: 'Hero', price: 299 },
-  { name: 'Hero Splendor iSmart', brand: 'Hero', price: 349 },
-  { name: 'Hero Super Splendor', brand: 'Hero', price: 399 },
-  { name: 'Hero HF Deluxe', brand: 'Hero', price: 279 },
+  { name: 'Hero Splendor Plus', brand: 'Hero', price: 299, image: 'https://transrentals.in/images/fleet/hero-splendor-plus.jpg' },
+  { name: 'Hero Splendor iSmart', brand: 'Hero', price: 349, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Hero Super Splendor', brand: 'Hero', price: 399, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Hero HF Deluxe', brand: 'Hero', price: 279, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default async function SplendorLocationPage({ params }: PageProps) {
@@ -191,7 +191,7 @@ export default async function SplendorLocationPage({ params }: PageProps) {
           title={`Available Splendor Bikes in ${locationName}`}
         />
 
-        <WhyRentHere locationName={locationName} />
+        <WhyRentHere locationName={locationName} />
 
         <NearbyLocations
           locationSlug={params.location}
