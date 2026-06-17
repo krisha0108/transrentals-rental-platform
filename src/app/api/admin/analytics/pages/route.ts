@@ -1,13 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
-import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { SERVICE_PARENT_MAP } from '@/lib/constants/service-mapping';
 import { STATIC_PAGES } from '@/lib/seo/service-meta-templates';
-
 import { getCached, setCached, buildCacheKey } from '@/lib/utils/analytics-cache';
 import logger from '@/lib/security/logger';
+
+interface PageView {
+  path: string;
+  sessionId: string | null;
+  ipAddress: string | null;
+  duration: number | null;
+  device: string | null;
+  createdAt: Date;
+}
+
+interface PageAnalytic {
+  pagePath: string;
+  entrances: number;
+  exits: number;
+  avgTimeOnPage: number | null;
+}
+
+interface SearchQuery {
+  pagePath: string;
+  impressions: number;
+  clicks: number;
+  avgPosition: number | null;
+}
+
+interface SeoAudit {
+  pagePath: string;
+  pageTitle: string | null;
+  isIndexable: boolean | null;
+  lastAuditDate: Date | null;
+}
+
+interface PagePerf {
+  pagePath: string;
+  pageTitle: string | null;
+  avgLcp: number | null;
+  avgCls: number | null;
+  totalViews: number;
+}
 export const dynamic = 'force-dynamic';
 
 // Map SERVICE_PARENT_MAP parent slugs → actual DB service slugs (same as seo/overview)
@@ -76,15 +112,15 @@ export async function GET(request: NextRequest) {
         where: dateFilter,
         orderBy: { createdAt: 'desc' },
         take: 5000,
-      }),
+      }) as Promise<PageView[]>,
       prisma.page_analytics.findMany({
         where: { date: { gte: startDate, lte: now } },
         orderBy: { pageViews: 'desc' },
-      }),
+      }) as Promise<PageAnalytic[]>,
       prisma.page_performance.findMany({
         orderBy: { totalViews: 'desc' },
-      }),
-      prisma.seo_audits.findMany(),
+      }) as Promise<PagePerf[]>,
+      prisma.seo_audits.findMany() as Promise<SeoAudit[]>,
       prisma.crawl_data.findFirst({
         orderBy: { crawlDate: 'desc' },
       }),
@@ -94,7 +130,7 @@ export async function GET(request: NextRequest) {
     const [searchQueries, servicesWithCounts, totalActiveLocations, routeCount] = await Promise.all([
       prisma.search_queries.findMany({
         where: { date: { gte: startDate, lte: now } },
-      }),
+      }) as Promise<SearchQuery[]>,
       prisma.services.findMany({
         where: { parentId: null },
         select: {
@@ -139,7 +175,7 @@ export async function GET(request: NextRequest) {
     // Also build session map for entrance/exit computation
     const sessionMap: Record<string, Array<{ path: string; createdAt: Date }>> = {};
 
-    pageViews.forEach((pv: { path: string; sessionId: string | null; ipAddress: string | null; duration: number | null; device: string | null; createdAt: Date }) => {
+    pageViews.forEach((pv) => {
       if (!pageStats[pv.path]) {
         pageStats[pv.path] = {
           pageViews: 0,
@@ -183,7 +219,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Merge with page analytics data (if available)
-    pageAnalytics.forEach((pa: { pagePath: string; entrances: number; exits: number; avgTimeOnPage: number | null }) => {
+    pageAnalytics.forEach((pa) => {
       if (!pageStats[pa.pagePath]) {
         pageStats[pa.pagePath] = {
           pageViews: 0,
@@ -210,7 +246,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Add search query data
-    searchQueries.forEach((sq: { pagePath: string; impressions: number; clicks: number; avgPosition: number | null }) => {
+    searchQueries.forEach((sq) => {
       if (pageStats[sq.pagePath]) {
         pageStats[sq.pagePath].searchImpressions += sq.impressions;
         pageStats[sq.pagePath].searchClicks += sq.clicks;
@@ -224,8 +260,8 @@ export async function GET(request: NextRequest) {
     const pages = Object.entries(pageStats)
       .map(([url, stats]) => {
         // Find SEO audit and performance data for this page
-        const audit = seoAudits.find((a: { pagePath: string }) => a.pagePath === url);
-        const perf = pagePerformance.find((p: { pagePath: string }) => p.pagePath === url);
+        const audit = seoAudits.find((a) => a.pagePath === url);
+        const perf = pagePerformance.find((p) => p.pagePath === url);
 
         const avgTime = stats.avgTimeOnPage.length > 0
           ? Math.round(stats.avgTimeOnPage.reduce((a, b) => a + b, 0) / stats.avgTimeOnPage.length)
@@ -296,7 +332,7 @@ export async function GET(request: NextRequest) {
 
     // Daily trends
     const dailyViews: Record<string, { pageViews: number; visitors: Set<string> }> = {};
-    pageViews.forEach((pv: { createdAt: Date; sessionId: string | null; ipAddress: string | null }) => {
+    pageViews.forEach((pv) => {
       const date = pv.createdAt.toISOString().split('T')[0];
       if (!dailyViews[date]) {
         dailyViews[date] = { pageViews: 0, visitors: new Set() };
@@ -344,7 +380,7 @@ export async function GET(request: NextRequest) {
       'Other': { count: 0, views: 0 },
     };
 
-    pages.forEach((p: { url: string; pageViews: number }) => {
+    pages.forEach((p) => {
       if (p.url.includes('/blog')) {
         pageTypes['Blog Posts'].count++;
         pageTypes['Blog Posts'].views += p.pageViews;
