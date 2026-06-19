@@ -5,7 +5,7 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { getAllIndiaFleet } from '@/lib/fleet-utils';
@@ -113,7 +113,7 @@ export default async function TransporterLocationPage({ params }: PageProps) {
         </>
       );
     }
-    notFound();
+    permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="transporter" serviceName="Transporter" />;
   if (pageContext.type === 'coming-soon') {

@@ -5,7 +5,7 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
@@ -101,7 +101,7 @@ const schemaVehicles = [
 
 export default async function SplendorLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('splendor-on-rent', params.location);
-  if (pageContext.type === 'redirect') notFound();
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="splendor-on-rent" serviceName="Splendor on Rent" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));

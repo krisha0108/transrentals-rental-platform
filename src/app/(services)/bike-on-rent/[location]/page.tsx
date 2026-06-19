@@ -7,7 +7,7 @@ import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { prisma } from '@/lib/db/prisma';
@@ -184,7 +184,7 @@ export default async function BikeLocationPage({ params }: PageProps) {
         </>
       );
     }
-    notFound();
+    permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="bike-on-rent" serviceName="Bike on Rent" />;
 

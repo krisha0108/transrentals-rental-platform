@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { capitalize } from '@/lib/utils';
@@ -89,7 +89,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function MonthlyBikeRentalLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('monthly-bike-rental', params.location);
-  if (pageContext.type === 'redirect') notFound();
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="monthly-bike-rental" serviceName="Monthly Bike Rental" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
