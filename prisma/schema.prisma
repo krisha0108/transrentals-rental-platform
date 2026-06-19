@@ -3790,6 +3790,20 @@ model vendor_truck_templates {
   @@index([vendorId])
 }
 
+model vendor_contact_change_requests {
+  id           String    @id
+  vendorId     String
+  newEmail     String?
+  newPhone     String?
+  status       String    @default("PENDING")
+  requestedAt  DateTime  @default(now())
+  reviewedAt   DateTime?
+  reviewedById String?
+  vendors      vendors   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+}
+
 model vendors {
   id                                                              String                           @id
   vid                                                             String?                          @unique
@@ -3826,6 +3840,7 @@ model vendors {
   fcmToken                                                        String?                          @db.Text
   slug                                                            String?                          @unique(map: "slug")
   isProfilePublic                                                 Boolean                          @default(true)
+  vendor_contact_change_requests                                  vendor_contact_change_requests[]
   b2b_trips                                                       b2b_trips[]
   b2b_vendor_quotes                                               b2b_vendor_quotes[]
   bike_bookings_bike_bookings_acceptedVendorIdTovendors           bike_bookings[]                  @relation("bike_bookings_acceptedVendorIdTovendors")

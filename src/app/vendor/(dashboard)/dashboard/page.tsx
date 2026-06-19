@@ -86,6 +86,7 @@ interface VendorProfile {
   businessName: string;
   ownerName: string;
   status: string;
+  vid?: string | null;
   approvedServicesCount: number;
   approvedLocationsCount: number;
   documentsCount?: number;
@@ -392,7 +393,14 @@ export default function VendorDashboard() {
               {profile?.businessName?.charAt(0) || 'V'}
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900 leading-tight">{profile?.businessName || 'Dashboard'}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-bold text-gray-900 leading-tight">{profile?.businessName || 'Dashboard'}</h1>
+                {profile?.vid && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 tracking-wider">
+                    {profile.vid.toUpperCase()}
+                  </span>
+                )}
+              </div>
               <p className="text-gray-400 text-xs">{greeting}, {profile?.ownerName}</p>
             </div>
           </div>
