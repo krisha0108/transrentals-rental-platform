@@ -30,6 +30,7 @@ const TAG_BY_KEY: Record<string, { label: string; color: string }> = Object.from
 
 interface Vendor {
   id: string;
+  vid: string | null;
   businessName: string;
   ownerName: string;
   phone: string;
@@ -133,14 +134,15 @@ export default function ManagerVendorsPage() {
   const vendors = useMemo(() => {
     let list = [...allVendors];
 
-    // Name / phone search
+    // Name / phone / vid search
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(v =>
         v.businessName.toLowerCase().includes(q) ||
         v.ownerName.toLowerCase().includes(q) ||
         v.phone.includes(q) ||
-        v.email.toLowerCase().includes(q)
+        v.email.toLowerCase().includes(q) ||
+        (v.vid && v.vid.toLowerCase().includes(q))
       );
     }
 
@@ -295,7 +297,7 @@ export default function ManagerVendorsPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name, phone, email..."
+            placeholder="Search by name, phone, email, VN-ID..."
             className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm" />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -451,6 +453,11 @@ export default function ManagerVendorsPage() {
                       {/* Name + status */}
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="font-semibold text-gray-900">{vendor.businessName}</span>
+                        {vendor.vid && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-mono font-semibold bg-gray-100 text-gray-500 border border-gray-200 tracking-wider">
+                            {vendor.vid.toUpperCase()}
+                          </span>
+                        )}
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}>
                           <StatusIcon className="w-3 h-3" />
                           {statusConfig.label}
