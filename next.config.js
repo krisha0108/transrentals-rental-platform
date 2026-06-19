@@ -126,6 +126,16 @@ const nextConfig = {
   async redirects() {
     return [
       // ============================================
+      // WWW → NON-WWW REDIRECT (fixes GSC "Alternate page with proper canonical tag")
+      // ============================================
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.transrentals.in' }],
+        destination: 'https://transrentals.in/:path*',
+        permanent: true,
+      },
+
+      // ============================================
       // BIKE RENTAL REDIRECTS
       // ============================================
       {

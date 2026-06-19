@@ -1,5 +1,5 @@
 ﻿import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import { ALL_CITIES, getCityBySlug } from '@/data/indian-cities';
 import { Crown, Star, Shield, Clock, Phone } from 'lucide-react';
@@ -119,7 +119,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
         </>
       );
     }
-    notFound();
+    permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="luxury-car-rental" serviceName="Luxury Car Rental" />;
   if (pageContext.type === 'coming-soon') {
