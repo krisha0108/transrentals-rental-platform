@@ -379,6 +379,7 @@ const adminItems: NavItem[] = [
       { name: 'Service Requests', href: '/admin/vendors/service-requests', icon: Layers },
       { name: 'Location Requests', href: '/admin/vendors/location-requests', icon: MapPin },
       { name: 'Vendor Documents', href: '/admin/vendor-documents', icon: Image },
+      { name: 'Contact Requests', href: '/admin/vendors/contact-requests', icon: Mail },
     ],
   },
   {
@@ -497,6 +498,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
   const [expandedSections, setExpandedSections] = useState<string[]>([]);
   const [missionControls, setMissionControls] = useState<NavItem[]>(FALLBACK_MISSION_CONTROLS);
   const [servicesLoading, setServicesLoading] = useState(true);
+  const [contactChangeCount, setContactChangeCount] = useState(0);
 
   // Fetch services from database to sync with services-management
   useEffect(() => {
@@ -522,6 +524,13 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
       }
     };
     fetchServices();
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/admin/change-requests/count')
+      .then(r => r.ok ? r.json() : { count: 0 })
+      .then(d => setContactChangeCount(d.count || 0))
+      .catch(() => {});
   }, []);
 
   const handleSignOut = async () => {
@@ -604,7 +613,16 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
                     )}
                   >
                     <ChildIcon className="w-4 h-4" />
-                    <span>{child.name}</span>
+                    <span className="flex-1">{child.name}</span>
+                    {child.href === '/admin/vendors/contact-requests' && contactChangeCount > 0 ? (
+                      <span className="ml-auto px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full leading-none min-w-[18px] text-center">
+                        {contactChangeCount}
+                      </span>
+                    ) : child.badge ? (
+                      <span className="ml-auto px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full leading-none">
+                        {child.badge}
+                      </span>
+                    ) : null}
                   </Link>
                 );
               })}
