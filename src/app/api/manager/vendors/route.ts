@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
           { ownerName: { contains: search } },
           { email: { contains: search } },
           { phone: { contains: search } },
+          { vid: { contains: search } },
         ],
       };
     }
@@ -85,6 +86,7 @@ export async function GET(request: NextRequest) {
           where: whereClause,
           select: {
             id: true,
+            vid: true,
             businessName: true,
             ownerName: true,
             phone: true,
@@ -165,6 +167,7 @@ export async function GET(request: NextRequest) {
 
         return {
           id: v.id,
+          vid: v.vid ?? null,
           businessName: v.businessName,
           ownerName: v.ownerName,
           phone: v.phone,

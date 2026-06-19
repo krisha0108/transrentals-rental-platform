@@ -6,6 +6,7 @@ import { sanitizeInput } from '@/lib/utils/sanitize';
 import { smartRateLimit, getClientIdentifier } from '@/lib/utils/smart-rate-limit';
 import logger from '@/lib/security/logger';
 import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
+import { generateVid } from '@/lib/utils/generate-vid';
 export const dynamic = 'force-dynamic';
 
 // In-flight request coalescing: multiple parallel calls for same vendorId share one DB query
@@ -16,6 +17,7 @@ async function fetchVendorFromDB(vendorId: string) {
     where: { id: vendorId },
     select: {
       id: true,
+      vid: true,
       email: true,
       phone: true,
       businessName: true,
@@ -135,6 +137,13 @@ export async function GET(request: NextRequest) {
     const vendorData = await pending;
     if (!vendorData) {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
+    }
+
+    // Generate vid on first profile view if it wasn't set at login/register
+    if (!vendorData.vid) {
+      const vid = await generateVid();
+      await prisma.vendors.update({ where: { id: vendorId }, data: { vid } });
+      vendorData.vid = vid;
     }
 
     return NextResponse.json(vendorData);

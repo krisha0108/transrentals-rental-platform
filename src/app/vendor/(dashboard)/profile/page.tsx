@@ -24,6 +24,7 @@ import ProfileShareCard from '@/components/profile/ProfileShareCard';
 
 interface VendorProfile {
   id: string;
+  vid: string | null;
   email: string;
   phone: string;
   businessName: string;
@@ -305,9 +306,17 @@ export default function VendorProfilePage() {
                 Manage your business information
               </p>
             </div>
-            <div className="px-4 py-2 rounded-xl text-xs font-bold bg-white/15 backdrop-blur-sm text-white border border-white/20 shadow-lg"
-              style={{ animation: 'bounce-in 0.7s ease-out 0.3s both' }}>
-              Status: {profile?.status?.replace(/_/g, ' ')}
+            <div className="flex items-center gap-2 flex-wrap">
+              {profile?.vid && (
+                <div className="px-4 py-2 rounded-xl text-xs font-bold bg-white/25 backdrop-blur-sm text-white border border-white/30 shadow-lg tracking-widest"
+                  style={{ animation: 'bounce-in 0.7s ease-out 0.2s both' }}>
+                  {profile.vid.toUpperCase()}
+                </div>
+              )}
+              <div className="px-4 py-2 rounded-xl text-xs font-bold bg-white/15 backdrop-blur-sm text-white border border-white/20 shadow-lg"
+                style={{ animation: 'bounce-in 0.7s ease-out 0.3s both' }}>
+                Status: {profile?.status?.replace(/_/g, ' ')}
+              </div>
             </div>
           </div>
         </div>

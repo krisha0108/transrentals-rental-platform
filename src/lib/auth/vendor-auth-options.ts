@@ -2,6 +2,7 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/db/prisma';
 import bcrypt from 'bcryptjs';
+import { generateVid } from '@/lib/utils/generate-vid';
 
 export const vendorAuthOptions: NextAuthOptions = {
   providers: [
@@ -47,10 +48,15 @@ export const vendorAuthOptions: NextAuthOptions = {
           throw new Error('Invalid credentials');
         }
 
-        // Update last login
+        // Generate vid for existing vendors who don't have one yet
+        const updateData: any = { lastLoginAt: new Date() };
+        if (!vendor.vid) {
+          updateData.vid = await generateVid();
+        }
+
         await prisma.vendors.update({
           where: { id: vendor.id },
-          data: { lastLoginAt: new Date() },
+          data: updateData,
         });
 
         return {
