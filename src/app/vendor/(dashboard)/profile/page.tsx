@@ -73,6 +73,16 @@ export default function VendorProfilePage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
+  // Contact change request state
+  const [pendingContactReq, setPendingContactReq] = useState<{
+    id: string; newEmail: string | null; newPhone: string | null;
+  } | null>(null);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [contactForm, setContactForm] = useState({ newEmail: '', newPhone: '' });
+  const [contactSaving, setContactSaving] = useState(false);
+  const [contactError, setContactError] = useState('');
+  const [contactSuccess, setContactSuccess] = useState('');
+
   const [formData, setFormData] = useState({
     businessName: '',
     businessType: '',
@@ -94,7 +104,51 @@ export default function VendorProfilePage() {
 
   useEffect(() => {
     fetchProfile();
+    fetchPendingContactReq();
   }, []);
+
+  const fetchPendingContactReq = async () => {
+    try {
+      const res = await fetch('/api/vendor/contact-change-request');
+      if (res.ok) {
+        const data = await res.json();
+        setPendingContactReq(data.request);
+      }
+    } catch {}
+  };
+
+  const handleContactChangeSubmit = async () => {
+    setContactError('');
+    setContactSuccess('');
+    if (!contactForm.newEmail && !contactForm.newPhone) {
+      setContactError('Enter at least new email or new phone');
+      return;
+    }
+    setContactSaving(true);
+    try {
+      const res = await fetch('/api/vendor/contact-change-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newEmail: contactForm.newEmail || undefined, newPhone: contactForm.newPhone || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setContactError(data.error || 'Failed to submit request'); return; }
+      setPendingContactReq(data.request);
+      setShowContactForm(false);
+      setContactForm({ newEmail: '', newPhone: '' });
+      setContactSuccess('Request submitted! Admin will review and update your contact info.');
+    } catch { setContactError('Network error'); }
+    finally { setContactSaving(false); }
+  };
+
+  const handleCancelContactReq = async () => {
+    if (!pendingContactReq) return;
+    try {
+      await fetch(`/api/vendor/contact-change-request?id=${pendingContactReq.id}`, { method: 'DELETE' });
+      setPendingContactReq(null);
+      setContactSuccess('');
+    } catch {}
+  };
 
   const fetchProfile = async () => {
     try {
@@ -478,36 +532,110 @@ export default function VendorProfilePage() {
             </div>
           </div>
 
-          {/* Contact Information - Read Only */}
+          {/* Contact Information */}
           <div className="break-inside-avoid bg-white rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.06)] p-5 sm:p-6" style={{ animation: 'fade-up 0.5s ease-out 0.35s both' }}>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <User className="w-[18px] h-[18px] text-emerald-600" />
+            <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center">
+                  <User className="w-[18px] h-[18px] text-emerald-600" />
+                </div>
+                <h2 className="text-base font-bold text-gray-900">Contact Information</h2>
               </div>
-              <h2 className="text-base font-bold text-gray-900">Contact Information</h2>
+              {!pendingContactReq && !showContactForm && (
+                <button
+                  type="button"
+                  onClick={() => { setShowContactForm(true); setContactError(''); setContactSuccess(''); }}
+                  className="text-sm text-emerald-600 font-semibold hover:underline flex items-center gap-1"
+                >
+                  Request Change
+                </button>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Current values */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className={labelClass}>
-                  Email
-                </label>
+                <label className={labelClass}>Email</label>
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 text-sm">
                   <Mail className="w-4 h-4 text-emerald-500" />
                   {profile?.email}
                 </div>
               </div>
-
               <div>
-                <label className={labelClass}>
-                  Phone
-                </label>
+                <label className={labelClass}>Phone</label>
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-500 text-sm">
                   <Phone className="w-4 h-4 text-emerald-500" />
                   {profile?.phone}
                 </div>
               </div>
             </div>
+
+            {/* Pending request banner */}
+            {pendingContactReq && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">Change Request Pending</p>
+                    <p className="text-xs text-amber-700 mt-0.5">Your request is awaiting admin approval.</p>
+                    <div className="mt-1.5 text-xs text-amber-900 space-y-0.5">
+                      {pendingContactReq.newEmail && <p>New Email: <strong>{pendingContactReq.newEmail}</strong></p>}
+                      {pendingContactReq.newPhone && <p>New Phone: <strong>{pendingContactReq.newPhone}</strong></p>}
+                    </div>
+                  </div>
+                  <button type="button" onClick={handleCancelContactReq} className="text-xs text-red-500 hover:underline shrink-0 mt-0.5">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {/* Success message */}
+            {contactSuccess && !pendingContactReq && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-sm text-emerald-700">{contactSuccess}</div>
+            )}
+
+            {/* Request form */}
+            {showContactForm && (
+              <div className="border border-gray-200 rounded-xl p-4 space-y-3 mt-1">
+                <p className="text-xs text-gray-500">Fill in the fields you want to change. Leave blank to keep current.</p>
+                {contactError && <p className="text-xs text-red-600">{contactError}</p>}
+                <div>
+                  <label className={labelClass}>New Email</label>
+                  <input
+                    type="email"
+                    value={contactForm.newEmail}
+                    onChange={e => setContactForm(p => ({ ...p, newEmail: e.target.value }))}
+                    placeholder={profile?.email}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>New Phone</label>
+                  <input
+                    type="tel"
+                    value={contactForm.newPhone}
+                    onChange={e => setContactForm(p => ({ ...p, newPhone: e.target.value }))}
+                    placeholder={profile?.phone}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                  />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleContactChangeSubmit}
+                    disabled={contactSaving}
+                    className="px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition"
+                  >
+                    {contactSaving ? 'Submitting...' : 'Submit Request'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowContactForm(false); setContactError(''); }}
+                    className="px-4 py-2 border border-gray-300 text-sm rounded-lg hover:bg-gray-50 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Address */}

@@ -85,6 +85,12 @@ export async function GET(
         vendor_tag_assignments: {
           select: { tag: true },
         },
+        vendor_contact_change_requests: {
+          where: { status: 'PENDING' },
+          orderBy: { requestedAt: 'desc' },
+          take: 1,
+          select: { id: true, newEmail: true, newPhone: true, requestedAt: true },
+        },
         vendor_fleets: {
           orderBy: { createdAt: 'desc' },
           include: {
@@ -132,6 +138,7 @@ export async function GET(
       vendor_fleets,
       admin_users,
       vendor_tag_assignments,
+      vendor_contact_change_requests,
       _count,
       ...rest
     } = vendor;
@@ -139,6 +146,7 @@ export async function GET(
     const safeVendor = {
       ...rest,
       tags: (vendor_tag_assignments || []).map((t: any) => t.tag),
+      contactChangeRequest: vendor_contact_change_requests?.[0] ?? null,
       documents: vendor_documents?.map((doc: any) => ({
         ...doc,
         verifiedBy: doc.admin_users,
@@ -245,7 +253,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { action, rejectionReason } = body;
+    const { action, rejectionReason, newEmail, newPhone } = body;
 
     const vendor = await prisma.vendors.findUnique({
       where: { id },
@@ -253,6 +261,38 @@ export async function PUT(
 
     if (!vendor) {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
+    }
+
+    // Direct contact change by admin
+    if (action === 'CHANGE_CONTACT') {
+      const email = newEmail?.trim().toLowerCase() || null;
+      const phone = newPhone?.trim() || null;
+
+      if (!email && !phone) {
+        return NextResponse.json({ error: 'Provide at least one of email or phone' }, { status: 400 });
+      }
+
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+      }
+
+      if (email) {
+        const clash = await prisma.vendors.findFirst({ where: { email, NOT: { id } } });
+        if (clash) return NextResponse.json({ error: 'Email already in use' }, { status: 409 });
+      }
+      if (phone) {
+        const clash = await prisma.vendors.findFirst({ where: { phone, NOT: { id } } });
+        if (clash) return NextResponse.json({ error: 'Phone already in use' }, { status: 409 });
+      }
+
+      const contactUpdate: any = {};
+      if (email) contactUpdate.email = email;
+      if (phone) contactUpdate.phone = phone;
+
+      const updated = await prisma.vendors.update({ where: { id }, data: contactUpdate });
+      const { password: _p, ...safe } = updated;
+      logger.info('Admin directly changed vendor contact', { vendorId: id, adminId: session.user.id });
+      return NextResponse.json(safe);
     }
 
     let updateData: any = {};
