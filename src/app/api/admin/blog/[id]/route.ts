@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import { revalidatePath } from 'next/cache';
 import crypto from 'crypto';
 import logger from '@/lib/security/logger';
 
@@ -123,6 +124,11 @@ export async function PATCH(
         await prisma.seo_meta.create({ data: { id: generateId(), blogPostId: id, ...seoData } });
       }
     }
+
+    // Invalidate ISR cache so frontend reflects changes immediately
+    const updatedSlug = body.slug?.trim() || existing.slug;
+    revalidatePath(`/blog/${updatedSlug}`);
+    revalidatePath('/blog');
 
     return NextResponse.json({ success: true });
   } catch (error) {
