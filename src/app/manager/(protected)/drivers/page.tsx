@@ -26,6 +26,7 @@ import {
   X,
   Filter,
   UserCheck,
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -67,6 +68,7 @@ interface Driver {
   joiningDate: string;
   lastLoginAt: string | null;
   createdAt: string;
+  did: string | null;
   vendorId: string | null;
   vendorName: string | null;
   bookingsCount: number;
@@ -270,7 +272,7 @@ export default function DriversPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by name, email, phone, license number..."
+                placeholder="Search by name, email, phone, license, driver ID..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
@@ -412,7 +414,7 @@ export default function DriversPage() {
                             </div>
                           )}
                           <div>
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <p className="font-medium text-gray-900 text-sm">{driver.name}</p>
                               {isVendorDriver ? (
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold rounded uppercase tracking-wider">
@@ -423,6 +425,12 @@ export default function DriversPage() {
                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold rounded uppercase tracking-wider">
                                   <User className="w-2.5 h-2.5" />
                                   Direct
+                                </span>
+                              )}
+                              {driver.did && (
+                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold rounded font-mono">
+                                  <Shield className="w-2.5 h-2.5" />
+                                  {driver.did}
                                 </span>
                               )}
                             </div>

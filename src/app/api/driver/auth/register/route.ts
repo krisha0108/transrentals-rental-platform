@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
+import { generateDid } from '@/lib/utils/generate-did';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,9 +76,11 @@ export async function POST(request: NextRequest) {
     if (existingPhone) return NextResponse.json({ success: false, error: 'Phone number already registered' }, { status: 409 });
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const did = await generateDid();
 
     const driver = await prisma.drivers.create({
       data: {
+        did,
         name: String(name).trim(),
         phone: normalizedPhone,
         email: normalizedEmail,

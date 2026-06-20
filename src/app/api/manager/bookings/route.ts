@@ -106,8 +106,8 @@ export async function GET(request: NextRequest) {
               customers: customerInclude,
               locations: { select: { id: true, name: true } },
               bike_quote_requests: { select: { pickupAddress: true, numberOfVehicles: true } },
-              vendors_bike_bookings_assignedVendorIdTovendors: { select: { businessName: true } },
-              vendors_bike_bookings_acceptedVendorIdTovendors: { select: { businessName: true } },
+              vendors_bike_bookings_assignedVendorIdTovendors: { select: { businessName: true, vid: true } },
+              vendors_bike_bookings_acceptedVendorIdTovendors: { select: { businessName: true, vid: true } },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
             where: pickupCityFilter,
             include: {
               customers: customerInclude,
-              vendors: { select: { businessName: true } },
+              vendors: { select: { businessName: true, vid: true } },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -133,8 +133,8 @@ export async function GET(request: NextRequest) {
               customers: customerInclude,
               locations: { select: { id: true, name: true } },
               self_drive_quote_requests: { select: { numberOfVehicles: true } },
-              vendors_car_bookings_assignedVendorIdTovendors: { select: { businessName: true } },
-              vendors_car_bookings_acceptedVendorIdTovendors: { select: { businessName: true } },
+              vendors_car_bookings_assignedVendorIdTovendors: { select: { businessName: true, vid: true } },
+              vendors_car_bookings_acceptedVendorIdTovendors: { select: { businessName: true, vid: true } },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -146,8 +146,8 @@ export async function GET(request: NextRequest) {
             where: pickupCityFilter,
             include: {
               customers: customerInclude,
-              vendors_chauffeur_bookings_assignedVendorIdTovendors: { select: { businessName: true } },
-              vendors_chauffeur_bookings_acceptedVendorIdTovendors: { select: { businessName: true } },
+              vendors_chauffeur_bookings_assignedVendorIdTovendors: { select: { businessName: true, vid: true } },
+              vendors_chauffeur_bookings_acceptedVendorIdTovendors: { select: { businessName: true, vid: true } },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -159,7 +159,7 @@ export async function GET(request: NextRequest) {
             where: locationNameFilter,
             include: {
               customers: customerInclude,
-              vendors: { select: { businessName: true } },
+              vendors: { select: { businessName: true, vid: true } },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -171,8 +171,8 @@ export async function GET(request: NextRequest) {
             where: pickupCityFilter,
             include: {
               customers: customerInclude,
-              vendors_luxury_bookings_assignedVendorIdTovendors: { select: { businessName: true } },
-              vendors_luxury_bookings_acceptedVendorIdTovendors: { select: { businessName: true } },
+              vendors_luxury_bookings_assignedVendorIdTovendors: { select: { businessName: true, vid: true } },
+              vendors_luxury_bookings_acceptedVendorIdTovendors: { select: { businessName: true, vid: true } },
             },
             orderBy: { createdAt: 'desc' },
           }).catch(() => [])
@@ -184,7 +184,7 @@ export async function GET(request: NextRequest) {
             where: locationNameFilter,
             include: {
               customers: customerInclude,
-              vendors: { select: { businessName: true } },
+              vendors: { select: { businessName: true, vid: true } },
               packers_quote_requests: {
                 select: {
                   shiftingScope: true,
@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
             where: pickupCityFilter,
             include: {
               customers: customerInclude,
-              vendors: { select: { businessName: true } },
+              vendors: { select: { businessName: true, vid: true } },
               truck_quote_requests: {
                 select: {
                   truckBodyType: true,
@@ -227,7 +227,7 @@ export async function GET(request: NextRequest) {
             where: buildFilter({}),
             include: {
               customer: customerInclude,
-              vendor: { select: { businessName: true } },
+              vendor: { select: { businessName: true, vid: true } },
               quoteRequest: {
                 include: {
                   listing: {
@@ -252,6 +252,14 @@ export async function GET(request: NextRequest) {
         booking[`vendors_${prefix}_assignedVendorIdTovendors`]?.businessName
       );
     };
+    const getVendorVid = (booking: any, prefix?: string) => {
+      if (!prefix) return booking.vendors?.vid ?? null;
+      return (
+        booking[`vendors_${prefix}_acceptedVendorIdTovendors`]?.vid ||
+        booking[`vendors_${prefix}_assignedVendorIdTovendors`]?.vid ||
+        null
+      );
+    };
 
     // Combine and format all bookings
     const allBookings: any[] = [
@@ -265,6 +273,7 @@ export async function GET(request: NextRequest) {
         customerPhone: b.customers?.phone || b.customerPhone,
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: getVendorName(b, 'bike_bookings'),
+        vendorVid: getVendorVid(b, 'bike_bookings'),
         locationName: b.locations?.name || b.locationName,
         pickupAddress: b.bike_quote_requests?.pickupAddress ?? b.pickupAddress ?? null,
         dropAddress: b.dropAddress ?? null,
@@ -289,6 +298,7 @@ export async function GET(request: NextRequest) {
         customerPhone: b.customers?.phone || b.customerPhone,
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: b.vendors?.businessName,
+        vendorVid: b.vendors?.vid ?? null,
         locationName: b.pickupCity,
         pickupAddress: b.pickupAddress ?? null,
         dropAddress: b.dropAddress ?? null,
@@ -312,6 +322,7 @@ export async function GET(request: NextRequest) {
         customerPhone: b.customers?.phone || b.customerPhone,
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: getVendorName(b, 'car_bookings'),
+        vendorVid: getVendorVid(b, 'car_bookings'),
         locationName: b.locations?.name || b.locationName,
         numberOfVehicles: b.self_drive_quote_requests?.numberOfVehicles ?? null,
         pickupDate: b.pickupDate,
@@ -334,6 +345,7 @@ export async function GET(request: NextRequest) {
         customerPhone: b.customers?.phone || b.customerPhone,
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: getVendorName(b, 'chauffeur_bookings'),
+        vendorVid: getVendorVid(b, 'chauffeur_bookings'),
         locationName: b.pickupCity,
         pickupDate: b.pickupDate,
         pickupTime: b.pickupTime,
@@ -355,6 +367,7 @@ export async function GET(request: NextRequest) {
         customerPhone: b.customers?.phone || b.customerPhone,
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: b.vendors?.businessName,
+        vendorVid: b.vendors?.vid ?? null,
         locationName: b.locationName || b.deliveryCity,
         deliveryCity: b.deliveryCity ?? null,
         deliveryAddress: b.deliveryAddress ?? null,
@@ -378,6 +391,7 @@ export async function GET(request: NextRequest) {
         customerPhone: b.customers?.phone || b.customerPhone,
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: getVendorName(b, 'luxury_bookings'),
+        vendorVid: getVendorVid(b, 'luxury_bookings'),
         locationName: b.pickupCity,
         pickupDate: b.pickupDate,
         pickupTime: b.pickupTime,
@@ -399,6 +413,7 @@ export async function GET(request: NextRequest) {
         customerPhone: b.customers?.phone || b.customerPhone,
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: b.vendors?.businessName,
+        vendorVid: b.vendors?.vid ?? null,
         locationName: b.locationName,
         pickupAddress: b.pickupAddress ?? null,
         dropAddress: b.dropAddress ?? null,
@@ -427,6 +442,7 @@ export async function GET(request: NextRequest) {
         customerPhone: b.customers?.phone || b.customerPhone,
         customerEmail: b.customers?.email || b.customerEmail,
         vendorName: b.vendors?.businessName,
+        vendorVid: b.vendors?.vid ?? null,
         locationName: b.pickupCity,
         pickupAddress: b.pickupAddress ?? null,
         dropAddress: b.dropAddress ?? null,
@@ -456,6 +472,7 @@ export async function GET(request: NextRequest) {
         customerPhone: b.customer?.phone,
         customerEmail: b.customer?.email,
         vendorName: b.vendor?.businessName,
+        vendorVid: b.vendor?.vid ?? null,
         locationName: b.quoteRequest?.listing?.mainLocation?.name || null,
         pickupDate: b.travelDate,
         pickupTime: null,

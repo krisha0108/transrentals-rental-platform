@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
         { email: { contains: search } },
         { phone: { contains: search } },
         { licenseNumber: { contains: search } },
+        { did: { contains: search } },
       ];
     }
 
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
         { email: { contains: search } },
         { phone: { contains: search } },
         { licenseNumber: { contains: search } },
+        { did: { contains: search } },
       ];
     }
 
@@ -131,12 +133,14 @@ export async function GET(request: NextRequest) {
         { email: { contains: search } },
         { phone: { contains: search } },
         { licenseNumber: { contains: search } },
+        { did: { contains: search } },
       ];
       staffWhereForStats.OR = [
         { name: { contains: search } },
         { email: { contains: search } },
         { phone: { contains: search } },
         { licenseNumber: { contains: search } },
+        { did: { contains: search } },
       ];
     }
     if (licenseStatus !== 'all') {
@@ -184,6 +188,7 @@ export async function GET(request: NextRequest) {
           city: true, state: true, status: true,
           licenseNumber: true, licenseExpiry: true,
           joiningDate: true, lastLoginAt: true, createdAt: true,
+          did: true,
           _count: { select: { chauffeur_bookings: true, driver_vehicles: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -198,7 +203,7 @@ export async function GET(request: NextRequest) {
           city: true, state: true, status: true,
           licenseNumber: true, licenseExpiry: true,
           joiningDate: true, lastLoginAt: true, createdAt: true,
-          vendorId: true,
+          vendorId: true, did: true,
           vendors: { select: { id: true, businessName: true } },
           _count: { select: { driver_vehicles: true, b2b_trips: true, truck_bookings: true, assigned_bookings: true } },
         },
@@ -236,6 +241,7 @@ export async function GET(request: NextRequest) {
       joiningDate: d.joiningDate,
       lastLoginAt: d.lastLoginAt,
       createdAt: d.createdAt,
+      did: d.did ?? null,
       vendorId: null as string | null,
       vendorName: null as string | null,
       bookingsCount: d._count.chauffeur_bookings,
@@ -264,6 +270,7 @@ export async function GET(request: NextRequest) {
         joiningDate: s.joiningDate,
         lastLoginAt: s.lastLoginAt,
         createdAt: s.createdAt,
+        did: s.did ?? null,
         vendorId: s.vendorId,
         vendorName: s.vendors?.businessName ?? null,
         bookingsCount: (s._count.b2b_trips || 0) + (s._count.truck_bookings || 0) + (s._count.assigned_bookings || 0),

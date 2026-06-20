@@ -138,6 +138,7 @@ interface VendorFleet {
 
 interface Vendor {
   id: string;
+  vid: string | null;
   businessName: string;
   ownerName: string;
   email: string;
@@ -930,7 +931,15 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
               {statusInfo.label}
             </span>
           </div>
-          <p className="text-gray-600">Vendor ID: {vendor.id}</p>
+          <div className="flex items-center gap-3 mt-1">
+            {vendor.vid && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-blue-600 text-white">
+                <Shield className="w-3.5 h-3.5" />
+                {vendor.vid}
+              </span>
+            )}
+            <span className="text-xs text-gray-400 font-mono">ID: {vendor.id}</span>
+          </div>
 
           {/* CRM tags — add/remove manager follow-up tags (same as vendor list) */}
           <div className="mt-2 flex flex-wrap gap-1.5 items-center">
@@ -1134,6 +1143,15 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
             <div className="bg-white rounded-xl p-6 shadow-sm border">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Business Information</h3>
               <div className="grid grid-cols-2 gap-4">
+                {vendor.vid && (
+                  <div>
+                    <label className="text-sm text-gray-500">Vendor ID (VID)</label>
+                    <p className="font-semibold text-blue-600 flex items-center gap-1.5">
+                      <Shield className="w-4 h-4" />
+                      {vendor.vid}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm text-gray-500">Business Name</label>
                   <p className="font-medium text-gray-900">{vendor.businessName}</p>

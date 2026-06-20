@@ -3751,6 +3751,7 @@ model vendor_staff {
   locationAccuracy   Float?
   locationUpdatedAt  DateTime?
   isSharingLocation  Boolean                     @default(false)
+  did                String?                     @unique(map: "vendor_staff_did_key")
   b2b_trips          b2b_trips[]
   b2b_quote_vehicles b2b_vendor_quote_vehicles[]
   staff_attendance   staff_attendance[]
@@ -6206,10 +6207,11 @@ model web_story_views {
 // ─── Independent Driver App ───────────────────────────────────────────────────
 
 model drivers {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
+  did      String? @unique
   name     String
-  phone    String @unique
-  email    String @unique
+  phone    String  @unique
+  email    String  @unique
   password String
 
   // Personal
