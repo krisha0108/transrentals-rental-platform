@@ -7,7 +7,7 @@ import {
   ArrowLeft, Loader2, Phone, Mail, MapPin, CalendarDays,
   IdCard, Car, ShieldCheck, ShieldX, ShieldAlert, Clock,
   Building2, IndianRupee, FileText, AlertCircle, ExternalLink,
-  CheckCircle, Ban, RotateCcw, Store, User, Tag, Plus, X,
+  CheckCircle, Ban, RotateCcw, Store, User, Tag, Plus, X, Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -64,6 +64,7 @@ interface Driver {
   emergencyPhone: string | null;
   lastLoginAt: string | null;
   createdAt: string;
+  did: string | null;
   vendor?: { id: string; businessName: string } | null;
 }
 
@@ -298,7 +299,7 @@ export default function DriverDetailPage() {
               </div>
             )}
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-bold text-gray-900">{driver.name}</h1>
                 {isVendorDriver ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold rounded uppercase tracking-wider">
@@ -307,6 +308,11 @@ export default function DriverDetailPage() {
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold rounded uppercase tracking-wider">
                     <User className="w-3 h-3" /> Direct
+                  </span>
+                )}
+                {driver.did && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold rounded-full font-mono">
+                    <Shield className="w-3.5 h-3.5" /> {driver.did}
                   </span>
                 )}
               </div>

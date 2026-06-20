@@ -41,6 +41,7 @@ interface Booking {
   customerName: string;
   customerPhone: string;
   vendorName?: string;
+  vendorVid?: string | null;
   locationName: string;
   serviceName?: string;
   serviceSlug?: string;
@@ -213,6 +214,7 @@ export default function ManagerBookingsPage() {
           b.customerEmail?.toLowerCase().includes(term) ||
           b.locationName?.toLowerCase().includes(term) ||
           b.vendorName?.toLowerCase().includes(term) ||
+          b.vendorVid?.toLowerCase().includes(term) ||
           b.serviceName?.toLowerCase().includes(term)
       );
     }

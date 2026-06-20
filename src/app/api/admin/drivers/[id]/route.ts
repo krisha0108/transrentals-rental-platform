@@ -188,14 +188,54 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const { searchParams } = new URL(request.url);
     const source = resolveSource(searchParams);
     const body = await request.json().catch(() => ({}));
-    const newStatus = String(body?.status || '').toUpperCase();
 
-    // If source missing, detect which table the id belongs to.
+    // Detect which table this id belongs to if source not specified.
     let effectiveSource: DriverSource | null = source;
     if (!effectiveSource) {
       const inDrivers = await prisma.drivers.findUnique({ where: { id }, select: { id: true } });
       effectiveSource = inDrivers ? 'standalone' : 'vendor';
     }
+
+    // ── Contact change ────────────────────────────────────────────────────────
+    if (body.action === 'CHANGE_CONTACT') {
+      const newEmail: string | undefined = body.newEmail?.trim() || undefined;
+      const newPhone: string | undefined = body.newPhone?.trim() || undefined;
+      if (!newEmail && !newPhone) {
+        return NextResponse.json({ error: 'Provide at least one of newEmail or newPhone' }, { status: 400 });
+      }
+
+      if (effectiveSource === 'standalone') {
+        const existing = await prisma.drivers.findUnique({ where: { id }, select: { id: true } });
+        if (!existing) return NextResponse.json({ error: 'Driver not found' }, { status: 404 });
+        if (newEmail) {
+          const clash = await prisma.drivers.findFirst({ where: { email: newEmail, NOT: { id } }, select: { id: true } });
+          if (clash) return NextResponse.json({ error: 'Email already in use by another driver' }, { status: 400 });
+        }
+        const updated = await prisma.drivers.update({
+          where: { id },
+          data: { ...(newEmail && { email: newEmail }), ...(newPhone && { phone: newPhone }) },
+          select: { id: true, email: true, phone: true, name: true },
+        });
+        return NextResponse.json({ success: true, source: 'standalone', driver: updated });
+      }
+
+      // vendor_staff path
+      const existing = await prisma.vendor_staff.findUnique({ where: { id }, select: { id: true } });
+      if (!existing) return NextResponse.json({ error: 'Driver not found' }, { status: 404 });
+      if (newEmail) {
+        const clash = await prisma.vendor_staff.findFirst({ where: { email: newEmail, NOT: { id } }, select: { id: true } });
+        if (clash) return NextResponse.json({ error: 'Email already in use by another driver' }, { status: 400 });
+      }
+      const updated = await prisma.vendor_staff.update({
+        where: { id },
+        data: { ...(newEmail && { email: newEmail }), ...(newPhone && { phone: newPhone }) },
+        select: { id: true, email: true, phone: true, name: true },
+      });
+      return NextResponse.json({ success: true, source: 'vendor', driver: updated });
+    }
+
+    // ── Status change ─────────────────────────────────────────────────────────
+    const newStatus = String(body?.status || '').toUpperCase();
 
     if (effectiveSource === 'standalone') {
       if (!STANDALONE_STATUSES.includes(newStatus as any)) {

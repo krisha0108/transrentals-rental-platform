@@ -44,7 +44,7 @@ async function getStandaloneDriver(id: string) {
       licenseNumber: true, licenseType: true, licenseExpiry: true, licenseDocument: true,
       bankName: true, accountHolderName: true, accountNumber: true, ifscCode: true,
       emergencyContact: true, emergencyPhone: true,
-      lastLoginAt: true, createdAt: true,
+      lastLoginAt: true, createdAt: true, did: true,
     },
   });
   if (!driver) return null;
@@ -94,7 +94,7 @@ async function getVendorStaffDriver(id: string) {
       licenseNumber: true, licenseType: true, licenseExpiry: true, licenseDocument: true,
       bankName: true, accountHolderName: true, accountNumber: true, ifscCode: true,
       emergencyContact: true, emergencyPhone: true,
-      lastLoginAt: true, createdAt: true,
+      lastLoginAt: true, createdAt: true, did: true,
       vendors: { select: { id: true, businessName: true } },
     },
   });
