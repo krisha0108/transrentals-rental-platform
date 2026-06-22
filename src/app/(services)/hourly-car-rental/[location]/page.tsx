@@ -29,13 +29,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const [seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`hourly-car-rental:${params.location}`),
+    resolvePageMeta(`hourly-car-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('hourly-car-rental', params.location),
   ]);
   return {
     title: scContent?.metaTitle || seoDb?.metaTitle || `Hourly Car Rental in ${locationName} | Book with Driver | TransRentals`,
     description: scContent?.metaDescription || seoDb?.metaDescription || `Book hourly cab in ${locationName} with driver. Packages starting from 2 hrs. Driver + fuel included.`,
-    alternates: { canonical: `https://transrentals.in/hourly-car-rental/${params.location}` },
+    alternates: { canonical: `https://transrentals.in/hourly-car-rental/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Hourly Car Rental in ${locationName} | TransRentals`,
@@ -59,7 +59,7 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`hourly-car-rental:${params.location}`),
+    resolvePageMeta(`hourly-car-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('hourly-car-rental', params.location),
   ]);
 
@@ -86,14 +86,14 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
       </section>
 
       {/* Hero with live packages from admin */}
-      <HourlyCarBookingHero cityName={locationName} citySlug={params.location} />
+      <HourlyCarBookingHero cityName={locationName} citySlug={params.location.toLowerCase()} />
 
       {/* Other options */}
       <section className="py-12 bg-gray-50">
         <div className="container-custom">
           <h2 className="text-2xl font-bold text-center mb-8">More Options in {locationName}</h2>
           <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/self-drive-car-rentals/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/self-drive-car-rentals/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">Daily Self-Drive</h3>
               <p className="text-sm text-gray-600 mt-2">From ₹799/day</p>
             </Link>
@@ -101,7 +101,7 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
               <h3 className="font-bold">Airport Transfer</h3>
               <p className="text-sm text-gray-600 mt-2">From ₹499</p>
             </Link>
-            <Link href={`/outstation-car-rental/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/outstation-car-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">Outstation</h3>
               <p className="text-sm text-gray-600 mt-2">From ₹12/km</p>
             </Link>
@@ -115,7 +115,7 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
 
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="hourly-car-rental"
               cityName={locationName}
               stateCode={undefined}
@@ -126,7 +126,7 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
         serviceSlug="hourly-car-rental"
         description={`Book hourly cab in ${locationName} with driver. Packages starting from ₹149/hr.`}
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         faqs={[]}
         rating={4.6}
         reviewCount={1124}
@@ -136,7 +136,7 @@ export default async function HourlyCarLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="self-drive-car-rentals"
         parentName="Self Drive Car Rental"
         currentSlug="hourly-car-rental"

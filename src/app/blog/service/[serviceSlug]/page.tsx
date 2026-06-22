@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: ServiceBlogPageProps): Promis
       type: 'website',
     },
     alternates: {
-      canonical: `https://transrentals.in/blog/service/${params.serviceSlug}`,
+      canonical: `https://transrentals.in/blog/service/${params.serviceSlug.toLowerCase()}`,
     },
   };
 }
@@ -100,7 +100,7 @@ export default async function ServiceBlogPage({ params, searchParams }: ServiceB
         {categories.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-8">
             <Link
-              href={`/blog/service/${params.serviceSlug}`}
+              href={`/blog/service/${params.serviceSlug.toLowerCase()}`}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 !searchParams.category
                   ? 'bg-blue-600 text-white'
@@ -112,7 +112,7 @@ export default async function ServiceBlogPage({ params, searchParams }: ServiceB
             {categories.map((cat) => (
               <Link
                 key={cat.id}
-                href={`/blog/service/${params.serviceSlug}?category=${cat.slug}`}
+                href={`/blog/service/${params.serviceSlug.toLowerCase()}?category=${cat.slug}`}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   searchParams.category === cat.slug
                     ? 'bg-blue-600 text-white'
@@ -137,7 +137,7 @@ export default async function ServiceBlogPage({ params, searchParams }: ServiceB
             <BlogGrid posts={posts} />
             {meta.totalPages > 1 && (
               <div className="mt-10 pt-6 border-t border-gray-200">
-                <Pagination meta={meta} basePath={`/blog/service/${params.serviceSlug}`} />
+                <Pagination meta={meta} basePath={`/blog/service/${params.serviceSlug.toLowerCase()}`} />
               </div>
             )}
           </>
@@ -167,13 +167,13 @@ export default async function ServiceBlogPage({ params, searchParams }: ServiceB
             '@type': 'CollectionPage',
             name: `${service.name} Blog | TransRentals`,
             description: `Expert guides and tips for ${service.name}`,
-            url: `https://transrentals.in/blog/service/${params.serviceSlug}`,
+            url: `https://transrentals.in/blog/service/${params.serviceSlug.toLowerCase()}`,
             breadcrumb: {
               '@type': 'BreadcrumbList',
               itemListElement: [
                 { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
                 { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://transrentals.in/blog' },
-                { '@type': 'ListItem', position: 3, name: `${service.name} Blog`, item: `https://transrentals.in/blog/service/${params.serviceSlug}` },
+                { '@type': 'ListItem', position: 3, name: `${service.name} Blog`, item: `https://transrentals.in/blog/service/${params.serviceSlug.toLowerCase()}` },
               ],
             },
           }),

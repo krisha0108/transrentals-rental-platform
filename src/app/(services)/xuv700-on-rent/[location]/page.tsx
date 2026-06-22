@@ -34,13 +34,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`xuv700-on-rent:${params.location}`),
+    resolvePageMeta(`xuv700-on-rent:${params.location.toLowerCase()}`),
     getServiceCityContent('xuv700-on-rent', params.location),
   ]);
   return {
     title: scContent?.metaTitle || _seoDb?.metaTitle || formatPriceHighlight(`XUV700 on Rent in ${locationName} | @₹2999/Day | TransRentals`),
     description: scContent?.metaDescription || _seoDb?.metaDescription || formatPriceHighlight(`Rent Mahindra XUV700 without driver in ${locationName}. India's safest SUV with ADAS.`),
-    alternates: { canonical: `https://transrentals.in/xuv700-on-rent/${params.location}` },
+    alternates: { canonical: `https://transrentals.in/xuv700-on-rent/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `XUV700 on Rent in ${locationName} | TransRentals`,
@@ -57,7 +57,7 @@ export default async function XUV700LocationPage({ params }: PageProps) {
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`xuv700-on-rent:${params.location}`),
+    resolvePageMeta(`xuv700-on-rent:${params.location.toLowerCase()}`),
     getServiceCityContent('xuv700-on-rent', params.location),
   ]);
 
@@ -84,7 +84,7 @@ export default async function XUV700LocationPage({ params }: PageProps) {
 
       <SwiftRentalTypeHero
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         vehicleName="Mahindra XUV700"
         selfDrivePrice="₹2,999"
       />
@@ -109,16 +109,16 @@ export default async function XUV700LocationPage({ params }: PageProps) {
         <div className="container-custom">
           <h2 className="text-2xl font-bold text-center mb-8">Other SUVs in {locationName}</h2>
           <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/scorpio-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/scorpio-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">Scorpio</h3><p className="text-sm text-gray-600 mt-2">From ₹2,499/day</p>
             </Link>
-            <Link href={`/fortuner-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/fortuner-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">Fortuner</h3><p className="text-sm text-gray-600 mt-2">From ₹4,999/day</p>
             </Link>
-            <Link href={`/creta-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/creta-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">Creta</h3><p className="text-sm text-gray-600 mt-2">From ₹1,999/day</p>
             </Link>
-            <Link href={`/self-drive-suv-rental/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/self-drive-suv-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">All SUVs</h3><p className="text-sm text-gray-600 mt-2">View all</p>
             </Link>
           </div>
@@ -128,7 +128,7 @@ export default async function XUV700LocationPage({ params }: PageProps) {
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="xuv700-on-rent"
               cityName={locationName}
               stateCode={undefined}
@@ -139,7 +139,7 @@ export default async function XUV700LocationPage({ params }: PageProps) {
         serviceSlug="xuv700-on-rent"
         description={`Rent Mahindra XUV700 without driver in ${locationName} starting @₹1999/day.`}
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
@@ -147,7 +147,7 @@ export default async function XUV700LocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="self-drive-car-rentals"
         parentName="Self Drive Car Rental"
         currentSlug="xuv700-on-rent"

@@ -439,7 +439,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const avgDistance = packages[0]?.estimatedKm || 0;
   const avgTime = packages[0]?.estimatedDuration || '';
 
-  const _seoDb = await resolvePageMeta(`one-way-cab:${params.route}`);
+  const _seoDb = await resolvePageMeta(`one-way-cab:${params.route.toLowerCase()}`);
   return {
     title: _seoDb?.metaTitle || `${from.name} to ${to.name} Cab | One Way Taxi @₹${minPrice} | No Return Fare`,
     description: _seoDb?.metaDescription || `Book ${from.name} to ${to.name} one way cab (${avgDistance} km, ${avgTime}). Starting @₹${minPrice}. No return charges. Professional drivers. Instant booking. 24/7 support.`,
@@ -456,7 +456,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `${from.name} to ${to.name} Cab - One Way @₹${minPrice}`,
       description: `Travel ${avgDistance} km from ${from.name} to ${to.name}. Starting @₹${minPrice}. No return charges.`,
-      url: `https://transrentals.in/one-way-cab/${params.route}`,
+      url: `https://transrentals.in/one-way-cab/${params.route.toLowerCase()}`,
       type: 'website',
       images: [
         {
@@ -468,7 +468,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ],
     },
     alternates: {
-      canonical: `https://transrentals.in/one-way-cab/${params.route}`,
+      canonical: `https://transrentals.in/one-way-cab/${params.route.toLowerCase()}`,
     },
     robots: {
       index: true,
@@ -483,7 +483,7 @@ export default async function OneWayCabRoutePage({ params }: PageProps) {
   // Invalid route format (not "city-to-city") — check coming soon before redirecting
   if (!parsed) {
     if (COMING_SOON_SLUGS.has(params.route)) {
-      return <OneWayCabComingSoon label={routeSlugToLabel(params.route)} slug={params.route} />;
+      return <OneWayCabComingSoon label={routeSlugToLabel(params.route)} slug={params.route.toLowerCase()} />;
     }
     notFound();
   }
@@ -493,7 +493,7 @@ export default async function OneWayCabRoutePage({ params }: PageProps) {
   // Route not found in database — check coming soon before redirecting
   if (!routeData) {
     if (COMING_SOON_SLUGS.has(params.route)) {
-      return <OneWayCabComingSoon label={routeSlugToLabel(params.route)} slug={params.route} />;
+      return <OneWayCabComingSoon label={routeSlugToLabel(params.route)} slug={params.route.toLowerCase()} />;
     }
     notFound();
   }
@@ -564,7 +564,7 @@ export default async function OneWayCabRoutePage({ params }: PageProps) {
         packages={packages}
         fromCity={from.name}
         toCity={to.name}
-        routeSlug={params.route}
+        routeSlug={params.route.toLowerCase()}
       />
 
       {/* Popular Stops */}
@@ -645,7 +645,7 @@ export default async function OneWayCabRoutePage({ params }: PageProps) {
       <RouteReviews
         fromCity={from.name}
         toCity={to.name}
-        routeSlug={params.route}
+        routeSlug={params.route.toLowerCase()}
       />
 
       {/* FAQs */}
@@ -666,7 +666,7 @@ export default async function OneWayCabRoutePage({ params }: PageProps) {
         estimatedTime={avgTime}
         minPrice={minPrice}
         maxPrice={maxPrice}
-        pageUrl={`https://transrentals.in/one-way-cab/${params.route}`}
+        pageUrl={`https://transrentals.in/one-way-cab/${params.route.toLowerCase()}`}
         serviceType="one-way-cab"
       />
 
@@ -710,7 +710,7 @@ export default async function OneWayCabRoutePage({ params }: PageProps) {
               priceCurrency: 'INR',
               offerCount: 20,
               availability: 'https://schema.org/InStock',
-              url: `https://transrentals.in/one-way-cab/${params.route}`,
+              url: `https://transrentals.in/one-way-cab/${params.route.toLowerCase()}`,
               priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             },
           }),
@@ -741,7 +741,7 @@ export default async function OneWayCabRoutePage({ params }: PageProps) {
                 '@type': 'ListItem',
                 position: 3,
                 name: `${from.name} to ${to.name}`,
-                item: `https://transrentals.in/one-way-cab/${params.route}`,
+                item: `https://transrentals.in/one-way-cab/${params.route.toLowerCase()}`,
               },
             ],
           }),

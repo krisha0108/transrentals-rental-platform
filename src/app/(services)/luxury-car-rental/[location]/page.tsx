@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`luxury-car-rental:${params.location}`),
+    resolvePageMeta(`luxury-car-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('luxury-car-rental', params.location),
   ]);
   return {
@@ -68,13 +68,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ...(city.keywords || []).map(k => `luxury car ${k}`),
     ],
     alternates: {
-      canonical: `https://transrentals.in/luxury-car-rental/${params.location}`,
+      canonical: `https://transrentals.in/luxury-car-rental/${params.location.toLowerCase()}`,
     },
     openGraph: {
       title: `Luxury Car Rental in ${locationName} | BMW, Mercedes, Audi | TransRentals`,
       description: `Book luxury & exotic cars in ${locationName}. Premium vehicles with chauffeur service for weddings, corporate events, and special occasions.`,
       type: 'website',
-      url: `https://transrentals.in/luxury-car-rental/${params.location}`,
+      url: `https://transrentals.in/luxury-car-rental/${params.location.toLowerCase()}`,
       images: [{ url: `https://transrentals.in/api/og?service=luxury-car-rental&location=${encodeURIComponent(locationName)}`, width: 1200, height: 630, alt: `Luxury Car Rental in ${locationName}` }],
       locale: 'en_IN',
       siteName: 'TransRentals',
@@ -111,7 +111,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
           </div>
           <ComingSoonHero
             city={cityName}
-            citySlug={params.location}
+            citySlug={params.location.toLowerCase()}
             serviceSlug="luxury-car-rental"
             serviceName="Luxury Car Rental"
             themeColor="amber"
@@ -139,13 +139,13 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
         </div>
         <ComingSoonHero
           city={cityName}
-          citySlug={params.location}
+          citySlug={params.location.toLowerCase()}
           serviceSlug="luxury-car-rental"
           serviceName="Luxury Car Rental"
           themeColor="amber"
         />
         <NearbyActiveCities
-          currentCitySlug={params.location}
+          currentCitySlug={params.location.toLowerCase()}
           serviceSlug="luxury-car-rental"
           serviceName="Luxury Car Rental"
         />
@@ -174,7 +174,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
       {/* Luxury Booking Hero */}
       <LuxuryBookingHero
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
       />
 
       {/* Why Choose Luxury Cars in This City */}
@@ -358,7 +358,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <a
-              href={`/luxury-car-rental/${params.location}/book`}
+              href={`/luxury-car-rental/${params.location.toLowerCase()}/book`}
               className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-gray-900 px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300"
             >
               <Crown className="w-5 h-5" />
@@ -370,13 +370,13 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
 
       <ServiceAreasSection
         serviceSlug="luxury-car-rental"
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         cityName={locationName}
         serviceName="Luxury Car Rental"
       />
 
       <CrossServiceLinks
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         cityName={locationName}
         currentServiceSlug="luxury-car-rental"
       />
@@ -385,7 +385,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="luxury-car-rental"
         parentName="Luxury Car Rental"
         currentSlug="luxury-car-rental"
@@ -401,7 +401,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
         '@type': 'AutoRental',
         name: `Luxury Car Rental in ${locationName} — TransRentals`,
         description: `Rent luxury and exotic cars in ${locationName}. BMW, Mercedes, Audi, Ferrari, Lamborghini, Rolls-Royce with professional chauffeur.`,
-        url: `https://transrentals.in/luxury-car-rental/${params.location}`,
+        url: `https://transrentals.in/luxury-car-rental/${params.location.toLowerCase()}`,
         priceRange: '₹₹₹',
         areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
         provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
@@ -414,7 +414,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
           { '@type': 'ListItem', position: 2, name: 'Luxury Car Rental', item: 'https://transrentals.in/luxury-car-rental' },
-          { '@type': 'ListItem', position: 3, name: `Luxury Car Rental in ${locationName}`, item: `https://transrentals.in/luxury-car-rental/${params.location}` },
+          { '@type': 'ListItem', position: 3, name: `Luxury Car Rental in ${locationName}`, item: `https://transrentals.in/luxury-car-rental/${params.location.toLowerCase()}` },
         ],
       })}} />
       {/* FAQPage Schema */}

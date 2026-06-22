@@ -62,7 +62,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`tempo-traveller:${params.location}`),
+    resolvePageMeta(`tempo-traveller:${params.location.toLowerCase()}`),
     getServiceCityContent('tempo-traveller', params.location),
   ]);
   return {
@@ -84,7 +84,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: `Tempo Traveller in ${locationName} | 12-17 Seater | TransRentals`,
       description: `Book Tempo Traveller in ${locationName}. AC/Non-AC vehicles for pilgrimages, family trips, and corporate events.`,
       type: 'website',
-      url: `https://transrentals.in/tempo-traveller/${params.location}`,
+      url: `https://transrentals.in/tempo-traveller/${params.location.toLowerCase()}`,
       images: [
         {
           url: 'https://transrentals.in/images/og/tempo-traveller.jpg',
@@ -97,7 +97,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       siteName: 'TransRentals',
     },
     alternates: {
-      canonical: `https://transrentals.in/tempo-traveller/${params.location}`,
+      canonical: `https://transrentals.in/tempo-traveller/${params.location.toLowerCase()}`,
     },
     twitter: {
       card: 'summary_large_image' as const,
@@ -134,7 +134,7 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
           </div>
           <ComingSoonHero
             city={cityName}
-            citySlug={params.location}
+            citySlug={params.location.toLowerCase()}
             serviceSlug="tempo-traveller"
             serviceName="Tempo Traveller"
             themeColor="blue"
@@ -152,7 +152,7 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
   const displayFAQs = cityFAQs.length > 0 ? cityFAQs : TEMPO_FALLBACK_FAQS;
 
   const [seoData, tempoFleet, scContent] = await Promise.all([
-    resolvePageMeta(`tempo-traveller:${params.location}`),
+    resolvePageMeta(`tempo-traveller:${params.location.toLowerCase()}`),
     prisma.vehicle_models.findMany({
       where: {
         isActive: true,
@@ -360,7 +360,7 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="tempo-traveller"
               cityName={locationName}
               stateCode={city?.stateCode}
@@ -408,7 +408,7 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
             '@type': 'LocalBusiness',
             name: `Tempo Traveller in ${locationName} — TransRentals`,
             description: `Rent 12 to 17 seater AC Tempo Travellers in ${locationName} for group travel, pilgrimages, corporate outings, and weddings. Verified drivers included.`,
-            url: `https://transrentals.in/tempo-traveller/${params.location}`,
+            url: `https://transrentals.in/tempo-traveller/${params.location.toLowerCase()}`,
             areaServed: { '@type': 'City', name: locationName },
             provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
             priceRange: '₹₹',
@@ -434,7 +434,7 @@ export default async function TempoTravellerLocationPage({ params }: PageProps) 
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="bus-rental"
         parentName="Bus Rental"
         currentSlug="tempo-traveller"

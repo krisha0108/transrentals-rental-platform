@@ -33,13 +33,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`26-seater-bus:${params.location}`),
+    resolvePageMeta(`26-seater-bus:${params.location.toLowerCase()}`),
     getServiceCityContent('26-seater-bus', params.location),
   ]);
   return {
     title: scContent?.metaTitle || _seoDb?.metaTitle || `26 Seater Bus in ${locationName} | Mini Bus @₹28/km | TransRentals`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Book 26 seater bus in ${locationName}. AC/Non-AC with driver for weddings, corporate events.`,
-    alternates: { canonical: `https://transrentals.in/26-seater-bus/${params.location}` },
+    alternates: { canonical: `https://transrentals.in/26-seater-bus/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `26 Seater Bus in ${locationName} | TransRentals`,
@@ -56,7 +56,7 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`26-seater-bus:${params.location}`),
+    resolvePageMeta(`26-seater-bus:${params.location.toLowerCase()}`),
     getServiceCityContent('26-seater-bus', params.location),
   ]);
 
@@ -136,16 +136,16 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
         <div className="container-custom">
           <h2 className="text-2xl font-bold text-center mb-8">Other Options in {locationName}</h2>
           <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/12-seater-tempo-traveller/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/12-seater-tempo-traveller/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">12 Seater</h3><p className="text-sm text-gray-600 mt-2">From ₹18/km</p>
             </Link>
-            <Link href={`/17-seater-tempo-traveller/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/17-seater-tempo-traveller/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">17 Seater</h3><p className="text-sm text-gray-600 mt-2">From ₹20/km</p>
             </Link>
-            <Link href={`/20-seater-tempo-traveller/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/20-seater-tempo-traveller/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">20 Seater</h3><p className="text-sm text-gray-600 mt-2">From ₹22/km</p>
             </Link>
-            <Link href={`/bus-rental/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/bus-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">All Buses</h3><p className="text-sm text-gray-600 mt-2">View all</p>
             </Link>
           </div>
@@ -155,7 +155,7 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="26-seater-bus"
               cityName={locationName}
               stateCode={undefined}
@@ -166,7 +166,7 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
         serviceSlug="26-seater-bus"
         description={`Book 26 seater bus in ${locationName} starting @₹25/km with driver.`}
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
@@ -174,7 +174,7 @@ export default async function TwentySixSeaterLocationPage({ params }: PageProps)
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="bus-rental"
         parentName="Bus Rental"
         currentSlug="26-seater-bus"

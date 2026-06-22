@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || params.location.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`self-drive-car-rentals:${params.location}`),
+    resolvePageMeta(`self-drive-car-rentals:${params.location.toLowerCase()}`),
     getServiceCityContent('self-drive-car-rentals', params.location),
   ]);
   return {
@@ -73,7 +73,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `Self Drive Car Rental in ${locationName} - Starting @₹899/Day`,
       description: `Book self-drive cars in ${locationName}. No driver needed. Complete freedom to drive yourself.`,
-      url: `https://transrentals.in/self-drive-car-rentals/${params.location}`,
+      url: `https://transrentals.in/self-drive-car-rentals/${params.location.toLowerCase()}`,
       images: [{ url: 'https://transrentals.in/images/og/self-drive.jpg', width: 1200, height: 630, alt: `Self Drive Car Rental in ${locationName}` }],
       type: 'website',
       locale: 'en_IN',
@@ -86,7 +86,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       images: ['https://transrentals.in/images/og/self-drive.jpg'],
     },
     alternates: {
-      canonical: `https://transrentals.in/self-drive-car-rentals/${params.location}`,
+      canonical: `https://transrentals.in/self-drive-car-rentals/${params.location.toLowerCase()}`,
     },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
   };
@@ -113,7 +113,7 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
           </div>
           <ComingSoonHero
             city={cityName}
-            citySlug={params.location}
+            citySlug={params.location.toLowerCase()}
             serviceSlug="self-drive-car-rentals"
             serviceName="Self Drive Car Rentals"
             themeColor="blue"
@@ -162,14 +162,14 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
 
         <ComingSoonHero
           city={cityName}
-          citySlug={params.location}
+          citySlug={params.location.toLowerCase()}
           serviceSlug="self-drive-car-rentals"
           serviceName="Self Drive Car Rental"
           themeColor="blue"
         />
 
         <NearbyActiveCities
-          currentCitySlug={params.location}
+          currentCitySlug={params.location.toLowerCase()}
           serviceSlug="self-drive-car-rentals"
           serviceName="Self Drive Car Rental"
         />
@@ -308,7 +308,7 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['self-drive-car-rentals'] || [];
 
   const [seoData, liveRating, scContent] = await Promise.all([
-    resolvePageMeta(`self-drive-car-rentals:${params.location}`),
+    resolvePageMeta(`self-drive-car-rentals:${params.location.toLowerCase()}`),
     getServiceLocationRating('self-drive-car-rentals', params.location),
     getServiceCityContent('self-drive-car-rentals', params.location),
   ]);
@@ -317,7 +317,7 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
     <>
       <CarSearchHero
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
         pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
       />
@@ -348,7 +348,7 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
       {/* Available Cars - Dynamic from Database */}
       <ServiceFleetDisplay
         serviceSlug="self-drive-car-rentals"
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         title={`Self Drive Cars Available in ${locationName}`}
         showCategories={true}
         limit={12}
@@ -360,7 +360,7 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="car-rental"
         parentName="Car Rental"
         currentSlug="self-drive-car-rentals"
@@ -377,7 +377,7 @@ export default async function SelfDriveCarRentalLocationPage({ params }: PagePro
         name={`Self Drive Car Rental in ${locationName} — TransRentals`}
         description={`Rent self-drive cars in ${locationName} without a driver. Hatchbacks, sedans, SUVs starting @₹899/day.`}
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         serviceSlug="self-drive-car-rentals"
         vehicleTypes={['Car', 'SUV', 'Hatchback', 'Sedan']}
         rating={liveRating?.ratingValue}

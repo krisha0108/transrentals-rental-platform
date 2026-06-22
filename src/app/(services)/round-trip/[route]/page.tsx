@@ -157,7 +157,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const distance = routePackage?.estimatedKm || 0;
     const roundTripPrice = routePackage ? Math.round(routePackage.basePrice * routePackage.returnMultiplier) : 0;
 
-    const _seoDb = await resolvePageMeta(`round-trip:${params.route}`);
+    const _seoDb = await resolvePageMeta(`round-trip:${params.route.toLowerCase()}`);
     return {
       title: _seoDb?.metaTitle || `${fromCity} to ${toCity} Round Trip Cab | ${distance}km @₹${roundTripPrice} | Book Return Trip`,
       description: _seoDb?.metaDescription || `Book round trip cab from ${fromCity} to ${toCity} and back. ${distance}km round trip @₹${roundTripPrice}. AC sedan, SUV, Innova available. Professional driver, all charges included.`,
@@ -180,7 +180,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       openGraph: {
         title: `${fromCity} to ${toCity} Round Trip Cab - Book Return Trip @₹${roundTripPrice}`,
         description: `Book round trip cab from ${fromCity} to ${toCity} and back. ${distance}km AC cabs with professional driver.`,
-        url: `https://transrentals.in/round-trip/${params.route}`,
+        url: `https://transrentals.in/round-trip/${params.route.toLowerCase()}`,
         type: 'website',
         images: [
           {
@@ -197,7 +197,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         description: `Book return trip cab from ${fromCity} to ${toCity}. ${distance}km round trip with AC cars.`,
       },
       alternates: {
-        canonical: `https://transrentals.in/round-trip/${params.route}`,
+        canonical: `https://transrentals.in/round-trip/${params.route.toLowerCase()}`,
       },
     };
   } catch (error) {
@@ -469,7 +469,7 @@ export default async function RoundTripRoutePage({ params }: PageProps) {
           distance={routePackage.estimatedKm * 2}
           estimatedTime={routePackage.estimatedDuration}
           minPrice={roundTripPrice}
-          pageUrl={`https://transrentals.in/round-trip/${params.route}`}
+          pageUrl={`https://transrentals.in/round-trip/${params.route.toLowerCase()}`}
           serviceType="round-trip"
         />
 
@@ -511,7 +511,7 @@ export default async function RoundTripRoutePage({ params }: PageProps) {
                 price: roundTripPrice,
                 priceCurrency: 'INR',
                 availability: 'https://schema.org/InStock',
-                url: `https://transrentals.in/round-trip/${params.route}`,
+                url: `https://transrentals.in/round-trip/${params.route.toLowerCase()}`,
                 priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
               },
             }),
@@ -542,7 +542,7 @@ export default async function RoundTripRoutePage({ params }: PageProps) {
                   '@type': 'ListItem',
                   position: 3,
                   name: `${fromLocation.name} to ${toLocation.name}`,
-                  item: `https://transrentals.in/round-trip/${params.route}`,
+                  item: `https://transrentals.in/round-trip/${params.route.toLowerCase()}`,
                 },
               ],
             }),

@@ -30,12 +30,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title,
     description,
-    alternates: { canonical: `https://transrentals.in/packers-and-movers/${params.location}/${params.sublocation}` },
+    alternates: { canonical: `https://transrentals.in/packers-and-movers/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}` },
     openGraph: {
       title: `Packers and Movers in ${sl.name}, ${cityName} | TransRentals`,
       description,
       type: 'website',
-      url: `https://transrentals.in/packers-and-movers/${params.location}/${params.sublocation}`,
+      url: `https://transrentals.in/packers-and-movers/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
       images: [{ url: `https://transrentals.in/api/og?service=packers-and-movers&location=${encodeURIComponent(cityName)}`, width: 1200, height: 630 }],
       locale: 'en_IN',
       siteName: 'TransRentals',
@@ -77,7 +77,7 @@ export default function PackersSubLocationPage({ params }: PageProps) {
             <span className="mx-2">/</span>
             <a href="/packers-and-movers" className="hover:text-primary">Packers & Movers</a>
             <span className="mx-2">/</span>
-            <a href={`/packers-and-movers/${params.location}`} className="hover:text-primary">{cityName}</a>
+            <a href={`/packers-and-movers/${params.location.toLowerCase()}`} className="hover:text-primary">{cityName}</a>
             <span className="mx-2">/</span>
             <span className="text-gray-900 font-medium">{sl.name}</span>
           </nav>
@@ -96,7 +96,7 @@ export default function PackersSubLocationPage({ params }: PageProps) {
           <p className="text-lg text-gray-600 mb-6 max-w-2xl">{sl.description}</p>
           <div className="flex flex-wrap gap-4">
             <Link
-              href={`/packers-and-movers/${params.location}`}
+              href={`/packers-and-movers/${params.location.toLowerCase()}`}
               className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-teal-600 hover:text-teal-700 transition-colors"
             >
               All Movers in {cityName}
@@ -176,11 +176,11 @@ export default function PackersSubLocationPage({ params }: PageProps) {
           <div className="container-custom max-w-4xl">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Packers and Movers in Other Areas of {cityName}</h2>
             <div className="flex flex-wrap gap-3">
-              <Link href={`/packers-and-movers/${params.location}`} className="inline-flex items-center gap-1 px-4 py-2 bg-teal-600 text-white rounded-full text-sm font-medium hover:bg-teal-700 transition-colors">
+              <Link href={`/packers-and-movers/${params.location.toLowerCase()}`} className="inline-flex items-center gap-1 px-4 py-2 bg-teal-600 text-white rounded-full text-sm font-medium hover:bg-teal-700 transition-colors">
                 ← All Movers in {cityName}
               </Link>
               {siblings.map((s) => (
-                <Link key={s.slug} href={`/packers-and-movers/${params.location}/${s.slug}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-full text-sm font-medium hover:border-teal-600 hover:text-teal-700 transition-colors">
+                <Link key={s.slug} href={`/packers-and-movers/${params.location.toLowerCase()}/${s.slug}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-full text-sm font-medium hover:border-teal-600 hover:text-teal-700 transition-colors">
                   {s.name}
                 </Link>
               ))}
@@ -194,7 +194,7 @@ export default function PackersSubLocationPage({ params }: PageProps) {
         '@context': 'https://schema.org', '@type': 'MovingCompany',
         name: `Packers and Movers in ${sl.name}, ${cityName} — TransRentals`,
         description: sl.description,
-        url: `https://transrentals.in/packers-and-movers/${params.location}/${params.sublocation}`,
+        url: `https://transrentals.in/packers-and-movers/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
         areaServed: { '@type': 'Place', name: `${sl.name}, ${cityName}`, addressCountry: 'IN' },
         provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
         priceRange: '₹₹',
@@ -204,8 +204,8 @@ export default function PackersSubLocationPage({ params }: PageProps) {
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
           { '@type': 'ListItem', position: 2, name: 'Packers and Movers', item: 'https://transrentals.in/packers-and-movers' },
-          { '@type': 'ListItem', position: 3, name: `Packers and Movers in ${cityName}`, item: `https://transrentals.in/packers-and-movers/${params.location}` },
-          { '@type': 'ListItem', position: 4, name: `Packers and Movers in ${sl.name}`, item: `https://transrentals.in/packers-and-movers/${params.location}/${params.sublocation}` },
+          { '@type': 'ListItem', position: 3, name: `Packers and Movers in ${cityName}`, item: `https://transrentals.in/packers-and-movers/${params.location.toLowerCase()}` },
+          { '@type': 'ListItem', position: 4, name: `Packers and Movers in ${sl.name}`, item: `https://transrentals.in/packers-and-movers/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}` },
         ],
       })}} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

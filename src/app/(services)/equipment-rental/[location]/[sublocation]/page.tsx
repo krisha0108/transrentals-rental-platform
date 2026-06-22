@@ -207,12 +207,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
       title,
       description,
-      alternates: { canonical: `https://transrentals.in/equipment-rental/${params.location}/${params.sublocation}` },
+      alternates: { canonical: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}` },
       openGraph: {
         title,
         description,
         type: 'website',
-        url: `https://transrentals.in/equipment-rental/${params.location}/${params.sublocation}`,
+        url: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
         images: [{ url: `https://transrentals.in/api/og?service=equipment-rental&location=${encodeURIComponent(cityName)}`, width: 1200, height: 630 }],
         locale: 'en_IN',
         siteName: 'TransRentals',
@@ -231,12 +231,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title,
     description,
-    alternates: { canonical: `https://transrentals.in/equipment-rental/${params.location}/${params.sublocation}` },
+    alternates: { canonical: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}` },
     openGraph: {
       title: `Equipment Rental in ${sl.name}, ${cityName} | TransRentals`,
       description,
       type: 'website',
-      url: `https://transrentals.in/equipment-rental/${params.location}/${params.sublocation}`,
+      url: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
       images: [{ url: `https://transrentals.in/api/og?service=equipment-rental&location=${encodeURIComponent(cityName)}`, width: 1200, height: 630 }],
       locale: 'en_IN',
       siteName: 'TransRentals',
@@ -275,7 +275,7 @@ export default function EquipmentSubLocationPage({ params }: PageProps) {
               <span className="mx-2">/</span>
               <a href="/equipment-rental" className="hover:text-primary">Equipment Rental</a>
               <span className="mx-2">/</span>
-              <a href={`/equipment-rental/${params.location}`} className="hover:text-primary">{cityName}</a>
+              <a href={`/equipment-rental/${params.location.toLowerCase()}`} className="hover:text-primary">{cityName}</a>
               <span className="mx-2">/</span>
               <span className="text-gray-900 font-medium">{eqType.name}</span>
             </nav>
@@ -295,7 +295,7 @@ export default function EquipmentSubLocationPage({ params }: PageProps) {
             <p className="text-2xl font-bold text-yellow-600 mb-6">Starting {eqType.startingPrice}<span className="text-base font-normal text-gray-500">{eqType.priceUnit} (operator included)</span></p>
             <div className="flex flex-wrap gap-4">
               <Link
-                href={`/equipment-rental/${params.location}`}
+                href={`/equipment-rental/${params.location.toLowerCase()}`}
                 className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-yellow-600 hover:text-yellow-700 transition-colors"
               >
                 All Equipment in {cityName}
@@ -361,11 +361,11 @@ export default function EquipmentSubLocationPage({ params }: PageProps) {
           <div className="container-custom max-w-4xl">
             <h2 className="text-base font-bold text-gray-800 mb-4">Other Equipment on Rent in {cityName}</h2>
             <div className="flex flex-wrap gap-3">
-              <Link href={`/equipment-rental/${params.location}`} className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white rounded-full text-sm font-medium hover:bg-yellow-700 transition-colors">
+              <Link href={`/equipment-rental/${params.location.toLowerCase()}`} className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white rounded-full text-sm font-medium hover:bg-yellow-700 transition-colors">
                 ← All Equipment in {cityName}
               </Link>
               {otherTypes.map((t) => (
-                <Link key={t} href={`/equipment-rental/${params.location}/${t}`} className="inline-flex items-center px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-yellow-500 hover:text-yellow-700 transition-colors">
+                <Link key={t} href={`/equipment-rental/${params.location.toLowerCase()}/${t}`} className="inline-flex items-center px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-yellow-500 hover:text-yellow-700 transition-colors">
                   {EQUIPMENT_TYPES[t].name}
                 </Link>
               ))}
@@ -379,7 +379,7 @@ export default function EquipmentSubLocationPage({ params }: PageProps) {
             <h2 className="text-base font-bold text-gray-800 mb-4">{eqType.name} in Other Cities</h2>
             <div className="flex flex-wrap gap-3">
               {TOP_20_CITIES.filter((c) => c.slug !== params.location).slice(0, 12).map((city) => (
-                <Link key={city.slug} href={`/equipment-rental/${city.slug}/${params.sublocation}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-yellow-500 hover:text-yellow-700 transition-colors">
+                <Link key={city.slug} href={`/equipment-rental/${city.slug}/${params.sublocation.toLowerCase()}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-yellow-500 hover:text-yellow-700 transition-colors">
                   {eqType.name.split(' ')[0]} in {city.name}
                 </Link>
               ))}
@@ -393,7 +393,7 @@ export default function EquipmentSubLocationPage({ params }: PageProps) {
           name: `${eqType.name} in ${cityName}`,
           description: eqType.description,
           serviceType: eqType.fullName,
-          url: `https://transrentals.in/equipment-rental/${params.location}/${params.sublocation}`,
+          url: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
           provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
           areaServed: { '@type': 'City', name: cityName, addressCountry: 'IN' },
           offers: { '@type': 'Offer', priceCurrency: 'INR', price: parseFloat(eqType.startingPrice.replace('₹', '').replace(',', '')) },
@@ -403,8 +403,8 @@ export default function EquipmentSubLocationPage({ params }: PageProps) {
           itemListElement: [
             { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
             { '@type': 'ListItem', position: 2, name: 'Equipment Rental', item: 'https://transrentals.in/equipment-rental' },
-            { '@type': 'ListItem', position: 3, name: `Equipment Rental in ${cityName}`, item: `https://transrentals.in/equipment-rental/${params.location}` },
-            { '@type': 'ListItem', position: 4, name: `${eqType.name} in ${cityName}`, item: `https://transrentals.in/equipment-rental/${params.location}/${params.sublocation}` },
+            { '@type': 'ListItem', position: 3, name: `Equipment Rental in ${cityName}`, item: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}` },
+            { '@type': 'ListItem', position: 4, name: `${eqType.name} in ${cityName}`, item: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}` },
           ],
         })}} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -435,7 +435,7 @@ export default function EquipmentSubLocationPage({ params }: PageProps) {
             <span className="mx-2">/</span>
             <a href="/equipment-rental" className="hover:text-primary">Equipment Rental</a>
             <span className="mx-2">/</span>
-            <a href={`/equipment-rental/${params.location}`} className="hover:text-primary">{cityName}</a>
+            <a href={`/equipment-rental/${params.location.toLowerCase()}`} className="hover:text-primary">{cityName}</a>
             <span className="mx-2">/</span>
             <span className="text-gray-900 font-medium">{sl.name}</span>
           </nav>
@@ -454,7 +454,7 @@ export default function EquipmentSubLocationPage({ params }: PageProps) {
           <p className="text-lg text-gray-600 mb-6 max-w-2xl">{sl.description}</p>
           <div className="flex flex-wrap gap-4">
             <Link
-              href={`/equipment-rental/${params.location}`}
+              href={`/equipment-rental/${params.location.toLowerCase()}`}
               className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-yellow-600 hover:text-yellow-700 transition-colors"
             >
               All Equipment in {cityName}
@@ -493,7 +493,7 @@ export default function EquipmentSubLocationPage({ params }: PageProps) {
           <h2 className="text-base font-bold text-gray-800 mb-4">Equipment by Type in {cityName}</h2>
           <div className="flex flex-wrap gap-3">
             {EQUIPMENT_TYPE_SLUGS.map((t) => (
-              <Link key={t} href={`/equipment-rental/${params.location}/${t}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-yellow-500 hover:text-yellow-700 transition-colors">
+              <Link key={t} href={`/equipment-rental/${params.location.toLowerCase()}/${t}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-yellow-500 hover:text-yellow-700 transition-colors">
                 {EQUIPMENT_TYPES[t].icon} {EQUIPMENT_TYPES[t].name}
               </Link>
             ))}
@@ -525,11 +525,11 @@ export default function EquipmentSubLocationPage({ params }: PageProps) {
           <div className="container-custom max-w-4xl">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Equipment Rental in Other Areas of {cityName}</h2>
             <div className="flex flex-wrap gap-3">
-              <Link href={`/equipment-rental/${params.location}`} className="inline-flex items-center gap-1 px-4 py-2 bg-yellow-600 text-white rounded-full text-sm font-medium hover:bg-yellow-700 transition-colors">
+              <Link href={`/equipment-rental/${params.location.toLowerCase()}`} className="inline-flex items-center gap-1 px-4 py-2 bg-yellow-600 text-white rounded-full text-sm font-medium hover:bg-yellow-700 transition-colors">
                 ← All Equipment in {cityName}
               </Link>
               {siblings.map((s) => (
-                <Link key={s.slug} href={`/equipment-rental/${params.location}/${s.slug}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-full text-sm font-medium hover:border-yellow-600 hover:text-yellow-700 transition-colors">
+                <Link key={s.slug} href={`/equipment-rental/${params.location.toLowerCase()}/${s.slug}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-full text-sm font-medium hover:border-yellow-600 hover:text-yellow-700 transition-colors">
                   {s.name}
                 </Link>
               ))}
@@ -543,7 +543,7 @@ export default function EquipmentSubLocationPage({ params }: PageProps) {
         '@context': 'https://schema.org', '@type': 'LocalBusiness',
         name: `Equipment Rental in ${sl.name}, ${cityName} — TransRentals`,
         description: sl.description,
-        url: `https://transrentals.in/equipment-rental/${params.location}/${params.sublocation}`,
+        url: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
         areaServed: { '@type': 'Place', name: `${sl.name}, ${cityName}`, addressCountry: 'IN' },
         provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
         priceRange: '₹₹',
@@ -553,8 +553,8 @@ export default function EquipmentSubLocationPage({ params }: PageProps) {
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
           { '@type': 'ListItem', position: 2, name: 'Equipment Rental', item: 'https://transrentals.in/equipment-rental' },
-          { '@type': 'ListItem', position: 3, name: `Equipment Rental in ${cityName}`, item: `https://transrentals.in/equipment-rental/${params.location}` },
-          { '@type': 'ListItem', position: 4, name: `Equipment Rental in ${sl.name}`, item: `https://transrentals.in/equipment-rental/${params.location}/${params.sublocation}` },
+          { '@type': 'ListItem', position: 3, name: `Equipment Rental in ${cityName}`, item: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}` },
+          { '@type': 'ListItem', position: 4, name: `Equipment Rental in ${sl.name}`, item: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}` },
         ],
       })}} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

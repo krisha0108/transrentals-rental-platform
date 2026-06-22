@@ -537,7 +537,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title,
     description,
-    alternates: { canonical: `https://transrentals.in/bike-on-rent/${params.location}/${params.sublocation}/${params.model}` },
+    alternates: { canonical: `https://transrentals.in/bike-on-rent/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}/${params.model.toLowerCase()}` },
     keywords: [
       `${makeData.name} ${modelData.name} on rent in ${cityName}`,
       `rent ${makeData.name.toLowerCase()} ${modelData.name.toLowerCase()} ${cityName.toLowerCase()}`,
@@ -548,7 +548,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title,
       description,
       type: 'website',
-      url: `https://transrentals.in/bike-on-rent/${params.location}/${params.sublocation}/${params.model}`,
+      url: `https://transrentals.in/bike-on-rent/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}/${params.model.toLowerCase()}`,
       images: [{ url: `https://transrentals.in/api/og?service=bike-on-rent&location=${encodeURIComponent(cityName)}`, width: 1200, height: 630 }],
       locale: 'en_IN',
       siteName: 'TransRentals',
@@ -583,9 +583,9 @@ export default function BikeModelPage({ params }: PageProps) {
             <span>/</span>
             <a href="/bike-on-rent" className="hover:text-primary">Bike on Rent</a>
             <span>/</span>
-            <a href={`/bike-on-rent/${params.location}`} className="hover:text-primary">{cityName}</a>
+            <a href={`/bike-on-rent/${params.location.toLowerCase()}`} className="hover:text-primary">{cityName}</a>
             <span>/</span>
-            <a href={`/bike-on-rent/${params.location}/${params.sublocation}`} className="hover:text-primary">{makeData.name}</a>
+            <a href={`/bike-on-rent/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`} className="hover:text-primary">{makeData.name}</a>
             <span>/</span>
             <span className="text-gray-900 font-medium">{modelData.name}</span>
           </nav>
@@ -612,7 +612,7 @@ export default function BikeModelPage({ params }: PageProps) {
             ))}
           </div>
           <div className="flex flex-wrap gap-4">
-            <Link href={`/bike-on-rent/${params.location}`} className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-blue-600 hover:text-blue-700 transition-colors">
+            <Link href={`/bike-on-rent/${params.location.toLowerCase()}`} className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-blue-600 hover:text-blue-700 transition-colors">
               All Bikes in {cityName}
             </Link>
           </div>
@@ -703,11 +703,11 @@ export default function BikeModelPage({ params }: PageProps) {
           <div className="container-custom max-w-4xl">
             <h2 className="text-base font-bold text-gray-800 mb-4">Other {makeData.name} Bikes on Rent in {cityName}</h2>
             <div className="flex flex-wrap gap-3">
-              <Link href={`/bike-on-rent/${params.location}/${params.sublocation}`} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors">
+              <Link href={`/bike-on-rent/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors">
                 ← All {makeData.name} in {cityName}
               </Link>
               {otherModels.map(([modelSlug, model]) => (
-                <Link key={modelSlug} href={`/bike-on-rent/${params.location}/${params.sublocation}/${modelSlug}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-blue-500 hover:text-blue-700 transition-colors">
+                <Link key={modelSlug} href={`/bike-on-rent/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}/${modelSlug}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-blue-500 hover:text-blue-700 transition-colors">
                   {makeData.name} {model.name} — ₹{model.pricePerDay}/day
                 </Link>
               ))}
@@ -721,11 +721,11 @@ export default function BikeModelPage({ params }: PageProps) {
         <div className="container-custom max-w-4xl">
           <h2 className="text-base font-bold text-gray-800 mb-4">Other Bike Brands on Rent in {cityName}</h2>
           <div className="flex flex-wrap gap-3">
-            <Link href={`/bike-on-rent/${params.location}`} className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors">
+            <Link href={`/bike-on-rent/${params.location.toLowerCase()}`} className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors">
               ← All Bikes in {cityName}
             </Link>
             {otherMakes.map((makeSlug) => (
-              <Link key={makeSlug} href={`/bike-on-rent/${params.location}/${makeSlug}`} className="inline-flex items-center px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-blue-500 hover:text-blue-700 transition-colors">
+              <Link key={makeSlug} href={`/bike-on-rent/${params.location.toLowerCase()}/${makeSlug}`} className="inline-flex items-center px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-blue-500 hover:text-blue-700 transition-colors">
                 {BIKE_MAKES[makeSlug].name} Bikes
               </Link>
             ))}
@@ -739,7 +739,7 @@ export default function BikeModelPage({ params }: PageProps) {
           <h2 className="text-base font-bold text-gray-800 mb-4">{makeData.name} {modelData.name} on Rent in Other Cities</h2>
           <div className="flex flex-wrap gap-3">
             {otherCities.map((city) => (
-              <Link key={city.slug} href={`/bike-on-rent/${city.slug}/${params.sublocation}/${params.model}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-blue-500 hover:text-blue-700 transition-colors">
+              <Link key={city.slug} href={`/bike-on-rent/${city.slug}/${params.sublocation.toLowerCase()}/${params.model.toLowerCase()}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-full text-sm font-medium hover:border-blue-500 hover:text-blue-700 transition-colors">
                 {modelData.name} in {city.name}
               </Link>
             ))}
@@ -768,9 +768,9 @@ export default function BikeModelPage({ params }: PageProps) {
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
           { '@type': 'ListItem', position: 2, name: 'Bike on Rent', item: 'https://transrentals.in/bike-on-rent' },
-          { '@type': 'ListItem', position: 3, name: `Bike Rental in ${cityName}`, item: `https://transrentals.in/bike-on-rent/${params.location}` },
-          { '@type': 'ListItem', position: 4, name: `${makeData.name} in ${cityName}`, item: `https://transrentals.in/bike-on-rent/${params.location}/${params.sublocation}` },
-          { '@type': 'ListItem', position: 5, name: `${makeData.name} ${modelData.name} in ${cityName}`, item: `https://transrentals.in/bike-on-rent/${params.location}/${params.sublocation}/${params.model}` },
+          { '@type': 'ListItem', position: 3, name: `Bike Rental in ${cityName}`, item: `https://transrentals.in/bike-on-rent/${params.location.toLowerCase()}` },
+          { '@type': 'ListItem', position: 4, name: `${makeData.name} in ${cityName}`, item: `https://transrentals.in/bike-on-rent/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}` },
+          { '@type': 'ListItem', position: 5, name: `${makeData.name} ${modelData.name} in ${cityName}`, item: `https://transrentals.in/bike-on-rent/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}/${params.model.toLowerCase()}` },
         ],
       })}} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

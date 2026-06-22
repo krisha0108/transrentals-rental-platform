@@ -33,13 +33,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`generator-on-rent:${params.location}`),
+    resolvePageMeta(`generator-on-rent:${params.location.toLowerCase()}`),
     getServiceCityContent('generator-on-rent', params.location),
   ]);
   return {
     title: scContent?.metaTitle || _seoDb?.metaTitle || `Generator on Rent in ${locationName} | DG Set @₹1500/Day | TransRentals`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire generator in ${locationName} for events, construction, industrial backup. 5KVA to 500KVA.`,
-    alternates: { canonical: `https://transrentals.in/generator-on-rent/${params.location}` },
+    alternates: { canonical: `https://transrentals.in/generator-on-rent/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Generator on Rent in ${locationName} | TransRentals`,
@@ -56,7 +56,7 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`generator-on-rent:${params.location}`),
+    resolvePageMeta(`generator-on-rent:${params.location.toLowerCase()}`),
     getServiceCityContent('generator-on-rent', params.location),
   ]);
 
@@ -113,16 +113,16 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
         <div className="container-custom">
           <h2 className="text-2xl font-bold text-center mb-8">Other Equipment in {locationName}</h2>
           <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/jcb-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/jcb-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">JCB</h3><p className="text-sm text-gray-600 mt-2">From ₹4,000/day</p>
             </Link>
-            <Link href={`/crane-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/crane-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">Crane</h3><p className="text-sm text-gray-600 mt-2">From ₹8,000/day</p>
             </Link>
-            <Link href={`/excavator-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/excavator-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">Excavator</h3><p className="text-sm text-gray-600 mt-2">From ₹5,000/day</p>
             </Link>
-            <Link href={`/equipment-rental/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/equipment-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">All Equipment</h3><p className="text-sm text-gray-600 mt-2">View all</p>
             </Link>
           </div>
@@ -132,7 +132,7 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="generator-on-rent"
               cityName={locationName}
               stateCode={undefined}
@@ -143,7 +143,7 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
         serviceSlug="generator-on-rent"
         description={`Hire generator in ${locationName} starting @₹999/day. Silent DG sets for events & construction.`}
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
@@ -151,7 +151,7 @@ export default async function GeneratorLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="equipment-rental"
         parentName="Equipment Rental"
         currentSlug="generator-on-rent"

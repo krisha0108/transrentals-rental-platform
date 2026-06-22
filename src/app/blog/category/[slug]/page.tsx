@@ -40,7 +40,7 @@ export async function generateMetadata({
     title: `${category.name} - Travel Reflections | TransRentals`,
     description: category.description,
     alternates: {
-      canonical: `https://transrentals.in/blog/category/${params.slug}`,
+      canonical: `https://transrentals.in/blog/category/${params.slug.toLowerCase()}`,
     },
     openGraph: {
       title: `${category.name} - TransRentals Reflections`,
@@ -166,7 +166,7 @@ export default async function CategoryPage({
 
                   {meta.totalPages > 1 && (
                     <div className="mt-10 pt-6 border-t border-gray-200">
-                      <Pagination meta={meta} basePath={`/blog/category/${params.slug}`} />
+                      <Pagination meta={meta} basePath={`/blog/category/${params.slug.toLowerCase()}`} />
                     </div>
                   )}
                 </>

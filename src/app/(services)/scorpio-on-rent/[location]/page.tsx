@@ -33,13 +33,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`scorpio-on-rent:${params.location}`),
+    resolvePageMeta(`scorpio-on-rent:${params.location.toLowerCase()}`),
     getServiceCityContent('scorpio-on-rent', params.location),
   ]);
   return {
     title: scContent?.metaTitle || _seoDb?.metaTitle || `Scorpio on Rent in ${locationName} | @₹2499/Day | TransRentals`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Mahindra Scorpio without driver in ${locationName}. Rugged SUV for adventure & outstation.`,
-    alternates: { canonical: `https://transrentals.in/scorpio-on-rent/${params.location}` },
+    alternates: { canonical: `https://transrentals.in/scorpio-on-rent/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Scorpio on Rent in ${locationName} | TransRentals`,
@@ -56,7 +56,7 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`scorpio-on-rent:${params.location}`),
+    resolvePageMeta(`scorpio-on-rent:${params.location.toLowerCase()}`),
     getServiceCityContent('scorpio-on-rent', params.location),
   ]);
 
@@ -83,7 +83,7 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
 
       <SwiftRentalTypeHero
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         vehicleName="Mahindra Scorpio"
         selfDrivePrice="₹2,499"
       />
@@ -108,16 +108,16 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
         <div className="container-custom">
           <h2 className="text-2xl font-bold text-center mb-8">Other SUVs in {locationName}</h2>
           <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/xuv700-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/xuv700-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">XUV700</h3><p className="text-sm text-gray-600 mt-2">From ₹2,999</p>
             </Link>
-            <Link href={`/fortuner-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/fortuner-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">Fortuner</h3><p className="text-sm text-gray-600 mt-2">From ₹4,999</p>
             </Link>
-            <Link href={`/creta-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/creta-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">Creta</h3><p className="text-sm text-gray-600 mt-2">From ₹1,999</p>
             </Link>
-            <Link href={`/self-drive-suv-rental/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/self-drive-suv-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">All SUVs</h3><p className="text-sm text-gray-600 mt-2">View all</p>
             </Link>
           </div>
@@ -127,7 +127,7 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="scorpio-on-rent"
               cityName={locationName}
               stateCode={undefined}
@@ -138,7 +138,7 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
         serviceSlug="scorpio-on-rent"
         description={`Rent Mahindra Scorpio without driver in ${locationName} starting @₹1499/day.`}
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
@@ -146,7 +146,7 @@ export default async function ScorpioLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="self-drive-car-rentals"
         parentName="Self Drive Car Rental"
         currentSlug="scorpio-on-rent"

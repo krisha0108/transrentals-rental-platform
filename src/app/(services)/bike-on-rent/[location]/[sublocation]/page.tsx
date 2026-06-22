@@ -31,13 +31,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title,
     description,
     alternates: {
-      canonical: `https://transrentals.in/bike-on-rent/${params.location}/${params.sublocation}`,
+      canonical: `https://transrentals.in/bike-on-rent/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
     },
     openGraph: {
       title: `Bike Rental in ${sl.name}, ${cityName} | TransRentals`,
       description,
       type: 'website',
-      url: `https://transrentals.in/bike-on-rent/${params.location}/${params.sublocation}`,
+      url: `https://transrentals.in/bike-on-rent/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
       images: [{ url: `https://transrentals.in/api/og?service=bike-on-rent&location=${encodeURIComponent(cityName)}`, width: 1200, height: 630 }],
       locale: 'en_IN',
       siteName: 'TransRentals',
@@ -94,7 +94,7 @@ export default function BikeSubLocationPage({ params }: PageProps) {
             <span className="mx-2">/</span>
             <a href="/bike-on-rent" className="hover:text-primary">Bike on Rent</a>
             <span className="mx-2">/</span>
-            <a href={`/bike-on-rent/${params.location}`} className="hover:text-primary">{cityName}</a>
+            <a href={`/bike-on-rent/${params.location.toLowerCase()}`} className="hover:text-primary">{cityName}</a>
             <span className="mx-2">/</span>
             <span className="text-gray-900 font-medium">{sl.name}</span>
           </nav>
@@ -115,7 +115,7 @@ export default function BikeSubLocationPage({ params }: PageProps) {
           </p>
           <div className="flex flex-wrap gap-4">
             <Link
-              href={`/bike-on-rent/${params.location}`}
+              href={`/bike-on-rent/${params.location.toLowerCase()}`}
               className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-emerald-600 hover:text-emerald-700 transition-colors"
             >
               All Bike Rentals in {cityName}
@@ -210,7 +210,7 @@ export default function BikeSubLocationPage({ params }: PageProps) {
             </h2>
             <div className="flex flex-wrap gap-3">
               <Link
-                href={`/bike-on-rent/${params.location}`}
+                href={`/bike-on-rent/${params.location.toLowerCase()}`}
                 className="inline-flex items-center gap-1 px-4 py-2 bg-emerald-600 text-white rounded-full text-sm font-medium hover:bg-emerald-700 transition-colors"
               >
                 ← All Bike Rentals in {cityName}
@@ -218,7 +218,7 @@ export default function BikeSubLocationPage({ params }: PageProps) {
               {siblings.map((s) => (
                 <Link
                   key={s.slug}
-                  href={`/bike-on-rent/${params.location}/${s.slug}`}
+                  href={`/bike-on-rent/${params.location.toLowerCase()}/${s.slug}`}
                   className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-full text-sm font-medium hover:border-emerald-600 hover:text-emerald-700 transition-colors"
                 >
                   {s.name}
@@ -238,7 +238,7 @@ export default function BikeSubLocationPage({ params }: PageProps) {
             '@type': 'LocalBusiness',
             name: `Bike Rental in ${sl.name}, ${cityName} — TransRentals`,
             description: sl.description,
-            url: `https://transrentals.in/bike-on-rent/${params.location}/${params.sublocation}`,
+            url: `https://transrentals.in/bike-on-rent/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
             areaServed: { '@type': 'Place', name: `${sl.name}, ${cityName}`, addressCountry: 'IN' },
             provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
             priceRange: '₹',
@@ -255,8 +255,8 @@ export default function BikeSubLocationPage({ params }: PageProps) {
             itemListElement: [
               { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
               { '@type': 'ListItem', position: 2, name: 'Bike on Rent', item: 'https://transrentals.in/bike-on-rent' },
-              { '@type': 'ListItem', position: 3, name: `Bike Rental in ${cityName}`, item: `https://transrentals.in/bike-on-rent/${params.location}` },
-              { '@type': 'ListItem', position: 4, name: `Bike Rental in ${sl.name}`, item: `https://transrentals.in/bike-on-rent/${params.location}/${params.sublocation}` },
+              { '@type': 'ListItem', position: 3, name: `Bike Rental in ${cityName}`, item: `https://transrentals.in/bike-on-rent/${params.location.toLowerCase()}` },
+              { '@type': 'ListItem', position: 4, name: `Bike Rental in ${sl.name}`, item: `https://transrentals.in/bike-on-rent/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}` },
             ],
           }),
         }}

@@ -48,7 +48,7 @@ export const dynamicParams = true;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
-  const locationSlug = params.location;
+  const locationSlug = params.location.toLowerCase();
 
   const [_seoDb, scContent] = await Promise.all([
     resolvePageMeta(`activa-on-rent:${params.location}`),
@@ -270,7 +270,8 @@ export default async function ActivaLocationPage({ params }: PageProps) {
         title={`Available Scooters in ${locationName}`}
       />
 
-      <WhyRentHere locationName={locationName} />
+      <WhyRentHere locationName={locationName} />
+
 
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection

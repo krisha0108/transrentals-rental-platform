@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`wedding-bus-rental:${params.location}`),
+    resolvePageMeta(`wedding-bus-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('wedding-bus-rental', params.location),
   ]);
   return {
@@ -58,7 +58,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: `Wedding Bus Rental in ${locationName} - TransRentals`,
       description: `Luxury AC buses for weddings in ${locationName} starting @₹5999/day.`,
     },
-    alternates: { canonical: `https://transrentals.in/wedding-bus-rental/${params.location}` },
+    alternates: { canonical: `https://transrentals.in/wedding-bus-rental/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Wedding Bus Rental in ${locationName} | TransRentals`,
@@ -118,7 +118,7 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
   };
 
   const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`wedding-bus-rental:${params.location}`),
+    resolvePageMeta(`wedding-bus-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('wedding-bus-rental', params.location),
   ]);
 
@@ -254,13 +254,13 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
       <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         service="wedding-bus-rental"
       />
 
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="wedding-bus-rental"
               cityName={locationName}
               stateCode={city?.stateCode}
@@ -271,7 +271,7 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
         serviceSlug="wedding-bus-rental"
         description={`Book luxury AC buses for weddings in ${locationName} starting @₹4999/day.`}
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
@@ -279,7 +279,7 @@ export default async function WeddingBusLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="bus-rental"
         parentName="Bus Rental"
         currentSlug="wedding-bus-rental"

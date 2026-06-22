@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`jcb-on-rent:${params.location}`),
+    resolvePageMeta(`jcb-on-rent:${params.location.toLowerCase()}`),
     getServiceCityContent('jcb-on-rent', params.location),
   ]);
   return {
@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: `JCB on Rent in ${locationName} - TransRentals`,
       description: `Hire JCB backhoe loaders in ${locationName} for construction, excavation & road work. Certified operators included.`,
     },
-    alternates: { canonical: `https://transrentals.in/jcb-on-rent/${params.location}` },
+    alternates: { canonical: `https://transrentals.in/jcb-on-rent/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `JCB on Rent in ${locationName} | TransRentals`,
@@ -84,7 +84,7 @@ export default async function JCBLocationPage({ params }: PageProps) {
   ];
 
   const [seoData, equipmentFleet, scContent] = await Promise.all([
-    resolvePageMeta(`jcb-on-rent:${params.location}`),
+    resolvePageMeta(`jcb-on-rent:${params.location.toLowerCase()}`),
     prisma.vehicle_models.findMany({
       where: {
         isActive: true,
@@ -201,13 +201,13 @@ export default async function JCBLocationPage({ params }: PageProps) {
       <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         service="jcb-on-rent"
       />
 
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="jcb-on-rent"
               cityName={locationName}
               stateCode={city?.stateCode}
@@ -218,7 +218,7 @@ export default async function JCBLocationPage({ params }: PageProps) {
         serviceSlug="jcb-on-rent"
         description={`Hire JCB backhoe loaders in ${locationName} for excavation, construction & road work. Certified operators included.`}
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         faqs={pageFaqs}
       />
 
@@ -226,7 +226,7 @@ export default async function JCBLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="equipment-rental"
         parentName="Equipment Rental"
         currentSlug="jcb-on-rent"
