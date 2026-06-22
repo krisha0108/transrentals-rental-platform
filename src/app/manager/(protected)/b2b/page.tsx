@@ -29,6 +29,17 @@ const BOOKING_FILTERS = [
   'TRIPS_CREATED', 'IN_PROGRESS', 'COMPLETED', 'INVOICED', 'PAID',
 ];
 
+// Event name (occasion_name) lives inside the bulkBreakdown JSON for
+// CUSTOM_BULK bookings; regular B2B rows have no bulkBreakdown so this returns
+// null and the UI just shows the booking number as before.
+function getEventName(bulkBreakdown: any): string | null {
+  if (!bulkBreakdown) return null;
+  try {
+    const j = typeof bulkBreakdown === 'string' ? JSON.parse(bulkBreakdown) : bulkBreakdown;
+    return j?.occasion_name?.toString().trim() || null;
+  } catch { return null; }
+}
+
 export default function ManagerB2BPage() {
   const [activeTab, setActiveTab] = useState('bookings');
   const [bookings, setBookings] = useState<any[]>([]);
@@ -293,12 +304,17 @@ export default function ManagerB2BPage() {
             })()
           ) : (
             <div className="space-y-2">
-              {filteredBookings.map((b: any) => (
+              {filteredBookings.map((b: any) => {
+                const eventName = getEventName(b.bulkBreakdown);
+                return (
                 <Link key={b.id} href={`/manager/b2b/${b.id}`}
                   className="block bg-white rounded-xl border p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-1 flex-wrap">
+                        {eventName && (
+                          <span className="font-bold text-sm text-purple-700">{eventName}</span>
+                        )}
                         <span className="font-mono text-sm font-bold text-blue-600">{b.bookingNumber}</span>
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[b.status]}`}>
                           {STATUS_LABELS[b.status] || b.status}
@@ -334,7 +350,8 @@ export default function ManagerB2BPage() {
                     <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
                   </div>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

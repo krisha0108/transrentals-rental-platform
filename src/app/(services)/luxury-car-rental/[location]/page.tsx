@@ -1,5 +1,5 @@
 ﻿import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import { ALL_CITIES, getCityBySlug } from '@/data/indian-cities';
 import { Crown, Star, Shield, Clock, Phone } from 'lucide-react';
@@ -119,7 +119,7 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
         </>
       );
     }
-    notFound();
+    permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="luxury-car-rental" serviceName="Luxury Car Rental" />;
   if (pageContext.type === 'coming-soon') {
@@ -363,13 +363,6 @@ export default async function LuxuryCarRentalLocationPage({ params }: PageProps)
             >
               <Crown className="w-5 h-5" />
               Get Quotes Now
-            </a>
-            <a
-              href="tel:+919737965551"
-              className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 border border-white/20"
-            >
-              <Phone className="w-5 h-5" />
-              +91 97379 65551
             </a>
           </div>
         </div>

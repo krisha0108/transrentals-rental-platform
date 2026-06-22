@@ -9,6 +9,8 @@ import {
   Inbox,
   ArrowRight,
   Clock,
+  Search,
+  X,
 } from 'lucide-react';
 
 interface Conversation {
@@ -41,6 +43,19 @@ export default function ChatsListPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [totalUnread, setTotalUnread] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'ARCHIVED' | 'BLOCKED'>('ALL');
+
+  const filtered = conversations.filter((c) => {
+    if (statusFilter !== 'ALL' && (c.status || 'ACTIVE').toUpperCase() !== statusFilter) return false;
+    const q = search.trim().toLowerCase();
+    if (q) {
+      const hay = [c.participant?.name, c.participant?.phone, c.participant?.email, c.subject]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
 
   useEffect(() => {
     const load = async () => {
@@ -75,6 +90,38 @@ export default function ChatsListPage() {
         </div>
       </div>
 
+      {conversations.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, phone, subject…"
+              className="w-full pl-10 pr-9 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {(['ALL', 'ACTIVE', 'ARCHIVED', 'BLOCKED'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                  statusFilter === s ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
@@ -87,9 +134,15 @@ export default function ChatsListPage() {
             When customers message you from your tours / leads, they&apos;ll show up here
           </p>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
+          <Inbox className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-600 font-medium mb-1">No conversations match</p>
+          <p className="text-sm text-gray-400">Try a different search or filter.</p>
+        </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
-          {conversations.map((c) => (
+          {filtered.map((c) => (
             <Link
               key={c.id}
               href={`/travel-agent/chats/${c.id}`}

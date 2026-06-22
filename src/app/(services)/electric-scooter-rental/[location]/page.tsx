@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { capitalize } from '@/lib/utils';
@@ -81,7 +81,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ElectricScooterLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('electric-scooter-rental', params.location);
-  if (pageContext.type === 'redirect') notFound();
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="electric-scooter-rental" serviceName="Electric Scooter Rental" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
@@ -93,9 +93,9 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
   ];
 
   const schemaVehicles = [
-    { name: 'Ola S1 Pro', brand: 'Ola Electric', price: 499 },
-    { name: 'Ather 450X', brand: 'Ather Energy', price: 599 },
-    { name: 'TVS iQube', brand: 'TVS', price: 449 },
+    { name: 'Ola S1 Pro', brand: 'Ola Electric', price: 499, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+    { name: 'Ather 450X', brand: 'Ather Energy', price: 599, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+    { name: 'TVS iQube', brand: 'TVS', price: 449, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
   ];
 
   const [seoData, scContent] = await Promise.all([

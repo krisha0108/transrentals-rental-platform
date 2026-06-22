@@ -67,6 +67,15 @@ export default function BulkGeneratePage() {
   const [job, setJob] = useState<JobSummary | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
+
+  // Check DeepSeek balance
+  useEffect(() => {
+    fetch('/api/admin/seo-content/ai-status')
+      .then((r) => r.json())
+      .then((d) => setAiAvailable(d.available !== false))
+      .catch(() => setAiAvailable(true));
+  }, []);
 
   // Load services list
   useEffect(() => {
@@ -234,6 +243,12 @@ export default function BulkGeneratePage() {
         </div>
       </div>
 
+      {aiAvailable === false && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-amber-800 text-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>DeepSeek balance is empty — bulk generation is disabled. Recharge at <strong>platform.deepseek.com</strong> to re-enable.</span>
+        </div>
+      )}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-red-800 text-sm flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" /> {error}
@@ -372,11 +387,15 @@ export default function BulkGeneratePage() {
 
             <button
               onClick={startJob}
-              disabled={submitting || totalCount === 0}
-              className="w-full mt-4 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 inline-flex items-center justify-center gap-2 font-medium"
+              disabled={submitting || totalCount === 0 || aiAvailable === false}
+              className={`w-full mt-4 px-4 py-3 rounded-lg disabled:opacity-50 inline-flex items-center justify-center gap-2 font-medium ${
+                aiAvailable === false
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
             >
               {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
-              Start Generation
+              {aiAvailable === false ? 'AI Unavailable' : 'Start Generation'}
             </button>
 
             <button

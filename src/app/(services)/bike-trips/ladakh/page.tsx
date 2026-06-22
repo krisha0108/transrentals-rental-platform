@@ -58,11 +58,11 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 999 },
-  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 799 },
-  { name: 'Royal Enfield Meteor 350', brand: 'Royal Enfield', price: 899 },
-  { name: 'Royal Enfield Interceptor 650', brand: 'Royal Enfield', price: 1299 },
-  { name: 'KTM Adventure 390', brand: 'KTM', price: 1499 },
+  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 799, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Meteor 350', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Interceptor 650', brand: 'Royal Enfield', price: 1299, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'KTM Adventure 390', brand: 'KTM', price: 1499, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default function LadakhBikeTripPage() {

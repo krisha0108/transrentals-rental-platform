@@ -64,7 +64,11 @@ Disallow: /checkout
 Disallow: /custom-booking/
 Disallow: /custom-booking
 
-# Block internal Next.js routes
+# Block internal Next.js routes — but explicitly ALLOW the static assets, the
+# image optimizer, and JS chunks so Googlebot can fetch CSS/JS/fonts and render
+# the page. Blocking /_next/static and /_next/image breaks rendering and SEO.
+Allow: /_next/static/
+Allow: /_next/image
 Disallow: /_next/
 Disallow: /_vercel/
 Disallow: /actions/
@@ -140,7 +144,6 @@ Disallow: /taxi-service/
 Disallow: /taxi-service-in-*/
 Disallow: /tempo-traveller-rental/
 Disallow: /luxury-car-rental-in-*/
-Disallow: /car-rental-in-*/
 Disallow: /one-way-taxi-cab/
 Disallow: /airport-taxi/
 Disallow: /locations/
@@ -174,6 +177,8 @@ Disallow: /api/
 Disallow: /vendor/
 Disallow: /customer/booking/
 Disallow: /customer/login
+Allow: /_next/static/
+Allow: /_next/image
 Disallow: /_next/
 Disallow: /pay/
 Disallow: /checkout/
@@ -206,7 +211,6 @@ Disallow: /taxi-service/
 Disallow: /taxi-service-in-*/
 Disallow: /tempo-traveller-rental/
 Disallow: /luxury-car-rental-in-*/
-Disallow: /car-rental-in-*/
 Disallow: /one-way-taxi-cab/
 Disallow: /airport-taxi/
 Disallow: /locations/
@@ -251,6 +255,8 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /vendor/
 Disallow: /customer/booking/
+Allow: /_next/static/
+Allow: /_next/image
 Disallow: /_next/
 
 # =============================================================================
@@ -262,6 +268,8 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /vendor/
 Disallow: /customer/
+Allow: /_next/static/
+Allow: /_next/image
 Disallow: /_next/
 Crawl-delay: 2
 
@@ -274,6 +282,8 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /vendor/
 Disallow: /customer/
+Allow: /_next/static/
+Allow: /_next/image
 Disallow: /_next/
 Crawl-delay: 2
 

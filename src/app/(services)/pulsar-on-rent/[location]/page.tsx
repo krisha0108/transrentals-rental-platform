@@ -5,7 +5,7 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
@@ -93,15 +93,15 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 499 },
-  { name: 'Bajaj Pulsar 180', brand: 'Bajaj', price: 599 },
-  { name: 'Bajaj Pulsar NS200', brand: 'Bajaj', price: 699 },
-  { name: 'Bajaj Pulsar RS200', brand: 'Bajaj', price: 799 },
+  { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 499, image: 'https://transrentals.in/images/fleet/bajaj-pulsar-150.jpg' },
+  { name: 'Bajaj Pulsar 180', brand: 'Bajaj', price: 599, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Bajaj Pulsar NS200', brand: 'Bajaj', price: 699, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Bajaj Pulsar RS200', brand: 'Bajaj', price: 799, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default async function PulsarLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('pulsar-on-rent', params.location);
-  if (pageContext.type === 'redirect') notFound();
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="pulsar-on-rent" serviceName="Pulsar on Rent" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
@@ -215,7 +215,7 @@ export default async function PulsarLocationPage({ params }: PageProps) {
           title={`Available Pulsar Bikes in ${locationName}`}
         />
 
-        <WhyRentHere locationName={locationName} />
+        <WhyRentHere locationName={locationName} />
 
         <NearbyLocations
           locationSlug={params.location}

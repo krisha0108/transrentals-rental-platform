@@ -239,6 +239,45 @@ function AvatarCircle({ name, logo, size = 40, style }) {
   );
 }
 
+// ── Post images (resolves async getFullImageURL into state) ───────────
+function PostImageThumb({ url, style }) {
+  const [uri, setUri] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    getFullImageURL(url).then((u) => { if (alive) setUri(u); });
+    return () => { alive = false; };
+  }, [url]);
+  return <Image source={uri ? { uri } : undefined} style={style} resizeMode="cover" />;
+}
+
+function PostImages({ images }) {
+  if (!Array.isArray(images) || images.length === 0) return null;
+  const single = images.length === 1;
+  return (
+    <View style={[postImageStyles.grid, single && { flexDirection: 'column' }]}>
+      {images.map((url, i) => (
+        <PostImageThumb
+          key={i}
+          url={url}
+          style={[
+            postImageStyles.img,
+            single ? postImageStyles.imgSingle : postImageStyles.imgMulti,
+            images.length === 3 && i === 0 ? postImageStyles.imgWide : null,
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
+const postImageStyles = StyleSheet.create({
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
+  img: { borderRadius: 12, backgroundColor: '#E2E8F0' },
+  imgSingle: { width: '100%', height: 220 },
+  imgMulti: { width: '48.5%', height: 130 },
+  imgWide: { width: '100%', height: 160 },
+});
+
 export default function SocialFeedScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [currentVendorId, setCurrentVendorId] = useState(null);
@@ -779,6 +818,9 @@ export default function SocialFeedScreen({ navigation }) {
 
           {/* Content */}
           <Text style={styles.postContent}>{item.content}</Text>
+
+          {/* Images */}
+          <PostImages images={item.images} />
 
           {/* Action bar */}
           <View style={styles.actionBar}>

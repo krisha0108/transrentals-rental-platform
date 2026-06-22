@@ -348,6 +348,9 @@ export async function GET(
             quotesViewed: booking.quotesViewed,
             acceptedQuoteId: booking.acceptedQuoteId,
 
+            // Source / channel
+            source: carBooking?.source || booking.source || 'web',
+
             // Dates
             createdAt: booking.createdAt,
             updatedAt: booking.updatedAt,
@@ -574,6 +577,9 @@ export async function GET(
             cancelledBy: booking.cancelledBy,
             refundAmount: booking.refundAmount,
             refundTransactionId: booking.refundTransactionId,
+
+            // Source / channel
+            source: booking.source || 'web',
 
             // Dates
             completedAt: booking.completedAt,

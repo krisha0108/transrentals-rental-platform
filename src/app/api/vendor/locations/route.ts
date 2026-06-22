@@ -4,6 +4,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import logger from '@/lib/security/logger';
 import crypto from 'crypto';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,8 @@ export async function GET(request: NextRequest) {
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
-    const vendorId = auth.vendorId;
+    const vendorId = auth.vendorId!;
+
 
     // Get all states and union territories with their cities
     const states = await prisma.locations.findMany({
@@ -165,7 +167,11 @@ export async function DELETE(request: NextRequest) {
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
-    const vendorId = auth.vendorId;
+    const vendorId = auth.vendorId!;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const { searchParams } = new URL(request.url);
     const locationId = searchParams.get('locationId');
@@ -240,7 +246,20 @@ export async function POST(request: NextRequest) {
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
-    const vendorId = auth.vendorId;
+    const vendorId = auth.vendorId!;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
+
+    // Block rejected vendors from submitting new requests
+    const vendor = await prisma.vendors.findUnique({
+      where: { id: vendorId },
+      select: { status: true },
+    });
+    if (!vendor || vendor.status === 'REJECTED') {
+      return NextResponse.json({ error: 'Your account has been rejected. You cannot submit new requests.' }, { status: 403 });
+    }
 
     const body = await request.json();
     const { locationId, message, localAddress } = body;

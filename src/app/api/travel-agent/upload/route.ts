@@ -7,7 +7,8 @@ import logger from '@/lib/security/logger';
 export const dynamic = 'force-dynamic';
 
 // Max 5 MB per image, only common image formats
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+// Note: Android often sends "image/jpg" (non-standard) instead of "image/jpeg"
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'];
 const MAX_BYTES = 5 * 1024 * 1024;
 
 // POST - Upload one or more images for tours/properties

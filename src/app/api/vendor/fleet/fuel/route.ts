@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import crypto from 'crypto';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 function generateId(): string {
   return 'c' + crypto.randomBytes(12).toString('base64url').toLowerCase().slice(0, 24);
@@ -126,6 +127,10 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const _guard = await vendorStatusGuard(auth.vendorId!);
+    if (_guard.blocked) return _guard.response;
 
     let body: any;
     try {

@@ -17,6 +17,11 @@ import {
   buildSectionsUserPrompt,
   isFaqSectionId,
 } from './prompts/page-sections';
+import {
+  SINGLE_SECTION_SYSTEM_PROMPT,
+  buildSingleTargetPrompt,
+  type RewriteTarget,
+} from './prompts/single-section';
 import { getDefaultSectionsForService } from './service-sections';
 import type { SectionConfig } from '@/lib/city-sections';
 
@@ -37,6 +42,7 @@ export type GenerateOptions = {
   citySlug: string;
   customInstructions?: string;
   temperature?: number;
+  cityNameFallback?: string;
 };
 
 export type GenerateResult = {
@@ -126,7 +132,10 @@ export async function generatePageContent(opts: GenerateOptions): Promise<Genera
     );
   }
 
-  const cityContext = buildCityContext(opts.citySlug);
+  const cityContext = buildCityContext(
+    opts.citySlug,
+    opts.cityNameFallback ? { name: opts.cityNameFallback } : undefined,
+  );
   if (!cityContext) {
     throw new GenerateError(`Unknown citySlug "${opts.citySlug}" — not in indian-cities.ts`);
   }
@@ -210,6 +219,7 @@ export type GenerateSectionsOptions = {
   sections?: SectionConfig[];
   customInstructions?: string;
   temperature?: number;
+  cityNameFallback?: string;
 };
 
 export type GenerateSectionsResult = {
@@ -278,7 +288,10 @@ export async function generateSectionsContent(
     );
   }
 
-  const cityContext = buildCityContext(opts.citySlug);
+  const cityContext = buildCityContext(
+    opts.citySlug,
+    opts.cityNameFallback ? { name: opts.cityNameFallback } : undefined,
+  );
   if (!cityContext) {
     throw new GenerateError(`Unknown citySlug "${opts.citySlug}" — not in indian-cities.ts`);
   }
@@ -336,6 +349,95 @@ export async function generateSectionsContent(
     usage: response.usage,
     model: response.model,
     promptUsed: userPrompt,
+    cityContext,
+  };
+}
+
+// ─── Single-target rewrite (one section OR one hero/meta field) ────────────────
+
+export type GenerateSingleOptions = {
+  serviceSlug: string;
+  citySlug: string;
+  target: RewriteTarget;
+  /** Current value, so the AI rewrites with awareness instead of from scratch. */
+  currentContent?: string;
+  customInstructions?: string;
+  temperature?: number;
+  cityNameFallback?: string;
+};
+
+export type GenerateSingleResult = {
+  content: string;
+  usage: DeepseekUsage;
+  model: string;
+  cityContext: CityContext;
+};
+
+/**
+ * Rewrite exactly ONE piece of a (service, city) page — a single block section
+ * or a single hero/meta field. Returns the new value only; the caller decides
+ * whether to merge + persist it.
+ */
+export async function generateSingleTarget(
+  opts: GenerateSingleOptions,
+): Promise<GenerateSingleResult> {
+  const service = SERVICE_LABELS[opts.serviceSlug];
+  if (!service) {
+    throw new GenerateError(
+      `Unknown serviceSlug "${opts.serviceSlug}". Known: ${Object.keys(SERVICE_LABELS).join(', ')}`,
+    );
+  }
+
+  const cityContext = buildCityContext(
+    opts.citySlug,
+    opts.cityNameFallback ? { name: opts.cityNameFallback } : undefined,
+  );
+  if (!cityContext) {
+    throw new GenerateError(`Unknown citySlug "${opts.citySlug}" — not in indian-cities.ts`);
+  }
+
+  const userPrompt = buildSingleTargetPrompt({
+    service,
+    city: cityContext,
+    target: opts.target,
+    currentContent: opts.currentContent,
+    customInstructions: opts.customInstructions,
+  });
+
+  let response;
+  try {
+    response = await complete({
+      messages: [
+        { role: 'system', content: SINGLE_SECTION_SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: opts.temperature ?? 0.7,
+      maxTokens: 2000,
+      responseFormat: 'json_object',
+    });
+  } catch (err) {
+    if (err instanceof DeepseekError) {
+      throw new GenerateError(`DeepSeek API failed: ${err.message}`, err);
+    }
+    throw err;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = parseJsonResponse(response.content);
+  } catch (err) {
+    throw new GenerateError(`Failed to parse AI JSON: ${(err as Error).message}`, err);
+  }
+
+  const content = (parsed as any)?.content;
+  if (typeof content !== 'string' || content.trim() === '') {
+    throw new GenerateError('AI returned empty or non-string "content"');
+  }
+
+  return {
+    content: content.trim(),
+    usage: response.usage,
+    model: response.model,
     cityContext,
   };
 }

@@ -108,6 +108,8 @@ export function PackagesGrid({
                         alt={category.name}
                         width={200}
                         height={130}
+                        sizes="224px"
+                        quality={70}
                         className="object-contain drop-shadow-sm max-h-32 w-auto"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = '/images/fleet/honda-city.jpg';
@@ -115,7 +117,7 @@ export function PackagesGrid({
                       />
                     ) : (
                       <div className="w-36 h-24 bg-gray-200 rounded-xl flex items-center justify-center">
-                        <Car className="w-10 h-10 text-gray-400" />
+                        <Car className="w-10 h-10 text-gray-500" />
                       </div>
                     )}
                   </div>
@@ -126,7 +128,7 @@ export function PackagesGrid({
                     <div className="mb-4">
                       <h3 className="text-lg font-bold text-gray-900">{category.name}</h3>
                       {exampleVehicles.length > 0 && (
-                        <p className="text-xs text-gray-400 mt-0.5">
+                        <p className="text-xs text-gray-500 mt-0.5">
                           e.g., {exampleVehicles.slice(0, 3).join(', ')}
                         </p>
                       )}
@@ -166,8 +168,8 @@ export function PackagesGrid({
                           onClick={() => setSelectedIdx((prev) => ({ ...prev, [category.id]: idx }))}
                           className={`relative px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
                             currentIdx === idx
-                              ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300 hover:text-orange-600'
+                              ? 'bg-orange-700 text-white border-orange-700 shadow-sm'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300 hover:text-orange-700'
                           }`}
                         >
                           {pkg.isPopular && currentIdx !== idx && (
@@ -189,12 +191,12 @@ export function PackagesGrid({
                           <MapPin className="w-3.5 h-3.5 text-orange-400" />
                           {selectedPkg.kms} Km included
                         </span>
-                        <span className="text-gray-400">+₹{selectedPkg.extraKmCharge}/extra km</span>
-                        <span className="text-gray-400">+₹{selectedPkg.extraHourCharge}/extra hr</span>
+                        <span className="text-gray-500">+₹{selectedPkg.extraKmCharge}/extra km</span>
+                        <span className="text-gray-500">+₹{selectedPkg.extraHourCharge}/extra hr</span>
                         {selectedPkg.nightChargesApply && selectedPkg.nightChargeAmount && (
-                          <span className="text-gray-400">Night ₹{selectedPkg.nightChargeAmount}</span>
+                          <span className="text-gray-500">Night ₹{selectedPkg.nightChargeAmount}</span>
                         )}
-                        <span className="text-amber-600 font-medium">Toll/Parking extra</span>
+                        <span className="text-amber-700 font-medium">Toll/Parking extra</span>
                       </div>
                     )}
                   </div>
@@ -204,16 +206,16 @@ export function PackagesGrid({
                     {selectedPkg && (
                       <>
                         <div className="text-center">
-                          <p className="text-xs text-gray-400 mb-1">All inclusive</p>
+                          <p className="text-xs text-gray-500 mb-1">All inclusive</p>
                           <p className="text-3xl font-bold text-gray-900">
                             ₹{selectedPkg.basePrice.toLocaleString('en-IN')}
                           </p>
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-gray-500 mt-1">
                             {selectedPkg.hours}hr / {selectedPkg.kms}km
                           </p>
                         </div>
 
-                        <p className="text-xs text-green-600 font-medium text-center">
+                        <p className="text-xs text-green-700 font-medium text-center">
                           ✓ Free cancellation
                         </p>
                       </>

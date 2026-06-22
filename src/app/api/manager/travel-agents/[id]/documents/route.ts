@@ -9,8 +9,8 @@ export const dynamic = 'force-dynamic';
 
 // PATCH - Verify or reject a single travel-agent document (manager portal).
 // Body: { documentId, action: 'VERIFY' | 'REJECT', rejectionReason? }
-// Auto-promotes the agent to APPROVED once all three required KYC docs
-// (GST_CERTIFICATE, PAN_CARD, ADDRESS_PROOF) are VERIFIED — same gating as
+// Auto-promotes the agent to APPROVED once the required KYC doc
+// (ADDRESS_PROOF; GST & PAN are optional) is VERIFIED — same gating as
 // the admin endpoint.
 export async function PATCH(
   request: NextRequest,
@@ -95,8 +95,9 @@ export async function PATCH(
       });
     }
 
-    // Auto-promote agent when all required KYC docs are VERIFIED
-    const REQUIRED_TYPES = ['GST_CERTIFICATE', 'PAN_CARD', 'ADDRESS_PROOF'] as const;
+    // Auto-promote agent when all required KYC docs are VERIFIED.
+    // Only Address Proof is mandatory now (GST & PAN are optional).
+    const REQUIRED_TYPES = ['ADDRESS_PROOF'] as const;
     let autoStatus: string | null = null;
 
     if (action === 'VERIFY') {

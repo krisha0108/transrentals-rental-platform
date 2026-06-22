@@ -26,6 +26,8 @@ import locationService from '../../services/locationService';
 import api from '../../api';
 import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
+import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
+import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
 
 // --- PREMIUM DARK TEAL DESIGN SYSTEM ---
 const TEAL_DEEP = '#064E3B';
@@ -163,6 +165,9 @@ export default function BusRentalFleetScreen() {
   const [numberOfBuses, setNumberOfBuses] = useState('1');
   const [numberOfPersons, setNumberOfPersons] = useState('');
   const [isB2BCustomer, setIsB2BCustomer] = useState(false);
+
+  // Phase 7 — Travel Agent Personal/Company booking mode
+  const [taState, setTaState] = useState({ mode: 'PERSONAL', vehicleCount: '1', employeeCount: '' });
 
   // Phone collection
   const [showPhoneModal, setShowPhoneModal] = useState(false);
@@ -450,6 +455,18 @@ export default function BusRentalFleetScreen() {
         requestData.isB2B = true;
         requestData.numberOfVehicles = numberOfBuses || '1';
         requestData.numberOfPersons = numberOfPersons || null;
+      }
+
+      // Phase 7 — TA fields (only when TA customer).
+      const isTA = isTravelAgentCustomer(customer);
+      if (isTA) {
+        requestData.taBookingMode = taState.mode;
+        requestData.numberOfVehicles = taState.mode === 'COMPANY'
+          ? (parseInt(taState.vehicleCount) || 1)
+          : 1;
+        requestData.numberOfEmployees = taState.mode === 'COMPANY' && taState.employeeCount
+          ? parseInt(taState.employeeCount)
+          : null;
       }
 
       const response = await bookingService.createBusQuoteRequest(requestData);
@@ -1099,6 +1116,9 @@ export default function BusRentalFleetScreen() {
           )}
         </View>
       )}
+
+      {/* Phase 7 — TA Personal/Company toggle (self-gated). */}
+      <TravelAgentBookingToggle value={taState} onChange={setTaState} />
 
       <View style={styles.preferencesContainer}>
         <TouchableOpacity

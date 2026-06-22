@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import crypto from 'crypto';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,11 @@ export async function PUT(
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
+    const vendorId = auth.vendorId!;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const { quoteId } = params;
     const body = await request.json();
@@ -39,7 +45,7 @@ export async function PUT(
     if (!quote) {
       return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
     }
-    if (quote.vendorId !== auth.vendorId) {
+    if (quote.vendorId !== vendorId) {
       return NextResponse.json({ error: 'Not authorized to modify this quote' }, { status: 403 });
     }
     if (!['SUBMITTED', 'UNDER_REVIEW'].includes(quote.status)) {
@@ -55,7 +61,7 @@ export async function PUT(
     const fleetIds = vehicles.map((v: any) => v.vendorFleetId);
     const uniqueFleetIds = Array.from(new Set(fleetIds));
     const vendorFleets = await prisma.vendor_fleets.findMany({
-      where: { id: { in: uniqueFleetIds }, vendorId: auth.vendorId },
+      where: { id: { in: uniqueFleetIds }, vendorId: vendorId },
       select: { id: true, vehicleName: true, registrationNumber: true },
     });
     if (vendorFleets.length !== uniqueFleetIds.length) {
@@ -68,7 +74,7 @@ export async function PUT(
     let driverMap = new Map<string, { id: string; name: string | null; phone: string | null }>();
     if (uniqueDriverIds.length > 0) {
       const vendorDrivers = await prisma.vendor_staff.findMany({
-        where: { id: { in: uniqueDriverIds }, vendorId: auth.vendorId, role: 'DRIVER' },
+        where: { id: { in: uniqueDriverIds }, vendorId: vendorId, role: 'DRIVER' },
         select: { id: true, name: true, phone: true },
       });
       if (vendorDrivers.length !== uniqueDriverIds.length) {
@@ -143,6 +149,11 @@ export async function PATCH(
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
+    const vendorId = auth.vendorId!;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const { quoteId } = params;
     const body = await request.json();
@@ -161,7 +172,7 @@ export async function PATCH(
     if (!quote) {
       return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
     }
-    if (quote.vendorId !== auth.vendorId) {
+    if (quote.vendorId !== vendorId) {
       return NextResponse.json({ error: 'Not authorized to modify this quote' }, { status: 403 });
     }
     if (!['SUBMITTED', 'UNDER_REVIEW'].includes(quote.status)) {
@@ -197,6 +208,8 @@ export async function GET(
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
+    const vendorId = auth.vendorId!;
+
 
     const { quoteId } = params;
 
@@ -236,7 +249,7 @@ export async function GET(
     if (!quote) {
       return NextResponse.json({ error: 'Quote not found' }, { status: 404 });
     }
-    if (quote.vendorId !== auth.vendorId) {
+    if (quote.vendorId !== vendorId) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 

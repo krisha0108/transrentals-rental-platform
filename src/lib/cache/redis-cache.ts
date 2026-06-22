@@ -43,6 +43,12 @@ class RedisCache {
   }
 
   private async initRedis(): Promise<void> {
+    // Don't attempt Redis in browser environments
+    if (typeof window !== 'undefined') {
+      this.useInMemory = true;
+      return;
+    }
+
     const redisUrl = process.env.REDIS_URL;
 
     if (!redisUrl) {
@@ -51,16 +57,8 @@ class RedisCache {
     }
 
     try {
-      const Redis = await import('ioredis').then((m) => m.default).catch(() => null);
-
-      if (!Redis) {
-        logger.warn('ioredis not installed, using in-memory cache');
-        return;
-      }
-
+      const Redis = (await import('ioredis')).default;
       this.redis = new Redis(redisUrl);
-
-      await this.redis.connect();
       this.useInMemory = false;
       logger.info('Redis cache connected');
     } catch (error) {

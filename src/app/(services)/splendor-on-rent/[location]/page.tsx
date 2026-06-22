@@ -5,7 +5,7 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
@@ -93,15 +93,15 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Hero Splendor Plus', brand: 'Hero', price: 299 },
-  { name: 'Hero Splendor iSmart', brand: 'Hero', price: 349 },
-  { name: 'Hero Super Splendor', brand: 'Hero', price: 399 },
-  { name: 'Hero HF Deluxe', brand: 'Hero', price: 279 },
+  { name: 'Hero Splendor Plus', brand: 'Hero', price: 299, image: 'https://transrentals.in/images/fleet/hero-splendor-plus.jpg' },
+  { name: 'Hero Splendor iSmart', brand: 'Hero', price: 349, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Hero Super Splendor', brand: 'Hero', price: 399, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Hero HF Deluxe', brand: 'Hero', price: 279, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default async function SplendorLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('splendor-on-rent', params.location);
-  if (pageContext.type === 'redirect') notFound();
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="splendor-on-rent" serviceName="Splendor on Rent" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
@@ -191,7 +191,7 @@ export default async function SplendorLocationPage({ params }: PageProps) {
           title={`Available Splendor Bikes in ${locationName}`}
         />
 
-        <WhyRentHere locationName={locationName} />
+        <WhyRentHere locationName={locationName} />
 
         <NearbyLocations
           locationSlug={params.location}

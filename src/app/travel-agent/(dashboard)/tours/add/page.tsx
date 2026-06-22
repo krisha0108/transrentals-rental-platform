@@ -8,8 +8,9 @@ import {
   Compass, ChevronRight, ChevronLeft, Check, Loader2, AlertCircle,
   Plus, Trash2, MapPin, Search, X, Clock, Users, Car, GripVertical, Coffee,
   CalendarRange, ChevronDown, Eye, Sparkles, Images, Calendar, Save,
-  Fuel,
+  Fuel, RefreshCw,
 } from 'lucide-react';
+import TourDescriptionEditor, { type TourDescriptionEditorRef } from '@/components/admin/wander/TourDescriptionEditor';
 import { useToast } from '@/components/ui/toast';
 import { useTravelAgentVerification } from '@/contexts/TravelAgentVerificationContext';
 
@@ -391,6 +392,11 @@ export default function CreateTravelAgentTourPage() {
   const [availableVehicles, setAvailableVehicles] = useState<any[]>([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
 
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
+  const descEditorRef = useRef<TourDescriptionEditorRef | null>(null);
+
   const locationRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -429,6 +435,48 @@ export default function CreateTravelAgentTourPage() {
       .then((j) => setAvailableVehicles((j.fleets || []).filter((f: any) => f.isActive)))
       .finally(() => setLoadingVehicles(false));
   }, []);
+
+  // AI balance check
+  useEffect(() => {
+    fetch('/api/travel-agent/tours/ai-status')
+      .then((r) => r.json())
+      .then((d) => setAiAvailable(d.available !== false))
+      .catch(() => setAiAvailable(true));
+  }, []);
+
+  async function generateAIDescription() {
+    if (!form.title.trim()) { setAiError('Add a tour title first — AI uses it to write the description.'); return; }
+    setAiLoading(true); setAiError('');
+    try {
+      const res = await fetch('/api/travel-agent/tours/ai-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title,
+          destination: selectedLocation?.displayName || selectedLocation?.name || '',
+          duration: form.duration === 'Custom' ? form.customDuration : form.duration,
+          mode: 'full',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 502 && data.error?.includes('402')) {
+          setAiAvailable(false);
+          setAiError('');
+          return;
+        }
+        setAiError(data.error || 'AI generation failed');
+        return;
+      }
+      const html = `<p>${data.description}</p>`;
+      update('description', html);
+      descEditorRef.current?.setContent(html);
+    } catch {
+      setAiError('Network error. Please try again.');
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   // Close location dropdown on outside click
   useEffect(() => {
@@ -971,13 +1019,44 @@ export default function CreateTravelAgentTourPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Tour Description</label>
-              <textarea
-                value={form.description}
-                onChange={(e) => update('description', e.target.value)}
-                rows={4}
-                placeholder="Describe this tour — what makes it special, what customers will experience..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-semibold text-gray-700">Tour Description</label>
+                <div className="relative group">
+                  <button
+                    type="button"
+                    onClick={generateAIDescription}
+                    disabled={aiAvailable === false || aiLoading}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                      aiAvailable === false
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                        : 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-sm'
+                    }`}
+                  >
+                    {aiLoading ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5" />
+                    )}
+                    {aiAvailable === false ? 'AI Unavailable' : aiLoading ? 'Generating…' : 'Generate with AI'}
+                  </button>
+                  {aiAvailable === false && (
+                    <div className="absolute right-0 top-full mt-1.5 w-56 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl z-10 hidden group-hover:block">
+                      DeepSeek balance is empty. Recharge at platform.deepseek.com
+                    </div>
+                  )}
+                </div>
+              </div>
+              {aiError && (
+                <p className="text-xs text-red-600 mb-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {aiError}
+                </p>
+              )}
+              <TourDescriptionEditor
+                content={form.description}
+                onChange={(html) => update('description', html)}
+                editorRef={descEditorRef}
+                minHeight={160}
+                maxHeight={300}
               />
             </div>
 

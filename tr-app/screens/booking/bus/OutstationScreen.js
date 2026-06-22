@@ -20,6 +20,9 @@ import api from '../../api';
 import bookingService from '../../services/bookingService';
 import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
+// Phase 7 — TA Personal/Company toggle (renders only when customer is a TA).
+import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
+import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
 const cities = [
     { id: 3, name: 'Ahmedabad', img: require('../../../assets/ahmedabad.png') },
     { id: 5, name: 'Bangalore', img: require('../../../assets/bangalore.png') },
@@ -55,6 +58,8 @@ const OutstationScreen = () => {
   const [isSubmitting, setIsSubmitting] = useState(false); // Add loading state
   const navigation = useNavigation();
   const [totalPassengers, setTotalPassengers] = useState('');
+  // Phase 7 — TA booking-mode state (Personal/Company + counts).
+  const [taState, setTaState] = useState({ mode: 'PERSONAL', vehicleCount: '1', employeeCount: '' });
   const route = useRoute();  // Use this to access route params
       const [selectedService, setSelectedService] = useState(route.params?.service || null);
 
@@ -196,6 +201,7 @@ const openReturnDateTimePicker = () => {
                 return;
             }
 
+            const isTA = isTravelAgentCustomer(customer);
             const requestData = {
                 customerId: customer.id,
                 customerName: customer.name || customer.fullName,
@@ -213,11 +219,29 @@ const openReturnDateTimePicker = () => {
                 returnDate: returnDate.toISOString().split('T')[0],
                 returnTime: returnDate.toTimeString().split(' ')[0].slice(0, 5),
                 requirements: otherDetails,
+                // Phase 7 — TA fields (backend reads these; safe to send only when TA).
+                ...(isTA && {
+                    taBookingMode: taState.mode,
+                    numberOfVehicles: taState.mode === 'COMPANY'
+                        ? (parseInt(taState.vehicleCount) || 1)
+                        : 1,
+                    numberOfEmployees: taState.mode === 'COMPANY' && taState.employeeCount
+                        ? parseInt(taState.employeeCount)
+                        : null,
+                }),
             };
 
             const response = await bookingService.createBusQuoteRequest(requestData);
 
-            if (response.success || response.id || response.quoteRequest) {
+            // Phase 7 — Travel-agent COMPANY-mode bookings land in the shared
+            // b2b_bookings queue (see bus-quote-requests/route.ts:291-308).
+            // Route the user straight to the B2B detail screen instead of
+            // BookingConfirmation so they can track quotes from the manager.
+            if (response?.isTravelAgent && response?.bookingMode === 'COMPANY' && (response?.booking?.id || response?.bookingId)) {
+                navigation.navigate('B2BBookingDetail', {
+                    bookingId: response.booking?.id || response.bookingId,
+                });
+            } else if (response.success || response.id || response.quoteRequest) {
                 navigation.navigate('BookingConfirmation', {
                     booking_id: response?.quoteRequest?.requestNumber || response?.quoteRequest?.id || response?.id,
                     bookingType: 'bus',
@@ -406,6 +430,8 @@ const openReturnDateTimePicker = () => {
                 value={otherDetails}
                 onChangeText={setOtherDetails}
               />
+              {/* Phase 7 — TA Personal/Company toggle (self-gated, no-op for non-TA) */}
+              <TravelAgentBookingToggle value={taState} onChange={setTaState} />
               <View style={styles.rowButtons}>
                 <TouchableOpacity 
                   style={[styles.navBtn, isSubmitting && styles.disabledBtn]} 

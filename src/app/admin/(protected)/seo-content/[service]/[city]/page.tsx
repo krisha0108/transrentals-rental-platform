@@ -87,8 +87,10 @@ export default function SeoContentEditPage({
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
+  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiCustomInstructions, setAiCustomInstructions] = useState('');
+  const [rewritingField, setRewritingField] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -137,6 +139,13 @@ export default function SeoContentEditPage({
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  useEffect(() => {
+    fetch('/api/admin/seo-content/ai-status')
+      .then((r) => r.json())
+      .then((d) => setAiAvailable(d.available !== false))
+      .catch(() => setAiAvailable(true));
+  }, []);
+
   async function save(setStatus?: string) {
     if (!data) return;
     setSaving(true);
@@ -172,6 +181,10 @@ export default function SeoContentEditPage({
     }
   }
 
+  function isBalanceError(msg: string) {
+    return msg.includes('402') || msg.toLowerCase().includes('insufficient balance') || msg.toLowerCase().includes('balance');
+  }
+
   async function generateWithAI(saveAfter: boolean) {
     setGenerating(true);
     setError(null);
@@ -185,14 +198,14 @@ export default function SeoContentEditPage({
           customInstructions: aiCustomInstructions || undefined,
           save: saveAfter,
           format: 'sections',
-          // Pass current sections so user-edited labels, custom sections,
-          // and visibility/order are preserved through AI regeneration.
           sections,
         }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        throw new Error(j.error || `HTTP ${res.status}`);
+        const msg = j.error || `HTTP ${res.status}`;
+        if (isBalanceError(msg)) { setAiAvailable(false); setAiModalOpen(false); return; }
+        throw new Error(msg);
       }
       const json = await res.json();
       if (saveAfter) {
@@ -206,11 +219,108 @@ export default function SeoContentEditPage({
       setAiModalOpen(false);
       setAiCustomInstructions('');
     } catch (err) {
-      setError((err as Error).message);
+      const msg = (err as Error).message;
+      if (isBalanceError(msg)) { setAiAvailable(false); setAiModalOpen(false); return; }
+      setError(msg);
     } finally {
       setGenerating(false);
     }
   }
+
+  // ── Per-field / per-section AI rewrite ──────────────────────────────────────
+  // Generate-only: fills the field/section locally; admin reviews then clicks Save.
+  async function rewriteField(
+    field: 'pageHeading' | 'pageDescription' | 'metaTitle' | 'metaDescription',
+    current: string,
+    setter: (v: string) => void,
+  ) {
+    if (rewritingField) return;
+    setRewritingField(field);
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/seo-content/generate-section', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceSlug: params.service,
+          citySlug: params.city,
+          target: { kind: 'field', field },
+          currentContent: current || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        const msg = j.error || `HTTP ${res.status}`;
+        if (isBalanceError(msg)) { setAiAvailable(false); return; }
+        throw new Error(msg);
+      }
+      const json = await res.json();
+      if (typeof json.content === 'string') setter(json.content);
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (isBalanceError(msg)) { setAiAvailable(false); return; }
+      setError(msg);
+    } finally {
+      setRewritingField(null);
+    }
+  }
+
+  async function rewriteSection(section: SectionConfig): Promise<string | null> {
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/seo-content/generate-section', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serviceSlug: params.service,
+          citySlug: params.city,
+          target: { kind: 'section', section },
+          currentContent: section.content || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        const msg = j.error || `HTTP ${res.status}`;
+        if (isBalanceError(msg)) { setAiAvailable(false); return null; }
+        throw new Error(msg);
+      }
+      const json = await res.json();
+      return typeof json.content === 'string' ? json.content : null;
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (isBalanceError(msg)) { setAiAvailable(false); return null; }
+      setError(msg);
+      return null;
+    }
+  }
+
+  const aiDisabled = aiAvailable === false;
+
+  const rewriteBtn = (
+    field: 'pageHeading' | 'pageDescription' | 'metaTitle' | 'metaDescription',
+    current: string,
+    setter: (v: string) => void,
+  ) => (
+    <div className="relative group/rwbtn">
+      <button
+        type="button"
+        onClick={() => rewriteField(field, current, setter)}
+        disabled={rewritingField !== null || aiDisabled}
+        title={aiDisabled ? 'DeepSeek balance empty — recharge to enable AI' : 'Rewrite just this field with AI'}
+        className={`inline-flex items-center gap-1 text-xs font-semibold disabled:opacity-50 ${
+          aiDisabled ? 'text-gray-400 cursor-not-allowed' : 'text-purple-700 hover:text-purple-900'
+        }`}
+      >
+        {rewritingField === field ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+        {rewritingField === field ? 'Writing…' : 'Rewrite'}
+      </button>
+      {aiDisabled && (
+        <div className="absolute right-0 top-full mt-1.5 w-52 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl z-20 hidden group-hover/rwbtn:block pointer-events-none">
+          DeepSeek balance is empty. Recharge at platform.deepseek.com
+        </div>
+      )}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -264,13 +374,25 @@ export default function SeoContentEditPage({
           </a>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setAiModalOpen(true)}
-            disabled={generating}
-            className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 inline-flex items-center gap-2 text-sm font-medium disabled:opacity-50"
-          >
-            <Sparkles className="w-4 h-4" /> Generate with AI
-          </button>
+          <div className="relative group/genbtn">
+            <button
+              onClick={() => !aiDisabled && setAiModalOpen(true)}
+              disabled={generating || aiDisabled}
+              className={`px-3 py-2 rounded-lg inline-flex items-center gap-2 text-sm font-medium disabled:opacity-50 ${
+                aiDisabled
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-purple-600 text-white hover:bg-purple-700'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              {aiDisabled ? 'AI Unavailable' : 'Generate with AI'}
+            </button>
+            {aiDisabled && (
+              <div className="absolute right-0 top-full mt-1.5 w-56 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl z-20 hidden group-hover/genbtn:block pointer-events-none">
+                DeepSeek balance is empty. Recharge at platform.deepseek.com
+              </div>
+            )}
+          </div>
           <button
             onClick={() => save()}
             disabled={saving}
@@ -289,6 +411,12 @@ export default function SeoContentEditPage({
         </div>
       </div>
 
+      {aiDisabled && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-amber-800 text-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>DeepSeek balance is empty — all AI features are disabled. Recharge at <strong>platform.deepseek.com</strong> to re-enable.</span>
+        </div>
+      )}
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-red-800 text-sm flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" /> {error}
@@ -322,6 +450,8 @@ export default function SeoContentEditPage({
               onChange={setSections}
               sectionHints={sectionMeta.hints}
               getDefaultContent={(id) => sectionMeta.defaultContent[id] ?? ''}
+              onRewrite={rewriteSection}
+              aiDisabled={aiDisabled}
             />
           </div>
         </div>
@@ -333,7 +463,10 @@ export default function SeoContentEditPage({
             <h3 className="font-semibold text-emerald-900 mb-1">Page Content</h3>
             <p className="text-xs text-emerald-700 mb-3">Visible on the page — hero heading and supporting line.</p>
             <div className="mb-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Page Heading (H1)</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">Page Heading (H1)</label>
+                {rewriteBtn('pageHeading', pageHeading, setPageHeading)}
+              </div>
               <input
                 type="text"
                 value={pageHeading}
@@ -343,7 +476,10 @@ export default function SeoContentEditPage({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Page Description</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">Page Description</label>
+                {rewriteBtn('pageDescription', pageDescription, setPageDescription)}
+              </div>
               <textarea
                 value={pageDescription}
                 onChange={(e) => setPageDescription(e.target.value)}
@@ -361,9 +497,12 @@ export default function SeoContentEditPage({
             <div className="mb-3">
               <div className="flex items-baseline justify-between mb-1">
                 <label className="block text-sm font-medium text-gray-700">Meta Title</label>
-                <span className={`text-xs ${metaTitleLen >= 50 && metaTitleLen <= 60 ? 'text-green-600' : 'text-amber-600'}`}>
-                  {metaTitleLen} / 50-60
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs ${metaTitleLen >= 50 && metaTitleLen <= 60 ? 'text-green-600' : 'text-amber-600'}`}>
+                    {metaTitleLen} / 50-60
+                  </span>
+                  {rewriteBtn('metaTitle', metaTitle, setMetaTitle)}
+                </div>
               </div>
               <input
                 type="text"
@@ -375,9 +514,12 @@ export default function SeoContentEditPage({
             <div className="mb-3">
               <div className="flex items-baseline justify-between mb-1">
                 <label className="block text-sm font-medium text-gray-700">Meta Description</label>
-                <span className={`text-xs ${metaDescLen >= 140 && metaDescLen <= 158 ? 'text-green-600' : 'text-amber-600'}`}>
-                  {metaDescLen} / 140-158
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs ${metaDescLen >= 140 && metaDescLen <= 158 ? 'text-green-600' : 'text-amber-600'}`}>
+                    {metaDescLen} / 140-158
+                  </span>
+                  {rewriteBtn('metaDescription', metaDescription, setMetaDescription)}
+                </div>
               </div>
               <textarea
                 value={metaDescription}

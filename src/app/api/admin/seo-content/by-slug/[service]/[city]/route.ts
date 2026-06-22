@@ -24,14 +24,14 @@ function stringifyOrKeep(value: unknown): string | null {
   return JSON.stringify(value);
 }
 
-function rowToPayload(row: any, citySlug: string, serviceSlug: string) {
+function rowToPayload(row: any, citySlug: string, serviceSlug: string, dbName?: string) {
   const cityCtx = buildCityContext(citySlug);
   return {
     id: row?.id ?? null,
     serviceSlug,
     serviceLabel: SERVICE_LABELS[serviceSlug]?.label ?? serviceSlug,
     citySlug,
-    cityName: cityCtx?.name ?? citySlug,
+    cityName: cityCtx?.name ?? dbName ?? citySlug,
     cityState: cityCtx?.state ?? null,
     cityTier: cityCtx?.tier ?? null,
     cityTerrain: cityCtx?.terrain ?? null,
@@ -82,15 +82,22 @@ export async function GET(
   if (!(params.service in SERVICE_LABELS)) {
     return NextResponse.json({ error: `Unknown service "${params.service}"` }, { status: 404 });
   }
-  if (!getCityBySlug(params.city)) {
+
+  const [dbLocation, row] = await Promise.all([
+    prisma.locations.findFirst({
+      where: { slug: params.city, isActive: true },
+      select: { name: true },
+    }),
+    prisma.service_city_content.findUnique({
+      where: { serviceSlug_citySlug: { serviceSlug: params.service, citySlug: params.city } },
+    }),
+  ]);
+
+  if (!dbLocation && !getCityBySlug(params.city)) {
     return NextResponse.json({ error: `Unknown city "${params.city}"` }, { status: 404 });
   }
 
-  const row = await prisma.service_city_content.findUnique({
-    where: { serviceSlug_citySlug: { serviceSlug: params.service, citySlug: params.city } },
-  });
-
-  return NextResponse.json(rowToPayload(row, params.city, params.service));
+  return NextResponse.json(rowToPayload(row, params.city, params.service, dbLocation?.name));
 }
 
 export async function PUT(
@@ -136,13 +143,19 @@ export async function PUT(
   if (statusToSet) data.status = statusToSet;
   if ('autoUpdate' in workflow) data.autoUpdate = Boolean(workflow.autoUpdate);
 
-  const row = await prisma.service_city_content.upsert({
-    where: {
-      serviceSlug_citySlug: { serviceSlug: params.service, citySlug: params.city },
-    },
-    create: { serviceSlug: params.service, citySlug: params.city, ...data },
-    update: data,
-  });
+  const [row, dbLocation] = await Promise.all([
+    prisma.service_city_content.upsert({
+      where: {
+        serviceSlug_citySlug: { serviceSlug: params.service, citySlug: params.city },
+      },
+      create: { serviceSlug: params.service, citySlug: params.city, ...data },
+      update: data,
+    }),
+    prisma.locations.findFirst({
+      where: { slug: params.city, isActive: true },
+      select: { name: true },
+    }),
+  ]);
 
   try {
     revalidatePath(`/${params.service}/${params.city}`);
@@ -150,5 +163,5 @@ export async function PUT(
     console.warn('revalidatePath failed', err);
   }
 
-  return NextResponse.json(rowToPayload(row, params.city, params.service));
+  return NextResponse.json(rowToPayload(row, params.city, params.service, dbLocation?.name));
 }

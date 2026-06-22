@@ -95,13 +95,6 @@ export default function BusSubLocationPage({ params }: PageProps) {
           </h1>
           <p className="text-lg text-gray-600 mb-6 max-w-2xl">{sl.description}</p>
           <div className="flex flex-wrap gap-4">
-            <a
-              href={`https://wa.me/919737965551?text=Hi, I want to hire a bus in ${sl.name}, ${cityName}`}
-              className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
-              target="_blank" rel="noopener noreferrer"
-            >
-              Book on WhatsApp
-            </a>
             <Link
               href={`/bus-rental/${params.location}`}
               className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-indigo-600 hover:text-indigo-700 transition-colors"

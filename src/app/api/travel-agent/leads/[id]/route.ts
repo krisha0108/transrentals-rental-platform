@@ -44,11 +44,20 @@ export async function GET(
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
+    // Resolve source tour if tourId is set
+    const sourceTour = lead.tourId
+      ? await prisma.travel_agent_tours.findUnique({
+          where: { id: lead.tourId },
+          select: { id: true, title: true, slug: true, coverImage: true },
+        }).catch(() => null)
+      : null;
+
     const { travel_agent_lead_notes, capture_link, ...rest } = lead;
     return NextResponse.json({
       ...rest,
       notes: travel_agent_lead_notes,
       captureLink: capture_link,
+      sourceTour,
     });
   } catch (error: any) {
     logger.error('Get travel agent lead error', error);
@@ -104,6 +113,7 @@ export async function PATCH(
       lastContactAt,
       lostReason,
       addNote,
+      tourId,
     } = body;
 
     const updateData: any = {};
@@ -146,6 +156,7 @@ export async function PATCH(
     if (lastContactAt !== undefined)
       updateData.lastContactAt = lastContactAt ? new Date(lastContactAt) : new Date();
     if (lostReason !== undefined) updateData.lostReason = lostReason || null;
+    if (tourId !== undefined) updateData.tourId = tourId || null;
 
     // Payment verification action — sets verifiedAt + paymentStatus + (optionally) status=BOOKED
     if (paymentAction === 'VERIFY') {

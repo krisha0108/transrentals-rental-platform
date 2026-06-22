@@ -7,7 +7,7 @@ import {
   ArrowLeft, Loader2, Phone, Mail, MapPin, CalendarDays,
   IdCard, Car, ShieldCheck, ShieldX, ShieldAlert, Clock,
   Building2, IndianRupee, FileText, AlertCircle, ExternalLink,
-  CheckCircle, Ban, RotateCcw, Store, User,
+  CheckCircle, Ban, RotateCcw, Store, User, Edit2, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -110,6 +110,12 @@ export default function DriverDetailPage() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Contact edit modal
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactSaving, setContactSaving] = useState(false);
+
   const fetchDriver = async () => {
     setLoading(true);
     setError(null);
@@ -172,6 +178,25 @@ export default function DriverDetailPage() {
     } finally {
       setUpdatingStatus(false);
     }
+  };
+
+  const handleContactChange = async () => {
+    if (!contactEmail && !contactPhone) return;
+    setContactSaving(true);
+    try {
+      const res = await fetch(`/api/admin/drivers/${id}?source=${resolvedSource}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'CHANGE_CONTACT', newEmail: contactEmail || undefined, newPhone: contactPhone || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Failed to update contact'); return; }
+      setDriver((d) => d ? { ...d, ...(contactEmail && { email: contactEmail }), ...(contactPhone && { phone: contactPhone }) } : d);
+      setShowContactModal(false);
+      setContactEmail('');
+      setContactPhone('');
+    } catch { alert('Failed to update contact'); }
+    finally { setContactSaving(false); }
   };
 
   const formatDate = (d: string | null) =>
@@ -325,7 +350,15 @@ export default function DriverDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Profile */}
           <div className="bg-white rounded-xl border shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Profile</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Profile</h2>
+              <button
+                onClick={() => { setContactEmail(driver.email); setContactPhone(driver.phone); setShowContactModal(true); }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition"
+              >
+                <Edit2 className="w-3.5 h-3.5" /> Edit Contact
+              </button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-gray-400" />
@@ -558,6 +591,59 @@ export default function DriverDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Contact Edit Modal */}
+      {showContactModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-gray-900">Change Contact Info</h2>
+              <button onClick={() => setShowContactModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">Leave blank to keep current value.</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    value={contactEmail}
+                    onChange={e => setContactEmail(e.target.value)}
+                    placeholder={driver.email}
+                    className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    value={contactPhone}
+                    onChange={e => setContactPhone(e.target.value)}
+                    placeholder={driver.phone}
+                    className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setShowContactModal(false)} disabled={contactSaving}>Cancel</Button>
+              <Button
+                onClick={handleContactChange}
+                disabled={contactSaving || (!contactEmail && !contactPhone)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {contactSaving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Saving...</> : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

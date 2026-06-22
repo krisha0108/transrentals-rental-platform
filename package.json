@@ -19,6 +19,7 @@
     "test:coverage": "vitest run --coverage",
     "generate:sitemap": "ts-node scripts/generate-sitemap.ts",
     "generate:redirects": "node scripts/generate-redirects.js",
+    "validate:story-amp": "node scripts/validate-story-amp.mjs",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:generate": "npx prisma generate",
@@ -74,6 +75,7 @@
     "framer-motion": "^11.18.2",
     "googleapis": "171.4.0",
     "html2canvas": "1.4.1",
+    "ioredis": "5.11.1",
     "jose": "6.2.2",
     "jsonwebtoken": "9.0.3",
     "jspdf": "4.0.0",
@@ -97,6 +99,7 @@
     "react-hook-form": "^7.53.2",
     "react-is": "19.2.4",
     "react-leaflet": "^4.2.1",
+    "react-markdown": "10.1.0",
     "react-simple-maps": "3.0.0",
     "recharts": "^3.5.1",
     "sharp": "^0.33.5",
@@ -149,5 +152,14 @@
   "bugs": {
     "url": "https://github.com/saurav1702/transrentals-new/issues"
   },
-  "homepage": "https://github.com/saurav1702/transrentals-new#readme"
+  "homepage": "https://github.com/saurav1702/transrentals-new#readme",
+  "browserslist": [
+    "chrome >= 92",
+    "edge >= 92",
+    "firefox >= 90",
+    "safari >= 15.4",
+    "ios_saf >= 15.4",
+    "samsung >= 16",
+    "not dead"
+  ]
 }

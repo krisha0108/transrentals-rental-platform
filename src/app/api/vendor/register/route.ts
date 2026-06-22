@@ -8,6 +8,7 @@ import {
   RATE_LIMITS,
   logger,
 } from '@/lib/security';
+import { generateVid } from '@/lib/utils/generate-vid';
 
 export const dynamic = 'force-dynamic';
 
@@ -117,10 +118,13 @@ export async function POST(request: NextRequest) {
     // Hash password with strong cost factor
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    const vid = await generateVid();
+
     // Create vendor
     const vendor = await prisma.vendors.create({
       data: {
         id: generateId(),
+        vid,
         email: email.toLowerCase(),
         password: hashedPassword,
         phone,

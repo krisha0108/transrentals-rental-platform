@@ -308,7 +308,7 @@ export default function BookingDetailPage() {
             <ArrowLeft className="w-4 h-4" />
             Back to Bookings
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold text-gray-900">{booking.bookingNo}</h1>
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium border ${statusInfo.color}`}>
               <StatusIcon className="w-3.5 h-3.5" />
@@ -317,6 +317,26 @@ export default function BookingDetailPage() {
             {paymentInfo && (
               <span className={`px-3 py-1 rounded-full text-sm font-medium border ${paymentInfo.color}`}>
                 {paymentInfo.label}
+              </span>
+            )}
+            {booking.source && (
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                booking.source === 'app'
+                  ? 'bg-violet-100 text-violet-700 border-violet-200'
+                  : 'bg-sky-100 text-sky-700 border-sky-200'
+              }`}>
+                {booking.source === 'app' ? (
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="5" y="2" width="14" height="20" rx="2"/>
+                    <circle cx="12" cy="18" r="1" fill="currentColor"/>
+                  </svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/>
+                    <path d="M8 21h8M12 17v4"/>
+                  </svg>
+                )}
+                via {booking.source === 'app' ? 'Mobile App' : 'Website'}
               </span>
             )}
           </div>
@@ -736,41 +756,295 @@ export default function BookingDetailPage() {
                 <IndianRupee className="w-5 h-5" />
                 Pricing Details
               </h2>
-              <div className="space-y-3">
-                {booking.baseAmount && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Base Amount</span>
-                    <span className="font-medium">₹{booking.baseAmount.toLocaleString()}</span>
+              <div className="space-y-2.5">
+                {/* Self-drive / car booking */}
+                {booking.dailyRate > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">
+                      Daily Rate{booking.totalDays ? ` × ${booking.totalDays} day${booking.totalDays > 1 ? 's' : ''}` : ''}
+                    </span>
+                    <span className="font-medium">
+                      ₹{(booking.baseAmount || booking.dailyRate * (booking.totalDays || 1)).toLocaleString()}
+                    </span>
                   </div>
                 )}
-                {booking.baseFare && (
-                  <div className="flex justify-between">
+                {/* Chauffeur base fare */}
+                {booking.baseFare > 0 && (
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Base Fare</span>
                     <span className="font-medium">₹{booking.baseFare.toLocaleString()}</span>
                   </div>
                 )}
+                {/* Base amount fallback (bus/truck/packers etc.) */}
+                {booking.baseAmount > 0 && !booking.dailyRate && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Base Amount</span>
+                    <span className="font-medium">₹{booking.baseAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                {/* KM charges */}
+                {booking.kmCharges > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">
+                      KM Charges{booking.chargeableKm ? ` (${booking.chargeableKm} km)` : ''}
+                    </span>
+                    <span className="font-medium">₹{booking.kmCharges.toLocaleString()}</span>
+                  </div>
+                )}
+                {booking.extraKmCharges > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Extra KM Charges</span>
+                    <span className="font-medium">₹{booking.extraKmCharges.toLocaleString()}</span>
+                  </div>
+                )}
+                {/* Delivery/Pickup (self-drive) */}
+                {booking.deliveryCharges > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Delivery Charges</span>
+                    <span className="font-medium">₹{booking.deliveryCharges.toLocaleString()}</span>
+                  </div>
+                )}
+                {booking.pickupCharges > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Pickup Charges</span>
+                    <span className="font-medium">₹{booking.pickupCharges.toLocaleString()}</span>
+                  </div>
+                )}
+                {/* Chauffeur extras */}
+                {booking.driverBatta > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Driver Batta</span>
+                    <span className="font-medium">₹{booking.driverBatta.toLocaleString()}</span>
+                  </div>
+                )}
+                {booking.nightCharges > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Night Charges</span>
+                    <span className="font-medium">₹{booking.nightCharges.toLocaleString()}</span>
+                  </div>
+                )}
+                {booking.waitingCharges > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Waiting Charges</span>
+                    <span className="font-medium">₹{booking.waitingCharges.toLocaleString()}</span>
+                  </div>
+                )}
+                {booking.extraHourCharges > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Extra Hour Charges</span>
+                    <span className="font-medium">₹{booking.extraHourCharges.toLocaleString()}</span>
+                  </div>
+                )}
+                {booking.tollCharges > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Toll Charges</span>
+                    <span className="font-medium">₹{booking.tollCharges.toLocaleString()}</span>
+                  </div>
+                )}
+                {booking.statePermitCharges > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">State Permit</span>
+                    <span className="font-medium">₹{booking.statePermitCharges.toLocaleString()}</span>
+                  </div>
+                )}
+                {/* Security Deposit */}
+                {booking.securityDeposit > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Security Deposit</span>
+                    <span className="font-medium">₹{booking.securityDeposit.toLocaleString()}</span>
+                  </div>
+                )}
+                {/* GST */}
                 {booking.gstAmount > 0 && (
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-sm">
                     <span className="text-gray-600">GST</span>
                     <span className="font-medium">₹{booking.gstAmount.toLocaleString()}</span>
                   </div>
                 )}
-                {booking.platformFee > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Platform Fee</span>
-                    <span className="font-medium">₹{booking.platformFee.toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="pt-3 border-t">
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-900">Grand Total</span>
-                    <span className="font-bold text-green-600 text-lg">₹{booking.grandTotal?.toLocaleString() || '0'}</span>
+
+                {/* Grand Total */}
+                <div className="pt-3 mt-1 border-t-2 border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-gray-900">Grand Total</span>
+                    <span className="font-bold text-green-600 text-xl">₹{booking.grandTotal.toLocaleString()}</span>
                   </div>
                 </div>
-                {booking.paidAmount > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Paid Amount</span>
-                    <span className="font-medium text-green-600">₹{booking.paidAmount.toLocaleString()}</span>
+
+                {/* Payment breakdown */}
+                {(booking.paidAmount > 0 || booking.advanceAmount > 0 || booking.remainingPayment > 0) && (
+                  <div className="pt-2 mt-1 border-t border-dashed border-gray-200 space-y-2">
+                    {booking.advanceAmount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Advance Paid</span>
+                        <span className="font-medium text-green-600">₹{booking.advanceAmount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {booking.paidAmount > 0 && !booking.advanceAmount && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Amount Paid</span>
+                        <span className="font-medium text-green-600">₹{booking.paidAmount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {booking.remainingPayment > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Remaining</span>
+                        <span className="font-medium text-orange-600">₹{booking.remainingPayment.toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Payment Details */}
+          {(booking.grandTotal || booking.advanceAmount || booking.paidAmount || booking.partialPayment) && (
+            <div className="bg-white rounded-xl p-6 border shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                Payment Details
+              </h2>
+              <div className="space-y-4">
+
+                {/* Advance / Partial Payment */}
+                {(booking.advanceAmount > 0 || booking.partialPayment > 0) && (
+                  <div className="rounded-xl border border-green-100 bg-green-50 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-green-800">
+                        Advance Paid
+                        {booking.advancePercent ? ` (${booking.advancePercent}%)` : ''}
+                      </span>
+                      <span className="text-lg font-bold text-green-700">
+                        ₹{(booking.advanceAmount || booking.partialPayment).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="space-y-1 text-xs text-green-700">
+                      {(booking.advancePaymentRef || booking.transactionId) && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-green-600">Ref:</span>
+                          <span className="font-mono font-medium">{booking.advancePaymentRef || booking.transactionId}</span>
+                        </div>
+                      )}
+                      {(booking.paymentMethod) && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-green-600">Method:</span>
+                          <span className="font-medium capitalize">{booking.paymentMethod}</span>
+                        </div>
+                      )}
+                      {booking.advancePaymentDate && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-green-600">Date:</span>
+                          <span>{formatDateTime(booking.advancePaymentDate)}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5 mt-1">
+                        {booking.advancePaymentVerified ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-200 text-green-800 font-medium text-xs">
+                            <CheckCircle className="w-3 h-3" /> Verified
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 font-medium text-xs">
+                            <Clock className="w-3 h-3" /> Verification Pending
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {booking.advancePaymentProof && (
+                      <a
+                        href={booking.advancePaymentProof}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 mt-2 text-xs text-green-700 underline hover:text-green-900"
+                      >
+                        <FileText className="w-3 h-3" /> View Payment Proof
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Remaining Payment */}
+                {(booking.remainingPayment > 0 || booking.remainingPaymentRef) ? (
+                  <div className={`rounded-xl border p-4 ${booking.remainingPaymentVerified ? 'border-green-100 bg-green-50' : 'border-orange-100 bg-orange-50'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-sm font-semibold ${booking.remainingPaymentVerified ? 'text-green-800' : 'text-orange-800'}`}>
+                        Remaining Payment
+                      </span>
+                      <span className={`text-lg font-bold ${booking.remainingPaymentVerified ? 'text-green-700' : 'text-orange-700'}`}>
+                        ₹{(booking.remainingPayment || (booking.grandTotal - (booking.advanceAmount || booking.partialPayment || 0))).toLocaleString()}
+                      </span>
+                    </div>
+                    {booking.remainingPaymentRef && (
+                      <div className="space-y-1 text-xs text-orange-700">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-orange-600">Ref:</span>
+                          <span className="font-mono font-medium">{booking.remainingPaymentRef}</span>
+                        </div>
+                        {booking.remainingPaymentDate && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-orange-600">Date:</span>
+                            <span>{formatDateTime(booking.remainingPaymentDate)}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1.5 mt-1">
+                          {booking.remainingPaymentVerified ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-200 text-green-800 font-medium text-xs">
+                              <CheckCircle className="w-3 h-3" /> Verified
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 font-medium text-xs">
+                              <Clock className="w-3 h-3" /> Verification Pending
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {booking.remainingPaymentProof && (
+                      <a
+                        href={booking.remainingPaymentProof}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 mt-2 text-xs text-orange-700 underline hover:text-orange-900"
+                      >
+                        <FileText className="w-3 h-3" /> View Payment Proof
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  /* No remaining — show full paid */
+                  booking.paidAmount > 0 && !booking.advanceAmount && !booking.partialPayment && (
+                    <div className="rounded-xl border border-green-100 bg-green-50 p-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-semibold text-green-800">Amount Paid</span>
+                        <span className="text-lg font-bold text-green-700">₹{booking.paidAmount.toLocaleString()}</span>
+                      </div>
+                      {booking.paymentMethod && (
+                        <p className="text-xs text-green-700 capitalize">via {booking.paymentMethod}</p>
+                      )}
+                      {booking.transactionId && (
+                        <p className="text-xs text-green-700 font-mono mt-0.5">Txn: {booking.transactionId}</p>
+                      )}
+                    </div>
+                  )
+                )}
+
+                {/* Summary bar */}
+                {booking.grandTotal > 0 && (booking.advanceAmount > 0 || booking.partialPayment > 0) && (
+                  <div className="pt-2 border-t border-gray-100">
+                    <div className="flex justify-between text-sm text-gray-500 mb-1.5">
+                      <span>Payment Progress</span>
+                      <span className="font-medium text-gray-700">
+                        ₹{(booking.advanceAmount || booking.partialPayment).toLocaleString()} / ₹{booking.grandTotal.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-green-500 rounded-full transition-all"
+                        style={{ width: `${Math.min(100, Math.round(((booking.advanceAmount || booking.partialPayment) / booking.grandTotal) * 100))}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1 text-right">
+                      {Math.min(100, Math.round(((booking.advanceAmount || booking.partialPayment) / booking.grandTotal) * 100))}% paid
+                    </p>
                   </div>
                 )}
               </div>

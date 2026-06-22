@@ -99,6 +99,7 @@ function TimePickerSelect({
       <select
         value={value || '10:00'}
         onChange={(e) => onChange(e.target.value)}
+        aria-label="Pickup time"
         className="w-full pl-10 pr-9 py-3 border border-gray-200 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer font-medium"
       >
         {timeSlots.map((slot) => (
@@ -762,11 +763,17 @@ export function CarRentalBookingHero({
         }
         // Set airports
         if (airportsData.success && airportsData.airports) {
-          setAirports(airportsData.airports || []);
-          // Auto-select first airport if available
-          if (airportsData.airports.length > 0) {
-            setSelectedAirportId(airportsData.airports[0].id);
-            setSelectedAirport(airportsData.airports[0]);
+          const list = airportsData.airports || [];
+          setAirports(list);
+          if (list.length > 0) {
+            // Find airport matching current city
+            const localAirport = list.find((a: Airport) =>
+              (a.city && a.city.toLowerCase() === city.toLowerCase()) ||
+              (a.name && a.name.toLowerCase().includes(city.toLowerCase()))
+            );
+            const defaultAirport = localAirport || list[0];
+            setSelectedAirportId(defaultAirport.id);
+            setSelectedAirport(defaultAirport);
           }
         }
       } catch (error) {
@@ -1170,17 +1177,11 @@ export function CarRentalBookingHero({
   ];
   const resolvedTrustBadges = trustBadges ?? defaultTrustBadges;
 
-  if (loadingData) {
-    return (
-      <section
-        className={`relative bg-gradient-to-br ${themeColors.gradient} text-white py-20`}
-      >
-        <div className="container-custom flex justify-center">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
-      </section>
-    );
-  }
+  // NOTE: We intentionally do NOT early-return a short spinner while loadingData.
+  // Doing so rendered the hero at ~190px first, then jumped to full height after
+  // the client-side fetch — a massive layout shift (CLS ~0.87). Instead we always
+  // render the full hero structure (SSR'd at the correct height) and show inline
+  // skeletons only for the data-dependent block (the package grid below).
 
   return (
     <section
@@ -1325,6 +1326,20 @@ export function CarRentalBookingHero({
                     exit={{ opacity: 0 }}
                     className="space-y-4"
                   >
+                    {/* Self-Drive promo link */}
+                    <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-xs">
+                      <div className="flex items-center gap-2 text-blue-800">
+                        <span className="text-sm">🚗</span>
+                        <span>Want to drive yourself instead of hiring a driver?</span>
+                      </div>
+                      <a
+                        href={`/self-drive-car-rentals${citySlug ? `/${citySlug}` : ''}`}
+                        className="font-bold text-blue-600 hover:text-blue-700 underline flex items-center gap-0.5 shrink-0"
+                      >
+                        Self-Drive Cars
+                        <ChevronRight className="w-3 h-3" />
+                      </a>
+                    </div>
                     {/* LOCAL TRIP */}
                     {tripType === 'local' && (
                       <>
@@ -1360,7 +1375,7 @@ export function CarRentalBookingHero({
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Select Package
                           </label>
-                          {loadingPackages ? (
+                          {(loadingData || loadingPackages) ? (
                             <div className="grid grid-cols-3 gap-2">
                               {[1, 2, 3].map((i) => (
                                 <div key={i} className="p-3 rounded-lg border-2 border-gray-100 animate-pulse">
@@ -1400,6 +1415,7 @@ export function CarRentalBookingHero({
                               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                               <input
                                 type="date"
+                                aria-label="Pickup date"
                                 value={pickupDate}
                                 onChange={(e) => { setPickupDate(e.target.value); setDateError(''); }}
                                 min={minBookingDate}
@@ -1566,6 +1582,7 @@ export function CarRentalBookingHero({
                               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                               <input
                                 type="date"
+                                aria-label="Pickup date"
                                 value={pickupDate}
                                 onChange={(e) => { setPickupDate(e.target.value); setDateError(''); }}
                                 min={minBookingDate}
@@ -1582,6 +1599,7 @@ export function CarRentalBookingHero({
                                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                                 <input
                                   type="date"
+                                  aria-label="Return date"
                                   value={returnDate}
                                   onChange={(e) => setReturnDate(e.target.value)}
                                   min={pickupDate || minBookingDate}
@@ -1711,6 +1729,7 @@ export function CarRentalBookingHero({
                               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                               <input
                                 type="date"
+                                aria-label="Pickup date"
                                 value={pickupDate}
                                 onChange={(e) => { setPickupDate(e.target.value); setDateError(''); }}
                                 min={minBookingDate}

@@ -61,6 +61,7 @@ model admin_users {
   travel_agent_documents_uploaded travel_agent_documents[]   @relation("travel_agent_documents_uploadedBy")
   travel_agent_documents          travel_agent_documents[]   @relation("travel_agent_documents_verifiedBy")
   vendor_tag_assignments          vendor_tag_assignments[]
+  driver_tag_assignments          driver_tag_assignments[]
 
   @@index([createdById], map: "admin_users_createdById_fkey")
 }
@@ -1743,25 +1744,29 @@ model form_submissions {
 }
 
 model helpdesk_tickets {
-  id          String                  @id
-  ticketNo    String                  @unique
-  customerId  String?
-  heading     String
-  problem     String                  @db.Text
-  bookingId   String?
-  bookingType String?
-  status      helpdesk_tickets_status @default(OPEN)
-  priority    String                  @default("NORMAL")
-  images      String?                 @db.Text
-  resolvedBy  String?
-  resolvedAt  DateTime?
-  resolution  String?                 @db.Text
-  createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
-  customers   customers?              @relation(fields: [customerId], references: [id])
+  id            String                  @id
+  ticketNo      String                  @unique
+  customerId    String?
+  travelAgentId String?
+  submitterType String?                 @default("customer")
+  heading       String
+  problem       String                  @db.Text
+  bookingId     String?
+  bookingType   String?
+  status        helpdesk_tickets_status @default(OPEN)
+  priority      String                  @default("NORMAL")
+  images        String?                 @db.Text
+  resolvedBy    String?
+  resolvedAt    DateTime?
+  resolution    String?                 @db.Text
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  customers     customers?              @relation(fields: [customerId], references: [id])
+  travel_agents travel_agents?          @relation(fields: [travelAgentId], references: [id])
 
   @@index([createdAt])
   @@index([customerId])
+  @@index([travelAgentId])
   @@index([status])
 }
 
@@ -3746,6 +3751,7 @@ model vendor_staff {
   locationAccuracy   Float?
   locationUpdatedAt  DateTime?
   isSharingLocation  Boolean                     @default(false)
+  did                String?                     @unique(map: "vendor_staff_did_key")
   b2b_trips          b2b_trips[]
   b2b_quote_vehicles b2b_vendor_quote_vehicles[]
   staff_attendance   staff_attendance[]
@@ -3785,8 +3791,23 @@ model vendor_truck_templates {
   @@index([vendorId])
 }
 
+model vendor_contact_change_requests {
+  id           String    @id
+  vendorId     String
+  newEmail     String?
+  newPhone     String?
+  status       String    @default("PENDING")
+  requestedAt  DateTime  @default(now())
+  reviewedAt   DateTime?
+  reviewedById String?
+  vendors      vendors   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
+}
+
 model vendors {
   id                                                              String                           @id
+  vid                                                             String?                          @unique
   email                                                           String                           @unique
   password                                                        String
   phone                                                           String                           @unique
@@ -3820,6 +3841,7 @@ model vendors {
   fcmToken                                                        String?                          @db.Text
   slug                                                            String?                          @unique(map: "slug")
   isProfilePublic                                                 Boolean                          @default(true)
+  vendor_contact_change_requests                                  vendor_contact_change_requests[]
   b2b_trips                                                       b2b_trips[]
   b2b_vendor_quotes                                               b2b_vendor_quotes[]
   bike_bookings_bike_bookings_acceptedVendorIdTovendors           bike_bookings[]                  @relation("bike_bookings_acceptedVendorIdTovendors")
@@ -3890,8 +3912,8 @@ model vendors {
   wander_listings                                                 wander_listings[]
   wander_quotes                                                   wander_quotes[]
 
-  vendor_bank_accounts vendor_bank_accounts[]
-  vendor_call_logs     vendor_call_logs[]
+  vendor_bank_accounts   vendor_bank_accounts[]
+  vendor_call_logs       vendor_call_logs[]
   vendor_tag_assignments vendor_tag_assignments[]
 
   @@index([approvedById], map: "vendors_approvedById_fkey")
@@ -3901,12 +3923,12 @@ model vendors {
 }
 
 model vendor_tag_assignments {
-  id           String      @id @default(cuid())
+  id           String       @id @default(cuid())
   vendorId     String
   tag          vendor_tag
   assignedById String?
-  createdAt    DateTime    @default(now())
-  vendors      vendors     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  createdAt    DateTime     @default(now())
+  vendors      vendors      @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   admin_users  admin_users? @relation(fields: [assignedById], references: [id])
 
   @@unique([vendorId, tag])
@@ -3925,6 +3947,39 @@ enum vendor_tag {
   NO_RESPONSE
   VEHICLE_DETAILS_PENDING
   ACTIVE_VENDOR
+  SUSPENDED
+}
+
+// Driver CRM tags — manager follow-up layer, independent of driver status.
+// Drivers come from two tables (standalone `drivers` + `vendor_staff`), so the
+// assignment is polymorphic: (driverId, source) identifies the driver. No hard
+// FK to either driver table for that reason; assignedById still FKs admin_users.
+model driver_tag_assignments {
+  id           String       @id @default(cuid())
+  driverId     String
+  source       String       @default("standalone") // 'standalone' | 'vendor'
+  tag          driver_tag
+  assignedById String?
+  createdAt    DateTime     @default(now())
+  admin_users  admin_users? @relation(fields: [assignedById], references: [id])
+
+  @@unique([driverId, source, tag])
+  @@index([tag])
+  @@index([driverId])
+  @@index([assignedById], map: "driver_tag_assignments_assignedById_fkey")
+}
+
+enum driver_tag {
+  FOLLOW_UP_REQUIRED
+  CONNECTED
+  RESPONDED
+  DOCUMENTS_PENDING
+  DOCUMENTS_VERIFIED
+  WRONG_DRIVER_DETAILS
+  NOT_INTERESTED
+  NO_RESPONSE
+  VEHICLE_DETAILS_PENDING
+  ACTIVE_DRIVER
   SUSPENDED
 }
 
@@ -5131,6 +5186,7 @@ enum vendor_documents_status {
   PENDING
   APPROVED
   REJECTED
+  RESUBMIT_REQUIRED
 }
 
 enum helpdesk_tickets_status {
@@ -5905,6 +5961,7 @@ model social_posts {
   agentId              String?
   categoryId           String
   content              String                 @db.Text
+  images               String?                @db.Text // JSON array of uploaded image URLs
   isActive             Boolean                @default(true)
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
@@ -6150,10 +6207,11 @@ model web_story_views {
 // ─── Independent Driver App ───────────────────────────────────────────────────
 
 model drivers {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
+  did      String? @unique
   name     String
-  phone    String @unique
-  email    String @unique
+  phone    String  @unique
+  email    String  @unique
   password String
 
   // Personal
@@ -6394,6 +6452,7 @@ model travel_agents {
   conv_agent1                     vendor_conversations[]            @relation("conv_agent1")
   conv_agent2                     vendor_conversations[]            @relation("conv_agent2")
   vendor_messages_sent            vendor_messages[]                 @relation("msg_agent_sender")
+  helpdesk_tickets                helpdesk_tickets[]
 
   @@index([approvedById], map: "travel_agents_approvedById_fkey")
   @@index([email])
@@ -6609,35 +6668,43 @@ model travel_agent_tours {
 }
 
 model travel_agent_properties {
-  id            String                     @id @default(cuid())
-  travelAgentId String
-  name          String
-  slug          String?
-  propertyType  travel_agent_property_type @default(RESORT)
-  description   String?                    @db.Text
-  address       String?                    @db.Text
-  city          String?
-  state         String?
-  pincode       String?
-  latitude      Float?
-  longitude     Float?
-  totalRooms    Int                        @default(1)
-  startingPrice Float?
-  amenities     String?                    @db.LongText
-  inclusions    String?                    @db.LongText
-  exclusions    String?                    @db.LongText
-  rules         String?                    @db.LongText
-  checkInTime   String?
-  checkOutTime  String?
-  coverImage    String?
-  galleryImages String?                    @db.LongText
-  isActive      Boolean                    @default(true)
-  isPublic      Boolean                    @default(false)
-  totalBookings Int                        @default(0)
-  rating        Float?                     @default(0)
-  totalRatings  Int                        @default(0)
-  createdAt     DateTime                   @default(now())
-  updatedAt     DateTime                   @updatedAt
+  id                 String                     @id @default(cuid())
+  travelAgentId      String
+  name               String
+  slug               String?
+  propertyType       travel_agent_property_type @default(RESORT)
+  description        String?                    @db.Text
+  address            String?                    @db.Text
+  city               String?
+  state              String?
+  pincode            String?
+  latitude           Float?
+  longitude          Float?
+  totalRooms         Int                        @default(1)
+  bedroomsCount      Int?
+  bathroomsCount     Int?
+  maxGuests          Int?
+  startingPrice      Float?
+  minNights          Int?                       @default(1)
+  maxNights          Int?
+  cancellationPolicy String?
+  landmark           String?
+  highlights         String?                    @db.Text
+  amenities          String?                    @db.LongText
+  inclusions         String?                    @db.LongText
+  exclusions         String?                    @db.LongText
+  rules              String?                    @db.LongText
+  checkInTime        String?
+  checkOutTime       String?
+  coverImage         String?
+  galleryImages      String?                    @db.LongText
+  isActive           Boolean                    @default(true)
+  isPublic           Boolean                    @default(false)
+  totalBookings      Int                        @default(0)
+  rating             Float?                     @default(0)
+  totalRatings       Int                        @default(0)
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
 
   travel_agents travel_agents @relation(fields: [travelAgentId], references: [id], onDelete: Cascade)
 

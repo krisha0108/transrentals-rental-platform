@@ -84,6 +84,7 @@ interface UnifiedItem {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  submitterType?: string;
   createdAt: Date;
   bookingType?: string;
 }
@@ -91,12 +92,13 @@ interface UnifiedItem {
 export default async function HelpdeskPage({
   searchParams,
 }: {
-  searchParams?: { page?: string; search?: string; status?: string; type?: string };
+  searchParams?: { page?: string; search?: string; status?: string; type?: string; submitter?: string };
 }) {
   const page = Math.max(1, Number(searchParams?.page) || 1);
   const pageSearch = searchParams?.search?.trim() || '';
   const statusFilter = searchParams?.status || '';
   const typeFilter = searchParams?.type || '';
+  const submitterFilter = searchParams?.submitter || '';
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
@@ -110,10 +112,17 @@ export default async function HelpdeskPage({
       { problem: { contains: pageSearch } },
       { customers: { name: { contains: pageSearch } } },
       { customers: { email: { contains: pageSearch } } },
+      { travel_agents: { agencyName: { contains: pageSearch } } },
+      { travel_agents: { email: { contains: pageSearch } } },
     ];
   }
   if (statusFilter && statusFilter !== 'all') {
     ticketWhere.status = statusFilter.toUpperCase() as any;
+  }
+  if (submitterFilter === 'travel_agent') {
+    ticketWhere.submitterType = 'travel_agent';
+  } else if (submitterFilter === 'customer') {
+    ticketWhere.submitterType = { not: 'travel_agent' };
   }
 
   // Build where clauses for inquiries
@@ -127,9 +136,10 @@ export default async function HelpdeskPage({
     ];
   }
 
-  // Fetch data based on type filter
+  // Fetch data based on type + submitter filter
   const shouldFetchTickets = !typeFilter || typeFilter === 'ticket';
-  const shouldFetchInquiries = !typeFilter || typeFilter === 'inquiry';
+  // inquiries have no submitterType — hide when filtering by submitter
+  const shouldFetchInquiries = (!typeFilter || typeFilter === 'inquiry') && !submitterFilter;
 
   const [
     tickets,
@@ -146,12 +156,10 @@ export default async function HelpdeskPage({
           where: ticketWhere,
           include: {
             customers: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                phone: true,
-              },
+              select: { id: true, name: true, email: true, phone: true },
+            },
+            travel_agents: {
+              select: { id: true, agencyName: true, ownerName: true, email: true, phone: true },
             },
           },
           orderBy: { createdAt: 'desc' },
@@ -176,20 +184,27 @@ export default async function HelpdeskPage({
   ]);
 
   // Transform tickets to unified format
-  const unifiedTickets: UnifiedItem[] = tickets.map((ticket: any) => ({
-    id: ticket.id,
-    type: 'ticket' as const,
-    reference: ticket.ticketNo,
-    heading: ticket.heading,
-    description: ticket.problem,
-    status: ticket.status,
-    priority: ticket.priority,
-    customerName: ticket.customers?.name || 'Unknown',
-    customerEmail: ticket.customers?.email || '',
-    customerPhone: ticket.customers?.phone || '',
-    createdAt: ticket.createdAt,
-    bookingType: ticket.bookingType,
-  }));
+  const unifiedTickets: UnifiedItem[] = tickets.map((ticket: any) => {
+    const isTA = ticket.submitterType === 'travel_agent';
+    const ta = ticket.travel_agents;
+    return {
+      id: ticket.id,
+      type: 'ticket' as const,
+      reference: ticket.ticketNo,
+      heading: ticket.heading,
+      description: ticket.problem,
+      status: ticket.status,
+      priority: ticket.priority,
+      submitterType: ticket.submitterType || 'customer',
+      customerName: isTA
+        ? (ta?.agencyName || ta?.ownerName || 'Travel Agent')
+        : (ticket.customers?.name || 'Unknown'),
+      customerEmail: isTA ? (ta?.email || '') : (ticket.customers?.email || ''),
+      customerPhone: isTA ? (ta?.phone || '') : (ticket.customers?.phone || ''),
+      createdAt: ticket.createdAt,
+      bookingType: ticket.bookingType,
+    };
+  });
 
   // Transform inquiries to unified format
   const unifiedInquiries: UnifiedItem[] = inquiries.map((inquiry: any) => ({
@@ -234,6 +249,7 @@ export default async function HelpdeskPage({
     if (pageSearch) params.set('search', pageSearch);
     if (statusFilter) params.set('status', statusFilter);
     if (typeFilter) params.set('type', typeFilter);
+    if (submitterFilter) params.set('submitter', submitterFilter);
     if (target > 1) params.set('page', target.toString());
     const qs = params.toString();
     return qs ? `/admin/helpdesk?${qs}` : '/admin/helpdesk';
@@ -276,6 +292,18 @@ export default async function HelpdeskPage({
                   <option value="">All Types</option>
                   <option value="ticket">Tickets Only</option>
                   <option value="inquiry">Inquiries Only</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.3em] text-slate-400">
+                Submitter
+                <select
+                  name="submitter"
+                  defaultValue={submitterFilter}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none"
+                >
+                  <option value="">All Submitters</option>
+                  <option value="travel_agent">Travel Agents</option>
+                  <option value="customer">Customers</option>
                 </select>
               </label>
               <label className="flex flex-col gap-1 text-xs uppercase tracking-[0.3em] text-slate-400">
@@ -324,7 +352,7 @@ export default async function HelpdeskPage({
                   <tr>
                     <th className="px-6 py-3">Type</th>
                     <th className="px-6 py-3">Reference</th>
-                    <th className="px-6 py-3">Customer</th>
+                    <th className="px-6 py-3">Submitter</th>
                     <th className="px-6 py-3">Subject</th>
                     <th className="px-6 py-3">Status</th>
                     <th className="px-6 py-3">Date</th>
@@ -358,6 +386,11 @@ export default async function HelpdeskPage({
                         <td className="px-6 py-4">
                           <p className="text-sm font-medium text-slate-900">{item.customerName}</p>
                           <p className="text-xs text-slate-500">{item.customerPhone || item.customerEmail || '—'}</p>
+                          {item.submitterType === 'travel_agent' && (
+                            <span className="mt-0.5 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                              Travel Agent
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 max-w-xs">
                           <p className="text-sm font-medium text-slate-800 truncate">{item.heading}</p>

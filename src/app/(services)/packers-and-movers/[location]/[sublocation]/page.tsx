@@ -95,13 +95,6 @@ export default function PackersSubLocationPage({ params }: PageProps) {
           </h1>
           <p className="text-lg text-gray-600 mb-6 max-w-2xl">{sl.description}</p>
           <div className="flex flex-wrap gap-4">
-            <a
-              href={`https://wa.me/919737965551?text=Hi, I need packers and movers in ${sl.name}, ${cityName}`}
-              className="inline-flex items-center gap-2 bg-teal-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-teal-700 transition-colors"
-              target="_blank" rel="noopener noreferrer"
-            >
-              Get Free Quote on WhatsApp
-            </a>
             <Link
               href={`/packers-and-movers/${params.location}`}
               className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-teal-600 hover:text-teal-700 transition-colors"

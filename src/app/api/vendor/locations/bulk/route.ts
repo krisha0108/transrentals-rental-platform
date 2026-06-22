@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 import crypto from 'crypto';
 
 import { prisma } from '@/lib/db/prisma';
@@ -23,6 +24,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const guard = await vendorStatusGuard(auth.vendorId);
+    if (guard.blocked) return guard.response;
+
     const body = await request.json();
     const { locationIds, message, localAddress } = body;
 
@@ -39,11 +43,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Some locations not found' }, { status: 404 });
     }
 
-    // Get already approved locations
+    // Get already approved locations (only active ones)
     const alreadyApproved = await prisma.vendor_approved_locations.findMany({
       where: {
         vendorId: auth.vendorId,
         locationId: { in: locationIds },
+        isActive: true,
       },
       select: { locationId: true },
     });

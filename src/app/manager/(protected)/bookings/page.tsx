@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Loader2,
@@ -41,6 +41,7 @@ interface Booking {
   customerName: string;
   customerPhone: string;
   vendorName?: string;
+  vendorVid?: string | null;
   locationName: string;
   serviceName?: string;
   serviceSlug?: string;
@@ -129,6 +130,7 @@ export default function ManagerBookingsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -209,8 +211,11 @@ export default function ManagerBookingsPage() {
           b.bookingNumber?.toLowerCase().includes(term) ||
           b.customerName?.toLowerCase().includes(term) ||
           b.customerPhone?.includes(term) ||
+          b.customerEmail?.toLowerCase().includes(term) ||
           b.locationName?.toLowerCase().includes(term) ||
-          b.vendorName?.toLowerCase().includes(term)
+          b.vendorName?.toLowerCase().includes(term) ||
+          b.vendorVid?.toLowerCase().includes(term) ||
+          b.serviceName?.toLowerCase().includes(term)
       );
     }
 
@@ -219,9 +224,14 @@ export default function ManagerBookingsPage() {
       filtered = filtered.filter((b) => (b.source || 'web') === sourceFilter);
     }
 
+    // Apply location filter
+    if (locationFilter !== 'all') {
+      filtered = filtered.filter((b) => (b.locationName || b.deliveryCity || '') === locationFilter);
+    }
+
     setFilteredBookings(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [searchTerm, bookings, dateFilter, sourceFilter]);
+  }, [searchTerm, bookings, dateFilter, sourceFilter, locationFilter]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -244,6 +254,16 @@ export default function ManagerBookingsPage() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  // Unique locations derived from all fetched bookings
+  const uniqueLocations = useMemo(() => {
+    const set = new Set<string>();
+    bookings.forEach((b) => {
+      const loc = b.locationName || b.deliveryCity;
+      if (loc) set.add(loc);
+    });
+    return Array.from(set).sort();
+  }, [bookings]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
@@ -284,6 +304,16 @@ export default function ManagerBookingsPage() {
     return pages;
   };
 
+  const bookingStats = useMemo(() => {
+    const active = filteredBookings.filter((b) =>
+      ['PAYMENT_VERIFIED', 'PENDING_VENDOR', 'BROADCASTED', 'ACCEPTED', 'READY_FOR_PICKUP', 'IN_PROGRESS'].includes(b.status)
+    ).length;
+    const completed = filteredBookings.filter((b) => b.status === 'COMPLETED').length;
+    const cancelled = filteredBookings.filter((b) => ['CANCELLED', 'EXPIRED', 'REFUNDED'].includes(b.status)).length;
+    const revenue = filteredBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+    return { total: filteredBookings.length, active, completed, cancelled, revenue };
+  }, [filteredBookings]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -311,6 +341,26 @@ export default function ManagerBookingsPage() {
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           Refresh
         </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Total',     value: bookingStats.total,     icon: Calendar,      color: 'bg-gray-100 text-gray-600',    valColor: 'text-gray-900' },
+          { label: 'Active',    value: bookingStats.active,    icon: Clock,         color: 'bg-blue-100 text-blue-600',    valColor: 'text-blue-600' },
+          { label: 'Completed', value: bookingStats.completed, icon: CheckCircle,   color: 'bg-green-100 text-green-600',  valColor: 'text-green-600' },
+          { label: 'Cancelled', value: bookingStats.cancelled, icon: XCircle,       color: 'bg-red-100 text-red-500',      valColor: 'text-red-500' },
+        ].map(({ label, value, icon: Icon, color, valColor }) => (
+          <div key={label} className="bg-white rounded-xl p-4 border shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${color}`}><Icon className="w-5 h-5" /></div>
+              <div>
+                <p className={`text-2xl font-bold ${valColor}`}>{value}</p>
+                <p className="text-xs text-gray-500">{label}</p>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Date Filters */}
@@ -342,7 +392,7 @@ export default function ManagerBookingsPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by booking #, customer, phone, location..."
+              placeholder="Search by booking #, customer, phone, email, location, service..."
               className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
           </div>
@@ -376,6 +426,21 @@ export default function ManagerBookingsPage() {
                 <option key={filter.value} value={filter.value}>
                   {filter.label}
                 </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Location Filter */}
+          <div className="relative">
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white min-w-[160px]"
+            >
+              <option value="all">All Locations</option>
+              {uniqueLocations.map((loc) => (
+                <option key={loc} value={loc}>{loc}</option>
               ))}
             </select>
           </div>

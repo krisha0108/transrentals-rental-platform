@@ -5,7 +5,7 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { BikeSearchHero } from '@/components/bike/BikeSearchHero';
@@ -94,15 +94,15 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 899 },
-  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 1099 },
-  { name: 'Royal Enfield Meteor 350', brand: 'Royal Enfield', price: 999 },
-  { name: 'Royal Enfield Hunter 350', brand: 'Royal Enfield', price: 899 },
+  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 1099, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Meteor 350', brand: 'Royal Enfield', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Hunter 350', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('royal-enfield-on-rent', params.location);
-  if (pageContext.type === 'redirect') notFound();
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="royal-enfield-on-rent" serviceName="Royal Enfield on Rent" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
@@ -197,7 +197,7 @@ export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
         title={`Available Royal Enfield Bikes in ${locationName}`}
       />
 
-      <WhyRentHere locationName={locationName} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location}

@@ -56,6 +56,12 @@ export async function POST(request: NextRequest) {
   const userId = (session.user as any)?.id ?? null;
   const editor = userId ? `admin:${userId}` : 'ai';
 
+  const dbLocation = await prisma.locations.findFirst({
+    where: { slug: citySlug, isActive: true },
+    select: { name: true },
+  });
+  const cityNameFallback = dbLocation?.name;
+
   if (format === 'sections') {
     let result;
     try {
@@ -65,6 +71,7 @@ export async function POST(request: NextRequest) {
         sections,
         customInstructions,
         temperature,
+        cityNameFallback,
       });
     } catch (err) {
       if (err instanceof GenerateError) {
@@ -147,6 +154,7 @@ export async function POST(request: NextRequest) {
       citySlug,
       customInstructions,
       temperature,
+      cityNameFallback,
     });
   } catch (err) {
     if (err instanceof GenerateError) {

@@ -7,14 +7,14 @@ import { NearbyLocations } from '@/components/location/NearbyLocations';
 import { NearbyActiveCities } from '@/components/location/NearbyActiveCities';
 import { CityContentSection } from '@/components/location/CityContentSection';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { prisma } from '@/lib/db/prisma';
 import { BikeServiceSchema } from '@/components/seo/schemas';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
-import { ServiceFleetDisplay } from '@/components/services/ServiceFleetDisplay';
+import { LazyServiceFleetDisplay } from '@/components/services/LazyServiceFleetDisplay';
 import { resolvePageMeta } from '@/lib/seo/resolve-page-meta';
 import { CITY_SEO } from '@/data/city-seo-content';
 import { RelatedServices } from '@/components/services/RelatedServices';
@@ -149,11 +149,11 @@ const getLocationFaqs = (locationName: string) => [
 
 // Schema vehicles data
 const schemaVehicles = [
-  { name: 'Honda Activa 6G', brand: 'Honda', price: 299 },
-  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 799 },
-  { name: 'TVS Jupiter', brand: 'TVS', price: 349 },
-  { name: 'KTM Duke 200', brand: 'KTM', price: 999 },
-  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 899 },
+  { name: 'Honda Activa 6G', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/fleet/honda-activa-6g.jpg' },
+  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 799, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'TVS Jupiter', brand: 'TVS', price: 349, image: 'https://transrentals.in/images/scooters/jupiter.jpg' },
+  { name: 'KTM Duke 200', brand: 'KTM', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default async function BikeLocationPage({ params }: PageProps) {
@@ -184,7 +184,7 @@ export default async function BikeLocationPage({ params }: PageProps) {
         </>
       );
     }
-    notFound();
+    permanentRedirect(pageContext.to);
   }
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="bike-on-rent" serviceName="Bike on Rent" />;
 
@@ -360,7 +360,7 @@ export default async function BikeLocationPage({ params }: PageProps) {
       <BikeSearchHero city={locationName} citySlug={params.location} pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined} pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined} />
 
       {/* Available Bikes - Dynamic from Database */}
-      <ServiceFleetDisplay
+      <LazyServiceFleetDisplay
         serviceSlug="bike-on-rent"
         locationSlug={params.location}
         title={`Bikes Available for Rent in ${locationName}`}

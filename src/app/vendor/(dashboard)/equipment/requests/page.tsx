@@ -642,21 +642,6 @@ export default function VendorEquipmentRequestsPage() {
                       </div>
                     </div>
                   )}
-                  {(selected.budgetMin || selected.budgetMax) && (
-                    <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl px-3.5 py-2.5 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-emerald-500" />
-                      <div>
-                        <p className="text-[10px] text-emerald-500 font-semibold uppercase tracking-wider">Budget</p>
-                        <p className="text-sm font-bold text-emerald-700">
-                          {selected.budgetMin && selected.budgetMax
-                            ? `₹${selected.budgetMin.toLocaleString()} – ₹${selected.budgetMax.toLocaleString()}`
-                            : selected.budgetMin
-                            ? `Min ₹${selected.budgetMin.toLocaleString()}`
-                            : `Up to ₹${selected.budgetMax!.toLocaleString()}`}
-                        </p>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Service badges */}

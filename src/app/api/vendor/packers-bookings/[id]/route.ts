@@ -7,6 +7,7 @@ import logger from '@/lib/security/logger';
 import { releaseDatesForBooking } from '@/lib/utils/fleet-availability';
 import { prepareNotificationData } from '@/lib/utils/notification-helper';
 import { sendNotificationToCustomer } from '@/lib/services/push-notification-service';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -108,6 +109,10 @@ export async function PATCH(
         if (!auth.authenticated || !auth.vendorId) {
             return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
         }
+
+        // Block rejected/suspended/blocked vendors from write operations
+        const _guard = await vendorStatusGuard(auth.vendorId!);
+        if (_guard.blocked) return _guard.response;
 
         const vendor = await prisma.vendors.findFirst({
             where: { id: auth.vendorId },

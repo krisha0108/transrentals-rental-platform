@@ -160,6 +160,24 @@ export async function PUT(
         type: 'document_rejected',
         serviceType: 'general',
       }).catch((err: any) => console.error('[DocReject] Vendor notify failed:', err));
+    } else if (action === 'RESUBMIT_REQUIRED') {
+      await prisma.vendor_documents.update({
+        where: { id: documentId },
+        data: {
+          status: 'RESUBMIT_REQUIRED',
+          rejectionReason: rejectionReason || 'Manager requested resubmission of this document.',
+          verifiedAt: null,
+          verifiedById: null,
+        },
+      });
+
+      sendVendorDirectNotification({
+        vendorId,
+        title: '🔄 Document Resubmission Required',
+        body: `Please re-upload your ${document.documentType?.replace(/_/g, ' ').toLowerCase() || 'document'}. ${rejectionReason ? 'Reason: ' + rejectionReason : ''}`,
+        type: 'document_resubmit',
+        serviceType: 'general',
+      }).catch((err: any) => console.error('[DocResubmit] Vendor notify failed:', err));
     } else {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }

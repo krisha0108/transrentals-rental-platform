@@ -153,10 +153,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Auto-promote DOCUMENTS_PENDING → UNDER_REVIEW once all 3 required KYC docs are in
-    // (mirrors vendor's required-docs flow). Admin still verifies each one manually,
-    // and final APPROVED happens when all 3 are VERIFIED (handled in admin verify route).
-    const REQUIRED_TYPES = ['GST_CERTIFICATE', 'PAN_CARD', 'ADDRESS_PROOF'];
+    // Auto-promote DOCUMENTS_PENDING → UNDER_REVIEW once the required KYC doc(s) are in.
+    // Only Address Proof is mandatory now (GST & PAN are optional). Admin still verifies
+    // each one manually, and final APPROVED happens when the required doc is VERIFIED
+    // (handled in admin verify route).
+    const REQUIRED_TYPES = ['ADDRESS_PROOF'];
     const uploadedDocs = await prisma.travel_agent_documents.findMany({
       where: {
         travelAgentId,

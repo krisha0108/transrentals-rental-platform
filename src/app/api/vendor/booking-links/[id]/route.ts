@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   if (!auth.authenticated || !auth.vendorId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Block rejected/suspended/blocked vendors from write operations
+  const _guard = await vendorStatusGuard(auth.vendorId!);
+  if (_guard.blocked) return _guard.response;
 
   const link = await prisma.vendor_booking_links.findFirst({
     where: { id: params.id, vendorId: auth.vendorId },

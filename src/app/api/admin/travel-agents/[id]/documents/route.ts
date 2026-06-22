@@ -94,9 +94,9 @@ export async function PATCH(
       });
     }
 
-    // Auto-promote agent status when all required KYC docs are VERIFIED
-    // (mirrors vendor's 3-required-docs gating).
-    const REQUIRED_TYPES = ['GST_CERTIFICATE', 'PAN_CARD', 'ADDRESS_PROOF'] as const;
+    // Auto-promote agent status when all required KYC docs are VERIFIED.
+    // Only Address Proof is mandatory now (GST & PAN are optional).
+    const REQUIRED_TYPES = ['ADDRESS_PROOF'] as const;
     let autoStatus: string | null = null;
 
     if (action === 'VERIFY') {

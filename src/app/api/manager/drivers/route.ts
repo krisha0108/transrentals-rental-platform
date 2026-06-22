@@ -1,0 +1,329 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth/auth-options';
+import { prisma } from '@/lib/db/prisma';
+
+export const dynamic = 'force-dynamic';
+
+// GET - list drivers for the manager dashboard.
+//
+// Mirrors /api/admin/drivers but gated behind the MANAGER role. Combines two
+// sources into one unified list:
+//   - `drivers` table (standalone drivers self-registered via the driver app)
+//   - `vendor_staff` WHERE role='DRIVER' (drivers added by vendors to their fleet)
+//
+// Each row carries a `source` field ('standalone' | 'vendor') so the UI can
+// surface the vendor name and route to the right detail variant.
+//
+// Status filter mapping (UI chip → underlying enum values):
+//   PENDING   → drivers.PENDING (vendor_staff has no equivalent)
+//   ACTIVE    → drivers.ACTIVE + vendor_staff.ACTIVE
+//   SUSPENDED → drivers.SUSPENDED + vendor_staff.TERMINATED
+//   INACTIVE  → drivers.INACTIVE + vendor_staff.INACTIVE + vendor_staff.ON_LEAVE
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (session.user?.role !== 'MANAGER') {
+      return NextResponse.json({ error: 'Access denied. Manager role required.' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search') || '';
+    const statusChip = (searchParams.get('status') || 'all').toUpperCase();
+    const tagFilter = searchParams.get('tag') || 'all';
+    const sourceFilter = searchParams.get('source') || 'all'; // 'all' | 'standalone' | 'vendor'
+    const licenseStatus = searchParams.get('licenseStatus') || 'all'; // 'all' | 'expired' | 'expiring' | 'valid' | 'none'
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+
+    // Translate the UI status chip into per-table status filters.
+    let driverStatusIn: string[] | null = null;
+    let staffStatusIn: string[] | null = null;
+    let includeStandalone = sourceFilter !== 'vendor';
+    let includeVendor = sourceFilter !== 'standalone';
+
+    if (statusChip === 'PENDING') {
+      driverStatusIn = ['PENDING'];
+      includeVendor = false; // vendor_staff has no PENDING state
+    } else if (statusChip === 'ACTIVE') {
+      driverStatusIn = ['ACTIVE'];
+      staffStatusIn = ['ACTIVE'];
+    } else if (statusChip === 'SUSPENDED') {
+      driverStatusIn = ['SUSPENDED'];
+      staffStatusIn = ['TERMINATED'];
+    } else if (statusChip === 'INACTIVE') {
+      driverStatusIn = ['INACTIVE'];
+      staffStatusIn = ['INACTIVE', 'ON_LEAVE'];
+    }
+
+    const driverWhere: any = {};
+    if (driverStatusIn) driverWhere.status = { in: driverStatusIn };
+    if (search) {
+      driverWhere.OR = [
+        { name: { contains: search } },
+        { email: { contains: search } },
+        { phone: { contains: search } },
+        { licenseNumber: { contains: search } },
+        { did: { contains: search } },
+      ];
+    }
+
+    const staffWhere: any = { role: 'DRIVER' };
+    if (staffStatusIn) staffWhere.status = { in: staffStatusIn };
+    if (search) {
+      staffWhere.OR = [
+        { name: { contains: search } },
+        { email: { contains: search } },
+        { phone: { contains: search } },
+        { licenseNumber: { contains: search } },
+        { did: { contains: search } },
+      ];
+    }
+
+    // License status filter
+    if (licenseStatus !== 'all') {
+      const now = new Date();
+      const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      if (licenseStatus === 'expired') {
+        driverWhere.licenseExpiry = { lt: now };
+        staffWhere.licenseExpiry = { lt: now };
+      } else if (licenseStatus === 'expiring') {
+        driverWhere.licenseExpiry = { gte: now, lte: in30Days };
+        staffWhere.licenseExpiry = { gte: now, lte: in30Days };
+      } else if (licenseStatus === 'valid') {
+        driverWhere.licenseExpiry = { gt: in30Days };
+        staffWhere.licenseExpiry = { gt: in30Days };
+      } else if (licenseStatus === 'none') {
+        driverWhere.licenseNumber = null;
+        staffWhere.licenseNumber = null;
+      }
+    }
+
+    // Tag delegate may be undefined until the client is regenerated for the new
+    // model; guard so the page degrades gracefully (empty tags) instead of 500.
+    const driverTags = (prisma as any).driver_tag_assignments;
+
+    // Tag filter — orthogonal to status. Resolve the (driverId, source) pairs
+    // carrying the selected tag, then constrain each source's query by id.
+    let standaloneTagIds: string[] = [];
+    let vendorTagIds: string[] = [];
+    if (tagFilter !== 'all') {
+      const tagged = driverTags
+        ? await driverTags.findMany({
+            where: { tag: tagFilter as any },
+            select: { driverId: true, source: true },
+          }).catch(() => [] as any[])
+        : [];
+      standaloneTagIds = (tagged as any[]).filter((t) => t.source === 'standalone').map((t) => t.driverId);
+      vendorTagIds = (tagged as any[]).filter((t) => t.source === 'vendor').map((t) => t.driverId);
+      if (standaloneTagIds.length) driverWhere.id = { in: standaloneTagIds };
+      else includeStandalone = false;
+      if (vendorTagIds.length) staffWhere.id = { in: vendorTagIds };
+      else includeVendor = false;
+    }
+
+    // Stats where clauses — same filters as main query but WITHOUT status so each
+    // status chip shows the count within the current search/source/license/tag scope.
+    const driverWhereForStats: any = {};
+    const staffWhereForStats: any = { role: 'DRIVER' };
+    if (search) {
+      driverWhereForStats.OR = [
+        { name: { contains: search } },
+        { email: { contains: search } },
+        { phone: { contains: search } },
+        { licenseNumber: { contains: search } },
+        { did: { contains: search } },
+      ];
+      staffWhereForStats.OR = [
+        { name: { contains: search } },
+        { email: { contains: search } },
+        { phone: { contains: search } },
+        { licenseNumber: { contains: search } },
+        { did: { contains: search } },
+      ];
+    }
+    if (licenseStatus !== 'all') {
+      const now = new Date();
+      const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      if (licenseStatus === 'expired') {
+        driverWhereForStats.licenseExpiry = { lt: now };
+        staffWhereForStats.licenseExpiry = { lt: now };
+      } else if (licenseStatus === 'expiring') {
+        driverWhereForStats.licenseExpiry = { gte: now, lte: in30Days };
+        staffWhereForStats.licenseExpiry = { gte: now, lte: in30Days };
+      } else if (licenseStatus === 'valid') {
+        driverWhereForStats.licenseExpiry = { gt: in30Days };
+        staffWhereForStats.licenseExpiry = { gt: in30Days };
+      } else if (licenseStatus === 'none') {
+        driverWhereForStats.licenseNumber = null;
+        staffWhereForStats.licenseNumber = null;
+      }
+    }
+    let includeStandaloneForStats = sourceFilter !== 'vendor';
+    let includeVendorForStats = sourceFilter !== 'standalone';
+    if (tagFilter !== 'all') {
+      if (standaloneTagIds.length) driverWhereForStats.id = { in: standaloneTagIds };
+      else includeStandaloneForStats = false;
+      if (vendorTagIds.length) staffWhereForStats.id = { in: vendorTagIds };
+      else includeVendorForStats = false;
+    }
+
+    // For pagination, we fetch enough from each side that any interleaving still
+    // produces the correct sorted page slice. `page * limit` is the smallest
+    // amount that guarantees correctness; for moderate dataset sizes this is
+    // acceptable. If volumes grow, switch to a UNION via $queryRaw.
+    const upperBound = page * limit;
+
+    const [
+      driverRows, driverTotal,
+      staffRows, staffTotal,
+      driverPending, driverActive, driverSuspended, driverInactive,
+      staffActive, staffOnLeave, staffInactive, staffTerminated,
+    ] = await Promise.all([
+      includeStandalone ? prisma.drivers.findMany({
+        where: driverWhere,
+        select: {
+          id: true, name: true, email: true, phone: true, profilePhoto: true,
+          city: true, state: true, status: true,
+          licenseNumber: true, licenseExpiry: true,
+          joiningDate: true, lastLoginAt: true, createdAt: true,
+          did: true,
+          _count: { select: { chauffeur_bookings: true, driver_vehicles: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: upperBound,
+      }) : Promise.resolve([] as any[]),
+      includeStandalone ? prisma.drivers.count({ where: driverWhere }) : Promise.resolve(0),
+
+      includeVendor ? prisma.vendor_staff.findMany({
+        where: staffWhere,
+        select: {
+          id: true, name: true, email: true, phone: true, profilePhoto: true,
+          city: true, state: true, status: true,
+          licenseNumber: true, licenseExpiry: true,
+          joiningDate: true, lastLoginAt: true, createdAt: true,
+          vendorId: true, did: true,
+          vendors: { select: { id: true, businessName: true } },
+          _count: { select: { driver_vehicles: true, b2b_trips: true, truck_bookings: true, assigned_bookings: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: upperBound,
+      }) : Promise.resolve([] as any[]),
+      includeVendor ? prisma.vendor_staff.count({ where: staffWhere }) : Promise.resolve(0),
+
+      // Stats per status within the current filter scope (search, source, license, tag)
+      includeStandaloneForStats ? prisma.drivers.count({ where: { ...driverWhereForStats, status: 'PENDING' } }) : Promise.resolve(0),
+      includeStandaloneForStats ? prisma.drivers.count({ where: { ...driverWhereForStats, status: 'ACTIVE' } }) : Promise.resolve(0),
+      includeStandaloneForStats ? prisma.drivers.count({ where: { ...driverWhereForStats, status: 'SUSPENDED' } }) : Promise.resolve(0),
+      includeStandaloneForStats ? prisma.drivers.count({ where: { ...driverWhereForStats, status: 'INACTIVE' } }) : Promise.resolve(0),
+      includeVendorForStats ? prisma.vendor_staff.count({ where: { ...staffWhereForStats, status: 'ACTIVE' } }) : Promise.resolve(0),
+      includeVendorForStats ? prisma.vendor_staff.count({ where: { ...staffWhereForStats, status: 'ON_LEAVE' } }) : Promise.resolve(0),
+      includeVendorForStats ? prisma.vendor_staff.count({ where: { ...staffWhereForStats, status: 'INACTIVE' } }) : Promise.resolve(0),
+      includeVendorForStats ? prisma.vendor_staff.count({ where: { ...staffWhereForStats, status: 'TERMINATED' } }) : Promise.resolve(0),
+    ]);
+
+    // Normalize both sources into one shape with `source` and an effectiveStatus
+    // mapped to the UI status vocabulary (PENDING/ACTIVE/SUSPENDED/INACTIVE).
+    const standaloneNormalized = (driverRows as any[]).map((d) => ({
+      id: d.id,
+      source: 'standalone' as const,
+      name: d.name,
+      email: d.email,
+      phone: d.phone,
+      profilePhoto: d.profilePhoto,
+      city: d.city,
+      state: d.state,
+      status: d.status,
+      effectiveStatus: d.status, // already in admin vocab
+      licenseNumber: d.licenseNumber,
+      licenseExpiry: d.licenseExpiry,
+      joiningDate: d.joiningDate,
+      lastLoginAt: d.lastLoginAt,
+      createdAt: d.createdAt,
+      did: d.did ?? null,
+      vendorId: null as string | null,
+      vendorName: null as string | null,
+      bookingsCount: d._count.chauffeur_bookings,
+      vehiclesCount: d._count.driver_vehicles,
+    }));
+
+    const vendorStaffNormalized = (staffRows as any[]).map((s) => {
+      // Map vendor_staff status into the 4-state vocab so filter chips work.
+      const effectiveStatus =
+        s.status === 'ACTIVE' ? 'ACTIVE'
+        : s.status === 'TERMINATED' ? 'SUSPENDED'
+        : 'INACTIVE'; // INACTIVE + ON_LEAVE
+      return {
+        id: s.id,
+        source: 'vendor' as const,
+        name: s.name,
+        email: s.email,
+        phone: s.phone,
+        profilePhoto: s.profilePhoto,
+        city: s.city,
+        state: s.state,
+        status: s.status,
+        effectiveStatus,
+        licenseNumber: s.licenseNumber,
+        licenseExpiry: s.licenseExpiry,
+        joiningDate: s.joiningDate,
+        lastLoginAt: s.lastLoginAt,
+        createdAt: s.createdAt,
+        did: s.did ?? null,
+        vendorId: s.vendorId,
+        vendorName: s.vendors?.businessName ?? null,
+        bookingsCount: (s._count.b2b_trips || 0) + (s._count.truck_bookings || 0) + (s._count.assigned_bookings || 0),
+        vehiclesCount: s._count.driver_vehicles,
+      };
+    });
+
+    const merged = [...standaloneNormalized, ...vendorStaffNormalized]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Slice to the requested page after merging both sources.
+    const total = driverTotal + staffTotal;
+    const startIdx = (page - 1) * limit;
+    const paged = merged.slice(startIdx, startIdx + limit);
+
+    // Attach CRM tags to just the paged rows (one query, keyed by id+source).
+    const pagedStandaloneIds = paged.filter((d) => d.source === 'standalone').map((d) => d.id);
+    const pagedVendorIds = paged.filter((d) => d.source === 'vendor').map((d) => d.id);
+    const tagOr: any[] = [];
+    if (pagedStandaloneIds.length) tagOr.push({ source: 'standalone', driverId: { in: pagedStandaloneIds } });
+    if (pagedVendorIds.length) tagOr.push({ source: 'vendor', driverId: { in: pagedVendorIds } });
+    const tagRows = (driverTags && tagOr.length)
+      ? await driverTags.findMany({
+          where: { OR: tagOr },
+          select: { driverId: true, source: true, tag: true },
+        }).catch(() => [] as any[])
+      : [];
+    const tagMap = new Map<string, string[]>();
+    for (const r of tagRows as any[]) {
+      const key = `${r.source}:${r.driverId}`;
+      const arr = tagMap.get(key) || [];
+      arr.push(r.tag);
+      tagMap.set(key, arr);
+    }
+    const pagedWithTags = paged.map((d) => ({ ...d, tags: tagMap.get(`${d.source}:${d.id}`) || [] }));
+
+    const totalAll =
+      driverPending + driverActive + driverSuspended + driverInactive +
+      staffActive + staffOnLeave + staffInactive + staffTerminated;
+
+    return NextResponse.json({
+      drivers: pagedWithTags,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      stats: {
+        total: totalAll,
+        pending: driverPending,
+        active: driverActive + staffActive,
+        suspended: driverSuspended + staffTerminated,
+        inactive: driverInactive + staffInactive + staffOnLeave,
+      },
+    });
+  } catch (error) {
+    console.error('Manager drivers list error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

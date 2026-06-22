@@ -30,6 +30,7 @@ const TAG_BY_KEY: Record<string, { label: string; color: string }> = Object.from
 
 interface Vendor {
   id: string;
+  vid: string | null;
   businessName: string;
   ownerName: string;
   phone: string;
@@ -90,6 +91,8 @@ export default function ManagerVendorsPage() {
   const [sortBy, setSortBy] = useState('date_desc');
   const [tagEditorOpenFor, setTagEditorOpenFor] = useState<string | null>(null);
   const [tagSaving, setTagSaving] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 25;
 
   const fetchVendors = async () => {
     try {
@@ -131,14 +134,15 @@ export default function ManagerVendorsPage() {
   const vendors = useMemo(() => {
     let list = [...allVendors];
 
-    // Name / phone search
+    // Name / phone / vid search
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(v =>
         v.businessName.toLowerCase().includes(q) ||
         v.ownerName.toLowerCase().includes(q) ||
         v.phone.includes(q) ||
-        v.email.toLowerCase().includes(q)
+        v.email.toLowerCase().includes(q) ||
+        (v.vid && v.vid.toLowerCase().includes(q))
       );
     }
 
@@ -178,6 +182,20 @@ export default function ManagerVendorsPage() {
 
     return list;
   }, [allVendors, search, locationFilter, serviceFilter, statusFilter, tagFilter, sortBy]);
+
+  // Stats derived from the filtered list so they update with filters
+  const filteredStats = useMemo(() => ({
+    total: vendors.length,
+    approved: vendors.filter(v => v.status === 'APPROVED').length,
+    pending: vendors.filter(v => ['PENDING', 'DOCUMENTS_PENDING', 'UNDER_REVIEW'].includes(v.status)).length,
+    suspended: vendors.filter(v => v.status === 'SUSPENDED').length,
+  }), [vendors]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [search, locationFilter, serviceFilter, statusFilter, tagFilter, sortBy]);
+
+  const totalPages = Math.ceil(vendors.length / ITEMS_PER_PAGE);
+  const paginatedVendors = vendors.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const activeFilterCount = [
     search, locationFilter !== 'all' ? locationFilter : '', serviceFilter !== 'all' ? serviceFilter : '',
@@ -243,6 +261,7 @@ export default function ManagerVendorsPage() {
           <p className="text-gray-500 mt-1">
             {vendors.length} of {allVendors.length} vendors
             {activeFilterCount > 0 && <span className="ml-1 text-green-600 font-medium">({activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active)</span>}
+            {totalPages > 1 && <span className="ml-1 text-gray-400">· Page {currentPage}/{totalPages}</span>}
           </p>
         </div>
         <button onClick={handleRefresh} disabled={isRefreshing}
@@ -253,13 +272,12 @@ export default function ManagerVendorsPage() {
       </div>
 
       {/* Stats */}
-      {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Total',     value: stats.total,     icon: Store,        color: 'bg-gray-100 text-gray-600',   valColor: 'text-gray-900' },
-            { label: 'Approved',  value: stats.approved,  icon: CheckCircle,  color: 'bg-green-100 text-green-600', valColor: 'text-green-600' },
-            { label: 'Pending',   value: stats.pending,   icon: Clock,        color: 'bg-yellow-100 text-yellow-600', valColor: 'text-yellow-600' },
-            { label: 'Suspended', value: stats.suspended, icon: AlertCircle,  color: 'bg-purple-100 text-purple-600', valColor: 'text-purple-600' },
+            { label: 'Total',     value: filteredStats.total,     icon: Store,        color: 'bg-gray-100 text-gray-600',   valColor: 'text-gray-900' },
+            { label: 'Approved',  value: filteredStats.approved,  icon: CheckCircle,  color: 'bg-green-100 text-green-600', valColor: 'text-green-600' },
+            { label: 'Pending',   value: filteredStats.pending,   icon: Clock,        color: 'bg-yellow-100 text-yellow-600', valColor: 'text-yellow-600' },
+            { label: 'Suspended', value: filteredStats.suspended, icon: AlertCircle,  color: 'bg-purple-100 text-purple-600', valColor: 'text-purple-600' },
           ].map(({ label, value, icon: Icon, color, valColor }) => (
             <div key={label} className="bg-white rounded-xl p-4 border shadow-sm">
               <div className="flex items-center gap-3">
@@ -271,8 +289,7 @@ export default function ManagerVendorsPage() {
               </div>
             </div>
           ))}
-        </div>
-      )}
+      </div>
 
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border p-4 space-y-3">
@@ -280,7 +297,7 @@ export default function ManagerVendorsPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name, phone, email..."
+            placeholder="Search by name, phone, email, VN-ID..."
             className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm" />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -417,7 +434,7 @@ export default function ManagerVendorsPage() {
           </div>
         ) : (
           <div className="divide-y">
-            {vendors.map((vendor) => {
+            {paginatedVendors.map((vendor) => {
               const statusConfig = STATUS_CONFIG[vendor.status] || STATUS_CONFIG.PENDING;
               const StatusIcon = statusConfig.icon;
               const isTagEditorOpen = tagEditorOpenFor === vendor.id;
@@ -436,6 +453,11 @@ export default function ManagerVendorsPage() {
                       {/* Name + status */}
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <span className="font-semibold text-gray-900">{vendor.businessName}</span>
+                        {vendor.vid && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-mono font-semibold bg-gray-100 text-gray-500 border border-gray-200 tracking-wider">
+                            {vendor.vid.toUpperCase()}
+                          </span>
+                        )}
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}>
                           <StatusIcon className="w-3 h-3" />
                           {statusConfig.label}
@@ -571,6 +593,72 @@ export default function ManagerVendorsPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white rounded-xl border shadow-sm px-4 py-3">
+          <p className="text-sm text-gray-500">
+            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, vendors.length)} of {vendors.length} vendors
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="px-2 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              «
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => p - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              Prev
+            </button>
+
+            {/* Page number buttons — show up to 5 around current */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+              .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis');
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((item, idx) =>
+                item === 'ellipsis' ? (
+                  <span key={`e${idx}`} className="px-2 py-1.5 text-xs text-gray-400">…</span>
+                ) : (
+                  <button
+                    key={item}
+                    onClick={() => setCurrentPage(item as number)}
+                    className={`px-3 py-1.5 text-xs rounded-lg border transition ${
+                      currentPage === item
+                        ? 'bg-green-600 text-white border-green-600 font-semibold'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+
+            <button
+              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              Next
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="px-2 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              »
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

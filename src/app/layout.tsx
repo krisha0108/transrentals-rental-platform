@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Poppins } from 'next/font/google';
 import './globals.css';
-import 'leaflet/dist/leaflet.css';
 import { LocationProvider } from '@/contexts/LocationContext';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 import VisitorTracker from '@/components/analytics/VisitorTracker';

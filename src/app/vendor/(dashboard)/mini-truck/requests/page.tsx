@@ -277,14 +277,6 @@ export default function VendorMiniTruckRequestsPage() {
                         <p className="text-sm text-gray-700">{request.requirements}</p>
                       </div>
                     )}
-                    {(request.budgetMin || request.budgetMax) && (
-                      <div>
-                        <span className="text-xs text-gray-500 uppercase tracking-wide">Budget</span>
-                        <p className="text-sm font-medium text-orange-600">
-                          ₹{request.budgetMin?.toLocaleString() || '0'} - ₹{request.budgetMax?.toLocaleString() || 'Open'}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 )}
 

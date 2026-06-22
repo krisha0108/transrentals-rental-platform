@@ -20,6 +20,10 @@ import {
   Clock,
   ArrowRight,
   IndianRupee,
+  KeyRound,
+  Eye,
+  EyeOff,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -118,6 +122,15 @@ export default function CustomerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('bookings');
 
+  // Password reset modal
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPasswordPlain, setShowPasswordPlain] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+
   useEffect(() => {
     const fetchCustomer = async () => {
       try {
@@ -145,6 +158,40 @@ export default function CustomerDetailPage() {
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
 
   const shortId = (id: string) => id.slice(-8).toUpperCase();
+
+  const openPasswordModal = () => {
+    setNewPassword(''); setConfirmPassword('');
+    setPasswordError(''); setPasswordSuccess(false);
+    setShowPasswordPlain(false); setShowPasswordModal(true);
+  };
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!';
+    const out = Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    setNewPassword(out); setConfirmPassword(out);
+    setShowPasswordPlain(true); setPasswordError(''); setPasswordSuccess(false);
+  };
+
+  const handleSetPassword = async () => {
+    setPasswordError(''); setPasswordSuccess(false);
+    if (newPassword.length < 6) { setPasswordError('Password must be at least 6 characters'); return; }
+    if (newPassword !== confirmPassword) { setPasswordError('Passwords do not match'); return; }
+    setSavingPassword(true);
+    try {
+      const res = await fetch(`/api/admin/customers/${id}/password`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setPasswordError(data.error || 'Failed to set password'); return; }
+      setPasswordSuccess(true);
+      setNewPassword(''); setConfirmPassword('');
+    } catch {
+      setPasswordError('Network error. Please try again.');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
   if (loading) {
     return (

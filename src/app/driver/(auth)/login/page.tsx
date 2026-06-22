@@ -130,9 +130,12 @@ export default function DriverLoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Contact your vendor if you forgot your password
-          </p>
+          <div className="flex items-center justify-between mt-6">
+            <p className="text-sm text-gray-500">Forgot your password?</p>
+            <Link href="/driver/forgot-password" className="text-sm text-emerald-600 font-semibold hover:underline">
+              Reset it here
+            </Link>
+          </div>
 
           <p className="text-center text-sm text-gray-500 mt-3">
             New driver?{' '}

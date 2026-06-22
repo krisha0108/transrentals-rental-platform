@@ -12,6 +12,8 @@ import {
   FileText,
   Building2,
   DollarSign,
+  AlertTriangle,
+  CreditCard,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -301,6 +303,47 @@ export function TravelAgentLayout({ children }: TravelAgentLayoutProps) {
                 >
                   Get Verified <ArrowRight className="w-3 h-3" />
                 </button>
+              </div>
+            )}
+
+            {/* Incomplete step alerts — shown until resolved */}
+            {!statusLoading && verificationCounts.bankAccounts === 0 && (
+              <div className="bg-red-50 border-b border-red-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-6 h-6 bg-red-100 rounded-lg flex items-center justify-center shrink-0">
+                    <CreditCard className="w-3.5 h-3.5 text-red-600" />
+                  </div>
+                  <p className="text-sm text-red-800">
+                    <span className="font-bold">Bank details missing</span>
+                    <span className="hidden sm:inline"> — add your bank account to receive payouts from bookings.</span>
+                  </p>
+                </div>
+                <Link
+                  href="/travel-agent/bank-details"
+                  className="shrink-0 text-xs font-bold text-red-700 hover:text-red-900 bg-red-100 hover:bg-red-200 border border-red-300 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                >
+                  Add Now <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+            )}
+
+            {!statusLoading && verificationCounts.docs === 0 && (
+              <div className="bg-orange-50 border-b border-orange-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-6 h-6 bg-orange-100 rounded-lg flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />
+                  </div>
+                  <p className="text-sm text-orange-800">
+                    <span className="font-bold">Address proof not uploaded</span>
+                    <span className="hidden sm:inline"> — upload your identity & address documents to complete verification.</span>
+                  </p>
+                </div>
+                <Link
+                  href="/travel-agent/documents"
+                  className="shrink-0 text-xs font-bold text-orange-700 hover:text-orange-900 bg-orange-100 hover:bg-orange-200 border border-orange-300 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                >
+                  Upload Now <ArrowRight className="w-3 h-3" />
+                </Link>
               </div>
             )}
 

@@ -850,11 +850,6 @@ export default function VendorLuxuryBookingsPage() {
                           <div className="text-right">
                             {item.totalAmount ? (
                               <p className="text-2xl font-bold text-emerald-600">₹{item.totalAmount.toLocaleString()}</p>
-                            ) : item.budgetMax ? (
-                              <div>
-                                <p className="text-sm text-gray-400">Budget</p>
-                                <p className="font-bold text-gray-700 text-lg">₹{item.budgetMin?.toLocaleString() || 0} - ₹{item.budgetMax.toLocaleString()}</p>
-                              </div>
                             ) : (
                               <span className="text-base text-gray-400 italic">Quote Required</span>
                             )}

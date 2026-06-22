@@ -5,6 +5,7 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 export const dynamic = 'force-dynamic';
 
 // Map mobile app status tabs to database status values
@@ -203,6 +204,10 @@ export async function POST(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const [pending, confirmed, active, completed, totalEarnings] = await Promise.all([
       prisma.truck_bookings.count({ where: { vendorId: vendorId, status: { in: ['PENDING_PAYMENT', 'ADVANCE_PAID'] } } }),

@@ -4,6 +4,7 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { prisma } from '@/lib/db/prisma';
 import crypto from 'crypto';
 import { onVendorQuoteSubmitted } from '@/lib/utils/b2b-notification-helper';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,8 @@ export async function GET(request: NextRequest) {
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
+    const vendorId = auth.vendorId!;
+
 
     const { searchParams } = new URL(request.url);
     const view = searchParams.get('view') || 'open'; // 'open' = open bookings, 'my' = my quotes
@@ -40,7 +43,7 @@ export async function GET(request: NextRequest) {
       // Vendor's own submitted quotes
       const [quotes, total] = await Promise.all([
         prisma.b2b_vendor_quotes.findMany({
-          where: { vendorId: auth.vendorId },
+          where: { vendorId: vendorId },
           include: {
             booking: {
               select: {
@@ -73,7 +76,7 @@ export async function GET(request: NextRequest) {
           orderBy: { createdAt: 'desc' },
           skip, take: limit,
         }),
-        prisma.b2b_vendor_quotes.count({ where: { vendorId: auth.vendorId } }),
+        prisma.b2b_vendor_quotes.count({ where: { vendorId: vendorId } }),
       ]);
 
       return NextResponse.json({
@@ -86,7 +89,7 @@ export async function GET(request: NextRequest) {
     const whereClause: any = {
       OR: [
         { status: { in: ['OPEN_FOR_QUOTES', 'QUOTES_RECEIVED'] } },
-        { vendorQuotes: { some: { vendorId: auth.vendorId } } },
+        { vendorQuotes: { some: { vendorId: vendorId } } },
       ],
     };
     if (serviceTypeFilter === 'CUSTOM_BULK') {
@@ -101,7 +104,7 @@ export async function GET(request: NextRequest) {
         include: {
           customer: { select: { name: true, companyName: true } },
           vendorQuotes: {
-            where: { vendorId: auth.vendorId },
+            where: { vendorId: vendorId },
             select: { id: true, status: true, vehicleCount: true, totalPrice: true, quoteNumber: true, notes: true }
           },
           _count: { select: { vendorQuotes: true, trips: true } }
@@ -129,6 +132,11 @@ export async function POST(request: NextRequest) {
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
+    const vendorId = auth.vendorId!;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const body = await request.json();
     const { bookingId, vehicles, pricePerVehicle, totalPrice, vehiclePricing, notes } = body;
@@ -158,7 +166,7 @@ export async function POST(request: NextRequest) {
 
     // Check vendor hasn't already quoted
     const existingQuote = await prisma.b2b_vendor_quotes.findFirst({
-      where: { bookingId, vendorId: auth.vendorId, status: { notIn: ['REJECTED', 'WITHDRAWN'] } },
+      where: { bookingId, vendorId: vendorId, status: { notIn: ['REJECTED', 'WITHDRAWN'] } },
     });
     if (existingQuote) {
       return NextResponse.json({ error: 'You have already submitted a quote for this booking' }, { status: 400 });
@@ -171,7 +179,7 @@ export async function POST(request: NextRequest) {
     const fleetIds = vehicles.map((v: any) => v.vendorFleetId);
     const uniqueFleetIds = Array.from(new Set(fleetIds));
     const vendorFleets = await prisma.vendor_fleets.findMany({
-      where: { id: { in: uniqueFleetIds }, vendorId: auth.vendorId },
+      where: { id: { in: uniqueFleetIds }, vendorId: vendorId },
       select: { id: true, vehicleName: true, registrationNumber: true },
     });
     if (vendorFleets.length !== uniqueFleetIds.length) {
@@ -184,7 +192,7 @@ export async function POST(request: NextRequest) {
     const uniqueDriverIds = Array.from(new Set(driverIds));
     if (uniqueDriverIds.length > 0) {
       const vendorDrivers = await prisma.vendor_staff.findMany({
-        where: { id: { in: uniqueDriverIds }, vendorId: auth.vendorId, role: 'DRIVER' },
+        where: { id: { in: uniqueDriverIds }, vendorId: vendorId, role: 'DRIVER' },
         select: { id: true, name: true, phone: true },
       });
       if (vendorDrivers.length !== uniqueDriverIds.length) {
@@ -213,7 +221,7 @@ export async function POST(request: NextRequest) {
         id: quoteId,
         quoteNumber,
         bookingId,
-        vendorId: auth.vendorId,
+        vendorId: vendorId,
         vehicleCount: vehicles.length,
         pricePerVehicle: pricePerVehicle || null,
         totalPrice: parseFloat(totalPrice),
@@ -264,7 +272,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Send notification to customer about new vendor quote (async, non-blocking)
-    const vendor = await prisma.vendors.findUnique({ where: { id: auth.vendorId }, select: { businessName: true } });
+    const vendor = await prisma.vendors.findUnique({ where: { id: vendorId }, select: { businessName: true } });
     onVendorQuoteSubmitted({
       bookingId,
       bookingNumber: booking.bookingNumber,

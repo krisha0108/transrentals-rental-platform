@@ -156,6 +156,9 @@ export default function CustomerDashboard() {
   const [customerImage, setCustomerImage] = useState(null);
   const [isB2BCustomer, setIsB2BCustomer] = useState(false);
   const [companyName, setCompanyName] = useState('');
+  // Phase 7 — TA-linked customer flag (controls the "Company Bookings" tile).
+  const [isTravelAgent, setIsTravelAgent] = useState(false);
+  const [agencyName, setAgencyName] = useState('');
 
   const { width: winWidth } = useWindowDimensions();
 
@@ -690,6 +693,9 @@ export default function CustomerDashboard() {
         // Check B2B status
         setIsB2BCustomer(customer?.isB2B === true);
         setCompanyName(customer?.companyName || '');
+        // Phase 7 — detect TA-linked shadow customer.
+        setIsTravelAgent(!!customer?.linkedTravelAgentId);
+        setAgencyName(customer?.agencyName || customer?.linkedTravelAgentName || '');
       }
 
       // Run all fetch functions in parallel with proper error handling
@@ -1072,6 +1078,35 @@ export default function CustomerDashboard() {
             />
           }
         >
+
+          {/* Phase 7 — Travel-Agent banner: quick access to company bookings.
+              Only rendered for TA-linked shadow customers (linkedTravelAgentId). */}
+          {isTravelAgent && (
+            <TouchableOpacity
+              style={styles.taBanner}
+              onPress={() => navigation.navigate('B2BBookingsList')}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={['#4F46E5', '#059669']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={styles.taBannerInner}
+              >
+                <View style={styles.taBannerIcon}>
+                  <Ionicons name="briefcase" size={20} color="#fff" />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.taBannerTitle} numberOfLines={1}>
+                    Travel Agent · {agencyName || 'Your Agency'}
+                  </Text>
+                  <Text style={styles.taBannerSub} numberOfLines={1}>
+                    View company bookings & quotes from manager
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
           {/* CATEGORIES GRID */}
           <View style={styles.section}>
@@ -1747,6 +1782,45 @@ const styles = StyleSheet.create({
   storyRing: { width: wp('21%'), height: wp('21%'), borderRadius: wp('50%'), justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: "#35ad31ff", backgroundColor: '#fff' },
   storyItem: { alignItems: 'center', marginRight: wp('4%'), },
   storyLabel: { marginTop: hp('0.5%'), fontSize: wp('3.5%'), color: TEXT_SECONDARY, fontWeight: '500' },
+
+  // Phase 7 — Travel-Agent banner (above categories) for TA shadow customers.
+  taBanner: {
+    marginHorizontal: wp('5%'),
+    marginTop: hp('1.5%'),
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#4F46E5',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  taBannerInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: wp('4%'),
+    paddingVertical: hp('1.6%'),
+    gap: wp('3%'),
+  },
+  taBannerIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taBannerTitle: {
+    fontSize: wp('3.8%'),
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  taBannerSub: {
+    fontSize: wp('3%'),
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
+  },
 
   // Section generic (Premium)
   section: {

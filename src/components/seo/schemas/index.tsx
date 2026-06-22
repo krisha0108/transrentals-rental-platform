@@ -200,32 +200,47 @@ export function VehicleRentalSchema({
         worstRating: 1,
       },
     }),
-    ...(vehicles.length > 0 && {
-      hasOfferCatalog: {
-        '@type': 'OfferCatalog',
-        name: `${serviceName} - Available Vehicles`,
-        itemListElement: vehicles.slice(0, 10).map((vehicle) => ({
-          '@type': 'Product',
-          name: vehicle.name,
-          brand: { '@type': 'Brand', name: vehicle.brand },
-          ...(vehicle.image && { image: vehicle.image }),
-          offers: {
-            '@type': 'Offer',
-            price: vehicle.price,
-            priceCurrency: 'INR',
-            availability: 'https://schema.org/InStock',
-            seller: ORGANIZATION,
-          },
-        })),
-      },
-    }),
   };
 
+  const vehicleListSchema = vehicles.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: `${serviceName} - Available Vehicles`,
+        itemListElement: vehicles.slice(0, 10).map((vehicle, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          item: {
+            '@type': 'Product',
+            name: vehicle.name,
+            description: `Rent ${vehicle.name} in ${city || 'India'}. Book online at TransRentals.`,
+            brand: { '@type': 'Brand', name: vehicle.brand },
+            image: vehicle.image || 'https://transrentals.in/images/fleet/default-bike.jpg',
+            offers: {
+              '@type': 'Offer',
+              price: vehicle.price,
+              priceCurrency: 'INR',
+              availability: 'https://schema.org/InStock',
+              seller: ORGANIZATION,
+            },
+          },
+        })),
+      }
+    : null;
+
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      />
+      {vehicleListSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(vehicleListSchema) }}
+        />
+      )}
+    </>
   );
 }
 
@@ -621,7 +636,7 @@ export function BikeServiceSchema({
     <>
       <BreadcrumbSchema items={breadcrumbs} />
       <VehicleRentalSchema
-        serviceName={city ? `${serviceName} in ${city}` : serviceName}
+        serviceName={serviceName}
         description={description}
         city={city}
         serviceSlug={serviceSlug}

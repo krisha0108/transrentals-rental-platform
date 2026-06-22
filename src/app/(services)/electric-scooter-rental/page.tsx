@@ -58,11 +58,11 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Ola S1 Pro', brand: 'Ola Electric', price: 499 },
-  { name: 'Ather 450X', brand: 'Ather Energy', price: 599 },
-  { name: 'TVS iQube', brand: 'TVS', price: 449 },
-  { name: 'Bajaj Chetak', brand: 'Bajaj', price: 549 },
-  { name: 'Hero Vida V1', brand: 'Hero', price: 399 },
+  { name: 'Ola S1 Pro', brand: 'Ola Electric', price: 499, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Ather 450X', brand: 'Ather Energy', price: 599, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'TVS iQube', brand: 'TVS', price: 449, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Bajaj Chetak', brand: 'Bajaj', price: 549, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Hero Vida V1', brand: 'Hero', price: 399, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default function ElectricScooterRentalPage() {

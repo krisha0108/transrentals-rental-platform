@@ -99,6 +99,13 @@ interface ApprovedLocation {
   location: { id: string; name: string; parent: { name: string } | null };
 }
 
+interface ContactChangeRequest {
+  id: string;
+  newEmail: string | null;
+  newPhone: string | null;
+  requestedAt: string;
+}
+
 interface Vendor {
   id: string;
   businessName: string;
@@ -122,6 +129,7 @@ interface Vendor {
   approvedServices: ApprovedService[];
   approvedLocations: ApprovedLocation[];
   _count: { fleets: number };
+  contactChangeRequest?: ContactChangeRequest | null;
 }
 
 interface PayoutBooking {
@@ -239,6 +247,13 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [selectedBooking, setSelectedBooking] = useState<PayoutBooking | null>(null);
   const [bookingDetail, setBookingDetail] = useState<{ booking: BookingDetail; quote: any } | null>(null);
   const [bookingDetailLoading, setBookingDetailLoading] = useState(false);
+
+  // Contact change state
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactSaving, setContactSaving] = useState(false);
+  const [contactReqLoading, setContactReqLoading] = useState<string | null>(null);
 
   // Commission modal state
   const [showCommissionModal, setShowCommissionModal] = useState(false);
@@ -396,6 +411,40 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
     } finally {
       setSavingPassword(false);
     }
+  };
+
+  const handleDirectContactChange = async () => {
+    if (!contactEmail && !contactPhone) return;
+    setContactSaving(true);
+    try {
+      const res = await fetch(`/api/admin/vendors/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'CHANGE_CONTACT', newEmail: contactEmail || undefined, newPhone: contactPhone || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Failed to update contact'); return; }
+      await fetchVendor();
+      setShowContactModal(false);
+      setContactEmail('');
+      setContactPhone('');
+    } catch { alert('Network error'); }
+    finally { setContactSaving(false); }
+  };
+
+  const handleContactChangeRequest = async (reqId: string, action: 'APPROVE' | 'REJECT') => {
+    setContactReqLoading(action);
+    try {
+      const res = await fetch(`/api/admin/change-requests/${reqId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Action failed'); return; }
+      await fetchVendor();
+    } catch { alert('Network error'); }
+    finally { setContactReqLoading(null); }
   };
 
   const handleVendorAction = async (action: string, reason?: string) => {
@@ -926,8 +975,64 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Business Info */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Pending contact change request banner */}
+            {vendor.contactChangeRequest && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div>
+                    <p className="font-semibold text-amber-800 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" /> Pending Contact Change Request
+                    </p>
+                    <p className="text-sm text-amber-700 mt-1">
+                      Vendor requested on {new Date(vendor.contactChangeRequest.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-4 text-sm">
+                      {vendor.contactChangeRequest.newEmail && (
+                        <span className="flex items-center gap-1 text-amber-900">
+                          <Mail className="w-3.5 h-3.5" />
+                          New Email: <strong>{vendor.contactChangeRequest.newEmail}</strong>
+                        </span>
+                      )}
+                      {vendor.contactChangeRequest.newPhone && (
+                        <span className="flex items-center gap-1 text-amber-900">
+                          <Phone className="w-3.5 h-3.5" />
+                          New Phone: <strong>{vendor.contactChangeRequest.newPhone}</strong>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleContactChangeRequest(vendor.contactChangeRequest!.id, 'APPROVE')}
+                      disabled={!!contactReqLoading}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
+                    >
+                      {contactReqLoading === 'APPROVE' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleContactChangeRequest(vendor.contactChangeRequest!.id, 'REJECT')}
+                      disabled={!!contactReqLoading}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 transition"
+                    >
+                      {contactReqLoading === 'REJECT' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white rounded-xl p-6 shadow-sm border">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Business Information</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Business Information</h3>
+                <button
+                  onClick={() => { setContactEmail(vendor.email); setContactPhone(vendor.phone); setShowContactModal(true); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-700"
+                >
+                  <Edit2 className="w-3.5 h-3.5" /> Edit Contact
+                </button>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-gray-500">Business Name</label>
@@ -2936,6 +3041,54 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                   Rejection Reason: {selectedDocument.rejectionReason}
                 </p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Direct Contact Change Modal */}
+      {showContactModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-gray-900">Change Contact Info</h2>
+              <button onClick={() => setShowContactModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">Leave blank to keep current value.</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Email</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    value={contactEmail}
+                    onChange={e => setContactEmail(e.target.value)}
+                    placeholder={vendor.email}
+                    className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Phone</label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    value={contactPhone}
+                    onChange={e => setContactPhone(e.target.value)}
+                    placeholder={vendor.phone}
+                    className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setShowContactModal(false)} disabled={contactSaving}>Cancel</Button>
+              <Button onClick={handleDirectContactChange} disabled={contactSaving || (!contactEmail && !contactPhone)} className="bg-blue-600 hover:bg-blue-700">
+                {contactSaving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Saving...</> : 'Save Changes'}
+              </Button>
             </div>
           </div>
         </div>

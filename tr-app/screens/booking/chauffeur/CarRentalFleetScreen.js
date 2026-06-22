@@ -27,6 +27,9 @@ import { locationService, bookingService } from '../../services';
 import { BASE_URL } from '../../api';
 import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../../utils/dateValidation';
 import BookingAlertModal from '../../utils/AdvanceBookingAlert';
+// Phase 7 — TA Personal/Company toggle (renders only for TA-linked customers).
+import TravelAgentBookingToggle from '../../../components/TravelAgentBookingToggle';
+import { isTravelAgentCustomer } from '../../../utils/isTravelAgent';
 
 const { width } = Dimensions.get('window');
 const GREEN = '#09B368';
@@ -96,6 +99,8 @@ export default function CarRentalFleetScreen({ navigation, route }) {
   // B2B
   const [isB2BCustomer, setIsB2BCustomer] = useState(false);
   const [bookingFor, setBookingFor] = useState('personal'); // 'personal' | 'company'
+  // Phase 7 — TA Personal/Company state (separate from B2B above).
+  const [taState, setTaState] = useState({ mode: 'PERSONAL', vehicleCount: '1', employeeCount: '' });
   const [numberOfVehicles, setNumberOfVehicles] = useState('1');
   const [numberOfPersons, setNumberOfPersons] = useState('');
 
@@ -532,6 +537,18 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         isB2B: bookingFor === 'company' && isB2BCustomer,
         numberOfVehicles: bookingFor === 'company' ? numberOfVehicles : undefined,
         numberOfPersons: bookingFor === 'company' && numberOfPersons ? numberOfPersons : undefined,
+        // Phase 7 — TA fields. Backend (car-rental/bookings/route.ts:218) checks
+        // linkedTravelAgentId + taBookingMode='COMPANY' to route into b2b_bookings.
+        ...(isTravelAgentCustomer(customer) && {
+          taBookingMode: taState.mode,
+          // For TA COMPANY, override the B2B numberOfVehicles set above.
+          numberOfVehicles: taState.mode === 'COMPANY'
+            ? (parseInt(taState.vehicleCount) || 1)
+            : 1,
+          numberOfEmployees: taState.mode === 'COMPANY' && taState.employeeCount
+            ? parseInt(taState.employeeCount)
+            : null,
+        }),
       };
 
       if (tripType === 'local') {
@@ -569,7 +586,12 @@ export default function CarRentalFleetScreen({ navigation, route }) {
         setNumberOfVehicles('1');
         setNumberOfPersons('');
 
-        if (bookingFor === 'company' && isB2BCustomer) {
+        // Phase 7 — Travel-agent COMPANY booking (car-rental/bookings/route.ts:248)
+        // creates a row in b2b_bookings. Skip payment + go straight to the B2B
+        // detail screen (no upfront payment for TA company bookings).
+        if (response.isTravelAgent && response.bookingMode === 'COMPANY' && bookingDbId) {
+          navigation.navigate('B2BBookingDetail', { bookingId: bookingDbId });
+        } else if (bookingFor === 'company' && isB2BCustomer) {
           // B2B company booking → post-paid, skip payment, go directly to confirmation
           navigation.navigate('BookingConfirmation', {
             booking_id: bookingNumber,
@@ -1230,6 +1252,9 @@ export default function CarRentalFleetScreen({ navigation, route }) {
           <Text style={styles.contactValue}>{customer?.phone}</Text>
         </View>
       </View>
+
+      {/* Phase 7 — TA Personal/Company toggle (self-gated; only renders for TA). */}
+      <TravelAgentBookingToggle value={taState} onChange={setTaState} />
 
       {/* B2B: Personal vs Company — only for approved B2B customers */}
       {isB2BCustomer && (

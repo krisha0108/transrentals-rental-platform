@@ -2,11 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
-import { transformPrismaResponse } from '@/lib/utils/api-transform';
-
 import { getCached, setCached, buildCacheKey } from '@/lib/utils/analytics-cache';
 import logger from '@/lib/security/logger';
+
 export const dynamic = 'force-dynamic';
+
+interface FormSubmission {
+  id: string;
+  formType: string | null;
+  formName: string | null;
+  pagePath: string | null;
+  status: string;
+  timeToFill: number | null;
+  createdAt: Date;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,26 +45,23 @@ export async function GET(request: NextRequest) {
       whereClause.formType = formType;
     }
 
-    // Fetch form submissions
     const submissions = await prisma.form_submissions.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
-    });
+    }) as FormSubmission[];
 
     const totalSubmissions = submissions.length;
-    const successfulSubmissions = submissions.filter((s: { status: string }) => s.status === 'SUBMITTED' || s.status === 'CONVERTED').length;
-    const failedSubmissions = submissions.filter((s: { status: string }) => s.status === 'FAILED').length;
+    const successfulSubmissions = submissions.filter((s) => s.status === 'SUBMITTED' || s.status === 'CONVERTED').length;
+    const failedSubmissions = submissions.filter((s) => s.status === 'FAILED').length;
     const avgCompletionTime = submissions.length > 0
-      ? Math.round(submissions.reduce((sum: number, s: { timeToFill: number | null }) => sum + (s.timeToFill || 0), 0) / submissions.length)
+      ? Math.round(submissions.reduce((sum, s) => sum + (s.timeToFill || 0), 0) / submissions.length)
       : 0;
 
-    // Calculate conversion rate from page views
     const pageViewCount = await prisma.page_views.count({
       where: { createdAt: { gte: startDate } },
     });
     const conversionRate = pageViewCount > 0 ? Number(((totalSubmissions / pageViewCount) * 100).toFixed(1)) : 0;
 
-    // Generate trends
     const trends = [];
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
@@ -63,7 +69,7 @@ export async function GET(request: NextRequest) {
       const dayStart = new Date(date.setHours(0, 0, 0, 0));
       const dayEnd = new Date(date.setHours(23, 59, 59, 999));
 
-      const daySubmissions = submissions.filter((s: { createdAt: Date }) => {
+      const daySubmissions = submissions.filter((s) => {
         const created = new Date(s.createdAt);
         return created >= dayStart && created <= dayEnd;
       });
@@ -71,39 +77,33 @@ export async function GET(request: NextRequest) {
       trends.push({
         date: dayStart.toLocaleDateString('en-US', { weekday: 'short' }),
         submissions: daySubmissions.length,
-        completions: daySubmissions.filter((s: { status: string }) => s.status === 'SUBMITTED' || s.status === 'CONVERTED').length,
-        abandonments: daySubmissions.filter((s: { status: string }) => s.status === 'PENDING').length,
+        completions: daySubmissions.filter((s) => s.status === 'SUBMITTED' || s.status === 'CONVERTED').length,
+        abandonments: daySubmissions.filter((s) => s.status === 'PENDING').length,
       });
     }
 
-    // Form types breakdown
-    const formTypeCounts = submissions.reduce((acc: Record<string, { submissions: number; completions: number; totalTime: number }>, s: { formType: string | null; status: string; timeToFill: number | null }) => {
+    const formTypeCounts = submissions.reduce((acc: Record<string, { submissions: number; completions: number; totalTime: number }>, s) => {
       const type = s.formType || 'OTHER';
       if (!acc[type]) acc[type] = { submissions: 0, completions: 0, totalTime: 0 };
       acc[type].submissions++;
       if (s.status === 'SUBMITTED' || s.status === 'CONVERTED') acc[type].completions++;
       acc[type].totalTime += s.timeToFill || 0;
       return acc;
-    }, {} as Record<string, { submissions: number; completions: number; totalTime: number }>);
+    }, {});
 
-    const formTypes = Object.entries(formTypeCounts).map(([type, data]: [string, { submissions: number; completions: number; totalTime: number }]) => ({
+    const formTypes = Object.entries(formTypeCounts).map(([type, data]) => ({
       type,
       submissions: data.submissions,
       conversionRate: data.submissions > 0 ? Number(((data.completions / data.submissions) * 100).toFixed(1)) : 0,
       avgTime: data.submissions > 0 ? Math.round(data.totalTime / data.submissions) : 0,
     }));
 
-    // Hourly submissions
-    const hourlySubmissions = Array.from({ length: 24 }, (_, hour) => {
-      const hourSubs = submissions.filter((s: { createdAt: Date }) => new Date(s.createdAt).getHours() === hour);
-      return {
-        hour: `${hour}:00`,
-        submissions: hourSubs.length,
-      };
-    });
+    const hourlySubmissions = Array.from({ length: 24 }, (_, hour) => ({
+      hour: `${hour}:00`,
+      submissions: submissions.filter((s) => new Date(s.createdAt).getHours() === hour).length,
+    }));
 
-    // Recent submissions
-    const recentSubmissions = submissions.slice(0, 10).map((s: { id: string; formType: string | null; formName: string | null; pagePath: string | null; status: string | null; createdAt: Date; timeToFill: number | null }) => ({
+    const recentSubmissions = submissions.slice(0, 10).map((s) => ({
       id: s.id,
       formType: s.formType || 'OTHER',
       name: s.formName || 'Anonymous',
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
         avgCompletionTime,
         conversionRate,
         abandonmentRate: totalSubmissions > 0
-          ? Number(((submissions.filter((s: { status: string }) => s.status === 'PENDING').length / totalSubmissions) * 100).toFixed(1))
+          ? Number(((submissions.filter((s) => s.status === 'PENDING').length / totalSubmissions) * 100).toFixed(1))
           : 0,
       },
       trends,
@@ -150,7 +150,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     logger.error('Forms analytics error', error);
-    // Return default data on error
     return NextResponse.json({
       overview: {
         totalSubmissions: 0,

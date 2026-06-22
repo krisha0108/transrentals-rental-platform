@@ -808,18 +808,6 @@ export default function VendorLuxuryQuoteDetailPage() {
             </div>
           )}
 
-          {(quote.request.budgetMin || quote.request.budgetMax) && (
-            <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-emerald-900 mb-2">Customer Budget</h2>
-              <p className="text-sm text-emerald-700">
-                {quote.request.budgetMin && quote.request.budgetMax
-                  ? `${formatCurrency(quote.request.budgetMin)} - ${formatCurrency(quote.request.budgetMax)}`
-                  : quote.request.budgetMin
-                  ? `Min: ${formatCurrency(quote.request.budgetMin)}`
-                  : `Max: ${formatCurrency(quote.request.budgetMax ?? 0)}`}
-              </p>
-            </div>
-          )}
         </aside>
       </div>
     </div>

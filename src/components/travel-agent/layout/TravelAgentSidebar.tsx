@@ -125,6 +125,7 @@ const approvedNavigationItems: NavItem[] = [
     href: '/travel-agent/notifications',
     icon: Bell,
   },
+  { name: 'Help & Support', href: '/travel-agent/support', icon: HelpCircle },
   { name: 'Get Started', href: '/travel-agent/get-started', icon: Sparkles },
 ];
 

@@ -6,7 +6,7 @@ import axios from 'axios';
 
 // Same URL config as screens/api/client.js
 const DEFAULT_PROD = "https://transrentals.in";
-const DEFAULT_DEV_ANDROID = "http://192.168.29.73:3000";
+const DEFAULT_DEV_ANDROID = "http://localhost:3000";
 const DEFAULT_DEV_IOS = "http://localhost:3000";
 
 function getBaseURL() {

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import LocationShareCard from '@/components/driver/LocationShareCard';
 import {
   Car,
   Bus,
@@ -190,9 +189,6 @@ export default function DriverDashboardPage() {
           </div>
         </Link>
       )}
-
-      {/* Live location sharing */}
-      <LocationShareCard />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">

@@ -27,6 +27,9 @@ import locationService from '../services/locationService';
 import api, { BASE_URL } from '../api';
 import { getMinBookingDate, isPickupTooSoon, getEarliestPickupLabel } from '../utils/dateValidation';
 import BookingAlertModal from '../utils/AdvanceBookingAlert';
+// Phase 7 — TA Personal/Company toggle.
+import TravelAgentBookingToggle from '../../components/TravelAgentBookingToggle';
+import { isTravelAgentCustomer } from '../../utils/isTravelAgent';
 
 /* ── Premium Dark Teal Design System ── */
 const TEAL_DEEP = '#064E3B';
@@ -131,6 +134,8 @@ const BikeFleetScreen = () => {
   // State for booking
   const [selectedBike, setSelectedBike] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
+  // Phase 7 — TA booking-mode state.
+  const [taState, setTaState] = useState({ mode: 'PERSONAL', vehicleCount: '1', employeeCount: '' });
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [bookingLoading, setBookingLoading] = useState(false);
 
@@ -354,6 +359,7 @@ const BikeFleetScreen = () => {
         return;
       }
 
+      const isTA = isTravelAgentCustomer(customer);
       // Create Quote Request (broadcast to all vendors)
       const quoteRequestData = {
         customerId,
@@ -375,6 +381,16 @@ const BikeFleetScreen = () => {
         budgetMin: selectedBike.lowestPrice || null,
         budgetMax: selectedBike.lowestPrice ? selectedBike.lowestPrice * 1.5 : null,
         customerNotes: '',
+        // Phase 7 — TA fields (only when TA customer).
+        ...(isTA && {
+          taBookingMode: taState.mode,
+          numberOfVehicles: taState.mode === 'COMPANY'
+            ? (parseInt(taState.vehicleCount) || 1)
+            : 1,
+          numberOfEmployees: taState.mode === 'COMPANY' && taState.employeeCount
+            ? parseInt(taState.employeeCount)
+            : null,
+        }),
       };
 
       const response = await fleetService.createBikeQuoteRequest(quoteRequestData);
@@ -943,6 +959,10 @@ const BikeFleetScreen = () => {
             </View>
           )}
 
+          {/* Phase 7 — TA Personal/Company toggle (self-gated). */}
+          <View style={{ marginHorizontal: wp('4%') }}>
+            <TravelAgentBookingToggle value={taState} onChange={setTaState} />
+          </View>
           <View style={styles.bookingActions}>
             <TouchableOpacity
               style={[styles.confirmBookingBtnWrap, bookingLoading && styles.disabledBtn]}

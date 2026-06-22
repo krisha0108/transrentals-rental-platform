@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,9 +14,11 @@ export async function GET(request: NextRequest) {
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
+    const vendorId = auth.vendorId!;
+
 
     const accounts = await prisma.vendor_bank_accounts.findMany({
-      where: { vendorId: auth.vendorId, isActive: true },
+      where: { vendorId: vendorId, isActive: true },
       orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
     });
 
@@ -33,6 +36,11 @@ export async function POST(request: NextRequest) {
     if (!auth.authenticated || !auth.vendorId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
+    const vendorId = auth.vendorId!;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const body = await request.json();
     const { bankName, accountHolderName, accountNumber, ifscCode, accountType, branchName, upiId, isPrimary } = body;
@@ -48,18 +56,18 @@ export async function POST(request: NextRequest) {
     // If this is to be primary, unset others
     if (isPrimary) {
       await prisma.vendor_bank_accounts.updateMany({
-        where: { vendorId: auth.vendorId },
+        where: { vendorId: vendorId },
         data: { isPrimary: false },
       });
     }
 
     // If this is the first account, auto-set as primary
-    const count = await prisma.vendor_bank_accounts.count({ where: { vendorId: auth.vendorId, isActive: true } });
+    const count = await prisma.vendor_bank_accounts.count({ where: { vendorId: vendorId, isActive: true } });
     const setAsPrimary = isPrimary || count === 0;
 
     const account = await prisma.vendor_bank_accounts.create({
       data: {
-        vendorId: auth.vendorId,
+        vendorId: vendorId,
         bankName: bankName.trim(),
         accountHolderName: accountHolderName.trim(),
         accountNumber: accountNumber.trim(),

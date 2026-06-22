@@ -21,7 +21,9 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import messaging from '@react-native-firebase/messaging';
 import CustomAlert from '../../CustomAlertmahek';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { loginVendorDirect } from '../../api/client';
+// Unified mobile login — same endpoint detects vendor/staff/travel_agent
+// and returns `userType` so we route to the right dashboard.
+import { loginUnified } from '../../api/travelAgentClient';
 
 const BRAND = {
   primary: '#1FC77A',        // fresh green (light theme friendly)
@@ -35,7 +37,7 @@ const BRAND = {
   error: '#EF4444',
 };
 
-const { width } = Dimensions.get('window');
+const { width, height: SCREEN_H } = Dimensions.get('window');
 const isTablet = width >= 768;
 
 export default function LoginScreen({ navigation }) {
@@ -76,6 +78,72 @@ export default function LoginScreen({ navigation }) {
     ]).start();
   }, [fade, slide]);
 
+  // floating background icons
+  // left-side icons: x = 4–14px from left edge (clearly in the margin)
+  // right-side icons: x = width - 30px from right edge
+  const L = 6;                  // px from left
+  const R = width - 32;         // px from right
+  const FLOAT_ICONS = [
+    // LEFT SIDE — top to bottom
+    { name: 'calendar',     color: '#0A7A4B', size: 22, x: L,     startY: SCREEN_H * 0.06, delay: 0,    duration: 3400 },
+    { name: 'bicycle',      color: '#DB2777', size: 22, x: L + 2, startY: SCREEN_H * 0.18, delay: 550,  duration: 3000 },
+    { name: 'people',       color: '#7C3AED', size: 20, x: L,     startY: SCREEN_H * 0.30, delay: 250,  duration: 3200 },
+    { name: 'car-sport',    color: '#1e6bb8', size: 22, x: L + 2, startY: SCREEN_H * 0.43, delay: 800,  duration: 3800 },
+    { name: 'bus',          color: '#D97706', size: 22, x: L,     startY: SCREEN_H * 0.56, delay: 350,  duration: 3100 },
+    { name: 'location',     color: '#0A7A4B', size: 20, x: L + 2, startY: SCREEN_H * 0.68, delay: 650,  duration: 3500 },
+    { name: 'trending-up',  color: '#DB2777', size: 19, x: L,     startY: SCREEN_H * 0.80, delay: 150,  duration: 3600 },
+    // RIGHT SIDE — top to bottom
+    { name: 'airplane',     color: '#1e6bb8', size: 22, x: R,     startY: SCREEN_H * 0.05, delay: 400,  duration: 3300 },
+    { name: 'map',          color: '#0A7A4B', size: 22, x: R - 2, startY: SCREEN_H * 0.17, delay: 900,  duration: 3100 },
+    { name: 'bar-chart',    color: '#D97706', size: 20, x: R,     startY: SCREEN_H * 0.29, delay: 100,  duration: 3700 },
+    { name: 'card',         color: '#DB2777', size: 22, x: R - 2, startY: SCREEN_H * 0.41, delay: 600,  duration: 2900 },
+    { name: 'train',        color: '#7C3AED', size: 22, x: R,     startY: SCREEN_H * 0.54, delay: 300,  duration: 3400 },
+    { name: 'briefcase',    color: '#1e6bb8', size: 20, x: R - 2, startY: SCREEN_H * 0.66, delay: 750,  duration: 3500 },
+    { name: 'key',          color: '#0A7A4B', size: 19, x: R,     startY: SCREEN_H * 0.79, delay: 500,  duration: 3200 },
+  ];
+  const floatAnims = useRef(FLOAT_ICONS.map((_, i) => new Animated.Value(i % 2 === 0 ? 0 : 0.5))).current;
+
+  useEffect(() => {
+    const anims = FLOAT_ICONS.map((cfg, i) => {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.delay(cfg.delay),
+          Animated.timing(floatAnims[i], { toValue: 1, duration: cfg.duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(floatAnims[i], { toValue: 0, duration: cfg.duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+      return loop;
+    });
+    return () => anims.forEach(a => a.stop());
+  }, []);
+
+  // cycling word animation: "Vendor" ↔ "Travel Agent"
+  const WORDS = ['Vendor', 'Travel Agent'];
+  const [wordIdx, setWordIdx] = useState(0);
+  const wordOpacity = useRef(new Animated.Value(1)).current;
+  const wordTranslateY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const cycle = () => {
+      // fade up & out
+      Animated.parallel([
+        Animated.timing(wordOpacity, { toValue: 0, duration: 380, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(wordTranslateY, { toValue: -14, duration: 380, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+      ]).start(() => {
+        setWordIdx(prev => (prev + 1) % WORDS.length);
+        wordTranslateY.setValue(14); // start from below
+        // fade in from below
+        Animated.parallel([
+          Animated.timing(wordOpacity, { toValue: 1, duration: 380, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          Animated.timing(wordTranslateY, { toValue: 0, duration: 380, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        ]).start();
+      });
+    };
+    const t = setInterval(cycle, 3000);
+    return () => clearInterval(t);
+  }, [wordOpacity, wordTranslateY]);
+
   // Get FCM token
   useEffect(() => {
     messaging()
@@ -105,35 +173,61 @@ export default function LoginScreen({ navigation }) {
     try {
       setLoading(true);
 
-      // Use new Next.js backend API
-      const result = await loginVendorDirect(email, password, fcmToken);
+      // Unified login — backend detects whether the credentials belong to a
+      // vendor, staff, or travel agent and returns `userType` accordingly.
+      const result = await loginUnified(email, password, fcmToken);
 
-      if (result.success && result.vendor) {
+      if (!result?.success) {
+        showAlert('Login Failed', 'Unexpected response. Please try again.');
+        return;
+      }
+
+      // --- TRAVEL AGENT ---
+      if (result.userType === 'travel_agent' && result.travelAgent) {
+        const ta = result.travelAgent;
+        if (ta.status === 'DOCUMENTS_PENDING') {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'TravelAgentDocuments' }],
+          });
+        } else if (ta.status === 'REJECTED') {
+          showAlert(
+            'Application Rejected',
+            ta.rejectionReason || 'Your application was rejected. Please contact support.'
+          );
+        } else {
+          // PENDING / UNDER_REVIEW / APPROVED — all land on the TA dashboard.
+          // The dashboard itself applies the approval gate (reduced menu for non-approved).
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'TravelAgentDashboard' }],
+          });
+        }
+        return;
+      }
+
+      // --- VENDOR / STAFF (existing flow) ---
+      if (result.vendor) {
         const { vendor } = result;
-
-        // Check vendor status and redirect accordingly
         if (vendor.status === 'DOCUMENTS_PENDING') {
-          // Redirect to document upload
           navigation.reset({
             index: 0,
             routes: [{ name: 'VendorDocuments' }],
           });
         } else if (vendor.status === 'PENDING_APPROVAL') {
-          // Show pending approval message
           showAlert('Pending Approval', 'Your account is under review. We will notify you once approved.');
         } else if (vendor.status === 'APPROVED' || vendor.status === 'ACTIVE') {
-          // Go to dashboard
           navigation.reset({
             index: 0,
             routes: [{ name: 'VendorDashboard' }],
           });
         } else {
-          // Default to dashboard
           navigation.navigate('VendorDashboard');
         }
-      } else {
-        showAlert('Login Failed', 'Unexpected response. Please try again.');
+        return;
       }
+
+      showAlert('Login Failed', 'Unexpected response. Please try again.');
     } catch (error) {
       const errorMessage = error?.response?.data?.error
         || error?.message
@@ -146,6 +240,29 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
+
+      {/* Floating icons — full screen fixed overlay, outside scroll */}
+      <View style={styles.floatOverlay} pointerEvents="none">
+        {FLOAT_ICONS.map((cfg, i) => (
+          <Animated.View
+            key={i}
+            style={[
+              styles.floatIcon,
+              {
+                left: cfg.x,
+                top: cfg.startY,
+                opacity: floatAnims[i].interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.10, 0.25, 0.10] }),
+                transform: [{
+                  translateY: floatAnims[i].interpolate({ inputRange: [0, 1], outputRange: [0, -20] }),
+                }],
+              },
+            ]}
+          >
+            <Ionicons name={cfg.name} size={cfg.size} color={cfg.color} />
+          </Animated.View>
+        ))}
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -169,7 +286,17 @@ export default function LoginScreen({ navigation }) {
                <Image source={require('../../../assets/logo-white-tr.png')}  style={{width:40, height:40}} />
               {/* <Ionicons name="car-sport" size={22} color="#fff" /> */}
             </View>
-            <Text style={styles.brandTitle}>TransRentals Vendor</Text>
+            <View style={styles.brandTitleRow}>
+              <Text style={styles.brandTitle}>TransRentals </Text>
+              <Animated.Text
+                style={[
+                  styles.brandTitleWord,
+                  { opacity: wordOpacity, transform: [{ translateY: wordTranslateY }] },
+                ]}
+              >
+                {WORDS[wordIdx]}
+              </Animated.Text>
+            </View>
             <Text style={styles.brandTagline}>
               Sign in to manage bookings, quotes & fleet.
             </Text>
@@ -278,7 +405,17 @@ export default function LoginScreen({ navigation }) {
             <View style={styles.rowBetween}>
               <View />
               <TouchableOpacity
-                onPress={() => navigation.navigate('ForgotPasswordScreen')}
+                onPress={() =>
+                  Alert.alert(
+                    'Reset password',
+                    'Which account type is this?',
+                    [
+                      { text: 'Vendor', onPress: () => navigation.navigate('ForgotPasswordScreen') },
+                      { text: 'Travel Agent', onPress: () => navigation.navigate('TravelAgentForgotPasswordScreen') },
+                      { text: 'Cancel', style: 'cancel' },
+                    ]
+                  )
+                }
               >
                 <Text style={styles.link}>Forgot password?</Text>
               </TouchableOpacity>
@@ -308,13 +445,30 @@ export default function LoginScreen({ navigation }) {
               <View style={styles.separator} />
             </View>
 
-            {/* Register */}
-            <View style={styles.centerRow}>
-              <Text style={styles.smallText}>New to TransRentals? </Text>
+            {/* Register options — vendor or travel agent (same login form, different signup) */}
+            <View style={styles.registerBlock}>
+              <Text style={[styles.smallText, { textAlign: 'center', marginBottom: 10 }]}>
+                New to TransRentals?
+              </Text>
+
               <TouchableOpacity
+                style={styles.registerLink}
                 onPress={() => navigation.navigate('VendorRegisterScreen')}
+                activeOpacity={0.7}
               >
-                <Text style={styles.linkBold}>Create an account</Text>
+                <Ionicons name="storefront-outline" size={18} color={BRAND.primaryDark} />
+                <Text style={styles.linkBold}>Register as Vendor</Text>
+                <Ionicons name="chevron-forward" size={16} color={BRAND.primaryDark} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.registerLink}
+                onPress={() => navigation.navigate('TravelAgentRegisterScreen')}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="airplane-outline" size={18} color={BRAND.primaryDark} />
+                <Text style={styles.linkBold}>Register as Travel Agent</Text>
+                <Ionicons name="chevron-forward" size={16} color={BRAND.primaryDark} />
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -350,6 +504,15 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 32,
     alignItems: 'center',
+  },
+
+  floatOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 1,
+  },
+  floatIcon: {
+    position: 'absolute',
   },
 
   // Decorative light blobs (no extra libs)
@@ -395,10 +558,21 @@ const styles = StyleSheet.create({
     elevation: 4,
     marginBottom: 10,
   },
+  brandTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
   brandTitle: {
     fontSize: 22,
     fontWeight: '800',
     color: BRAND.ink,
+  },
+  brandTitleWord: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0A7A4B',
   },
   brandTagline: {
     fontSize: 13.5,
@@ -545,6 +719,24 @@ const styles = StyleSheet.create({
     color: BRAND.primaryDark,
     fontWeight: '800',
     fontSize: 14,
+    flex: 1,
+    marginLeft: 10,
+  },
+
+  registerBlock: {
+    width: '100%',
+    marginTop: 4,
+  },
+  registerLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5FFFA',
+    borderWidth: 1,
+    borderColor: '#CFF5E2',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginTop: 8,
   },
 
   footerNote: {

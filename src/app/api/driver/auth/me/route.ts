@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       success: true,
       driver: {
         id: driver.id,
+        did: (driver as any).did ?? null,
         name: driver.name,
         email: driver.email,
         phone: driver.phone,
@@ -29,6 +30,10 @@ export async function GET(request: NextRequest) {
         licenseExpiry: (driver as any).licenseExpiry,
         status: driver.status,
         userType: (driver as any).userType,
+        joiningDate: (driver as any).joiningDate ?? null,
+        createdAt: (driver as any).createdAt ?? null,
+        city: (driver as any).city ?? null,
+        state: (driver as any).state ?? null,
         slug: (driver as any).slug ?? null,
         bio: (driver as any).bio ?? null,
         yearsExperience: (driver as any).yearsExperience ?? null,

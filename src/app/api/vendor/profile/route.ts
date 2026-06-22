@@ -5,6 +5,8 @@ import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { sanitizeInput } from '@/lib/utils/sanitize';
 import { smartRateLimit, getClientIdentifier } from '@/lib/utils/smart-rate-limit';
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
+import { generateVid } from '@/lib/utils/generate-vid';
 export const dynamic = 'force-dynamic';
 
 // In-flight request coalescing: multiple parallel calls for same vendorId share one DB query
@@ -15,6 +17,7 @@ async function fetchVendorFromDB(vendorId: string) {
     where: { id: vendorId },
     select: {
       id: true,
+      vid: true,
       email: true,
       phone: true,
       businessName: true,
@@ -122,6 +125,7 @@ export async function GET(request: NextRequest) {
     }
     const vendorId = auth.vendorId;
 
+
     // Coalesce parallel requests for the same vendor into a single DB query
     let pending = inFlightProfiles.get(vendorId);
     if (!pending) {
@@ -133,6 +137,13 @@ export async function GET(request: NextRequest) {
     const vendorData = await pending;
     if (!vendorData) {
       return NextResponse.json({ error: 'Vendor not found' }, { status: 404 });
+    }
+
+    // Generate vid on first profile view if it wasn't set at login/register
+    if (!vendorData.vid) {
+      const vid = await generateVid();
+      await prisma.vendors.update({ where: { id: vendorId }, data: { vid } });
+      vendorData.vid = vid;
     }
 
     return NextResponse.json(vendorData);
@@ -153,6 +164,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     // ===== RATE LIMITING =====
     const clientId = getClientIdentifier(request);
@@ -179,6 +194,7 @@ export async function PUT(request: NextRequest) {
       city,
       state,
       pincode,
+      logo,
       description,
       website,
       bankName,
@@ -226,6 +242,7 @@ export async function PUT(request: NextRequest) {
     if (city !== undefined) updateData.city = city || null;
     if (state !== undefined) updateData.state = state || null;
     if (pincode !== undefined) updateData.pincode = pincode || null;
+    if (logo !== undefined) updateData.logo = logo || null;
     if (description !== undefined) updateData.description = description || null;
     if (website !== undefined) updateData.website = website || null;
     if (bankName !== undefined) updateData.bankName = bankName || null;

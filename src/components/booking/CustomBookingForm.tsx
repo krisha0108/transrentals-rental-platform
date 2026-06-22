@@ -33,6 +33,8 @@ import {
   KeyRound,
   Crown,
 } from 'lucide-react';
+import { DayPicker, type DateRange } from 'react-day-picker';
+import 'react-day-picker/style.css';
 import { LocationAutocomplete } from './LocationAutocomplete';
 import { useBookingSubmission } from './useBookingSubmission';
 import { useCustomerAuth } from '@/hooks/useCustomer';
@@ -264,13 +266,6 @@ const toLocalISODate = (d: Date) => {
   return `${y}-${m}-${day}`;
 };
 
-const getTomorrowISO = (): string => {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + 1);
-  return toLocalISODate(d);
-};
-
 const formatDate = (dateStr: string) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
@@ -342,6 +337,272 @@ const createDayBooking = (date: string): DayBooking => ({
   date,
   services: [createEmptyService()],
 });
+
+// Parse a "YYYY-MM-DD" string into a LOCAL Date (avoids UTC shift from new Date(str))
+const parseLocalISO = (s?: string): Date | undefined => {
+  if (!s) return undefined;
+  const [y, m, d] = s.split('-').map(Number);
+  if (!y || !m || !d) return undefined;
+  return new Date(y, m - 1, d);
+};
+
+// ── Zoomcar-style range calendar + time picker for the event dates ──
+function EventDateTimePicker({
+  startDate,
+  endDate,
+  startTime,
+  endTime,
+  totalDays,
+  onChange,
+}: {
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+  totalDays: number;
+  onChange: (patch: Partial<{ startDate: string; endDate: string; startTime: string; endTime: string }>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [months, setMonths] = useState(1);
+  const [range, setRange] = useState<DateRange | undefined>(() => {
+    const from = parseLocalISO(startDate);
+    if (!from) return undefined;
+    return { from, to: parseLocalISO(endDate) || from };
+  });
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+
+  // Bookings need at least 7 days' notice → earliest selectable day is today + 7 days
+  const LEAD_DAYS = 7;
+  const minDate = React.useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + LEAD_DAYS);
+    return d;
+  }, []);
+
+  // Keep internal range in sync when the form values change elsewhere (e.g. presets)
+  useEffect(() => {
+    const from = parseLocalISO(startDate);
+    setRange(from ? { from, to: parseLocalISO(endDate) || from } : undefined);
+  }, [startDate, endDate]);
+
+  // 2 months on larger screens, 1 on mobile
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 640px)');
+    const apply = () => setMonths(mq.matches ? 2 : 1);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
+  // Close on outside click / Escape
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const handleSelect = (r: DateRange | undefined) => {
+    setRange(r);
+    if (!r?.from) {
+      onChange({ startDate: '', endDate: '' });
+      return;
+    }
+    const s = toLocalISODate(r.from);
+    // While mid-selection (no `to` yet) keep end = start so day-count stays valid
+    const e = r.to ? toLocalISODate(r.to) : s;
+    onChange({ startDate: s, endDate: e });
+  };
+
+  // Presets all start on/after minDate (today + 7 days) to honour the lead-time rule
+  const presets = React.useMemo(() => {
+    const base = new Date(minDate); // earliest allowed day
+    const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+    const tenOut = addDays(base, 3); // minDate + 3 ≈ 10 days from today
+    // First Friday on/after minDate, and its Sunday
+    const friday = addDays(base, (5 - base.getDay() + 7) % 7);
+    const sunday = addDays(friday, 2);
+    return [
+      { label: 'In 1 week', start: toLocalISODate(base), end: toLocalISODate(base) },
+      { label: 'In 10 days', start: toLocalISODate(tenOut), end: toLocalISODate(tenOut) },
+      { label: 'Weekend', start: toLocalISODate(friday), end: toLocalISODate(sunday) },
+      { label: '3-day trip', start: toLocalISODate(base), end: toLocalISODate(addDays(base, 2)) },
+      { label: 'Week-long', start: toLocalISODate(base), end: toLocalISODate(addDays(base, 6)) },
+    ];
+  }, [minDate]);
+
+  const triggerCard = (which: 'start' | 'end') => {
+    const date = which === 'start' ? startDate : endDate;
+    const time = which === 'start' ? startTime : endTime;
+    const accent = which === 'start' ? 'text-blue-500' : 'text-purple-500';
+    const open_ = open;
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`text-left bg-white rounded-xl border-2 p-3 transition w-full ${
+          open_ ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200 hover:border-blue-300'
+        }`}
+      >
+        <div className={`flex items-center gap-2 mb-1.5 text-xs font-semibold uppercase tracking-wide ${accent}`}>
+          <Calendar className="w-3.5 h-3.5" /> {which === 'start' ? 'Starts' : 'Ends'}
+        </div>
+        {date ? (
+          <>
+            <p className="text-base font-bold text-gray-900 leading-tight">
+              {parseLocalISO(date)!.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+              <Clock className="w-3 h-3" /> {formatTime12(time)}
+              <span className="text-gray-300">·</span>
+              {parseLocalISO(date)!.getFullYear()}
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-gray-400 font-medium">Select date</p>
+        )}
+      </button>
+    );
+  };
+
+  return (
+    <div className="relative" ref={wrapRef}>
+      {/* Quick-pick chips */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        {presets.map((p) => {
+          const active = startDate === p.start && endDate === p.end;
+          return (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => onChange({ startDate: p.start, endDate: p.end })}
+              className={`text-xs px-3 py-1.5 rounded-full border transition ${
+                active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
+              }`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Trigger cards */}
+      <div className="grid grid-cols-2 gap-3">
+        {triggerCard('start')}
+        {triggerCard('end')}
+      </div>
+
+      {/* Lead-time notice */}
+      <p className="mt-2 text-[11px] text-gray-500 flex items-center gap-1.5">
+        <AlertCircle className="w-3 h-3 text-amber-500 shrink-0" />
+        Bookings need at least {LEAD_DAYS} days&apos; notice — earliest date is{' '}
+        <span className="font-semibold text-gray-700">
+          {minDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+        </span>
+        .
+      </p>
+
+      {/* Calendar popover */}
+      {open && (
+        <>
+          {/* Mobile backdrop */}
+          <div className="fixed inset-0 bg-black/30 z-40 sm:hidden" onClick={() => setOpen(false)} />
+          <div
+            className="absolute z-50 mt-2 left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 w-[calc(100vw-2rem)] sm:w-auto max-w-[560px] bg-white rounded-2xl shadow-2xl border border-gray-200 p-3 sm:p-4"
+            style={
+              {
+                '--rdp-accent-color': '#2563eb',
+                '--rdp-accent-background-color': '#dbeafe',
+                '--rdp-range_middle-background-color': '#dbeafe',
+                '--rdp-range_middle-color': '#1e3a8a',
+                '--rdp-day-width': '32px',
+                '--rdp-day-height': '32px',
+                '--rdp-day_button-width': '32px',
+                '--rdp-day_button-height': '32px',
+                '--rdp-nav_button-width': '26px',
+                '--rdp-nav_button-height': '26px',
+                '--rdp-weekday-padding': '2px 0',
+              } as React.CSSProperties
+            }
+          >
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-bold text-gray-900">Select event dates</p>
+              <button type="button" onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex justify-center text-[13px] [&_.rdp]:m-0 [&_.rdp-month_caption]:text-sm [&_.rdp-months]:gap-4">
+              <DayPicker
+                mode="range"
+                numberOfMonths={months}
+                selected={range}
+                onSelect={handleSelect}
+                defaultMonth={range?.from ?? minDate}
+                startMonth={minDate}
+                disabled={{ before: minDate }}
+              />
+            </div>
+
+            {/* Time pickers */}
+            <div className="grid grid-cols-2 gap-3 mt-2 pt-3 border-t border-gray-100">
+              <div>
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-blue-500" /> Pickup time
+                </p>
+                <TimePicker12 value={startTime} onChange={(t) => onChange({ startTime: t })} />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-purple-500" /> Drop time
+                </p>
+                <TimePicker12 value={endTime} onChange={(t) => onChange({ endTime: t })} />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+              <div className="text-sm">
+                {startDate && endDate ? (
+                  <span className="font-semibold text-gray-700">
+                    {totalDays} day{totalDays === 1 ? '' : 's'}
+                    {totalDays > 1 ? ` · ${totalDays - 1} night${totalDays - 1 === 1 ? '' : 's'}` : ''}
+                  </span>
+                ) : (
+                  <span className="text-gray-400">Pick a start &amp; end date</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setRange(undefined); onChange({ startDate: '', endDate: '' }); }}
+                  className="text-sm font-medium text-gray-500 hover:text-gray-700 px-3 py-2"
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg shadow-sm transition"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export function CustomBookingForm() {
   const { submitBooking, isSubmitting, error: submitError } = useBookingSubmission('custom-bulk', 'CustomBookingForm');
@@ -638,15 +899,23 @@ export function CustomBookingForm() {
       {/* Progress Steps */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
-          {[1, 2, 3, 4].map((step) => (
+          {[1, 2, 3, 4].map((step) => {
+            const isPast = step < currentStep;
+            return (
             <React.Fragment key={step}>
-              <div className="flex items-center">
+              <button
+                type="button"
+                onClick={() => { if (isPast) setCurrentStep(step); }}
+                disabled={!isPast}
+                title={isPast ? `Go back to ${step === 1 ? 'Event Details' : step === 2 ? 'Day-wise Services' : 'Contact Info'}` : undefined}
+                className={`flex items-center ${isPast ? 'cursor-pointer hover:opacity-80 transition-opacity' : 'cursor-default'}`}
+              >
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
                     currentStep >= step
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-500'
-                  }`}
+                  } ${isPast ? 'ring-2 ring-blue-200 ring-offset-1' : ''}`}
                 >
                   {currentStep > step ? <CheckCircle2 className="w-5 h-5" /> : step}
                 </div>
@@ -658,14 +927,15 @@ export function CustomBookingForm() {
                   {step === 3 && 'Contact Info'}
                   {step === 4 && 'Review & Book'}
                 </span>
-              </div>
+              </button>
               {step < 4 && (
                 <div className={`flex-1 h-1 mx-4 rounded ${
                   currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
                 }`} />
               )}
             </React.Fragment>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -739,116 +1009,14 @@ export function CustomBookingForm() {
                   )}
                 </div>
 
-                {/* Quick-pick chips */}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {(() => {
-                    const fmt = toLocalISODate;
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-                    const dayAfterTomorrow = new Date(today); dayAfterTomorrow.setDate(today.getDate() + 2);
-                    const threeDaysOut = new Date(today); threeDaysOut.setDate(today.getDate() + 3);
-                    const friday = new Date(today);
-                    friday.setDate(today.getDate() + ((5 - today.getDay() + 7) % 7 || 7));
-                    const sunday = new Date(friday); sunday.setDate(friday.getDate() + 2);
-                    const nextMon = new Date(today); nextMon.setDate(today.getDate() + ((8 - today.getDay()) % 7 || 7));
-                    const nextSun = new Date(nextMon); nextSun.setDate(nextMon.getDate() + 6);
-                    const presets: { label: string; start: string; end: string }[] = [
-                      { label: 'Tomorrow', start: fmt(tomorrow), end: fmt(tomorrow) },
-                      { label: 'Day after', start: fmt(dayAfterTomorrow), end: fmt(dayAfterTomorrow) },
-                      { label: 'This weekend', start: fmt(friday), end: fmt(sunday) },
-                      { label: 'Next 3 days', start: fmt(tomorrow), end: fmt(threeDaysOut) },
-                      { label: 'Next week', start: fmt(nextMon), end: fmt(nextSun) },
-                    ];
-                    return presets.map(p => {
-                      const active = formData.startDate === p.start && formData.endDate === p.end;
-                      return (
-                        <button
-                          key={p.label}
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, startDate: p.start, endDate: p.end }))}
-                          className={`text-xs px-3 py-1.5 rounded-full border transition ${
-                            active ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
-                          }`}
-                        >
-                          {p.label}
-                        </button>
-                      );
-                    });
-                  })()}
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-3">
-                  {/* Start */}
-                  <div className="bg-white rounded-xl border-2 border-gray-200 p-3 hover:border-blue-300 transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
-                    <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      <Calendar className="w-3.5 h-3.5 text-blue-500" /> Starts
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="date"
-                        value={formData.startDate}
-                        min={getTomorrowISO()}
-                        onChange={(e) => {
-                          const picked = e.target.value;
-                          const tomorrow = getTomorrowISO();
-                          if (picked && picked < tomorrow) return;
-                          setFormData(prev => ({
-                            ...prev,
-                            startDate: picked,
-                            endDate: prev.endDate && prev.endDate < picked ? picked : prev.endDate,
-                          }));
-                        }}
-                        className="flex-1 min-w-0 px-2 py-1.5 bg-transparent border-0 text-sm font-medium text-gray-900 focus:outline-none focus:ring-0"
-                      />
-                      <div className="flex items-center gap-1.5 sm:border-l sm:pl-2">
-                        <Clock className="w-3.5 h-3.5 text-gray-400" />
-                        <TimePicker12
-                          value={formData.startTime}
-                          onChange={(t) => setFormData(prev => ({ ...prev, startTime: t }))}
-                        />
-                      </div>
-                    </div>
-                    {formData.startDate && (
-                      <p className="text-[11px] text-gray-500 mt-1">
-                        {new Date(formData.startDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* End */}
-                  <div className="bg-white rounded-xl border-2 border-gray-200 p-3 hover:border-blue-300 transition focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100">
-                    <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      <Calendar className="w-3.5 h-3.5 text-purple-500" /> Ends
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        type="date"
-                        value={formData.endDate}
-                        min={formData.startDate || getTomorrowISO()}
-                        onChange={(e) => {
-                          const picked = e.target.value;
-                          const floor = formData.startDate || getTomorrowISO();
-                          if (picked && picked < floor) return;
-                          setFormData(prev => ({ ...prev, endDate: picked }));
-                        }}
-                        className="flex-1 min-w-0 px-2 py-1.5 bg-transparent border-0 text-sm font-medium text-gray-900 focus:outline-none focus:ring-0"
-                      />
-                      <div className="flex items-center gap-1.5 sm:border-l sm:pl-2">
-                        <Clock className="w-3.5 h-3.5 text-gray-400" />
-                        <TimePicker12
-                          value={formData.endTime}
-                          onChange={(t) => setFormData(prev => ({ ...prev, endTime: t }))}
-                        />
-                      </div>
-                    </div>
-                    {formData.endDate && (
-                      <p className="text-[11px] text-gray-500 mt-1">
-                        {new Date(formData.endDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                <EventDateTimePicker
+                  startDate={formData.startDate}
+                  endDate={formData.endDate}
+                  startTime={formData.startTime}
+                  endTime={formData.endTime}
+                  totalDays={formData.totalDays}
+                  onChange={(patch) => setFormData(prev => ({ ...prev, ...patch }))}
+                />
               </div>
 
               {/* Base Location */}
@@ -1801,14 +1969,23 @@ export function CustomBookingForm() {
                 <div className="text-xs text-gray-500">Capacity</div>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setCurrentStep(3)}
-              disabled={!canProceed()}
-              className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Continue
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setCurrentStep(1)}
+                className="px-5 py-3 border border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition flex items-center gap-1.5"
+              >
+                <ChevronDown className="w-4 h-4 rotate-90" /> Back
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentStep(3)}
+                disabled={!canProceed()}
+                className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
       )}

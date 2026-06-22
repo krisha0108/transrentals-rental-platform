@@ -18,9 +18,11 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { useDriverWebNotifications } from '@/hooks/useDriverWebNotifications';
+import LocationToggleButton from '@/components/driver/LocationToggleButton';
 
 interface Driver {
   id: string;
+  did?: string | null;
   name: string;
   email: string;
   phone: string;
@@ -278,6 +280,8 @@ export default function DriverDashboardLayout({
 
             {/* User Menu */}
             <div className="flex items-center gap-2">
+              {/* Live Location Toggle */}
+              <LocationToggleButton />
               {/* Chat Icon */}
               <Link href="/driver/chat" className={`relative p-2 hover:bg-emerald-700 rounded-lg ${pathname.startsWith('/driver/chat') ? 'bg-emerald-700' : ''}`}>
                 <MessageCircle className="w-5 h-5" />
@@ -304,7 +308,7 @@ export default function DriverDashboardLayout({
               )}
               <div className="hidden sm:block text-right">
                 <p className="font-medium text-sm">{driver.name}</p>
-                <p className="text-emerald-200 text-xs">{driver.phone}</p>
+                <p className="text-emerald-200 text-xs">{driver.did ?? driver.phone}</p>
               </div>
               <Link
                 href="/driver/profile"

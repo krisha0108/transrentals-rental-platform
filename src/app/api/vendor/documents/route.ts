@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import logger from '@/lib/security/logger';
 import { validateVendorDocument } from '@/lib/security/file-validation';
 import { scanFile, isClamAVAvailable } from '@/lib/security/antivirus';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 import {
   saveVendorDocument,
   generateSecureFilename,
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
 
     const documents = await prisma.vendor_documents.findMany({
       where: { vendorId },
@@ -68,6 +70,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
     }
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -143,12 +149,12 @@ export async function POST(request: NextRequest) {
       logger.debug('ClamAV not available, skipping antivirus scan');
     }
 
-    // Check if document of this type already exists
+    // Check if document of this type already exists (allow re-upload if REJECTED or RESUBMIT_REQUIRED)
     const existingDoc = await prisma.vendor_documents.findFirst({
       where: {
         vendorId: vendorId,
         documentType: documentType as any,
-        status: { not: 'REJECTED' },
+        status: { notIn: ['REJECTED', 'RESUBMIT_REQUIRED'] },
       },
     });
 
@@ -157,6 +163,18 @@ export async function POST(request: NextRequest) {
         { error: 'Document of this type already uploaded. Delete the existing one first.' },
         { status: 400 }
       );
+    }
+
+    // If there's a RESUBMIT_REQUIRED doc of this type, delete it so the new one replaces it
+    const resubmitDoc = await prisma.vendor_documents.findFirst({
+      where: { vendorId, documentType: documentType as any, status: 'RESUBMIT_REQUIRED' },
+    });
+    if (resubmitDoc) {
+      const { deleteVendorDocument } = await import('@/lib/storage/private-storage');
+      const urlParts = resubmitDoc.documentUrl.split('/');
+      const oldFilename = urlParts[urlParts.length - 1];
+      await deleteVendorDocument(vendorId, oldFilename).catch(() => {});
+      await prisma.vendor_documents.delete({ where: { id: resubmitDoc.id } });
     }
 
     // Initialize private storage if needed

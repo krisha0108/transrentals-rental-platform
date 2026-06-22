@@ -22,9 +22,12 @@ async function vendorActorFromRequest(request: NextRequest): Promise<{ actor: So
   }
   const vendor = await prisma.vendors.findUnique({
     where: { id: auth.vendorId },
-    select: { id: true, businessName: true, ownerName: true, logo: true, city: true },
+    select: { id: true, businessName: true, ownerName: true, logo: true, city: true, status: true },
   });
   if (!vendor) return { actor: null, status: 401, error: 'Vendor not found' };
+  if (vendor.status === 'REJECTED' || vendor.status === 'SUSPENDED' || vendor.status === 'BLOCKED') {
+    return { actor: null, status: 403, error: 'Your account is not authorized for this action.' };
+  }
   return {
     actor: {
       type: 'vendor',
@@ -62,7 +65,7 @@ export async function POST(request: NextRequest) {
     if (!actor) return NextResponse.json({ error }, { status });
 
     const body = await request.json();
-    const result = await createPost(actor, { content: body?.content, categoryId: body?.categoryId });
+    const result = await createPost(actor, { content: body?.content, categoryId: body?.categoryId, images: body?.images });
     return NextResponse.json(result, { status: 201 });
   } catch (e: any) {
     if (e instanceof SocialError) return NextResponse.json({ error: e.message }, { status: e.status });

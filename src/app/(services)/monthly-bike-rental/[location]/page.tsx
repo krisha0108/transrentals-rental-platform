@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
 import { capitalize } from '@/lib/utils';
@@ -89,7 +89,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function MonthlyBikeRentalLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('monthly-bike-rental', params.location);
-  if (pageContext.type === 'redirect') notFound();
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="monthly-bike-rental" serviceName="Monthly Bike Rental" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
@@ -104,11 +104,11 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
   ];
 
   const schemaVehicles = [
-    { name: 'Honda Activa 6G', brand: 'Honda', price: 2999 },
-    { name: 'TVS Jupiter', brand: 'TVS', price: 3499 },
-    { name: 'Hero Splendor Plus', brand: 'Hero', price: 3999 },
-    { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 4999 },
-    { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 9999 },
+    { name: 'Honda Activa 6G', brand: 'Honda', price: 2999, image: 'https://transrentals.in/images/fleet/honda-activa-6g.jpg' },
+    { name: 'TVS Jupiter', brand: 'TVS', price: 3499, image: 'https://transrentals.in/images/scooters/jupiter.jpg' },
+    { name: 'Hero Splendor Plus', brand: 'Hero', price: 3999, image: 'https://transrentals.in/images/fleet/hero-splendor-plus.jpg' },
+    { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 4999, image: 'https://transrentals.in/images/fleet/bajaj-pulsar-150.jpg' },
+    { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 9999, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
   ];
 
   const [seoData, scContent] = await Promise.all([

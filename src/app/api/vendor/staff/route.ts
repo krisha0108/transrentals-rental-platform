@@ -4,10 +4,12 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import { getVendorAuth } from '@/lib/auth/vendor-mobile-auth';
 import { sanitizeInput, isValidEmail, isValidPhone, sanitizePhone } from '@/lib/utils/sanitize';
 import { smartRateLimit, getClientIdentifier } from '@/lib/utils/smart-rate-limit';
+import { generateDid } from '@/lib/utils/generate-did';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 import logger from '@/lib/security/logger';
+import { vendorStatusGuard } from '@/lib/auth/vendor-status-guard';
 
 // Helper to generate a cuid-like unique ID
 function generateId(): string {
@@ -27,6 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
     const { searchParams } = new URL(request.url);
 
     const role = searchParams.get('role');
@@ -129,6 +132,10 @@ export async function POST(request: NextRequest) {
     }
 
     const vendorId = auth.vendorId;
+
+    // Block rejected/suspended/blocked vendors from write operations
+    const guard = await vendorStatusGuard(vendorId);
+    if (guard.blocked) return guard.response;
 
     // ===== RATE LIMITING =====
     const clientId = getClientIdentifier(request);
@@ -328,6 +335,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Generate DID for drivers
+    const did = isDriver ? await generateDid() : null;
+
     // Create staff member
     const staff = await prisma.vendor_staff.create({
       data: {
@@ -337,6 +347,7 @@ export async function POST(request: NextRequest) {
         phone: body.phone,
         email: parseValue(body.email),
         password: hashedPassword, // Store hashed password
+        did,
         address: parseValue(body.address),
         city: parseValue(body.city),
         state: parseValue(body.state),

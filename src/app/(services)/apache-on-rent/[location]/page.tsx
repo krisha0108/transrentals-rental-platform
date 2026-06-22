@@ -5,7 +5,7 @@ import { WhyRentHere } from '@/components/location/WhyRentHere';
 import { PopularRoutes } from '@/components/location/PopularRoutes';
 import { FAQSection } from '@/components/services/FAQSection';
 import { NearbyLocations } from '@/components/location/NearbyLocations';
-import { notFound } from 'next/navigation';
+import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';;
@@ -93,15 +93,15 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'TVS Apache RTR 160', brand: 'TVS', price: 499 },
-  { name: 'TVS Apache RTR 180', brand: 'TVS', price: 549 },
-  { name: 'TVS Apache RTR 200 4V', brand: 'TVS', price: 699 },
-  { name: 'TVS Apache RR 310', brand: 'TVS', price: 1299 },
+  { name: 'TVS Apache RTR 160', brand: 'TVS', price: 499, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'TVS Apache RTR 180', brand: 'TVS', price: 549, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'TVS Apache RTR 200 4V', brand: 'TVS', price: 699, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'TVS Apache RR 310', brand: 'TVS', price: 1299, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
 ];
 
 export default async function ApacheLocationPage({ params }: PageProps) {
   const pageContext = await resolveServicePage('apache-on-rent', params.location);
-  if (pageContext.type === 'redirect') notFound();
+  if (pageContext.type === 'redirect') permanentRedirect(pageContext.to);
   if (pageContext.type === 'state') return <StateServicePage state={pageContext.state} activeCities={pageContext.activeCities} serviceSlug="apache-on-rent" serviceName="Apache on Rent" />;
   const city = pageContext.city;
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
@@ -191,7 +191,7 @@ export default async function ApacheLocationPage({ params }: PageProps) {
           title={`Available Apache Bikes in ${locationName}`}
         />
 
-        <WhyRentHere locationName={locationName} />
+        <WhyRentHere locationName={locationName} />
 
         <NearbyLocations
           locationSlug={params.location}

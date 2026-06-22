@@ -28,23 +28,34 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const search = searchParams.get('search');
+    const city = searchParams.get('city');
+    const agencyType = searchParams.get('agencyType');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
     const where: any = {};
-    if (status && status !== 'ALL') {
-      where.status = status;
-    }
+    if (status && status !== 'ALL') where.status = status;
+    if (city && city !== 'ALL') where.city = city;
+    if (agencyType && agencyType !== 'ALL') where.agencyType = agencyType;
     if (search) {
       where.OR = [
         { agencyName: { contains: search } },
         { ownerName: { contains: search } },
         { email: { contains: search } },
         { phone: { contains: search } },
+        { city: { contains: search } },
       ];
     }
 
-    const [agents, total] = await Promise.all([
+    // Stats base — same filters as main query but without status so each chip
+    // shows the count within the current search/city/agencyType scope.
+    const whereForStats: any = {};
+    if (city && city !== 'ALL') whereForStats.city = city;
+    if (agencyType && agencyType !== 'ALL') whereForStats.agencyType = agencyType;
+    if (search) whereForStats.OR = where.OR;
+
+    const [agents, total, distinctCities, distinctTypes,
+      statsTotal, statsApproved, statsPending, statsRejected] = await Promise.all([
       prisma.travel_agents.findMany({
         where,
         include: {
@@ -63,6 +74,12 @@ export async function GET(request: NextRequest) {
         take: limit,
       }),
       prisma.travel_agents.count({ where }),
+      prisma.travel_agents.findMany({ where: { city: { not: null } }, select: { city: true }, distinct: ['city'], orderBy: { city: 'asc' } }),
+      prisma.travel_agents.findMany({ where: { agencyType: { not: null } }, select: { agencyType: true }, distinct: ['agencyType'], orderBy: { agencyType: 'asc' } }),
+      prisma.travel_agents.count({ where: whereForStats }),
+      prisma.travel_agents.count({ where: { ...whereForStats, status: 'APPROVED' } }),
+      prisma.travel_agents.count({ where: { ...whereForStats, status: { in: ['PENDING', 'DOCUMENTS_PENDING', 'UNDER_REVIEW'] } } }),
+      prisma.travel_agents.count({ where: { ...whereForStats, status: { in: ['REJECTED', 'SUSPENDED', 'BLOCKED'] } } }),
     ]);
 
     const safeAgents = agents.map(({ password, _count, ...rest }) => ({
@@ -78,11 +95,14 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       travelAgents: safeAgents,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      cities: distinctCities.map((r) => r.city).filter(Boolean),
+      agencyTypes: distinctTypes.map((r) => r.agencyType).filter(Boolean),
+      stats: {
+        total: statsTotal,
+        approved: statsApproved,
+        pending: statsPending,
+        rejected: statsRejected,
       },
     });
   } catch (error: any) {

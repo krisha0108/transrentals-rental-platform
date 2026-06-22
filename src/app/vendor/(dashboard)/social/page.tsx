@@ -21,6 +21,7 @@ interface Post {
   vendor: Vendor; category: Category;
   likedByMe: boolean; savedByMe: boolean; followedByMe: boolean;
   likesCount: number; commentsCount: number;
+  images?: string[];
 }
 interface Comment { id: string; content: string; createdAt: string; vendor: Vendor; }
 interface VendorStoryGroup { vendor: Vendor; posts: Post[]; }
@@ -736,6 +737,17 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
               {expanded ? 'Show less' : 'Read more'}
             </button>
           )}
+          {Array.isArray(post.images) && post.images.length > 0 && (
+            <div className={`mt-3 grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+              {post.images.map((url, i) => (
+                <a key={i} href={url} target="_blank" rel="noreferrer"
+                  className={`block overflow-hidden rounded-xl border border-gray-100 ${post.images!.length === 3 && i === 0 ? 'col-span-2' : ''}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="" className="w-full h-full max-h-80 object-cover" />
+                </a>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Action Bar */}
@@ -753,7 +765,11 @@ function PostCard({ post, currentVendorId, onLike, onSave, onDelete, onComment, 
               <MessageCircle className="w-4 h-4" />
               {post.commentsCount > 0 && post.commentsCount}
             </button>
-            <button onClick={() => onShareInChat(post)} title="Share to chat"
+            <button onClick={() => onShareInChat(post)} title="Share in chat"
+              className="inline-flex items-center px-2.5 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all">
+              <Send className="w-4 h-4" />
+            </button>
+            <button onClick={shareWA} title="Share to other app"
               className="inline-flex items-center px-2.5 py-1.5 rounded-full text-gray-600 hover:bg-gray-100 transition-all">
               <Share2 className="w-4 h-4" />
             </button>

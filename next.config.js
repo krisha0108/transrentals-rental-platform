@@ -126,6 +126,16 @@ const nextConfig = {
   async redirects() {
     return [
       // ============================================
+      // WWW → NON-WWW REDIRECT (fixes GSC "Alternate page with proper canonical tag")
+      // ============================================
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.transrentals.in' }],
+        destination: 'https://transrentals.in/:path*',
+        permanent: true,
+      },
+
+      // ============================================
       // BIKE RENTAL REDIRECTS
       // ============================================
       {
@@ -169,6 +179,31 @@ const nextConfig = {
       // ============================================
       // CAR RENTAL REDIRECTS (Old /car-rental-in-{city}/ pattern)
       // ============================================
+      {
+        source: '/car-rental-in-:location-with-driver',
+        destination: '/car-rental/:location',
+        permanent: true,
+      },
+      {
+        source: '/car-on-rent/car-rental-in-:location-with-driver',
+        destination: '/car-rental/:location',
+        permanent: true,
+      },
+      {
+        source: '/car-rental-with-driver-in-:location',
+        destination: '/car-rental/:location',
+        permanent: true,
+      },
+      {
+        source: '/car-with-driver-in-:location',
+        destination: '/car-rental/:location',
+        permanent: true,
+      },
+      {
+        source: '/chauffeur-driven-car-rental-in-:location',
+        destination: '/car-rental/:location',
+        permanent: true,
+      },
       {
         source: '/car-rental-in-:location',
         destination: '/car-rental/:location',

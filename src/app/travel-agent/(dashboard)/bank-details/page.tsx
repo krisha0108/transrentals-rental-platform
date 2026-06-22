@@ -100,6 +100,25 @@ export default function TravelAgentBankDetailsPage() {
     }
   };
 
+  const handleSetPrimary = async (id: string) => {
+    try {
+      const res = await fetch('/api/travel-agent/bank-details', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        showToast({ type: 'success', title: 'Primary account updated' });
+        await load();
+      } else {
+        const j = await res.json();
+        showToast({ type: 'error', title: j.error || 'Failed to set primary' });
+      }
+    } catch {
+      showToast({ type: 'error', title: 'Server error' });
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -232,6 +251,14 @@ export default function TravelAgentBankDetailsPage() {
                 <Row k="Type" v={acc.accountType} />
                 {acc.upiId && <Row k="UPI" v={acc.upiId} />}
               </div>
+              {!acc.isPrimary && (
+                <button
+                  onClick={() => handleSetPrimary(acc.id)}
+                  className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-amber-200 text-amber-700 text-sm font-semibold hover:bg-amber-50 transition-colors"
+                >
+                  <Star className="w-3.5 h-3.5" /> Set as primary
+                </button>
+              )}
             </div>
           ))}
         </div>

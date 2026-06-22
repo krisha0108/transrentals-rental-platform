@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import crypto from 'crypto';
 import { onB2BBookingCreated } from '@/lib/utils/b2b-notification-helper';
+import { createB2BBookingSafe } from '@/lib/b2b/booking-number';
 
 export const dynamic = 'force-dynamic';
 
@@ -180,7 +181,6 @@ export async function POST(request: NextRequest) {
 
     const bookingId = generateId();
     let companyName = customer.companyName || customer.name;
-    let bookingNumber = generateBookingNumber();
     // For travel-agent COMPANY bookings, prefer the agent's real phone over
     // the shadow customer's placeholder (`ta-<id>`).
     let resolvedCustomerPhone: string = customer.phone;
@@ -198,16 +198,12 @@ export async function POST(request: NextRequest) {
       ) {
         resolvedCustomerPhone = agentPhone;
       }
-      bookingNumber = `TA-CO-${new Date()
-        .getFullYear()}-${Math.floor(Math.random() * 100000)
-        .toString()
-        .padStart(5, '0')}`;
     }
 
-    const booking = await prisma.b2b_bookings.create({
-      data: {
+    const booking = await createB2BBookingSafe(
+      linkedTravelAgentId ? 'TA-CO' : 'B2B',
+      {
         id: bookingId,
-        bookingNumber,
         customerId,
         customerName: customer.name,
         customerEmail: customer.email,
@@ -226,18 +222,12 @@ export async function POST(request: NextRequest) {
         returnTime: returnTime || null,
         specialNotes: specialNotes || null,
         status: 'OPEN_FOR_QUOTES',
+        // Real columns now — tagged inline instead of a follow-up raw UPDATE.
+        ...(linkedTravelAgentId
+          ? { travelAgentId: linkedTravelAgentId, bookingMode: taBookingMode }
+          : {}),
       },
-    });
-
-    // Tag with TA fields (columns not in generated Prisma client yet)
-    if (linkedTravelAgentId) {
-      await (prisma as any).$executeRawUnsafe(
-        `UPDATE b2b_bookings SET travelAgentId = ?, bookingMode = ? WHERE id = ?`,
-        linkedTravelAgentId,
-        taBookingMode,
-        booking.id,
-      );
-    }
+    );
 
     // Send notifications to vendors in pickup location (async, non-blocking)
     onB2BBookingCreated({
