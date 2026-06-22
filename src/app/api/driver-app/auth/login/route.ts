@@ -12,20 +12,22 @@ const JWT_SECRET = new TextEncoder().encode(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, fcmToken } = body;
+    const { identifier: rawIdentifier, email: rawEmail, password, fcmToken } = body;
+    const raw = rawIdentifier || rawEmail;
 
-    if (!email || !password) {
+    if (!raw || !password) {
       return NextResponse.json(
         { success: false, error: 'Email and password are required' },
         { status: 400 }
       );
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedIdentifier = raw.toLowerCase().trim();
+    const isDriverId = /^dr-\d+$/i.test(normalizedIdentifier);
 
     // 1. Check independent drivers table first
-    const driver = await prisma.drivers.findUnique({
-      where: { email: normalizedEmail },
+    const driver = await prisma.drivers.findFirst({
+      where: isDriverId ? { did: normalizedIdentifier } : { email: normalizedIdentifier },
     });
 
     if (driver) {
@@ -57,8 +59,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Check vendor_staff table (DRIVER role only)
-    const staff = await prisma.vendor_staff.findUnique({
-      where: { email: normalizedEmail },
+    const staff = await prisma.vendor_staff.findFirst({
+      where: isDriverId ? { did: normalizedIdentifier } : { email: normalizedIdentifier },
       include: { vendors: { select: { id: true, businessName: true, city: true } } },
     });
 

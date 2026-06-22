@@ -10,19 +10,27 @@ export const vendorAuthOptions: NextAuthOptions = {
       id: 'vendor-credentials',
       name: 'Vendor Credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
+        identifier: { label: 'Email or Vendor ID', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        if (!credentials?.identifier || !credentials?.password) {
           throw new Error('Invalid credentials');
         }
 
-        const vendor = await prisma.vendors.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        });
+        const identifier = credentials.identifier.trim();
+
+        // Support login via VID (e.g. vn-0001) or email
+        let vendor;
+        if (/^vn-\d+$/i.test(identifier)) {
+          vendor = await prisma.vendors.findFirst({
+            where: { vid: identifier.toLowerCase() },
+          });
+        } else {
+          vendor = await prisma.vendors.findUnique({
+            where: { email: identifier },
+          });
+        }
 
         if (!vendor) {
           throw new Error('Invalid credentials');
