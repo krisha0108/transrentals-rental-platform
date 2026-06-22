@@ -42,21 +42,23 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, password, fcmToken } = body;
-    if (!email || !password) {
+    const { identifier: rawIdentifier, email: rawEmail, password, fcmToken } = body;
+    const raw = rawIdentifier || rawEmail;
+    if (!raw || !password) {
       return NextResponse.json({ success: false, error: 'Email and password are required' }, { status: 400 });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const isDriverId = /^dr-\d+$/i.test(raw.trim());
+    const normalizedIdentifier = raw.toLowerCase().trim();
 
-    const lockoutCheck = checkLoginAllowed(normalizedEmail, ip);
+    const lockoutCheck = checkLoginAllowed(normalizedIdentifier, ip);
     if (!lockoutCheck.allowed) {
       return NextResponse.json({ success: false, error: lockoutCheck.reason, unlockIn: lockoutCheck.unlockIn }, { status: 429 });
     }
 
     // ── 1. Try vendor_staff first ──────────────────────────────────────────
-    const staffDriver = await prisma.vendor_staff.findUnique({
-      where: { email: normalizedEmail },
+    const staffDriver = await prisma.vendor_staff.findFirst({
+      where: isDriverId ? { did: normalizedIdentifier } : { email: normalizedIdentifier },
       include: { vendors: { select: { id: true, businessName: true, phone: true } } },
     });
 
@@ -66,14 +68,14 @@ export async function POST(request: NextRequest) {
       }
       const valid = await bcrypt.compare(password, staffDriver.password);
       if (!valid) {
-        const r = recordFailedLogin(normalizedEmail, ip);
+        const r = recordFailedLogin(normalizedIdentifier, ip);
         if (r.locked) return NextResponse.json({ success: false, error: 'Too many failed attempts. Account temporarily locked.', unlockIn: r.unlockIn }, { status: 429 });
         return NextResponse.json({ success: false, error: 'Invalid email or password', attemptsRemaining: r.attemptsRemaining }, { status: 401 });
       }
       if (staffDriver.status !== 'ACTIVE') return NextResponse.json({ success: false, error: 'Your account is inactive. Contact your vendor.' }, { status: 401 });
       if (staffDriver.role !== 'DRIVER') return NextResponse.json({ success: false, error: 'Only drivers can access the driver portal.' }, { status: 401 });
 
-      clearLockoutOnSuccess(normalizedEmail, ip);
+      clearLockoutOnSuccess(normalizedIdentifier, ip);
       const token = await new SignJWT({
         driverId: staffDriver.id, vendorId: staffDriver.vendorId,
         email: staffDriver.email, name: staffDriver.name,
@@ -105,16 +107,18 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 2. Try independent driver ──────────────────────────────────────────
-    const indDriver = await prisma.drivers.findUnique({ where: { email: normalizedEmail } });
+    const indDriver = await prisma.drivers.findFirst({
+      where: isDriverId ? { did: normalizedIdentifier } : { email: normalizedIdentifier },
+    });
 
     if (!indDriver) {
-      recordFailedLogin(normalizedEmail, ip);
+      recordFailedLogin(normalizedIdentifier, ip);
       return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
     }
 
     const valid = await bcrypt.compare(password, indDriver.password);
     if (!valid) {
-      const r = recordFailedLogin(normalizedEmail, ip);
+      const r = recordFailedLogin(normalizedIdentifier, ip);
       if (r.locked) return NextResponse.json({ success: false, error: 'Too many failed attempts. Account temporarily locked.', unlockIn: r.unlockIn }, { status: 429 });
       return NextResponse.json({ success: false, error: 'Invalid email or password', attemptsRemaining: r.attemptsRemaining }, { status: 401 });
     }
@@ -122,7 +126,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Your account is under review. Please wait for approval.' }, { status: 401 });
     }
 
-    clearLockoutOnSuccess(normalizedEmail, ip);
+    clearLockoutOnSuccess(normalizedIdentifier, ip);
     const token = await new SignJWT({
       driverId: indDriver.id, email: indDriver.email,
       name: indDriver.name, role: 'driver', userType: 'independent',

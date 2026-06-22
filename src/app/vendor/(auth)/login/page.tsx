@@ -33,7 +33,7 @@ export default function VendorLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe]   = useState(false);
 
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ identifier: '', password: '' });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -47,7 +47,7 @@ export default function VendorLoginPage() {
     setError('');
     try {
       const result = await signIn('vendor-credentials', {
-        email: formData.email,
+        identifier: formData.identifier,
         password: formData.password,
         redirect: false,
       });
@@ -155,7 +155,7 @@ export default function VendorLoginPage() {
               {/* Form header */}
               <div className="px-7 pt-7 pb-5 border-b border-gray-100">
                 <h1 className="text-xl font-bold text-gray-900">Sign in to your account</h1>
-                <p className="text-sm text-gray-500 mt-1">Enter your registered email and password</p>
+                <p className="text-sm text-gray-500 mt-1">Enter your email or Vendor ID with your password</p>
               </div>
 
               <div className="px-7 py-6">
@@ -168,24 +168,28 @@ export default function VendorLoginPage() {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Email */}
+                  {/* Email or VID */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                      Email address
+                      Email or Vendor ID
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      {/^vn-/i.test(formData.identifier)
+                        ? <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500 pointer-events-none" />
+                        : <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      }
                       <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
+                        type="text"
+                        name="identifier"
+                        value={formData.identifier}
                         onChange={handleChange}
-                        placeholder="you@business.com"
-                        autoComplete="email"
+                        placeholder="you@business.com or vn-0001"
+                        autoComplete="username"
                         required
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                       />
                     </div>
+                    <p className="text-xs text-gray-400 mt-1">You can also sign in using your Vendor ID (e.g. vn-0001)</p>
                   </div>
 
                   {/* Password */}

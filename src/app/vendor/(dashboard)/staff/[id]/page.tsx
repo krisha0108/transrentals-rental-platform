@@ -23,10 +23,12 @@ import {
   Wallet,
   ShieldCheck,
   Sparkles,
+  Shield,
 } from 'lucide-react';
 
 interface Staff {
   id: string;
+  did: string | null;
   name: string;
   phone: string;
   email: string | null;
@@ -359,6 +361,15 @@ export default function StaffDetailPage() {
                   </div>
                 </div>
                 <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  {staff.did && (
+                    <div className="sm:col-span-3 p-3 rounded-xl bg-gradient-to-br from-blue-50 to-blue-50/50 border border-blue-200">
+                      <p className="text-[10px] text-gray-500 uppercase font-semibold tracking-wide mb-1">Driver ID</p>
+                      <p className="text-sm font-bold text-blue-600 flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        {staff.did}
+                      </p>
+                    </div>
+                  )}
                   <div className="p-3 rounded-xl bg-gray-50/70 border border-gray-100">
                     <p className="text-[10px] text-gray-500 uppercase font-semibold tracking-wide mb-1">License Number</p>
                     <p className="text-sm font-semibold text-gray-900">{staff.licenseNumber || '-'}</p>
