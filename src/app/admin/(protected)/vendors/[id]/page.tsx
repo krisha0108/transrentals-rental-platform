@@ -108,6 +108,7 @@ interface ContactChangeRequest {
 
 interface Vendor {
   id: string;
+  vid: string | null;
   businessName: string;
   ownerName: string;
   email: string;
@@ -1062,6 +1063,15 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
                     <p className="font-medium text-gray-900 flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-gray-400" />
                       {vendor.address}, {vendor.city}, {vendor.state} - {vendor.pincode}
+                    </p>
+                  </div>
+                )}
+                {vendor.vid && (
+                  <div>
+                    <label className="text-sm text-gray-500">Vendor ID</label>
+                    <p className="font-medium text-gray-900 flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-blue-500" />
+                      {vendor.vid}
                     </p>
                   </div>
                 )}

@@ -3,15 +3,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Car, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Car, Mail, Lock, Eye, EyeOff, Loader2, Shield } from 'lucide-react';
 
 export default function DriverLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const isDriverId = /^dr-/i.test(identifier);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +24,7 @@ export default function DriverLoginPage() {
       const response = await fetch('/api/driver/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier, password }),
       });
 
       const data = await response.json();
@@ -75,19 +77,24 @@ export default function DriverLoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                Email or Driver ID
               </label>
               <div className="relative">
-                <Mail className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                {isDriverId
+                  ? <Shield className="w-5 h-5 text-emerald-500 absolute left-4 top-1/2 -translate-y-1/2" />
+                  : <Mail className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                }
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder="Enter your email"
+                  placeholder="Email or dr-0001"
+                  autoComplete="username"
                   required
                 />
               </div>
+              <p className="text-xs text-gray-400 mt-1">You can also sign in using your Driver ID (e.g. dr-0001)</p>
             </div>
 
             <div>

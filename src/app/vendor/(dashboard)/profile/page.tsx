@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   Building2,
@@ -64,6 +64,7 @@ const indianStates = [
 
 export default function VendorProfilePage() {
   const { data: session } = useSession();
+  const [isFlipped, setIsFlipped] = useState(false);
   const [profile, setProfile] = useState<VendorProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -282,91 +283,189 @@ export default function VendorProfilePage() {
       {/* ── MAIN LAYOUT: ID card left, form right ─────────────────────────── */}
       <div className="flex gap-6 items-start">
 
-        {/* ══ VENDOR ID CARD (portrait, fixed width) ═══════════════════════ */}
+        {/* ══ VENDOR ID CARD — flip ═══════════════════════════════════════ */}
         {profile && (
-          <div className="w-72 shrink-0 rounded-2xl overflow-hidden shadow-2xl border border-emerald-900/20 select-none">
+          <div className="w-64 shrink-0 select-none" style={{ perspective: '1100px', height: '400px' }}>
+            <div
+              onClick={() => setIsFlipped(f => !f)}
+              className="relative w-full h-full cursor-pointer"
+              style={{
+                transformStyle: 'preserve-3d',
+                transition: 'transform 0.6s cubic-bezier(0.4,0.2,0.2,1)',
+                transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+              }}
+            >
 
-            {/* Card header */}
-            <div className="bg-emerald-900 flex items-center justify-between px-4 py-3 gap-2">
-              <div className="flex flex-col items-start gap-0.5 min-w-0">
-                <img src="/assets/logo-white.png" alt="TransRentals" className="h-5 object-contain object-left" style={{ width: '100px' }} />
-                <p className="text-emerald-400 text-[9px] tracking-widest uppercase leading-none whitespace-nowrap">Vendor ID Card</p>
-              </div>
-              <div className={`shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                profile.status === 'APPROVED'
-                  ? 'bg-green-500/20 border-green-500/30 text-green-300'
-                  : profile.status === 'PENDING'
-                  ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-300'
-                  : 'bg-red-500/20 border-red-500/30 text-red-300'
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${
-                  profile.status === 'APPROVED' ? 'bg-green-400 animate-pulse'
-                  : profile.status === 'PENDING' ? 'bg-yellow-400'
-                  : 'bg-red-400'
-                }`} />
-                {profile.status}
-              </div>
-            </div>
+              {/* ── FRONT ─────────────────────────────────────────────────── */}
+              <div
+                className="absolute inset-0 rounded-2xl overflow-hidden shadow-2xl"
+                style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+              >
+                {/* full card gradient bg */}
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-emerald-800 to-emerald-700" />
 
-            {/* Logo / Name area */}
-            <div className="bg-gradient-to-b from-emerald-800 to-emerald-700 flex flex-col items-center py-6 gap-3">
-              <div className="w-28 h-28 rounded-2xl overflow-hidden border-4 border-white/20 bg-white/10 flex items-center justify-center shadow-xl">
-                {profile.logo
-                  ? <img src={profile.logo} alt={profile.businessName} className="w-full h-full object-cover" />
-                  : <span className="text-white text-5xl font-black">{profile.businessName.charAt(0).toUpperCase()}</span>
-                }
-              </div>
-              <div className="text-center px-3">
-                <h2 className="text-white font-black text-xl leading-tight">{profile.businessName}</h2>
-                <p className="text-emerald-300 text-xs mt-1">{profile.ownerName}</p>
-                {profile.vid && (
-                  <div className="inline-flex items-center gap-1.5 mt-2 bg-white/10 border border-white/20 rounded-lg px-3 py-1">
-                    <Shield className="w-3.5 h-3.5 text-emerald-300" />
-                    <span className="text-white font-mono font-bold text-sm tracking-widest">{profile.vid.toUpperCase()}</span>
+                {/* decorative diagonal stripes */}
+                <div className="absolute inset-0 opacity-[0.06]" style={{
+                  backgroundImage: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)',
+                  backgroundSize: '12px 12px',
+                }} />
+
+                {/* decorative circle glow top-right */}
+                <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-emerald-400/20 blur-2xl" />
+                <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-emerald-300/10 blur-2xl" />
+
+                {/* content */}
+                <div className="relative h-full flex flex-col">
+                  {/* top bar */}
+                  <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                    <img src="/assets/logo-white.png" alt="TransRentals" className="h-5 object-contain" style={{ width: '95px' }} />
+                    <span className="text-emerald-400/70 text-[8px] tracking-[0.2em] uppercase font-medium">Vendor Card</span>
                   </div>
-                )}
-                {profile.businessType && (
-                  <p className="text-emerald-400 text-xs mt-2">{profile.businessType}</p>
-                )}
-              </div>
-            </div>
 
-            {/* Details strip */}
-            <div className="bg-emerald-700 px-4 py-3 space-y-2.5">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-emerald-400 text-[9px] uppercase tracking-widest">GST No.</p>
-                  <p className="text-white font-mono font-bold text-sm mt-0.5">{profile.gstNumber || '—'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-emerald-400 text-[9px] uppercase tracking-widest">Phone</p>
-                  <p className="text-white font-bold text-sm mt-0.5">{profile.phone}</p>
-                </div>
-              </div>
-              {(profile.city || profile.state) && (
-                <div>
-                  <p className="text-emerald-400 text-[9px] uppercase tracking-widest">Location</p>
-                  <p className="text-white font-bold text-sm mt-0.5">{[profile.city, profile.state].filter(Boolean).join(', ')}</p>
-                </div>
-              )}
-            </div>
+                  {/* center hero */}
+                  <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
+                    {/* shield icon with rings */}
+                    <div className="relative flex items-center justify-center">
+                      <div className="absolute w-24 h-24 rounded-full border border-emerald-500/30 animate-ping" style={{ animationDuration: '3s' }} />
+                      <div className="absolute w-20 h-20 rounded-full border border-emerald-400/20" />
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400/30 to-emerald-600/30 border border-emerald-400/40 flex items-center justify-center backdrop-blur-sm shadow-xl">
+                        <Shield className="w-8 h-8 text-emerald-300" />
+                      </div>
+                    </div>
 
-            {/* Card footer */}
-            <div className="bg-emerald-950 px-4 py-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                {profile.status === 'APPROVED'
-                  ? <CheckCircle className="w-3.5 h-3.5 text-green-400" />
-                  : <AlertCircle className="w-3.5 h-3.5 text-yellow-400" />
-                }
-                <span className="text-white/50 text-[10px]">
-                  {profile.status === 'APPROVED' ? 'Verified Vendor' : 'Pending Approval'}
-                </span>
+                    {/* text */}
+                    <div className="text-center">
+                      <p className="text-emerald-300/70 text-[9px] tracking-[0.25em] uppercase mb-1">TransRentals</p>
+                      <h2 className="text-white font-black text-xl leading-tight tracking-wide">TRUSTED</h2>
+                      <h2 className="text-white font-black text-xl leading-tight tracking-wide">VENDOR</h2>
+                      <div className="mt-3 h-px w-10 bg-emerald-500/50 mx-auto" />
+                      <p className="text-emerald-200 font-semibold text-sm mt-3 leading-tight px-2">{profile.businessName}</p>
+                      {profile.vid && (
+                        <p className="text-emerald-400 font-mono text-xs mt-1 tracking-widest">{profile.vid.toUpperCase()}</p>
+                      )}
+                    </div>
+
+                    {/* verified pill */}
+                    {profile.status === 'APPROVED' && (
+                      <div className="flex items-center gap-1.5 bg-green-500/15 border border-green-500/30 rounded-full px-3 py-1">
+                        <CheckCircle className="w-3 h-3 text-green-400" />
+                        <span className="text-green-300 text-[10px] font-bold tracking-widest uppercase">Verified</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* footer */}
+                  <div className="px-4 py-3 border-t border-white/10 flex items-center justify-between">
+                    <span className="text-white/30 text-[9px] tracking-wider">transrentals.in</span>
+                    <span className="text-emerald-400/50 text-[9px] tracking-widest uppercase">Tap to flip</span>
+                  </div>
+                </div>
               </div>
-              {profile.createdAt && (
-                <span className="text-white/30 text-[10px]">
-                  Since {new Date(profile.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
-                </span>
-              )}
+
+              {/* ── BACK ──────────────────────────────────────────────────── */}
+              <div
+                className="absolute inset-0 rounded-2xl overflow-hidden shadow-2xl"
+                style={{
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  transform: 'rotateY(180deg)',
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-b from-emerald-900 to-emerald-950" />
+                <div className="relative h-full flex flex-col">
+
+                  {/* top bar */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                    <img src="/assets/logo-white.png" alt="TransRentals" className="h-4 object-contain" style={{ width: '85px' }} />
+                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border ${
+                      profile.status === 'APPROVED'
+                        ? 'bg-green-500/15 border-green-500/30 text-green-300'
+                        : profile.status === 'PENDING'
+                        ? 'bg-yellow-500/15 border-yellow-500/30 text-yellow-300'
+                        : 'bg-red-500/15 border-red-500/30 text-red-300'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        profile.status === 'APPROVED' ? 'bg-green-400 animate-pulse' : profile.status === 'PENDING' ? 'bg-yellow-400' : 'bg-red-400'
+                      }`} />
+                      {profile.status}
+                    </div>
+                  </div>
+
+                  {/* profile strip */}
+                  <div className="flex items-center gap-3 px-4 py-4 border-b border-white/10 bg-emerald-800/30">
+                    {/* letter avatar */}
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shrink-0">
+                      <span className="text-white text-xl font-black">{profile.businessName.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-white font-bold text-sm leading-tight truncate">{profile.businessName}</h3>
+                      <p className="text-emerald-400 text-[11px] mt-0.5 truncate">{profile.ownerName}</p>
+                      {profile.vid && (
+                        <div className="inline-flex items-center gap-1 mt-1 bg-white/10 border border-white/15 rounded px-1.5 py-0.5">
+                          <Shield className="w-2.5 h-2.5 text-emerald-300" />
+                          <span className="text-white font-mono font-bold text-[10px] tracking-widest">{profile.vid.toUpperCase()}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* details */}
+                  <div className="flex-1 px-4 py-3 space-y-3">
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <p className="text-emerald-500 text-[8px] uppercase tracking-widest font-semibold">GST No.</p>
+                        <p className="text-white font-mono text-[11px] font-bold mt-0.5 truncate">{profile.gstNumber || '—'}</p>
+                      </div>
+                      <div className="flex-1 text-right">
+                        <p className="text-emerald-500 text-[8px] uppercase tracking-widest font-semibold">Phone</p>
+                        <p className="text-white text-[11px] font-bold mt-0.5">{profile.phone}</p>
+                      </div>
+                    </div>
+
+                    <div className="h-px bg-white/8" />
+
+                    {(profile.city || profile.state) && (
+                      <div>
+                        <p className="text-emerald-500 text-[8px] uppercase tracking-widest font-semibold">Location</p>
+                        <p className="text-white text-[12px] font-semibold mt-0.5">{[profile.city, profile.state].filter(Boolean).join(', ')}</p>
+                      </div>
+                    )}
+
+                    {profile.email && (
+                      <div>
+                        <p className="text-emerald-500 text-[8px] uppercase tracking-widest font-semibold">Email</p>
+                        <p className="text-white text-[11px] mt-0.5 truncate">{profile.email}</p>
+                      </div>
+                    )}
+
+                    {profile.businessType && (
+                      <div>
+                        <p className="text-emerald-500 text-[8px] uppercase tracking-widest font-semibold">Business Type</p>
+                        <p className="text-white text-[11px] font-semibold mt-0.5">{profile.businessType}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* footer */}
+                  <div className="px-4 py-2.5 border-t border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      {profile.status === 'APPROVED'
+                        ? <CheckCircle className="w-3 h-3 text-green-400" />
+                        : <AlertCircle className="w-3 h-3 text-yellow-400" />
+                      }
+                      <span className="text-white/40 text-[9px]">
+                        {profile.status === 'APPROVED' ? 'Verified Vendor' : 'Pending Approval'}
+                      </span>
+                    </div>
+                    {profile.createdAt && (
+                      <span className="text-white/25 text-[9px]">
+                        Since {new Date(profile.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         )}

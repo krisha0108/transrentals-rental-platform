@@ -19,10 +19,12 @@ import {
   Trash2,
   RefreshCw,
   AlertTriangle,
+  Shield,
 } from 'lucide-react';
 
 interface Staff {
   id: string;
+  did: string | null;
   name: string;
   phone: string;
   email: string | null;
@@ -434,6 +436,14 @@ export default function StaffManagementPage() {
                     </div>
                     <span className="truncate font-medium">{member.phone}</span>
                   </div>
+                  {member.role === 'DRIVER' && member.did && (
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <div className="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center">
+                        <Shield className="w-3 h-3 text-blue-500" />
+                      </div>
+                      <span className="font-semibold text-blue-600 tracking-wide">{member.did}</span>
+                    </div>
+                  )}
                   {member.email && (
                     <div className="flex items-center gap-2 text-xs text-gray-600">
                       <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center">
