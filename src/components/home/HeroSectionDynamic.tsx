@@ -1,23 +1,43 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { TrendingUp, Star, Users, CheckCircle2, Sparkles, ArrowRight } from 'lucide-react';
+import {
+  TrendingUp, Star, Users, CheckCircle2, Sparkles, ArrowRight,
+  Bike, Car, Bus, Truck, Wrench, ClipboardList, Store, MapPin,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { useLocation } from '@/contexts/LocationContext';
 import { useServices } from '@/components/booking/useServices';
+import type { LucideIcon } from 'lucide-react';
+
+type VehicleCategory = {
+  id: string;
+  name: string;
+  dbNames: string[];
+  Icon: LucideIcon;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+  iconColor: string;
+  description: string;
+  serviceUrl: string;
+  popular?: boolean;
+  serviceId?: string | null;
+};
 
 // Vehicle categories with database matching
-const VEHICLE_CATEGORIES_BASE = [
+const VEHICLE_CATEGORIES_BASE: Omit<VehicleCategory, 'serviceId'>[] = [
   {
     id: 'bike',
     name: 'Bike Rental',
-    dbNames: ['Bike Rental', 'Bike on Rent', 'Two Wheeler'], // Database name variations
-    icon: '🏍️',
+    dbNames: ['Bike Rental', 'Bike on Rent', 'Two Wheeler'],
+    Icon: Bike,
     color: 'from-blue-500 to-cyan-500',
     bgColor: 'bg-blue-50',
     borderColor: 'border-blue-200 hover:border-blue-400',
+    iconColor: 'text-blue-600',
     description: 'Two-wheelers for every need',
     serviceUrl: '/bike-on-rent',
     popular: true,
@@ -25,11 +45,12 @@ const VEHICLE_CATEGORIES_BASE = [
   {
     id: 'car',
     name: 'Car Rental',
-    dbNames: ['Car Rental', 'Cab Rental', 'Round Trip Car', 'Round Trip'], // Database name variations
-    icon: '🚗',
+    dbNames: ['Car Rental', 'Cab Rental', 'Round Trip Car', 'Round Trip'],
+    Icon: Car,
     color: 'from-emerald-500 to-teal-500',
     bgColor: 'bg-emerald-50',
     borderColor: 'border-emerald-200 hover:border-emerald-400',
+    iconColor: 'text-emerald-600',
     description: 'Comfortable rides for trips',
     serviceUrl: '/car-rental',
     popular: true,
@@ -37,42 +58,45 @@ const VEHICLE_CATEGORIES_BASE = [
   {
     id: 'bus',
     name: 'Bus Rental',
-    dbNames: ['Bus Rental', 'Bus', 'Coach Rental'], // Database name variations
-    icon: '🚌',
+    dbNames: ['Bus Rental', 'Bus', 'Coach Rental'],
+    Icon: Bus,
     color: 'from-purple-500 to-pink-500',
     bgColor: 'bg-purple-50',
     borderColor: 'border-purple-200 hover:border-purple-400',
+    iconColor: 'text-purple-600',
     description: 'Group travel solutions',
     serviceUrl: '/bus-rental',
   },
   {
     id: 'truck',
     name: 'Truck Rental',
-    dbNames: ['Truck Rental', 'Truck', 'Transporter', 'Goods Transport'], // Database name variations
-    icon: '🚚',
+    dbNames: ['Truck Rental', 'Truck', 'Transporter', 'Goods Transport'],
+    Icon: Truck,
     color: 'from-orange-500 to-red-500',
     bgColor: 'bg-orange-50',
     borderColor: 'border-orange-200 hover:border-orange-400',
+    iconColor: 'text-orange-600',
     description: 'Heavy-duty transport',
     serviceUrl: '/transporter',
   },
   {
     id: 'equipment',
     name: 'Equipment Rental',
-    dbNames: ['Equipment Rental', 'Equipment', 'Machinery Rental'], // Database name variations
-    icon: '🏗️',
+    dbNames: ['Equipment Rental', 'Equipment', 'Machinery Rental'],
+    Icon: Wrench,
     color: 'from-amber-500 to-yellow-500',
     bgColor: 'bg-amber-50',
     borderColor: 'border-amber-200 hover:border-amber-400',
+    iconColor: 'text-amber-600',
     description: 'Construction equipment',
     serviceUrl: '/equipment-rental',
   },
 ];
 
 const LIVE_STATS = [
-  { value: '2.5K+', label: 'Inquiries Today', icon: '📋' },
-  { value: '500+', label: 'Active Vendors', icon: '🏪' },
-  { value: '150+', label: 'Cities', icon: '📍' },
+  { value: '2.5K+', label: 'Inquiries Today', Icon: ClipboardList },
+  { value: '500+', label: 'Active Vendors', Icon: Store },
+  { value: '150+', label: 'Cities', Icon: MapPin },
 ];
 
 export function HeroSectionDynamic() {
@@ -80,10 +104,8 @@ export function HeroSectionDynamic() {
   const { currentCity } = useLocation();
   const { services } = useServices();
 
-  // Match frontend categories with database services to get service_id
-  const VEHICLE_CATEGORIES = useMemo(() => {
+  const VEHICLE_CATEGORIES = useMemo((): VehicleCategory[] => {
     return VEHICLE_CATEGORIES_BASE.map(category => {
-      // Find matching service from database
       const dbService = services.find(service => {
         const serviceName = service.name.toLowerCase();
         return category.dbNames.some(dbName =>
@@ -91,11 +113,7 @@ export function HeroSectionDynamic() {
           dbName.toLowerCase().includes(serviceName)
         );
       });
-
-      return {
-        ...category,
-        serviceId: dbService?.id || null, // Add database service ID
-      };
+      return { ...category, serviceId: dbService?.id || null };
     });
   }, [services]);
 
@@ -180,9 +198,9 @@ export function HeroSectionDynamic() {
                     <motion.div
                       animate={{ scale: hoveredCard === category.id ? [1, 1.2, 1] : 1 }}
                       transition={{ duration: 0.3 }}
-                      className="text-6xl"
+                      className={cn("w-16 h-16 mx-auto rounded-2xl flex items-center justify-center", category.bgColor)}
                     >
-                      {category.icon}
+                      <category.Icon className={cn("w-8 h-8", category.iconColor)} />
                     </motion.div>
                     <div>
                       <h3 className="text-xl font-bold text-gray-900 mb-1">{category.name}</h3>

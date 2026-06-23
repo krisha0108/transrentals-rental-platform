@@ -12,7 +12,14 @@ import {
   MessageCircle,
   Clock,
   ChevronDown,
+  Car,
+  Bike,
+  Bus,
+  Truck,
+  Wrench,
+  Heart,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import {
   CONTACT_ADDRESS,
   CONTACT_ADDRESS_LINK,
@@ -79,11 +86,11 @@ export function Footer() {
   ];
 
   // Group services by main category
-  const mainServices = [
+  const mainServices: { id: string; name: string; Icon: LucideIcon; base_url: string; subServices: { name: string; url: string }[] }[] = [
     {
       id: 'car',
       name: 'Car Rental',
-      icon: '🚗',
+      Icon: Car,
       base_url: '/car-rental',
       subServices: [
         { name: 'Round Trip', url: '/round-trip' },
@@ -96,7 +103,7 @@ export function Footer() {
     {
       id: 'bike',
       name: 'Bike Rental',
-      icon: '🏍️',
+      Icon: Bike,
       base_url: '/bike-on-rent',
       subServices: [
         { name: 'Bike on Rent', url: '/bike-on-rent' },
@@ -107,7 +114,7 @@ export function Footer() {
     {
       id: 'bus',
       name: 'Bus Rental',
-      icon: '🚌',
+      Icon: Bus,
       base_url: '/bus-rental',
       subServices: [
         { name: 'Outstation Bus', url: '/bus-rental' },
@@ -117,7 +124,7 @@ export function Footer() {
     {
       id: 'truck',
       name: 'Truck Rental',
-      icon: '🚚',
+      Icon: Truck,
       base_url: '/truck-rental',
       subServices: [
         { name: 'Personal Moving', url: '/truck-rental' },
@@ -127,7 +134,7 @@ export function Footer() {
     {
       id: 'equipment',
       name: 'Equipment Rental',
-      icon: '🏗️',
+      Icon: Wrench,
       base_url: '/equipment-rental',
       subServices: [
         { name: 'Construction Equipment', url: '/equipment-rental' },
@@ -244,7 +251,7 @@ export function Footer() {
                     className="w-full flex items-center justify-between text-left text-sm hover:text-primary transition-colors group"
                   >
                     <span className="flex items-center gap-2">
-                      <span className="text-lg">{service.icon}</span>
+                      <service.Icon className="w-4 h-4 text-gray-400" />
                       <span className="font-medium">{service.name}</span>
                     </span>
                     <ChevronDown
@@ -414,7 +421,7 @@ export function Footer() {
               </Link>
               <span>|</span>
               <p className="text-center md:text-right">
-                Made with ❤️ in India
+                Made with <Heart className="w-3.5 h-3.5 text-red-500 inline mx-0.5" /> in India
               </p>
             </div>
           </div>

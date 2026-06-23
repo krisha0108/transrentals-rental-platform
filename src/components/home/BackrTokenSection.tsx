@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Coins, Gift, Wallet, Zap, TrendingUp, ArrowRight } from 'lucide-react';
+import { Coins, Gift, Wallet, Zap, TrendingUp, ArrowRight, Lightbulb } from 'lucide-react';
 
 export function BackrTokenSection() {
   return (
@@ -187,8 +187,9 @@ export function BackrTokenSection() {
             </div>
 
             {/* Info */}
-            <p className="mt-6 text-sm text-gray-600">
-              💡 <span className="font-semibold">How it works:</span> Complete bookings → Earn tokens → Connect Solana wallet → Redeem for cryptocurrency
+            <p className="mt-6 text-sm text-gray-600 flex items-start gap-2">
+              <Lightbulb className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+              <span><span className="font-semibold">How it works:</span> Complete bookings → Earn tokens → Connect Solana wallet → Redeem for cryptocurrency</span>
             </p>
           </motion.div>
         </div>

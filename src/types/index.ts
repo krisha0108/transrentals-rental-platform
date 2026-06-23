@@ -1,4 +1,5 @@
 // Core Types for TransRentals
+import type React from 'react';
 
 export interface Location {
   id: number;
@@ -17,7 +18,7 @@ export interface Service {
   name: string;
   slug: string;
   description?: string;
-  icon?: string;
+  icon?: React.ComponentType<{ className?: string }>;
   base_url: string;
 }
 
