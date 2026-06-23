@@ -70,24 +70,35 @@ function LeafletMap({ cities, selectedCity, selectedService, onHover, onCityClic
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-    const L = require('leaflet');
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({ iconRetinaUrl: '', iconUrl: '', shadowUrl: '' });
+    if (!containerRef.current || !containerRef.current.offsetHeight || mapRef.current) return;
 
-    const indiaBounds = L.latLngBounds(L.latLng(6.4, 68.1), L.latLng(37.6, 97.5));
-    const map = L.map(containerRef.current, {
-      center: [22.5, 82.5], zoom: 5, minZoom: 4, maxZoom: 13,
-      zoomControl: true, scrollWheelZoom: true, attributionControl: true,
-      maxBounds: indiaBounds, maxBoundsViscosity: 0.85,
-    });
+    try {
+      const L = require('leaflet');
+      delete L.Icon.Default.prototype._getIconUrl;
+      L.Icon.Default.mergeOptions({ iconRetinaUrl: '', iconUrl: '', shadowUrl: '' });
 
-    L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-      subdomains: '0123', maxZoom: 20, attribution: '&copy; Google Maps',
-    }).addTo(map);
+      const indiaBounds = L.latLngBounds(L.latLng(6.4, 68.1), L.latLng(37.6, 97.5));
+      const map = L.map(containerRef.current, {
+        center: [22.5, 82.5], zoom: 5, minZoom: 4, maxZoom: 13,
+        zoomControl: true, scrollWheelZoom: true, attributionControl: true,
+        maxBounds: indiaBounds, maxBoundsViscosity: 0.85,
+      });
 
-    mapRef.current = map;
-    return () => { map.remove(); mapRef.current = null; };
+      L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        subdomains: '0123', maxZoom: 20, attribution: '&copy; Google Maps',
+      }).addTo(map);
+
+      mapRef.current = map;
+    } catch (err) {
+      console.error('Leaflet initialization error:', err);
+    }
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
   }, []);
 
   // Pan to selected city
@@ -148,7 +159,7 @@ function LeafletMap({ cities, selectedCity, selectedService, onHover, onCityClic
     });
   }, [cities, selectedCity, selectedService, onHover, onCityClick]);
 
-  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
+  return <div ref={containerRef} style={{ width: '100%', height: '100%', minHeight: '400px' }} className="leaflet-container" />;
 }
 
 // Searchable dropdown

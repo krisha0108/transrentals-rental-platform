@@ -141,6 +141,7 @@ export async function POST(request: NextRequest) {
       },
       select: {
         id: true,
+        vid: true,
         email: true,
         phone: true,
         businessName: true,

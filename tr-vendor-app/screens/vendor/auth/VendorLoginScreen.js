@@ -152,16 +152,18 @@ export default function LoginScreen({ navigation }) {
       .catch(err => console.log('FCM error', err));
   }, []);
 
-  // simple validators
-  const isEmailValid = useMemo(
-    () => /^\S+@\S+\.\S+$/.test(email.trim()),
-    [email]
-  );
+  // simple validators - accept email or vendor ID (vn-0001)
+  const isIdentifierValid = useMemo(() => {
+    const trimmed = email.trim();
+    const isEmail = /^\S+@\S+\.\S+$/.test(trimmed);
+    const isVendorId = /^vn-\d+$/i.test(trimmed);
+    return isEmail || isVendorId;
+  }, [email]);
   const isPasswordValid = useMemo(() => password?.length >= 6, [password]);
-  const canSubmit = isEmailValid && isPasswordValid && !loading;
+  const canSubmit = isIdentifierValid && isPasswordValid && !loading;
 
   const handleLogin = async () => {
-    if (!isEmailValid) {
+    if (!isIdentifierValid) {
       showAlert('Invalid Email', 'Please enter a valid email address.');
       return;
     }
@@ -312,15 +314,15 @@ export default function LoginScreen({ navigation }) {
               },
             ]}
           >
-            {/* Email */}
+            {/* Email or Vendor ID */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>Email or Vendor ID</Text>
               <View
                 style={[
                   styles.inputWrap,
                   !email
                     ? null
-                    : isEmailValid
+                    : isIdentifierValid
                     ? styles.inputOK
                     : styles.inputError,
                 ]}
@@ -333,9 +335,9 @@ export default function LoginScreen({ navigation }) {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="you@company.com"
+                  placeholder="Email or Vendor ID (vn-0001)"
                   placeholderTextColor="#A3B3C2"
-                  keyboardType="email-address"
+                  keyboardType="default"
                   autoCapitalize="none"
                   value={email}
                   onChangeText={setEmail}
@@ -343,14 +345,14 @@ export default function LoginScreen({ navigation }) {
                 />
                 {!!email && (
                   <Ionicons
-                    name={isEmailValid ? 'checkmark-circle' : 'alert-circle'}
+                    name={isIdentifierValid ? 'checkmark-circle' : 'alert-circle'}
                     size={18}
-                    color={isEmailValid ? BRAND.primary : BRAND.error}
+                    color={isIdentifierValid ? BRAND.primary : BRAND.error}
                     style={styles.rightIcon}
                   />
                 )}
               </View>
-              {!!email && !isEmailValid && (
+              {!!email && !isIdentifierValid && (
                 <Text style={styles.helperError}>Enter a valid email.</Text>
               )}
             </View>
@@ -618,7 +620,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingLeft: 42,
     paddingRight: 42,
-    fontSize: 15.5,
+    fontSize: 13.5,
     color: BRAND.ink,
   },
   leftIcon: {

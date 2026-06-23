@@ -17,6 +17,7 @@ import {
   Image, Modal
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomAlert from "../../CustomAlertmahek";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { registerVendor, loginVendorDirect } from '../../api/client';
@@ -226,6 +227,11 @@ export default function VendorRegisterScreen({ navigation }) {
       });
 
       if (result.vendor || result.message) {
+        // Store vendor ID from registration response
+        if (result.vendor?.vid) {
+          await AsyncStorage.setItem('vendor_id', String(result.vendor.vid));
+        }
+
         // Auto-login the user after successful registration
         try {
           const loginResult = await loginVendorDirect(

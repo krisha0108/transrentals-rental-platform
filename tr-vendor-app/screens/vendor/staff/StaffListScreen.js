@@ -277,6 +277,12 @@ export default function StaffListScreen({ navigation }) {
                     </Text>
                   </View>
                 </View>
+                {item.role?.toUpperCase() === 'DRIVER' && item.did && (
+                  <View style={st.didRow}>
+                    <MaterialCommunityIcons name="shield-account" size={11} color="#0EA5E9" />
+                    <Text style={st.didTxt}>{item.did}</Text>
+                  </View>
+                )}
                 <View style={st.metaRow}>
                   <Icon name="phone" size={11} color={C.muted} />
                   <Text style={st.metaTxt}>{item.phone || 'No phone'}</Text>
@@ -396,6 +402,8 @@ const st = StyleSheet.create({
   staffName: { fontSize: 15, fontWeight: '700', color: C.text, flex: 1 },
   badge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6 },
   badgeTxt: { fontSize: 10, fontWeight: '700', textTransform: 'capitalize' },
+  didRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 },
+  didTxt: { fontSize: 11, fontWeight: '700', color: '#0EA5E9', letterSpacing: 0.5 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaTxt: { fontSize: 12, color: C.muted, flexShrink: 1 },
   dot2: { color: C.border, marginHorizontal: 2 },

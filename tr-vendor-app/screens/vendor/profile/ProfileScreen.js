@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, ActivityIndicator, Image, Platform, StatusBar,
+  RefreshControl, ActivityIndicator, Image, Platform, StatusBar, Modal, Animated, Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -76,6 +76,9 @@ export default function ProfileScreen({ navigation }) {
   const [uploading, setUploading] = useState(false);
   const [profile, setProfile]     = useState(null);
   const [baseURL, setBaseURL]     = useState('');
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const flipAnim = useRef(new Animated.Value(0)).current;
 
   useFocusEffect(useCallback(() => {
     StatusBar.setBarStyle('light-content');
@@ -85,6 +88,15 @@ export default function ProfileScreen({ navigation }) {
   useEffect(() => {
     getBaseURL().then(url => setBaseURL(url));
   }, []);
+
+  useEffect(() => {
+    Animated.timing(flipAnim, {
+      toValue: isFlipped ? 1 : 0,
+      duration: 600,
+      easing: Easing.bezier(0.4, 0.2, 0.2, 1),
+      useNativeDriver: false,
+    }).start();
+  }, [isFlipped, flipAnim]);
 
   const getFullImageURL = (url) => {
     if (!url) return null;
@@ -230,13 +242,28 @@ export default function ProfileScreen({ navigation }) {
             <View style={st.heroInfo}>
               <Text style={st.heroName} numberOfLines={1}>{profile?.businessName || 'Business Name'}</Text>
               <Text style={st.heroOwner} numberOfLines={1}>{profile?.ownerName || 'Owner Name'}</Text>
+              {profile?.vid && (
+                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10.5, marginTop: 3, fontWeight: '600', letterSpacing: 0.1 }}>ID: {profile.vid}</Text>
+              )}
 
-              {/* Status pill */}
-              <View style={[st.statusPill, { backgroundColor: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.2)' }]}>
-                <MaterialCommunityIcons name={statusMeta.mcIcon} size={12} color={statusMeta.color === C.g700 ? C.g400 : '#fff'} />
-                <Text style={[st.statusTxt, { color: statusMeta.color === C.g700 ? C.g400 : '#fff' }]}>
-                  {statusMeta.label}
-                </Text>
+              {/* Status pill + View Card button */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 10 }}>
+                <View style={[st.statusPill, { backgroundColor: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.2)' }]}>
+                  <MaterialCommunityIcons name={statusMeta.mcIcon} size={11} color={statusMeta.color === C.g700 ? C.g400 : '#fff'} />
+                  <Text style={[st.statusTxt, { color: statusMeta.color === C.g700 ? C.g400 : '#fff', fontSize: 10.5 }]}>
+                    {statusMeta.label}
+                  </Text>
+                </View>
+
+                {profile && (
+                  <TouchableOpacity
+                    onPress={() => { setIsFlipped(false); setShowCardModal(true); }}
+                    activeOpacity={0.7}
+                    style={[st.statusPill, { backgroundColor: 'rgba(255,255,255,0.18)', borderColor: 'rgba(255,255,255,0.35)', borderWidth: 1.2 }]}>
+                    <Text style={{ fontSize: 11 }}>🎫</Text>
+                    <Text style={[st.statusTxt, { color: '#fff' }]}>Card</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           </View>
@@ -336,6 +363,212 @@ export default function ProfileScreen({ navigation }) {
 
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      {/* ── FLIP CARD MODAL ── */}
+      {showCardModal && (
+        <Modal transparent visible={showCardModal} animationType="fade">
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
+            <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowCardModal(false)} />
+
+            <View style={{ width: '100%', maxWidth: 320 }}>
+              <View style={{ height: 420 }}>
+                <Animated.View
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    transform: [
+                      { perspective: 1000 },
+                      {
+                        rotateY: flipAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '180deg'],
+                        }),
+                      },
+                    ],
+                  }}
+                >
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={() => setIsFlipped(!isFlipped)}
+                    style={{ width: '100%', height: '100%' }}
+                  >
+                  {/* FRONT */}
+                  <LinearGradient
+                    colors={['#064E3B', '#065F46', '#047857']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: 24,
+                      paddingHorizontal: 18,
+                      paddingVertical: 16,
+                      justifyContent: 'space-between',
+                      opacity: isFlipped ? 0 : 1,
+                    }}
+                  >
+                    {/* Top section */}
+                    <View style={{ gap: 16 }}>
+                      {/* Header bar */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottomWidth: 1.2, borderBottomColor: 'rgba(255,255,255,0.15)' }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 8.5, fontWeight: '900', letterSpacing: 1.8 }}>TRANSRENTALS</Text>
+                        {profile?.status === 'APPROVED' && (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3.5, backgroundColor: 'rgba(34, 197, 94, 0.25)', paddingHorizontal: 8, paddingVertical: 3.5, borderRadius: 10, borderWidth: 0.8, borderColor: 'rgba(34, 197, 94, 0.4)' }}>
+                            <View style={{ width: 3.5, height: 3.5, borderRadius: 1.75, backgroundColor: '#22c55e' }} />
+                            <Text style={{ fontSize: 7.5, fontWeight: '800', color: '#22c55e', letterSpacing: 0.6 }}>VERIFIED</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Center hero - Icon */}
+                      <View style={{ alignItems: 'center', gap: 12, paddingVertical: 6 }}>
+                        <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center', width: 95, height: 95 }}>
+                          {/* Glow circles */}
+                          <View style={{ position: 'absolute', width: 80, height: 80, borderRadius: 40, borderWidth: 1.8, borderColor: 'rgba(82, 231, 122, 0.3)' }} />
+                          <View style={{ position: 'absolute', width: 60, height: 60, borderRadius: 30, borderWidth: 1.2, borderColor: 'rgba(82, 231, 122, 0.2)' }} />
+                          {/* Shield */}
+                          <View style={{ width: 65, height: 65, borderRadius: 14, backgroundColor: 'rgba(82, 231, 122, 0.25)', justifyContent: 'center', alignItems: 'center', borderWidth: 1.2, borderColor: 'rgba(82, 231, 122, 0.4)', shadowColor: 'rgba(82, 231, 122, 0.5)', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.35, shadowRadius: 7 }}>
+                            <MaterialCommunityIcons name="shield-check" size={33} color="#52e77a" />
+                          </View>
+                        </View>
+
+                        {/* Text */}
+                        <View style={{ alignItems: 'center', gap: 7 }}>
+                          <Text style={{ fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.7)', letterSpacing: 1.4 }}>TRANSRENTALS</Text>
+                          <View style={{ alignItems: 'center', gap: 0 }}>
+                            <Text style={{ fontSize: 22, fontWeight: '900', color: '#fff', textAlign: 'center', letterSpacing: 0.8, lineHeight: 24 }}>TRUSTED</Text>
+                            <Text style={{ fontSize: 22, fontWeight: '900', color: '#52e77a', textAlign: 'center', letterSpacing: 0.8, lineHeight: 24 }}>VENDOR</Text>
+                          </View>
+                          <View style={{ width: 32, height: 1.2, backgroundColor: 'rgba(82, 231, 122, 0.6)', marginTop: 2 }} />
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: '#fff', textAlign: 'center', letterSpacing: 0.2, marginTop: 3 }}>{profile?.businessName}</Text>
+                          {profile?.vid && (
+                            <View style={{ backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, borderWidth: 0.8, borderColor: 'rgba(82, 231, 122, 0.3)', marginTop: 5 }}>
+                              <Text style={{ fontSize: 10, fontWeight: '900', color: '#52e77a', letterSpacing: 1.3 }}>{profile.vid.toUpperCase()}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Bottom section */}
+                    <View style={{ alignItems: 'center', gap: 8, paddingTop: 10, borderTopWidth: 1.2, borderTopColor: 'rgba(255,255,255,0.15)' }}>
+                      <Text style={{ fontSize: 9.5, fontWeight: '700', color: 'rgba(255,255,255,0.5)', letterSpacing: 1 }}>Tap to flip</Text>
+                      <View style={{ flexDirection: 'row', gap: 2.5 }}>
+                        <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: 'rgba(82, 231, 122, 0.6)' }} />
+                        <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: 'rgba(82, 231, 122, 0.4)' }} />
+                        <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: 'rgba(82, 231, 122, 0.2)' }} />
+                      </View>
+                    </View>
+                  </LinearGradient>
+
+                  {/* BACK */}
+                  <LinearGradient
+                    colors={['#064E3B', '#0a3d31']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: 24,
+                      paddingHorizontal: 15,
+                      paddingVertical: 14,
+                      justifyContent: 'space-between',
+                      opacity: isFlipped ? 1 : 0,
+                      transform: [{ rotateY: '180deg' }],
+                    }}
+                  >
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottomWidth: 1.2, borderBottomColor: 'rgba(255,255,255,0.12)', marginBottom: 12 }}>
+                        <Text style={{ fontSize: 7.5, fontWeight: '800', color: 'rgba(255,255,255,0.55)', letterSpacing: 1.8 }}>TRANSRENTALS</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: profile?.status === 'APPROVED' ? 'rgba(34, 197, 94, 0.18)' : profile?.status === 'PENDING' ? 'rgba(234, 179, 8, 0.18)' : 'rgba(239, 68, 68, 0.18)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1, borderColor: profile?.status === 'APPROVED' ? 'rgba(34, 197, 94, 0.35)' : profile?.status === 'PENDING' ? 'rgba(234, 179, 8, 0.35)' : 'rgba(239, 68, 68, 0.35)', shadowColor: profile?.status === 'APPROVED' ? '#22c55e' : '#ef4444', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4 }}>
+                          <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: profile?.status === 'APPROVED' ? '#22c55e' : profile?.status === 'PENDING' ? '#eab308' : '#ef4444', shadowColor: profile?.status === 'APPROVED' ? '#22c55e' : '#ef4444', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.5, shadowRadius: 2 }} />
+                          <Text style={{ fontSize: 9, fontWeight: '800', color: profile?.status === 'APPROVED' ? '#22c55e' : profile?.status === 'PENDING' ? '#eab308' : '#ef4444', letterSpacing: 0.8 }}>{profile?.status}</Text>
+                        </View>
+                      </View>
+
+                      {/* Profile strip */}
+                      <View style={{ flexDirection: 'row', gap: 12, paddingVertical: 11, paddingHorizontal: 1, borderBottomWidth: 1.2, borderBottomColor: 'rgba(255,255,255,0.12)', marginBottom: 12, backgroundColor: 'rgba(6, 95, 70, 0.25)', borderRadius: 8 }}>
+                        <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: 'linear-gradient(135deg, #1FC77A 0%, #16a457 100%)', justifyContent: 'center', alignItems: 'center', shadowColor: '#1FC77A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 5 }}>
+                          <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900' }}>{profile?.businessName?.charAt(0).toUpperCase()}</Text>
+                        </View>
+                        <View style={{ flex: 1, justifyContent: 'center' }}>
+                          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800', marginBottom: 4, letterSpacing: 0.3 }}>{profile?.businessName}</Text>
+                          <Text style={{ color: '#4ade80', fontSize: 12, fontWeight: '600', marginBottom: 6 }}>{profile?.ownerName}</Text>
+                          {profile?.vid && (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(82, 231, 122, 0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 1.2, borderColor: 'rgba(82, 231, 122, 0.3)', alignSelf: 'flex-start', shadowColor: 'rgba(82, 231, 122, 0.2)', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 3 }}>
+                              <MaterialCommunityIcons name="shield-check" size={10} color="#52e77a" />
+                              <Text style={{ fontSize: 10, fontWeight: '900', color: '#52e77a', letterSpacing: 1.2 }}>{profile.vid.toUpperCase()}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+
+                      {/* Details */}
+                      <View style={{ gap: 7 }}>
+                        {profile?.gstNumber && (
+                          <>
+                            <View style={{ backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
+                              <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>GST NO</Text>
+                              <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff', letterSpacing: 0.2 }}>{profile.gstNumber}</Text>
+                            </View>
+                          </>
+                        )}
+                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                          <View style={{ flex: 1, backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
+                            <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>PHONE</Text>
+                            <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff' }}>{profile?.phone}</Text>
+                          </View>
+                          {(profile?.city || profile?.state) && (
+                            <View style={{ flex: 1, backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
+                              <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>LOCATION</Text>
+                              <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff' }}>{[profile?.city, profile?.state].filter(Boolean).join(', ')}</Text>
+                            </View>
+                          )}
+                        </View>
+                        {profile?.email && (
+                          <View style={{ backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
+                            <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>EMAIL</Text>
+                            <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff', numberOfLines: 1 }}>{profile.email}</Text>
+                          </View>
+                        )}
+                        {profile?.businessType && (
+                          <View style={{ backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
+                            <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>BUSINESS TYPE</Text>
+                            <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff' }}>{profile.businessType}</Text>
+                          </View>
+                        )}
+                      </View>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 1, borderTopWidth: 1.2, borderTopColor: 'rgba(255,255,255,0.12)' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: profile?.status === 'APPROVED' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(234, 179, 8, 0.12)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: profile?.status === 'APPROVED' ? 'rgba(34, 197, 94, 0.25)' : 'rgba(234, 179, 8, 0.25)' }}>
+                        {profile?.status === 'APPROVED' ? (
+                          <MaterialCommunityIcons name="check-circle-outline" size={12} color="#22c55e" />
+                        ) : (
+                          <MaterialCommunityIcons name="clock-outline" size={12} color="#eab308" />
+                        )}
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: profile?.status === 'APPROVED' ? '#22c55e' : '#eab308', letterSpacing: 0.3 }}>{profile?.status === 'APPROVED' ? 'Verified Vendor' : 'Pending Approval'}</Text>
+                      </View>
+                      {profile?.createdAt && (
+                        <Text style={{ fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.4)' }}>Since {new Date(profile.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</Text>
+                      )}
+                    </View>
+                    </View>
+                  </LinearGradient>
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+
+              <TouchableOpacity onPress={() => setShowCardModal(false)} style={{ marginTop: 16, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12 }}>
+                <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600', fontSize: 12 }}>Close</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowCardModal(false)} />
+          </View>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -347,73 +580,76 @@ const st = StyleSheet.create({
 
   /* ── Hero ── */
   hero: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 20,
     overflow: 'hidden',
   },
   heroSkeleton: {
-    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20,
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 20,
   },
   blob: {
     position: 'absolute', borderRadius: 999, backgroundColor: '#fff',
   },
   heroTopRow: {
-    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20,
+    flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18, paddingBottom: 2,
   },
   heroBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.1)', alignSelf: 'flex-start',
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 6,
+    backgroundColor: 'rgba(82, 231, 122, 0.2)', alignSelf: 'flex-start',
+    paddingHorizontal: 11, paddingVertical: 5.5, borderRadius: 22, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(82, 231, 122, 0.35)', shadowColor: 'rgba(82, 231, 122, 0.3)', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4,
   },
-  heroBadgeTxt: { fontSize: 11, fontWeight: '600', color: C.g400 },
-  heroTitle:    { fontSize: 26, fontWeight: '800', color: '#fff' },
+  heroBadgeTxt: { fontSize: 11, fontWeight: '800', color: '#52e77a', letterSpacing: 0.4 },
+  heroTitle:    { fontSize: 28, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
   settingsBtn:  {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    width: 42, height: 42, borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
-    marginTop: 4,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.25)',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 5,
   },
 
   /* Avatar */
-  heroBody:    { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
+  heroBody:    { flexDirection: 'row', alignItems: 'flex-start', gap: 15, marginBottom: 16 },
   avatarWrap:  { position: 'relative' },
-  avatar:      { width: 80, height: 80, borderRadius: 22, borderWidth: 3, borderColor: 'rgba(255,255,255,0.25)' },
+  avatar:      { width: 80, height: 80, borderRadius: 22, borderWidth: 3, borderColor: 'rgba(255,255,255,0.35)', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 6 },
   avatarPlaceholder: {
     width: 80, height: 80, borderRadius: 22,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 3, borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 6,
   },
-  avatarInitial: { fontSize: 32, fontWeight: '800', color: '#fff' },
+  avatarInitial: { fontSize: 34, fontWeight: '900', color: '#fff' },
   cameraBadge: {
-    position: 'absolute', bottom: -4, right: -4,
-    width: 26, height: 26, borderRadius: 13,
+    position: 'absolute', bottom: -5, right: -5,
+    width: 30, height: 30, borderRadius: 15,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: C.g800,
+    borderWidth: 2.5, borderColor: C.g800,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3,
   },
 
   /* Info */
-  heroInfo:  { flex: 1 },
-  heroName:  { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 3 },
-  heroOwner: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginBottom: 10 },
+  heroInfo:  { flex: 1, justifyContent: 'flex-start' },
+  heroName:  { fontSize: 18, fontWeight: '900', color: '#fff', marginBottom: 2, letterSpacing: 0.2 },
+  heroOwner: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 8, fontWeight: '600', letterSpacing: 0.1 },
   statusPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
-    borderWidth: 1,
+    borderWidth: 1.1,
   },
-  statusTxt: { fontSize: 11, fontWeight: '700' },
+  statusTxt: { fontSize: 10.5, fontWeight: '800', letterSpacing: 0.15 },
 
   /* Contact strip */
   contactStrip: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14, paddingHorizontal: 15, paddingVertical: 11,
+    borderWidth: 1.2, borderColor: 'rgba(255,255,255,0.18)', gap: 9,
+    marginBottom: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 5,
   },
-  contactItem: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
-  contactTxt:  { fontSize: 12, color: 'rgba(255,255,255,0.65)', fontWeight: '500', flex: 1 },
-  contactDot:  { width: 4, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)' },
+  contactItem: { flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 },
+  contactTxt:  { fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: '600', flex: 1, letterSpacing: 0.1 },
+  contactDot:  { width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'rgba(255,255,255,0.3)' },
 
   /* ── Stats Grid ── */
   statsGrid: {

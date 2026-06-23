@@ -7,6 +7,7 @@ import {
   recordFailedLogin, clearLockoutOnSuccess, logger,
 } from '@/lib/security';
 import { addFcmToken } from '@/lib/utils/driver-notification-sender';
+import { generateDid } from '@/lib/utils/generate-did';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,6 +77,22 @@ export async function POST(request: NextRequest) {
       if (staffDriver.role !== 'DRIVER') return NextResponse.json({ success: false, error: 'Only drivers can access the driver portal.' }, { status: 401 });
 
       clearLockoutOnSuccess(normalizedIdentifier, ip);
+
+      // Generate DID if missing (for existing vendor staff drivers)
+      let staffDid = staffDriver.did;
+      if (!staffDid) {
+        try {
+          staffDid = await generateDid();
+          await prisma.vendor_staff.update({
+            where: { id: staffDriver.id },
+            data: { did: staffDid },
+          });
+          logger.info('Generated DID for existing vendor staff driver', { staffId: staffDriver.id, did: staffDid });
+        } catch (error) {
+          logger.error('Failed to generate DID for vendor staff driver', error);
+        }
+      }
+
       const token = await new SignJWT({
         driverId: staffDriver.id, vendorId: staffDriver.vendorId,
         email: staffDriver.email, name: staffDriver.name,
@@ -93,7 +110,7 @@ export async function POST(request: NextRequest) {
       const response = NextResponse.json({
         success: true, message: 'Login successful',
         driver: {
-          id: staffDriver.id, name: staffDriver.name, email: staffDriver.email,
+          id: staffDriver.id, did: staffDid, name: staffDriver.name, email: staffDriver.email,
           phone: staffDriver.phone, profilePhoto: staffDriver.profilePhoto,
           licenseNumber: staffDriver.licenseNumber, licenseType: staffDriver.licenseType,
           licenseExpiry: staffDriver.licenseExpiry,
@@ -127,6 +144,22 @@ export async function POST(request: NextRequest) {
     }
 
     clearLockoutOnSuccess(normalizedIdentifier, ip);
+
+    // Generate DID if missing (for existing drivers)
+    let driverDid = indDriver.did;
+    if (!driverDid) {
+      try {
+        driverDid = await generateDid();
+        await prisma.drivers.update({
+          where: { id: indDriver.id },
+          data: { did: driverDid },
+        });
+        logger.info('Generated DID for existing driver', { driverId: indDriver.id, did: driverDid });
+      } catch (error) {
+        logger.error('Failed to generate DID for driver', error);
+      }
+    }
+
     const token = await new SignJWT({
       driverId: indDriver.id, email: indDriver.email,
       name: indDriver.name, role: 'driver', userType: 'independent',
@@ -140,7 +173,7 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({
       success: true, message: 'Login successful',
       driver: {
-        id: indDriver.id, name: indDriver.name, email: indDriver.email,
+        id: indDriver.id, did: driverDid, name: indDriver.name, email: indDriver.email,
         phone: indDriver.phone, profilePhoto: indDriver.profilePhoto,
         licenseNumber: indDriver.licenseNumber, licenseType: indDriver.licenseType,
         licenseExpiry: indDriver.licenseExpiry, userType: 'independent',

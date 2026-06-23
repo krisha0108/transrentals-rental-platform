@@ -71,9 +71,18 @@ export async function GET(
       },
     };
 
+    let content = defaultContent;
+    if (setting?.value) {
+      try {
+        content = JSON.parse(setting.value);
+      } catch {
+        content = defaultContent;
+      }
+    }
+
     return NextResponse.json({
       serviceName: service.name,
-      content: setting?.value || defaultContent,
+      content,
     });
   } catch (error) {
     logger.error('Failed to fetch page content', error);
@@ -114,10 +123,10 @@ export async function PATCH(
       create: {
         id: generateId(),
         key: settingKey,
-        value: body,
+        value: JSON.stringify(body),
       },
       update: {
-        value: body,
+        value: JSON.stringify(body),
       },
     });
 

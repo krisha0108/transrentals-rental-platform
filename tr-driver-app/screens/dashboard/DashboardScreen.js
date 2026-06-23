@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../contexts/AuthContext';
 import { getAvailableBookings, getMyBookings, getDriverNotifications, getEarnings, getDriverChatList } from '../api/client';
 import moment from 'moment';
@@ -190,8 +191,16 @@ export default function DashboardScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
+  const [driverId, setDriverId] = useState(null);
 
   const isVendorStaff = driver?.userType === 'vendor_staff';
+
+  // Load driver ID from AsyncStorage
+  useEffect(() => {
+    AsyncStorage.getItem('driver_id').then(id => {
+      if (id) setDriverId(id);
+    });
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -248,6 +257,12 @@ export default function DashboardScreen({ navigation }) {
             <View style={{ flex: 1 }}>
               <Text style={styles.greetSub}>{timeGreeting()}</Text>
               <Text style={styles.greetName}>{firstName} 👋</Text>
+              {driverId && (
+                <View style={styles.driverIdBadge}>
+                  <Ionicons name="shield" size={12} color="#0EA5E9" />
+                  <Text style={styles.driverIdText}>{driverId}</Text>
+                </View>
+              )}
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.bellBtn}>
               <View style={styles.bellCircle}>
@@ -458,6 +473,8 @@ const styles = StyleSheet.create({
   },
   greetSub: { fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: '500' },
   greetName: { fontSize: 26, fontWeight: '800', color: '#fff', marginTop: 2 },
+  driverIdBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+  driverIdText: { fontSize: 12, fontWeight: '700', color: '#0EA5E9', letterSpacing: 0.5 },
   bellBtn: { position: 'relative', marginTop: 4 },
   bellCircle: {
     width: 44, height: 44, borderRadius: 22,

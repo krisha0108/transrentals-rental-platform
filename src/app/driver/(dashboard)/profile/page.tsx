@@ -172,23 +172,38 @@ export default function DriverProfilePage() {
             </div>
           </div>
 
-          {/* License strip */}
+          {/* Card details strip */}
           <div className="bg-emerald-700 px-4 py-3 space-y-2.5">
+            {/* Contact Info Row */}
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-emerald-400 text-[9px] uppercase tracking-widest">Phone</p>
+                <p className="text-white font-mono font-bold text-sm mt-0.5">{driver.phone || '—'}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-emerald-400 text-[9px] uppercase tracking-widest">Email</p>
+                <p className="text-white font-bold text-xs mt-0.5 truncate">{driver.email || '—'}</p>
+              </div>
+            </div>
+
+            {/* Location */}
+            <div>
+              <p className="text-emerald-400 text-[9px] uppercase tracking-widest">Location</p>
+              <p className="text-white font-bold text-sm mt-0.5">{[driver.city, driver.state].filter(Boolean).join(', ') || '—'}</p>
+            </div>
+
+            {/* License Info Row */}
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-emerald-400 text-[9px] uppercase tracking-widest">License No.</p>
                 <p className="text-white font-mono font-bold text-sm mt-0.5">{driver.licenseNumber || '—'}</p>
               </div>
               <div className="text-right">
-                <p className="text-emerald-400 text-[9px] uppercase tracking-widest">Type</p>
-                <p className="text-white font-bold text-sm mt-0.5">{driver.licenseType || '—'}</p>
+                <p className="text-emerald-400 text-[9px] uppercase tracking-widest">Valid Until</p>
+                <p className={`font-bold text-sm mt-0.5 ${licenseExpired ? 'text-red-300' : licenseExpiringSoon ? 'text-yellow-300' : 'text-white'}`}>
+                  {driver.licenseExpiry ? fmtDate(driver.licenseExpiry) : '—'}
+                </p>
               </div>
-            </div>
-            <div>
-              <p className="text-emerald-400 text-[9px] uppercase tracking-widest">Valid Until</p>
-              <p className={`font-bold text-sm mt-0.5 ${licenseExpired ? 'text-red-300' : licenseExpiringSoon ? 'text-yellow-300' : 'text-white'}`}>
-                {driver.licenseExpiry ? fmtDate(driver.licenseExpiry) : '—'}
-              </p>
             </div>
           </div>
 
@@ -333,6 +348,7 @@ export default function DriverProfilePage() {
           </div>
         </div>
       </div>
+
     </div>
   );
 }
