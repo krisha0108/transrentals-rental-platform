@@ -38,6 +38,7 @@ export function BlogSectionDynamic() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {cityPosts.map((post) => {
             const categoryColor = post.category.color || '#3B82F6';
+            const categoryIcon = post.category.icon || '📝';
 
             return (
               <Link
@@ -45,23 +46,26 @@ export function BlogSectionDynamic() {
                 href={`/blog/${post.slug}`}
                 className="group bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
               >
-                {/* Solid Color Background */}
+                {/* Solid Color Background with Category Icon */}
                 <div className="relative h-48 overflow-hidden">
                   <div
-                    className="w-full h-full group-hover:scale-110 transition-transform duration-300"
+                    className="w-full h-full group-hover:scale-110 transition-transform duration-300 flex items-center justify-center"
                     style={{ backgroundColor: categoryColor }}
-                  />
+                  >
+                    <span className="text-8xl opacity-20">{categoryIcon}</span>
+                  </div>
 
                   {/* Category Badge */}
                   <div
-                    className="absolute top-4 left-4 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm"
+                    className="absolute top-4 left-4 px-3 py-1.5 rounded-full text-xs font-semibold backdrop-blur-sm flex items-center gap-1.5"
                     style={{
                       backgroundColor: `${post.category.color}20`,
                       color: post.category.color,
                       border: `1px solid ${post.category.color}40`
                     }}
                   >
-                    {post.category.name}
+                    <span>{categoryIcon}</span>
+                    <span>{post.category.name}</span>
                   </div>
 
                   {/* Read Time Badge */}

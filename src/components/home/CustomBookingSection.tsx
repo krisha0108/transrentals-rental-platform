@@ -8,22 +8,15 @@ import {
   Layers,
   ShieldCheck,
   ChevronRight,
-  Heart,
-  Building2,
-  Map,
-  PartyPopper,
-  Landmark,
-  Activity,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 
-const EVENT_TYPES: { Icon: LucideIcon; name: string }[] = [
-  { Icon: Heart, name: 'Weddings' },
-  { Icon: Building2, name: 'Corporate' },
-  { Icon: Map, name: 'Tours & Trips' },
-  { Icon: PartyPopper, name: 'Parties' },
-  { Icon: Landmark, name: 'Religious' },
-  { Icon: Activity, name: 'Sports' },
+const EVENT_TYPES = [
+  { icon: '💒', name: 'Weddings' },
+  { icon: '🏢', name: 'Corporate' },
+  { icon: '🗺️', name: 'Tours & Trips' },
+  { icon: '🎂', name: 'Parties' },
+  { icon: '🛕', name: 'Religious' },
+  { icon: '⚽', name: 'Sports' },
 ];
 
 const HIGHLIGHTS = [
@@ -111,9 +104,7 @@ export function CustomBookingSection() {
                   href="/custom-booking"
                   className="group bg-white/10 hover:bg-white/15 backdrop-blur border border-white/20 hover:border-amber-300/50 rounded-2xl p-4 text-center transition-all hover:-translate-y-0.5"
                 >
-                  <div className="flex justify-center mb-1.5 group-hover:scale-110 transition-transform">
-                    <e.Icon className="w-7 h-7 text-amber-200" />
-                  </div>
+                  <div className="text-3xl mb-1.5 group-hover:scale-110 transition-transform">{e.icon}</div>
                   <p className="text-xs font-bold text-white">{e.name}</p>
                 </Link>
               ))}

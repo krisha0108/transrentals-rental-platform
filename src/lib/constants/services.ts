@@ -1,28 +1,3 @@
-import {
-  Bike,
-  Car,
-  Key,
-  Navigation,
-  Gem,
-  Heart,
-  Users,
-  MapPin,
-  UserCheck,
-  Briefcase,
-  CalendarDays,
-  Clock,
-  Gauge,
-  Bus,
-  Plane,
-  Package,
-  ArrowRight,
-  RefreshCw,
-  Truck,
-  Wrench,
-  Building2,
-  Globe,
-  HardHat,
-} from 'lucide-react';
 import type { Service } from '@/types';
 
 export const SERVICES: Service[] = [
@@ -31,7 +6,7 @@ export const SERVICES: Service[] = [
     name: 'Bike Rental',
     slug: 'bike-on-rent',
     description: 'Rent bikes for your next adventure',
-    icon: Bike,
+    icon: '🏍️',
     base_url: '/bike-on-rent',
   },
   {
@@ -39,7 +14,7 @@ export const SERVICES: Service[] = [
     name: 'Car Rental',
     slug: 'car-rental',
     description: 'Book cars for any occasion',
-    icon: Car,
+    icon: '🚗',
     base_url: '/car-rental',
   },
   {
@@ -47,7 +22,7 @@ export const SERVICES: Service[] = [
     name: 'Self-Drive Car Rentals',
     slug: 'self-drive-car-rentals',
     description: 'Drive yourself, no driver needed',
-    icon: Key,
+    icon: '🔑',
     base_url: '/self-drive-car-rentals',
   },
   {
@@ -55,7 +30,7 @@ export const SERVICES: Service[] = [
     name: 'One-Way Car Rental',
     slug: 'one-way-car-rental',
     description: 'Rent in one city, drop in another',
-    icon: Navigation,
+    icon: '🚙',
     base_url: '/one-way-car-rental',
   },
   {
@@ -63,7 +38,7 @@ export const SERVICES: Service[] = [
     name: 'Luxury Car Rental',
     slug: 'luxury-car-rental',
     description: 'Experience luxury on wheels',
-    icon: Gem,
+    icon: '💎',
     base_url: '/luxury-car-rental',
   },
   {
@@ -71,7 +46,7 @@ export const SERVICES: Service[] = [
     name: 'Wedding Car Rental',
     slug: 'wedding-car-rental',
     description: 'Premium cars for your special day',
-    icon: Heart,
+    icon: '💒',
     base_url: '/wedding-car-rental',
   },
   {
@@ -79,7 +54,7 @@ export const SERVICES: Service[] = [
     name: 'Tempo Traveller',
     slug: 'tempo-traveller',
     description: '12-17 seater for group travel',
-    icon: Users,
+    icon: '🚐',
     base_url: '/tempo-traveller',
   },
   {
@@ -87,7 +62,7 @@ export const SERVICES: Service[] = [
     name: 'Outstation Cab',
     slug: 'outstation-cab',
     description: 'Inter-city cab for outstation trips',
-    icon: MapPin,
+    icon: '🚖',
     base_url: '/outstation-cab',
   },
   {
@@ -95,7 +70,7 @@ export const SERVICES: Service[] = [
     name: 'Local Taxi',
     slug: 'local-taxi',
     description: 'Hourly rental for local trips',
-    icon: Navigation,
+    icon: '🚕',
     base_url: '/local-taxi',
   },
   {
@@ -103,7 +78,7 @@ export const SERVICES: Service[] = [
     name: 'Chauffeur Service',
     slug: 'chauffeur-service',
     description: 'Professional drivers on hire',
-    icon: UserCheck,
+    icon: '👨‍✈️',
     base_url: '/chauffeur-service',
   },
   {
@@ -111,7 +86,7 @@ export const SERVICES: Service[] = [
     name: 'Corporate Car Rental',
     slug: 'corporate-car-rental',
     description: 'Fleet solutions for businesses',
-    icon: Briefcase,
+    icon: '💼',
     base_url: '/corporate-car-rental',
   },
   {
@@ -119,7 +94,7 @@ export const SERVICES: Service[] = [
     name: 'Monthly Car Rental',
     slug: 'monthly-car-rental',
     description: 'Long-term car subscription',
-    icon: CalendarDays,
+    icon: '📅',
     base_url: '/monthly-car-rental',
   },
   {
@@ -127,7 +102,7 @@ export const SERVICES: Service[] = [
     name: 'Vintage Car Rental',
     slug: 'vintage-car-rental',
     description: 'Classic cars for weddings & shoots',
-    icon: Clock,
+    icon: '🎩',
     base_url: '/vintage-car-rental',
   },
   {
@@ -135,7 +110,7 @@ export const SERVICES: Service[] = [
     name: 'Sports Car Rental',
     slug: 'sports-car-rental',
     description: 'Supercars & performance vehicles',
-    icon: Gauge,
+    icon: '🏎️',
     base_url: '/sports-car-rental',
   },
   {
@@ -143,7 +118,7 @@ export const SERVICES: Service[] = [
     name: 'Bus Rental',
     slug: 'bus-rental',
     description: 'Bus rentals for groups and events',
-    icon: Bus,
+    icon: '🚌',
     base_url: '/bus-rental',
   },
   {
@@ -151,7 +126,7 @@ export const SERVICES: Service[] = [
     name: 'Truck Rental',
     slug: 'truck-rental',
     description: 'Truck rentals for cargo and goods',
-    icon: Truck,
+    icon: '🚚',
     base_url: '/transporter',
   },
   {
@@ -159,7 +134,7 @@ export const SERVICES: Service[] = [
     name: 'Packers & Movers',
     slug: 'packers-and-movers',
     description: 'Relocation and moving services',
-    icon: Package,
+    icon: '📦',
     base_url: '/packers-and-movers',
   },
   {
@@ -167,7 +142,7 @@ export const SERVICES: Service[] = [
     name: 'Equipment Rental',
     slug: 'equipment-rental',
     description: 'Construction equipment on rent',
-    icon: Wrench,
+    icon: '🏗️',
     base_url: '/equipment-rental',
   },
   {
@@ -175,7 +150,7 @@ export const SERVICES: Service[] = [
     name: 'Airport Transfer',
     slug: 'airport-transfer',
     description: 'Reliable airport pickup & drop',
-    icon: Plane,
+    icon: '✈️',
     base_url: '/airport-transfer',
   },
   {
@@ -183,7 +158,7 @@ export const SERVICES: Service[] = [
     name: 'One Way Cab',
     slug: 'one-way-cab',
     description: 'One-way taxi with no return charges',
-    icon: ArrowRight,
+    icon: '➡️',
     base_url: '/one-way-cab',
   },
   {
@@ -191,7 +166,7 @@ export const SERVICES: Service[] = [
     name: 'Round Trip Cab',
     slug: 'round-trip',
     description: 'Round trip outstation packages',
-    icon: RefreshCw,
+    icon: '🔄',
     base_url: '/round-trip',
   },
   {
@@ -199,7 +174,7 @@ export const SERVICES: Service[] = [
     name: 'Activa on Rent',
     slug: 'activa-on-rent',
     description: 'Rent scooters for easy city rides',
-    icon: Bike,
+    icon: '🛵',
     base_url: '/activa-on-rent',
   },
   {
@@ -207,7 +182,7 @@ export const SERVICES: Service[] = [
     name: 'Royal Enfield on Rent',
     slug: 'royal-enfield-on-rent',
     description: 'Classic bikes for road trips',
-    icon: Bike,
+    icon: '🏍️',
     base_url: '/royal-enfield-on-rent',
   },
   {
@@ -215,7 +190,7 @@ export const SERVICES: Service[] = [
     name: 'Wedding Bus Rental',
     slug: 'wedding-bus-rental',
     description: 'Luxury buses for marriage guests',
-    icon: Heart,
+    icon: '💒',
     base_url: '/wedding-bus-rental',
   },
   {
@@ -223,7 +198,7 @@ export const SERVICES: Service[] = [
     name: 'Corporate Bus Rental',
     slug: 'corporate-bus-rental',
     description: 'Employee & event transportation',
-    icon: Building2,
+    icon: '💼',
     base_url: '/corporate-bus-rental',
   },
   {
@@ -231,7 +206,7 @@ export const SERVICES: Service[] = [
     name: 'Mini Truck Rental',
     slug: 'mini-truck-rental',
     description: 'Tata Ace for city deliveries',
-    icon: Truck,
+    icon: '🚚',
     base_url: '/mini-truck-rental',
   },
   {
@@ -239,7 +214,7 @@ export const SERVICES: Service[] = [
     name: 'JCB on Rent',
     slug: 'jcb-on-rent',
     description: 'Backhoe loaders for construction',
-    icon: HardHat,
+    icon: '🚜',
     base_url: '/jcb-on-rent',
   },
   {
@@ -247,7 +222,7 @@ export const SERVICES: Service[] = [
     name: 'Outstation Car Rental',
     slug: 'outstation-car-rental',
     description: 'Intercity car hire for long trips',
-    icon: Globe,
+    icon: '🗺️',
     base_url: '/outstation-car-rental',
   },
 ];
