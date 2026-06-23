@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`trailer-on-rent:${params.location}`),
+    resolvePageMeta(`trailer-on-rent:${params.location.toLowerCase()}`),
     getServiceCityContent('trailer-on-rent', params.location),
   ]);
   return {
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       `heavy trailer ${location.name}`,
       `cargo trailer rent ${location.name}`,
     ],
-    alternates: { canonical: `https://transrentals.in/trailer-on-rent/${params.location}` },
+    alternates: { canonical: `https://transrentals.in/trailer-on-rent/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Trailer on Rent in ${location.name} | TransRentals`,
@@ -81,7 +81,7 @@ export default async function TrailerLocationPage({ params }: Props) {
   ];
 
   const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`trailer-on-rent:${params.location}`),
+    resolvePageMeta(`trailer-on-rent:${params.location.toLowerCase()}`),
     getServiceCityContent('trailer-on-rent', params.location),
   ]);
 
@@ -118,7 +118,7 @@ export default async function TrailerLocationPage({ params }: Props) {
 
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="trailer-on-rent"
               cityName={location.name}
               stateCode={undefined}
@@ -129,7 +129,7 @@ export default async function TrailerLocationPage({ params }: Props) {
         serviceSlug="trailer-on-rent"
         description={`Rent heavy duty trailers in ${location.name} starting @₹5999/day for cargo transportation.`}
         city={location.name}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
@@ -137,7 +137,7 @@ export default async function TrailerLocationPage({ params }: Props) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={location.name} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="transporter"
         parentName="Truck & Tempo Rental"
         currentSlug="trailer-on-rent"

@@ -31,13 +31,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title,
     description,
     alternates: {
-      canonical: `https://transrentals.in/car-rental/${params.location}/${params.sublocation}`,
+      canonical: `https://transrentals.in/car-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
     },
     openGraph: {
       title: `Car Rental in ${sl.name}, ${cityName} | TransRentals`,
       description,
       type: 'website',
-      url: `https://transrentals.in/car-rental/${params.location}/${params.sublocation}`,
+      url: `https://transrentals.in/car-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
       images: [{ url: 'https://transrentals.in/images/og/car-rental.jpg', width: 1200, height: 630 }],
       locale: 'en_IN',
       siteName: 'TransRentals',
@@ -94,7 +94,7 @@ export default function CarSubLocationPage({ params }: PageProps) {
             <span className="mx-2">/</span>
             <a href="/car-rental" className="hover:text-primary">Car Rental</a>
             <span className="mx-2">/</span>
-            <a href={`/car-rental/${params.location}`} className="hover:text-primary">{cityName}</a>
+            <a href={`/car-rental/${params.location.toLowerCase()}`} className="hover:text-primary">{cityName}</a>
             <span className="mx-2">/</span>
             <span className="text-gray-900 font-medium">{sl.name}</span>
           </nav>
@@ -115,7 +115,7 @@ export default function CarSubLocationPage({ params }: PageProps) {
           </p>
           <div className="flex flex-wrap gap-4">
             <Link
-              href={`/car-rental/${params.location}`}
+              href={`/car-rental/${params.location.toLowerCase()}`}
               className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-blue-600 hover:text-blue-700 transition-colors"
             >
               All Car Rentals in {cityName}
@@ -208,7 +208,7 @@ export default function CarSubLocationPage({ params }: PageProps) {
             </h2>
             <div className="flex flex-wrap gap-3">
               <Link
-                href={`/car-rental/${params.location}`}
+                href={`/car-rental/${params.location.toLowerCase()}`}
                 className="inline-flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 transition-colors"
               >
                 ← All Car Rentals in {cityName}
@@ -216,7 +216,7 @@ export default function CarSubLocationPage({ params }: PageProps) {
               {siblings.map((s) => (
                 <Link
                   key={s.slug}
-                  href={`/car-rental/${params.location}/${s.slug}`}
+                  href={`/car-rental/${params.location.toLowerCase()}/${s.slug}`}
                   className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-full text-sm font-medium hover:border-blue-600 hover:text-blue-700 transition-colors"
                 >
                   {s.name}
@@ -236,7 +236,7 @@ export default function CarSubLocationPage({ params }: PageProps) {
             '@type': 'AutoRental',
             name: `Car Rental in ${sl.name}, ${cityName} — TransRentals`,
             description: sl.description,
-            url: `https://transrentals.in/car-rental/${params.location}/${params.sublocation}`,
+            url: `https://transrentals.in/car-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
             areaServed: { '@type': 'Place', name: `${sl.name}, ${cityName}`, addressCountry: 'IN' },
             provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
             priceRange: '₹₹',
@@ -253,8 +253,8 @@ export default function CarSubLocationPage({ params }: PageProps) {
             itemListElement: [
               { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
               { '@type': 'ListItem', position: 2, name: 'Car Rental', item: 'https://transrentals.in/car-rental' },
-              { '@type': 'ListItem', position: 3, name: `Car Rental in ${cityName}`, item: `https://transrentals.in/car-rental/${params.location}` },
-              { '@type': 'ListItem', position: 4, name: `Car Rental in ${sl.name}`, item: `https://transrentals.in/car-rental/${params.location}/${params.sublocation}` },
+              { '@type': 'ListItem', position: 3, name: `Car Rental in ${cityName}`, item: `https://transrentals.in/car-rental/${params.location.toLowerCase()}` },
+              { '@type': 'ListItem', position: 4, name: `Car Rental in ${sl.name}`, item: `https://transrentals.in/car-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}` },
             ],
           }),
         }}

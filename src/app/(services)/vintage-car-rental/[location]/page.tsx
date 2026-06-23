@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`vintage-car-rental:${params.location}`),
+    resolvePageMeta(`vintage-car-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('vintage-car-rental', params.location),
   ]);
   return {
@@ -60,10 +60,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `Vintage Car Rental in ${locationName} - Classic Cars @₹8999`,
       description: `Book vintage & classic cars in ${locationName}. Perfect for weddings and photo shoots.`,
-      url: `https://transrentals.in/vintage-car-rental/${params.location}`,
+      url: `https://transrentals.in/vintage-car-rental/${params.location.toLowerCase()}`,
     },
     alternates: {
-      canonical: `https://transrentals.in/vintage-car-rental/${params.location}`,
+      canonical: `https://transrentals.in/vintage-car-rental/${params.location.toLowerCase()}`,
     },
     twitter: {
       card: 'summary_large_image' as const,
@@ -82,7 +82,7 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
 
   const locationName = city.name;
 
-  const seoData = await resolvePageMeta(`vintage-car-rental:${params.location}`);
+  const seoData = await resolvePageMeta(`vintage-car-rental:${params.location.toLowerCase()}`);
 
   const pageFaqs = [
     { question: 'Which vintage cars are available for rent?', answer: 'We offer Ambassador Classic, Fiat 1100, Standard Herald, Premier Padmini, and retro Jeeps — all restored and photo-shoot ready.' },
@@ -123,7 +123,7 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
 
   return (
     <>
-      <SpecialtyCarBookingHero service="vintage" city={locationName} citySlug={params.location} />
+      <SpecialtyCarBookingHero service="vintage" city={locationName} citySlug={params.location.toLowerCase()} />
 
       {/* Why Vintage Car */}
       <section className="py-16 bg-white">
@@ -240,7 +240,7 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="vintage-car-rental"
               cityName={locationName}
               stateCode={city?.stateCode}
@@ -276,7 +276,7 @@ export default async function VintageCarRentalLocationPage({ params }: PageProps
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="luxury-car-rental"
         parentName="Luxury Car Rental"
         currentSlug="vintage-car-rental"

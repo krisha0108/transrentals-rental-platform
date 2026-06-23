@@ -76,7 +76,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`car-rental:${params.location}`),
+    resolvePageMeta(`car-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('car-rental', params.location),
   ]);
   return {
@@ -101,7 +101,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: `Car Rental in ${locationName} - With Driver | Starting ₹999/Day | TransRentals`,
       description: `Hire cars with driver in ${locationName} starting ₹999/day. Swift, Innova, Creta, Ertiga & more. Local, outstation & airport transfers. Best prices guaranteed.`,
       type: 'website',
-      url: `https://transrentals.in/car-rental/${params.location}`,
+      url: `https://transrentals.in/car-rental/${params.location.toLowerCase()}`,
       images: [
         {
           url: 'https://transrentals.in/images/og/car-rental.jpg',
@@ -120,7 +120,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       images: ['https://transrentals.in/images/og/car-rental.jpg'],
     },
     alternates: {
-      canonical: `https://transrentals.in/car-rental/${params.location}`,
+      canonical: `https://transrentals.in/car-rental/${params.location.toLowerCase()}`,
     },
     robots: {
       index: true,
@@ -237,7 +237,7 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
           </div>
           <ComingSoonHero
             city={cityName}
-            citySlug={params.location}
+            citySlug={params.location.toLowerCase()}
             serviceSlug="car-rental"
             serviceName="Car Rental"
             themeColor="blue"
@@ -265,13 +265,13 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
         </div>
         <ComingSoonHero
           city={cityName}
-          citySlug={params.location}
+          citySlug={params.location.toLowerCase()}
           serviceSlug="car-rental"
           serviceName="Car Rental"
           themeColor="emerald"
         />
         <NearbyActiveCities
-          currentCitySlug={params.location}
+          currentCitySlug={params.location.toLowerCase()}
           serviceSlug="car-rental"
           serviceName="Car Rental"
         />
@@ -309,7 +309,7 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
 
       <CarRentalBookingHero
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         serviceSlug="car-rental"
         serviceTitle="Car Rental"
         headingLine1="Car Rental in"
@@ -321,26 +321,26 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
         categories={categories}
         title={`Car Rental Packages in ${locationName}`}
         locationName={locationName}
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         serviceSlug="car-rental"
       />
 
       <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         service="car-rental"
       />
 
       <ServiceAreasSection
         serviceSlug="car-rental"
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         cityName={locationName}
         serviceName="Car Rental"
       />
 
       <CrossServiceLinks
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         cityName={locationName}
         currentServiceSlug="car-rental"
       />
@@ -349,7 +349,7 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="car-rental"
         parentName="Car Rental"
         currentSlug="car-rental"
@@ -366,7 +366,7 @@ export default async function CarRentalLocationPage({ params }: PageProps) {
         name={`Car Rental in ${locationName} — TransRentals`}
         description={`Rent cars in ${locationName}. Self-drive and chauffeur-driven options for local, outstation, and corporate travel.`}
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         serviceSlug="car-rental"
         rating={liveRating?.ratingValue}
         reviewCount={liveRating?.reviewCount}

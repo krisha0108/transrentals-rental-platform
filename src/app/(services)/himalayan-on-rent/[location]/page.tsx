@@ -33,13 +33,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`himalayan-on-rent:${params.location}`),
+    resolvePageMeta(`himalayan-on-rent:${params.location.toLowerCase()}`),
     getServiceCityContent('himalayan-on-rent', params.location),
   ]);
   return {
     title: scContent?.metaTitle || _seoDb?.metaTitle || `Himalayan on Rent in ${locationName} | @₹1499/Day | TransRentals`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Rent Royal Enfield Himalayan in ${locationName}. Adventure touring bike for mountain trips.`,
-    alternates: { canonical: `https://transrentals.in/himalayan-on-rent/${params.location}` },
+    alternates: { canonical: `https://transrentals.in/himalayan-on-rent/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Royal Enfield Himalayan on Rent in ${locationName} | TransRentals`,
@@ -56,7 +56,7 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`himalayan-on-rent:${params.location}`),
+    resolvePageMeta(`himalayan-on-rent:${params.location.toLowerCase()}`),
     getServiceCityContent('himalayan-on-rent', params.location),
   ]);
 
@@ -83,7 +83,7 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
 
       <BikeSearchHero
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
         pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
       />
@@ -131,13 +131,13 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
         <div className="container-custom">
           <h2 className="text-2xl font-bold text-center mb-8">Other Bikes in {locationName}</h2>
           <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/royal-enfield-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/royal-enfield-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">Royal Enfield</h3><p className="text-sm text-gray-600 mt-2">Classic, Bullet</p>
             </Link>
-            <Link href={`/ktm-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/ktm-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">KTM</h3><p className="text-sm text-gray-600 mt-2">Duke, RC</p>
             </Link>
-            <Link href={`/bike-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/bike-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">All Bikes</h3><p className="text-sm text-gray-600 mt-2">View all</p>
             </Link>
             <Link href="/bike-tours/leh-ladakh" className="bg-white p-6 rounded-lg hover:shadow-lg transition">
@@ -150,7 +150,7 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="himalayan-on-rent"
               cityName={locationName}
               stateCode={undefined}
@@ -161,7 +161,7 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
         serviceSlug="himalayan-on-rent"
         description={`Rent Royal Enfield Himalayan in ${locationName}. Adventure touring bike for mountain trips.`}
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
@@ -169,7 +169,7 @@ export default async function HimalayanLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="bike-on-rent"
         parentName="Bike Rental"
         currentSlug="himalayan-on-rent"

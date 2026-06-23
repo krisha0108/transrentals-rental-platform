@@ -74,7 +74,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`packers-and-movers:${params.location}`),
+    resolvePageMeta(`packers-and-movers:${params.location.toLowerCase()}`),
     getServiceCityContent('packers-and-movers', params.location),
   ]);
   return {
@@ -90,13 +90,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `intercity movers ${locationName}`,
     ],
     alternates: {
-      canonical: `https://transrentals.in/packers-and-movers/${params.location}`,
+      canonical: `https://transrentals.in/packers-and-movers/${params.location.toLowerCase()}`,
     },
     openGraph: {
       title: `Packers and Movers in ${locationName} | TransRentals`,
       description: `Verified packers and movers in ${locationName}. Home shifting, office relocation, intercity moves. IBA-approved and insured. Get free quotes.`,
       type: 'website',
-      url: `https://transrentals.in/packers-and-movers/${params.location}`,
+      url: `https://transrentals.in/packers-and-movers/${params.location.toLowerCase()}`,
       images: [{ url: `https://transrentals.in/api/og?service=packers-and-movers&location=${encodeURIComponent(locationName)}`, width: 1200, height: 630, alt: `Packers and Movers in ${locationName}` }],
       locale: 'en_IN',
       siteName: 'TransRentals',
@@ -132,7 +132,7 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
           </div>
           <ComingSoonHero
             city={cityName}
-            citySlug={params.location}
+            citySlug={params.location.toLowerCase()}
             serviceSlug="packers-and-movers"
             serviceName="Packers & Movers"
             themeColor="blue"
@@ -160,13 +160,13 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
         </div>
         <ComingSoonHero
           city={cityName}
-          citySlug={params.location}
+          citySlug={params.location.toLowerCase()}
           serviceSlug="packers-and-movers"
           serviceName="Packers & Movers"
           themeColor="pink"
         />
         <NearbyActiveCities
-          currentCitySlug={params.location}
+          currentCitySlug={params.location.toLowerCase()}
           serviceSlug="packers-and-movers"
           serviceName="Packers & Movers"
         />
@@ -179,7 +179,7 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
   const cityData = getCityBySlug(params.location);
 
   const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`packers-and-movers:${params.location}`),
+    resolvePageMeta(`packers-and-movers:${params.location.toLowerCase()}`),
     getServiceCityContent('packers-and-movers', params.location),
   ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['packers-and-movers'] || [];
@@ -222,19 +222,19 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
       <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         service="packers-and-movers"
       />
 
       <ServiceAreasSection
         serviceSlug="packers-and-movers"
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         cityName={locationName}
         serviceName="Packers and Movers"
       />
 
       <CrossServiceLinks
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         cityName={locationName}
         currentServiceSlug="packers-and-movers"
       />
@@ -243,7 +243,7 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="packers-and-movers"
         parentName="Packers & Movers"
         currentSlug="packers-and-movers"
@@ -262,7 +262,7 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
             '@type': 'MovingCompany',
             name: `Packers and Movers in ${locationName} — TransRentals`,
             description: `Verified packers and movers in ${locationName}. Local and intercity home shifting, office relocation, and vehicle transport. IBA-approved, insured moving teams.`,
-            url: `https://transrentals.in/packers-and-movers/${params.location}`,
+            url: `https://transrentals.in/packers-and-movers/${params.location.toLowerCase()}`,
             areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
             provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
             priceRange: '₹₹',
@@ -310,7 +310,7 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
             itemListElement: [
               { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
               { '@type': 'ListItem', position: 2, name: 'Packers and Movers', item: 'https://transrentals.in/packers-and-movers' },
-              { '@type': 'ListItem', position: 3, name: `Packers and Movers in ${locationName}`, item: `https://transrentals.in/packers-and-movers/${params.location}` },
+              { '@type': 'ListItem', position: 3, name: `Packers and Movers in ${locationName}`, item: `https://transrentals.in/packers-and-movers/${params.location.toLowerCase()}` },
             ],
           }),
         }}

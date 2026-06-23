@@ -31,12 +31,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title,
     description,
-    alternates: { canonical: `https://transrentals.in/luxury-car-rental/${params.location}/${params.sublocation}` },
+    alternates: { canonical: `https://transrentals.in/luxury-car-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}` },
     openGraph: {
       title: `Luxury Car Rental in ${sl.name}, ${cityName} | TransRentals`,
       description,
       type: 'website',
-      url: `https://transrentals.in/luxury-car-rental/${params.location}/${params.sublocation}`,
+      url: `https://transrentals.in/luxury-car-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
       images: [{ url: `https://transrentals.in/api/og?service=luxury-car-rental&location=${encodeURIComponent(cityName)}`, width: 1200, height: 630 }],
       locale: 'en_IN',
       siteName: 'TransRentals',
@@ -78,7 +78,7 @@ export default function LuxurySubLocationPage({ params }: PageProps) {
             <span className="mx-2">/</span>
             <a href="/luxury-car-rental" className="hover:text-primary">Luxury Car Rental</a>
             <span className="mx-2">/</span>
-            <a href={`/luxury-car-rental/${params.location}`} className="hover:text-primary">{cityName}</a>
+            <a href={`/luxury-car-rental/${params.location.toLowerCase()}`} className="hover:text-primary">{cityName}</a>
             <span className="mx-2">/</span>
             <span className="text-gray-900 font-medium">{sl.name}</span>
           </nav>
@@ -97,7 +97,7 @@ export default function LuxurySubLocationPage({ params }: PageProps) {
           <p className="text-lg text-purple-200 mb-6 max-w-2xl">{sl.description}</p>
           <div className="flex flex-wrap gap-4">
             <Link
-              href={`/luxury-car-rental/${params.location}`}
+              href={`/luxury-car-rental/${params.location.toLowerCase()}`}
               className="inline-flex items-center gap-2 bg-white/10 text-white border border-white/20 px-6 py-3 rounded-lg font-semibold hover:bg-white/20 transition-colors"
             >
               All Luxury Cars in {cityName}
@@ -154,11 +154,11 @@ export default function LuxurySubLocationPage({ params }: PageProps) {
           <div className="container-custom max-w-4xl">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Luxury Cars in Other Areas of {cityName}</h2>
             <div className="flex flex-wrap gap-3">
-              <Link href={`/luxury-car-rental/${params.location}`} className="inline-flex items-center gap-1 px-4 py-2 bg-purple-700 text-white rounded-full text-sm font-medium hover:bg-purple-800 transition-colors">
+              <Link href={`/luxury-car-rental/${params.location.toLowerCase()}`} className="inline-flex items-center gap-1 px-4 py-2 bg-purple-700 text-white rounded-full text-sm font-medium hover:bg-purple-800 transition-colors">
                 ← All Luxury Cars in {cityName}
               </Link>
               {siblings.map((s) => (
-                <Link key={s.slug} href={`/luxury-car-rental/${params.location}/${s.slug}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-full text-sm font-medium hover:border-purple-600 hover:text-purple-700 transition-colors">
+                <Link key={s.slug} href={`/luxury-car-rental/${params.location.toLowerCase()}/${s.slug}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-full text-sm font-medium hover:border-purple-600 hover:text-purple-700 transition-colors">
                   {s.name}
                 </Link>
               ))}
@@ -172,7 +172,7 @@ export default function LuxurySubLocationPage({ params }: PageProps) {
         '@context': 'https://schema.org', '@type': 'AutoRental',
         name: `Luxury Car Rental in ${sl.name}, ${cityName} — TransRentals`,
         description: sl.description,
-        url: `https://transrentals.in/luxury-car-rental/${params.location}/${params.sublocation}`,
+        url: `https://transrentals.in/luxury-car-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
         priceRange: '₹₹₹',
         areaServed: { '@type': 'Place', name: `${sl.name}, ${cityName}`, addressCountry: 'IN' },
         provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
@@ -183,8 +183,8 @@ export default function LuxurySubLocationPage({ params }: PageProps) {
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
           { '@type': 'ListItem', position: 2, name: 'Luxury Car Rental', item: 'https://transrentals.in/luxury-car-rental' },
-          { '@type': 'ListItem', position: 3, name: `Luxury Car Rental in ${cityName}`, item: `https://transrentals.in/luxury-car-rental/${params.location}` },
-          { '@type': 'ListItem', position: 4, name: `Luxury Car Rental in ${sl.name}`, item: `https://transrentals.in/luxury-car-rental/${params.location}/${params.sublocation}` },
+          { '@type': 'ListItem', position: 3, name: `Luxury Car Rental in ${cityName}`, item: `https://transrentals.in/luxury-car-rental/${params.location.toLowerCase()}` },
+          { '@type': 'ListItem', position: 4, name: `Luxury Car Rental in ${sl.name}`, item: `https://transrentals.in/luxury-car-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}` },
         ],
       })}} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

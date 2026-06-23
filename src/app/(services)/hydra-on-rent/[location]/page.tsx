@@ -33,13 +33,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const city = getCityBySlug(params.location);
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`hydra-on-rent:${params.location}`),
+    resolvePageMeta(`hydra-on-rent:${params.location.toLowerCase()}`),
     getServiceCityContent('hydra-on-rent', params.location),
   ]);
   return {
     title: scContent?.metaTitle || _seoDb?.metaTitle || `Hydra on Rent in ${locationName} | @₹6000/Day | TransRentals`,
     description: scContent?.metaDescription || _seoDb?.metaDescription || `Hire hydra crane in ${locationName} for loading, unloading, construction. 8T-14T capacity.`,
-    alternates: { canonical: `https://transrentals.in/hydra-on-rent/${params.location}` },
+    alternates: { canonical: `https://transrentals.in/hydra-on-rent/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `Hydra Crane on Rent in ${locationName} | TransRentals`,
@@ -56,7 +56,7 @@ export default async function HydraLocationPage({ params }: PageProps) {
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`hydra-on-rent:${params.location}`),
+    resolvePageMeta(`hydra-on-rent:${params.location.toLowerCase()}`),
     getServiceCityContent('hydra-on-rent', params.location),
   ]);
 
@@ -113,16 +113,16 @@ export default async function HydraLocationPage({ params }: PageProps) {
         <div className="container-custom">
           <h2 className="text-2xl font-bold text-center mb-8">Other Equipment in {locationName}</h2>
           <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/crane-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/crane-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">Crane</h3><p className="text-sm text-gray-600 mt-2">Starting ₹8,000</p>
             </Link>
-            <Link href={`/jcb-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/jcb-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">JCB</h3><p className="text-sm text-gray-600 mt-2">Starting ₹4,000</p>
             </Link>
-            <Link href={`/excavator-on-rent/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/excavator-on-rent/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">Excavator</h3><p className="text-sm text-gray-600 mt-2">Starting ₹5,000</p>
             </Link>
-            <Link href={`/equipment-rental/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/equipment-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold">All Equipment</h3><p className="text-sm text-gray-600 mt-2">View all</p>
             </Link>
           </div>
@@ -132,7 +132,7 @@ export default async function HydraLocationPage({ params }: PageProps) {
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="hydra-on-rent"
               cityName={locationName}
               stateCode={undefined}
@@ -143,7 +143,7 @@ export default async function HydraLocationPage({ params }: PageProps) {
         serviceSlug="hydra-on-rent"
         description={`Hire hydra crane in ${locationName} starting @₹3999/day for loading & construction.`}
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
@@ -151,7 +151,7 @@ export default async function HydraLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="equipment-rental"
         parentName="Equipment Rental"
         currentSlug="hydra-on-rent"

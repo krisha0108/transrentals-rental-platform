@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`mini-truck-rental:${params.location}`),
+    resolvePageMeta(`mini-truck-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('mini-truck-rental', params.location),
   ]);
   return {
@@ -56,12 +56,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `chhota hathi rental ${locationName}`,
       `goods carrier ${locationName}`,
     ],
-    alternates: { canonical: `https://transrentals.in/mini-truck-rental/${params.location}` },
+    alternates: { canonical: `https://transrentals.in/mini-truck-rental/${params.location.toLowerCase()}` },
     openGraph: {
       title: `Mini Truck Rental in ${locationName} | TransRentals`,
       description: `Rent Tata Ace and mini trucks in ${locationName} for deliveries, house shifting & goods transport.`,
       type: 'website',
-      url: `https://transrentals.in/mini-truck-rental/${params.location}`,
+      url: `https://transrentals.in/mini-truck-rental/${params.location.toLowerCase()}`,
       images: [{ url: `https://transrentals.in/api/og?service=mini-truck-rental&location=${encodeURIComponent(locationName)}`, width: 1200, height: 630, alt: `Mini Truck Rental in ${locationName}` }],
       locale: 'en_IN',
       siteName: 'TransRentals',
@@ -92,7 +92,7 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
   ];
 
   const [seoData, transporterServiceId, locationId, scContent] = await Promise.all([
-    resolvePageMeta(`mini-truck-rental:${params.location}`),
+    resolvePageMeta(`mini-truck-rental:${params.location.toLowerCase()}`),
     getTransporterServiceId(),
     getLocationId(params.location),
     getServiceCityContent('mini-truck-rental', params.location),
@@ -203,13 +203,13 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
       <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         service="mini-truck-rental"
       />
 
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="mini-truck-rental"
               cityName={locationName}
               stateCode={city?.stateCode}
@@ -218,13 +218,13 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
 
       <ServiceAreasSection
         serviceSlug="mini-truck-rental"
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         cityName={locationName}
         serviceName="Mini Truck Rental"
       />
 
       <CrossServiceLinks
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         cityName={locationName}
         currentServiceSlug="mini-truck-rental"
       />
@@ -235,7 +235,7 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
         '@type': 'LocalBusiness',
         name: `Mini Truck Rental in ${locationName} — TransRentals`,
         description: `Rent Tata Ace and mini trucks in ${locationName} for local deliveries, house shifting & goods transport. Driver included.`,
-        url: `https://transrentals.in/mini-truck-rental/${params.location}`,
+        url: `https://transrentals.in/mini-truck-rental/${params.location.toLowerCase()}`,
         areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
         provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
         priceRange: '₹₹',
@@ -247,7 +247,7 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
           { '@type': 'ListItem', position: 2, name: 'Mini Truck Rental', item: 'https://transrentals.in/mini-truck-rental' },
-          { '@type': 'ListItem', position: 3, name: `Mini Truck Rental in ${locationName}`, item: `https://transrentals.in/mini-truck-rental/${params.location}` },
+          { '@type': 'ListItem', position: 3, name: `Mini Truck Rental in ${locationName}`, item: `https://transrentals.in/mini-truck-rental/${params.location.toLowerCase()}` },
         ],
       })}} />
       {/* FAQPage Schema */}
@@ -265,7 +265,7 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="mini-truck-rental"
         parentName="Mini Truck Rental"
         currentSlug="mini-truck-rental"

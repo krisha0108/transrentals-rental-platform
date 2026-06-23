@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`12-seater-tempo-traveller:${params.location}`),
+    resolvePageMeta(`12-seater-tempo-traveller:${params.location.toLowerCase()}`),
     getServiceCityContent('12-seater-tempo-traveller', params.location),
   ]);
   return {
@@ -46,9 +46,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `12 Seater Tempo Traveller in ${locationName} @₹18/km`,
       description: `Hire 12 seater tempo traveller with driver in ${locationName}.`,
-      url: `https://transrentals.in/12-seater-tempo-traveller/${params.location}`,
+      url: `https://transrentals.in/12-seater-tempo-traveller/${params.location.toLowerCase()}`,
     },
-    alternates: { canonical: `https://transrentals.in/12-seater-tempo-traveller/${params.location}` },
+    alternates: { canonical: `https://transrentals.in/12-seater-tempo-traveller/${params.location.toLowerCase()}` },
     twitter: {
       card: 'summary_large_image' as const,
       title: `12 Seater Tempo Traveller in ${locationName} | TransRentals`,
@@ -72,7 +72,7 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
   const locationName = city?.name || capitalize(params.location.replace(/-/g, ' '));
 
   const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`12-seater-tempo-traveller:${params.location}`),
+    resolvePageMeta(`12-seater-tempo-traveller:${params.location.toLowerCase()}`),
     getServiceCityContent('12-seater-tempo-traveller', params.location),
   ]);
 
@@ -169,19 +169,19 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
         <div className="container-custom">
           <h2 className="text-2xl font-bold text-center mb-8">Other Options in {locationName}</h2>
           <div className="grid md:grid-cols-4 gap-6">
-            <Link href={`/17-seater-tempo-traveller/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/17-seater-tempo-traveller/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold text-lg">17 Seater</h3>
               <p className="text-sm text-gray-600 mt-2">From ₹20/km</p>
             </Link>
-            <Link href={`/tempo-traveller/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/tempo-traveller/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold text-lg">All Tempo Travellers</h3>
               <p className="text-sm text-gray-600 mt-2">View all options</p>
             </Link>
-            <Link href={`/bus-rental/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/bus-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold text-lg">Bus Rental</h3>
               <p className="text-sm text-gray-600 mt-2">26+ seater</p>
             </Link>
-            <Link href={`/wedding-bus-rental/${params.location}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
+            <Link href={`/wedding-bus-rental/${params.location.toLowerCase()}`} className="bg-white p-6 rounded-lg hover:shadow-lg transition">
               <h3 className="font-bold text-lg">Wedding Bus</h3>
               <p className="text-sm text-gray-600 mt-2">For weddings</p>
             </Link>
@@ -192,7 +192,7 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="12-seater-tempo-traveller"
               cityName={locationName}
               stateCode={undefined}
@@ -203,7 +203,7 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
         serviceSlug="12-seater-tempo-traveller"
         description={`Book 12 seater tempo traveller in ${locationName} starting @₹18/km with driver.`}
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         faqs={[]}
       />
 
@@ -211,7 +211,7 @@ export default async function TwelveSeaterLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="bus-rental"
         parentName="Bus Rental"
         currentSlug="12-seater-tempo-traveller"
