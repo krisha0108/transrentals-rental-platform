@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Registration successful',
       driver: {
-        id: driver.id, name: driver.name, email: driver.email,
+        id: driver.id, did: driver.did, name: driver.name, email: driver.email,
         phone: driver.phone, userType: 'independent',
       },
       token,

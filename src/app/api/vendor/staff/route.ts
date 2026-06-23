@@ -92,19 +92,38 @@ export async function GET(request: NextRequest) {
     };
 
     // Format staff with attendance summary (exclude password from response)
-    const staffWithSummary = staff.map(s => {
-      const thisMonthAttendance = (s as any).staff_attendance || [];
-      const { password, staff_attendance, ...staffWithoutPassword } = s as any;
-      return {
-        ...staffWithoutPassword,
-        attendanceSummary: {
-          present: thisMonthAttendance.filter((a: any) => a.status === 'PRESENT').length,
-          absent: thisMonthAttendance.filter((a: any) => a.status === 'ABSENT').length,
-          leave: thisMonthAttendance.filter((a: any) => a.status === 'LEAVE').length,
-          halfDay: thisMonthAttendance.filter((a: any) => a.status === 'HALF_DAY').length,
-        },
-      };
-    });
+    const staffWithSummary = await Promise.all(
+      staff.map(async (s) => {
+        const thisMonthAttendance = (s as any).staff_attendance || [];
+        const { password, staff_attendance, ...staffWithoutPassword } = s as any;
+
+        // Generate DID for drivers if missing
+        let staffData = { ...staffWithoutPassword };
+        if (staffData.role === 'DRIVER' && !staffData.did) {
+          try {
+            const did = await generateDid();
+            await prisma.vendor_staff.update({
+              where: { id: staffData.id },
+              data: { did },
+            });
+            staffData.did = did;
+            logger.info('[Staff] Generated DID for existing driver on fetch', { staffId: staffData.id, did });
+          } catch (error) {
+            logger.error('[Staff] Failed to generate DID on fetch', error);
+          }
+        }
+
+        return {
+          ...staffData,
+          attendanceSummary: {
+            present: thisMonthAttendance.filter((a: any) => a.status === 'PRESENT').length,
+            absent: thisMonthAttendance.filter((a: any) => a.status === 'ABSENT').length,
+            leave: thisMonthAttendance.filter((a: any) => a.status === 'LEAVE').length,
+            halfDay: thisMonthAttendance.filter((a: any) => a.status === 'HALF_DAY').length,
+          },
+        };
+      })
+    );
 
     return NextResponse.json({
       success: true,
@@ -221,6 +240,7 @@ export async function POST(request: NextRequest) {
 
     // For drivers, email and password are required for app login
     const isDriver = body.role === 'DRIVER';
+    logger.info('[Staff] Creating staff', { role: body.role, isDriver });
     if (isDriver) {
       if (!body.email) {
         return NextResponse.json(
@@ -336,9 +356,31 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate DID for drivers
-    const did = isDriver ? await generateDid() : null;
+    let did = null;
+    if (isDriver) {
+      try {
+        did = await generateDid();
+        logger.info('[Staff] Generated DID', { did });
+        if (!did) {
+          logger.error('[Staff] generateDid returned empty value');
+          return NextResponse.json(
+            { success: false, error: 'Failed to generate driver ID' },
+            { status: 500 }
+          );
+        }
+      } catch (didError: any) {
+        logger.error('[Staff] Failed to generate DID', didError);
+        return NextResponse.json(
+          { success: false, error: 'Failed to generate driver ID: ' + didError?.message },
+          { status: 500 }
+        );
+      }
+    } else {
+      logger.info('[Staff] Not a driver, skipping DID generation');
+    }
 
     // Create staff member
+    logger.info('[Staff] About to create staff with DID', { did, isDriver, role: body.role });
     const staff = await prisma.vendor_staff.create({
       data: {
         id: generateId(),
@@ -377,6 +419,13 @@ export async function POST(request: NextRequest) {
 
     // Exclude password from response
     const { password: _, ...staffWithoutPassword } = staff;
+
+    logger.info('[Staff] Staff created successfully', {
+      staffId: staff.id,
+      did: staff.did,
+      role: staff.role,
+      isDriver
+    });
 
     return NextResponse.json({
       success: true,

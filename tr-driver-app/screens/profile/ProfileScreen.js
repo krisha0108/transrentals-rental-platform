@@ -1,11 +1,13 @@
 import React, { useRef, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, Animated, Image,
+  Alert, Animated, Image, Modal, Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../contexts/AuthContext';
 import { logoutDriver, getBaseURL, getDriverAppVersion } from '../api/client';
 import moment from 'moment';
@@ -63,6 +65,28 @@ export default function ProfileScreen({ navigation }) {
   const { driver, signOut } = useAuth();
   const [baseURL, setBaseURL] = useState('');
   const [appVersion, setAppVersion] = useState('1.0.0');
+  const [driverId, setDriverId] = useState(null);
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const flipAnim = useRef(new Animated.Value(0)).current;
+
+  // Load driver ID from AsyncStorage
+  useEffect(() => {
+    AsyncStorage.getItem('driver_id').then(id => {
+      if (id) setDriverId(id);
+    });
+  }, []);
+
+  // Flip animation
+  useEffect(() => {
+    Animated.timing(flipAnim, {
+      toValue: isFlipped ? 1 : 0,
+      duration: 600,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [isFlipped, flipAnim]);
+
   useEffect(() => { getBaseURL().then(url => setBaseURL(url)); }, []);
   useEffect(() => {
     getDriverAppVersion()
@@ -129,14 +153,24 @@ export default function ProfileScreen({ navigation }) {
           {/* Top bar */}
           <View style={styles.heroBar}>
             <Text style={styles.heroBarTitle}>My Profile</Text>
-            <TouchableOpacity
-              style={styles.editBtn}
-              onPress={() => navigation.navigate('EditProfile')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="create-outline" size={14} color="#fff" />
-              <Text style={styles.editBtnText}>Edit</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={[styles.editBtn, { paddingHorizontal: 12 }]}
+                onPress={() => { setIsFlipped(false); setShowCardModal(true); }}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons name="credit-card" size={14} color="#fff" />
+                <Text style={styles.editBtnText}>Card</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.editBtn}
+                onPress={() => navigation.navigate('EditProfile')}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="create-outline" size={14} color="#fff" />
+                <Text style={styles.editBtnText}>Edit</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Avatar */}
@@ -218,7 +252,7 @@ export default function ProfileScreen({ navigation }) {
         )}
 
         {/* ── Personal Info ── */}
-        {(driver?.city || driver?.dateOfBirth || driver?.licenseNumber) && (
+        {(driver?.city || driver?.dateOfBirth || driver?.licenseNumber || driverId) && (
           <Section title="Personal Info">
             {driver?.city && (
               <MenuRow
@@ -240,6 +274,13 @@ export default function ProfileScreen({ navigation }) {
                 label={driver.licenseNumber}
                 sublabel={driver.licenseExpiry ? `Expires ${moment(driver.licenseExpiry).format('DD MMM YYYY')}` : 'Driving License'}
                 badge={licStat}
+              />
+            )}
+            {driverId && (
+              <MenuRow
+                icon="shield" iconBg="#EFF6FF" iconColor="#0EA5E9"
+                label={driverId}
+                sublabel="Driver ID"
                 isLast
               />
             )}
@@ -296,6 +337,195 @@ export default function ProfileScreen({ navigation }) {
 
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      {/* Driver Card Modal */}
+      {showCardModal && (
+        <Modal transparent visible={showCardModal} animationType="fade">
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }}>
+            <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowCardModal(false)} />
+
+            <View style={{ width: '100%', maxWidth: 320 }}>
+              <View style={{ height: 420 }}>
+                <Animated.View
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    transform: [
+                      { perspective: 1000 },
+                      {
+                        rotateY: flipAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '180deg'],
+                        }),
+                      },
+                    ],
+                  }}
+                >
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={() => setIsFlipped(!isFlipped)}
+                    style={{ width: '100%', height: '100%' }}
+                  >
+                  {/* FRONT */}
+                  <LinearGradient
+                    colors={['#064E3B', '#065F46', '#047857']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: 24,
+                      paddingHorizontal: 18,
+                      paddingVertical: 16,
+                      justifyContent: 'space-between',
+                      opacity: isFlipped ? 0 : 1,
+                    }}
+                  >
+                    {/* Top section */}
+                    <View style={{ gap: 16 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottomWidth: 1.2, borderBottomColor: 'rgba(255,255,255,0.15)' }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 8.5, fontWeight: '900', letterSpacing: 1.8 }}>TRANSRENTALS</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3.5, backgroundColor: 'rgba(34, 197, 94, 0.25)', paddingHorizontal: 8, paddingVertical: 3.5, borderRadius: 10, borderWidth: 0.8, borderColor: 'rgba(34, 197, 94, 0.4)' }}>
+                          <View style={{ width: 3.5, height: 3.5, borderRadius: 1.75, backgroundColor: '#22c55e' }} />
+                          <Text style={{ fontSize: 7.5, fontWeight: '800', color: '#22c55e', letterSpacing: 0.6 }}>VERIFIED</Text>
+                        </View>
+                      </View>
+
+                      {/* Center hero - Icon */}
+                      <View style={{ alignItems: 'center', gap: 12, paddingVertical: 6 }}>
+                        <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center', width: 95, height: 95 }}>
+                          <View style={{ position: 'absolute', width: 80, height: 80, borderRadius: 40, borderWidth: 1.8, borderColor: 'rgba(82, 231, 122, 0.3)' }} />
+                          <View style={{ position: 'absolute', width: 60, height: 60, borderRadius: 30, borderWidth: 1.2, borderColor: 'rgba(82, 231, 122, 0.2)' }} />
+                          <View style={{ width: 65, height: 65, borderRadius: 14, backgroundColor: 'rgba(82, 231, 122, 0.25)', justifyContent: 'center', alignItems: 'center', borderWidth: 1.2, borderColor: 'rgba(82, 231, 122, 0.4)', shadowColor: 'rgba(82, 231, 122, 0.5)', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.35, shadowRadius: 7 }}>
+                            <MaterialCommunityIcons name="shield-account" size={33} color="#52e77a" />
+                          </View>
+                        </View>
+
+                        <View style={{ alignItems: 'center', gap: 7 }}>
+                          <Text style={{ fontSize: 10, fontWeight: '900', color: 'rgba(255,255,255,0.7)', letterSpacing: 1.4 }}>TRANSRENTALS</Text>
+                          <View style={{ alignItems: 'center', gap: 0 }}>
+                            <Text style={{ fontSize: 22, fontWeight: '900', color: '#fff', textAlign: 'center', letterSpacing: 0.8, lineHeight: 24 }}>TRUSTED</Text>
+                            <Text style={{ fontSize: 22, fontWeight: '900', color: '#52e77a', textAlign: 'center', letterSpacing: 0.8, lineHeight: 24 }}>DRIVER</Text>
+                          </View>
+                          <View style={{ width: 32, height: 1.2, backgroundColor: 'rgba(82, 231, 122, 0.6)', marginTop: 2 }} />
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: '#fff', textAlign: 'center', letterSpacing: 0.2, marginTop: 3 }}>{driver?.name}</Text>
+                          {driverId && (
+                            <View style={{ backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 9, borderWidth: 0.8, borderColor: 'rgba(82, 231, 122, 0.3)', marginTop: 5 }}>
+                              <Text style={{ fontSize: 10, fontWeight: '900', color: '#52e77a', letterSpacing: 1.3 }}>{driverId.toUpperCase()}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Bottom section */}
+                    <View style={{ alignItems: 'center', gap: 8, paddingTop: 10, borderTopWidth: 1.2, borderTopColor: 'rgba(255,255,255,0.15)' }}>
+                      <Text style={{ fontSize: 9.5, fontWeight: '700', color: 'rgba(255,255,255,0.5)', letterSpacing: 1 }}>Tap to flip</Text>
+                      <View style={{ flexDirection: 'row', gap: 2.5 }}>
+                        <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: 'rgba(82, 231, 122, 0.6)' }} />
+                        <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: 'rgba(82, 231, 122, 0.4)' }} />
+                        <View style={{ width: 2, height: 2, borderRadius: 1, backgroundColor: 'rgba(82, 231, 122, 0.2)' }} />
+                      </View>
+                    </View>
+                  </LinearGradient>
+
+                  {/* BACK */}
+                  <LinearGradient
+                    colors={['#064E3B', '#0a3d31']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={{
+                      position: 'absolute',
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: 24,
+                      paddingHorizontal: 15,
+                      paddingVertical: 14,
+                      justifyContent: 'space-between',
+                      opacity: isFlipped ? 1 : 0,
+                      transform: [{ rotateY: '180deg' }],
+                    }}
+                  >
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottomWidth: 1.2, borderBottomColor: 'rgba(255,255,255,0.12)', marginBottom: 12 }}>
+                        <Text style={{ fontSize: 7.5, fontWeight: '800', color: 'rgba(255,255,255,0.55)', letterSpacing: 1.8 }}>TRANSRENTALS</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: driver?.status === 'ACTIVE' ? 'rgba(34, 197, 94, 0.18)' : 'rgba(239, 68, 68, 0.18)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14, borderWidth: 1, borderColor: driver?.status === 'ACTIVE' ? 'rgba(34, 197, 94, 0.35)' : 'rgba(239, 68, 68, 0.35)' }}>
+                          <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: driver?.status === 'ACTIVE' ? '#22c55e' : '#ef4444' }} />
+                          <Text style={{ fontSize: 9, fontWeight: '800', color: driver?.status === 'ACTIVE' ? '#22c55e' : '#ef4444', letterSpacing: 0.8 }}>{driver?.status}</Text>
+                        </View>
+                      </View>
+
+                      {/* Profile strip */}
+                      <View style={{ flexDirection: 'row', gap: 12, paddingVertical: 11, paddingHorizontal: 1, borderBottomWidth: 1.2, borderBottomColor: 'rgba(255,255,255,0.12)', marginBottom: 12, backgroundColor: 'rgba(6, 95, 70, 0.25)', borderRadius: 8 }}>
+                        <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#1FC77A', justifyContent: 'center', alignItems: 'center', shadowColor: '#1FC77A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 5 }}>
+                          <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900' }}>{driver?.name?.charAt(0).toUpperCase()}</Text>
+                        </View>
+                        <View style={{ flex: 1, justifyContent: 'center' }}>
+                          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '800', marginBottom: 4, letterSpacing: 0.3 }}>{driver?.name}</Text>
+                          {driverId && (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(82, 231, 122, 0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 1.2, borderColor: 'rgba(82, 231, 122, 0.3)', alignSelf: 'flex-start', marginTop: 6 }}>
+                              <MaterialCommunityIcons name="shield-check" size={10} color="#52e77a" />
+                              <Text style={{ fontSize: 10, fontWeight: '900', color: '#52e77a', letterSpacing: 1.2 }}>{driverId.toUpperCase()}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+
+                      {/* Details */}
+                      <View style={{ gap: 7 }}>
+                        <View style={{ backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
+                          <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>PHONE</Text>
+                          <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff' }}>{driver?.phone || '—'}</Text>
+                        </View>
+
+                        <View style={{ backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
+                          <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>EMAIL</Text>
+                          <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff', numberOfLines: 1 }}>{driver?.email || '—'}</Text>
+                        </View>
+
+                        <View style={{ backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
+                          <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>LOCATION</Text>
+                          <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff' }}>{[driver?.city, driver?.state].filter(Boolean).join(', ') || '—'}</Text>
+                        </View>
+
+                        <View style={{ backgroundColor: 'rgba(82, 231, 122, 0.08)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 9, borderLeftWidth: 2.5, borderLeftColor: '#52e77a' }}>
+                          <Text style={{ fontSize: 6.5, fontWeight: '900', color: '#52e77a', letterSpacing: 1.1, marginBottom: 3 }}>LICENSE</Text>
+                          <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#fff', marginBottom: 4 }}>{driver?.licenseNumber || '—'}</Text>
+                          <Text style={{ fontSize: 8, fontWeight: '700', color: 'rgba(255,255,255,0.7)' }}>
+                            Expires: {driver?.licenseExpiry ? new Date(driver.licenseExpiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                          </Text>
+                        </View>
+                      </View>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 1, borderTopWidth: 1.2, borderTopColor: 'rgba(255,255,255,0.12)' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: driver?.status === 'ACTIVE' ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: driver?.status === 'ACTIVE' ? 'rgba(34, 197, 94, 0.25)' : 'rgba(239, 68, 68, 0.25)' }}>
+                        {driver?.status === 'ACTIVE' ? (
+                          <MaterialCommunityIcons name="check-circle-outline" size={12} color="#22c55e" />
+                        ) : (
+                          <MaterialCommunityIcons name="alert-circle-outline" size={12} color="#ef4444" />
+                        )}
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: driver?.status === 'ACTIVE' ? '#22c55e' : '#ef4444', letterSpacing: 0.3 }}>{driver?.status === 'ACTIVE' ? 'Verified Driver' : 'Inactive'}</Text>
+                      </View>
+                      {driver?.createdAt && (
+                        <Text style={{ fontSize: 8, fontWeight: '600', color: 'rgba(255,255,255,0.4)' }}>Since {new Date(driver.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</Text>
+                      )}
+                    </View>
+                    </View>
+                  </LinearGradient>
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+
+              <TouchableOpacity onPress={() => setShowCardModal(false)} style={{ marginTop: 16, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12 }}>
+                <Text style={{ color: '#fff', textAlign: 'center', fontWeight: '600', fontSize: 12 }}>Close</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={{ flex: 1 }} onPress={() => setShowCardModal(false)} />
+          </View>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }

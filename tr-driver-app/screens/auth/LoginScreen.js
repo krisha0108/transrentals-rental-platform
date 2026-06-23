@@ -9,6 +9,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { getMessaging, getToken } from '@react-native-firebase/messaging';
 import { loginDriver, setDriverToken } from '../api/client';
 import { useAuth } from '../../contexts/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 const APP_LOGO = require('../../assets/driver_logo.png');
@@ -40,6 +41,10 @@ export default function LoginScreen({ navigation }) {
       const res = await loginDriver(email.trim(), password, fcmToken);
       if (res.data.success) {
         await setDriverToken(res.data.token);
+        // Store driver ID if available
+        if (res.data.driver?.did) {
+          await AsyncStorage.setItem('driver_id', res.data.driver.did);
+        }
         await signIn(res.data.driver, res.data.token);
         navigation.replace('Main');
       } else {

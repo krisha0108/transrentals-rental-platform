@@ -25,6 +25,7 @@ export async function GET(
       where: { id },
       include: {
         vendor_documents: {
+          orderBy: { createdAt: 'desc' },
           include: {
             admin_users: {
               select: { id: true, name: true, email: true },
@@ -33,18 +34,18 @@ export async function GET(
               select: { id: true, name: true, role: true },
             },
           },
-          orderBy: { createdAt: 'desc' },
         },
         vendor_service_requests: {
+          orderBy: { createdAt: 'desc' },
           include: {
             services: true,
             admin_users: {
               select: { id: true, name: true },
             },
           },
-          orderBy: { createdAt: 'desc' },
         },
         vendor_location_requests: {
+          orderBy: { createdAt: 'desc' },
           include: {
             locations: {
               select: {
@@ -61,7 +62,6 @@ export async function GET(
               select: { id: true, name: true },
             },
           },
-          orderBy: { createdAt: 'desc' },
         },
         vendor_approved_services: {
           include: {
