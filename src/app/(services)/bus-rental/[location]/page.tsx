@@ -68,7 +68,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`bus-rental:${params.location}`),
+    resolvePageMeta(`bus-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('bus-rental', params.location),
   ]);
   return {
@@ -82,13 +82,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `mini bus rental ${locationName}`,
     ],
     alternates: {
-      canonical: `https://transrentals.in/bus-rental/${params.location}`,
+      canonical: `https://transrentals.in/bus-rental/${params.location.toLowerCase()}`,
     },
     openGraph: {
       title: `Bus Rental in ${locationName} | TransRentals`,
       description: `Hire buses and tempo travellers in ${locationName}. AC/Non-AC options for pilgrimages, weddings, and corporate events. 500+ verified operators.`,
       type: 'website',
-      url: `https://transrentals.in/bus-rental/${params.location}`,
+      url: `https://transrentals.in/bus-rental/${params.location.toLowerCase()}`,
       images: [
         {
           url: `https://transrentals.in/api/og?service=bus-rental&location=${encodeURIComponent(locationName)}`,
@@ -131,7 +131,7 @@ export default async function BusLocationPage({ params }: PageProps) {
           </div>
           <ComingSoonHero
             city={cityName}
-            citySlug={params.location}
+            citySlug={params.location.toLowerCase()}
             serviceSlug="bus-rental"
             serviceName="Bus Rental"
             themeColor="blue"
@@ -159,13 +159,13 @@ export default async function BusLocationPage({ params }: PageProps) {
         </div>
         <ComingSoonHero
           city={cityName}
-          citySlug={params.location}
+          citySlug={params.location.toLowerCase()}
           serviceSlug="bus-rental"
           serviceName="Bus Rental"
           themeColor="orange"
         />
         <NearbyActiveCities
-          currentCitySlug={params.location}
+          currentCitySlug={params.location.toLowerCase()}
           serviceSlug="bus-rental"
           serviceName="Bus Rental"
         />
@@ -269,7 +269,7 @@ export default async function BusLocationPage({ params }: PageProps) {
   }
 
   const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`bus-rental:${params.location}`),
+    resolvePageMeta(`bus-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('bus-rental', params.location),
   ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['bus-rental'] || [];
@@ -313,26 +313,26 @@ export default async function BusLocationPage({ params }: PageProps) {
         vehicles={vehicles}
         title={`Available Buses in ${locationName}`}
         location={locationName}
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         serviceSlug="bus-rental"
       />
 
       <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         service="bus-rental"
       />
 
       <ServiceAreasSection
         serviceSlug="bus-rental"
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         cityName={locationName}
         serviceName="Bus Rental"
       />
 
       <CrossServiceLinks
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         cityName={locationName}
         currentServiceSlug="bus-rental"
       />
@@ -346,7 +346,7 @@ export default async function BusLocationPage({ params }: PageProps) {
             '@type': 'LocalBusiness',
             name: `Bus Rental in ${locationName} — TransRentals`,
             description: `Hire buses and tempo travellers in ${locationName}. Mini buses, luxury coaches for pilgrimages, weddings, and corporate events.`,
-            url: `https://transrentals.in/bus-rental/${params.location}`,
+            url: `https://transrentals.in/bus-rental/${params.location.toLowerCase()}`,
             areaServed: { '@type': 'City', name: locationName },
             provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
             priceRange: '₹₹',
@@ -372,7 +372,7 @@ export default async function BusLocationPage({ params }: PageProps) {
             itemListElement: [
               { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
               { '@type': 'ListItem', position: 2, name: 'Bus Rental', item: 'https://transrentals.in/bus-rental' },
-              { '@type': 'ListItem', position: 3, name: `Bus Rental in ${locationName}`, item: `https://transrentals.in/bus-rental/${params.location}` },
+              { '@type': 'ListItem', position: 3, name: `Bus Rental in ${locationName}`, item: `https://transrentals.in/bus-rental/${params.location.toLowerCase()}` },
             ],
           }),
         }}
@@ -382,7 +382,7 @@ export default async function BusLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="bus-rental"
         parentName="Bus Rental"
         currentSlug="bus-rental"

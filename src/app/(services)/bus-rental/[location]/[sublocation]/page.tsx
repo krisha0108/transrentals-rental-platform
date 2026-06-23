@@ -30,12 +30,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title,
     description,
-    alternates: { canonical: `https://transrentals.in/bus-rental/${params.location}/${params.sublocation}` },
+    alternates: { canonical: `https://transrentals.in/bus-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}` },
     openGraph: {
       title: `Bus Rental in ${sl.name}, ${cityName} | TransRentals`,
       description,
       type: 'website',
-      url: `https://transrentals.in/bus-rental/${params.location}/${params.sublocation}`,
+      url: `https://transrentals.in/bus-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
       images: [{ url: `https://transrentals.in/api/og?service=bus-rental&location=${encodeURIComponent(cityName)}`, width: 1200, height: 630 }],
       locale: 'en_IN',
       siteName: 'TransRentals',
@@ -77,7 +77,7 @@ export default function BusSubLocationPage({ params }: PageProps) {
             <span className="mx-2">/</span>
             <a href="/bus-rental" className="hover:text-primary">Bus Rental</a>
             <span className="mx-2">/</span>
-            <a href={`/bus-rental/${params.location}`} className="hover:text-primary">{cityName}</a>
+            <a href={`/bus-rental/${params.location.toLowerCase()}`} className="hover:text-primary">{cityName}</a>
             <span className="mx-2">/</span>
             <span className="text-gray-900 font-medium">{sl.name}</span>
           </nav>
@@ -96,7 +96,7 @@ export default function BusSubLocationPage({ params }: PageProps) {
           <p className="text-lg text-gray-600 mb-6 max-w-2xl">{sl.description}</p>
           <div className="flex flex-wrap gap-4">
             <Link
-              href={`/bus-rental/${params.location}`}
+              href={`/bus-rental/${params.location.toLowerCase()}`}
               className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:border-indigo-600 hover:text-indigo-700 transition-colors"
             >
               All Bus Rentals in {cityName}
@@ -178,11 +178,11 @@ export default function BusSubLocationPage({ params }: PageProps) {
           <div className="container-custom max-w-4xl">
             <h2 className="text-lg font-bold text-gray-800 mb-4">Bus Rental in Other Areas of {cityName}</h2>
             <div className="flex flex-wrap gap-3">
-              <Link href={`/bus-rental/${params.location}`} className="inline-flex items-center gap-1 px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-medium hover:bg-indigo-700 transition-colors">
+              <Link href={`/bus-rental/${params.location.toLowerCase()}`} className="inline-flex items-center gap-1 px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-medium hover:bg-indigo-700 transition-colors">
                 ← All Bus Rentals in {cityName}
               </Link>
               {siblings.map((s) => (
-                <Link key={s.slug} href={`/bus-rental/${params.location}/${s.slug}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-full text-sm font-medium hover:border-indigo-600 hover:text-indigo-700 transition-colors">
+                <Link key={s.slug} href={`/bus-rental/${params.location.toLowerCase()}/${s.slug}`} className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-full text-sm font-medium hover:border-indigo-600 hover:text-indigo-700 transition-colors">
                   {s.name}
                 </Link>
               ))}
@@ -196,7 +196,7 @@ export default function BusSubLocationPage({ params }: PageProps) {
         '@context': 'https://schema.org', '@type': 'LocalBusiness',
         name: `Bus Rental in ${sl.name}, ${cityName} — TransRentals`,
         description: sl.description,
-        url: `https://transrentals.in/bus-rental/${params.location}/${params.sublocation}`,
+        url: `https://transrentals.in/bus-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}`,
         areaServed: { '@type': 'Place', name: `${sl.name}, ${cityName}`, addressCountry: 'IN' },
         provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
         priceRange: '₹₹',
@@ -206,8 +206,8 @@ export default function BusSubLocationPage({ params }: PageProps) {
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
           { '@type': 'ListItem', position: 2, name: 'Bus Rental', item: 'https://transrentals.in/bus-rental' },
-          { '@type': 'ListItem', position: 3, name: `Bus Rental in ${cityName}`, item: `https://transrentals.in/bus-rental/${params.location}` },
-          { '@type': 'ListItem', position: 4, name: `Bus Rental in ${sl.name}`, item: `https://transrentals.in/bus-rental/${params.location}/${params.sublocation}` },
+          { '@type': 'ListItem', position: 3, name: `Bus Rental in ${cityName}`, item: `https://transrentals.in/bus-rental/${params.location.toLowerCase()}` },
+          { '@type': 'ListItem', position: 4, name: `Bus Rental in ${sl.name}`, item: `https://transrentals.in/bus-rental/${params.location.toLowerCase()}/${params.sublocation.toLowerCase()}` },
         ],
       })}} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({

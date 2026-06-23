@@ -137,7 +137,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`outstation-cab:${params.location}`),
+    resolvePageMeta(`outstation-cab:${params.location.toLowerCase()}`),
     getServiceCityContent('outstation-cab', params.location),
   ]);
   return {
@@ -157,10 +157,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `Outstation Cab from ${locationName} - Intercity Taxi @₹12/Km`,
       description: `Book outstation cabs from ${locationName}. Round trip & one-way options available.`,
-      url: `https://transrentals.in/outstation-cab/${params.location}`,
+      url: `https://transrentals.in/outstation-cab/${params.location.toLowerCase()}`,
     },
     alternates: {
-      canonical: `https://transrentals.in/outstation-cab/${params.location}`,
+      canonical: `https://transrentals.in/outstation-cab/${params.location.toLowerCase()}`,
     },
     twitter: {
       card: 'summary_large_image' as const,
@@ -179,7 +179,7 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
           serviceName="Outstation Cab"
           serviceSlug="outstation-cab"
           locationName={slugToRouteLabel(params.location)}
-          locationSlug={params.location}
+          locationSlug={params.location.toLowerCase()}
         />
       );
     }
@@ -238,7 +238,7 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
       {/* Booking Hero - Same as Car Rental */}
       <CarRentalBookingHero
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         serviceSlug="car-rental"
         serviceTitle="Outstation Cab"
       />
@@ -390,7 +390,7 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="outstation-cab"
               cityName={locationName}
               stateCode={city?.stateCode}
@@ -426,7 +426,7 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="car-rental"
         parentName="Car Rental with Driver"
         currentSlug="outstation-cab"

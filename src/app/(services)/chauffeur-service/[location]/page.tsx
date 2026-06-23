@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`chauffeur-service:${params.location}`),
+    resolvePageMeta(`chauffeur-service:${params.location.toLowerCase()}`),
     getServiceCityContent('chauffeur-service', params.location),
   ]);
   return {
@@ -61,10 +61,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `Chauffeur Service in ${locationName} - Driver on Hire @₹599`,
       description: `Book professional chauffeur in ${locationName}. Verified drivers for daily & outstation.`,
-      url: `https://transrentals.in/chauffeur-service/${params.location}`,
+      url: `https://transrentals.in/chauffeur-service/${params.location.toLowerCase()}`,
     },
     alternates: {
-      canonical: `https://transrentals.in/chauffeur-service/${params.location}`,
+      canonical: `https://transrentals.in/chauffeur-service/${params.location.toLowerCase()}`,
     },
     twitter: {
       card: 'summary_large_image' as const,
@@ -158,7 +158,7 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
       {/* Booking Hero - Same as Car Rental */}
       <CarRentalBookingHero
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         serviceSlug="car-rental"
         serviceTitle="Chauffeur Service"
       />
@@ -308,7 +308,7 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="chauffeur-service"
               cityName={locationName}
               stateCode={city?.stateCode}
@@ -344,7 +344,7 @@ export default async function ChauffeurServiceLocationPage({ params }: PageProps
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="car-rental"
         parentName="Car Rental with Driver"
         currentSlug="chauffeur-service"

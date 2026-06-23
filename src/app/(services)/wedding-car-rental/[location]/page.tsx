@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`wedding-car-rental:${params.location}`),
+    resolvePageMeta(`wedding-car-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('wedding-car-rental', params.location),
   ]);
   return {
@@ -63,10 +63,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `Wedding Car Rental in ${locationName} - Shadi Car @₹2999`,
       description: `Premium wedding cars in ${locationName}. Baraat, bride & groom cars with decoration.`,
-      url: `https://transrentals.in/wedding-car-rental/${params.location}`,
+      url: `https://transrentals.in/wedding-car-rental/${params.location.toLowerCase()}`,
     },
     alternates: {
-      canonical: `https://transrentals.in/wedding-car-rental/${params.location}`,
+      canonical: `https://transrentals.in/wedding-car-rental/${params.location.toLowerCase()}`,
     },
     twitter: {
       card: 'summary_large_image' as const,
@@ -93,7 +93,7 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
   ];
 
   const [seoData, luxuryFleet, scContent] = await Promise.all([
-    resolvePageMeta(`wedding-car-rental:${params.location}`),
+    resolvePageMeta(`wedding-car-rental:${params.location.toLowerCase()}`),
     prisma.vehicle_models.findMany({
       where: {
         isActive: true,
@@ -119,7 +119,7 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
 
   return (
     <>
-      <SpecialtyCarBookingHero service="wedding" city={locationName} citySlug={params.location} />
+      <SpecialtyCarBookingHero service="wedding" city={locationName} citySlug={params.location.toLowerCase()} />
 
       {/* Why Wedding Cars in This City */}
       <section className="py-16 bg-white">
@@ -256,7 +256,7 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="wedding-car-rental"
               cityName={locationName}
               stateCode={city?.stateCode}
@@ -292,7 +292,7 @@ export default async function WeddingCarRentalLocationPage({ params }: PageProps
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="luxury-car-rental"
         parentName="Luxury Car Rental"
         currentSlug="wedding-car-rental"

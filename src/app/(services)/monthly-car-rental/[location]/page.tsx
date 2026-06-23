@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`monthly-car-rental:${params.location}`),
+    resolvePageMeta(`monthly-car-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('monthly-car-rental', params.location),
   ]);
   return {
@@ -61,10 +61,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `Monthly Car Rental in ${locationName} - Car Subscription @₹12k`,
       description: `Subscribe to cars monthly in ${locationName}. All-inclusive packages available.`,
-      url: `https://transrentals.in/monthly-car-rental/${params.location}`,
+      url: `https://transrentals.in/monthly-car-rental/${params.location.toLowerCase()}`,
     },
     alternates: {
-      canonical: `https://transrentals.in/monthly-car-rental/${params.location}`,
+      canonical: `https://transrentals.in/monthly-car-rental/${params.location.toLowerCase()}`,
     },
     twitter: {
       card: 'summary_large_image' as const,
@@ -83,7 +83,7 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
 
   const locationName = city.name;
 
-  const seoData = await resolvePageMeta(`monthly-car-rental:${params.location}`);
+  const seoData = await resolvePageMeta(`monthly-car-rental:${params.location.toLowerCase()}`);
 
   const pageFaqs = [
     { question: 'What is included in the monthly car rental plan?', answer: 'Monthly car rental includes the car, driver (if applicable), insurance, maintenance, and a fixed km allowance per month. Fuel is extra.' },
@@ -143,7 +143,7 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
 
       <CarRentalBookingHero
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         serviceSlug="car-rental"
         serviceTitle="Monthly Car Rental"
       />
@@ -263,7 +263,7 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="monthly-car-rental"
               cityName={locationName}
               stateCode={city?.stateCode}
@@ -299,7 +299,7 @@ export default async function MonthlyCarRentalLocationPage({ params }: PageProps
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="car-rental"
         parentName="Car Rental with Driver"
         currentSlug="monthly-car-rental"

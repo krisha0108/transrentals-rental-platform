@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`one-way-car-rental:${params.location}`),
+    resolvePageMeta(`one-way-car-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('one-way-car-rental', params.location),
   ]);
   return {
@@ -58,10 +58,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `One Way Car Rental from ${locationName} - Starting @₹1299`,
       description: `Rent a car in ${locationName} and drop it at a different city. No return trip required.`,
-      url: `https://transrentals.in/one-way-car-rental/${params.location}`,
+      url: `https://transrentals.in/one-way-car-rental/${params.location.toLowerCase()}`,
     },
     alternates: {
-      canonical: `https://transrentals.in/one-way-car-rental/${params.location}`,
+      canonical: `https://transrentals.in/one-way-car-rental/${params.location.toLowerCase()}`,
     },
     twitter: {
       card: 'summary_large_image' as const,
@@ -158,7 +158,7 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
       {/* Booking Hero - Same as Car Rental */}
       <CarRentalBookingHero
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         serviceSlug="car-rental"
         serviceTitle="One Way Car Rental"
       />
@@ -247,7 +247,7 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
               {popularRoutes.map((route) => (
                 <a
                   key={route.toSlug}
-                  href={`/one-way-cab/${params.location}-to-${route.toSlug}`}
+                  href={`/one-way-cab/${params.location.toLowerCase()}-to-${route.toSlug}`}
                   className={`group flex items-center justify-between bg-gray-50 hover:bg-green-50 border-2 p-4 rounded-xl transition ${route.isPopular ? 'border-green-300' : 'border-gray-200 hover:border-green-200'}`}
                 >
                   <div>
@@ -352,7 +352,7 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="one-way-car-rental"
               cityName={locationName}
               stateCode={city?.stateCode}
@@ -388,7 +388,7 @@ export default async function OneWayCarRentalLocationPage({ params }: PageProps)
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="car-rental"
         parentName="Car Rental with Driver"
         currentSlug="one-way-car-rental"

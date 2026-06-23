@@ -40,7 +40,7 @@ export async function generateMetadata({
     title: `#${tag.name} - Travel Reflections | TransRentals`,
     description: `Browse all blog posts tagged with #${tag.name}. Discover travel guides, tips, and itineraries related to ${tag.name}.`,
     alternates: {
-      canonical: `https://transrentals.in/blog/tag/${params.slug}`,
+      canonical: `https://transrentals.in/blog/tag/${params.slug.toLowerCase()}`,
     },
     openGraph: {
       title: `#${tag.name} - TransRentals Reflections`,
@@ -158,7 +158,7 @@ export default async function TagPage({ params, searchParams }: TagPageProps) {
 
                   {meta.totalPages > 1 && (
                     <div className="mt-10 pt-6 border-t border-gray-200">
-                      <Pagination meta={meta} basePath={`/blog/tag/${params.slug}`} />
+                      <Pagination meta={meta} basePath={`/blog/tag/${params.slug.toLowerCase()}`} />
                     </div>
                   )}
                 </>

@@ -73,7 +73,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`equipment-rental:${params.location}`),
+    resolvePageMeta(`equipment-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('equipment-rental', params.location),
   ]);
   return {
@@ -86,12 +86,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       `crane rental ${locationName}`,
       `generator rental ${locationName}`,
     ],
-    alternates: { canonical: `https://transrentals.in/equipment-rental/${params.location}` },
+    alternates: { canonical: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}` },
     openGraph: {
       title: `Equipment Rental in ${locationName} | TransRentals`,
       description: `Rent construction and event equipment in ${locationName}. Excavators, cranes, generators, DJ systems. Verified operators available.`,
       type: 'website',
-      url: `https://transrentals.in/equipment-rental/${params.location}`,
+      url: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}`,
       images: [{ url: `https://transrentals.in/api/og?service=equipment-rental&location=${encodeURIComponent(locationName)}`, width: 1200, height: 630, alt: `Equipment Rental in ${locationName}` }],
       locale: 'en_IN',
       siteName: 'TransRentals',
@@ -125,7 +125,7 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
           </div>
           <ComingSoonHero
             city="Equipment Rental"
-            citySlug={params.location}
+            citySlug={params.location.toLowerCase()}
             serviceSlug="equipment-rental"
             serviceName="Equipment Rental"
             themeColor="blue"
@@ -153,13 +153,13 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
         </div>
         <ComingSoonHero
           city={cityName}
-          citySlug={params.location}
+          citySlug={params.location.toLowerCase()}
           serviceSlug="equipment-rental"
           serviceName="Equipment Rental"
           themeColor="cyan"
         />
         <NearbyActiveCities
-          currentCitySlug={params.location}
+          currentCitySlug={params.location.toLowerCase()}
           serviceSlug="equipment-rental"
           serviceName="Equipment Rental"
         />
@@ -292,7 +292,7 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
   const vehicles = dbVehicles;
 
   const [seoData, scContent] = await Promise.all([
-    resolvePageMeta(`equipment-rental:${params.location}`),
+    resolvePageMeta(`equipment-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('equipment-rental', params.location),
   ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['equipment-rental'] || [];
@@ -337,26 +337,26 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
       <VehicleGrid
         vehicles={vehicles}
         title={`Available Equipment in ${locationName}`}
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         serviceSlug="equipment-rental"
       />
 
       <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         service="equipment-rental"
       />
 
       <ServiceAreasSection
         serviceSlug="equipment-rental"
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         cityName={locationName}
         serviceName="Equipment Rental"
       />
 
       <CrossServiceLinks
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         cityName={locationName}
         currentServiceSlug="equipment-rental"
       />
@@ -365,7 +365,7 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="equipment-rental"
         parentName="Equipment Rental"
         currentSlug="equipment-rental"
@@ -384,7 +384,7 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
             '@type': 'LocalBusiness',
             name: `Equipment Rental in ${locationName} — TransRentals`,
             description: `Construction and heavy equipment rental in ${locationName}. JCB, cranes, excavators, generators with certified operators.`,
-            url: `https://transrentals.in/equipment-rental/${params.location}`,
+            url: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}`,
             areaServed: { '@type': 'City', name: locationName, addressCountry: 'IN' },
             provider: { '@type': 'Organization', name: 'TransRentals', url: 'https://transrentals.in' },
             priceRange: '₹₹',
@@ -398,7 +398,7 @@ export default async function EquipmentLocationPage({ params }: PageProps) {
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
           { '@type': 'ListItem', position: 2, name: 'Equipment Rental', item: 'https://transrentals.in/equipment-rental' },
-          { '@type': 'ListItem', position: 3, name: `Equipment Rental in ${locationName}`, item: `https://transrentals.in/equipment-rental/${params.location}` },
+          { '@type': 'ListItem', position: 3, name: `Equipment Rental in ${locationName}`, item: `https://transrentals.in/equipment-rental/${params.location.toLowerCase()}` },
         ],
       })}} />
       <script

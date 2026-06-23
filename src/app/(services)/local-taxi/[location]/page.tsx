@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`local-taxi:${params.location}`),
+    resolvePageMeta(`local-taxi:${params.location.toLowerCase()}`),
     getServiceCityContent('local-taxi', params.location),
   ]);
   return {
@@ -72,10 +72,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `Local Taxi in ${locationName} - Hourly Cab @₹399`,
       description: `Book hourly taxi in ${locationName}. 4hr, 8hr, 12hr packages available.`,
-      url: `https://transrentals.in/local-taxi/${params.location}`,
+      url: `https://transrentals.in/local-taxi/${params.location.toLowerCase()}`,
     },
     alternates: {
-      canonical: `https://transrentals.in/local-taxi/${params.location}`,
+      canonical: `https://transrentals.in/local-taxi/${params.location.toLowerCase()}`,
     },
     twitter: {
       card: 'summary_large_image' as const,
@@ -96,7 +96,7 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
           serviceName="Local Taxi"
           serviceSlug="local-taxi"
           locationName={cityName}
-          locationSlug={params.location}
+          locationSlug={params.location.toLowerCase()}
         />
       );
     }
@@ -171,7 +171,7 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
       {/* Booking Hero - Same as Car Rental */}
       <CarRentalBookingHero
         city={locationName}
-        citySlug={params.location}
+        citySlug={params.location.toLowerCase()}
         serviceSlug="car-rental"
         serviceTitle="Local Taxi"
       />
@@ -319,7 +319,7 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="local-taxi"
               cityName={locationName}
               stateCode={city?.stateCode}
@@ -355,7 +355,7 @@ export default async function LocalTaxiLocationPage({ params }: PageProps) {
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="car-rental"
         parentName="Car Rental with Driver"
         currentSlug="local-taxi"

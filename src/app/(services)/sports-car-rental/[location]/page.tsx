@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`sports-car-rental:${params.location}`),
+    resolvePageMeta(`sports-car-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('sports-car-rental', params.location),
   ]);
   return {
@@ -60,10 +60,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `Sports Car Rental in ${locationName} - Ferrari, Lamborghini @₹25k`,
       description: `Rent exotic supercars in ${locationName}. Ultimate luxury sports car experience.`,
-      url: `https://transrentals.in/sports-car-rental/${params.location}`,
+      url: `https://transrentals.in/sports-car-rental/${params.location.toLowerCase()}`,
     },
     alternates: {
-      canonical: `https://transrentals.in/sports-car-rental/${params.location}`,
+      canonical: `https://transrentals.in/sports-car-rental/${params.location.toLowerCase()}`,
     },
     twitter: {
       card: 'summary_large_image' as const,
@@ -82,7 +82,7 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
 
   const locationName = city.name;
 
-  const seoData = await resolvePageMeta(`sports-car-rental:${params.location}`);
+  const seoData = await resolvePageMeta(`sports-car-rental:${params.location.toLowerCase()}`);
 
   const pageFaqs = [
     { question: 'Which sports cars are available for rent?', answer: 'We offer Porsche 911, Lamborghini Huracán, Ferrari California, BMW M3, and Mustang GT — all insured and ready for city and track experiences.' },
@@ -122,7 +122,7 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
 
   return (
     <>
-      <SpecialtyCarBookingHero service="sports" city={locationName} citySlug={params.location} />
+      <SpecialtyCarBookingHero service="sports" city={locationName} citySlug={params.location.toLowerCase()} />
 
       {/* Why Sports Car */}
       <section className="py-16 bg-white">
@@ -239,7 +239,7 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="sports-car-rental"
               cityName={locationName}
               stateCode={city?.stateCode}
@@ -275,7 +275,7 @@ export default async function SportsCarRentalLocationPage({ params }: PageProps)
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="luxury-car-rental"
         parentName="Luxury Car Rental"
         currentSlug="sports-car-rental"

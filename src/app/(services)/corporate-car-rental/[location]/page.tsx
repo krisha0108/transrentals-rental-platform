@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const locationName = city.name;
 
   const [_seoDb, scContent] = await Promise.all([
-    resolvePageMeta(`corporate-car-rental:${params.location}`),
+    resolvePageMeta(`corporate-car-rental:${params.location.toLowerCase()}`),
     getServiceCityContent('corporate-car-rental', params.location),
   ]);
   return {
@@ -60,10 +60,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title: `Corporate Car Rental in ${locationName} - Employee Transport @₹15k`,
       description: `Professional corporate car rental in ${locationName}. Business fleet management.`,
-      url: `https://transrentals.in/corporate-car-rental/${params.location}`,
+      url: `https://transrentals.in/corporate-car-rental/${params.location.toLowerCase()}`,
     },
     alternates: {
-      canonical: `https://transrentals.in/corporate-car-rental/${params.location}`,
+      canonical: `https://transrentals.in/corporate-car-rental/${params.location.toLowerCase()}`,
     },
     twitter: {
       card: 'summary_large_image' as const,
@@ -90,7 +90,7 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
   ];
 
   const [seoData, carServiceId, locationId, scContent] = await Promise.all([
-    resolvePageMeta(`corporate-car-rental:${params.location}`),
+    resolvePageMeta(`corporate-car-rental:${params.location.toLowerCase()}`),
     getCarRentalServiceId(),
     getLocationId(params.location),
     getServiceCityContent('corporate-car-rental', params.location),
@@ -149,7 +149,7 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
         </div>
       </div>
 
-      <SpecialtyCarBookingHero service="corporate" city={locationName} citySlug={params.location} />
+      <SpecialtyCarBookingHero service="corporate" city={locationName} citySlug={params.location.toLowerCase()} />
 
       {/* Why Corporate Car */}
       <section className="py-16 bg-white">
@@ -268,7 +268,7 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
       
       {/* DEPRECATED — admin block editor now manages this content
       <CityContentSection
-              citySlug={params.location}
+              citySlug={params.location.toLowerCase()}
               serviceSlug="corporate-car-rental"
               cityName={locationName}
               stateCode={city?.stateCode}
@@ -304,7 +304,7 @@ export default async function CorporateCarRentalLocationPage({ params }: PagePro
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
       <RelatedServices
-        locationSlug={params.location}
+        locationSlug={params.location.toLowerCase()}
         parentSlug="car-rental"
         parentName="Car Rental with Driver"
         currentSlug="corporate-car-rental"
