@@ -493,6 +493,7 @@ export default function DashboardScreen({ navigation }) {
                 <View style={{ marginLeft: 10, flex: 1 }}>
                   <Text style={s.greeting}>Good day 👋</Text>
                   <Text style={s.bizName} numberOfLines={1}>{bizName}</Text>
+                  {profile?.vid && <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 2 }}>ID: {profile.vid}</Text>}
                   {/* Status pill — sits below name, no overlap */}
                   <View style={[s.statusPill, { backgroundColor: stCfg.bg, borderColor: 'rgba(255,255,255,0.25)', alignSelf: 'flex-start', marginTop: 4 }]}>
                     <View style={[s.statusDot, { backgroundColor: stCfg.dot }]} />

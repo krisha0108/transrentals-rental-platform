@@ -5,8 +5,21 @@ import { transformPrismaResponse } from '@/lib/utils/api-transform';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { checkRateLimit, RATE_LIMITS, logger } from '@/lib/security';
+import { generateDid } from '@/lib/utils/generate-did';
 
 export const dynamic = 'force-dynamic';
+
+// Handle CORS
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
 
 // POST - Mobile Login for Vendor App
 export async function POST(request: NextRequest) {
@@ -29,37 +42,53 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { email, password, fcmToken } = body;
+    const { identifier, email, password, fcmToken } = body;
 
-    if (!email || !password) {
+    // Support both identifier (email or VID) and legacy email field
+    const loginIdentifier = identifier || email;
+
+    if (!loginIdentifier || !password) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: 'Email or Vendor ID and password are required' },
         { status: 400 }
       );
     }
 
-    // Find vendor first
-    const vendor = await prisma.vendors.findUnique({
-      where: { email: email.toLowerCase() },
-      select: {
-        id: true,
-        email: true,
-        password: true,
-        phone: true,
-        businessName: true,
-        ownerName: true,
-        status: true,
-        businessType: true,
-        gstNumber: true,
-        panNumber: true,
-        address: true,
-        city: true,
-        state: true,
-        pincode: true,
-        createdAt: true,
-        lastLoginAt: true,
-      },
-    });
+    // Find vendor by VID (vn-0001) or email
+    let vendor;
+    const vendorSelect = {
+      id: true,
+      vid: true,
+      email: true,
+      password: true,
+      phone: true,
+      businessName: true,
+      ownerName: true,
+      status: true,
+      businessType: true,
+      gstNumber: true,
+      panNumber: true,
+      address: true,
+      city: true,
+      state: true,
+      pincode: true,
+      createdAt: true,
+      lastLoginAt: true,
+    };
+
+    if (/^vn-\d+$/i.test(loginIdentifier)) {
+      // Login via Vendor ID
+      vendor = await prisma.vendors.findFirst({
+        where: { vid: loginIdentifier.toLowerCase() },
+        select: vendorSelect,
+      });
+    } else {
+      // Login via email
+      vendor = await prisma.vendors.findUnique({
+        where: { email: loginIdentifier.toLowerCase() },
+        select: vendorSelect,
+      });
+    }
 
     if (vendor) {
       // --- VENDOR LOGIN ---
@@ -105,6 +134,7 @@ export async function POST(request: NextRequest) {
       where: { email: email.toLowerCase() },
       select: {
         id: true,
+        did: true,
         email: true,
         password: true,
         name: true,
@@ -138,6 +168,21 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Your account is inactive. Please contact your vendor admin.' }, { status: 403 });
       }
 
+      // Generate DID if missing (for existing staff)
+      let staffDid = staff.did;
+      if (!staffDid) {
+        try {
+          staffDid = await generateDid();
+          await prisma.vendor_staff.update({
+            where: { id: staff.id },
+            data: { did: staffDid },
+          });
+          logger.info('Generated DID for existing vendor staff', { staffId: staff.id, did: staffDid });
+        } catch (error) {
+          logger.error('Failed to generate DID for vendor staff', error);
+        }
+      }
+
       await prisma.vendor_staff.update({
         where: { id: staff.id },
         data: { lastLoginAt: new Date(), ...(fcmToken ? { fcmToken } : {}) },
@@ -150,12 +195,13 @@ export async function POST(request: NextRequest) {
       );
 
       const { password: __, ...staffData } = staff;
-      logger.info('Staff mobile login successful', { staffId: staff.id, vendorId: staff.vendorId });
+      logger.info('Staff mobile login successful', { staffId: staff.id, vendorId: staff.vendorId, did: staffDid });
 
       return NextResponse.json({
         success: true,
         vendor: {
           ...staffData,
+          did: staffDid,
           businessName: staff.vendors?.businessName,
           ownerName: staff.name,
           userType: 'staff',

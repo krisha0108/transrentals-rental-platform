@@ -318,6 +318,13 @@ export default function StaffDetailScreen({ route, navigation }) {
             </Section>
           )}
 
+          {/* Driver ID */}
+          {staff.role?.toLowerCase() === 'driver' && staff.did && (
+            <Section icon="shield-account" iconLib="mci" color="#0EA5E9" bg="#EFF6FF" title="Driver Identification">
+              <KVRow label="Driver ID" value={staff.did} green last />
+            </Section>
+          )}
+
           {/* Bank */}
           {(staff.bankName || staff.accountNumber) && (
             <Section icon="credit-card" iconLib="mci" color={C.blue} bg={C.blueL} title="Bank Details">

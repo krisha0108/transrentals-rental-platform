@@ -54,7 +54,7 @@ export async function loginTravelAgentDirect(email, password, fcmToken = null) {
   console.log("[TA Login] Attempting login for:", email);
 
   const res = await axios.post(`${baseURL}/api/vendor/auth/mobile-login`, {
-    email,
+    identifier: email,  // Support both email and vendor ID (vn-0001)
     password,
     fcmToken,
   });
@@ -108,7 +108,7 @@ export async function loginUnified(email, password, fcmToken = null) {
   const baseURL = await getBaseURL();
 
   const res = await axios.post(`${baseURL}/api/vendor/auth/mobile-login`, {
-    email,
+    identifier: email,  // Support both email and vendor ID (vn-0001)
     password,
     fcmToken,
   });
@@ -146,7 +146,7 @@ export async function loginUnified(email, password, fcmToken = null) {
       STORAGE_KEYS.AGENT_PHONE,
     ]);
     await AsyncStorage.setItem("vendor", JSON.stringify(vendor));
-    await AsyncStorage.setItem("vendor_id", String(vendor.id));
+    await AsyncStorage.setItem("vendor_id", String(vendor.vid || vendor.id));
     await AsyncStorage.setItem("vendor_email", vendor.email || "");
   }
 

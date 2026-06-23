@@ -9,6 +9,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { registerDriver, setDriverToken } from '../api/client';
 import { useAuth } from '../../contexts/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
@@ -138,6 +139,10 @@ export default function RegisterScreen({ navigation }) {
       });
       if (res.data.success) {
         await setDriverToken(res.data.token);
+        // Store driver ID if available
+        if (res.data.driver?.did) {
+          await AsyncStorage.setItem('driver_id', res.data.driver.did);
+        }
         await signIn(res.data.driver, res.data.token);
         navigation.replace('Main');
       } else {
