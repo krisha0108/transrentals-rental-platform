@@ -8,9 +8,10 @@ import { RelatedPosts } from '@/components/blog/RelatedPosts';
 import { CommentSection } from '@/components/blog/CommentSection';
 import { ShareButtons } from '@/components/blog/ShareButtons';
 import { TableOfContents } from '@/components/blog/TableOfContents';
+import { ReadingProgressBar, ReadingProgressMeter } from '@/components/blog/ReadingProgress';
 import { renderBlogContent } from '@/lib/markdown';
 import { resolveAssetUrl } from '@/lib/utils';
-import { Calendar, Clock, Eye, ArrowLeft, Tag, ChevronRight, Bookmark, Heart } from 'lucide-react';
+import { Calendar, Clock, Eye, Tag, ChevronRight, ArrowRight, Car } from 'lucide-react';
 import { ArticleSchema, BreadcrumbSchema } from '@/components/seo/schemas';
 import { SERVICES } from '@/lib/constants/services';
 
@@ -122,7 +123,10 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const categoryIcon = post.category.icon || '📝';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e]">
+      {/* Reading progress bar (UI only) */}
+      <ReadingProgressBar />
+
       {/* Structured Data */}
       <ArticleSchema
         title={post.seo.title || post.title}
@@ -140,10 +144,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         { name: post.category.name, url: `https://transrentals.in/blog/category/${post.category.slug}` },
         { name: post.title, url: `https://transrentals.in/blog/${post.slug}` },
       ]} />
-      {/* Hero Section */}
-      <div className="relative">
-        {/* Featured Image Hero */}
-        <div className="relative h-[85vh] md:h-[65vh] lg:h-[70vh] overflow-hidden">
+      {/* ===== HERO (full-bleed image + overlay) ===== */}
+      <section className="relative w-full h-[55vh] min-h-[420px] md:h-[500px] flex items-end overflow-hidden">
+        <div className="absolute inset-0">
           {normalizedFeaturedImage && normalizedFeaturedImage !== '/images/blog-default.jpg' ? (
             <Image
               src={normalizedFeaturedImage}
@@ -160,227 +163,243 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 background: `linear-gradient(135deg, ${categoryColor} 0%, ${categoryColor}cc 50%, ${categoryColor}99 100%)`,
               }}
             >
-              <span className="text-[200px] md:text-[300px] opacity-20">
-                {categoryIcon}
-              </span>
+              <span className="text-[160px] md:text-[260px] opacity-20">{categoryIcon}</span>
             </div>
           )}
-
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" />
-
-          {/* Content overlay — top: back button; bottom: post info */}
-          <div className="absolute inset-0 flex flex-col justify-between">
-
-            {/* Back button — sits just below the fixed header */}
-            <div className="container mx-auto px-4 pt-20 md:pt-28">
-              <Link
-                href="/blog"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md text-white rounded-full hover:bg-white/20 transition-all font-medium text-sm"
-              >
-                <ArrowLeft size={18} />
-                <span>Back to Reflections</span>
-              </Link>
-            </div>
-
-            {/* Post info — pinned to bottom */}
-            <div className="container mx-auto px-4 pb-8 md:pb-12">
-              <div className="max-w-4xl space-y-3 md:space-y-4">
-
-                {/* Breadcrumbs */}
-                <nav className="flex items-center gap-2 text-sm text-white/70">
-                  <Link href="/" className="hover:text-white transition-colors">Home</Link>
-                  <ChevronRight size={14} />
-                  <Link href="/blog" className="hover:text-white transition-colors">Reflections</Link>
-                  <ChevronRight size={14} />
-                  <Link
-                    href={`/blog/category/${post.category.slug}`}
-                    className="hover:text-white transition-colors"
-                  >
-                    {post.category.name}
-                  </Link>
-                </nav>
-
-                {/* Category Badge */}
-                <Link
-                  href={`/blog/category/${post.category.slug}`}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold text-white backdrop-blur-sm transition-transform hover:scale-105"
-                  style={{ backgroundColor: `${categoryColor}dd` }}
-                >
-                  <span>{categoryIcon}</span>
-                  {post.category.name}
-                </Link>
-
-                {/* Title */}
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight drop-shadow-lg font-[family-name:var(--font-blog-heading)]">
-                  {post.title}
-                </h1>
-
-                {/* Excerpt — hidden on small screens to save space */}
-                <p className="hidden sm:block text-base md:text-xl text-white/90 max-w-3xl leading-relaxed">
-                  {post.excerpt}
-                </p>
-
-                {/* Meta Info */}
-                <div className="flex flex-wrap items-center gap-4 md:gap-6">
-                  <div className="flex items-center gap-3">
-                    <div className="relative w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden ring-2 ring-white/30 shrink-0">
-                      <Image
-                        src={post.author.avatar}
-                        alt={post.author.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-white text-sm md:text-base">{post.author.name}</div>
-                      <div className="text-xs text-white/70">{post.author.role}</div>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-white/80">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar size={14} />
-                      {new Date(post.publishedAt).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Clock size={14} />
-                      {post.readTime} min read
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Eye size={14} />
-                      {post.views.toLocaleString()} views
-                    </span>
-                  </div>
-                  <div className="flex items-center">
-                    <ShareButtons
-                      url={`https://transrentals.in/blog/${post.slug}`}
-                      title={post.title}
-                      description={post.excerpt}
-                      showLabel={false}
-                    />
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
         </div>
 
-      </div>
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-8 pt-28 pb-10 md:pb-16 text-white">
+          {/* Category pill */}
+          <Link
+            href={`/blog/category/${post.category.slug}`}
+            className="inline-flex items-center gap-2 bg-[#10b981] text-white px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider mb-5 transition-transform hover:scale-105"
+          >
+            <span>{categoryIcon}</span>
+            {post.category.name}
+          </Link>
 
-      {/* Main Content */}
-      <article className="container mx-auto px-4 py-12">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Main Content */}
-            <div className="lg:col-span-8">
-              {/* Article Content */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="p-8 md:p-12">
-                  <div
-                    className="prose prose-lg max-w-none blog-content
-                      [font-family:var(--font-blog-body)] text-gray-800
-                      prose-headings:[font-family:var(--font-blog-heading)] prose-headings:font-bold prose-headings:text-gray-900 prose-headings:tracking-tight
-                      prose-h2:text-[1.85rem] prose-h2:leading-snug prose-h2:mt-12 prose-h2:mb-4 prose-h2:pb-2 prose-h2:border-b prose-h2:border-gray-100
-                      prose-h3:text-[1.45rem] prose-h3:leading-snug prose-h3:mt-9 prose-h3:mb-3
-                      prose-p:text-[1.0625rem] prose-p:leading-[1.85] prose-p:text-gray-700 prose-p:my-5
-                      prose-a:text-emerald-600 prose-a:no-underline hover:prose-a:underline prose-a:font-medium
-                      prose-strong:text-gray-900 prose-strong:font-semibold
-                      prose-ul:my-5 prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-1
-                      prose-ol:my-5 prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-1
-                      prose-li:text-gray-700 prose-li:leading-relaxed
-                      prose-blockquote:border-l-[3px] prose-blockquote:border-emerald-500 prose-blockquote:pl-6 prose-blockquote:my-8 prose-blockquote:italic prose-blockquote:bg-emerald-50/60 prose-blockquote:py-4 prose-blockquote:pr-6 prose-blockquote:rounded-r-xl prose-blockquote:text-gray-600 prose-blockquote:not-italic
-                      prose-code:text-emerald-700 prose-code:bg-emerald-50 prose-code:px-2 prose-code:py-0.5 prose-code:rounded-md prose-code:text-[0.875em] prose-code:font-medium
-                      prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-6 prose-pre:rounded-xl prose-pre:my-6 prose-pre:text-sm
-                      prose-img:rounded-xl prose-img:shadow-md prose-img:my-8
-                      prose-hr:border-gray-200 prose-hr:my-10"
-                    dangerouslySetInnerHTML={{ __html: renderBlogContent(post.content) }}
-                  />
-                </div>
+          {/* Title */}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] font-bold leading-[1.1] tracking-tight max-w-4xl mb-5 drop-shadow-lg font-[family-name:var(--font-blog-heading)]">
+            {post.title}
+          </h1>
 
-                {/* Tags Section */}
-                <div className="px-8 md:px-12 py-6 bg-gray-50 border-t border-gray-100">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Tag size={20} className="text-gray-500" />
-                    <span className="font-semibold text-gray-900">Tags</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {post.tags.map((tag) => (
-                      <Link
-                        key={tag.id}
-                        href={`/blog/tag/${tag.slug}`}
-                        className="px-4 py-2 bg-white text-gray-700 rounded-full text-sm font-medium border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 transition-all"
-                      >
-                        #{tag.name}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-
+          {/* Meta row */}
+          <div className="flex flex-wrap items-center gap-5">
+            <div className="flex items-center gap-3">
+              <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white/30 shrink-0">
+                <Image src={post.author.avatar} alt={post.author.name} fill className="object-cover" />
               </div>
-
-              {/* Author Bio */}
-              <div className="mt-10 bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-                <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <span className="w-1 h-6 bg-emerald-500 rounded-full"></span>
-                  About the Author
-                </h3>
-                <AuthorCard author={post.author} showBio={true} />
-              </div>
-
-
-
-              {/* Explore Our Services */}
-              <div className="my-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">Explore Our Services</h3>
-                    <p className="text-sm text-gray-500 mt-0.5">Book your vehicle for any occasion across India</p>
-                  </div>
-                  <Link
-                    href="/services"
-                    className="text-sm font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1 shrink-0"
-                  >
-                    View all
-                    <ChevronRight size={14} />
-                  </Link>
+              <div>
+                <p className="font-bold text-sm">{post.author.name}</p>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-white/70">
+                  <span className="flex items-center gap-1">
+                    <Calendar size={12} />
+                    {new Date(post.publishedAt).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </span>
+                  <span className="flex items-center gap-1"><Clock size={12} />{post.readTime} min read</span>
+                  <span className="flex items-center gap-1"><Eye size={12} />{post.views.toLocaleString()} views</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-gray-100">
-                  {FEATURED_SERVICES.map((service) => (
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <ShareButtons
+                url={`https://transrentals.in/blog/${post.slug}`}
+                title={post.title}
+                description={post.excerpt}
+                showLabel={false}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== MAIN: sticky sidebar + article ===== */}
+      <main className="max-w-7xl mx-auto px-4 md:px-8 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 py-12 md:py-16">
+        {/* Sidebar */}
+        <aside className="hidden lg:block lg:col-span-3">
+          <div className="sticky top-28 space-y-8">
+            <ReadingProgressMeter />
+            <TableOfContents content={post.content} />
+
+            {/* Glass CTA card */}
+            <div className="relative overflow-hidden rounded-2xl bg-white/70 backdrop-blur-xl border border-white/60 shadow-lg p-6">
+              <h4 className="text-xl font-bold mb-2 text-[#191c1e]">Need a vehicle?</h4>
+              <p className="text-sm text-[#545f73] mb-5">
+                Book from our curated fleet across 150+ cities in India.
+              </p>
+              <Link
+                href="/services"
+                className="block text-center w-full bg-[#10b981] text-white font-bold py-3 rounded-xl hover:bg-[#059669] transition-colors"
+              >
+                Browse Services
+              </Link>
+            </div>
+          </div>
+        </aside>
+
+        {/* Article */}
+        <article className="lg:col-span-9 max-w-[850px] min-w-0">
+          {/* ===== Article content box ===== */}
+          <div className="relative bg-white rounded-3xl shadow-[0_20px_50px_-12px_rgba(16,185,129,0.12)] border border-[#d1fae5]/60 ring-1 ring-black/[0.03] overflow-hidden">
+            {/* Top accent bar */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#10b981] via-[#34d399] to-[#10b981]" />
+            {/* Content — render UNCHANGED */}
+            <div className="p-6 sm:p-8 md:p-10 lg:p-12">
+              <div
+                className="prose prose-lg max-w-none blog-content
+                  [font-family:var(--font-blog-body)] text-[#545f73]
+                  prose-headings:[font-family:var(--font-blog-heading)] prose-headings:font-bold prose-headings:text-[#191c1e] prose-headings:tracking-tight
+                  prose-h2:text-3xl prose-h2:leading-snug prose-h2:mt-12 prose-h2:mb-5 prose-h2:pb-3 prose-h2:border-b-2 prose-h2:border-[#d1fae5]
+                  prose-h3:text-2xl prose-h3:leading-snug prose-h3:mt-9 prose-h3:mb-3 prose-h3:text-[#065f46]
+                  prose-p:text-[1.125rem] prose-p:leading-[1.8] prose-p:text-[#545f73] prose-p:my-6
+                  prose-a:text-[#047857] prose-a:no-underline hover:prose-a:underline prose-a:font-semibold
+                  prose-strong:text-[#191c1e] prose-strong:font-semibold
+                  prose-ul:my-6 prose-ul:list-disc prose-ul:pl-6 prose-ul:space-y-2
+                  prose-ol:my-6 prose-ol:list-decimal prose-ol:pl-6 prose-ol:space-y-2
+                  prose-li:text-[#545f73] prose-li:text-[1.125rem] prose-li:leading-relaxed
+                  prose-blockquote:border-l-4 prose-blockquote:border-[#10b981] prose-blockquote:bg-[#ecfdf5] prose-blockquote:rounded-r-2xl prose-blockquote:pl-6 prose-blockquote:pr-6 prose-blockquote:my-8 prose-blockquote:py-5 prose-blockquote:text-xl prose-blockquote:text-[#065f46] prose-blockquote:font-medium prose-blockquote:not-italic
+                  prose-code:text-[#047857] prose-code:bg-[#10b981]/10 prose-code:px-2 prose-code:py-0.5 prose-code:rounded-md prose-code:text-[0.875em] prose-code:font-medium
+                  prose-pre:bg-[#2d3133] prose-pre:text-gray-100 prose-pre:p-6 prose-pre:rounded-2xl prose-pre:my-8 prose-pre:text-sm
+                  prose-img:rounded-2xl prose-img:shadow-md prose-img:my-8
+                  prose-hr:border-[#d1fae5]/40 prose-hr:my-10"
+                dangerouslySetInnerHTML={{ __html: renderBlogContent(post.content) }}
+              />
+            </div>
+
+            {/* Tags footer (inside box) */}
+            {post.tags.length > 0 && (
+              <div className="px-6 sm:px-8 md:px-10 py-6 bg-[#f7f9fb] border-t border-[#d1fae5]/40">
+                <div className="flex items-center gap-2 mb-4">
+                  <Tag size={18} className="text-[#545f73]" />
+                  <span className="font-semibold text-[#191c1e] text-sm">Tags</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {post.tags.map((tag) => (
                     <Link
-                      key={service.slug}
-                      href={service.base_url}
-                      className="group bg-white p-4 hover:bg-emerald-50 transition-colors"
+                      key={tag.id}
+                      href={`/blog/tag/${tag.slug}`}
+                      className="px-4 py-2 bg-white text-[#545f73] rounded-full text-sm font-medium border border-[#d1fae5]/60 hover:border-[#10b981] hover:text-[#047857] transition-all"
                     >
-                      <div className="text-2xl mb-2">{service.icon}</div>
-                      <div className="font-semibold text-sm text-gray-900 group-hover:text-emerald-700 transition-colors leading-tight">
-                        {service.name}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{service.description}</div>
+                      #{tag.name}
                     </Link>
                   ))}
                 </div>
               </div>
+            )}
+          </div>
 
-              {/* Related Posts */}
-              {/* <RelatedPosts posts={relatedPosts} /> */}
+          {/* Inline CTA */}
+          <div className="relative overflow-hidden mt-10 rounded-3xl bg-gradient-to-br from-[#10b981] to-[#047857] p-8 md:p-10 shadow-[0_20px_50px_-12px_rgba(16,185,129,0.45)] flex flex-col md:flex-row md:items-center justify-between gap-6 group">
+            {/* Decorative blobs */}
+            <div className="absolute -right-10 -top-20 w-60 h-60 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute -left-12 -bottom-20 w-52 h-52 bg-white/10 rounded-full blur-3xl" />
 
-              {/* Comments */}
-              {/* <CommentSection postId={post.id} /> */}
+            <div className="relative z-10 flex items-center gap-4">
+              <div className="hidden sm:flex w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm items-center justify-center shrink-0 ring-1 ring-white/20">
+                <Car size={28} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl md:text-3xl font-bold mb-1 text-white">Ready to book your ride?</h3>
+                <p className="text-white/85">Compare and book vehicles across 150+ cities in minutes.</p>
+              </div>
             </div>
 
-            {/* Sidebar */}
-            <aside className="lg:col-span-4 space-y-6">
-              <TableOfContents content={post.content} />
-            </aside>
+            <Link
+              href="/services"
+              className="relative z-10 inline-flex items-center gap-2 bg-white text-[#047857] px-7 py-4 rounded-xl font-bold shadow-lg hover:gap-3 hover:shadow-xl transition-all shrink-0"
+            >
+              Explore Vehicles <ArrowRight size={18} />
+            </Link>
           </div>
-        </div>
-      </article>
+
+          {/* Author Card */}
+          <section className="mt-12 border-t border-[#d1fae5]/40 pt-10">
+            <AuthorCard author={post.author} showBio={true} />
+          </section>
+
+          {/* Explore Our Services */}
+          <div className="mt-10 bg-white rounded-2xl shadow-sm border border-[#d1fae5]/30 overflow-hidden">
+            <div className="px-6 py-5 border-b border-[#d1fae5]/30 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-[#191c1e]">Explore Our Services</h3>
+                <p className="text-sm text-[#545f73] mt-0.5">Book your vehicle for any occasion across India</p>
+              </div>
+              <Link
+                href="/services"
+                className="text-sm font-medium text-[#047857] hover:text-[#10b981] flex items-center gap-1 shrink-0"
+              >
+                View all
+                <ChevronRight size={14} />
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-px bg-[#d1fae5]/20">
+              {FEATURED_SERVICES.map((service) => (
+                <Link
+                  key={service.slug}
+                  href={service.base_url}
+                  className="group bg-white p-4 hover:bg-[#ecfdf5] transition-colors"
+                >
+                  <div className="text-2xl mb-2">{service.icon}</div>
+                  <div className="font-semibold text-sm text-[#191c1e] group-hover:text-[#047857] transition-colors leading-tight">
+                    {service.name}
+                  </div>
+                  <div className="text-xs text-[#545f73] mt-0.5 line-clamp-1">{service.description}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Comments */}
+          {/* <CommentSection postId={post.id} /> */}
+        </article>
+      </main>
+
+      {/* ===== CONTINUE EXPLORING (Related Posts) ===== */}
+      {relatedPosts.length > 0 && (
+        <section className="bg-white py-16 md:py-24 border-t border-[#d1fae5]/30">
+          <div className="max-w-7xl mx-auto px-4 md:px-8">
+            <h2 className="text-3xl font-bold mb-10 text-[#191c1e]">Continue Exploring</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {relatedPosts.map((rp) => (
+                <Link
+                  key={rp.id}
+                  href={`/blog/${rp.slug}`}
+                  className="group block bg-white rounded-2xl overflow-hidden border border-[#d1fae5]/20 shadow-sm hover:shadow-[0_10px_30px_-5px_rgba(30,41,59,0.15)] hover:-translate-y-2 transition-all duration-300"
+                >
+                  <div className="relative h-52 overflow-hidden">
+                    <Image
+                      src={resolveAssetUrl(rp.featuredImage)}
+                      alt={rp.title}
+                      fill
+                      unoptimized
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#047857] mb-2 block">
+                      {rp.category.name}
+                    </span>
+                    <h4 className="text-xl font-bold mb-2 line-clamp-2 text-[#191c1e] group-hover:text-[#047857] transition-colors">
+                      {rp.title}
+                    </h4>
+                    <p className="text-sm text-[#545f73] mb-4 line-clamp-2">{rp.excerpt}</p>
+                    <span className="inline-flex items-center gap-2 text-[#10b981] font-bold group-hover:gap-3 transition-all">
+                      Read More <ArrowRight size={16} />
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Schema Markup */}
       <script
