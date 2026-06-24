@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
         { email: { contains: search } },
         { phone: { contains: search } },
         { licenseNumber: { contains: search } },
+        { did: { contains: search } },
       ];
     }
 
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
       includeVendor ? prisma.vendor_staff.findMany({
         where: staffWhere,
         select: {
-          id: true, name: true, email: true, phone: true, profilePhoto: true,
+          id: true, did: true, name: true, email: true, phone: true, profilePhoto: true,
           city: true, state: true, status: true,
           licenseNumber: true, licenseExpiry: true,
           joiningDate: true, lastLoginAt: true, createdAt: true,
@@ -130,6 +131,7 @@ export async function GET(request: NextRequest) {
     // mapped to the admin UI status vocabulary (PENDING/ACTIVE/SUSPENDED/INACTIVE).
     const standaloneNormalized = (driverRows as any[]).map((d) => ({
       id: d.id,
+      did: null as string | null,
       source: 'standalone' as const,
       name: d.name,
       email: d.email,
@@ -158,6 +160,7 @@ export async function GET(request: NextRequest) {
         : 'INACTIVE'; // INACTIVE + ON_LEAVE
       return {
         id: s.id,
+        did: s.did ?? null,
         source: 'vendor' as const,
         name: s.name,
         email: s.email,

@@ -29,6 +29,7 @@ type DriverSource = 'standalone' | 'vendor';
 
 interface Driver {
   id: string;
+  did: string | null;
   source: DriverSource;
   name: string;
   email: string;
@@ -191,7 +192,7 @@ export default function DriversPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by name, email, phone, license number..."
+              placeholder="Search by name, email, phone, license number, driver ID..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
@@ -263,6 +264,11 @@ export default function DriversPage() {
                                 </span>
                               )}
                             </div>
+                            {isVendorDriver && driver.did && (
+                              <p className="text-[10px] font-mono text-gray-400 mt-0.5 truncate max-w-[200px]">
+                                {driver.did}
+                              </p>
+                            )}
                             {isVendorDriver && driver.vendorName && (
                               <p className="text-xs text-amber-700 mt-0.5 truncate max-w-[200px]">
                                 via {driver.vendorName}

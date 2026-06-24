@@ -16,6 +16,7 @@ type DriverSource = 'standalone' | 'vendor';
 
 interface Driver {
   id: string;
+  did?: string | null;
   name: string;
   email: string;
   phone: string;
@@ -293,6 +294,7 @@ export default function DriverDetailPage() {
                 <span className="text-xs text-gray-500">·</span>
                 <span className="text-xs text-gray-500">Joined {formatDate(driver.joiningDate)}</span>
               </div>
+              <p className="text-[11px] text-gray-400 font-mono mt-1">ID: {driver.id}</p>
             </div>
           </div>
 
@@ -408,6 +410,15 @@ export default function DriverDetailPage() {
                   <div>
                     <p className="text-xs text-gray-500">Emergency Contact</p>
                     <p className="font-medium">{driver.emergencyContact || '—'} {driver.emergencyPhone && <span className="text-gray-500">· {driver.emergencyPhone}</span>}</p>
+                  </div>
+                </div>
+              )}
+              {isVendorDriver && driver.did && (
+                <div className="flex items-center gap-3 md:col-span-2">
+                  <IdCard className="w-4 h-4 text-gray-400" />
+                  <div>
+                    <p className="text-xs text-gray-500">Driver ID</p>
+                    <p className="font-mono font-medium">{driver.did}</p>
                   </div>
                 </div>
               )}
