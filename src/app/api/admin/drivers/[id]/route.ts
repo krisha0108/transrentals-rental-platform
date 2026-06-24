@@ -85,7 +85,7 @@ async function getVendorStaffDriver(id: string) {
   const staff = await prisma.vendor_staff.findUnique({
     where: { id },
     select: {
-      id: true, vendorId: true,
+      id: true, vendorId: true, did: true,
       name: true, email: true, phone: true, profilePhoto: true,
       dateOfBirth: true, address: true, city: true, state: true, pincode: true,
       role: true, status: true, joiningDate: true, salary: true,
