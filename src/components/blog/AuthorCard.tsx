@@ -26,15 +26,15 @@ export function AuthorCard({ author, showBio = true }: AuthorCardProps) {
       author.socialLinks.facebook);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
+    <div className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-sm">
       {/* Top gradient bar */}
-      <div className="h-2 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+      <div className="h-2 w-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500" />
 
       <div className="p-6 sm:p-8">
         {/* Header label */}
         <div className="mb-5 flex items-center gap-2">
-          <PenLine size={16} className="text-blue-500" />
-          <span className="text-xs font-semibold uppercase tracking-widest text-blue-500">
+          <PenLine size={16} className="text-emerald-600" />
+          <span className="text-xs font-semibold uppercase tracking-widest text-emerald-600">
             About the Author
           </span>
         </div>
@@ -43,7 +43,7 @@ export function AuthorCard({ author, showBio = true }: AuthorCardProps) {
         <div className="flex items-start gap-5">
           {/* Avatar */}
           <div className="relative flex-shrink-0">
-            <div className="relative h-20 w-20 overflow-hidden rounded-2xl border-4 border-white shadow-md ring-2 ring-blue-100 sm:h-24 sm:w-24">
+            <div className="relative h-20 w-20 overflow-hidden rounded-2xl border-4 border-white shadow-md ring-2 ring-emerald-100 sm:h-24 sm:w-24">
               <Image
                 src={avatarUrl}
                 alt={author.name}
@@ -61,7 +61,7 @@ export function AuthorCard({ author, showBio = true }: AuthorCardProps) {
             <h3 className="text-xl font-bold text-gray-900 leading-tight">
               {author.name}
             </h3>
-            <p className="mt-0.5 text-sm font-medium text-blue-600">
+            <p className="mt-0.5 text-sm font-medium text-emerald-700">
               {author.role || 'Content Expert at TransRentals'}
             </p>
 
@@ -130,7 +130,7 @@ export function AuthorCard({ author, showBio = true }: AuthorCardProps) {
           {EXPERTISE_TAGS.map((tag) => (
             <span
               key={tag}
-              className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700"
+              className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
             >
               {tag}
             </span>

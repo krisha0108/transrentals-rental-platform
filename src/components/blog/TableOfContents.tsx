@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { List } from 'lucide-react';
+import { List, ChevronDown } from 'lucide-react';
 import { HeadingMatch, extractHeadings } from '@/lib/markdown';
 
 interface TableOfContentsProps {
@@ -11,6 +11,7 @@ interface TableOfContentsProps {
 export function TableOfContents({ content }: TableOfContentsProps) {
   const [toc, setToc] = useState<HeadingMatch[]>([]);
   const [activeId, setActiveId] = useState<string>('');
+  const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
     setToc(extractHeadings(content));
@@ -53,16 +54,32 @@ export function TableOfContents({ content }: TableOfContentsProps) {
   };
 
   return (
-    <nav className="hidden lg:block sticky top-36">
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-        <div className="bg-white p-4 border-b">
-          <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <List size={20} className="text-emerald-600" />
-            Table of Contents
-          </h3>
-        </div>
-        <div className="p-4">
-          <ul className="space-y-1">
+    <nav className="block rounded-2xl bg-white border border-[#d1fae5]/60 overflow-hidden">
+      {/* Toggle header */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((v) => !v)}
+        aria-expanded={isOpen}
+        className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-[#f7f9fb]"
+      >
+        <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#545f73]">
+          <List size={16} className="text-[#10b981]" />
+          Table of Contents
+        </span>
+        <ChevronDown
+          size={18}
+          className={`text-[#545f73] transition-transform duration-300 ${isOpen ? 'rotate-180' : 'rotate-0'}`}
+        />
+      </button>
+
+      {/* Collapsible list */}
+      <div
+        className={`grid transition-all duration-300 ease-in-out ${
+          isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+        }`}
+      >
+        <div className="overflow-hidden">
+          <ul className="space-y-1 px-4 pb-4 pt-1">
             {toc.map((item) => (
               <li
                 key={item.id}
@@ -70,10 +87,10 @@ export function TableOfContents({ content }: TableOfContentsProps) {
               >
                 <button
                   onClick={() => scrollToHeading(item.id)}
-                  className={`text-left text-sm transition-colors w-full py-1 ${
+                  className={`text-left text-sm w-full border-l-2 pl-3 py-1.5 transition-all ${
                     activeId === item.id
-                      ? 'text-blue-600 font-semibold'
-                      : 'text-gray-600 hover:text-blue-600'
+                      ? 'text-[#047857] font-bold border-[#10b981]'
+                      : 'text-[#545f73] border-transparent hover:text-[#047857] hover:border-[#d1fae5]'
                   }`}
                 >
                   {item.text}
