@@ -77,9 +77,11 @@ function slugToServiceName(slug: string): string {
 function slugify(text: string): string {
   return text
     .toLowerCase()
+    .replace(/\//g, '-')         // slashes → hyphens before stripping other chars
     .replace(/[^\w\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '')     // trim leading/trailing hyphens
     .trim();
 }
 
