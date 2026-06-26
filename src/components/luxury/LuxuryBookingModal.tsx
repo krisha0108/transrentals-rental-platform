@@ -14,17 +14,32 @@ interface LuxuryBookingModalProps {
   locationSlug?: string;
 }
 
-type BookingType = 'wedding' | 'corporate' | 'personal' | 'airport' | 'photoshoot';
+type BookingType = 'wedding' | 'reception' | 'engagement' | 'birthday' | 'corporate' | 'personal' | 'airport' | 'photoshoot';
 type BookingStep = 'details' | 'contact' | 'confirm';
 type PostBookingStep = 'none' | 'create_password' | 'enter_password';
 
 const BOOKING_TYPES: { value: BookingType; label: string; icon: string }[] = [
   { value: 'wedding', label: 'Wedding', icon: '💒' },
+  { value: 'reception', label: 'Reception', icon: '🥂' },
+  { value: 'engagement', label: 'Engagement', icon: '💍' },
+  { value: 'birthday', label: 'Birthday', icon: '🎂' },
   { value: 'corporate', label: 'Corporate', icon: '💼' },
   { value: 'personal', label: 'Personal', icon: '🎉' },
   { value: 'airport', label: 'Airport Transfer', icon: '✈️' },
   { value: 'photoshoot', label: 'Photo/Film Shoot', icon: '📸' },
 ];
+
+// Duty package options (hours / km) shown to the customer
+const PACKAGE_OPTIONS = [
+  '8hr/80km',
+  '12hr/120km',
+  'Full Day',
+  'Outstation',
+  'Custom',
+];
+
+// Wedding-family occasions map to the "wedding" luxury category
+const WEDDING_OCCASIONS: BookingType[] = ['wedding', 'reception', 'engagement'];
 
 export function LuxuryBookingModal({
   isOpen,
@@ -52,11 +67,19 @@ export function LuxuryBookingModal({
   const [formData, setFormData] = useState({
     bookingType: 'personal' as BookingType,
     pickupLocation: location || '',
+    pickupPincode: '',
     destination: '',
+    dropPincode: '',
+    tripType: 'local' as 'local' | 'outstation' | 'airport',
+    packageType: '8hr/80km',
+    estimatedKm: '',
     pickupDate: '',
     pickupTime: '',
     returnDate: '',
     returnTime: '',
+    needDecoration: false,
+    decorationType: '',
+    needDressCode: true,
     name: '',
     email: '',
     phone: '',
@@ -161,13 +184,22 @@ export function LuxuryBookingModal({
           service_name: 'Luxury Car Rental',
           vehicle_name: vehicle.name,
           vehicle_id: vehicle.id,
-          luxury_type: formData.bookingType === 'wedding' ? 1 : formData.bookingType === 'corporate' ? 3 : 2,
+          luxury_type: WEDDING_OCCASIONS.includes(formData.bookingType) ? 1 : formData.bookingType === 'corporate' ? 3 : 2,
+          occasion: formData.bookingType,
           location_name: formData.pickupLocation,
+          pickup_pincode: formData.pickupPincode || null,
           destination: formData.destination,
+          drop_pincode: formData.dropPincode || null,
+          trip_type: formData.tripType,
+          package_type: formData.packageType,
+          estimated_km: formData.estimatedKm || null,
           journey_datetime: `${formData.pickupDate}T${formData.pickupTime}:00`,
           return_datetime: formData.returnDate && formData.returnTime
             ? `${formData.returnDate}T${formData.returnTime}:00`
             : null,
+          need_decoration: formData.needDecoration,
+          decoration_type: formData.needDecoration ? (formData.decorationType || null) : null,
+          need_dress_code: formData.needDressCode,
           other_info: formData.additionalRequests,
         },
         isLoggedIn: isLoggedIn,
@@ -600,6 +632,21 @@ export function LuxuryBookingModal({
                     />
                   </div>
 
+                  {/* Pickup Pincode */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Pickup Pincode</label>
+                    <input
+                      type="text"
+                      name="pickupPincode"
+                      value={formData.pickupPincode}
+                      onChange={handleInputChange}
+                      placeholder="e.g. 583201"
+                      maxLength={6}
+                      inputMode="numeric"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
+                    />
+                  </div>
+
                   {/* Destination */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -612,6 +659,65 @@ export function LuxuryBookingModal({
                       value={formData.destination}
                       onChange={handleInputChange}
                       placeholder="Enter destination if known"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
+                    />
+                  </div>
+
+                  {/* Drop Pincode */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Drop Pincode (Optional)</label>
+                    <input
+                      type="text"
+                      name="dropPincode"
+                      value={formData.dropPincode}
+                      onChange={handleInputChange}
+                      placeholder="e.g. 560001"
+                      maxLength={6}
+                      inputMode="numeric"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
+                    />
+                  </div>
+
+                  {/* Trip type + Duty package */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Trip Type</label>
+                      <select
+                        name="tripType"
+                        value={formData.tripType}
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
+                      >
+                        <option value="local">Local</option>
+                        <option value="outstation">Outstation</option>
+                        <option value="airport">Airport</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Duty Package</label>
+                      <select
+                        name="packageType"
+                        value={formData.packageType}
+                        onChange={handleInputChange}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
+                      >
+                        {PACKAGE_OPTIONS.map((p) => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Estimated Total KM */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Estimated Total KM (Optional)</label>
+                    <input
+                      type="number"
+                      name="estimatedKm"
+                      value={formData.estimatedKm}
+                      onChange={handleInputChange}
+                      placeholder="e.g. 250"
+                      min={0}
                       className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
                     />
                   </div>
@@ -676,6 +782,38 @@ export function LuxuryBookingModal({
                         className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
                       />
                     </div>
+                  </div>
+
+                  {/* Add-ons: decoration + driver dress code */}
+                  <div className="space-y-3 rounded-xl bg-purple-50/50 border border-purple-100 p-4">
+                    <label className="flex items-center justify-between gap-3 cursor-pointer">
+                      <span className="text-sm font-medium text-gray-700">Decoration required?</span>
+                      <input
+                        type="checkbox"
+                        checked={formData.needDecoration}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, needDecoration: e.target.checked }))}
+                        className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                    </label>
+                    {formData.needDecoration && (
+                      <input
+                        type="text"
+                        name="decorationType"
+                        value={formData.decorationType}
+                        onChange={handleInputChange}
+                        placeholder="Decoration details (flowers, ribbon, preferred color...)"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
+                      />
+                    )}
+                    <label className="flex items-center justify-between gap-3 cursor-pointer">
+                      <span className="text-sm font-medium text-gray-700">Driver dress code required?</span>
+                      <input
+                        type="checkbox"
+                        checked={formData.needDressCode}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, needDressCode: e.target.checked }))}
+                        className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                    </label>
                   </div>
                 </div>
               )}
