@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Loader2, Plus, Trash2, DollarSign, Star } from 'lucide-react';
+import { Loader2, Plus, Trash2, DollarSign, Star, Pencil } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 
 interface BankAccount {
@@ -22,6 +22,7 @@ export default function TravelAgentBankDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     bankName: '',
@@ -51,32 +52,53 @@ export default function TravelAgentBankDetailsPage() {
     load();
   }, []);
 
+  const resetForm = () => {
+    setForm({
+      bankName: '',
+      accountHolderName: '',
+      accountNumber: '',
+      ifscCode: '',
+      accountType: 'SAVINGS',
+      branchName: '',
+      upiId: '',
+      isPrimary: false,
+    });
+    setEditingId(null);
+  };
+
+  const startEdit = (acc: BankAccount) => {
+    setForm({
+      bankName: acc.bankName,
+      accountHolderName: acc.accountHolderName,
+      accountNumber: acc.accountNumber,
+      ifscCode: acc.ifscCode,
+      accountType: acc.accountType || 'SAVINGS',
+      branchName: acc.branchName || '',
+      upiId: acc.upiId || '',
+      isPrimary: acc.isPrimary,
+    });
+    setEditingId(acc.id);
+    setShowForm(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    const isEdit = !!editingId;
     try {
       const res = await fetch('/api/travel-agent/bank-details', {
-        method: 'POST',
+        method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(isEdit ? { ...form, id: editingId } : form),
       });
       if (res.ok) {
-        showToast({ type: 'success', title: 'Bank account added' });
-        setForm({
-          bankName: '',
-          accountHolderName: '',
-          accountNumber: '',
-          ifscCode: '',
-          accountType: 'SAVINGS',
-          branchName: '',
-          upiId: '',
-          isPrimary: false,
-        });
+        showToast({ type: 'success', title: isEdit ? 'Bank account updated' : 'Bank account added' });
+        resetForm();
         setShowForm(false);
         await load();
       } else {
         const j = await res.json();
-        showToast({ type: 'error', title: j.error || 'Failed to add account' });
+        showToast({ type: 'error', title: j.error || `Failed to ${isEdit ? 'update' : 'add'} account` });
       }
     } catch {
       showToast({ type: 'error', title: 'Server error' });
@@ -132,7 +154,14 @@ export default function TravelAgentBankDetailsPage() {
           </div>
         </div>
         <button
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => {
+            if (showForm && !editingId) {
+              setShowForm(false);
+            } else {
+              resetForm();
+              setShowForm(true);
+            }
+          }}
           className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors"
         >
           <Plus className="w-4 h-4" /> Add Account
@@ -141,7 +170,7 @@ export default function TravelAgentBankDetailsPage() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
-          <h2 className="text-base font-bold text-gray-900 mb-4">New Bank Account</h2>
+          <h2 className="text-base font-bold text-gray-900 mb-4">{editingId ? 'Edit Bank Account' : 'New Bank Account'}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Bank Name *" value={form.bankName} onChange={(v) => setForm({ ...form, bankName: v })} required />
             <Field
@@ -189,7 +218,7 @@ export default function TravelAgentBankDetailsPage() {
           <div className="flex justify-end gap-2 mt-5">
             <button
               type="button"
-              onClick={() => setShowForm(false)}
+              onClick={() => { setShowForm(false); resetForm(); }}
               className="text-sm font-semibold text-gray-600 hover:text-gray-900 px-4 py-2.5"
             >
               Cancel
@@ -204,7 +233,7 @@ export default function TravelAgentBankDetailsPage() {
                   <Loader2 className="w-4 h-4 animate-spin" /> Saving…
                 </>
               ) : (
-                <>Save Account</>
+                <>{editingId ? 'Update Account' : 'Save Account'}</>
               )}
             </button>
           </div>
@@ -237,12 +266,22 @@ export default function TravelAgentBankDetailsPage() {
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">{acc.branchName || '—'}</p>
                 </div>
-                <button
-                  onClick={() => handleDelete(acc.id)}
-                  className="text-gray-400 hover:text-red-600 transition-colors p-1"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => startEdit(acc)}
+                    title="Edit"
+                    className="text-gray-400 hover:text-emerald-600 transition-colors p-1"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(acc.id)}
+                    title="Remove"
+                    className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <div className="space-y-1 text-sm">
                 <Row k="Account Holder" v={acc.accountHolderName} />

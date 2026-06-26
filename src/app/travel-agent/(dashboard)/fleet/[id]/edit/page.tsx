@@ -165,6 +165,32 @@ export default function EditFleetPage({ params }: { params: { id: string } }) {
     return json.url;
   };
 
+  const uploadCover = async (file: File) => {
+    setCoverUploading(true);
+    const url = await uploadFile(file, 'fleet');
+    if (url) update('coverImage', url);
+    setCoverUploading(false);
+  };
+
+  const uploadGallery = async (files: FileList) => {
+    setGalleryUploading(true);
+    const arr = Array.from(files).filter((f) => f.type.startsWith('image/'));
+    const fd = new FormData();
+    arr.forEach((f) => fd.append('files', f));
+    fd.append('folder', 'fleet');
+    const res = await fetch('/api/travel-agent/upload', { method: 'POST', body: fd });
+    if (res.ok) {
+      const json = await res.json();
+      const newUrls: string[] = (json.uploaded || []).map((u: any) => u.url);
+      update('galleryImages', [...form.galleryImages, ...newUrls]);
+      showToast({ type: 'success', title: `${newUrls.length} image(s) uploaded` });
+    } else {
+      const j = await res.json();
+      showToast({ type: 'error', title: j.error || 'Upload failed' });
+    }
+    setGalleryUploading(false);
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -389,6 +415,139 @@ export default function EditFleetPage({ params }: { params: { id: string } }) {
               onChange={(e) => update('description', e.target.value)}
               className={inputCls}
             />
+          </div>
+        </Section>
+
+        <Section title="Images">
+          {/* Cover image */}
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Cover Image</label>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) uploadCover(f);
+                if (coverInputRef.current) coverInputRef.current.value = '';
+              }}
+            />
+            {form.coverImage ? (
+              <div className="relative w-full max-w-md aspect-[16/9] rounded-xl overflow-hidden border border-gray-200">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={form.coverImage} alt="Cover" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => update('coverImage', '')}
+                  className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-7 h-7 rounded-full flex items-center justify-center"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  disabled={coverUploading}
+                  className="absolute bottom-2 right-2 bg-white/95 hover:bg-white text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5"
+                >
+                  {coverUploading ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" /> Uploading…
+                    </>
+                  ) : (
+                    <>
+                      <ImagePlus className="w-3 h-3" /> Replace
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => coverInputRef.current?.click()}
+                disabled={coverUploading}
+                className="w-full max-w-md border-2 border-dashed border-gray-300 hover:border-emerald-300 hover:bg-emerald-50/40 rounded-xl px-6 py-8 text-center transition-colors"
+              >
+                {coverUploading ? (
+                  <Loader2 className="w-8 h-8 mx-auto mb-2 text-emerald-600 animate-spin" />
+                ) : (
+                  <UploadCloud className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                )}
+                <p className="text-sm font-semibold text-gray-700">
+                  {coverUploading ? 'Uploading…' : 'Click to upload cover image'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">JPG / PNG / WebP — up to 5 MB</p>
+              </button>
+            )}
+          </div>
+
+          {/* Gallery */}
+          <div className="sm:col-span-2">
+            <label className={labelCls}>Gallery Images</label>
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) uploadGallery(e.target.files);
+                if (galleryInputRef.current) galleryInputRef.current.value = '';
+              }}
+            />
+            {form.galleryImages.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                disabled={galleryUploading}
+                className="w-full border-2 border-dashed border-gray-300 hover:border-emerald-300 hover:bg-emerald-50/40 rounded-xl px-6 py-8 text-center transition-colors"
+              >
+                {galleryUploading ? (
+                  <Loader2 className="w-8 h-8 mx-auto mb-2 text-emerald-600 animate-spin" />
+                ) : (
+                  <ImagePlus className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                )}
+                <p className="text-sm font-semibold text-gray-700">
+                  {galleryUploading ? 'Uploading…' : 'Click to add gallery images'}
+                </p>
+              </button>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {form.galleryImages.map((url, i) => (
+                  <div key={`${url}-${i}`} className="relative aspect-square group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="" className="w-full h-full object-cover rounded-lg border border-gray-200" />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        update(
+                          'galleryImages',
+                          form.galleryImages.filter((_, idx) => idx !== i),
+                        )
+                      }
+                      className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  disabled={galleryUploading}
+                  className="aspect-square border-2 border-dashed border-gray-300 hover:border-emerald-400 hover:bg-emerald-50/40 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:text-emerald-600"
+                >
+                  {galleryUploading ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  ) : (
+                    <>
+                      <ImagePlus className="w-6 h-6 mb-1" />
+                      <span className="text-[10px] font-semibold">Add more</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </Section>
 

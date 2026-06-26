@@ -9,6 +9,18 @@ import logger from '@/lib/security/logger';
 
 export const dynamic = 'force-dynamic';
 
+// social_posts.images is stored as a JSON-string array of URLs. Parse safely.
+function parseImages(val: any): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  try {
+    const arr = JSON.parse(val);
+    return Array.isArray(arr) ? arr.filter(Boolean) : [];
+  } catch {
+    return [];
+  }
+}
+
 type Params = {
   params: Promise<{ type: string; id: string }> | { type: string; id: string };
 };
@@ -76,6 +88,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     const enrichedPosts = posts.map((p: any) => ({
       id: p.id,
       content: p.content,
+      images: parseImages(p.images),
       createdAt: p.createdAt,
       category: p.category,
       likesCount: p._count.social_post_likes,
