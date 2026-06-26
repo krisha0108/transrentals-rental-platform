@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -213,6 +213,8 @@ export default function ServiceBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [sourceFilter, setSourceFilter] = useState('ALL');
   const [dateFilter, setDateFilter] = useState('ALL');
@@ -242,6 +244,16 @@ export default function ServiceBookingsPage() {
     fetchService();
   }, [slug]);
 
+  // Debounce search — wait 400ms after user stops typing before hitting API
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 400);
+    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
+  }, [search]);
+
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -269,6 +281,7 @@ export default function ServiceBookingsPage() {
           limit: pagination.limit.toString(),
           status: statusFilter,
           dateFilter: dateFilter,
+          ...(debouncedSearch ? { search: debouncedSearch } : {}),
         });
 
         // Add custom date range if provided
@@ -336,21 +349,12 @@ export default function ServiceBookingsPage() {
     if (slug) {
       fetchBookings();
     }
-  }, [slug, page, statusFilter, dateFilter, startDate, endDate, pagination.limit]);
+  }, [slug, page, debouncedSearch, statusFilter, dateFilter, startDate, endDate, pagination.limit]);
 
-  // Use bookings directly from API - filtering happens server-side
-  const filteredBookings = bookings.filter((booking) => {
-    if (search) {
-      const matchesSearch =
-        booking.bookingNo.toLowerCase().includes(search.toLowerCase()) ||
-        booking.customerName.toLowerCase().includes(search.toLowerCase()) ||
-        booking.customerPhone.includes(search) ||
-        booking.vehicleName.toLowerCase().includes(search.toLowerCase());
-      if (!matchesSearch) return false;
-    }
-    if (sourceFilter !== 'ALL' && (booking.source || 'web') !== sourceFilter) return false;
-    return true;
-  });
+  // Source filter is client-side only (not in API); search & status are server-side
+  const filteredBookings = sourceFilter === 'ALL'
+    ? bookings
+    : bookings.filter((booking) => (booking.source || 'web') === sourceFilter);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
