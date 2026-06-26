@@ -106,6 +106,7 @@ export default function VendorDocumentsPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadModal, setUploadModal] = useState<{ open: boolean; docType: string | null }>({ open: false, docType: null });
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+  const [previewError, setPreviewError] = useState(false);
   const [documentNumber, setDocumentNumber] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -120,6 +121,9 @@ export default function VendorDocumentsPage() {
   };
 
   useEffect(() => { fetchDocuments(); }, []);
+
+  // Reset the preview load-error whenever a different document is opened
+  useEffect(() => { setPreviewError(false); }, [previewDoc?.id]);
 
   const getDoc = (type: string) => documents.find(d => d.documentType === type);
 
@@ -546,14 +550,39 @@ export default function VendorDocumentsPage() {
 
             {/* Preview body */}
             <div className="flex-1 overflow-auto bg-gray-50 p-4">
-              {previewDoc.documentUrl.toLowerCase().endsWith('.pdf') ? (
-                <iframe src={previewDoc.documentUrl} className="w-full h-full min-h-[500px] rounded-xl border border-gray-200" title="Document Preview" />
+              {previewError ? (
+                <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center px-6">
+                  <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mb-4">
+                    <AlertTriangle className="w-7 h-7 text-amber-600" />
+                  </div>
+                  <h4 className="text-sm font-bold text-gray-900 mb-1">Preview not available</h4>
+                  <p className="text-xs text-gray-500 max-w-sm">
+                    This file could not be loaded. It may have been moved or is temporarily unavailable.
+                    Try opening it in a new tab or downloading it below.
+                  </p>
+                  <a
+                    href={previewDoc.documentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                  >
+                    <Eye className="w-4 h-4" /> Open in new tab
+                  </a>
+                </div>
+              ) : previewDoc.documentUrl.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={previewDoc.documentUrl}
+                  className="w-full h-full min-h-[500px] rounded-xl border border-gray-200"
+                  title="Document Preview"
+                  onError={() => setPreviewError(true)}
+                />
               ) : (
                 <div className="flex items-center justify-center h-full min-h-[400px]">
                   <img
                     src={previewDoc.documentUrl}
                     alt={previewDoc.documentName}
                     className="max-w-full max-h-full object-contain rounded-xl shadow-sm"
+                    onError={() => setPreviewError(true)}
                   />
                 </div>
               )}

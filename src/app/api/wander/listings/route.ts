@@ -212,9 +212,19 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Merge — vendor wander_listings first (paginated), then travel-agent tours appended
-    // to the current page. Total reflects vendor count only (agent tours are bonus).
+    // Merge vendor wander_listings with travel-agent tours, then sort the combined
+    // list by the requested order so the newest tour (vendor OR agent) is on top —
+    // instead of always appending agent tours at the end.
     const merged = [...parsed, ...agentTours];
+
+    const ts = (v: any) => (v ? new Date(v).getTime() : 0);
+    const sorters: Record<string, (a: any, b: any) => number> = {
+      newest: (a, b) => ts(b.createdAt) - ts(a.createdAt),
+      priceAsc: (a, b) => (a.basePrice ?? Infinity) - (b.basePrice ?? Infinity),
+      priceDesc: (a, b) => (b.basePrice ?? -Infinity) - (a.basePrice ?? -Infinity),
+      popular: (a, b) => (b._count?.quoteRequests ?? 0) - (a._count?.quoteRequests ?? 0),
+    };
+    merged.sort(sorters[sortBy] || sorters.newest);
 
     return NextResponse.json({
       listings: merged,

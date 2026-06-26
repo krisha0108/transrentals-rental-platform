@@ -60,6 +60,12 @@ services:
     ports:
       - "${APP_PORT:-3000}:3000"
 
+    # Persistent storage for uploaded private files (vendor / travel-agent documents).
+    # Without this, /app/storage lives in the container layer and is wiped on every
+    # redeploy — uploaded documents would 404 after a deploy.
+    volumes:
+      - transrentals-storage:/app/storage
+
     # Network
     networks:
       - transrentals-network
@@ -105,3 +111,7 @@ networks:
   transrentals-network:
     driver: bridge
     name: transrentals-network
+
+volumes:
+  transrentals-storage:
+    name: transrentals-storage
