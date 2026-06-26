@@ -93,10 +93,10 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'TVS Apache RTR 160', brand: 'TVS', price: 499, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'TVS Apache RTR 180', brand: 'TVS', price: 549, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'TVS Apache RTR 200 4V', brand: 'TVS', price: 699, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'TVS Apache RR 310', brand: 'TVS', price: 1299, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'TVS Apache RTR 160', brand: 'TVS', price: 499, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent TVS Apache RTR 160 — race-inspired sporty commuter with 159.7cc engine, 15.8 PS power, dual disc brakes, and race-tuned suspension. Aerodynamic design with LED pilot lamps, digital console, and 110 kmph top speed. Sporty performance at an affordable price. Rental from ₹499/day with helmet and insurance.' },
+  { name: 'TVS Apache RTR 180', brand: 'TVS', price: 549, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent TVS Apache RTR 180 — performance naked bike with 177.4cc oil-cooled engine, 17.3 PS power, petal disc brakes, and ride modes (Urban/Sport/Rain). 0-60 kmph in 4.5 seconds with 114 kmph top speed. Advanced chassis with gas-filled rear shock absorbers for sporty urban riding. From ₹549/day.' },
+  { name: 'TVS Apache RTR 200 4V', brand: 'TVS', price: 699, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent TVS Apache RTR 200 4V — mid-size performance bike with 197.75cc 4-valve oil-cooled engine, 20.8 PS power, slipper clutch, Bluetooth instrument cluster, and 3 riding modes. 127 kmph top speed with race-tuned TVS SmartXonnect technology. Best mid-range performance bike rental from ₹699/day.' },
+  { name: 'TVS Apache RR 310', brand: 'TVS', price: 1299, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: "Rent TVS Apache RR 310 — India's most track-capable production bike with 312.2cc reverse-inclined liquid-cooled engine, 34 PS power, 5 riding modes, cornering ABS, quickshifter, and aerodynamic full fairing. 160 kmph top speed with BMW Motorrad partnership pedigree. Premium performance rental from ₹1299/day." },
 ];
 
 export default async function ApacheLocationPage({ params }: PageProps) {

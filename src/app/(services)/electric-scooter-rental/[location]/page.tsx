@@ -93,9 +93,9 @@ export default async function ElectricScooterLocationPage({ params }: PageProps)
   ];
 
   const schemaVehicles = [
-    { name: 'Ola S1 Pro', brand: 'Ola Electric', price: 499, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-    { name: 'Ather 450X', brand: 'Ather Energy', price: 599, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-    { name: 'TVS iQube', brand: 'TVS', price: 449, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+    { name: 'Ola S1 Pro', brand: 'Ola Electric', price: 499, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: `Rent Ola S1 Pro electric scooter in ${locationName} — India's bestselling EV with 135 km range per charge, 8.5 kW motor, 0-40 kmph in 3 seconds, and MoveOS smart connectivity. Zero fuel cost, app-based controls, reverse mode, and 4-hour home charging included. Starting from ₹499/day with doorstep delivery in ${locationName}.` },
+    { name: 'Ather 450X', brand: 'Ather Energy', price: 599, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: `Rent Ather 450X electric scooter in ${locationName} — premium EV with 105 km range, built-in Google Maps navigation, Bluetooth dashboard, and 3.5-hour fast charging. Features auto-hold braking, OTA updates, and 95 kmph top speed. Tech-forward EV rental from ₹599/day with helmet and charger included in ${locationName}.` },
+    { name: 'TVS iQube', brand: 'TVS', price: 449, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: `Rent TVS iQube electric scooter in ${locationName} — best-value EV with 100 km range, SmartXonnect Bluetooth technology, USB charging port, and navigation-ready instrument cluster. Eco-friendly city commuter costing just ₹15-20 per charge. Daily rental from ₹449/day with all accessories and doorstep delivery in ${locationName}.` },
   ];
 
   const [seoData, scContent] = await Promise.all([

@@ -38,6 +38,9 @@ const PACKAGE_OPTIONS = [
   'Custom',
 ];
 
+// Occasions that require return date/time
+const OCCASIONS_NEEDING_RETURN: BookingType[] = ['wedding', 'reception', 'engagement'];
+
 // Wedding-family occasions map to the "wedding" luxury category
 const WEDDING_OCCASIONS: BookingType[] = ['wedding', 'reception', 'engagement'];
 
@@ -126,9 +129,15 @@ export function LuxuryBookingModal({
     setFormData((prev) => ({ ...prev, bookingType: type }));
   };
 
+  const needsReturnDateTime = OCCASIONS_NEEDING_RETURN.includes(formData.bookingType) || formData.tripType === 'outstation';
+
   const validateStep = (currentStep: BookingStep): boolean => {
     if (currentStep === 'details') {
-      return !!(formData.pickupLocation && formData.pickupDate && formData.pickupTime);
+      const baseValid = !!(formData.pickupLocation && formData.pickupDate && formData.pickupTime);
+      if (needsReturnDateTime) {
+        return baseValid && !!(formData.returnDate && formData.returnTime);
+      }
+      return baseValid;
     }
     if (currentStep === 'contact') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -755,33 +764,66 @@ export function LuxuryBookingModal({
                     </div>
                   </div>
 
-                  {/* Return Date & Time (Optional) */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Return Date (Optional)
-                      </label>
-                      <input
-                        type="date"
-                        name="returnDate"
-                        value={formData.returnDate}
-                        onChange={handleInputChange}
-                        min={formData.pickupDate || today}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
-                      />
+                  {/* Return Date & Time */}
+                  <div>
+                    {needsReturnDateTime && (
+                      <p className="text-xs text-purple-700 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 mb-3">
+                        Return date &amp; time is required for{' '}
+                        {formData.tripType === 'outstation' ? 'outstation trips' : `${formData.bookingType} bookings`}.
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          End Date {needsReturnDateTime ? <span className="text-red-500">*</span> : <span className="text-gray-400">(Optional)</span>}
+                        </label>
+                        <input
+                          type="date"
+                          name="returnDate"
+                          value={formData.returnDate}
+                          onChange={handleInputChange}
+                          min={formData.pickupDate || today}
+                          className={`w-full border rounded-xl px-4 py-3 focus:ring-2 transition-all ${
+                            needsReturnDateTime && !formData.returnDate
+                              ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
+                              : 'border-gray-200 focus:border-purple-500 focus:ring-purple-200'
+                          }`}
+                          required={needsReturnDateTime}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Drop Time {needsReturnDateTime ? <span className="text-red-500">*</span> : <span className="text-gray-400">(Optional)</span>}
+                        </label>
+                        <input
+                          type="time"
+                          name="returnTime"
+                          value={formData.returnTime}
+                          onChange={handleInputChange}
+                          className={`w-full border rounded-xl px-4 py-3 focus:ring-2 transition-all ${
+                            needsReturnDateTime && !formData.returnTime
+                              ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
+                              : 'border-gray-200 focus:border-purple-500 focus:ring-purple-200'
+                          }`}
+                          required={needsReturnDateTime}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Return Time (Optional)
-                      </label>
-                      <input
-                        type="time"
-                        name="returnTime"
-                        value={formData.returnTime}
-                        onChange={handleInputChange}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
-                      />
-                    </div>
+                  </div>
+
+                  {/* Special Requirements */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Special Requirements (Optional)
+                    </label>
+                    <textarea
+                      name="additionalRequests"
+                      value={formData.additionalRequests}
+                      onChange={handleInputChange}
+                      placeholder="e.g. flower decoration, ribbon color, VIP entry arrangement, preferred car color, etc."
+                      rows={3}
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all resize-none"
+                    />
                   </div>
 
                   {/* Add-ons: decoration + driver dress code */}
@@ -875,19 +917,6 @@ export function LuxuryBookingModal({
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Additional Requests (Optional)
-                    </label>
-                    <textarea
-                      name="additionalRequests"
-                      value={formData.additionalRequests}
-                      onChange={handleInputChange}
-                      placeholder="Any special requests or requirements..."
-                      rows={3}
-                      className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all resize-none"
-                    />
-                  </div>
                 </div>
               )}
 
@@ -909,49 +938,105 @@ export function LuxuryBookingModal({
                     </div>
                   )}
 
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <div className="bg-gray-50 rounded-xl p-4 space-y-3 text-sm">
+                    {/* Booking info */}
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Vehicle</span>
+                      <span className="text-gray-500">Vehicle</span>
                       <span className="font-semibold text-gray-900">{vehicle.name}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Occasion</span>
+                      <span className="text-gray-500">Occasion</span>
                       <span className="font-semibold text-gray-900 capitalize">{formData.bookingType}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Pickup</span>
-                      <span className="font-semibold text-gray-900">{formData.pickupLocation}</span>
+
+                    {/* Location */}
+                    <div className="border-t border-gray-200 pt-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Pickup</span>
+                        <span className="font-semibold text-gray-900 text-right max-w-[55%]">
+                          {formData.pickupLocation}{formData.pickupPincode ? ` — ${formData.pickupPincode}` : ''}
+                        </span>
+                      </div>
                     </div>
                     {formData.destination && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Destination</span>
-                        <span className="font-semibold text-gray-900">{formData.destination}</span>
+                        <span className="text-gray-500">Drop</span>
+                        <span className="font-semibold text-gray-900 text-right max-w-[55%]">
+                          {formData.destination}{formData.dropPincode ? ` — ${formData.dropPincode}` : ''}
+                        </span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Date & Time</span>
-                      <span className="font-semibold text-gray-900">
-                        {new Date(formData.pickupDate).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}{' '}
-                        at {formData.pickupTime}
-                      </span>
+                      <span className="text-gray-500">Trip Type</span>
+                      <span className="font-semibold text-gray-900 capitalize">{formData.tripType}</span>
                     </div>
+
+                    {/* Date & Time */}
                     <div className="border-t border-gray-200 pt-3">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Name</span>
+                        <span className="text-gray-500">Pickup Date</span>
+                        <span className="font-semibold text-gray-900">
+                          {new Date(formData.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at {formData.pickupTime}
+                        </span>
+                      </div>
+                    </div>
+                    {formData.returnDate && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">End Date</span>
+                        <span className="font-semibold text-gray-900">
+                          {new Date(formData.returnDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}{formData.returnTime ? ` at ${formData.returnTime}` : ''}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Package */}
+                    <div className="border-t border-gray-200 pt-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Duty Package</span>
+                        <span className="font-semibold text-gray-900">{formData.packageType}</span>
+                      </div>
+                    </div>
+                    {formData.estimatedKm && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Est. KM</span>
+                        <span className="font-semibold text-gray-900">{formData.estimatedKm} km</span>
+                      </div>
+                    )}
+
+                    {/* Add-ons */}
+                    <div className="border-t border-gray-200 pt-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Decoration</span>
+                        <span className="font-semibold text-gray-900">
+                          {formData.needDecoration ? `Yes${formData.decorationType ? ` — ${formData.decorationType}` : ''}` : 'No'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Driver Dress Code</span>
+                      <span className="font-semibold text-gray-900">{formData.needDressCode ? 'Yes' : 'No'}</span>
+                    </div>
+                    {formData.additionalRequests && (
+                      <div className="flex justify-between gap-4">
+                        <span className="text-gray-500 shrink-0">Special Req.</span>
+                        <span className="font-semibold text-gray-900 text-right">{formData.additionalRequests}</span>
+                      </div>
+                    )}
+
+                    {/* Contact */}
+                    <div className="border-t border-gray-200 pt-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Name</span>
                         <span className="font-semibold text-gray-900">{formData.name}</span>
                       </div>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Email</span>
-                      <span className="font-semibold text-gray-900">{formData.email}</span>
+                      <span className="text-gray-500">Phone</span>
+                      <span className="font-semibold text-gray-900">+91 {formData.phone}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Phone</span>
-                      <span className="font-semibold text-gray-900">+91 {formData.phone}</span>
+                      <span className="text-gray-500">Email</span>
+                      <span className="font-semibold text-gray-900">{formData.email}</span>
                     </div>
                   </div>
 

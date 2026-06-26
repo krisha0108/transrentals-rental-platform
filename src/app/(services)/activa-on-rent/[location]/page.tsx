@@ -103,10 +103,10 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Honda Activa 6G', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/scooters/activa-6g.jpg' },
-  { name: 'TVS Jupiter', brand: 'TVS', price: 299, image: 'https://transrentals.in/images/scooters/jupiter.jpg' },
-  { name: 'Suzuki Access 125', brand: 'Suzuki', price: 349, image: 'https://transrentals.in/images/scooters/access-125.jpg' },
-  { name: 'Honda Dio', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/scooters/dio.jpg' },
+  { name: 'Honda Activa 6G', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/scooters/activa-6g.jpg', description: "Rent Honda Activa 6G scooter — India's most popular scooter with 109cc OBD2-compliant engine, 50 kmpl mileage, LED headlight, silent start, and 21-litre underseat storage. Automatic transmission and reliable performance for daily city commutes. Rental includes helmet and insurance. Book at TransRentals from ₹299/day." },
+  { name: 'TVS Jupiter', brand: 'TVS', price: 299, image: 'https://transrentals.in/images/scooters/jupiter.jpg', description: "Rent TVS Jupiter scooter — family-favourite 110cc scooter with 50+ kmpl mileage, extra-large 22-litre underseat storage, external fuel cap, and wide dual-person seat. Ideal for grocery runs, school trips, and daily commuting. Available at TransRentals from ₹299/day with doorstep delivery." },
+  { name: 'Suzuki Access 125', brand: 'Suzuki', price: 349, image: 'https://transrentals.in/images/scooters/access-125.jpg', description: "Rent Suzuki Access 125 scooter — premium 124cc scooter with 55 kmpl mileage, USB charging port, combined braking system (CBS), and 95 kmph top speed. Smooth and powerful for both city and short highway riding. Comfortable touring scooter rental from ₹349/day with helmet and insurance included." },
+  { name: 'Honda Dio', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/scooters/dio.jpg', description: "Rent Honda Dio scooter — sporty 109cc scooter with stylish design, full-LED lighting, digital instrument console, and USB charger. Lightweight at 102 kg and nimble for weaving through city traffic. Perfect for students and young commuters. Book Honda Dio rental at TransRentals from ₹299/day." },
 ];
 
 export default async function ActivaLocationPage({ params }: PageProps) {

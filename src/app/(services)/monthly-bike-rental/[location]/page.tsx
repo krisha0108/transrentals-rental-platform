@@ -104,11 +104,11 @@ export default async function MonthlyBikeRentalLocationPage({ params }: PageProp
   ];
 
   const schemaVehicles = [
-    { name: 'Honda Activa 6G', brand: 'Honda', price: 2999, image: 'https://transrentals.in/images/fleet/honda-activa-6g.jpg' },
-    { name: 'TVS Jupiter', brand: 'TVS', price: 3499, image: 'https://transrentals.in/images/scooters/jupiter.jpg' },
-    { name: 'Hero Splendor Plus', brand: 'Hero', price: 3999, image: 'https://transrentals.in/images/fleet/hero-splendor-plus.jpg' },
-    { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 4999, image: 'https://transrentals.in/images/fleet/bajaj-pulsar-150.jpg' },
-    { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 9999, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+    { name: 'Honda Activa 6G', brand: 'Honda', price: 2999, image: 'https://transrentals.in/images/fleet/honda-activa-6g.jpg', description: `Rent Honda Activa 6G on monthly basis in ${locationName} — India's most popular scooter with 109cc engine, 50 kmpl mileage, LED headlight, and 21-litre storage. Monthly plan includes zero maintenance, free servicing, insurance, and doorstep delivery. Best scooter for daily commuting in ${locationName}. From ₹2999/month.` },
+    { name: 'TVS Jupiter', brand: 'TVS', price: 3499, image: 'https://transrentals.in/images/scooters/jupiter.jpg', description: `Rent TVS Jupiter on monthly basis in ${locationName} — spacious family scooter with 110cc engine, 50+ kmpl mileage, 22-litre underseat storage, and extra-wide seat. Monthly rental with zero maintenance and free helmet. Ideal for families and working professionals in ${locationName}. Starting from ₹3499/month.` },
+    { name: 'Hero Splendor Plus', brand: 'Hero', price: 3999, image: 'https://transrentals.in/images/fleet/hero-splendor-plus.jpg', description: `Rent Hero Splendor Plus on monthly basis in ${locationName} — India's highest-selling commuter bike with 97.2cc engine and 65+ kmpl mileage. Monthly subscription includes free maintenance, servicing, and doorstep delivery in ${locationName}. Most fuel-efficient commuter bike. Plans from ₹3999/month.` },
+    { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 4999, image: 'https://transrentals.in/images/fleet/bajaj-pulsar-150.jpg', description: `Rent Bajaj Pulsar 150 on monthly basis in ${locationName} — sporty commuter with 149.5cc twin-spark engine, 14 PS power, disc brake, and 50+ kmpl mileage. Monthly plan with zero maintenance cost, insurance, and helmet included. Perfect for sporty daily commuting in ${locationName}. From ₹4999/month.` },
+    { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 9999, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: `Rent Royal Enfield Classic 350 on monthly basis in ${locationName} — iconic 349cc heritage cruiser with 35+ kmpl mileage, dual-channel ABS, and timeless styling. Premium monthly rental with full insurance, maintenance, and doorstep delivery in ${locationName}. For long-term biking enthusiasts. From ₹9999/month.` },
   ];
 
   const [seoData, scContent] = await Promise.all([

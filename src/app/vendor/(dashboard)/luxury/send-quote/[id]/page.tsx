@@ -464,11 +464,18 @@ export default function SendQuotePage() {
           <div className="bg-white/60 rounded-lg p-3">
             <p className="text-purple-600 text-xs uppercase tracking-wide">Vehicle</p>
             <p className="font-semibold text-gray-900">{request.vehicleCategoryName || request.vehicle_category}</p>
-            {request.specificModel && <p className="text-gray-500 text-xs">{request.specificModel}</p>}
+            {request.specificModel && (
+              <span className="inline-flex items-center gap-1 mt-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                ⭐ Preferred: {request.specificModel}
+              </span>
+            )}
           </div>
           <div className="bg-white/60 rounded-lg p-3">
             <p className="text-purple-600 text-xs uppercase tracking-wide">Route</p>
             <p className="font-semibold text-gray-900">{request.pickupCity}{request.dropCity && ` → ${request.dropCity}`}</p>
+            {request.passengers > 0 && (
+              <p className="text-gray-500 text-xs mt-1">{request.passengers} passenger{request.passengers !== 1 ? 's' : ''}</p>
+            )}
           </div>
           <div className="bg-white/60 rounded-lg p-3">
             <p className="text-purple-600 text-xs uppercase tracking-wide">Date & Time</p>
@@ -476,12 +483,24 @@ export default function SendQuotePage() {
               {new Date(request.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </p>
             <p className="text-gray-500 text-xs">at {request.pickupTime}</p>
+            {request.returnDate && (
+              <p className="text-gray-500 text-xs mt-1">
+                End: {new Date(request.returnDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </p>
+            )}
           </div>
           <div className="bg-white/60 rounded-lg p-3">
             <p className="text-purple-600 text-xs uppercase tracking-wide">Duration</p>
             <p className="font-semibold text-gray-900">
               {request.tripHours ? `${request.tripHours} hours` : `${request.tripDays} day(s)`}
             </p>
+            {(request.budgetMin || request.budgetMax) && (
+              <p className="text-gray-500 text-xs mt-1">
+                Budget: {request.budgetMin ? `₹${request.budgetMin.toLocaleString()}` : ''}
+                {request.budgetMin && request.budgetMax ? ' – ' : ''}
+                {request.budgetMax ? `₹${request.budgetMax.toLocaleString()}` : ''}
+              </p>
+            )}
           </div>
         </div>
         {(request.requirements || request.needDecoration) && (

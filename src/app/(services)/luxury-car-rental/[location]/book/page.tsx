@@ -112,6 +112,8 @@ function LuxuryBookingContent({ location }: { location: string }) {
   const [specialRequests, setSpecialRequests] = useState('');
   const [occasion, setOccasion] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
+  const [isCustomModel, setIsCustomModel] = useState(false);
+  const [customModelInput, setCustomModelInput] = useState('');
   const [needDecoration, setNeedDecoration] = useState(false);
   const [decorationType, setDecorationType] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -812,7 +814,11 @@ function LuxuryBookingContent({ location }: { location: string }) {
                     <button
                       key={model.name}
                       type="button"
-                      onClick={() => setSelectedModel(selectedModel === model.name ? '' : model.name)}
+                      onClick={() => {
+                        setSelectedModel(selectedModel === model.name ? '' : model.name);
+                        setCustomModelInput('');
+                        setIsCustomModel(false);
+                      }}
                       className={`p-4 rounded-xl border-2 text-center transition-all ${
                         selectedModel === model.name
                           ? 'border-amber-500 bg-amber-50'
@@ -823,7 +829,42 @@ function LuxuryBookingContent({ location }: { location: string }) {
                       <span className="text-sm font-medium block">{model.name}</span>
                     </button>
                   ))}
+
+                  {/* Custom model option */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomModel(true);
+                      setSelectedModel('');
+                    }}
+                    className={`p-4 rounded-xl border-2 text-center transition-all ${
+                      isCustomModel
+                        ? 'border-amber-500 bg-amber-50'
+                        : 'border-gray-200 hover:border-amber-300'
+                    }`}
+                  >
+                    <span className={`text-2xl block mb-2 ${isCustomModel ? 'text-amber-600' : 'text-gray-400'}`}>✏️</span>
+                    <span className="text-sm font-medium block">Other Model</span>
+                  </button>
                 </div>
+
+                {/* Custom model text input */}
+                {isCustomModel && (
+                  <div className="mt-3">
+                    <input
+                      type="text"
+                      value={customModelInput}
+                      onChange={(e) => {
+                        setCustomModelInput(e.target.value);
+                        setSelectedModel(e.target.value);
+                      }}
+                      placeholder="e.g. Rolls Royce Ghost, Bentley Mulsanne, Land Rover Defender..."
+                      className="w-full border-2 border-amber-400 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all"
+                      autoFocus
+                    />
+                    <p className="text-xs text-gray-400 mt-1 ml-1">Type any vehicle name you prefer</p>
+                  </div>
+                )}
               </motion.div>
 
               {/* Occasion Selection */}

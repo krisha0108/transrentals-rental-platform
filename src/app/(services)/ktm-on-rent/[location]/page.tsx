@@ -93,10 +93,10 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'KTM Duke 200', brand: 'KTM', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'KTM Duke 390', brand: 'KTM', price: 1499, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'KTM RC 200', brand: 'KTM', price: 1099, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'KTM RC 390', brand: 'KTM', price: 1599, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'KTM Duke 200', brand: 'KTM', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent KTM Duke 200 — entry-level naked sports bike with 199.5cc liquid-cooled single-cylinder engine producing 25 PS power and 19.3 Nm torque. 0-100 kmph in 8.7 seconds, slipper clutch, and race-tuned WP suspension. Sharp city handling with 30+ kmpl mileage. Rental includes helmet and insurance from ₹999/day.' },
+  { name: 'KTM Duke 390', brand: 'KTM', price: 1499, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent KTM Duke 390 — flagship naked sports bike with 373cc liquid-cooled engine, 43 PS power, TFT color display, cornering ABS, traction control, and ride modes. 0-100 kmph in 5.8 seconds with 174 kmph top speed. The most feature-rich sporty city bike available for rental. Book at ₹1499/day with helmet.' },
+  { name: 'KTM RC 200', brand: 'KTM', price: 1099, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent KTM RC 200 — full-fairing supersport with 199.5cc liquid-cooled engine, 25 PS power, clip-on handlebars, and track-focused aerodynamics. Aggressive riding position with sharp braking and suspension tuned for performance riding. Ideal for sporty commutes and track day enthusiasts. Available from ₹1099/day.' },
+  { name: 'KTM RC 390', brand: 'KTM', price: 1599, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent KTM RC 390 — track-ready supersport with 373cc engine, 43 PS power, lean-angle sensitive ABS, up/down quickshifter, cornering lights, and TFT display. Capable of 179 kmph top speed with race-bred chassis. The ultimate performance bike rental experience. Book at ₹1599/day with helmet and insurance.' },
 ];
 
 export default async function KTMLocationPage({ params }: PageProps) {

@@ -94,10 +94,10 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 1099, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'Royal Enfield Meteor 350', brand: 'Royal Enfield', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'Royal Enfield Hunter 350', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: "Rent Royal Enfield Classic 350 — India's iconic heritage cruiser with 349cc twin-spark J-series engine, 20.2 PS power, and timeless retro styling. Smooth highway cruiser with 35+ kmpl mileage, dual-channel ABS, and relaxed riding ergonomics. Perfect for weekend getaways, road trips, and long highway rides. Rental from ₹899/day with helmet." },
+  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 1099, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: "Rent Royal Enfield Himalayan — purpose-built adventure tourer with 411cc single-cylinder engine, 24.3 PS power, long-travel suspension, Tripper navigation, and dual-purpose tires. Designed for Ladakh, Spiti, Rajasthan, and all off-road terrain. The go-anywhere adventure bike rental from ₹1099/day with full gear." },
+  { name: 'Royal Enfield Meteor 350', brand: 'Royal Enfield', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: "Rent Royal Enfield Meteor 350 — modern cruiser with 349cc J-series engine, built-in Tripper navigation pod, USB charging, Bluetooth connectivity, and relaxed touring ergonomics. Ultra-smooth ride with 30+ kmpl mileage and premium comfort. Ideal for long relaxed highway rides and weekend road trips. From ₹999/day." },
+  { name: 'Royal Enfield Hunter 350', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent Royal Enfield Hunter 350 — lightweight roadster with 349cc J-series engine, 20.4 PS power, and urban-first ergonomics. Nimble and easy-handling city bike with Royal Enfield character. Sporty yet comfortable for both city riding and weekend escapes. Short seat height at 790 mm suits all riders. From ₹899/day.' },
 ];
 
 export default async function RoyalEnfieldLocationPage({ params }: PageProps) {
