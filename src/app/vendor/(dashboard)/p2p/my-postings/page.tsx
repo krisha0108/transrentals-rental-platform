@@ -610,8 +610,7 @@ export default function MyPostingsPage() {
   };
 
   const handleCopyLink = (postingId: string, type: 'vehicle' | 'booking') => {
-    const path = type === 'vehicle' ? 'vehicles' : 'bookings';
-    const link = `${window.location.origin}/vendor/p2p/${path}?highlight=${postingId}`;
+    const link = `${window.location.origin}/vendor/p2p/share/${postingId}`;
     navigator.clipboard.writeText(link).then(() => {
       setCopiedLink(postingId);
       setTimeout(() => setCopiedLink(null), 2000);
@@ -625,7 +624,7 @@ export default function MyPostingsPage() {
       `📍 ${vp.fromCity} → ${vp.toCity}\n` +
       `📅 ${formatDate(vp.departureDate)}\n` +
       `💰 ${formatPrice(vp.priceFullLoad)}\n\n` +
-      `${window.location.origin}/vendor/p2p/vehicles?highlight=${vp.id}`;
+      `${window.location.origin}/vendor/p2p/share/${vp.id}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     setShareDropdown(null);
   };
@@ -636,7 +635,7 @@ export default function MyPostingsPage() {
       `📍 ${bp.fromCity}${bp.toCity ? ` → ${bp.toCity}` : ''}\n` +
       `📅 ${formatDate(bp.tripDate)}\n` +
       `💰 Earn: ${formatPrice(bp.partnerEarning ?? bp.customerBudget)}\n\n` +
-      `${window.location.origin}/vendor/p2p/bookings?highlight=${bp.id}`;
+      `${window.location.origin}/vendor/p2p/share/${bp.id}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     setShareDropdown(null);
   };

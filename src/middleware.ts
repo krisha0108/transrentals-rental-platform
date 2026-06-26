@@ -125,11 +125,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Handle vendor dashboard protection (exclude auth pages and API)
+  // Handle vendor dashboard protection (exclude auth pages, API and public share links)
   if (pathname.startsWith('/vendor/') &&
       !pathname.startsWith('/vendor/login') &&
       !pathname.startsWith('/vendor/register') &&
       !pathname.startsWith('/vendor/forgot-password') &&
+      !pathname.startsWith('/vendor/p2p/share/') &&
       pathname !== '/vendor') {
     const token = await getToken({
       req: request,
