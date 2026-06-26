@@ -150,6 +150,7 @@ interface VehicleRentalSchemaProps {
     brand: string;
     price: number;
     image?: string;
+    description?: string;
   }>;
   priceRange?: { min: number; max: number };
   rating?: number;
@@ -213,7 +214,7 @@ export function VehicleRentalSchema({
           item: {
             '@type': 'Product',
             name: vehicle.name,
-            description: `Rent ${vehicle.name} in ${city || 'India'}. Book online at TransRentals.`,
+            description: vehicle.description || `Rent ${vehicle.name} by ${vehicle.brand} in ${city || 'India'}. Available for daily and monthly rental starting from ₹${vehicle.price}/day. Doorstep delivery, helmet and insurance included. Book online at TransRentals for the best ${vehicle.brand} rental rates in ${city || 'India'}.`,
             brand: { '@type': 'Brand', name: vehicle.brand },
             image: vehicle.image || 'https://transrentals.in/images/fleet/default-bike.jpg',
             offers: {

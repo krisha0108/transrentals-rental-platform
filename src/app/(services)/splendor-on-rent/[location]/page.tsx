@@ -93,10 +93,10 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Hero Splendor Plus', brand: 'Hero', price: 299, image: 'https://transrentals.in/images/fleet/hero-splendor-plus.jpg' },
-  { name: 'Hero Splendor iSmart', brand: 'Hero', price: 349, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'Hero Super Splendor', brand: 'Hero', price: 399, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'Hero HF Deluxe', brand: 'Hero', price: 279, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Hero Splendor Plus', brand: 'Hero', price: 299, image: 'https://transrentals.in/images/fleet/hero-splendor-plus.jpg', description: "Rent Hero Splendor Plus — India's highest-selling commuter bike with 97.2cc air-cooled engine, 65+ kmpl mileage, alloy wheels, and ultra-reliable performance. Lightweight at 112 kg with comfortable seating. Ideal for daily office commutes, delivery work, and city errands. Helmet and insurance included. Book at TransRentals from ₹299/day." },
+  { name: 'Hero Splendor iSmart', brand: 'Hero', price: 349, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent Hero Splendor iSmart — advanced commuter bike with i3S idle start-stop technology that automatically switches off the engine at traffic lights for 10-15% extra fuel savings. 97.2cc engine with 70+ kmpl mileage — the most fuel-efficient bike in its segment. Daily rental from ₹349/day with doorstep delivery.' },
+  { name: 'Hero Super Splendor', brand: 'Hero', price: 399, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent Hero Super Splendor — premium 125cc commuter with 10.7 PS power, 60+ kmpl mileage, front disc brake option, digital speedometer, and side stand engine cut-off. More power and highway confidence than standard Splendor. Perfect for both city and short highway rides. Available from ₹399/day with helmet.' },
+  { name: 'Hero HF Deluxe', brand: 'Hero', price: 279, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent Hero HF Deluxe — budget-friendly 97.2cc commuter with 65+ kmpl mileage, self-start, alloy wheels, and tubeless tires. Extremely reliable and easy to maintain with simple controls ideal for beginners. The most affordable bike rental for daily commuting needs. Starting from ₹279/day at TransRentals.' },
 ];
 
 export default async function SplendorLocationPage({ params }: PageProps) {

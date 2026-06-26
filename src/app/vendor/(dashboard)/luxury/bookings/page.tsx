@@ -715,9 +715,14 @@ export default function VendorLuxuryBookingsPage() {
                             <div className={cn("w-6 h-6 rounded flex items-center justify-center shrink-0 border", getVehicleStyle(item.chauffeur_vehicle_categories))}>
                               <Car className="w-3 h-3 opacity-70" />
                             </div>
-                            <h4 className="font-bold text-[#1F2A37] text-xs truncate">
-                              {item.specificModel || item.vehicleName || VEHICLE_CATEGORIES[item.chauffeur_vehicle_categories] || 'Luxury Fleet'}
-                            </h4>
+                            <div className="min-w-0">
+                              <h4 className="font-bold text-[#1F2A37] text-xs truncate">
+                                {item.vehicleName || item.vehicleCategoryName || VEHICLE_CATEGORIES[item.chauffeur_vehicle_categories] || 'Luxury Fleet'}
+                              </h4>
+                              {item.specificModel && (
+                                <p className="text-[10px] font-semibold text-amber-600 truncate">⭐ {item.specificModel}</p>
+                              )}
+                            </div>
                           </div>
 
                           <p className="text-[11px] text-[#6B7280] mb-1 flex items-center gap-1">
@@ -843,8 +848,13 @@ export default function VendorLuxuryBookingsPage() {
                               </h3>
                               <p className="text-base text-gray-400">
                                 {TRIP_TYPES[item.tripType] || item.tripType}
-                                {item.specificModel && ` • ${item.specificModel}`}
                               </p>
+                              {item.specificModel && (
+                                <span className="inline-flex items-center gap-1 mt-1 text-sm font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                  <Star className="w-3 h-3" />
+                                  Preferred: {item.specificModel}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <div className="text-right">
@@ -882,6 +892,11 @@ export default function VendorLuxuryBookingsPage() {
                               <p className="text-base font-medium text-gray-700">
                                 {new Date(item.pickupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} at {item.pickupTime}
                               </p>
+                              {item.returnDate && (
+                                <p className="text-sm text-gray-500 mt-0.5">
+                                  End: {new Date(item.returnDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-start gap-2.5">
@@ -891,6 +906,11 @@ export default function VendorLuxuryBookingsPage() {
                             <div>
                               <p className="text-sm text-gray-400">Customer</p>
                               <p className="text-base font-medium text-gray-700">{item.customerName}</p>
+                              {item.customerPhone && (
+                                <p className="text-sm text-emerald-600 flex items-center gap-1 mt-0.5">
+                                  <Phone className="w-3 h-3" />{item.customerPhone}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-start gap-2.5">
@@ -902,6 +922,9 @@ export default function VendorLuxuryBookingsPage() {
                               <p className="text-base font-medium text-gray-700">
                                 {item.tripHours ? `${item.tripHours} hours` : `${item.tripDays || 1} day(s)`}
                               </p>
+                              {(item as any).packageType && (
+                                <p className="text-sm text-gray-500 mt-0.5">{(item as any).packageType}</p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -915,7 +938,7 @@ export default function VendorLuxuryBookingsPage() {
                                 {item.needDecoration && (
                                   <span className="text-sm bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                                     <Sparkles className="w-3.5 h-3.5" />
-                                    Decoration
+                                    {item.decorationType ? `Decoration: ${item.decorationType}` : 'Decoration Required'}
                                   </span>
                                 )}
                                 {item.totalQuotesReceived !== null && item.totalQuotesReceived > 0 && (

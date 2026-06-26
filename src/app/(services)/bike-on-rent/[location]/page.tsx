@@ -149,11 +149,11 @@ const getLocationFaqs = (locationName: string) => [
 
 // Schema vehicles data
 const schemaVehicles = [
-  { name: 'Honda Activa 6G', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/fleet/honda-activa-6g.jpg' },
-  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 799, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'TVS Jupiter', brand: 'TVS', price: 349, image: 'https://transrentals.in/images/scooters/jupiter.jpg' },
-  { name: 'KTM Duke 200', brand: 'KTM', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Honda Activa 6G', brand: 'Honda', price: 299, image: 'https://transrentals.in/images/fleet/honda-activa-6g.jpg', description: "Rent Honda Activa 6G scooter — India's most popular two-wheeler with 109cc OBD2-compliant engine, 50 kmpl mileage, LED headlight, silent start, and 21-litre underseat storage. Ideal for hassle-free city commuting with automatic transmission. Rental includes helmet and insurance. Book at TransRentals from ₹299/day." },
+  { name: 'Royal Enfield Classic 350', brand: 'Royal Enfield', price: 799, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: "Rent Royal Enfield Classic 350 — iconic heritage cruiser with 349cc twin-spark J-series engine, 20.2 PS power, dual-channel ABS, and timeless design. Smooth highway cruiser with 35+ kmpl mileage and relaxed touring ergonomics. Perfect for road trips and weekend getaways. Rental from ₹799/day with helmet." },
+  { name: 'TVS Jupiter', brand: 'TVS', price: 349, image: 'https://transrentals.in/images/scooters/jupiter.jpg', description: "Rent TVS Jupiter scooter — family-favourite 110cc automatic scooter with 50+ kmpl mileage, extra-large 22-litre underseat storage, external fuel cap, and wide two-person seat. Best for family outings, grocery runs, and comfortable daily commuting. Available from ₹349/day with doorstep delivery." },
+  { name: 'KTM Duke 200', brand: 'KTM', price: 999, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent KTM Duke 200 — aggressive naked sports bike with 199.5cc liquid-cooled engine, 25 PS power, slipper clutch, and WP suspension. 0-100 kmph in 8.7 seconds with sharp handling and 136 kmph top speed. Perfect for sporty city riding and spirited weekend rides. Rental from ₹999/day with helmet.' },
+  { name: 'Royal Enfield Himalayan', brand: 'Royal Enfield', price: 899, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent Royal Enfield Himalayan — purpose-built adventure tourer with 411cc single-cylinder engine, 24.3 PS power, long-travel suspension, and Tripper navigation. Handles mountain roads, highway touring, and off-road terrain with ease. Ideal for Ladakh and adventure road trips. Available from ₹899/day.' },
 ];
 
 export default async function BikeLocationPage({ params }: PageProps) {

@@ -93,10 +93,10 @@ const schemaFaqs = [
 ];
 
 const schemaVehicles = [
-  { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 499, image: 'https://transrentals.in/images/fleet/bajaj-pulsar-150.jpg' },
-  { name: 'Bajaj Pulsar 180', brand: 'Bajaj', price: 599, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'Bajaj Pulsar NS200', brand: 'Bajaj', price: 699, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
-  { name: 'Bajaj Pulsar RS200', brand: 'Bajaj', price: 799, image: 'https://transrentals.in/images/fleet/default-bike.jpg' },
+  { name: 'Bajaj Pulsar 150', brand: 'Bajaj', price: 499, image: 'https://transrentals.in/images/fleet/bajaj-pulsar-150.jpg', description: "Rent Bajaj Pulsar 150 — India's favourite sporty commuter with 149.5cc twin-spark engine, 14 PS power, 50+ kmpl mileage, disc brake, and digital console. Bold design with alloy wheels, tubeless tires, and rear mono-shock suspension. Reliable performance for city commuting and short highway rides. From ₹499/day." },
+  { name: 'Bajaj Pulsar 180', brand: 'Bajaj', price: 599, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent Bajaj Pulsar 180 — powerful commuter-sport with 178.6cc DTS-i engine, 17.02 PS power, 50+ kmpl mileage, alloy wheels, and front disc brake. Sporty instrumentation with digital-analog combo, underbelly exhaust, and 105 kmph top speed. Perfect balance of performance and efficiency. Available from ₹599/day.' },
+  { name: 'Bajaj Pulsar NS200', brand: 'Bajaj', price: 699, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent Bajaj Pulsar NS200 — naked street fighter with 199.5cc liquid-cooled triple-spark engine, 24.5 PS power, slipper clutch, perimeter frame, and aggressive streetfighter styling. 138 kmph top speed with sharp handling. Ideal for riders wanting sporty mid-size performance. Book NS200 rental from ₹699/day.' },
+  { name: 'Bajaj Pulsar RS200', brand: 'Bajaj', price: 799, image: 'https://transrentals.in/images/fleet/default-bike.jpg', description: 'Rent Bajaj Pulsar RS200 — fully-faired sports bike with 199.5cc liquid-cooled engine, 24.5 PS power, cornering ABS, race-inspired aerodynamic fairing, and LED projector headlamp. 142 kmph top speed with sporty clip-on handlebars. Best fully-faired performance bike at this price range. Book from ₹799/day.' },
 ];
 
 export default async function PulsarLocationPage({ params }: PageProps) {
