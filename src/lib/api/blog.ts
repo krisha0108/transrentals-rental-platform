@@ -68,6 +68,7 @@ import {
   fetchFeaturedPostsPrisma,
   searchBlogPostsPrisma,
   fetchBlogServicesPrisma,
+  fetchRelatedPostsPrisma,
 } from './blog-prisma';
 
 /**
@@ -536,25 +537,20 @@ export async function fetchRelatedPosts(
   postId: string,
   limit: number = 3
 ): Promise<BlogPost[]> {
+  // Check database first (CMS blogs), mirroring fetchBlogPost's behaviour
+  try {
+    const dbRelated = await fetchRelatedPostsPrisma(postId, limit);
+    if (dbRelated && dbRelated.length > 0) {
+      return dbRelated;
+    }
+  } catch (error) {
+    console.error('Error fetching related posts from database:', error);
+  }
+
+  // Fall back to mock data (static blogs)
   if (USE_MOCK_DATA) {
     return getRelatedPosts(postId, limit);
   }
-
-  // Laravel API implementation
-  /*
-  const response = await fetch(
-    `${API_BASE_URL}/api/blog/posts/${postId}/related?limit=${limit}`,
-    {
-      next: { revalidate: 300 },
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch related posts');
-  }
-
-  return response.json();
-  */
 
   return [];
 }

@@ -13,29 +13,42 @@ export function TableOfContents({ content }: TableOfContentsProps) {
   const [activeId, setActiveId] = useState<string>('');
   const [isOpen, setIsOpen] = useState(true);
 
+  // Build the TOC from the post content
   useEffect(() => {
     setToc(extractHeadings(content));
-
-    // Scroll spy for active heading
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
-          }
-        });
-      },
-      { rootMargin: '-100px 0px -80% 0px' }
-    );
-
-    // Observe all headings
-    const headingElements = document.querySelectorAll('h2, h3');
-    headingElements.forEach((el) => observer.observe(el));
-
-    return () => {
-      headingElements.forEach((el) => observer.unobserve(el));
-    };
   }, [content]);
+
+  // Scroll-spy: highlight the heading currently at the top of the viewport.
+  // Only considers headings that exist in the TOC — ignores other page headings
+  // (e.g. "Continue Exploring", "Explore Our Services") which broke the old logic.
+  useEffect(() => {
+    if (toc.length === 0) return;
+
+    const onScroll = () => {
+      const offset = 140; // clears the fixed header
+      let current = '';
+      for (const item of toc) {
+        const el = document.getElementById(item.id);
+        if (!el) continue;
+        if (el.getBoundingClientRect().top - offset <= 1) {
+          current = item.id;
+        } else {
+          break;
+        }
+      }
+      // Before the first heading is reached, keep the first item highlighted
+      if (!current && toc[0]) current = toc[0].id;
+      setActiveId(current);
+    };
+
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [toc]);
 
   if (toc.length === 0) return null;
 

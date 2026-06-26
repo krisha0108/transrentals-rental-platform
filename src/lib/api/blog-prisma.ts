@@ -96,7 +96,7 @@ function convertPrismaBlogPost(post: any): BlogPost {
       email: post.admin_users.email,
       role: 'Content Expert at TransRentals',
       bio: `${post.admin_users.name} is a travel and vehicle rental expert at TransRentals, India's leading vehicle rental marketplace. With hands-on expertise in road trips, destination planning, and rental services across India, ${post.admin_users.name} creates practical and insightful guides to help travelers explore India's diverse landscapes with confidence — from Himalayan bike adventures to coastal road trips.`,
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(post.admin_users.name)}&background=3B82F6&color=fff&size=200&bold=true`,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(post.admin_users.name)}&background=10B981&color=fff&size=200&bold=true`,
       socialLinks: {},
       postCount: 0,
     },
@@ -323,6 +323,69 @@ export async function fetchBlogPostsPrisma(
 }
 
 /**
+ * Fetch related posts for a given post (same category first, then recent fill-ins)
+ */
+export async function fetchRelatedPostsPrisma(
+  postId: string,
+  limit: number = 3
+): Promise<BlogPost[]> {
+  if (process.env.SKIP_DATABASE_CALLS === '1') {
+    return [];
+  }
+
+  const include = {
+    blog_categories: true,
+    admin_users: { select: { id: true, name: true, email: true } },
+    seo_meta: true,
+  };
+
+  try {
+    const current = await prisma.blog_posts.findUnique({
+      where: { id: postId },
+      select: { categoryId: true },
+    });
+
+    const collected: any[] = [];
+    const excludeIds = [postId];
+
+    // 1) Posts from the same category
+    if (current?.categoryId) {
+      const sameCategory = await prisma.blog_posts.findMany({
+        where: {
+          status: 'PUBLISHED',
+          categoryId: current.categoryId,
+          id: { not: postId },
+        },
+        orderBy: { publishedAt: 'desc' },
+        take: limit,
+        include,
+      });
+      collected.push(...sameCategory);
+      excludeIds.push(...sameCategory.map((p) => p.id));
+    }
+
+    // 2) Fill remaining slots with the most recent published posts
+    if (collected.length < limit) {
+      const fillers = await prisma.blog_posts.findMany({
+        where: {
+          status: 'PUBLISHED',
+          id: { notIn: excludeIds },
+        },
+        orderBy: { publishedAt: 'desc' },
+        take: limit - collected.length,
+        include,
+      });
+      collected.push(...fillers);
+    }
+
+    return collected.slice(0, limit).map(convertPrismaBlogPost);
+  } catch (error) {
+    console.error('Error fetching related posts from Prisma:', error);
+    return [];
+  }
+}
+
+/**
  * Fetch single blog post by slug
  */
 export async function fetchBlogPostPrisma(slug: string): Promise<BlogPost | null> {
@@ -497,15 +560,16 @@ export async function searchBlogPostsPrisma(query: string, limit: number = 10): 
   }
 
   try {
-    // Search in title, content, and excerpt
+    // Search in title, excerpt and category name only.
+    // NOTE: `content` (LongText) is intentionally excluded — a LIKE scan over
+    // LongText has no index and becomes very slow at scale (1000s of posts).
+    // Title + excerpt + category cover almost all real searches and stay fast.
     const posts = await prisma.blog_posts.findMany({
       where: {
         status: 'PUBLISHED',
         OR: [
           { title: { contains: query } },
-          { content: { contains: query } },
           { excerpt: { contains: query } },
-          // Also search in category name if it exists
           { blog_categories: { name: { contains: query } } },
         ],
       },

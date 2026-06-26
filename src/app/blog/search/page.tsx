@@ -24,7 +24,7 @@ function SearchContent() {
 
       setLoading(true);
       try {
-        const res = await fetch(`/api/blog/search?q=${encodeURIComponent(query)}&limit=50`);
+        const res = await fetch(`/api/blog/search?q=${encodeURIComponent(query)}&limit=20`);
         if (res.ok) {
           const data = await res.json();
           setPosts(data.posts || []);

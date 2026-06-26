@@ -53,7 +53,7 @@ interface BlogSearchProps {
       />
       <button
         type="submit"
-        className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-green-600 text-white text-sm font-semibold rounded-md hover:bg-blue-700 transition-colors"
+        className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-green-700 text-white text-sm font-semibold rounded-md hover:bg-green-800 transition-colors"
       >
         Search
       </button>
