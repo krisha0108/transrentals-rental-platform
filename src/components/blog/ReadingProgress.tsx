@@ -2,31 +2,57 @@
 
 import { useEffect, useState } from 'react';
 
-/** Shared scroll-progress hook (0–100). Pure UI, never touches post content. */
-function useScrollProgress() {
+/**
+ * Scroll-progress hook (0–100).
+ * - With `targetId`: measures progress through that element (e.g. the article),
+ *   so it hits 100% exactly when the element's bottom reaches the viewport bottom
+ *   (i.e. the last paragraph is read) — ignoring related posts / footer below.
+ * - Without `targetId`: falls back to whole-page scroll progress.
+ */
+function useScrollProgress(targetId?: string) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const onScroll = () => {
-      const total = document.documentElement.scrollHeight - window.innerHeight;
+    const compute = () => {
+      const vh = window.innerHeight;
+      const el = targetId ? document.getElementById(targetId) : null;
+
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const scrollable = el.offsetHeight - vh;
+        let pct: number;
+        if (scrollable <= 0) {
+          // Article fits within one screen → done once its bottom is visible
+          pct = rect.bottom <= vh ? 100 : 0;
+        } else {
+          // How far the article top has scrolled above the viewport top
+          pct = (-rect.top / scrollable) * 100;
+        }
+        setProgress(Math.min(100, Math.max(0, pct)));
+        return;
+      }
+
+      // Fallback: whole-page progress
+      const total = document.documentElement.scrollHeight - vh;
       const pct = total > 0 ? (window.scrollY / total) * 100 : 0;
       setProgress(Math.min(100, Math.max(0, pct)));
     };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
+
+    compute();
+    window.addEventListener('scroll', compute, { passive: true });
+    window.addEventListener('resize', compute);
     return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      window.removeEventListener('scroll', compute);
+      window.removeEventListener('resize', compute);
     };
-  }, []);
+  }, [targetId]);
 
   return progress;
 }
 
 /** Thin fixed reading-progress bar pinned to the very top of the viewport. */
-export function ReadingProgressBar() {
-  const progress = useScrollProgress();
+export function ReadingProgressBar({ targetId }: { targetId?: string }) {
+  const progress = useScrollProgress(targetId);
   return (
     <div className="fixed top-0 left-0 w-full h-1 z-[70] bg-[#e0e3e5] pointer-events-none">
       <div
@@ -38,8 +64,8 @@ export function ReadingProgressBar() {
 }
 
 /** Sidebar card showing the live reading-progress percentage. */
-export function ReadingProgressMeter() {
-  const progress = useScrollProgress();
+export function ReadingProgressMeter({ targetId }: { targetId?: string }) {
+  const progress = useScrollProgress(targetId);
   return (
     <div className="p-6 rounded-2xl bg-white border border-[#d1fae5]/60 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-wider text-[#545f73] mb-3">

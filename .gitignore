@@ -57,6 +57,7 @@ logs
 
 # Sensitive KYC / private storage
 /storage/private/travel-agent-documents/*
+/storage/private/vendor-documents/*
 
 # Claude Code local settings
 .claude/settings.local.json

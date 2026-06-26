@@ -26,7 +26,12 @@ export async function GET(request: NextRequest) {
 
     const combined = [...dbPosts, ...uniqueMockPosts].slice(0, limit);
 
-    return NextResponse.json({ posts: combined });
+    // Cache identical search queries briefly — repeat searches load instantly
+    // (browser) and are CDN-cached in production.
+    return NextResponse.json(
+      { posts: combined },
+      { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=600' } },
+    );
   } catch (error) {
     console.error('Blog search error:', error);
     // Fallback to mock only

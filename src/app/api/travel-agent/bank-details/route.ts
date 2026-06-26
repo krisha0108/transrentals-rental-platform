@@ -123,6 +123,75 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+// PUT — edit an existing bank account's details (persisted to DB).
+export async function PUT(request: NextRequest) {
+  try {
+    const auth = await getTravelAgentAuth(request);
+    if (!auth.authenticated || !auth.travelAgentId) {
+      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const {
+      id,
+      bankName,
+      accountHolderName,
+      accountNumber,
+      ifscCode,
+      accountType,
+      branchName,
+      upiId,
+      isPrimary,
+    } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Account id is required' }, { status: 400 });
+    }
+    if (!bankName || !accountHolderName || !accountNumber || !ifscCode) {
+      return NextResponse.json(
+        { error: 'bankName, accountHolderName, accountNumber, and ifscCode are required' },
+        { status: 400 },
+      );
+    }
+
+    // Ownership check
+    const existing = await prisma.travel_agent_bank_accounts.findUnique({ where: { id } });
+    if (!existing || existing.travelAgentId !== auth.travelAgentId || !existing.isActive) {
+      return NextResponse.json({ error: 'Bank account not found' }, { status: 404 });
+    }
+
+    // If this account is being made primary, demote the others first
+    if (isPrimary) {
+      await prisma.travel_agent_bank_accounts.updateMany({
+        where: { travelAgentId: auth.travelAgentId, isPrimary: true, id: { not: id } },
+        data: { isPrimary: false },
+      });
+    }
+
+    const account = await prisma.travel_agent_bank_accounts.update({
+      where: { id },
+      data: {
+        bankName,
+        accountHolderName,
+        accountNumber,
+        ifscCode: ifscCode.toUpperCase(),
+        accountType: accountType || 'SAVINGS',
+        branchName: branchName || null,
+        upiId: upiId || null,
+        isPrimary: !!isPrimary,
+      },
+    });
+
+    return NextResponse.json({ account });
+  } catch (error: any) {
+    logger.error('Update travel agent bank account error', error);
+    return NextResponse.json(
+      { error: 'Failed to update bank account', details: error?.message },
+      { status: 500 },
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const auth = await getTravelAgentAuth(request);

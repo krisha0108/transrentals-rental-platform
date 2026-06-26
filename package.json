@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
+    "dev:turbo": "next dev -H 0.0.0.0 --turbo",
     "dev:socket": "tsx server.ts",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 prisma generate && cross-env NODE_OPTIONS=--max-old-space-size=4096 next build",
     "start": "next start",

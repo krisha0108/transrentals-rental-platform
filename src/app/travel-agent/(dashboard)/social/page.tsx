@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { PostImageSlideshow } from '@/components/social/PostImageSlideshow';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
@@ -686,17 +687,7 @@ function PostCard({ post, currentAgentId, onLike, onSave, onDelete, onComment, o
               {expanded ? 'Show less' : 'Read more'}
             </button>
           )}
-          {Array.isArray(post.images) && post.images.length > 0 && (
-            <div className={`mt-3 grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-              {post.images.map((url, i) => (
-                <a key={i} href={url} target="_blank" rel="noreferrer"
-                  className={`block overflow-hidden rounded-xl border border-gray-100 ${post.images!.length === 3 && i === 0 ? 'col-span-2' : ''}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt="" className="w-full h-full max-h-80 object-cover" />
-                </a>
-              ))}
-            </div>
-          )}
+          <PostImageSlideshow images={post.images} />
         </div>
 
         <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">

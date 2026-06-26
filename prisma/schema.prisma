@@ -1955,6 +1955,11 @@ model luxury_bookings {
   decorationType                                    String?
   needChauffeur                                     Boolean                       @default(true)
   chauffeurAttire                                   String?
+  needDressCode                                     Boolean                       @default(false)
+  pickupPincode                                     String?
+  dropPincode                                       String?
+  packageType                                       String?
+  estimatedKm                                       Int?
   customerNotes                                     String?                       @db.Text
   baseFare                                          Float
   decorationCharges                                 Float                         @default(0)

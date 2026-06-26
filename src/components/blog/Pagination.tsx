@@ -66,7 +66,7 @@ function PaginationInner({ meta, basePath }: PaginationProps) {
         className={`flex items-center gap-1 px-4 py-2 rounded-lg border transition-colors ${
           !hasPrevPage
             ? 'border-gray-200 text-gray-400 cursor-not-allowed pointer-events-none'
-            : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+            : 'border-gray-300 text-gray-700 hover:bg-emerald-50 hover:text-[#047857] hover:border-[#047857]'
         }`}
         aria-disabled={!hasPrevPage}
       >
@@ -96,8 +96,8 @@ function PaginationInner({ meta, basePath }: PaginationProps) {
               href={createPageUrl(pageNumber)}
               className={`px-4 py-2 rounded-lg border transition-colors ${
                 isActive
-                  ? 'bg-blue-600 text-white border-blue-600 font-semibold'
-                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  ? 'bg-[#047857] text-white border-[#047857] font-semibold'
+                  : 'border-gray-300 text-gray-700 hover:bg-emerald-50 hover:text-[#047857] hover:border-[#047857]'
               }`}
               aria-current={isActive ? 'page' : undefined}
             >
@@ -112,7 +112,7 @@ function PaginationInner({ meta, basePath }: PaginationProps) {
         className={`flex items-center gap-1 px-4 py-2 rounded-lg border transition-colors ${
           !hasNextPage
             ? 'border-gray-200 text-gray-400 cursor-not-allowed pointer-events-none'
-            : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+            : 'border-gray-300 text-gray-700 hover:bg-emerald-50 hover:text-[#047857] hover:border-[#047857]'
         }`}
         aria-disabled={!hasNextPage}
       >

@@ -64,7 +64,6 @@ export async function GET(request: NextRequest) {
       // Open requests - vendor hasn't quoted yet
       whereClause = {
         status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
-        quotesOpenTill: { gte: new Date() },
         OR: [
           { locationId: { in: approvedLocationIds } },
           { locationId: null }, // Requests without specific location
@@ -115,7 +114,6 @@ export async function GET(request: NextRequest) {
           // Open requests in vendor's locations
           {
             status: { in: ['PENDING', 'QUOTES_RECEIVED'] },
-            quotesOpenTill: { gte: new Date() },
             OR: [
               { locationId: { in: approvedLocationIds } },
               { locationId: null },

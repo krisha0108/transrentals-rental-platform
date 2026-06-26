@@ -12,6 +12,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { PostImageSlideshow } from '@/components/social/PostImageSlideshow';
 import {
   ArrowLeft, MapPin, FileText, Compass, Heart, MessageCircle,
   Bookmark, BookmarkCheck, Trash2, Settings, Zap, Loader2,
@@ -31,6 +32,7 @@ interface Agent {
 interface Post {
   id: string;
   content: string;
+  images?: string[];
   createdAt: string;
   vendor: { id: string; businessName: string; ownerName: string; logo?: string; city?: string };
   category: { id: string; name: string; isSOS: boolean };
@@ -363,6 +365,7 @@ export default function AgentSocialProfileMePage() {
                             {isExpanded ? 'Show less' : 'Read more'}
                           </button>
                         )}
+                        <PostImageSlideshow images={post.images} />
                         <div className="flex items-center gap-1 mt-3 pt-3 border-t border-gray-100">
                           <button onClick={() => handleLike(post.id)}
                             className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${

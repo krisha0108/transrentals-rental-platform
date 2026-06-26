@@ -125,7 +125,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e]">
       {/* Reading progress bar (UI only) */}
-      <ReadingProgressBar />
+      <ReadingProgressBar targetId="blog-article" />
 
       {/* Structured Data */}
       <ArticleSchema
@@ -224,7 +224,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         {/* Sidebar */}
         <aside className="hidden lg:block lg:col-span-3">
           <div className="sticky top-28 space-y-8">
-            <ReadingProgressMeter />
+            <ReadingProgressMeter targetId="blog-article" />
             <TableOfContents content={post.content} />
 
             {/* Glass CTA card */}
@@ -246,7 +246,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         {/* Article */}
         <article className="lg:col-span-9 max-w-[850px] min-w-0">
           {/* ===== Article content box ===== */}
-          <div className="relative bg-white rounded-3xl shadow-[0_20px_50px_-12px_rgba(16,185,129,0.12)] border border-[#d1fae5]/60 ring-1 ring-black/[0.03] overflow-hidden">
+          <div id="blog-article" className="relative bg-white rounded-3xl shadow-[0_20px_50px_-12px_rgba(16,185,129,0.12)] border border-[#d1fae5]/60 ring-1 ring-black/[0.03] overflow-hidden">
             {/* Top accent bar */}
             <div className="h-1.5 w-full bg-gradient-to-r from-[#10b981] via-[#34d399] to-[#10b981]" />
             {/* Content — render UNCHANGED */}
