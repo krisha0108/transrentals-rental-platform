@@ -457,6 +457,7 @@ const adminItems: NavItem[] = [
       { name: 'Chat', href: '/admin/analytics/chat', icon: MessageSquare },
       { name: 'Reports', href: '/admin/analytics/reports', icon: FileText },
       { name: 'Integrations', href: '/admin/analytics/integrations', icon: Link2 },
+      { name: 'AI Analysis', href: '/admin/analytics/ai-analysis', icon: Sparkles },
     ],
   },
 ];
