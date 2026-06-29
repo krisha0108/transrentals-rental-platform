@@ -52,13 +52,15 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
   const [showChat, setShowChat] = useState(false);
 
   // Trip details
-  const [tripType,    setTripType]    = useState('outstation');
-  const [fromCity,    setFromCity]    = useState(cityName);
-  const [toCity,      setToCity]      = useState('');
-  const [travelDate,  setTravelDate]  = useState('');
-  const [pickupTime,  setPickupTime]  = useState('09:00');
-  const [returnDate,  setReturnDate]  = useState('');
-  const [passengers,  setPassengers]  = useState(20);
+  const [tripType,       setTripType]       = useState('outstation');
+  const [fromCity,       setFromCity]       = useState(cityName);
+  const [pickupAddress,  setPickupAddress]  = useState('');
+  const [toCity,         setToCity]         = useState('');
+  const [dropAddress,    setDropAddress]    = useState('');
+  const [travelDate,     setTravelDate]     = useState('');
+  const [pickupTime,     setPickupTime]     = useState('09:00');
+  const [returnDate,     setReturnDate]     = useState('');
+  const [passengers,     setPassengers]     = useState(20);
 
   // Contact + extras
   const [name,         setName]         = useState('');
@@ -85,17 +87,19 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customerName:  name.trim(),
-          customerEmail: `${phone.trim()}@transrentals.in`,
-          customerPhone: phone.trim(),
-          pickupCity:    fromCity.trim(),
-          dropCity:      toCity.trim() || undefined,
-          pickupDate:    travelDate,
-          pickupTime:    pickupTime,
-          returnDate:    returnDate || undefined,
+          customerName:   name.trim(),
+          customerEmail:  `${phone.trim()}@transrentals.in`,
+          customerPhone:  phone.trim(),
+          pickupCity:     fromCity.trim(),
+          pickupAddress:  pickupAddress.trim() || undefined,
+          dropCity:       toCity.trim() || undefined,
+          dropAddress:    dropAddress.trim() || undefined,
+          pickupDate:     travelDate,
+          pickupTime:     pickupTime,
+          returnDate:     returnDate || undefined,
           passengers,
           tripType,
-          requirements:  requirements.trim() || undefined,
+          requirements:   requirements.trim() || undefined,
           needAC: true,
         }),
       });
@@ -128,7 +132,7 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
           🚌 {passengers} passengers · {fromCity}{toCity ? ` → ${toCity}` : ''} · {tripType}
           {returnDate && <> · Return {returnDate}</>}
         </div>
-        <button onClick={() => { setSuccess(false); setStep(1); setName(''); setPhone(''); setToCity(''); setTravelDate(''); setReturnDate(''); setRequirements(''); }}
+        <button onClick={() => { setSuccess(false); setStep(1); setName(''); setPhone(''); setToCity(''); setPickupAddress(''); setDropAddress(''); setTravelDate(''); setReturnDate(''); setRequirements(''); }}
           className="mt-6 text-sm text-blue-600 hover:underline font-medium">
           New request
         </button>
@@ -187,35 +191,45 @@ function BusBookingWidget({ cityName, serviceType }: { cityName: string; service
             </div>
 
             {/* From → To */}
-            <div className="relative">
-              <div className="space-y-2">
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                    <MapPin className="w-4 h-4 text-emerald-600" />
-                  </div>
-                  <input required type="text" placeholder="From city" value={fromCity}
-                    onChange={e => setFromCity(e.target.value)}
-                    className="w-full pl-14 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-semibold text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:bg-white transition-all" />
+            <div className="space-y-2">
+              {/* From city + pickup address */}
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-emerald-600" />
                 </div>
-
-                {/* Swap arrow */}
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-gray-100" />
-                  <div className="w-8 h-8 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center">
-                    <ArrowRight className="w-3.5 h-3.5 text-gray-400" />
-                  </div>
-                  <div className="flex-1 h-px bg-gray-100" />
-                </div>
-
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Navigation2 className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <input type="text" placeholder="To city (optional for local)" value={toCity}
-                    onChange={e => setToCity(e.target.value)}
-                    className="w-full pl-14 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-semibold text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:bg-white transition-all" />
-                </div>
+                <input required type="text" placeholder="From city" value={fromCity}
+                  onChange={e => setFromCity(e.target.value)}
+                  className="w-full pl-14 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-semibold text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:bg-white transition-all" />
               </div>
+              <input required type="text"
+                placeholder={`Pickup address in ${fromCity || 'city'} (Building, Area, Landmark)`}
+                value={pickupAddress} onChange={e => setPickupAddress(e.target.value)}
+                className="w-full px-4 py-3 bg-emerald-50/50 border-2 border-emerald-100 rounded-2xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:bg-white transition-all" />
+
+              {/* Divider arrow */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-gray-100" />
+                <div className="w-8 h-8 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center">
+                  <ArrowRight className="w-3.5 h-3.5 text-gray-400" />
+                </div>
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+
+              {/* To city + drop address */}
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Navigation2 className="w-4 h-4 text-blue-600" />
+                </div>
+                <input type="text" placeholder="To city (optional for local trips)" value={toCity}
+                  onChange={e => setToCity(e.target.value)}
+                  className="w-full pl-14 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm font-semibold text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:bg-white transition-all" />
+              </div>
+              {toCity && (
+                <input type="text"
+                  placeholder={`Drop address in ${toCity} (Building, Area, Landmark)`}
+                  value={dropAddress} onChange={e => setDropAddress(e.target.value)}
+                  className="w-full px-4 py-3 bg-blue-50/50 border-2 border-blue-100 rounded-2xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-blue-400 focus:bg-white transition-all" />
+              )}
             </div>
 
             {/* Date + Time | Passengers */}
