@@ -880,9 +880,6 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
 
         {/* Quick Actions */}
         <div className="flex items-center gap-2">
-          {/* Set password — available regardless of vendor status, since the
-              support team may need to reset credentials at any lifecycle
-              stage (new onboarding, post-suspension, lost password). */}
           <Button
             variant="outline"
             onClick={openPasswordModal}
@@ -891,19 +888,63 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
             <KeyRound className="w-4 h-4 mr-2" />
             Set Password
           </Button>
-          {vendor.status === 'UNDER_REVIEW' && (
+
+          {/* Approve + Reject for all pre-approval statuses */}
+          {['PENDING', 'DOCUMENTS_PENDING', 'UNDER_REVIEW', 'REJECTED'].includes(vendor.status) && (
             <>
               <Button
                 onClick={() => handleVendorAction('APPROVE')}
                 disabled={!!actionLoading}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 text-white"
               >
                 {actionLoading === 'APPROVE' ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : (
                   <CheckCircle className="w-4 h-4 mr-2" />
                 )}
-                Approve Vendor
+                {vendor.status === 'REJECTED' ? 'Re-Approve' : 'Approve'}
+              </Button>
+              {vendor.status !== 'REJECTED' && (
+                <Button
+                  variant="destructive"
+                  onClick={() => openRejectModal('vendor')}
+                  disabled={!!actionLoading}
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject
+                </Button>
+              )}
+            </>
+          )}
+
+          {/* APPROVED: Suspend, Block, Reject */}
+          {vendor.status === 'APPROVED' && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => handleVendorAction('SUSPEND')}
+                disabled={!!actionLoading}
+                className="border-purple-300 text-purple-700 hover:bg-purple-50"
+              >
+                {actionLoading === 'SUSPEND' ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                )}
+                Suspend
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleVendorAction('BLOCK')}
+                disabled={!!actionLoading}
+                className="border-gray-400 text-gray-700 hover:bg-gray-100"
+              >
+                {actionLoading === 'BLOCK' ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Ban className="w-4 h-4 mr-2" />
+                )}
+                Block
               </Button>
               <Button
                 variant="destructive"
@@ -915,23 +956,51 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
               </Button>
             </>
           )}
-          {vendor.status === 'APPROVED' && (
-            <Button
-              variant="outline"
-              onClick={() => handleVendorAction('SUSPEND')}
-              disabled={!!actionLoading}
-            >
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Suspend
-            </Button>
-          )}
+
+          {/* SUSPENDED: Reinstate or Block */}
           {vendor.status === 'SUSPENDED' && (
+            <>
+              <Button
+                onClick={() => handleVendorAction('UNSUSPEND')}
+                disabled={!!actionLoading}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {actionLoading === 'UNSUSPEND' ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                )}
+                Reinstate
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleVendorAction('BLOCK')}
+                disabled={!!actionLoading}
+                className="border-gray-400 text-gray-700 hover:bg-gray-100"
+              >
+                {actionLoading === 'BLOCK' ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Ban className="w-4 h-4 mr-2" />
+                )}
+                Block
+              </Button>
+            </>
+          )}
+
+          {/* BLOCKED: Unblock */}
+          {vendor.status === 'BLOCKED' && (
             <Button
               onClick={() => handleVendorAction('UNSUSPEND')}
               disabled={!!actionLoading}
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Unsuspend
+              {actionLoading === 'UNSUSPEND' ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <CheckCircle className="w-4 h-4 mr-2" />
+              )}
+              Unblock
             </Button>
           )}
         </div>
