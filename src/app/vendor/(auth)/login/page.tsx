@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Shield,
   CheckCircle,
+  XCircle,
   IndianRupee,
   Star,
   Zap,
@@ -28,8 +29,9 @@ const PERKS = [
 
 export default function VendorLoginPage() {
   const router = useRouter();
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState('');
+  const [loading, setLoading]           = useState(false);
+  const [error, setError]               = useState('');
+  const [rejectedReason, setRejectedReason] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe]   = useState(false);
 
@@ -39,6 +41,7 @@ export default function VendorLoginPage() {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError('');
+    setRejectedReason('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,7 +55,13 @@ export default function VendorLoginPage() {
         redirect: false,
       });
       if (result?.error) {
-        setError(result.error === 'CredentialsSignin' ? 'Incorrect email or password. Please try again.' : result.error);
+        let msg = result.error === 'CredentialsSignin' ? 'Incorrect email or password. Please try again.' : result.error;
+        try { msg = decodeURIComponent(msg); } catch {}
+        if (msg.startsWith('REJECTED:')) {
+          setRejectedReason(msg.slice('REJECTED:'.length).trim());
+        } else {
+          setError(msg);
+        }
       } else if (result?.ok) {
         router.push('/vendor/dashboard');
         router.refresh();
@@ -159,7 +168,24 @@ export default function VendorLoginPage() {
               </div>
 
               <div className="px-7 py-6">
-                {/* Error */}
+                {/* Rejection banner */}
+                {rejectedReason && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl mb-5 overflow-hidden">
+                    <div className="flex items-center gap-2 bg-red-600 px-4 py-2.5">
+                      <XCircle className="w-4 h-4 text-white shrink-0" />
+                      <p className="text-sm font-bold text-white">Application Rejected</p>
+                    </div>
+                    <div className="px-4 py-3">
+                      <p className="text-sm text-red-800 font-medium mb-1">Reason:</p>
+                      <p className="text-sm text-red-700">{rejectedReason}</p>
+                      <p className="text-xs text-red-500 mt-2">
+                        For any queries, please contact our support team.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* General error */}
                 {error && (
                   <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-5 text-sm">
                     <span className="shrink-0 mt-0.5">⚠️</span>

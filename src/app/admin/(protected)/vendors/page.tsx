@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Store,
@@ -19,6 +19,8 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  MoreHorizontal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -57,6 +59,135 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.C
   BLOCKED: { label: 'Blocked', color: 'bg-gray-100 text-gray-800', icon: Ban },
 };
 
+const statusActions: Record<string, { action: string; label: string; color: string }[]> = {
+  PENDING: [
+    { action: 'APPROVE', label: 'Approve', color: 'text-green-700 hover:bg-green-50' },
+    { action: 'REJECT', label: 'Reject', color: 'text-red-700 hover:bg-red-50' },
+  ],
+  DOCUMENTS_PENDING: [
+    { action: 'APPROVE', label: 'Approve', color: 'text-green-700 hover:bg-green-50' },
+    { action: 'REJECT', label: 'Reject', color: 'text-red-700 hover:bg-red-50' },
+  ],
+  UNDER_REVIEW: [
+    { action: 'APPROVE', label: 'Approve', color: 'text-green-700 hover:bg-green-50' },
+    { action: 'REJECT', label: 'Reject', color: 'text-red-700 hover:bg-red-50' },
+  ],
+  APPROVED: [
+    { action: 'SUSPEND', label: 'Suspend', color: 'text-purple-700 hover:bg-purple-50' },
+    { action: 'BLOCK', label: 'Block', color: 'text-gray-700 hover:bg-gray-100' },
+    { action: 'REJECT', label: 'Reject', color: 'text-red-700 hover:bg-red-50' },
+  ],
+  REJECTED: [
+    { action: 'APPROVE', label: 'Re-Approve', color: 'text-green-700 hover:bg-green-50' },
+  ],
+  SUSPENDED: [
+    { action: 'UNSUSPEND', label: 'Reinstate', color: 'text-green-700 hover:bg-green-50' },
+    { action: 'BLOCK', label: 'Block', color: 'text-gray-700 hover:bg-gray-100' },
+  ],
+  BLOCKED: [
+    { action: 'UNSUSPEND', label: 'Unblock', color: 'text-green-700 hover:bg-green-50' },
+  ],
+};
+
+function ActionDropdown({
+  vendor,
+  onAction,
+}: {
+  vendor: Vendor;
+  onAction: (vendorId: string, action: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const actions = statusActions[vendor.status] || [];
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  if (actions.length === 0) return null;
+
+  return (
+    <div ref={ref} className="relative">
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => setOpen((v) => !v)}
+        className="gap-1"
+      >
+        <MoreHorizontal className="w-4 h-4" />
+        <ChevronDown className="w-3 h-3" />
+      </Button>
+      {open && (
+        <div className="absolute right-0 mt-1 w-36 bg-white border rounded-lg shadow-lg z-10 py-1">
+          {actions.map(({ action, label, color }) => (
+            <button
+              key={action}
+              className={`w-full text-left px-4 py-2 text-sm font-medium ${color}`}
+              onClick={() => {
+                setOpen(false);
+                onAction(vendor.id, action);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RejectModal({
+  vendorName,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  vendorName: string;
+  onConfirm: (reason: string) => void;
+  onCancel: () => void;
+  loading: boolean;
+}) {
+  const [reason, setReason] = useState('');
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Reject Vendor</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Provide a rejection reason for <span className="font-medium text-gray-800">{vendorName}</span>.
+        </p>
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Enter rejection reason..."
+          rows={3}
+          className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-400 resize-none"
+        />
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={loading}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            className="bg-red-600 hover:bg-red-700 text-white"
+            disabled={!reason.trim() || loading}
+            onClick={() => onConfirm(reason.trim())}
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Reject'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function VendorsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, pages: 0 });
@@ -64,6 +195,10 @@ export default function VendorsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+
+  // Status change state
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<Vendor | null>(null);
 
   const fetchVendors = async () => {
     setLoading(true);
@@ -97,6 +232,40 @@ export default function VendorsPage() {
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
+  const handleAction = (vendorId: string, action: string) => {
+    if (action === 'REJECT') {
+      const vendor = vendors.find((v) => v.id === vendorId);
+      if (vendor) setRejectTarget(vendor);
+      return;
+    }
+    executeAction(vendorId, action);
+  };
+
+  const executeAction = async (vendorId: string, action: string, rejectionReason?: string) => {
+    setActionLoading(vendorId);
+    try {
+      const res = await fetch(`/api/admin/vendors/${vendorId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, rejectionReason }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setVendors((prev) =>
+          prev.map((v) => (v.id === vendorId ? { ...v, status: updated.status } : v))
+        );
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Action failed');
+      }
+    } catch {
+      alert('Network error. Please try again.');
+    } finally {
+      setActionLoading(null);
+      setRejectTarget(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
       day: '2-digit',
@@ -107,6 +276,15 @@ export default function VendorsPage() {
 
   return (
     <div className="space-y-6">
+      {rejectTarget && (
+        <RejectModal
+          vendorName={rejectTarget.businessName}
+          loading={actionLoading === rejectTarget.id}
+          onConfirm={(reason) => executeAction(rejectTarget.id, 'REJECT', reason)}
+          onCancel={() => setRejectTarget(null)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -192,6 +370,7 @@ export default function VendorsPage() {
                 {vendors.map((vendor) => {
                   const statusInfo = statusConfig[vendor.status] || statusConfig.PENDING;
                   const StatusIcon = statusInfo.icon;
+                  const isUpdating = actionLoading === vendor.id;
                   return (
                     <tr key={vendor.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
@@ -210,10 +389,14 @@ export default function VendorsPage() {
                         <p className="text-sm text-gray-500">{vendor.phone}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
-                          <StatusIcon className="w-3 h-3" />
-                          {statusInfo.label}
-                        </span>
+                        {isUpdating ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                        ) : (
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
+                            <StatusIcon className="w-3 h-3" />
+                            {statusInfo.label}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -239,12 +422,15 @@ export default function VendorsPage() {
                         {formatDate(vendor.createdAt)}
                       </td>
                       <td className="px-6 py-4">
-                        <Link href={`/admin/vendors/${vendor.id}`}>
-                          <Button size="sm" variant="outline">
-                            <Eye className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                        </Link>
+                        <div className="flex items-center gap-2">
+                          <Link href={`/admin/vendors/${vendor.id}`}>
+                            <Button size="sm" variant="outline">
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
+                          </Link>
+                          <ActionDropdown vendor={vendor} onAction={handleAction} />
+                        </div>
                       </td>
                     </tr>
                   );

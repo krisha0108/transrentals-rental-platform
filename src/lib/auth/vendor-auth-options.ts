@@ -44,7 +44,8 @@ export const vendorAuthOptions: NextAuthOptions = {
           throw new Error('Your account is suspended. Please contact support.');
         }
         if (vendor.status === 'REJECTED') {
-          throw new Error('Your application was rejected. Please contact support.');
+          const reason = vendor.rejectionReason?.trim() || 'Your application did not meet our requirements.';
+          throw new Error(`REJECTED:${reason}`);
         }
 
         const isPasswordValid = await bcrypt.compare(

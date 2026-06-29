@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -200,6 +200,8 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<{ type: string; id?: string } | null>(null);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
   // CRM tags
   const [tagEditorOpen, setTagEditorOpen] = useState(false);
   const [tagSaving, setTagSaving] = useState<string | null>(null);
@@ -258,6 +260,16 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [resubmitReason, setResubmitReason] = useState('');
   const [resubmitFile, setResubmitFile] = useState<File | null>(null);
   const [resubmitLoading, setResubmitLoading] = useState(false);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target as Node)) {
+        setStatusDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Check if document URL is accessible
   useEffect(() => {
@@ -1039,66 +1051,118 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
             <KeyRound className="w-4 h-4 mr-2" />
             Set Password
           </Button>
-          {['UNDER_REVIEW', 'PENDING', 'DOCUMENTS_PENDING'].includes(vendor.status) && (() => {
+          {/* Change Status Dropdown */}
+          {(() => {
             const unverifiedDocs = vendor.documents.filter((d) => d.status !== 'APPROVED').length;
             const docsIncomplete = unverifiedDocs > 0 || vendor.documents.length === 0;
-            const isOverride = docsIncomplete; // approving without all docs verified
-            const handleApproveClick = () => {
-              if (isOverride) {
-                const msg = vendor.documents.length === 0
-                  ? 'This vendor has not uploaded any documents. Approve anyway?'
-                  : `${unverifiedDocs} document(s) are not yet approved. Approve this vendor anyway?`;
-                if (!confirm(msg)) return;
-              }
-              handleVendorAction('APPROVE');
-            };
+
+            type MenuItem = { label: string; icon: React.ReactNode; itemClass: string; onClick: () => void };
+            const menuItems: MenuItem[] = [];
+
+            if (['PENDING', 'DOCUMENTS_PENDING', 'UNDER_REVIEW', 'REJECTED'].includes(vendor.status)) {
+              menuItems.push({
+                label: vendor.status === 'REJECTED'
+                  ? 'Re-Approve'
+                  : docsIncomplete ? 'Approve (Override)' : 'Approve',
+                icon: docsIncomplete && vendor.status !== 'REJECTED'
+                  ? <AlertTriangle className="w-4 h-4" />
+                  : <CheckCircle className="w-4 h-4" />,
+                itemClass: docsIncomplete && vendor.status !== 'REJECTED'
+                  ? 'text-amber-700 hover:bg-amber-50'
+                  : 'text-green-700 hover:bg-green-50',
+                onClick: () => {
+                  setStatusDropdownOpen(false);
+                  if (docsIncomplete && vendor.status !== 'REJECTED') {
+                    const msg = vendor.documents.length === 0
+                      ? 'This vendor has not uploaded any documents. Approve anyway?'
+                      : `${unverifiedDocs} document(s) are not yet approved. Approve this vendor anyway?`;
+                    if (!confirm(msg)) return;
+                  }
+                  handleVendorAction('APPROVE');
+                },
+              });
+            }
+
+            if (['PENDING', 'DOCUMENTS_PENDING', 'UNDER_REVIEW', 'APPROVED'].includes(vendor.status)) {
+              menuItems.push({
+                label: 'Reject',
+                icon: <XCircle className="w-4 h-4" />,
+                itemClass: 'text-red-700 hover:bg-red-50',
+                onClick: () => { setStatusDropdownOpen(false); openRejectModal('vendor'); },
+              });
+            }
+
+            if (vendor.status === 'APPROVED') {
+              menuItems.push({
+                label: 'Suspend',
+                icon: <AlertTriangle className="w-4 h-4" />,
+                itemClass: 'text-purple-700 hover:bg-purple-50',
+                onClick: () => { setStatusDropdownOpen(false); handleVendorAction('SUSPEND'); },
+              });
+            }
+
+            if (['APPROVED', 'SUSPENDED'].includes(vendor.status)) {
+              menuItems.push({
+                label: 'Block',
+                icon: <Ban className="w-4 h-4" />,
+                itemClass: 'text-gray-700 hover:bg-gray-100',
+                onClick: () => { setStatusDropdownOpen(false); handleVendorAction('BLOCK'); },
+              });
+            }
+
+            if (vendor.status === 'SUSPENDED') {
+              menuItems.push({
+                label: 'Reinstate',
+                icon: <CheckCircle className="w-4 h-4" />,
+                itemClass: 'text-green-700 hover:bg-green-50',
+                onClick: () => { setStatusDropdownOpen(false); handleVendorAction('UNSUSPEND'); },
+              });
+            }
+
+            if (vendor.status === 'BLOCKED') {
+              menuItems.push({
+                label: 'Unblock',
+                icon: <CheckCircle className="w-4 h-4" />,
+                itemClass: 'text-green-700 hover:bg-green-50',
+                onClick: () => { setStatusDropdownOpen(false); handleVendorAction('UNSUSPEND'); },
+              });
+            }
+
+            if (menuItems.length === 0) return null;
+
             return (
-              <>
+              <div ref={statusDropdownRef} className="relative">
                 <Button
-                  onClick={handleApproveClick}
+                  variant="outline"
+                  onClick={() => setStatusDropdownOpen((o) => !o)}
                   disabled={!!actionLoading}
-                  className={isOverride ? 'bg-amber-600 hover:bg-amber-700' : 'bg-green-600 hover:bg-green-700'}
-                  title={isOverride ? 'Approving without complete document verification' : undefined}
+                  className="gap-1.5"
                 >
-                  {actionLoading === 'APPROVE' ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : isOverride ? (
-                    <AlertTriangle className="w-4 h-4 mr-2" />
+                  {actionLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <CheckCircle className="w-4 h-4 mr-2" />
+                    <Settings className="w-4 h-4" />
                   )}
-                  {isOverride ? 'Approve (Override)' : 'Approve Vendor'}
+                  Change Status
+                  <ChevronDown className="w-3.5 h-3.5" />
                 </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => openRejectModal('vendor')}
-                  disabled={!!actionLoading}
-                >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Reject
-                </Button>
-              </>
+                {statusDropdownOpen && (
+                  <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                    {menuItems.map((item) => (
+                      <button
+                        key={item.label}
+                        onClick={item.onClick}
+                        className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium transition-colors ${item.itemClass}`}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             );
           })()}
-          {vendor.status === 'APPROVED' && (
-            <Button
-              variant="outline"
-              onClick={() => handleVendorAction('SUSPEND')}
-              disabled={!!actionLoading}
-            >
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Suspend
-            </Button>
-          )}
-          {vendor.status === 'SUSPENDED' && (
-            <Button
-              onClick={() => handleVendorAction('UNSUSPEND')}
-              disabled={!!actionLoading}
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Unsuspend
-            </Button>
-          )}
         </div>
       </div>
 
