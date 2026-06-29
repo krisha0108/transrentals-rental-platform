@@ -62,16 +62,11 @@ async function fetchPageViews() {
 }
 
 async function fetchContactInquiries() {
-  const rows = await prisma.$queryRaw<{ service: string; cnt: bigint }[]>`
-    SELECT
-      COALESCE(serviceType, 'Unknown') as service,
-      COUNT(*) as cnt
-    FROM contact_inquiries
+  const rows = await prisma.$queryRaw<{ cnt: bigint }[]>`
+    SELECT COUNT(*) as cnt FROM contact_inquiries
     WHERE createdAt >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-    GROUP BY service
-    ORDER BY cnt DESC
   `;
-  return rows.map((r) => ({ service: r.service, count: Number(r.cnt) }));
+  return [{ service: 'General', count: Number(rows[0]?.cnt ?? 0) }];
 }
 
 function buildDeepSeekPrompt(data: {
@@ -134,7 +129,7 @@ Be specific, data-driven, and concise. Format as JSON with this structure:
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.role || !['ADMIN', 'SUPER_ADMIN'].includes(session.user.role as string)) {
+    if (!session?.user?.role || !['ADMIN', 'SUPER_ADMIN', 'SUB_ADMIN'].includes(session.user.role as string)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
