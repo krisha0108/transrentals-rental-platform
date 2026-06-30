@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db/prisma';
 import { unstable_cache } from 'next/cache';
 import logger from '@/lib/security/logger';
 
+export const dynamic = 'force-dynamic';
+
 const getCachedLocations = unstable_cache(
   async (type: string, includeAirports: boolean, serviceSlug: string | null) => {
     const whereClause: any = { isActive: true };

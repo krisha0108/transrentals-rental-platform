@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 
+export const dynamic = 'force-dynamic';
+
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 async function fetchQuoteData() {
