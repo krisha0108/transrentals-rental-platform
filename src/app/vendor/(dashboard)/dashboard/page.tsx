@@ -212,22 +212,8 @@ export default function VendorDashboard() {
   const [timeFilter, setTimeFilter] = useState<'today'|'week'|'month'|'quarter'|'year'|'all'|'custom'>('month');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
-  const [isConnectingBackr, setIsConnectingBackr] = useState(false);
-
-  const connectBackr = async () => {
-    if (!profile?.id) return;
-    setIsConnectingBackr(true);
-    try {
-      const res = await fetch('/api/backr/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vendorId: profile.id }),
-      });
-      const data = await res.json();
-      if (data.ssoUrl) window.location.href = data.ssoUrl;
-    } catch { /* silent */ } finally {
-      setIsConnectingBackr(false);
-    }
+  const connectBackr = () => {
+    window.location.href = '/api/backr/connect?type=vendor';
   };
 
   useEffect(() => {
@@ -784,12 +770,9 @@ export default function VendorDashboard() {
           </div>
           <button
             onClick={connectBackr}
-            disabled={isConnectingBackr}
-            className="w-full flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl py-2.5 text-sm font-semibold text-white transition disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl py-2.5 text-sm font-semibold text-white transition"
           >
-            {isConnectingBackr
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Connecting…</>
-              : <><ExternalLink className="w-4 h-4" /> Connect BACKR Wallet</>}
+            <ExternalLink className="w-4 h-4" /> Connect BACKR Wallet
           </button>
         </div>
       </AnimateIn>

@@ -33,22 +33,8 @@ export default function DriverProfilePage() {
   const [driver, setDriver] = useState<Driver | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [isConnectingBackr, setIsConnectingBackr] = useState(false);
-
-  const connectBackr = async () => {
-    if (!driver?.id) return;
-    setIsConnectingBackr(true);
-    try {
-      const res = await fetch('/api/backr/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ driverId: driver.id }),
-      });
-      const data = await res.json();
-      if (data.ssoUrl) window.location.href = data.ssoUrl;
-    } catch { /* silent */ } finally {
-      setIsConnectingBackr(false);
-    }
+  const connectBackr = () => {
+    window.location.href = '/api/backr/connect?type=driver';
   };
 
   useEffect(() => { fetchProfile(); }, []);
@@ -427,13 +413,10 @@ export default function DriverProfilePage() {
               {/* Connect button */}
               <button
                 onClick={connectBackr}
-                disabled={isConnectingBackr}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-60"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-[0.98]"
                 style={{ background: 'linear-gradient(135deg,#f59e0b,#fbbf24)', color: '#1c1003', boxShadow: '0 4px 20px rgba(245,158,11,0.35)' }}
               >
-                {isConnectingBackr
-                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Connecting to BACKR…</>
-                  : <><ExternalLink className="w-4 h-4" /> Connect BACKR Wallet</>}
+                <ExternalLink className="w-4 h-4" /> Connect BACKR Wallet
               </button>
 
               <p className="text-[10px] text-violet-400 text-center mt-3">

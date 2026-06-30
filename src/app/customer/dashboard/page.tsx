@@ -273,8 +273,7 @@ export default function CustomerDashboardPage() {
   const [contactInquiries, setContactInquiries] = useState<any[]>([]);
 
   // BACKR rewards
-  const [backrBalance, setBackrBalance]       = useState<number | null>(null);
-  const [isConnectingBackr, setIsConnectingBackr] = useState(false);
+  const [backrBalance, setBackrBalance] = useState<number | null>(null);
 
   const fetchBackrBalance = (customerId: string) => {
     fetch(`/api/backr?customer_id=${encodeURIComponent(customerId)}`)
@@ -283,19 +282,9 @@ export default function CustomerDashboardPage() {
       .catch(() => {});
   };
 
-  const connectBackr = async () => {
-    if (!customer?.id || isConnectingBackr) return;
-    setIsConnectingBackr(true);
-    try {
-      const res  = await fetch('/api/backr/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customerId: String(customer.id) }),
-      });
-      const data = await res.json();
-      if (data.ssoUrl) window.location.href = data.ssoUrl;
-    } catch { /* silent — non-critical */ }
-    setIsConnectingBackr(false);
+  const connectBackr = () => {
+    if (!customer?.id) return;
+    window.location.href = `/api/backr/connect?type=customer&uid=${encodeURIComponent(String(customer.id))}`;
   };
 
   const fetchContactInquiries = async (email: string) => {
@@ -1717,13 +1706,10 @@ export default function CustomerDashboardPage() {
                   {/* Connect button */}
                   <button
                     onClick={connectBackr}
-                    disabled={isConnectingBackr}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-60"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98]"
                     style={{ background: 'linear-gradient(135deg,#f59e0b,#fbbf24)', color: '#1c1003', boxShadow: '0 4px 16px rgba(245,158,11,0.35)' }}
                   >
-                    {isConnectingBackr
-                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Connecting…</>
-                      : <><ExternalLink className="w-4 h-4" /> Connect BACKR Wallet</>}
+                    <ExternalLink className="w-4 h-4" /> Connect BACKR Wallet
                   </button>
 
                   <p className="text-[9px] text-violet-400 text-center mt-2.5">
