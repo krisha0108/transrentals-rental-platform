@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db/prisma';
 import { unstable_cache } from 'next/cache';
 import logger from '@/lib/security/logger';
 
+export const dynamic = 'force-dynamic';
+
 const getCachedServices = unstable_cache(
   async (parentId: string | null, parentsOnly: boolean) => {
     const where: any = { isActive: true };
