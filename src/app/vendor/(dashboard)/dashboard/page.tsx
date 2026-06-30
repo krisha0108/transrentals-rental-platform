@@ -21,7 +21,9 @@ import {
   Trophy,
   Zap,
   ChevronDown,
-  Eye
+  Eye,
+  ExternalLink,
+  Loader2,
 } from 'lucide-react';
 import VendorOnboarding from '@/components/vendor/onboarding/VendorOnboarding';
 import VendorLiveLocationCard from '@/components/vendor/VendorLiveLocationCard';
@@ -210,6 +212,23 @@ export default function VendorDashboard() {
   const [timeFilter, setTimeFilter] = useState<'today'|'week'|'month'|'quarter'|'year'|'all'|'custom'>('month');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
+  const [isConnectingBackr, setIsConnectingBackr] = useState(false);
+
+  const connectBackr = async () => {
+    if (!profile?.id) return;
+    setIsConnectingBackr(true);
+    try {
+      const res = await fetch('/api/backr/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendorId: profile.id }),
+      });
+      const data = await res.json();
+      if (data.ssoUrl) window.location.href = data.ssoUrl;
+    } catch { /* silent */ } finally {
+      setIsConnectingBackr(false);
+    }
+  };
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -748,6 +767,32 @@ export default function VendorDashboard() {
           </AnimateIn>
         )}
       </div>
+
+      {/* ── BACKR Rewards ── */}
+      <AnimateIn delay={100}>
+        <div className="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-5 text-white">
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center shrink-0">
+              <Zap className="w-4.5 h-4.5 text-violet-200" />
+            </div>
+            <div>
+              <p className="font-bold text-white text-sm">BACKR Rewards</p>
+              <p className="text-xs text-violet-200 mt-0.5">
+                Earn BACKR tokens on every booking you complete. Link your wallet to start collecting rewards.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={connectBackr}
+            disabled={isConnectingBackr}
+            className="w-full flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl py-2.5 text-sm font-semibold text-white transition disabled:opacity-60"
+          >
+            {isConnectingBackr
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Connecting…</>
+              : <><ExternalLink className="w-4 h-4" /> Connect BACKR Wallet</>}
+          </button>
+        </div>
+      </AnimateIn>
 
       {/* ── Empty State ── */}
       {stats && stats.totalBookings === 0 && approvedServices.length === 0 && (

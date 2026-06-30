@@ -7,7 +7,7 @@ import ProfileShareCard from '@/components/profile/ProfileShareCard';
 import {
   Phone, Mail, CreditCard, Car, Calendar, Building, LogOut,
   Loader2, AlertCircle, Pencil, Camera, Shield, CheckCircle,
-  MapPin, Clock,
+  MapPin, Clock, Zap, ExternalLink, Coins, TrendingUp, Gift,
 } from 'lucide-react';
 
 interface Driver {
@@ -33,6 +33,23 @@ export default function DriverProfilePage() {
   const [driver, setDriver] = useState<Driver | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [isConnectingBackr, setIsConnectingBackr] = useState(false);
+
+  const connectBackr = async () => {
+    if (!driver?.id) return;
+    setIsConnectingBackr(true);
+    try {
+      const res = await fetch('/api/backr/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driverId: driver.id }),
+      });
+      const data = await res.json();
+      if (data.ssoUrl) window.location.href = data.ssoUrl;
+    } catch { /* silent */ } finally {
+      setIsConnectingBackr(false);
+    }
+  };
 
   useEffect(() => { fetchProfile(); }, []);
 
@@ -346,6 +363,85 @@ export default function DriverProfilePage() {
               <ProfileShareCard kind="driver" showVisibility={false} showSlug={false} />
             </div>
           </div>
+
+          {/* Row 3: BACKR Rewards */}
+          <div className="relative overflow-hidden rounded-2xl text-white"
+            style={{ background: 'linear-gradient(135deg, #2d1b6b 0%, #4c2fb5 45%, #6547d4 100%)' }}>
+
+            {/* Decorative rings */}
+            <div className="absolute -top-8 -right-8 w-52 h-52 rounded-full border border-white/10 pointer-events-none" />
+            <div className="absolute -bottom-10 -right-3 w-36 h-36 rounded-full border border-white/10 pointer-events-none" />
+            <div className="absolute top-6 right-24 w-20 h-20 rounded-full border border-white/10 pointer-events-none" />
+
+            {/* Coin stack */}
+            <div className="absolute top-5 right-6 flex flex-col items-center gap-[3px] select-none pointer-events-none">
+              {[0,1,2,3].map(i => (
+                <div key={i}
+                  className="w-11 h-[9px] rounded-full shadow-md"
+                  style={{
+                    background: 'linear-gradient(180deg,#fde68a 0%,#f59e0b 100%)',
+                    border: '1px solid rgba(251,191,36,0.5)',
+                    transform: `translateY(${i * -3}px) scaleX(${1 - i * 0.04})`,
+                    opacity: 1 - i * 0.15,
+                  }}
+                />
+              ))}
+              <Coins className="w-6 h-6 text-yellow-300 mt-1"
+                style={{ filter: 'drop-shadow(0 0 5px rgba(253,224,71,0.6))' }} />
+            </div>
+
+            <div className="relative p-5">
+              {/* Header */}
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                  <Zap className="w-[18px] h-[18px] text-yellow-300" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold tracking-[0.12em] uppercase text-violet-300">BACKR Ecosystem</p>
+                  <p className="text-[17px] font-black text-white leading-tight">Rewards Program</p>
+                </div>
+              </div>
+
+              {/* Stats chips */}
+              <div className="grid grid-cols-3 gap-2.5 mb-4">
+                {[
+                  { icon: Coins,      label: 'Per trip',   value: '+50', unit: 'tokens', glow: '#fbbf24' },
+                  { icon: TrendingUp, label: 'XP earned',  value: '+30', unit: 'XP pts',  glow: '#a78bfa' },
+                  { icon: Gift,       label: 'Redeemable', value: '2L+', unit: 'users',   glow: '#34d399' },
+                ].map(({ icon: Icon, label, value, unit, glow }) => (
+                  <div key={label} className="rounded-xl p-3 flex flex-col gap-1"
+                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <Icon className="w-3.5 h-3.5" style={{ color: glow }} />
+                    <p className="text-[18px] font-black text-white leading-none">{value}</p>
+                    <p className="text-[10px] font-semibold" style={{ color: glow }}>{unit}</p>
+                    <p className="text-[9px] text-violet-300">{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-[12.5px] text-violet-200 leading-relaxed mb-4">
+                Link your BACKR wallet and earn <span className="text-yellow-300 font-semibold">50 tokens + 30 XP</span> automatically on every trip you complete.
+              </p>
+
+              {/* Connect button */}
+              <button
+                onClick={connectBackr}
+                disabled={isConnectingBackr}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg,#f59e0b,#fbbf24)', color: '#1c1003', boxShadow: '0 4px 20px rgba(245,158,11,0.35)' }}
+              >
+                {isConnectingBackr
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Connecting to BACKR…</>
+                  : <><ExternalLink className="w-4 h-4" /> Connect BACKR Wallet</>}
+              </button>
+
+              <p className="text-[10px] text-violet-400 text-center mt-3">
+                Powered by backrcoin.org · Rewards are automatic on trip completion
+              </p>
+            </div>
+          </div>
+
         </div>
       </div>
 

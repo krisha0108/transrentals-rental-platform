@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TransRentals — Conversion Audit Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; }
+
+  /* COVER */
+  .cover { background: linear-gradient(135deg, #1e3a5f 0%, #1a56db 60%, #7c3aed 100%); min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 60px 40px; text-align: center; position: relative; overflow: hidden; }
+  .cover::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); }
+  .cover-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 8px 20px; border-radius: 100px; margin-bottom: 32px; position: relative; }
+  .cover h1 { font-size: clamp(36px, 6vw, 72px); font-weight: 900; color: #fff; line-height: 1.1; margin-bottom: 20px; position: relative; }
+  .cover h1 span { color: #fbbf24; }
+  .cover-sub { font-size: 18px; color: rgba(255,255,255,0.75); max-width: 600px; line-height: 1.6; margin-bottom: 48px; position: relative; }
+  .cover-meta { display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; position: relative; }
+  .cover-stat { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 16px; padding: 20px 28px; text-align: center; }
+  .cover-stat-value { font-size: 32px; font-weight: 900; color: #fff; }
+  .cover-stat-label { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 4px; font-weight: 600; letter-spacing: 0.5px; }
+  .cover-stat-sub { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+
+  /* SLIDES */
+  .slide { max-width: 1100px; margin: 48px auto; padding: 0 24px; }
+  .slide-card { background: #fff; border-radius: 24px; padding: 48px; box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.06); margin-bottom: 32px; }
+  .slide-number { font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #7c3aed; margin-bottom: 8px; }
+  .slide-title { font-size: 28px; font-weight: 800; color: #1e293b; margin-bottom: 8px; }
+  .slide-sub { font-size: 15px; color: #64748b; margin-bottom: 36px; line-height: 1.5; }
+  .divider { height: 2px; background: linear-gradient(90deg, #7c3aed, transparent); border-radius: 2px; margin-bottom: 36px; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th { background: #f1f5f9; padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #64748b; }
+  thead th:first-child { border-radius: 10px 0 0 10px; }
+  thead th:last-child { border-radius: 0 10px 10px 0; }
+  tbody tr { border-bottom: 1px solid #f1f5f9; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody td { padding: 16px; vertical-align: top; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 700; }
+  .badge-green { background: #dcfce7; color: #15803d; }
+  .badge-red { background: #fee2e2; color: #dc2626; }
+  .badge-amber { background: #fef3c7; color: #d97706; }
+  .badge-blue { background: #dbeafe; color: #1d4ed8; }
+  .badge-purple { background: #ede9fe; color: #7c21cc; }
+  .service-icon { font-size: 18px; margin-right: 6px; }
+
+  /* FUNNEL DIAGRAM */
+  .funnel-row { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
+  .funnel-label { width: 140px; font-size: 13px; font-weight: 600; color: #374151; }
+  .funnel-bar-wrap { flex: 1; background: #f1f5f9; border-radius: 8px; height: 36px; position: relative; overflow: hidden; }
+  .funnel-bar { height: 100%; border-radius: 8px; display: flex; align-items: center; padding-left: 14px; font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; }
+  .funnel-right { width: 80px; text-align: right; font-size: 13px; font-weight: 700; }
+  .funnel-arrow { color: #94a3b8; font-size: 20px; text-align: center; margin: 4px 0 4px 156px; }
+
+  /* ROOT CAUSE CARDS */
+  .root-cause-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .root-cause-card { border-radius: 16px; padding: 24px; border: 1.5px solid; }
+  .rc-num { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; margin-bottom: 14px; }
+  .rc-title { font-size: 16px; font-weight: 800; margin-bottom: 8px; }
+  .rc-desc { font-size: 13px; line-height: 1.6; }
+
+  /* FIX ROADMAP */
+  .fix-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .fix-card { border-radius: 16px; padding: 20px; border: 1.5px solid; }
+  .fix-service { font-size: 13px; font-weight: 800; margin-bottom: 4px; }
+  .fix-effort { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 100px; background: rgba(255,255,255,0.6); margin-bottom: 12px; }
+  .fix-text { font-size: 13px; line-height: 1.6; }
+  .fix-lift { margin-top: 12px; font-size: 12px; font-weight: 700; }
+
+  /* DEEPSEEK SECTION */
+  .ai-card { background: linear-gradient(135deg, #f5f3ff, #ede9fe); border: 1.5px solid #c4b5fd; border-radius: 24px; padding: 40px; }
+  .ai-card-title { font-size: 22px; font-weight: 800; color: #4c1d95; margin-bottom: 12px; }
+  .ai-card-desc { font-size: 15px; color: #6d28d9; line-height: 1.6; margin-bottom: 32px; }
+  .ai-feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+  .ai-feature { background: rgba(255,255,255,0.7); border-radius: 14px; padding: 18px; border: 1px solid rgba(167,139,250,0.4); }
+  .ai-feature-icon { font-size: 22px; margin-bottom: 10px; }
+  .ai-feature-title { font-size: 14px; font-weight: 800; color: #4c1d95; margin-bottom: 6px; }
+  .ai-feature-desc { font-size: 12px; color: #6d28d9; line-height: 1.5; }
+
+  /* QUICK WINS */
+  .qw-list { display: flex; flex-direction: column; gap: 12px; }
+  .qw-item { display: flex; align-items: flex-start; gap: 16px; background: #fefce8; border: 1.5px solid #fde68a; border-radius: 14px; padding: 18px 20px; }
+  .qw-num { width: 28px; height: 28px; border-radius: 8px; background: #f59e0b; color: #fff; font-weight: 900; font-size: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .qw-text { font-size: 14px; font-weight: 600; color: #1e293b; flex: 1; }
+  .qw-meta { display: flex; gap: 8px; margin-top: 6px; }
+  .qw-tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 100px; }
+
+  /* CLOSING */
+  .closing { background: linear-gradient(135deg, #0f172a, #1e3a5f); border-radius: 24px; padding: 64px; text-align: center; }
+  .closing h2 { font-size: 36px; font-weight: 900; color: #fff; margin-bottom: 16px; }
+  .closing p { font-size: 16px; color: rgba(255,255,255,0.65); max-width: 500px; margin: 0 auto 36px; line-height: 1.6; }
+  .closing-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .btn-primary { background: #7c3aed; color: #fff; padding: 14px 28px; border-radius: 12px; font-weight: 700; font-size: 14px; text-decoration: none; border: none; cursor: pointer; }
+  .btn-outline { background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.25); color: #fff; padding: 14px 28px; border-radius: 12px; font-weight: 700; font-size: 14px; text-decoration: none; }
+
+  .label-green { color: #15803d; font-weight: 700; }
+  .label-red { color: #dc2626; font-weight: 700; }
+  .text-muted { color: #64748b; font-size: 13px; }
+
+  @media print {
+    body { background: #fff; }
+    .slide { padding: 0; }
+    .slide-card { box-shadow: none; border: 1px solid #e2e8f0; }
+    .cover { min-height: 80vh; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ COVER -->
+<div class="cover">
+  <div class="cover-badge">Confidential — Internal Report</div>
+  <h1>Why TransRentals Has<br><span>Zero Conversions</span><br>on 4 Services</h1>
+  <p class="cover-sub">
+    53,000+ impressions · 3,000 clicks/day · But Car Rental, Bus, Luxury & Truck get almost no inquiries.<br>
+    Here's exactly what's breaking — and how to fix it.
+  </p>
+  <div class="cover-meta">
+    <div class="cover-stat">
+      <div class="cover-stat-value">53K+</div>
+      <div class="cover-stat-label">Monthly Impressions</div>
+      <div class="cover-stat-sub">Google Search Console</div>
+    </div>
+    <div class="cover-stat">
+      <div class="cover-stat-value">3K</div>
+      <div class="cover-stat-label">Daily Clicks</div>
+      <div class="cover-stat-sub">Users arriving at site</div>
+    </div>
+    <div class="cover-stat">
+      <div class="cover-stat-value">~0.1%</div>
+      <div class="cover-stat-label">Conversion Rate</div>
+      <div class="cover-stat-sub">Industry target: 3–5%</div>
+    </div>
+    <div class="cover-stat">
+      <div class="cover-stat-value">4</div>
+      <div class="cover-stat-label">Broken Services</div>
+      <div class="cover-stat-sub">Car · Bus · Luxury · Truck</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SLIDE 1 -->
+<div class="slide">
+  <div class="slide-card">
+    <div class="slide-number">Slide 01</div>
+    <h2 class="slide-title">The Services That Work vs. The Ones That Don't</h2>
+    <p class="slide-sub">Every service has ~495 active city pages & vendors. The difference is purely in UX flow.</p>
+    <div class="divider"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>What User Sees</th>
+          <th>UX Type</th>
+          <th>Inquiries/Month</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="service-icon">🚲</span><strong>Bike Rental</strong></td>
+          <td class="text-muted">Inventory grid with bike photos + daily price → Book Now button</td>
+          <td><span class="badge badge-green">Transactional</span></td>
+          <td class="label-green">15–38 / month</td>
+          <td><span class="badge badge-green">✓ Converting</span></td>
+        </tr>
+        <tr>
+          <td><span class="service-icon">🚗</span><strong>Self Drive</strong></td>
+          <td class="text-muted">Car listing with photos + price range → Book Now</td>
+          <td><span class="badge badge-green">Transactional</span></td>
+          <td class="label-green">12–16 / month</td>
+          <td><span class="badge badge-green">✓ Converting</span></td>
+        </tr>
+        <tr style="background:#fff8f8;">
+          <td><span class="service-icon">🚌</span><strong>Bus Rental</strong></td>
+          <td class="text-muted">Chatbot interface — user must have a conversation to get a quote</td>
+          <td><span class="badge badge-red">Chat-only</span></td>
+          <td class="label-red">0–7 / month (dropping)</td>
+          <td><span class="badge badge-red">✗ Not Converting</span></td>
+        </tr>
+        <tr style="background:#fff8f8;">
+          <td><span class="service-icon">🚚</span><strong>Mini Truck</strong></td>
+          <td class="text-muted">Chatbot interface — same chat flow as bus</td>
+          <td><span class="badge badge-red">Chat-only</span></td>
+          <td class="label-red">2–3 / month</td>
+          <td><span class="badge badge-red">✗ Not Converting</span></td>
+        </tr>
+        <tr style="background:#fff8f8;">
+          <td><span class="service-icon">👑</span><strong>Luxury Car</strong></td>
+          <td class="text-muted">Quote form — no price shown, user doesn't know if it's affordable</td>
+          <td><span class="badge badge-amber">Blind Quote</span></td>
+          <td class="label-red">2–11 / month (falling)</td>
+          <td><span class="badge badge-red">✗ Not Converting</span></td>
+        </tr>
+        <tr style="background:#fff8f8;">
+          <td><span class="service-icon">🚕</span><strong>Car Rental</strong></td>
+          <td class="text-muted">Date/time form — no visible cars, no price, no inventory</td>
+          <td><span class="badge badge-amber">Blind Quote</span></td>
+          <td class="label-red">No dedicated funnel</td>
+          <td><span class="badge badge-red">✗ Not Converting</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SLIDE 2 -->
+<div class="slide">
+  <div class="slide-card">
+    <div class="slide-number">Slide 02</div>
+    <h2 class="slide-title">The Conversion Funnel Gap</h2>
+    <p class="slide-sub">For bike/self-drive, users complete the journey. For everything else, they bounce at step 2.</p>
+    <div class="divider"></div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+      <div>
+        <p style="font-size: 13px; font-weight: 800; color: #15803d; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px;">✅ Bike / Self-Drive (Working)</p>
+        <div class="funnel-row">
+          <div class="funnel-label">Google Click</div>
+          <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:100%; background: #22c55e;">100%  3,000 users</div></div>
+        </div>
+        <div class="funnel-arrow">↓</div>
+        <div class="funnel-row">
+          <div class="funnel-label">See inventory</div>
+          <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:75%; background: #16a34a;">75%  Browsing bikes/cars</div></div>
+        </div>
+        <div class="funnel-arrow">↓</div>
+        <div class="funnel-row">
+          <div class="funnel-label">Click Book Now</div>
+          <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:30%; background: #15803d;">30%  Intent confirmed</div></div>
+        </div>
+        <div class="funnel-arrow">↓</div>
+        <div class="funnel-row">
+          <div class="funnel-label">Submit inquiry</div>
+          <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:15%; background: #14532d;">3–5%  Converts!</div></div>
+        </div>
+      </div>
+
+      <div>
+        <p style="font-size: 13px; font-weight: 800; color: #dc2626; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px;">❌ Bus / Truck / Luxury / Car (Broken)</p>
+        <div class="funnel-row">
+          <div class="funnel-label">Google Click</div>
+          <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:100%; background: #ef4444;">100%  3,000 users</div></div>
+        </div>
+        <div class="funnel-arrow">↓</div>
+        <div class="funnel-row">
+          <div class="funnel-label">Sees chatbot/form</div>
+          <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:60%; background: #dc2626;">60%  Confused, no price</div></div>
+        </div>
+        <div class="funnel-arrow">↓</div>
+        <div class="funnel-row">
+          <div class="funnel-label">Abandons</div>
+          <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:55%; background: #b91c1c;">55%  Goes to Savaari/Ola</div></div>
+        </div>
+        <div class="funnel-arrow">↓</div>
+        <div class="funnel-row">
+          <div class="funnel-label">Inquiry</div>
+          <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:2%; background: #991b1b; min-width: 60px;">< 0.3%</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SLIDE 3 -->
+<div class="slide">
+  <div class="slide-card">
+    <div class="slide-number">Slide 03</div>
+    <h2 class="slide-title">3 Root Causes</h2>
+    <p class="slide-sub">These three problems explain 95% of the conversion loss.</p>
+    <div class="divider"></div>
+
+    <div class="root-cause-grid">
+      <div class="root-cause-card" style="background: #fff1f2; border-color: #fecdd3;">
+        <div class="rc-num" style="background: #fee2e2; color: #dc2626;">#1</div>
+        <div class="rc-title" style="color: #dc2626;">Chat-first kills first-time visitors</div>
+        <p class="rc-desc" style="color: #be123c;">
+          Bus and truck use a chatbot (Shivi) as the primary CTA.
+          Users from Google are strangers — they want a form, not a conversation.
+          Chatbots have <strong>60–70% higher abandonment</strong> than forms for cold traffic.
+          <br><br>
+          <em>Proof: Bike/self-drive have zero chatbot → highest inquiry counts.</em>
+        </p>
+      </div>
+
+      <div class="root-cause-card" style="background: #fffbeb; border-color: #fde68a;">
+        <div class="rc-num" style="background: #fef3c7; color: #d97706;">#2</div>
+        <div class="rc-title" style="color: #d97706;">No price anchor = no trust = bounce</div>
+        <p class="rc-desc" style="color: #92400e;">
+          Luxury car and car rental show zero pricing information on the hero.
+          Users assume it's expensive or spam. Without a starting price like
+          "Fortuner from ₹4,500" they can't self-qualify.
+          <br><br>
+          <em>Bike pages show ₹399/day → instant self-qualification → more bookings.</em>
+        </p>
+      </div>
+
+      <div class="root-cause-card" style="background: #f0fdf4; border-color: #bbf7d0;">
+        <div class="rc-num" style="background: #dcfce7; color: #16a34a;">#3</div>
+        <div class="rc-title" style="color: #16a34a;">Quote flow = long wait = lost lead</div>
+        <p class="rc-desc" style="color: #15803d;">
+          Once a user submits a quote on bus/luxury/truck, they wait for a callback.
+          If no one calls within 10–15 minutes, they're already on a competitor site.
+          There's no WhatsApp auto-acknowledgment confirming receipt.
+          <br><br>
+          <em>Fix: Instant WhatsApp message on form submit buys goodwill time.</em>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SLIDE 4 -->
+<div class="slide">
+  <div class="slide-card">
+    <div class="slide-number">Slide 04</div>
+    <h2 class="slide-title">Fix Roadmap — Sorted by ROI</h2>
+    <p class="slide-sub">Each fix is < 3 days of dev work. Combined impact: estimated 5–8x increase in monthly inquiries.</p>
+    <div class="divider"></div>
+
+    <div class="fix-grid">
+      <div class="fix-card" style="background: #fff7ed; border-color: #fed7aa;">
+        <div class="fix-service" style="color: #ea580c;">🚌 Bus Rental</div>
+        <div class="fix-effort" style="color: #ea580c;">⏱ 1–2 days</div>
+        <p class="fix-text" style="color: #7c2d12;">
+          Replace chatbot with a 5-field form:<br>
+          Date · From City · To City · Passengers · Phone<br>
+          Button: <strong>"Get WhatsApp Quote Instantly"</strong>
+        </p>
+        <p class="fix-lift" style="color: #ea580c;">📈 Expected lift: +300–400%</p>
+      </div>
+
+      <div class="fix-card" style="background: #fff7ed; border-color: #fed7aa;">
+        <div class="fix-service" style="color: #ea580c;">🚚 Mini Truck</div>
+        <div class="fix-effort" style="color: #ea580c;">⏱ 1 day</div>
+        <p class="fix-text" style="color: #7c2d12;">
+          Same fix as bus — replace chat with a form:<br>
+          Date · Pickup Area · Drop Area · Load Type · Phone<br>
+          Button: <strong>"Check Availability"</strong>
+        </p>
+        <p class="fix-lift" style="color: #ea580c;">📈 Expected lift: +200–300%</p>
+      </div>
+
+      <div class="fix-card" style="background: #fffbeb; border-color: #fde68a;">
+        <div class="fix-service" style="color: #d97706;">👑 Luxury Car</div>
+        <div class="fix-effort" style="color: #d97706;">⏱ 1 day (content)</div>
+        <p class="fix-text" style="color: #78350f;">
+          Add price anchors to the hero section:<br>
+          "Fortuner from ₹4,500 · Innova Crysta from ₹3,200"<br>
+          Users self-qualify → form fills improve.
+        </p>
+        <p class="fix-lift" style="color: #d97706;">📈 Expected lift: +150–200%</p>
+      </div>
+
+      <div class="fix-card" style="background: #f0f9ff; border-color: #bae6fd;">
+        <div class="fix-service" style="color: #0369a1;">🚕 Car Rental</div>
+        <div class="fix-effort" style="color: #0369a1;">⏱ 1 day</div>
+        <p class="fix-text" style="color: #0c4a6e;">
+          Add "Cars with driver from ₹1,200/day" to the hero.
+          Add WhatsApp Quick Book button alongside existing form.
+          Show 3 sample car categories with starting rates.
+        </p>
+        <p class="fix-lift" style="color: #0369a1;">📈 Expected lift: +100–150%</p>
+      </div>
+
+      <div class="fix-card" style="background: #f0fdf4; border-color: #bbf7d0;" style="grid-column: span 2;">
+        <div class="fix-service" style="color: #15803d;">⚡ All Services</div>
+        <div class="fix-effort" style="color: #15803d;">⏱ 2 hours</div>
+        <p class="fix-text" style="color: #14532d;">
+          Add WhatsApp auto-acknowledgment: When any quote form is submitted,
+          immediately send customer a WhatsApp: <em>"Hi [Name], we received your [Service] request.
+          Our team will call you within 15 minutes. — TransRentals Team"</em>
+        </p>
+        <p class="fix-lift" style="color: #15803d;">📈 Expected lift: +30–50% quote-to-booking rate</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SLIDE 5 -->
+<div class="slide">
+  <div class="slide-card">
+    <div class="slide-number">Slide 05</div>
+    <h2 class="slide-title">DeepSeek AI Integration — Live Funnel Tracking</h2>
+    <p class="slide-sub">Use your existing DeepSeek API key to get daily AI-powered insights on why users are dropping off.</p>
+    <div class="divider"></div>
+
+    <div class="ai-card">
+      <p style="font-size: 11px; font-weight: 800; letter-spacing: 2px; color: #7c3aed; text-transform: uppercase; margin-bottom: 12px;">Now Live at /admin/analytics/ai-analysis</p>
+      <h3 class="ai-card-title">AI Conversion Dashboard</h3>
+      <p class="ai-card-desc">
+        Every day, the dashboard pulls your real quote data, page views, and inquiry counts → sends them to DeepSeek AI →
+        returns a prioritised list of what's breaking, which service to fix first, and what to do about it.
+        No more guessing.
+      </p>
+
+      <div class="ai-feature-grid">
+        <div class="ai-feature">
+          <div class="ai-feature-icon">📊</div>
+          <div class="ai-feature-title">Live Funnel Data</div>
+          <p class="ai-feature-desc">Pulls real-time numbers from your DB: quotes by service, page views, inquiry gap per city</p>
+        </div>
+        <div class="ai-feature">
+          <div class="ai-feature-icon">🧠</div>
+          <div class="ai-feature-title">AI Drop-off Analysis</div>
+          <p class="ai-feature-desc">DeepSeek identifies top 3 conversion killers with evidence from your actual data</p>
+        </div>
+        <div class="ai-feature">
+          <div class="ai-feature-icon">🎯</div>
+          <div class="ai-feature-title">Per-Service Fixes</div>
+          <p class="ai-feature-desc">One specific fix per service, with effort estimate and expected % lift in inquiries</p>
+        </div>
+        <div class="ai-feature">
+          <div class="ai-feature-icon">⚡</div>
+          <div class="ai-feature-title">7-Day Quick Wins</div>
+          <p class="ai-feature-desc">Actionable tasks for dev, content, and ops teams sorted by fastest impact</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SLIDE 6 -->
+<div class="slide">
+  <div class="slide-card">
+    <div class="slide-number">Slide 06</div>
+    <h2 class="slide-title">Next 7 Days — Action Plan</h2>
+    <p class="slide-sub">Priority order to get the highest impact in the shortest time.</p>
+    <div class="divider"></div>
+
+    <div class="qw-list">
+      <div class="qw-item">
+        <div class="qw-num">1</div>
+        <div style="flex: 1;">
+          <p class="qw-text">Replace bus rental chatbot with a simple 5-field WhatsApp quote form</p>
+          <div class="qw-meta">
+            <span class="qw-tag" style="background: #dbeafe; color: #1d4ed8;">Dev</span>
+            <span class="qw-tag" style="background: #dcfce7; color: #15803d;">1–2 days</span>
+            <span class="qw-tag" style="background: #fef3c7; color: #d97706;">+300% expected</span>
+          </div>
+        </div>
+      </div>
+      <div class="qw-item">
+        <div class="qw-num">2</div>
+        <div style="flex: 1;">
+          <p class="qw-text">Add starting prices to luxury car hero ("Fortuner from ₹4,500/day")</p>
+          <div class="qw-meta">
+            <span class="qw-tag" style="background: #ede9fe; color: #7c3aed;">Content</span>
+            <span class="qw-tag" style="background: #dcfce7; color: #15803d;">2 hours</span>
+            <span class="qw-tag" style="background: #fef3c7; color: #d97706;">+150% expected</span>
+          </div>
+        </div>
+      </div>
+      <div class="qw-item">
+        <div class="qw-num">3</div>
+        <div style="flex: 1;">
+          <p class="qw-text">Replace mini truck chatbot with date/pickup/drop/phone form</p>
+          <div class="qw-meta">
+            <span class="qw-tag" style="background: #dbeafe; color: #1d4ed8;">Dev</span>
+            <span class="qw-tag" style="background: #dcfce7; color: #15803d;">1 day</span>
+            <span class="qw-tag" style="background: #fef3c7; color: #d97706;">+200% expected</span>
+          </div>
+        </div>
+      </div>
+      <div class="qw-item">
+        <div class="qw-num">4</div>
+        <div style="flex: 1;">
+          <p class="qw-text">Set up WhatsApp auto-acknowledgment when any quote form is submitted</p>
+          <div class="qw-meta">
+            <span class="qw-tag" style="background: #d1fae5; color: #065f46;">Ops + Dev</span>
+            <span class="qw-tag" style="background: #dcfce7; color: #15803d;">2–4 hours</span>
+            <span class="qw-tag" style="background: #fef3c7; color: #d97706;">+40% quote-to-booking</span>
+          </div>
+        </div>
+      </div>
+      <div class="qw-item">
+        <div class="qw-num">5</div>
+        <div style="flex: 1;">
+          <p class="qw-text">Run AI Analysis daily at /admin/analytics/ai-analysis to track progress</p>
+          <div class="qw-meta">
+            <span class="qw-tag" style="background: #ede9fe; color: #7c3aed;">AI / Ops</span>
+            <span class="qw-tag" style="background: #dcfce7; color: #15803d;">Already live</span>
+            <span class="qw-tag" style="background: #e0f2fe; color: #0369a1;">Ongoing tracking</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ CLOSING -->
+<div class="slide">
+  <div class="closing">
+    <h2>From 0.1% to 3%+ Conversion<br>is a 30× Revenue Multiplier</h2>
+    <p>
+      The traffic is already there. 3,000 people a day are clicking on TransRentals.
+      These 5 fixes turn browsers into buyers — without spending a rupee more on ads.
+    </p>
+    <div class="closing-actions">
+      <a href="/admin/analytics/ai-analysis" class="btn-primary">Open AI Dashboard →</a>
+      <span class="btn-outline" style="cursor: default;">Report Date: June 2026</span>
+    </div>
+  </div>
+  <p style="text-align: center; font-size: 12px; color: #94a3b8; margin-top: 24px; padding-bottom: 32px;">
+    TransRentals — Internal Conversion Audit · Confidential · sauravsingh@transrentals.in
+  </p>
+</div>
+
+</body>
+</html>

@@ -307,6 +307,14 @@ export default async function BusLocationPage({ params }: PageProps) {
         ]}
         gradientFrom="green-50"
         gradientTo="teal-50"
+        showQuickForm
+        cityName={locationName}
+        priceAnchor="Tempo Traveller from ₹18/km"
+        heroHighlights={[
+          `Driver included on all trips in ${locationName}`,
+          'AC & Non-AC buses — 9 to 55 seater options',
+          '500+ verified operators, instant quote',
+        ]}
       />
 
       <VehicleGrid
