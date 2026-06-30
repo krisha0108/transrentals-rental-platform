@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db/prisma';
+import { reward as backrExternalReward } from '@/lib/backr';
 
 const BACKR_TOKEN_PERCENTAGE = 0.10; // 10%
 
@@ -61,6 +62,16 @@ export async function creditBackrTokens({
     });
 
     console.log(`[Backr] Credited ${tokenAmount} tokens to customer ${customerId} for ${serviceType} booking ${bookingNumber || bookingId}`);
+
+    // Fire external BACKR API reward — non-blocking, idempotent by bookingId
+    backrExternalReward({
+      externalUserId: customerId,
+      amount: 50,
+      reason: 'booking.completed',
+      idempotencyKey: bookingId,
+      xp: 30,
+    }).catch(err => console.error('[BACKR] external reward failed (non-blocking):', err));
+
   } catch (error) {
     // Never break the booking flow
     console.error('[Backr] Failed to credit tokens:', error);
