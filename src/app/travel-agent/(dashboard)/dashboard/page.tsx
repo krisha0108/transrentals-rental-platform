@@ -48,23 +48,8 @@ export default function TravelAgentDashboardPage() {
   const { data: session } = useSession();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isConnectingBackr, setIsConnectingBackr] = useState(false);
-
-  const connectBackr = async () => {
-    const taId = (session?.user as any)?.id;
-    if (!taId) return;
-    setIsConnectingBackr(true);
-    try {
-      const res = await fetch('/api/backr/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ travelAgentId: taId }),
-      });
-      const data = await res.json();
-      if (data.ssoUrl) window.location.href = data.ssoUrl;
-    } catch { /* silent */ } finally {
-      setIsConnectingBackr(false);
-    }
+  const connectBackr = () => {
+    window.location.href = '/api/backr/connect?type=travel_agent';
   };
 
   useEffect(() => {
@@ -276,12 +261,9 @@ export default function TravelAgentDashboardPage() {
         </div>
         <button
           onClick={connectBackr}
-          disabled={isConnectingBackr}
-          className="w-full flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl py-2.5 text-sm font-semibold text-white transition disabled:opacity-60"
+          className="w-full flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl py-2.5 text-sm font-semibold text-white transition"
         >
-          {isConnectingBackr
-            ? <><Loader2 className="w-4 h-4 animate-spin" /> Connecting…</>
-            : <><ExternalLink className="w-4 h-4" /> Connect BACKR Wallet</>}
+          <ExternalLink className="w-4 h-4" /> Connect BACKR Wallet
         </button>
       </div>
     </div>

@@ -4,7 +4,7 @@
  */
 
 const BASE_URL = (process.env.BACKR_BASE_URL ?? 'https://backrcoin.org').replace(/\/$/, '');
-const EXT      = `${BASE_URL}/api/v1/external`;
+const EXT      = `${BASE_URL}/api/v1/external`.replace(/([^:])\/\//g, '$1/');
 
 async function call<T>(path: string, method: 'GET' | 'POST', body?: object): Promise<T> {
   const apiKey = process.env.BACKR_API_KEY;
