@@ -25,6 +25,7 @@ import {
   Zap,
   ExternalLink,
 } from 'lucide-react';
+import BackrCard from '@/components/backr/BackrCard';
 
 interface Booking {
   id: string;
@@ -118,10 +119,6 @@ export default function DriverDashboardPage() {
   const [serviceFilter, setServiceFilter] = useState('all');
   const [driverInfo, setDriverInfo] = useState<DriverInfo>({});
   const [availableCount, setAvailableCount] = useState(0);
-  const connectBackr = () => {
-    window.location.href = '/api/backr/connect?type=driver';
-  };
-
   useEffect(() => {
     fetchAll();
   }, []);
@@ -472,25 +469,7 @@ export default function DriverDashboardPage() {
       </div>
 
       {/* BACKR Rewards */}
-      <div className="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-5 text-white">
-        <div className="flex items-start gap-3 mb-4">
-          <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center shrink-0">
-            <Zap className="w-4 h-4 text-violet-200" />
-          </div>
-          <div>
-            <p className="font-bold text-white text-sm">BACKR Rewards</p>
-            <p className="text-xs text-violet-200 mt-0.5">
-              Earn BACKR tokens on every trip you complete. Link your wallet to start collecting.
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={connectBackr}
-          className="w-full flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl py-2.5 text-sm font-semibold text-white transition"
-        >
-          <ExternalLink className="w-4 h-4" /> Connect BACKR Wallet
-        </button>
-      </div>
+      <BackrCard type="driver" />
     </div>
   );
 }

@@ -48,11 +48,13 @@ import {
   Zap,
   ExternalLink,
   TrendingUp,
+
 } from 'lucide-react';
 import B2BDashboard from './B2BDashboard';
 import TourDashboard from './TourDashboard';
 import CustomerHeader from '@/components/customer/CustomerHeader';
 import NotificationPanel from '@/components/customer/NotificationPanel';
+import BackrCard from '@/components/backr/BackrCard';
 
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -272,20 +274,6 @@ export default function CustomerDashboardPage() {
   // Contact inquiries
   const [contactInquiries, setContactInquiries] = useState<any[]>([]);
 
-  // BACKR rewards
-  const [backrBalance, setBackrBalance] = useState<number | null>(null);
-
-  const fetchBackrBalance = (customerId: string) => {
-    fetch(`/api/backr?customer_id=${encodeURIComponent(customerId)}`)
-      .then(r => r.json())
-      .then(d => { if (d.success) setBackrBalance(d.tokens.remaining_tokens ?? 0); })
-      .catch(() => {});
-  };
-
-  const connectBackr = () => {
-    if (!customer?.id) return;
-    window.location.href = `/api/backr/connect?type=customer&uid=${encodeURIComponent(String(customer.id))}`;
-  };
 
   const fetchContactInquiries = async (email: string) => {
     try {
@@ -1637,86 +1625,7 @@ export default function CustomerDashboardPage() {
               </div>
 
               {/* BACKR Rewards Card */}
-              <div className="relative overflow-hidden rounded-2xl text-white"
-                style={{ background: 'linear-gradient(135deg, #2d1b6b 0%, #4c2fb5 45%, #6547d4 100%)' }}>
-
-                {/* Decorative rings */}
-                <div className="absolute -top-8 -right-8 w-44 h-44 rounded-full border border-white/10 pointer-events-none" />
-                <div className="absolute -bottom-10 -right-3 w-32 h-32 rounded-full border border-white/10 pointer-events-none" />
-                <div className="absolute top-6 right-20 w-16 h-16 rounded-full border border-white/10 pointer-events-none" />
-
-                {/* Coin stack */}
-                <div className="absolute top-4 right-5 flex flex-col items-center gap-[3px] select-none pointer-events-none">
-                  {[0,1,2,3].map(i => (
-                    <div key={i}
-                      className="w-10 h-[9px] rounded-full shadow-md"
-                      style={{
-                        background: 'linear-gradient(180deg,#fde68a 0%,#f59e0b 100%)',
-                        border: '1px solid rgba(251,191,36,0.5)',
-                        transform: `translateY(${i * -3}px) scaleX(${1 - i * 0.04})`,
-                        opacity: 1 - i * 0.15,
-                      }}
-                    />
-                  ))}
-                  <Coins className="w-5 h-5 text-yellow-300 mt-1"
-                    style={{ filter: 'drop-shadow(0 0 5px rgba(253,224,71,0.6))' }} />
-                </div>
-
-                <div className="relative p-5">
-                  {/* Header */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                      style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                      <Zap className="w-4 h-4 text-yellow-300" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold tracking-[0.1em] uppercase text-violet-300">BACKR Ecosystem</p>
-                      <p className="text-[15px] font-black text-white leading-tight">Rewards Program</p>
-                    </div>
-                  </div>
-
-                  {/* Balance */}
-                  <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <p className="text-[10px] text-violet-300 mb-0.5">Your token balance</p>
-                    <div className="flex items-end gap-1.5">
-                      <p className="text-3xl font-black text-white leading-none">
-                        {backrBalance !== null ? backrBalance.toLocaleString('en-IN') : '—'}
-                      </p>
-                      <p className="text-xs text-yellow-300 font-bold pb-0.5">tokens</p>
-                    </div>
-                  </div>
-
-                  {/* Stats chips */}
-                  <div className="grid grid-cols-2 gap-2 mb-4">
-                    {[
-                      { icon: Coins,      label: 'Per booking', value: '+50 tokens', glow: '#fbbf24' },
-                      { icon: TrendingUp, label: 'XP earned',   value: '+30 XP',     glow: '#a78bfa' },
-                    ].map(({ icon: Icon, label, value, glow }) => (
-                      <div key={label} className="rounded-xl p-2.5 flex items-center gap-2"
-                        style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                        <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: glow }} />
-                        <div>
-                          <p className="text-[11px] font-bold text-white">{value}</p>
-                          <p className="text-[9px] text-violet-300">{label}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Connect button */}
-                  <button
-                    onClick={connectBackr}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98]"
-                    style={{ background: 'linear-gradient(135deg,#f59e0b,#fbbf24)', color: '#1c1003', boxShadow: '0 4px 16px rgba(245,158,11,0.35)' }}
-                  >
-                    <ExternalLink className="w-4 h-4" /> Connect BACKR Wallet
-                  </button>
-
-                  <p className="text-[9px] text-violet-400 text-center mt-2.5">
-                    Powered by backrcoin.org · Earn on every booking
-                  </p>
-                </div>
-              </div>
+              <BackrCard type="customer" uid={customer?.id ? String(customer.id) : undefined} />
 
               {/* Notifications */}
               <NotificationPanel />
