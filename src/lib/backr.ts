@@ -39,16 +39,26 @@ export async function reward(params: {
   await call('/rewards/grant', 'POST', params);
 }
 
-/** Start SSO link flow. Returns the URL to redirect the user to. */
+/** Start SSO link flow — email + name help BACKR pre-fill the registration form. */
 export async function initiateLink(params: {
   externalUserId: string;
   redirectUri: string;
+  email?: string;
+  name?: string;
   state?: string;
 }): Promise<{ ssoUrl: string }> {
   return call('/auth/sso/initiate', 'POST', params);
 }
 
-/** Get a user's XP by their BACKR wallet address. */
-export async function getXp(wallet: string): Promise<{ xp: number }> {
-  return call(`/users/${encodeURIComponent(wallet)}/xp`, 'GET');
+export interface BackrIdentity {
+  linked: boolean;
+  wallet?: string;
+  backrEmail?: string;
+  xp?: number;
+  level?: number;
+}
+
+/** Get linked status, wallet, XP and level for a user by their externalUserId. */
+export async function getIdentity(externalUserId: string): Promise<BackrIdentity> {
+  return call(`/identity/${encodeURIComponent(externalUserId)}`, 'GET');
 }

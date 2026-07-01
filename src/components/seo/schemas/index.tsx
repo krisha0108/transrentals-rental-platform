@@ -8,6 +8,7 @@ const ORGANIZATION = {
   alternateName: ['Trans Rentals', 'TransRentals.in', 'Transrentals'],
   description: 'TransRentals is India\'s vehicle rental marketplace offering car rental, self-drive cars, bike rental, bus rental, tempo traveller rental, mini truck rental, packers and movers, equipment rental (JCB, crane, excavator, hydra), and generator rental across 250+ cities in India.',
   url: 'https://transrentals.in',
+  email: 'book@transrentals.in',
   foundingDate: '2022',
   areaServed: {
     '@type': 'Country',
@@ -22,7 +23,6 @@ const ORGANIZATION = {
   contactPoint: {
     '@type': 'ContactPoint',
     telephone: '+91-9737965551',
-    email: 'book@transrentals.in',
     contactType: 'customer service',
     areaServed: 'IN',
     availableLanguage: ['English', 'Hindi'],
@@ -49,10 +49,10 @@ const ORGANIZATION = {
     ],
   },
   sameAs: [
-    'https://www.facebook.com/transrentals',
-    'https://www.instagram.com/transrentals',
+    'https://www.facebook.com/Transrentalsindia/',
+    'https://www.instagram.com/transrentals_in/',
     'https://twitter.com/transrentals',
-    'https://www.linkedin.com/company/transrentals',
+    'https://in.linkedin.com/company/transrentals',
   ],
 };
 

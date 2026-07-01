@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Poppins } from 'next/font/google';
 import './globals.css';
 import { LocationProvider } from '@/contexts/LocationContext';
@@ -30,6 +30,13 @@ const poppins = Poppins({
   display: 'swap',
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#16a34a',
+};
+
 const BASE_METADATA: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://transrentals.in'),
   title: {
@@ -37,7 +44,7 @@ const BASE_METADATA: Metadata = {
     template: '%s',
   },
   description:
-    'Rent bikes, cars, buses, trucks & equipment across 150+ cities in India. Best prices guaranteed. Book now with TransRentals - India\'s trusted vehicle rental marketplace.',
+    'Rent bikes, cars, buses & trucks in 150+ Indian cities. Affordable prices, doorstep delivery. Book now on TransRentals.',
   keywords: [
     'bike rental',
     'car rental',
@@ -135,6 +142,7 @@ const GLOBAL_SCHEMA = {
       alternateName: ['Trans Rentals', 'TransRentals.in'],
       description: "TransRentals is India's vehicle rental marketplace offering car rental, self-drive cars, bike rental, bus rental, tempo traveller, mini truck rental, packers and movers, equipment rental (JCB, crane, excavator, hydra crane), and generator rental across 250+ cities in India.",
       url: 'https://transrentals.in',
+      email: 'book@transrentals.in',
       foundingDate: '2022',
       logo: {
         '@type': 'ImageObject',
@@ -145,7 +153,6 @@ const GLOBAL_SCHEMA = {
       contactPoint: {
         '@type': 'ContactPoint',
         telephone: '+91-9737965551',
-        email: 'book@transrentals.in',
         contactType: 'customer service',
         areaServed: 'IN',
         availableLanguage: ['English', 'Hindi'],
@@ -173,10 +180,10 @@ const GLOBAL_SCHEMA = {
         ],
       },
       sameAs: [
-        'https://www.facebook.com/transrentals',
-        'https://www.instagram.com/transrentals',
+        'https://www.facebook.com/Transrentalsindia/',
+        'https://www.instagram.com/transrentals_in/',
         'https://twitter.com/transrentals',
-        'https://www.linkedin.com/company/transrentals',
+        'https://in.linkedin.com/company/transrentals',
       ],
     },
     {

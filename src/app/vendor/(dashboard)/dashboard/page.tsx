@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import VendorOnboarding from '@/components/vendor/onboarding/VendorOnboarding';
 import VendorLiveLocationCard from '@/components/vendor/VendorLiveLocationCard';
+import BackrCard from '@/components/backr/BackrCard';
 
 // ── Fade-up on scroll/mount ──
 function AnimateIn({ children, delay = 0, className = '' }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -212,10 +213,6 @@ export default function VendorDashboard() {
   const [timeFilter, setTimeFilter] = useState<'today'|'week'|'month'|'quarter'|'year'|'all'|'custom'>('month');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
-  const connectBackr = () => {
-    window.location.href = '/api/backr/connect?type=vendor';
-  };
-
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/vendor/login');
@@ -756,25 +753,7 @@ export default function VendorDashboard() {
 
       {/* ── BACKR Rewards ── */}
       <AnimateIn delay={100}>
-        <div className="bg-gradient-to-br from-violet-600 to-indigo-700 rounded-2xl p-5 text-white">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center shrink-0">
-              <Zap className="w-4.5 h-4.5 text-violet-200" />
-            </div>
-            <div>
-              <p className="font-bold text-white text-sm">BACKR Rewards</p>
-              <p className="text-xs text-violet-200 mt-0.5">
-                Earn BACKR tokens on every booking you complete. Link your wallet to start collecting rewards.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={connectBackr}
-            className="w-full flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 border border-white/20 rounded-xl py-2.5 text-sm font-semibold text-white transition"
-          >
-            <ExternalLink className="w-4 h-4" /> Connect BACKR Wallet
-          </button>
-        </div>
+        <BackrCard type="vendor" />
       </AnimateIn>
 
       {/* ── Empty State ── */}
