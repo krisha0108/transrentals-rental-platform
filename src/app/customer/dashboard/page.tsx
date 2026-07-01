@@ -302,7 +302,6 @@ export default function CustomerDashboardPage() {
         setDashboardView('b2b');
       }
       if (parsed.email) fetchContactInquiries(parsed.email);
-      if (parsed.id)    fetchBackrBalance(String(parsed.id));
 
       // Auto-switch tab from URL param ?tab=tour
       const urlParams = new URLSearchParams(window.location.search);
