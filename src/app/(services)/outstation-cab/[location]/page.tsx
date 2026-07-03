@@ -99,6 +99,92 @@ const COMING_SOON_SLUGS = new Set([
   'pune-amravati-roundtrip',
   'shirdi-aurangabad-roundtrip',
   'udaipur-rajasthan-anand-roundtrip',
+  // Added from GSC Coverage report 2026-07-03
+  'adilabad-bangalore-roundtrip',
+  'adilabad-kochi-roundtrip',
+  'adilabad-kolkata-roundtrip',
+  'adoni-kolkata-roundtrip',
+  'agra-lucknow-roundtrip',
+  'ahmedabad-bharuch-roundtrip',
+  'ahmedabad-gandhinagar-roundtrip',
+  'ahmedabad-rajkot-roundtrip',
+  'ahmedabad-surat-roundtrip',
+  'ahmedabad-vapi-roundtrip',
+  'ajmer-ahmedabad-roundtrip',
+  'ajmer-chennai-roundtrip',
+  'ajmer-hyderabad-roundtrip',
+  'ajmer-jaipur-roundtrip',
+  'aligarh-kolkata-roundtrip',
+  'ambala-mumbai-roundtrip',
+  'ambala-pune-roundtrip',
+  'amreli-jamnagar-roundtrip',
+  'amreli-vadodara-roundtrip',
+  'amritsar-bangalore-roundtrip',
+  'amritsar-dalhousie-roundtrip',
+  'anand-surat-roundtrip',
+  'anand-vadodara-roundtrip',
+  'aurangabad-pune-roundtrip',
+  'bangalore-alipurduar-roundtrip',
+  'bangalore-anantapur-roundtrip',
+  'bhagalpur-patna-roundtrip',
+  'bhopal-indore-roundtrip',
+  'bikaner-jaipur-roundtrip',
+  'chandigarh-patiala-roundtrip',
+  'chennai-adilabad-roundtrip',
+  'chennai-ajmer-roundtrip',
+  'chennai-ambarnath-roundtrip',
+  'chennai-amravati-roundtrip',
+  'chennai-tirupati-roundtrip',
+  'coimbatore-bangalore-roundtrip',
+  'coimbatore-chennai-roundtrip',
+  'coimbatore-kochi-roundtrip',
+  'coimbatore-mysore-roundtrip',
+  'coorg-bangalore-roundtrip',
+  'coorg-mysore-roundtrip',
+  'darbhanga-patna-roundtrip',
+  'delhi-amritsar-roundtrip',
+  'delhi-haridwar-roundtrip',
+  'dharamshala-amritsar-roundtrip',
+  'dhule-nashik-roundtrip',
+  'dwarka-rajkot-roundtrip',
+  'gandhinagar-ahmedabad-roundtrip',
+  'guntur-hyderabad-roundtrip',
+  'gwalior-noida-roundtrip',
+  'jaipur-agra-roundtrip',
+  'jaipur-jodhpur-roundtrip',
+  'kochi-adilabad-roundtrip',
+  'kochi-akola-roundtrip',
+  'kolkata-alipurduar-roundtrip',
+  'lucknow-noida-roundtrip',
+  'mahabaleshwar-pune-roundtrip',
+  'mumbai-ahmednagar-roundtrip',
+  'mumbai-nagpur-roundtrip',
+  'mysore-chennai-roundtrip',
+  'nagpur-pune-roundtrip',
+  'nashik-aurangabad-roundtrip',
+  'nashik-pune-roundtrip',
+  'noida-dehradun-roundtrip',
+  'noida-panipat-roundtrip',
+  'ooty-coimbatore-roundtrip',
+  'ooty-mysore-roundtrip',
+  'panipat-noida-roundtrip',
+  'patna-muzaffarpur-roundtrip',
+  'patna-ranchi-roundtrip',
+  'pune-ajmer-roundtrip',
+  'pune-aurangabad-roundtrip',
+  'pune-kolhapur-roundtrip',
+  'pune-nagpur-roundtrip',
+  'rajkot-dwarka-roundtrip',
+  'salem-chennai-roundtrip',
+  'salem-coimbatore-roundtrip',
+  'surat-anand-roundtrip',
+  'surat-nadiad-roundtrip',
+  'surat-navsari-roundtrip',
+  'udupi-bangalore-roundtrip',
+  'vadodara-amreli-roundtrip',
+  'vadodara-bhopal-roundtrip',
+  'vadodara-mumbai-roundtrip',
+  'vadodara-nadiad-roundtrip',
 ]);
 
 function slugToRouteLabel(slug: string): string {
@@ -274,7 +360,7 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
         />
       )}
 
-      {/* Popular Routes from City */}
+      {/* Popular Routes from City */}
 
       {/* Features */}
       <section className="py-16 bg-gray-50">
@@ -385,7 +471,7 @@ export default async function OutstationCabLocationPage({ params }: PageProps) {
             ))}
           </div>
         </div>
-      </section>
+      </section>
 
       
       {/* DEPRECATED — admin block editor now manages this content
