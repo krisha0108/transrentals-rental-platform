@@ -7,6 +7,10 @@ import {
   Phone, User, ChevronRight, ArrowLeft,
   Loader2, Check, Clock, Lock,
   ChevronDown, Search, X,
+  Home, Building2, Car, Bike, ArrowLeftRight,
+  Bed, Refrigerator, Tv2, Weight,
+  Armchair, Warehouse, Sofa, Utensils,
+  WashingMachine, DoorClosed, Microwave,
 } from 'lucide-react';
 import { useCustomerAuth } from '@/hooks/useCustomer';
 import { DynamicChatBookingHero } from '@/components/booking/DynamicChatBookingHero';
@@ -126,11 +130,12 @@ function StepBar({ step }: { step: number }) {
 function YesNo({ value, onChange }: { value: boolean | null; onChange: (v: boolean) => void }) {
   return (
     <div className="flex gap-2">
-      {[{ v: true, label: '✅ Yes' }, { v: false, label: '❌ No' }].map(opt => (
+      {[{ v: true, label: 'Yes' }, { v: false, label: 'No' }].map(opt => (
         <button key={String(opt.v)} type="button" onClick={() => onChange(opt.v)}
-          className={`flex-1 py-2.5 text-sm font-semibold rounded-xl border transition-all ${
+          className={`flex-1 py-2.5 text-sm font-semibold rounded-xl border transition-all flex items-center justify-center gap-1.5 ${
             value === opt.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
           }`}>
+          {opt.v ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
           {opt.label}
         </button>
       ))}
@@ -177,14 +182,14 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
 
   // ── Step 5: Goods
   const INVENTORY_ITEMS = [
-    { key: 'bedroom',  label: 'Bedroom set',    icon: '🛏️' },
-    { key: 'kitchen',  label: 'Kitchen items',  icon: '🍳' },
-    { key: 'sofa',     label: 'Sofa',           icon: '🛋️' },
-    { key: 'dining',   label: 'Dining set',     icon: '🪑' },
-    { key: 'fridge',   label: 'Fridge',         icon: '🧊' },
-    { key: 'tv',       label: 'TV',             icon: '📺' },
-    { key: 'almirah',  label: 'Almirah',        icon: '🚪' },
-    { key: 'washing',  label: 'Washing machine',icon: '🧺' },
+    { key: 'bedroom',  label: 'Bedroom set',    icon: <Bed className="w-4 h-4" /> },
+    { key: 'kitchen',  label: 'Kitchen items',  icon: <Utensils className="w-4 h-4" /> },
+    { key: 'sofa',     label: 'Sofa',           icon: <Sofa className="w-4 h-4" /> },
+    { key: 'dining',   label: 'Dining set',     icon: <Armchair className="w-4 h-4" /> },
+    { key: 'fridge',   label: 'Fridge',         icon: <Refrigerator className="w-4 h-4" /> },
+    { key: 'tv',       label: 'TV',             icon: <Tv2 className="w-4 h-4" /> },
+    { key: 'almirah',  label: 'Almirah',        icon: <DoorClosed className="w-4 h-4" /> },
+    { key: 'washing',  label: 'Washing machine',icon: <WashingMachine className="w-4 h-4" /> },
   ];
   const [itemCounts,      setItemCounts]      = useState<Record<string, number>>({});
   const [inventoryExtra,  setInventoryExtra]  = useState('');
@@ -367,15 +372,15 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
 
           <label className={lbl}>Scope of Move</label>
           <div className="grid grid-cols-3 gap-1.5 mb-4">
-            {[
-              { v: 'LOCAL',      label: '🏙️ Local',     sub: 'Within city'    },
-              { v: 'DOMESTIC',   label: '🛣️ Domestic',  sub: 'Within state'   },
-              { v: 'INTERCITY',  label: '🚛 Intercity',  sub: 'Across states'  },
-            ].map(o => (
+            {([
+              { v: 'LOCAL',     icon: <MapPin className="w-5 h-5" />,          label: 'Local',     sub: 'Within city'   },
+              { v: 'DOMESTIC',  icon: <ArrowLeftRight className="w-5 h-5" />,  label: 'Domestic',  sub: 'Within state'  },
+              { v: 'INTERCITY', icon: <Truck className="w-5 h-5" />,           label: 'Intercity', sub: 'Across states' },
+            ] as const).map(o => (
               <button key={o.v} type="button" onClick={() => setShiftingScope(o.v)}
                 className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${shiftingScope === o.v ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
-                <span className="text-lg">{o.label.split(' ')[0]}</span>
-                <b className={`text-[11px] font-bold leading-tight ${shiftingScope === o.v ? 'text-blue-700' : 'text-gray-700'}`}>{o.label.split(' ').slice(1).join(' ')}</b>
+                <span className={shiftingScope === o.v ? 'text-blue-600' : 'text-gray-400'}>{o.icon}</span>
+                <b className={`text-[11px] font-bold leading-tight ${shiftingScope === o.v ? 'text-blue-700' : 'text-gray-700'}`}>{o.label}</b>
                 <small className={`text-[9px] ${shiftingScope === o.v ? 'text-blue-500' : 'text-gray-400'}`}>{o.sub}</small>
               </button>
             ))}
@@ -383,14 +388,14 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
 
           <label className={lbl}>Type of Shifting</label>
           <div className="grid grid-cols-3 gap-1.5 mb-4">
-            {[
-              { v: 'Home',    icon: '🏠', sub: 'Household'   },
-              { v: 'Office',  icon: '🏢', sub: 'Office move'  },
-              { v: 'Vehicle', icon: '🚗', sub: 'Car / Bike'   },
-            ].map(o => (
+            {([
+              { v: 'Home',    icon: <Home className="w-5 h-5" />,      sub: 'Household'  },
+              { v: 'Office',  icon: <Building2 className="w-5 h-5" />, sub: 'Office move' },
+              { v: 'Vehicle', icon: <Car className="w-5 h-5" />,       sub: 'Car / Bike' },
+            ] as const).map(o => (
               <button key={o.v} type="button" onClick={() => setShiftingType(o.v)}
                 className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-center transition-all ${shiftingType === o.v ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
-                <span className="text-xl">{o.icon}</span>
+                <span className={shiftingType === o.v ? 'text-blue-600' : 'text-gray-400'}>{o.icon}</span>
                 <b className={`text-[11px] font-bold ${shiftingType === o.v ? 'text-blue-700' : 'text-gray-700'}`}>{o.v}</b>
                 <small className={`text-[9px] ${shiftingType === o.v ? 'text-blue-500' : 'text-gray-400'}`}>{o.sub}</small>
               </button>
@@ -441,10 +446,14 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
             <>
               <label className={lbl}>Vehicle Type</label>
               <div className="grid grid-cols-3 gap-1.5 mb-4">
-                {[{ v: 'CAR', label: '🚗 Car' }, { v: 'BIKE', label: '🏍️ Bike' }, { v: 'BOTH', label: '🚗🏍️ Both' }].map(o => (
+                {([
+                  { v: 'CAR',  label: 'Car',  icon: <Car className="w-4 h-4" /> },
+                  { v: 'BIKE', label: 'Bike', icon: <Bike className="w-4 h-4" /> },
+                  { v: 'BOTH', label: 'Both', icon: <Truck className="w-4 h-4" /> },
+                ] as const).map(o => (
                   <button key={o.v} type="button" onClick={() => setVehicleSubType(o.v)}
-                    className={`py-2 text-sm font-semibold rounded-xl border transition-all ${vehicleSubType === o.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
-                    {o.label}
+                    className={`flex items-center justify-center gap-1.5 py-2 text-sm font-semibold rounded-xl border transition-all ${vehicleSubType === o.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
+                    {o.icon}{o.label}
                   </button>
                 ))}
               </div>
@@ -546,36 +555,36 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
           <div className="grid grid-cols-2 gap-2.5 mb-3">
             <div>
               <label className={lbl}>Shift Date</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <label className="relative block cursor-pointer">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <input type="date" min={today} value={shiftDate} onChange={e => setShiftDate(e.target.value)}
-                  className={`${inputCls} pl-9`} />
-              </div>
+                  className={`${inputCls} pl-9 cursor-pointer`} />
+              </label>
             </div>
             <div>
               <label className={lbl}>Pickup Time</label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <label className="relative block cursor-pointer">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <input type="time" value={shiftTime} onChange={e => setShiftTime(e.target.value)}
-                  className={`${inputCls} pl-9`} />
-              </div>
+                  className={`${inputCls} pl-9 cursor-pointer`} />
+              </label>
             </div>
           </div>
 
           <label className={lbl}>Expected Delivery Date <small className="text-[10px] text-gray-400 font-normal">(optional)</small></label>
-          <div className="relative mb-3">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <label className="relative block cursor-pointer mb-3">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input type="date" min={shiftDate || today} value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)}
-              className={`${inputCls} pl-9`} />
-          </div>
+              className={`${inputCls} pl-9 cursor-pointer`} />
+          </label>
 
           <label className={lbl}>Preferred Delivery Time</label>
           <div className="grid grid-cols-2 gap-1.5 mb-1">
             {[
-              { v: 'MORNING',   label: '🌅 Morning (8–12)' },
-              { v: 'AFTERNOON', label: '☀️ Afternoon (12–4)' },
-              { v: 'EVENING',   label: '🌆 Evening (4–8)' },
-              { v: 'ANYTIME',   label: '🌙 Anytime' },
+              { v: 'MORNING',   label: 'Morning (8–12)'   },
+              { v: 'AFTERNOON', label: 'Afternoon (12–4)' },
+              { v: 'EVENING',   label: 'Evening (4–8)'    },
+              { v: 'ANYTIME',   label: 'Anytime'          },
             ].map(o => (
               <button key={o.v} type="button" onClick={() => setDeliveryTime(o.v)}
                 className={`py-2 text-xs font-semibold rounded-xl border transition-all ${deliveryTime === o.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
@@ -605,7 +614,7 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
                 <div key={item.key}
                   className={`flex items-center justify-between px-3 py-2.5 ${idx < INVENTORY_ITEMS.length - 1 ? 'border-b border-gray-100' : ''} ${count > 0 ? 'bg-blue-50' : 'bg-white'}`}>
                   <span className="flex items-center gap-2 text-sm">
-                    <span className="text-base">{item.icon}</span>
+                    <span className={count > 0 ? 'text-blue-600' : 'text-gray-400'}>{item.icon}</span>
                     <span className={`font-medium ${count > 0 ? 'text-blue-700' : 'text-gray-700'}`}>{item.label}</span>
                     {count > 0 && <span className="text-xs text-blue-500 font-semibold">× {count}</span>}
                   </span>
@@ -633,15 +642,15 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
 
           <label className={lbl}>Estimated Weight / Volume</label>
           <div className="grid grid-cols-2 gap-1.5 mb-3">
-            {[
-              { v: '250',  label: '🪶 Light (< 500 kg)'      },
-              { v: '1000', label: '📦 Medium (500–1500 kg)'  },
-              { v: '2250', label: '🏋️ Heavy (1500–3000 kg)' },
-              { v: '4000', label: '🚛 Very Heavy (> 3000 kg)'},
-            ].map(o => (
+            {([
+              { v: '250',  icon: <Package className="w-3.5 h-3.5" />,  label: 'Light (< 500 kg)'      },
+              { v: '1000', icon: <Package className="w-3.5 h-3.5" />,  label: 'Medium (500–1500 kg)'  },
+              { v: '2250', icon: <Weight className="w-3.5 h-3.5" />,   label: 'Heavy (1500–3000 kg)'  },
+              { v: '4000', icon: <Truck className="w-3.5 h-3.5" />,    label: 'Very Heavy (> 3000 kg)' },
+            ] as const).map(o => (
               <button key={o.v} type="button" onClick={() => setEstimatedWeight(o.v)}
-                className={`py-2 text-xs font-semibold rounded-xl border transition-all ${estimatedWeight === o.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
-                {o.label}
+                className={`flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl border transition-all ${estimatedWeight === o.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
+                {o.icon}{o.label}
               </button>
             ))}
           </div>
@@ -694,10 +703,13 @@ function PackersQuoteWidget({ cityName }: { cityName: string }) {
 
           <label className={lbl}>Truck Type</label>
           <div className="grid grid-cols-2 gap-1.5 mb-3">
-            {[{ v: 'SHARED', label: '🚚 Shared (cheaper)' }, { v: 'DEDICATED', label: '🚛 Dedicated truck' }].map(o => (
+            {([
+              { v: 'SHARED',    icon: <Warehouse className="w-4 h-4" />, label: 'Shared (cheaper)' },
+              { v: 'DEDICATED', icon: <Truck className="w-4 h-4" />,     label: 'Dedicated truck'  },
+            ] as const).map(o => (
               <button key={o.v} type="button" onClick={() => setVehicleTypeReq(o.v)}
-                className={`py-2 text-xs font-semibold rounded-xl border transition-all ${vehicleTypeReq === o.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
-                {o.label}
+                className={`flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl border transition-all ${vehicleTypeReq === o.v ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'}`}>
+                {o.icon}{o.label}
               </button>
             ))}
           </div>
