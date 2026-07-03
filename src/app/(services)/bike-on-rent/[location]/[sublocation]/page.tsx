@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import {
   CITY_SUBLOCATIONS,
@@ -17,7 +17,7 @@ export function generateStaticParams() {
 }
 
 export const revalidate = 3600;
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const sl = getSubLocation('bike-on-rent', params.location, params.sublocation);
@@ -78,7 +78,7 @@ const BIKE_FAQS = (slName: string, cityName: string) => [
 export default function BikeSubLocationPage({ params }: PageProps) {
   const sl = getSubLocation('bike-on-rent', params.location, params.sublocation);
   const cityName = getCityNameFromSlug(params.location);
-  if (!sl) notFound();
+  if (!sl) permanentRedirect(`/bike-on-rent/${params.location}`);
 
   const citySubLocations = CITY_SUBLOCATIONS['bike-on-rent']?.[params.location] ?? [];
   const siblings = citySubLocations.filter((s) => s.slug !== params.sublocation).slice(0, 4);

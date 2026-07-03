@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import { getCityNameFromSlug } from '@/data/city-sublocations';
 
@@ -523,7 +523,7 @@ export function generateStaticParams() {
 }
 
 export const revalidate = 3600;
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const makeData = BIKE_MAKES[params.sublocation];
@@ -566,7 +566,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default function BikeModelPage({ params }: PageProps) {
   const makeData = BIKE_MAKES[params.sublocation];
   const modelData = makeData?.models[params.model];
-  if (!makeData || !modelData) notFound();
+  if (!makeData || !modelData) permanentRedirect(`/bike-on-rent/${params.location}`);
 
   const cityName = getCityNameFromSlug(params.location);
   const otherModels = Object.entries(makeData.models).filter(([slug]) => slug !== params.model);
