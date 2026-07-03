@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import Link from 'next/link';
 import { fetchBlogPosts, fetchTag, getTagSlugs, fetchPopularTags } from '@/lib/api/blog';
 import { BlogGrid } from '@/components/blog/BlogGrid';
@@ -16,7 +16,7 @@ interface TagPageProps {
 }
 
 export const revalidate = 3600;
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   const slugs = await getTagSlugs();
@@ -57,7 +57,7 @@ export default async function TagPage({ params, searchParams }: TagPageProps) {
   ]);
 
   if (!tag) {
-    notFound();
+    permanentRedirect('/blog');
   }
 
   const page = Number(searchParams.page) || 1;
