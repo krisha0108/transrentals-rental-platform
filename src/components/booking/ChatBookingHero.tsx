@@ -4420,7 +4420,7 @@ export function ChatBookingHero({
             )}
 
             {/* Messages Container */}
-            <div className="h-[280px] overflow-y-auto p-4 space-y-3 bg-gray-50">
+            <div className="h-[360px] overflow-y-auto p-4 space-y-3 bg-gray-50">
               <AnimatePresence>
                 {messages.map((message) => (
                   <motion.div
