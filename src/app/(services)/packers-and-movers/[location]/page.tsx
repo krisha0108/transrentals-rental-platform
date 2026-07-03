@@ -9,7 +9,7 @@ import { notFound, redirect, permanentRedirect } from 'next/navigation';
 import { capitalize } from '@/lib/utils';
 import { getCityBySlug } from '@/data/indian-cities';
 import { getServiceLocations, getAllCityLocations } from '@/lib/services/service-locations';
-import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
+import { PackersMoversServiceHero } from '@/components/services/PackersMoversServiceHero';
 import { resolveServicePage } from '@/lib/services/service-availability';
 import { StateServicePage } from '@/components/location/StateServicePage';
 import { ComingSoonHero } from '@/components/services/ComingSoonHero';
@@ -203,21 +203,7 @@ export default async function PackersMoversLocationPage({ params }: PageProps) {
         </div>
       </div>
 
-      <ServiceHeroWithChat
-        pageHeading={scContent?.pageHeading || seoData?.pageHeading || undefined}
-        pageDescription={scContent?.pageDescription || seoData?.pageDescription || undefined}
-        badge={`Packers and Movers in ${locationName}`}
-        title="Professional Moving Services"
-        titleHighlight="Trusted & Insured Relocation"
-        description={`Reliable packers and movers in ${locationName}. Local & intercity relocation, office shifting, household moving. Insured and professional service.`}
-        features={[
-          { icon: 'star', text: '4.8/5 Rating', color: 'text-amber-500' },
-          { icon: 'shield', text: 'Insured Moving', color: 'text-blue-600' },
-          { icon: 'zap', text: 'Quick Service', color: 'text-green-600' },
-        ]}
-        gradientFrom="blue-50"
-        gradientTo="cyan-50"
-      />
+      <PackersMoversServiceHero cityName={locationName} />
 
       <WhyRentHere locationName={locationName} />
 
