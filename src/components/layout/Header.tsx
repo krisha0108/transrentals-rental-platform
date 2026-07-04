@@ -205,7 +205,7 @@ export function Header() {
             <div className="relative" onMouseEnter={() => setIsLocationsOpen(true)} onMouseLeave={() => setIsLocationsOpen(false)}>
               <button className={cn(
                 'px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-1.5',
-                pathname?.startsWith('/cities') || pathname?.startsWith('/states')
+                pathname?.startsWith('/locations')
                   ? 'text-emerald-600 bg-emerald-50'
                   : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50/60'
               )}>
@@ -223,10 +223,7 @@ export function Header() {
                         <p className="font-bold text-gray-900 text-sm">Browse by Location</p>
                         <p className="text-xs text-gray-400">States & cities across India</p>
                       </div>
-                      <div className="flex gap-2">
-                        <Link href="/states" className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors">All States</Link>
-                        <Link href="/cities" className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">All Cities</Link>
-                      </div>
+                      <Link href="/locations" className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors">View All</Link>
                     </div>
                     {/* States grid */}
                     <div className="p-4 grid grid-cols-3 gap-1 max-h-72 overflow-y-auto">
@@ -418,11 +415,9 @@ export function Header() {
                 </button>
                 {isMobileLocationsOpen && (
                   <div className="mx-2 mb-2 bg-gray-50 rounded-xl p-3 border border-gray-100">
-                    <div className="flex gap-2 mb-3">
-                      <Link href="/states" onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex-1 text-center text-xs font-bold text-emerald-700 bg-emerald-100 py-2 rounded-lg">All States</Link>
-                      <Link href="/cities" onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex-1 text-center text-xs font-bold text-blue-700 bg-blue-100 py-2 rounded-lg">All Cities</Link>
+                    <div className="mb-3">
+                      <Link href="/locations" onClick={() => setIsMobileMenuOpen(false)}
+                        className="block text-center text-xs font-bold text-emerald-700 bg-emerald-100 py-2 rounded-lg">View All Locations</Link>
                     </div>
                     <div className="grid grid-cols-2 gap-1">
                       {INDIAN_STATES.slice(0, 18).map((state) => (
@@ -434,9 +429,9 @@ export function Header() {
                         </Link>
                       ))}
                     </div>
-                    <Link href="/states" onClick={() => setIsMobileMenuOpen(false)}
+                    <Link href="/locations" onClick={() => setIsMobileMenuOpen(false)}
                       className="block text-center text-xs text-emerald-600 font-semibold mt-2 pt-2 border-t border-gray-200">
-                      View all {INDIAN_STATES.length} states →
+                      View all locations →
                     </Link>
                   </div>
                 )}
