@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, Phone, User, MapPin, ChevronDown, LogOut, Compass, Plane } from 'lucide-react';
+import { Menu, X, Phone, User, MapPin, ChevronDown, LogOut, Compass, Plane, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { LocationSelector } from '@/components/LocationSelector';
@@ -197,6 +197,20 @@ export function Header() {
               <Compass className="w-4 h-4" />
               Tours
             </Link>
+
+            {/* Locations */}
+            <Link
+              href="/locations"
+              className={cn(
+                'px-4 py-2 rounded-md font-medium transition-colors flex items-center gap-1.5',
+                pathname?.startsWith('/locations')
+                  ? 'text-emerald-600 bg-emerald-50'
+                  : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50/60'
+              )}
+            >
+              <Globe className="w-4 h-4" />
+              Locations
+            </Link>
           </nav>
 
           {/* Action Buttons */}
@@ -351,6 +365,24 @@ export function Header() {
                 <span className="flex items-center gap-2">
                   <Compass className="w-5 h-5" />
                   Tours
+                </span>
+                <ChevronDown className="w-4 h-4 -rotate-90" />
+              </Link>
+
+              {/* Locations - Mobile */}
+              <Link
+                href="/locations"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={cn(
+                  'px-4 py-3 rounded-md font-medium transition-colors flex items-center justify-between',
+                  pathname?.startsWith('/locations')
+                    ? 'text-emerald-600 bg-emerald-50'
+                    : 'text-gray-700 hover:text-emerald-600 hover:bg-emerald-50'
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <Globe className="w-5 h-5" />
+                  Locations
                 </span>
                 <ChevronDown className="w-4 h-4 -rotate-90" />
               </Link>
