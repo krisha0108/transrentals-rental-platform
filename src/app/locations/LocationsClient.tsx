@@ -50,7 +50,7 @@ export function LocationsClient({ statesWithCities }: { statesWithCities: StateW
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-teal-400/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
         </div>
 
-        <div className="relative container-custom pt-10 pb-14">
+        <div className="relative container-custom pt-24 md:pt-28 pb-14">
           {/* breadcrumb */}
           <div className="flex items-center gap-1.5 text-emerald-400/70 text-xs mb-8">
             <Link href="/" className="hover:text-emerald-300 transition-colors">Home</Link>
