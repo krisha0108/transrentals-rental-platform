@@ -16,6 +16,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 60);
 
+const FAQS = [
+  { question: 'What is the difference between Scorpio-N and Scorpio Classic on rent?', answer: 'Scorpio-N (Z4, Z6, Z8, Z8 L) is the newer, more powerful and feature-rich model, while Scorpio Classic is the older body-on-frame design. Both are available for self-drive rental starting around ₹2,499/day.' },
+  { question: 'Is a 4x4 Scorpio available for rent?', answer: 'Yes, the 4x4 variant is available for rugged terrain and mountain trips like Ladakh or Spiti, usually at a slightly higher daily rate than the 4x2 version.' },
+  { question: 'Does the Scorpio come in a 6-seater or 7-seater layout?', answer: 'Both 6-seater (captain seats) and 7-seater bench-seat configurations are available depending on the variant, so you can pick based on your group size.' },
+  { question: 'What documents and security deposit are required for self-drive Scorpio rental?', answer: 'A valid driving licence and a government ID (Aadhaar/PAN) are needed for KYC. A refundable security deposit is collected at pickup and returned after the post-trip inspection.' },
+  { question: 'Is the Scorpio suitable for mountain and off-road trips like Ladakh or Spiti?', answer: 'Yes, the 2.2L mHawk diesel engine, high ground clearance, and rugged build make the Scorpio one of the top picks for Himalayan and off-road adventure trips.' },
+];
+
 export default function ScorpioOnRentPage() {
   return (
     <>
@@ -100,7 +108,22 @@ export default function ScorpioOnRentPage() {
         </div>
       </section>
 
-      <FAQSection service="self-drive-car-rental" />
+      <FAQSection service="self-drive-car-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

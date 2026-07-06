@@ -19,6 +19,7 @@ import { ServiceAreasSection } from '@/components/location/ServiceAreasSection';
 import { CrossServiceLinks } from '@/components/location/CrossServiceLinks';
 import { getServiceCityContent } from '@/lib/seo/service-city-content';
 import { ServiceCitySections } from '@/components/seo/ServiceCitySections';
+import { CITY_SEO } from '@/data/city-seo-content';
 
 interface PageProps {
   params: {
@@ -84,12 +85,16 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
 
   const locationName = capitalize(params.location.replace(/-/g, ' '));
 
-  const pageFaqs = [
+  const MINI_TRUCK_FALLBACK_FAQS = [
     { question: 'What is the load capacity of a mini truck (Tata Ace)?', answer: 'Tata Ace has a load capacity of 750 kg. Mahindra Pickup and Bolero Pickup handle up to 1000 kg for slightly larger goods.' },
     { question: 'Is the mini truck available for house shifting?', answer: 'Yes, mini trucks are ideal for small household moves, apartment shifting, and single-room relocations within the city.' },
     { question: 'What is the mini truck rental rate per day?', answer: 'Tata Ace rental starts from ₹1499/day with driver and fuel included for up to 100 km. Additional km at ₹15/km.' },
     { question: 'Can I book a mini truck for just 2–3 hours?', answer: 'Yes, half-day (4-hour) packages are available starting from ₹799 including driver and 40 km. Ideal for market runs and shop deliveries.' },
   ];
+  const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['mini-truck-rental'] || [];
+  const displayFAQs = cityFAQs.length > 0
+    ? cityFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))
+    : MINI_TRUCK_FALLBACK_FAQS;
 
   const [seoData, transporterServiceId, locationId, scContent] = await Promise.all([
     resolvePageMeta(`mini-truck-rental:${params.location.toLowerCase()}`),
@@ -200,7 +205,7 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
         />
       )}
 
-      <WhyRentHere locationName={locationName} />
+      <WhyRentHere locationName={locationName} />
 
       <NearbyLocations
         locationSlug={params.location.toLowerCase()}
@@ -254,7 +259,7 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'FAQPage',
-        mainEntity: pageFaqs.map((faq) => ({
+        mainEntity: displayFAQs.map((faq) => ({
           '@type': 'Question',
           name: faq.question,
           acceptedAnswer: { '@type': 'Answer', text: faq.answer },
@@ -263,6 +268,8 @@ export default async function MiniTruckLocationPage({ params }: PageProps) {
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="mini-truck-rental" location={locationName} customFaqs={displayFAQs} />
 
       <RelatedServices
         locationSlug={params.location.toLowerCase()}

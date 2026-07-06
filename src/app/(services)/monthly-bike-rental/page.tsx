@@ -249,7 +249,7 @@ export default function MonthlyBikeRentalPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="bike-on-rent" customFaqs={schemaFaqs} />
     </>
   );
 }

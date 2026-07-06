@@ -30,6 +30,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 60);
 
+const FAQS = [
+  { question: 'Which sedan models are available for self-drive rental?', answer: 'You can choose from Honda City, Hyundai Verna, Maruti Ciaz, Maruti Dzire, Skoda Slavia, and Honda Amaze, with self-drive rentals starting from ₹1,299/day.' },
+  { question: 'What documents are needed to rent a sedan without a driver?', answer: 'A valid driving licence and Aadhaar or PAN card are required for online KYC verification before the sedan booking is confirmed.' },
+  { question: 'Is automatic transmission available in self-drive sedans?', answer: 'Yes, automatic variants of models like the Honda City, Hyundai Verna, and Skoda Slavia are available on rent in select cities, alongside manual options.' },
+  { question: 'What is the fuel efficiency of the rental sedans?', answer: 'Most sedans in our fleet deliver 15-20+ km/l mileage, making them an economical choice for both city commutes and long highway drives.' },
+  { question: 'Are self-drive sedans suitable for outstation highway trips?', answer: 'Yes, sedans offer a comfortable, highway-ready ride with a smooth suspension and good cabin space, making them ideal for business travel and outstation trips.' },
+];
+
 export default function SelfDriveSedanRentalPage() {
   return (
     <>
@@ -112,7 +120,22 @@ export default function SelfDriveSedanRentalPage() {
         </div>
       </section>
 
-      <FAQSection service="self-drive-car-rental" />
+      <FAQSection service="self-drive-car-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

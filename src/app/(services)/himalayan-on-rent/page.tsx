@@ -15,6 +15,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the rental price of Royal Enfield Himalayan?', answer: 'Himalayan rental starts at ₹1499/day. Discounts apply for multi-day bookings — get an exact quote based on your route and trip duration.' },
+  { question: 'Which Himalayan variants are available?', answer: 'Both the proven Himalayan 411cc and the newer Himalayan 450 are available for rent, subject to city and stock availability.' },
+  { question: 'Is the Himalayan suitable for Ladakh and Spiti trips?', answer: 'Yes, the Himalayan is purpose-built for high-altitude touring and is the top choice for the Manali-Leh, Srinagar-Leh, and Spiti Valley circuits listed on this page.' },
+  { question: 'What documents and deposit are required to rent a Himalayan?', answer: 'A valid motorcycle driving license and Aadhaar/PAN are required, along with a refundable security deposit — set higher for multi-day outstation adventure rentals.' },
+  { question: 'Are panniers and crash guards included with the rental?', answer: 'Panniers, crash guards, and USB charger fitment can be requested at booking; availability depends on the vendor and city.' },
+];
+
 export default function HimalayanOnRentPage() {
   return (
     <>
@@ -120,7 +128,22 @@ export default function HimalayanOnRentPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-rental" />
+      <FAQSection service="himalayan-on-rent" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

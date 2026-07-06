@@ -44,6 +44,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the rental price for a TVS Apache?', answer: 'TVS Apache rental starts at ₹499/day, with Apache RTR 160 the entry option and the RR 310 priced higher for its track-focused performance.' },
+  { question: 'Which Apache models are available on rent?', answer: 'Apache RTR 160, RTR 180, RTR 200 4V, and the fully-faired Apache RR 310 are available for daily and monthly rental across 200+ cities.' },
+  { question: 'What documents and deposit are needed to rent an Apache?', answer: 'A valid two-wheeler driving license and Aadhaar card are required, along with a refundable security deposit collected at pickup.' },
+  { question: 'Is the Apache RTR good for daily riding or only sporty use?', answer: 'The RTR range is comfortable enough for daily commuting while still offering sharp handling and quick throttle response for weekend rides; the RR 310 leans more track-focused.' },
+  { question: 'Is a helmet included with the Apache rental?', answer: 'Yes, a helmet is provided free with every Apache booking. Full riding gear is recommended given the bike\'s performance-oriented handling.' },
+];
+
 export default function ApacheRentalPage() {
   return (
     <>
@@ -134,7 +142,22 @@ export default function ApacheRentalPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="apache-on-rent" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

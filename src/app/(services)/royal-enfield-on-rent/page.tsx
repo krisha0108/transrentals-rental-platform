@@ -131,7 +131,7 @@ export default function RoyalEnfieldOnRentPage() {
 
         <LocationsGrid service="royal-enfield-on-rent" />
 
-        <FAQSection service="bike-on-rent" />
+        <FAQSection service="royal-enfield-on-rent" customFaqs={schemaFaqs} />
       </div>
     </>
   );

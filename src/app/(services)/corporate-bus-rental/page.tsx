@@ -27,6 +27,14 @@ export const metadata: Metadata = {
   },
 };
 
+const FAQS = [
+  { question: 'What are the corporate bus rental rates?', answer: 'Corporate bus rental starts from ₹4,999/day for employee transport routes, with rates depending on bus size, route distance, and contract length (daily vs. monthly vs. annual). Long-term contracts get preferential per-day pricing.' },
+  { question: 'Can we get a monthly or annual employee transport contract?', answer: 'Yes, TransRentals arranges monthly and annual employee transport contracts with a dedicated fleet, fixed routes, and priority support. This works out cheaper per trip than ad-hoc daily bookings for regular office commutes.' },
+  { question: 'Is GPS tracking available for corporate bus rentals?', answer: 'Yes, all corporate bus rentals include GPS tracking so HR/admin teams can monitor employee transport routes and pickup/drop timings in real time.' },
+  { question: 'What bus sizes are available for corporate events and outings?', answer: 'From 12-seater mini buses for small team outings to 45–50 seater coaches for large conferences and offsites. AC buses are available across all sizes for executive comfort.' },
+  { question: 'How is billing handled for long-term corporate contracts?', answer: 'Long-term contracts are billed monthly against a single consolidated invoice with GST, making it easy for finance teams to reconcile compared to multiple ad-hoc bookings.' },
+];
+
 export default async function CorporateBusRentalPage() {
   const busServiceId = await getBusRentalServiceId();
   const busModels = busServiceId ? await prisma.vehicle_models.findMany({
@@ -121,8 +129,36 @@ export default async function CorporateBusRentalPage() {
 
       <LocationsGrid service="corporate-bus-rental" />
 
-      <FAQSection service="bus-rental" />
+      <FAQSection service="corporate-bus-rental" customFaqs={FAQS} />
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
+              { '@type': 'ListItem', position: 2, name: 'Bus Rental', item: 'https://transrentals.in/bus-rental' },
+              { '@type': 'ListItem', position: 3, name: 'Corporate Bus Rental', item: 'https://transrentals.in/corporate-bus-rental' },
+            ],
+          }),
+        }}
+      />
     </div>
   );
 }

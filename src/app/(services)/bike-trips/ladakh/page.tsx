@@ -49,12 +49,12 @@ export const metadata: Metadata = {
 
 // Schema data
 const schemaFaqs = [
-  { question: 'Which bike is best for Ladakh trip?', answer: 'Royal Enfield Himalayan is the best choice for Ladakh due to its 411cc engine, long-travel suspension, and reliability at high altitudes. Classic 350 and Meteor 350 are also popular choices.' },
-  { question: 'How much does it cost to rent a bike for Ladakh?', answer: 'Bike rental for Ladakh starts from ₹799/day for Royal Enfield Classic 350. Himalayan costs ₹999-1299/day. 10+ day packages get 15-20% discount.' },
-  { question: 'Can I pick up bike in Delhi and drop in Leh?', answer: 'Yes, one-way rentals are available. Pick up in Delhi/Manali and drop in Leh (or vice versa). One-way charges apply (₹3000-5000).' },
-  { question: 'Is riding gear provided for Ladakh trip?', answer: 'Helmets are included free. Riding jackets, gloves, knee guards, and tank bags are available at ₹100-300/day each.' },
-  { question: 'What documents are needed for Ladakh bike rental?', answer: 'You need valid driving license (original), Aadhar card, and security deposit (₹10,000-20,000 refundable). Inner Line Permit (ILP) can be arranged.' },
-  { question: 'What is included in Ladakh bike rental package?', answer: 'Package includes the bike, comprehensive insurance, basic tool kit, first aid kit, puncture kit, and 24/7 roadside assistance. Fuel, permits, and accommodation not included.' },
+  { question: 'Which bike is best for the Ladakh trip?', answer: 'Royal Enfield Himalayan is the best choice for Ladakh due to its 411cc engine, long-travel suspension, and reliability at high altitudes. Classic 350 and Meteor 350 are also popular choices, and Interceptor 650 or KTM Adventure 390 suit more experienced riders.' },
+  { question: 'What is the best season to do a Ladakh bike trip?', answer: 'Ladakh is accessible for bike trips from May to September, once the Manali-Leh and Srinagar-Leh highways open for the season. June and September offer the most stable weather; July-August can bring occasional rain and landslides on the highway sections.' },
+  { question: 'How do I avoid altitude sickness on the Ladakh bike trip?', answer: 'Spend 1-2 days acclimatizing in Leh (11,500 ft) before attempting high passes like Khardung La (18,380 ft). Stay well hydrated, avoid alcohol and heavy exertion on day one, and carry Diamox and basic medicines — our tips section covers this in detail.' },
+  { question: 'What permits do I need for the Ladakh bike trip?', answer: 'An Inner Line Permit (ILP) is required for Nubra Valley, Pangong Lake, and Tso Moriri. Permits can be applied online or arranged in person in Leh; we can help you arrange these along with your bike rental.' },
+  { question: 'Can I pick up the bike in Delhi and drop it in Leh?', answer: 'Yes, one-way rentals are available. Pick up in Delhi or Manali and drop in Leh (or vice versa). One-way charges apply (₹3,000-5,000).' },
+  { question: 'How much does it cost to rent a bike for Ladakh, and what is included?', answer: 'Bike rental for Ladakh starts from ₹799/day for a Royal Enfield Classic 350; Himalayan costs ₹999-1,299/day, with 15-20% off on 10+ day packages. The package includes the bike, comprehensive insurance, a basic tool kit, first aid and puncture kit, and 24/7 roadside assistance. Helmets are free; fuel, permits, and accommodation are not included.' },
 ];
 
 const schemaVehicles = [
@@ -254,7 +254,7 @@ export default function LadakhBikeTripPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="bike-on-rent" customFaqs={schemaFaqs} />
     </>
   );
 }

@@ -30,6 +30,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 60);
 
+const FAQS = [
+  { question: 'What documents are required to rent a Swift without a driver?', answer: 'You need a valid driving licence (held for at least 1 year) plus Aadhaar or PAN for KYC. Upload documents online and get instant approval to book the Maruti Swift self-drive.' },
+  { question: 'What is the security deposit for self-drive Swift rental?', answer: 'A refundable security deposit (typically ₹3,000–₹5,000 depending on city and vendor) is collected at pickup and refunded after the post-rental vehicle inspection.' },
+  { question: 'Is there a km limit on the ₹899/day Swift rental?', answer: 'Daily Swift plans usually include a free km limit (around 100–120 km/day), with extra km billed per km beyond that. Weekly packages often offer a higher combined km allowance.' },
+  { question: 'Can I choose between manual and automatic (AMT) Swift?', answer: 'Yes, both Swift manual and Swift AMT are available on rent. The manual variant starts at the base ₹899/day rate; AMT is offered at a slightly higher daily rate depending on the city.' },
+  { question: 'What is the minimum age and driving experience needed to rent a Swift?', answer: 'You must be at least 21 years old with a valid driving licence held for a minimum of 1 year to self-drive the Swift.' },
+];
+
 export default function SwiftOnRentPage() {
   return (
     <>
@@ -111,7 +119,22 @@ export default function SwiftOnRentPage() {
         </div>
       </section>
 
-      <FAQSection service="self-drive-car-rental" />
+      <FAQSection service="self-drive-car-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

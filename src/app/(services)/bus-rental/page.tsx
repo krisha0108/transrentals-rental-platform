@@ -622,6 +622,8 @@ export default function BusRentalPage() {
               <Link href="/tempo-traveller" className="text-orange-600 hover:underline">Tempo Traveller Hire</Link>
               <span className="text-gray-300">|</span>
               <Link href="/local-bus-rental" className="text-orange-600 hover:underline">Local Bus Rental</Link>
+              <span className="text-gray-300">|</span>
+              <Link href="/transporter" className="text-orange-600 hover:underline">Truck Rental</Link>
             </div>
           </div>
         </div>

@@ -33,6 +33,14 @@ export const metadata: Metadata = {
   },
 };
 
+const FAQS = [
+  { question: 'Do I need a permit to ride to Ladakh, and is it arranged?', answer: 'Yes, an Inner Line Permit is mandatory for Khardung La, Nubra Valley, and Pangong Lake. TransRentals arranges all permits as part of the ₹32,999 package — no separate paperwork needed from you.' },
+  { question: 'What are the chances of altitude sickness on this tour?', answer: 'The route crosses passes up to 18,380 ft (Khardung La), so mild AMS symptoms are common. The itinerary builds in acclimatization at Manali and Leh, the backup vehicle carries oxygen cylinders and a first-aid kit, and the ride captain monitors riders throughout.' },
+  { question: 'What is the best time to do the Leh Ladakh bike tour?', answer: 'Manali-Leh highway is open only from roughly May to September due to snow. TransRentals runs batches through this window — May 15 to September 10 — with July-August being peak season for Pangong and Nubra Valley.' },
+  { question: 'Which bike will I ride, and is it suited for high altitude?', answer: 'You get a Royal Enfield Himalayan or Classic 350 with full tank, serviced for high-altitude riding. A backup vehicle with a mechanic accompanies the group on every leg in case of breakdowns.' },
+  { question: 'Is a backup vehicle really provided throughout the 10-day trip?', answer: 'Yes, a support vehicle with a mechanic follows the group for all 1,800 km, from Manali through Sarchu, Leh, Nubra, and Pangong back to Manali — carrying luggage, spares, oxygen, and first aid.' },
+];
+
 const itinerary = [
   { day: 1, title: 'Arrival in Manali', desc: 'Arrive Manali, bike allocation, briefing. Acclimatization day.', stay: 'Hotel in Manali' },
   { day: 2, title: 'Manali to Jispa', desc: 'Cross Rohtang Pass (13,050 ft). Scenic ride through Lahaul Valley.', distance: '140 km', stay: 'Camp in Jispa' },
@@ -192,7 +200,22 @@ export default function LehLadakhTourPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="bike-on-rent" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

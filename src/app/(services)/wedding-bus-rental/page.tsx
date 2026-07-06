@@ -26,6 +26,14 @@ export const metadata: Metadata = {
   },
 };
 
+const FAQS = [
+  { question: 'How much does a wedding bus rental cost?', answer: 'Wedding bus rental starts from ₹5,999/day for a decorated 20-seater and scales up with bus size and decoration level. Baraat buses with sound systems and premium decoration are priced higher. Get a free quote for your city and guest count.' },
+  { question: 'Can buses be decorated for the baraat or guest transport?', answer: 'Yes, TransRentals partners offer flower decoration, ribbon work, and themed decor for baraat buses on request. Mention decoration requirements while booking so the vendor can quote and prepare in advance.' },
+  { question: 'How many buses do I need for my wedding guest count?', answer: 'As a rule of thumb: a 20-seater covers 15–18 guests comfortably with luggage, a 35-seater covers 28–30 guests, and a 50-seater covers 42–45 guests. TransRentals can suggest the right mix of bus sizes based on your total guest count.' },
+  { question: 'How far in advance should I book a wedding bus?', answer: 'Book at least 3–4 weeks in advance, especially during wedding season (November–February and April–May) when demand for wedding transport peaks and popular dates sell out early.' },
+  { question: 'Are drivers available in formal or traditional attire for weddings?', answer: 'Many wedding transport vendors on TransRentals offer drivers in formal uniforms on request — mention this requirement when requesting your quote so it can be confirmed with the vendor in advance.' },
+];
+
 export default function WeddingBusRentalPage() {
   return (
     <div className="flex flex-col">
@@ -80,8 +88,36 @@ export default function WeddingBusRentalPage() {
 
       <LocationsGrid service="wedding-bus-rental" />
 
-      <FAQSection service="bus-rental" />
+      <FAQSection service="wedding-bus-rental" customFaqs={FAQS} />
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
+              { '@type': 'ListItem', position: 2, name: 'Bus Rental', item: 'https://transrentals.in/bus-rental' },
+              { '@type': 'ListItem', position: 3, name: 'Wedding Bus Rental', item: 'https://transrentals.in/wedding-bus-rental' },
+            ],
+          }),
+        }}
+      />
     </div>
   );
 }

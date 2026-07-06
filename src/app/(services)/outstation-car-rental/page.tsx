@@ -25,6 +25,14 @@ export const metadata: Metadata = {
   },
 };
 
+const FAQS = [
+  { question: 'What is the starting price for outstation car rental?', answer: 'Outstation car rental starts at ₹10/km, with prices varying by car category — hatchback, sedan, SUV, or luxury — and trip type: one-way, round trip, or multi-city.' },
+  { question: 'Are toll, parking, and driver allowance included in the price?', answer: 'Yes, quotes are all-inclusive and cover fuel, toll and parking charges, and driver allowance, so there are no surprise costs during your outstation trip.' },
+  { question: 'Can I book a one-way outstation drop, or only round trips?', answer: 'Both are available. You can book a one-way drop to your destination or a round trip where the car and driver wait to bring you back.' },
+  { question: 'Is the vehicle insured and does it have valid permits for interstate travel?', answer: 'Yes, all vehicles are fully insured and carry all-India permits, so you can travel across state borders without any permit-related delays.' },
+  { question: 'How far in advance should I book for outstation travel?', answer: "For regular routes, 1-2 days' notice is enough. During long weekends and festival season, book at least a week ahead to lock in your preferred car and driver." },
+];
+
 export default function OutstationCarRentalPage() {
   return (
     <div className="flex flex-col">
@@ -86,8 +94,22 @@ export default function OutstationCarRentalPage() {
         </div>
       </section>
 
-      <FAQSection service="car-rental" />
+      <FAQSection service="car-rental" customFaqs={FAQS} />
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </div>
   );
 }

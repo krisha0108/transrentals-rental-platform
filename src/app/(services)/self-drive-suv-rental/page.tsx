@@ -30,6 +30,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 60);
 
+const FAQS = [
+  { question: 'What is the rental price of a self-drive SUV?', answer: 'Self-drive SUV rental starts from ₹1,999/day. Popular models available include Hyundai Creta, Kia Seltos, Mahindra Scorpio, XUV700, and Toyota Fortuner, with pricing varying by model and city.' },
+  { question: 'Which SUV should I choose for a hill station road trip?', answer: 'For hill stations like Manali, Ooty, or Munnar, SUVs like the Scorpio, XUV700, or Fortuner are recommended due to their higher ground clearance and power, though Creta and Seltos also handle hilly terrain well.' },
+  { question: 'What documents are required to rent an SUV without a driver?', answer: 'A valid driving licence along with Aadhaar or PAN is required for KYC. Documents are verified online and the booking is confirmed instantly once the security deposit is paid.' },
+  { question: 'How many people can travel in a self-drive SUV rental?', answer: 'Most SUVs on TransRentals offer 5-seater configurations (Creta, Seltos), while models like the XUV700 also offer a 7-seater option — ideal for larger families or group road trips.' },
+  { question: 'Are weekly or monthly SUV rentals cheaper than daily bookings?', answer: 'Yes, weekly and monthly self-drive SUV rentals come at discounted per-day rates compared to the standard ₹1,999/day rate, making them more economical for extended trips.' },
+];
+
 export default function SelfDriveSUVRentalPage() {
   return (
     <>
@@ -135,7 +143,22 @@ export default function SelfDriveSUVRentalPage() {
         </div>
       </section>
 
-      <FAQSection service="self-drive-car-rental" />
+      <FAQSection service="self-drive-car-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

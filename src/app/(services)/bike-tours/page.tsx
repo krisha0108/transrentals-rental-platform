@@ -40,6 +40,14 @@ export const metadata: Metadata = {
   },
 };
 
+const FAQS = [
+  { question: 'What is included in a TransRentals guided bike tour?', answer: 'Every guided tour includes the Royal Enfield (Himalayan or Classic 350) with full tank, an experienced ride captain, a backup support vehicle with mechanic, accommodation (hotels, camps or homestays), breakfast & dinner daily, riding gear, insurance, and all permits — you just show up and ride.' },
+  { question: 'How much do guided bike tours cost?', answer: 'Packages start from ₹24,999 for the 4-day Goa coastal tour, ₹26,999 for the 8-day Spiti Valley tour, and go up to ₹32,999 for the flagship 10-day Leh Ladakh tour. Pricing is all-inclusive — bike, fuel, stays, meals, and ride captain.' },
+  { question: 'What is the group size on a guided tour, and can I book privately?', answer: 'Groups are kept small at 6–12 riders so the ride captain can manage the pack safely on mountain and desert roads. Private/custom group bookings are also available on request — mention this while enquiring.' },
+  { question: 'Do I need prior riding experience to join a guided tour?', answer: 'A valid two-wheeler license and basic riding comfort with a 350cc motorcycle is required. Ladakh and Spiti involve high-altitude mountain passes and some rough patches, so prior long-distance riding experience is recommended; Goa is beginner-friendly.' },
+  { question: 'What is the booking and payment process?', answer: 'Pay 25% advance to reserve your slot on your chosen destination and batch, with the balance due 30 days before departure. Since group sizes are limited to 6–12 riders, popular Ladakh and Spiti batches fill up fast, especially in peak season (May–September).' },
+];
+
 const inclusions = [
   { icon: '🏍️', title: 'Royal Enfield Bike', desc: 'Himalayan/Classic 350 with full tank' },
   { icon: '👨‍✈️', title: 'Ride Captain', desc: 'Experienced guide leading the group' },
@@ -198,7 +206,22 @@ export default function BikeToursPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="bike-on-rent" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

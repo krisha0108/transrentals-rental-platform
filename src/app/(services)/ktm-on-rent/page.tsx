@@ -44,6 +44,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the rental price for a KTM bike?', answer: 'KTM rental starts at ₹999/day, with Duke 200 the entry-level option and the RC 390 priced higher for its performance-tuned engine and fairing.' },
+  { question: 'Which KTM models are available on rent?', answer: 'Duke 200, Duke 390, RC 200, and RC 390 are available for daily and monthly rental across 200+ cities on TransRentals.' },
+  { question: 'What documents and deposit are required to rent a KTM?', answer: 'A valid driving license with a motorcycle endorsement and Aadhaar are required, along with a higher security deposit given the high-performance category.' },
+  { question: 'Do I need prior riding experience to rent a KTM?', answer: 'Since KTM Duke and RC models offer up to 43 HP and 0-100 km/h in under 6 seconds, we recommend prior experience with geared bikes before riding a KTM.' },
+  { question: 'Is riding gear provided with the KTM rental?', answer: 'A helmet is included with every booking; full riding jackets, gloves, and knee guards are strongly recommended and available on request given the bike\'s performance.' },
+];
+
 export default function KTMRentalPage() {
   return (
     <>
@@ -134,7 +142,22 @@ export default function KTMRentalPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="ktm-on-rent" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

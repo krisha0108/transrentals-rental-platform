@@ -18,6 +18,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the rental price of a 20 seater tempo traveller?', answer: '20 seater tempo traveller rental starts at ₹22/km. Non-AC, AC, and Deluxe variants are available, with pricing depending on trip duration and route.' },
+  { question: 'Is a 20 seater tempo traveller good for weddings and large group tours?', answer: 'Yes, the 20-seater is built for big groups of 18-20 — ideal for wedding guest transport, large family functions, and group pilgrimages.' },
+  { question: 'Is the 20 seater more cost-effective than booking two smaller vehicles?', answer: 'Yes, a single 20-seater brings down the per-person cost significantly compared to booking two 12-seaters, while keeping the whole group together in one vehicle.' },
+  { question: 'How much luggage does a 20 seater tempo traveller carry?', answer: 'The 20-seater has a large rooftop carrier that comfortably holds luggage for 18-20 passengers, suitable for multi-day outstation tours.' },
+  { question: 'Is the 20 seater tempo traveller comfortable for long-distance travel?', answer: 'Yes, AC variants with reclining seats are built for long-distance comfort, making it a good choice for multi-day tours and pilgrimages.' },
+];
+
 export default function TwentySeaterTempoTravellerPage() {
   return (
     <>
@@ -92,7 +100,22 @@ export default function TwentySeaterTempoTravellerPage() {
         </div>
       </section>
 
-      <FAQSection service="bus-rental" />
+      <FAQSection service="bus-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

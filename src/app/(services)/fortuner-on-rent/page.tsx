@@ -29,6 +29,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 60);
 
+const FAQS = [
+  { question: 'What is included in the ₹4,999/day self-drive Fortuner rental?', answer: 'The daily rate covers the vehicle rental for a 7-seater Fortuner (4x2, 4x4, or Legender variant); fuel, tolls, and state permits are billed separately as per usage.' },
+  { question: 'Is a higher security deposit required for Fortuner rental?', answer: 'Yes, being a premium SUV category, the refundable security deposit is higher than mid-size cars like the Innova or Scorpio, and is returned after the vehicle inspection at drop-off.' },
+  { question: 'Can I rent a Fortuner with a chauffeur for weddings or VIP travel?', answer: 'Yes, apart from self-drive, you can book the Fortuner with a professional driver for weddings, corporate VIP transport, or special events.' },
+  { question: 'What is the seating capacity and safety features of the Fortuner?', answer: 'The Fortuner seats 7 passengers and comes equipped with up to 7 airbags along with a powerful 2.8L diesel engine producing 204 HP for a safe, premium ride.' },
+  { question: 'Is the 4x4 Fortuner variant available for rent?', answer: 'Yes, both 4x2 and 4x4 Fortuner variants, including the Legender trim, are available for rent depending on city and stock availability.' },
+];
+
 export default function FortunerOnRentPage() {
   return (
     <>
@@ -134,7 +142,22 @@ export default function FortunerOnRentPage() {
         </div>
       </section>
 
-      <FAQSection service="self-drive-car-rental" />
+      <FAQSection service="self-drive-car-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

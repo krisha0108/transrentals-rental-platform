@@ -25,6 +25,14 @@ export const metadata: Metadata = {
   },
 };
 
+const FAQS = [
+  { question: 'When is the best time for the Goa coastal bike tour?', answer: 'November to March is best, with dry weather, clear coastal roads, and pleasant temperatures. The tour is not run during the monsoon (June-September) when Dudhsagar Falls access and hill roads can be unsafe for riding.' },
+  { question: 'What coastal routes does the 4-day tour cover?', answer: 'Day 1 covers North Goa beaches (Baga, Calangute, Anjuna) and Chapora Fort; day 3 heads south via Old Goa\'s churches to Palolem and Colva beaches, covering roughly 320 km of coastal and backroad riding in total.' },
+  { question: 'Is this tour suitable for first-time or beginner riders?', answer: 'Yes, it\'s rated Easy difficulty with flat coastal roads and no high-altitude passes, making it ideal for first-timers, couples, and groups looking for a relaxed introduction to guided bike touring on a Royal Enfield Classic 350 or Meteor.' },
+  { question: 'Is Dudhsagar Falls included, and how do we get there?', answer: 'Yes, day 2 is dedicated to Dudhsagar Falls with a scenic Western Ghats ride and a spice plantation visit, with entry tickets included in the ₹14,999 package.' },
+  { question: 'What is included in the Goa tour price?', answer: 'The ₹14,999 all-inclusive package covers the bike with fuel, ride captain, 3 nights at beach resorts, breakfast & dinner, helmet, and entry tickets to Dudhsagar Falls and the spice farm.' },
+];
+
 const itinerary = [
   { day: 1, title: 'Arrival & North Goa', desc: 'Arrive Goa. Bike allocation. Ride to Baga, Calangute, Anjuna beaches. Sunset at Chapora Fort.', stay: 'Beach Resort North Goa' },
   { day: 2, title: 'Dudhsagar Falls', desc: 'Early start for Dudhsagar. Scenic Western Ghats ride. Spice plantation visit.', distance: '120 km', stay: 'Beach Resort North Goa' },
@@ -170,7 +178,22 @@ export default function GoaTourPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="bike-on-rent" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

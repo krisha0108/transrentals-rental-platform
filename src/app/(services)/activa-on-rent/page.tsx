@@ -94,7 +94,7 @@ export default function ActivaOnRentPage() {
 
         <LocationsGrid service="activa-on-rent" />
 
-        <FAQSection service="bike-on-rent" />
+        <FAQSection service="bike-on-rent" customFaqs={schemaFaqs} />
 
       </div>
     </>

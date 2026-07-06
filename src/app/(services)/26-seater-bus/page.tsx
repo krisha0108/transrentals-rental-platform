@@ -18,6 +18,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the rental price of a 26 seater bus?', answer: '26 seater mini bus rental starts from ₹28/km, or day packages (8 hrs/80 km) starting around ₹5,999. Rates vary by city, AC/Non-AC choice, and trip duration. Get a free quote on TransRentals for your exact route.' },
+  { question: 'Is a 26 seater bus AC or Non-AC?', answer: 'Both AC and Non-AC 26-seater buses are available. AC is recommended for outstation trips, especially in summer (March–June). Non-AC options are priced 15–20% lower.' },
+  { question: 'How much luggage space does a 26 seater bus have?', answer: 'A 26-seater bus has a dedicated luggage boot that comfortably fits 26 medium-sized bags. For events with heavy luggage, mention this while booking so the operator can confirm boot capacity.' },
+  { question: 'Is a 26 seater or a 32/40 seater bus better for my group?', answer: 'A 26-seater is the most cost-effective choice for groups of 20–26 — anything larger and a 32 or 40-seater brings the per-person cost down further. TransRentals shows a size comparison when you request a quote.' },
+  { question: 'How far in advance should I book a 26 seater bus?', answer: 'For regular trips, 2–3 days notice is enough. During wedding season (Nov–Feb), Navratri, Diwali, and long weekends, book at least 1–2 weeks ahead as 26-seaters are the most requested size and sell out first.' },
+];
+
 export default function TwentySixSeaterBusPage() {
   return (
     <>
@@ -112,7 +120,36 @@ export default function TwentySixSeaterBusPage() {
         </div>
       </section>
 
-      <FAQSection service="bus-rental" />
+      <FAQSection service="26-seater-bus" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
+              { '@type': 'ListItem', position: 2, name: 'Bus Rental', item: 'https://transrentals.in/bus-rental' },
+              { '@type': 'ListItem', position: 3, name: '26 Seater Bus', item: 'https://transrentals.in/26-seater-bus' },
+            ],
+          }),
+        }}
+      />
     </>
   );
 }

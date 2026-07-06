@@ -25,6 +25,14 @@ export const metadata: Metadata = {
   },
 };
 
+const FAQS = [
+  { question: 'What is the best season to do the Rajasthan bike tour?', answer: 'October to March is ideal, with cool, dry weather across Jaipur, Jodhpur, Jaisalmer, and Udaipur. Summer months (April-June) see desert temperatures cross 45°C and are not recommended for riding.' },
+  { question: 'How are the road conditions on the Rajasthan route?', answer: 'The route runs mostly on well-maintained state and national highways connecting Delhi, Jaipur, Jodhpur, Jaisalmer, and Udaipur. The longest single day is Jaisalmer to Udaipur at 530 km, so riders should be comfortable with long highway stretches.' },
+  { question: 'What is included in the ₹24,999 package?', answer: 'The 7-day, 1,440 km tour includes the Royal Enfield, ride captain, heritage hotel/haveli stays, one night of desert camping in Jaisalmer, breakfast & dinner, riding gear, and all permits.' },
+  { question: 'Is a desert safari included in the tour?', answer: 'Yes, day 5 includes a camel safari and overnight desert camping in the Jaisalmer sand dunes, along with visits to Jaisalmer Fort and Patwon Haveli.' },
+  { question: 'Do I need mountain-riding experience for this tour?', answer: 'No — Rajasthan is entirely flat-to-rolling highway riding with no high-altitude passes, making it more accessible than the Ladakh or Spiti tours while still covering 1,440 km across royal forts and desert landscapes.' },
+];
+
 const itinerary = [
   { day: 1, title: 'Delhi to Jaipur', desc: 'Start from Delhi. Ride to the Pink City. Evening Hawa Mahal visit.', distance: '280 km', stay: 'Heritage Hotel Jaipur' },
   { day: 2, title: 'Jaipur Exploration', desc: 'Visit Amber Fort, City Palace, Jantar Mantar. Local bazaar.', stay: 'Heritage Hotel Jaipur' },
@@ -148,7 +156,22 @@ export default function RajasthanTourPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="bike-on-rent" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }
