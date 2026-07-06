@@ -273,6 +273,9 @@ export default async function BusLocationPage({ params }: PageProps) {
     getServiceCityContent('bus-rental', params.location),
   ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['bus-rental'] || [];
+  const displayFAQs = cityFAQs.length > 0
+    ? cityFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))
+    : BUS_RENTAL_FALLBACK_FAQS;
 
   return (
     <div className="flex flex-col">
@@ -389,6 +392,8 @@ export default async function BusLocationPage({ params }: PageProps) {
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
 
+      <FAQSection service="bus-rental" location={locationName} customFaqs={displayFAQs} />
+
       <RelatedServices
         locationSlug={params.location.toLowerCase()}
         parentSlug="bus-rental"
@@ -406,17 +411,11 @@ export default async function BusLocationPage({ params }: PageProps) {
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'FAQPage',
-            mainEntity: cityFAQs.length > 0
-              ? cityFAQs.map((faq) => ({
-                  '@type': 'Question',
-                  name: faq.q,
-                  acceptedAnswer: { '@type': 'Answer', text: faq.a },
-                }))
-              : BUS_RENTAL_FALLBACK_FAQS.map((faq) => ({
-                  '@type': 'Question',
-                  name: faq.question,
-                  acceptedAnswer: { '@type': 'Answer', text: faq.answer },
-                })),
+            mainEntity: displayFAQs.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
           }),
         }}
       />

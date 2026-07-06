@@ -248,6 +248,9 @@ export default async function TransporterLocationPage({ params }: PageProps) {
     getServiceCityContent('transporter', params.location),
   ]);
   const cityFAQs = CITY_SEO[params.location]?.serviceFAQs?.['transporter'] || [];
+  const displayFAQs = cityFAQs.length > 0
+    ? cityFAQs.map((faq) => ({ question: faq.q, answer: faq.a }))
+    : TRANSPORTER_FALLBACK_FAQS;
 
   return (
     <div className="flex flex-col">
@@ -314,29 +317,40 @@ export default async function TransporterLocationPage({ params }: PageProps) {
           }),
         }}
       />
+      {/* BreadcrumbList Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://transrentals.in' },
+              { '@type': 'ListItem', position: 2, name: 'Transporter', item: 'https://transrentals.in/transporter' },
+              { '@type': 'ListItem', position: 3, name: `Truck Rental in ${locationName}`, item: `https://transrentals.in/transporter/${params.location}` },
+            ],
+          }),
+        }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'FAQPage',
-            mainEntity: cityFAQs.length > 0
-              ? cityFAQs.map((faq) => ({
-                  '@type': 'Question',
-                  name: faq.q,
-                  acceptedAnswer: { '@type': 'Answer', text: faq.a },
-                }))
-              : TRANSPORTER_FALLBACK_FAQS.map((faq) => ({
-                  '@type': 'Question',
-                  name: faq.question,
-                  acceptedAnswer: { '@type': 'Answer', text: faq.answer },
-                })),
+            mainEntity: displayFAQs.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
           }),
         }}
       />
 
       {/* All editable SEO content — block-based sectionsConfig from admin */}
       <ServiceCitySections sectionsConfig={scContent?.sectionsConfig} cityName={locationName} />
+
+      <FAQSection service="transporter" location={locationName} customFaqs={displayFAQs} />
     </div>
   );
 }

@@ -2,7 +2,6 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LocationsGrid } from '@/components/services/LocationsGrid';
-import { FAQSection } from '@/components/services/FAQSection';
 import { TruckTypesCards } from '@/components/services/TruckTypesCards';
 import { ServiceHeroWithChat } from '@/components/services/ServiceHeroWithChat';
 import { HowToSchema } from '@/components/seo/schemas';
@@ -121,8 +120,6 @@ export default function TransporterPage() {
 
       <LocationsGrid service="transporter" />
 
-      <FAQSection service="transporter" />
-
       {/* FAQ Section with Schema */}
       <section className="py-14 bg-white">
         <div className="container mx-auto px-4">
@@ -163,6 +160,8 @@ export default function TransporterPage() {
               <Link href="/trailer-on-rent" className="text-slate-600 hover:underline">Trailer on Rent</Link>
               <span className="text-gray-300">|</span>
               <Link href="/packers-and-movers" className="text-slate-600 hover:underline">Packers and Movers</Link>
+              <span className="text-gray-300">|</span>
+              <Link href="/bus-rental" className="text-slate-600 hover:underline">Bus Rental</Link>
             </div>
           </div>
         </div>
