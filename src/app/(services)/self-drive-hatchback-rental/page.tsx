@@ -30,6 +30,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the rental price of a self-drive hatchback?', answer: 'Self-drive hatchback rental starts from ₹899/day, making it the most affordable self-drive category on TransRentals. Popular models include Maruti Swift, Hyundai i20, Tata Tiago, Baleno, Wagon R, and Grand i10.' },
+  { question: 'How much mileage do self-drive hatchbacks give?', answer: 'Hatchbacks typically deliver 18-22 km/l fuel efficiency, making them the most economical choice for city commutes and short trips where you are paying for your own fuel.' },
+  { question: 'What documents and deposit are needed to rent a hatchback without a driver?', answer: 'A valid driving licence and a government ID are required for KYC verification. The security deposit for hatchbacks is lower than for sedans or SUVs, reflecting the lower vehicle value and rental price.' },
+  { question: 'Is a hatchback rental suitable for new or inexperienced drivers?', answer: 'Yes, hatchbacks are the easiest cars to drive and park due to their compact size, making them a popular choice for new drivers, students, and anyone not confident driving larger vehicles.' },
+  { question: 'Can I rent a hatchback for a week or a month instead of daily?', answer: 'Yes, hatchbacks are available for 1-day, weekly, and monthly rentals, with discounted per-day rates on longer bookings compared to the standard ₹899/day daily rate.' },
+];
+
 export default function SelfDriveHatchbackRentalPage() {
   return (
     <>
@@ -150,7 +158,22 @@ export default function SelfDriveHatchbackRentalPage() {
         </div>
       </section>
 
-      <FAQSection service="self-drive-car-rental" />
+      <FAQSection service="self-drive-car-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

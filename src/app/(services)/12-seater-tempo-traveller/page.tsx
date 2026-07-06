@@ -28,6 +28,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the rental price of a 12 seater tempo traveller?', answer: '12 seater tempo traveller rental starts at ₹18/km. Non-AC, AC, Deluxe, and Maharaja variants are available, with pricing varying by variant and trip duration.' },
+  { question: 'Is the 12 seater tempo traveller suitable for a small family trip or pilgrimage?', answer: 'Yes, the 12-seater is ideal for groups of 10-12 — perfect for family vacations, pilgrimages like Char Dham or Vaishno Devi, and small wedding guest groups.' },
+  { question: "What's the difference between AC and Non-AC 12 seater options?", answer: "AC is recommended for outstation and summer travel, while Non-AC works well for short local trips and hill routes where AC isn't essential. Non-AC pricing is typically lower." },
+  { question: 'How much luggage can a 12 seater tempo traveller carry?', answer: 'A 12-seater has a rooftop carrier plus rear boot space, comfortably fitting luggage for 10-12 passengers on a multi-day trip.' },
+  { question: 'Can I compare the 12 seater with 17 or 20 seater options before booking?', answer: 'Yes — if your group is closer to 15 or 18-20 people, check our 17-seater and 20-seater tempo traveller pages, which offer better per-person value for larger groups.' },
+];
+
 export default function TwelveSeaterTempoTravellerPage() {
   return (
     <>
@@ -173,7 +181,22 @@ export default function TwelveSeaterTempoTravellerPage() {
         </div>
       </section>
 
-      <FAQSection service="bus-rental" />
+      <FAQSection service="bus-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

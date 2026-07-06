@@ -25,6 +25,14 @@ export const metadata: Metadata = {
   },
 };
 
+const FAQS = [
+  { question: 'When does the Spiti Valley road open for bike tours?', answer: 'Spiti\'s high passes, including Kunzum (14,931 ft), stay snowbound for much of the year and typically open around June and stay rideable through October. TransRentals schedules this 8-day tour within that window to avoid road closures.' },
+  { question: 'Is fuel easily available throughout the Spiti route?', answer: 'Petrol pumps are scarce beyond Kaza, which has the last reliable pump before Chandratal. TransRentals covers fuel for the entire trip, and the backup vehicle also carries reserve fuel for the Kaza-Chandratal-Manali stretch.' },
+  { question: 'What kind of accommodation is provided in Spiti?', answer: 'The ₹26,999 package includes 7 nights of stays that mix hotels in Shimla and Kaza, homestays in Sangla and Nako, and a night of camping under the stars at Chandratal Lake.' },
+  { question: 'How difficult is the riding in Spiti compared to Ladakh?', answer: 'Spiti involves rougher, narrower roads in places (especially Kaza to Chandratal) but tops out lower at 14,931 ft versus Ladakh\'s 18,380 ft, making it a slightly less extreme but still adventurous high-altitude ride.' },
+  { question: 'What is the group size and what bike is used?', answer: 'Groups are limited to 6–12 riders on Royal Enfield Himalayan or Classic 350 motorcycles, led by an experienced ride captain with a backup vehicle and mechanic for the full 800 km circuit.' },
+];
+
 const itinerary = [
   { day: 1, title: 'Shimla Arrival', desc: 'Arrive Shimla, bike allocation, briefing. Evening Mall Road visit.', stay: 'Hotel in Shimla' },
   { day: 2, title: 'Shimla to Sangla', desc: 'Ride through apple orchards. Enter Kinnaur Valley.', distance: '210 km', stay: 'Homestay in Sangla' },
@@ -154,7 +162,22 @@ export default function SpitiValleyTourPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="bike-on-rent" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

@@ -16,6 +16,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the rental price of a self-drive Mahindra XUV700?', answer: 'Self-drive Mahindra XUV700 rental starts from ₹2999/day across MX, AX5, AX7, and AX7 L variants. Being a premium SUV, pricing is higher than compact SUVs like the Creta or Seltos.' },
+  { question: 'Can I choose between a 5-seater and 7-seater XUV700?', answer: 'Yes, the XUV700 is available in both 5-seater and 7-seater configurations. Select your preferred layout while booking based on your group size and luggage needs.' },
+  { question: 'Is the security deposit higher for the XUV700 compared to other SUVs?', answer: 'Yes, being a premium SUV category vehicle, the XUV700 requires a higher refundable security deposit than compact SUVs, reflecting its higher value and ADAS-equipped features.' },
+  { question: 'What safety and comfort features come with the XUV700 rental?', answer: 'The self-drive XUV700 includes Level 2 ADAS safety features, a panoramic sunroof, a Sony 3D sound system with 12 speakers, and a 5-star GNCAP safety rating, making it one of the safest SUVs to self-drive.' },
+  { question: 'What documents do I need to rent an XUV700 without a driver?', answer: 'You need to upload a valid driving licence, Aadhaar, and PAN for KYC verification. Given the premium security deposit involved, document verification for the XUV700 is thorough before booking confirmation.' },
+];
+
 export default function XUV700OnRentPage() {
   return (
     <>
@@ -78,7 +86,22 @@ export default function XUV700OnRentPage() {
         </div>
       </section>
 
-      <FAQSection service="self-drive-car-rental" />
+      <FAQSection service="self-drive-car-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

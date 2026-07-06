@@ -29,6 +29,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the rental price of a self-drive Hyundai Creta?', answer: 'Self-drive Hyundai Creta rental starts from ₹1999/day across Creta E, EX, S, SX and SX(O) AT variants. Petrol, diesel, and turbo variants are priced slightly differently depending on city and demand.' },
+  { question: 'What is the minimum age and driving experience needed to rent a Creta?', answer: 'You must be at least 21 years old and hold a valid driving licence for a minimum of 1 year to rent a self-drive Creta. Age and licence requirements are verified during online KYC before booking confirmation.' },
+  { question: 'What documents do I need to submit to rent a Creta without a driver?', answer: 'A valid driving licence along with a government ID such as Aadhaar or Voter ID is required. Upload both online — your booking is confirmed after document verification and security deposit payment.' },
+  { question: 'Does the Creta come with ADAS and connected car features on rental?', answer: 'Yes, depending on the variant booked, the self-drive Creta includes ADAS (Advanced Driver Assistance Systems) safety features and Hyundai BlueLink connected car technology, especially in the SX and SX(O) variants.' },
+  { question: 'Is home delivery available for the Creta self-drive booking?', answer: 'Yes, doorstep delivery of the Hyundai Creta is available in select cities for an added fee. Otherwise, you can pick up the car from the nearest vendor location after document verification.' },
+];
+
 export default function CretaOnRentPage() {
   return (
     <>
@@ -137,7 +145,22 @@ export default function CretaOnRentPage() {
         </div>
       </section>
 
-      <FAQSection service="self-drive-car-rental" />
+      <FAQSection service="self-drive-car-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

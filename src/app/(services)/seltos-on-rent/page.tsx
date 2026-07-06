@@ -19,6 +19,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the rental price of a self-drive Kia Seltos?', answer: 'Self-drive Kia Seltos rental starts from ₹1899/day across HTK, HTX, HTX+, GTX and GTX+ variants. Petrol, diesel, and automatic transmission variants may be priced slightly higher depending on city and availability.' },
+  { question: 'What documents are required to rent a Seltos without a driver?', answer: 'You need a valid driving licence (held for at least 1 year) and a government ID proof such as Aadhaar. Both are uploaded online during KYC, and your booking is confirmed instantly after verification.' },
+  { question: 'Is a security deposit required for the Seltos self-drive rental?', answer: 'Yes, a refundable security deposit is collected online at the time of booking. The amount depends on the variant chosen — GTX and GTX+ (top variants) attract a slightly higher deposit than HTK/HTX due to their higher value.' },
+  { question: 'Are fuel and kilometers included in the Seltos rental?', answer: 'Daily Seltos bookings include a fixed free-km allowance, with extra distance billed per km. Fuel is not included — the car should be returned with the same fuel level as at pickup to avoid refueling charges.' },
+  { question: 'Can the Seltos be delivered to my home instead of pickup from a vendor?', answer: 'Yes, home delivery of the Kia Seltos is available in select cities for an additional fee. In other cities, you can collect the car directly from the nearest TransRentals vendor location.' },
+];
+
 export default function SeltosOnRentPage() {
   return (
     <>
@@ -81,7 +89,22 @@ export default function SeltosOnRentPage() {
         </div>
       </section>
 
-      <FAQSection service="self-drive-car-rental" />
+      <FAQSection service="self-drive-car-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

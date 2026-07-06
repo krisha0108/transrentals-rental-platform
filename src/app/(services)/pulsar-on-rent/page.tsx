@@ -44,6 +44,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the rental price for a Bajaj Pulsar?', answer: 'Bajaj Pulsar rental starts at ₹499/day, with Pulsar 150 the most affordable option and NS200/RS200 priced slightly higher for their bigger engines. Weekly and monthly plans bring the per-day cost down further.' },
+  { question: 'Which Pulsar models are available on rent?', answer: 'Pulsar 150, Pulsar 180, Pulsar NS200, and Pulsar RS200 are available across 200+ cities on TransRentals, so you can pick based on your commute or performance needs.' },
+  { question: 'What documents do I need to rent a Pulsar?', answer: 'A valid driving license with a two-wheeler endorsement and an Aadhaar card are required. A refundable security deposit is collected at the time of pickup.' },
+  { question: 'What mileage does a rented Pulsar give?', answer: 'Pulsar bikes deliver 45-55 km/litre depending on the model and riding conditions, making them a fuel-efficient choice even with their sportier engines.' },
+  { question: 'Is a helmet provided with the Pulsar rental?', answer: 'Yes, a helmet is provided free of charge with every Pulsar rental booking. Additional riding gear can be arranged on request.' },
+];
+
 export default function PulsarRentalPage() {
   return (
     <>
@@ -134,7 +142,22 @@ export default function PulsarRentalPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="pulsar-on-rent" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

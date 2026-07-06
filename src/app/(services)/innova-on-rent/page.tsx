@@ -29,6 +29,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 60);
 
+const FAQS = [
+  { question: 'What is the seating capacity of the Innova Crysta on rent?', answer: 'The Innova Crysta comes in a 7+1 (8-seater including driver) configuration, with captain seats available in the VX and ZX variants for extra comfort on long trips.' },
+  { question: 'Can I rent the Innova with a driver instead of self-drive?', answer: 'Yes, both options are available — self-drive Innova starts at ₹2,499/day, or you can book it with a professional driver for weddings, outstation trips, or airport transfers.' },
+  { question: 'How much luggage can the Innova Crysta carry with all seats occupied?', answer: 'With all 7 seats occupied there is still a decent boot for hand luggage; folding down the third row (when travelling with fewer passengers) opens up much more space for bigger bags.' },
+  { question: 'What documents and security deposit are needed for self-drive Innova rental?', answer: 'A valid driving licence and Aadhaar/PAN are required for KYC. Since the Innova is a higher-value MPV, the refundable security deposit is higher than for hatchbacks like the Swift.' },
+  { question: 'Is the Innova Crysta good for outstation and pilgrimage trips?', answer: 'Yes, its diesel engine, sturdy build, and spacious cabin make it one of the most preferred choices for family outstation travel, weddings, and pilgrimage tours across India.' },
+];
+
 export default function InnovaOnRentPage() {
   return (
     <>
@@ -134,7 +142,22 @@ export default function InnovaOnRentPage() {
         </div>
       </section>
 
-      <FAQSection service="self-drive-car-rental" />
+      <FAQSection service="self-drive-car-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

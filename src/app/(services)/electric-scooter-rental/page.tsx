@@ -169,7 +169,7 @@ export default function ElectricScooterRentalPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="bike-on-rent" customFaqs={schemaFaqs} />
     </>
   );
 }

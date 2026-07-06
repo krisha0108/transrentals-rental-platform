@@ -19,6 +19,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the rental price of a 17 seater tempo traveller?', answer: '17 seater (Force Traveller) rental starts at ₹20/km. Non-AC, AC, Deluxe, and Maharaja variants are available depending on your comfort and budget needs.' },
+  { question: 'Is the 17 seater tempo traveller good for corporate outings?', answer: 'Yes, the 17-seater is a popular choice for corporate team outings and conferences — it comfortably fits 15-17 colleagues with room for luggage and equipment.' },
+  { question: 'What is the Maharaja 2x1 layout available on the 17 seater?', answer: 'The Maharaja variant offers a 2x1 seating layout with wider, push-back recliner seats and extra legroom, ideal for longer journeys like Char Dham yatras.' },
+  { question: 'Does the 17 seater tempo traveller come with entertainment features?', answer: 'Yes, many 17-seater variants include an LED TV and music system, useful for longer corporate or religious group trips.' },
+  { question: 'How much luggage space does the 17 seater have?', answer: 'The 17-seater has a bigger rooftop carrier and boot space than the 12-seater, suitable for 15-17 passengers travelling with check-in style luggage.' },
+];
+
 export default function SeventeenSeaterTempoTravellerPage() {
   return (
     <>
@@ -114,7 +122,22 @@ export default function SeventeenSeaterTempoTravellerPage() {
         </div>
       </section>
 
-      <FAQSection service="bus-rental" />
+      <FAQSection service="bus-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

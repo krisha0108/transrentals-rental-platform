@@ -44,6 +44,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the rental price for Hero Splendor?', answer: 'Hero Splendor rental starts at just ₹299/day — the most affordable bike rental option on TransRentals, with additional savings on weekly and monthly plans.' },
+  { question: 'Which Splendor variants can I rent?', answer: 'Splendor Plus, Splendor iSmart, and Super Splendor are all available for daily and monthly rental across 200+ cities.' },
+  { question: 'What mileage does Hero Splendor give?', answer: 'Splendor offers up to 75 km/litre, making it India\'s most fuel-efficient commuter bike and a great low-cost rental choice.' },
+  { question: 'What documents and deposit are needed to rent a Splendor?', answer: 'A valid two-wheeler driving license and Aadhaar card are required, along with a minimal refundable security deposit — lower than premium bike segments.' },
+  { question: 'Is Splendor a good choice for daily office commute?', answer: 'Yes, its light weight, easy handling, and low fuel cost make Splendor ideal for daily office commute, delivery work, and short city rides.' },
+];
+
 export default function SplendorRentalPage() {
   return (
     <>
@@ -156,7 +164,22 @@ export default function SplendorRentalPage() {
         </div>
       </section>
 
-      <FAQSection service="bike-on-rent" />
+      <FAQSection service="splendor-on-rent" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }

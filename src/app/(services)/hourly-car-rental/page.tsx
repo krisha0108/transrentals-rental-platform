@@ -20,6 +20,14 @@ export const metadata: Metadata = {
 
 const topCities = ALL_CITIES.slice(0, 12);
 
+const FAQS = [
+  { question: 'What is the price of hourly car rental?', answer: 'Hourly self-drive car rental starts at ₹149/hr, with flexible 2, 4, and 8-hour packages that include a preset km limit. Exact pricing depends on your city and car type — hatchback, sedan, or SUV.' },
+  { question: 'Is fuel included in the hourly rental price?', answer: 'Yes, fuel costs are included in the hourly package price — there are no separate fuel charges to pay on top of your booking.' },
+  { question: 'What do I need to rent a self-drive car by the hour?', answer: 'You need a valid driving license and to complete quick online KYC verification. Once verified, you can book instantly and drive yourself — no separate driver required.' },
+  { question: "What happens if I don't return the car within my booked hours?", answer: 'You can return anytime within your booked package (2, 4, or 8 hours). Extending the booking is possible if needed, but time used beyond the package is charged extra, so plan your hours accordingly.' },
+  { question: 'Do I need to pick up the car myself, or is delivery available?', answer: "Both options are available — you can pick up the car at the vendor's location or opt for home delivery in select cities, based on your convenience." },
+];
+
 export default function HourlyCarRentalPage() {
   return (
     <>
@@ -91,7 +99,22 @@ export default function HourlyCarRentalPage() {
         </div>
       </section>
 
-      <FAQSection service="self-drive-car-rental" />
+      <FAQSection service="self-drive-car-rental" customFaqs={FAQS} />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQS.map((faq) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+            })),
+          }),
+        }}
+      />
     </>
   );
 }
