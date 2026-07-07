@@ -319,6 +319,13 @@ export default function BusRentalPage() {
         ]}
         gradientFrom="orange-50"
         gradientTo="red-50"
+        showQuickForm
+        priceAnchor="18/km"
+        heroHighlights={[
+          'Driver included on all trips',
+          'AC & Non-AC buses — 9 to 55 seater options',
+          '500+ verified operators, instant quote',
+        ]}
       />
 
       {/* Stats Bar */}
