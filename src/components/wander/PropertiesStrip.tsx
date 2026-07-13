@@ -153,8 +153,10 @@ export function PropertiesStrip() {
     el.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' });
   };
 
-  // Hide the section entirely when nothing to show
-  if (!loading && properties.length === 0) return null;
+  // Only render once we actually have properties. This avoids the skeleton grid
+  // flashing while loading and then disappearing when there are no properties
+  // (e.g. local DB has no travel-agent properties) — no flash, no layout jump.
+  if (properties.length === 0) return null;
 
   return (
     <section className="py-16 px-4 sm:px-6 bg-gradient-to-b from-indigo-50/40 via-white to-fuchsia-50/40 relative overflow-hidden">
@@ -205,9 +207,7 @@ export function PropertiesStrip() {
           className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 sm:-mx-6 sm:px-6 scroll-smooth"
           style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(0,0,0,.15) transparent' }}
         >
-          {loading && properties.length === 0
-            ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-            : properties.map((p) => <PropertyCard key={p.id} property={p} />)}
+          {properties.map((p) => <PropertyCard key={p.id} property={p} />)}
         </div>
       </div>
     </section>
