@@ -11,7 +11,7 @@ import {
   MapPin, ArrowRight, Clock, ChevronDown, ChevronUp,
   Lightbulb, Car, Bike, Bus, Briefcase,
   Truck, Package, Plane, Users,
-  Compass, Landmark, Utensils, Trees, Sparkles,
+  Compass, Landmark, Utensils, Trees, Sparkles, BadgeCheck,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -39,9 +39,10 @@ const CATEGORY_CONFIG: Record<string, { label: string; icon: React.ReactNode; co
   moving:     { label: 'Moving',          icon: <Package className="w-5 h-5" />, color: 'teal'   },
 };
 
-// Muted per-category tint — used ONLY for the small icon badge, never for
-// large fills or buttons. CTAs stay a single brand color (primary) throughout
-// so the grid reads as one professional system instead of a rainbow of colors.
+// Muted per-category tint — used ONLY for the small icon badge, just enough
+// to tell categories apart at a glance. Every bold element (headers, CTAs,
+// prices) stays a single brand color throughout, so the grid reads as one
+// cohesive, premium system instead of a rainbow of unrelated colors.
 const COLOR_CLASSES: Record<string, { bg: string; text: string }> = {
   blue:   { bg: 'bg-blue-50',   text: 'text-blue-600'   },
   green:  { bg: 'bg-green-50',  text: 'text-green-600'  },
@@ -58,13 +59,23 @@ const CATEGORY_ORDER: Array<ServiceConfig['category']> = ['car', 'bike', 'bus', 
 // to the right two-thirds of the frame since hero text sits on the left).
 const CITY_HERO_IMAGES: Record<string, string> = {
   ahmedabad: '/images/cities/ahmedabad-hero.jpg',
+  bangalore: '/images/cities/bangalore-hero.webp',
+  ghaziabad: '/images/cities/ghaziabad-hero.webp',
+  mangalore: '/images/cities/mangalore-hero.webp',
+  mumbai: '/images/cities/mumbai-hero.webp',
+  gandhinagar: '/images/cities/gandhinagar-hero.webp',
+  jaipur: '/images/cities/jaipur-hero.webp',
+  pune: '/images/cities/pune-hero.webp',
+  delhi: '/images/cities/delhi-hero.webp',
+  noida: '/images/cities/noida-hero.webp',
+  vadodara: '/images/cities/vadodara-hero.webp',
+  rajkot: '/images/cities/rajkot-hero.webp',
+  lucknow: '/images/cities/lucknow-hero.webp',
+  thane: '/images/cities/thane-hero.webp',
+  mysore: '/images/cities/mysore-hero.webp',
+  agra: '/images/cities/agra-hero.webp',
+  nagpur: '/images/cities/nagpur-hero.webp',
 };
-
-// Optional banner photo per service category, shown as a strip above that
-// category's card grid. Drop licensed photos in /public/images/categories/
-// (recommended: 1600×500px, ~3.2:1, JPG/WebP under 250KB). Left empty until
-// real (licensed) photography is supplied — falls back to a plain icon header.
-const CATEGORY_BANNER_IMAGES: Partial<Record<ServiceConfig['category'], string>> = {};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getNearbyCities(city: City, limit = 12): City[] {
@@ -103,7 +114,7 @@ function HeroSection({ city, cmsData, seoData, customContent }: {
   const heroImage = CITY_HERO_IMAGES[city.slug];
   return (
     <section className="relative overflow-hidden bg-white">
-      <div className={`relative overflow-hidden ${heroImage ? '' : 'bg-gradient-to-br from-primary-700 via-primary-600 to-primary-500'}`}>
+      <div className={`relative overflow-hidden min-h-[440px] md:min-h-[520px] ${heroImage ? '' : 'bg-gradient-to-br from-primary-700 via-primary-600 to-primary-500'}`}>
         {heroImage && (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -218,17 +229,20 @@ function ServicesSection({ city, customContent }: { city: City; customContent?: 
   const getOverride = (slug: string) => servicesCfg?.find(c => c.slug === slug);
   const presentCategories = CATEGORY_ORDER.filter(cat => grouped[cat]?.length);
   return (
-    <section id="services" className="py-16 md:py-20 bg-white scroll-mt-20">
+    <section id="services" className="py-16 md:py-20 bg-gray-50/60 scroll-mt-20">
       <div className="container-custom">
-        <div className="mb-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+        <div className="mb-10 max-w-2xl">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-wide mb-3">
+            <Sparkles className="w-3.5 h-3.5" />All Services
+          </span>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 tracking-tight">
             Services Available in {city.name}
           </h2>
-          <p className="text-gray-500">Choose from our wide range of vehicle rental services</p>
+          <p className="text-gray-500">Compare verified vendors and book instantly — cars, bikes, buses & more.</p>
         </div>
 
         {/* Category quick-nav */}
-        <div className="flex gap-2 overflow-x-auto pb-3 mb-10 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+        <div className="flex gap-2.5 overflow-x-auto pb-3 mb-12 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
           {presentCategories.map(cat => {
             const cfg = CATEGORY_CONFIG[cat];
             const colors = COLOR_CLASSES[cfg.color];
@@ -236,78 +250,58 @@ function ServicesSection({ city, customContent }: { city: City; customContent?: 
               <a
                 key={cat}
                 href={`#services-${cat}`}
-                className="flex items-center gap-2 shrink-0 bg-white text-gray-700 font-semibold text-sm pl-2 pr-4 py-1.5 rounded-full border border-gray-200 hover:border-primary/40 hover:text-primary transition-colors"
+                className="flex items-center gap-2 shrink-0 bg-white text-gray-700 font-semibold text-sm pl-2 pr-4 py-2 rounded-full border border-gray-200 shadow-sm hover:shadow-md hover:border-primary/40 hover:text-primary hover:-translate-y-0.5 transition-all duration-200"
               >
                 <span className={`p-1.5 rounded-full ${colors.bg} ${colors.text}`}>{cfg.icon}</span>
                 {cfg.label}
-                <span className="text-xs font-normal text-gray-400">{grouped[cat].length}</span>
+                <span className="text-xs font-bold text-gray-400 bg-gray-100 rounded-full w-5 h-5 flex items-center justify-center">{grouped[cat].length}</span>
               </a>
             );
           })}
         </div>
 
-        <div className="space-y-16">
+        <div className="space-y-8">
           {presentCategories.map(cat => {
             const services = grouped[cat];
             const cfg = CATEGORY_CONFIG[cat];
             const colors = COLOR_CLASSES[cfg.color];
-            const banner = CATEGORY_BANNER_IMAGES[cat];
             return (
-              <div key={cat} id={`services-${cat}`} className="scroll-mt-24">
-                {banner ? (
-                  <div className="relative h-32 md:h-40 rounded-2xl overflow-hidden mb-5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={banner} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
-                    <div className="relative h-full flex items-center gap-3 px-6">
-                      <span className="p-2.5 rounded-xl bg-white/15 backdrop-blur-sm text-white">{cfg.icon}</span>
+              <div key={cat} id={`services-${cat}`} className="scroll-mt-24 rounded-3xl border border-gray-100 bg-white p-5 md:p-7 shadow-sm">
+                <div className="relative overflow-hidden rounded-2xl mb-6 p-5 md:p-6 bg-gray-50 border border-gray-100">
+                  <div className="relative flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3.5">
+                      <span className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colors.bg} ${colors.text} shrink-0 ring-1 ring-inset ring-black/5`}>
+                        {cfg.icon}
+                      </span>
                       <div>
-                        <h3 className="text-xl md:text-2xl font-bold text-white">{cfg.label}</h3>
-                        <p className="text-xs text-white/75">{services.length} services available</p>
+                        <h3 className="text-xl md:text-2xl font-extrabold text-gray-900 tracking-tight">{cfg.label}</h3>
+                        <p className="text-xs md:text-sm text-gray-500 mt-0.5">{services.length} services available</p>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className={`p-2.5 rounded-xl ${colors.bg} ${colors.text} shrink-0`}>{cfg.icon}</span>
-                    <h3 className="text-xl font-bold text-gray-900 shrink-0">{cfg.label}</h3>
-                    <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full shrink-0">
-                      {services.length} services
+                    <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary text-xs font-bold px-3 py-1.5 rounded-full">
+                      <BadgeCheck className="w-3.5 h-3.5" />Verified Vendors
                     </span>
-                    <div className="flex-1 h-px bg-gray-100" />
                   </div>
-                )}
+                </div>
                 <div className="flex flex-wrap gap-4">
                   {services.map(svc => {
                     const ov = getOverride(svc.slug);
                     const name = ov?.customName || svc.name;
-                    const price = ov?.customPrice || svc.startingPrice;
-                    const unit = ov?.customPriceUnit !== undefined ? ov.customPriceUnit : svc.priceUnit;
-                    const hasPrice = !!price && price !== '0';
                     return (
                       <Link
                         key={svc.slug}
                         href={`/${svc.slug}/${city.slug}`}
-                        className="group bg-white rounded-2xl border border-gray-200 p-4 transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:-translate-y-0.5 grow shrink-0 basis-[calc(50%-0.5rem)] sm:basis-[calc(33.333%-0.667rem)] lg:basis-[calc(25%-0.75rem)] max-w-[300px]"
+                        className="group relative flex flex-col items-center text-center bg-white rounded-2xl border border-gray-200 p-5 transition-all duration-300 hover:border-primary/40 hover:shadow-xl hover:-translate-y-1 grow shrink-0 basis-[calc(50%-0.5rem)] sm:basis-[calc(33.333%-0.667rem)] lg:basis-[calc(25%-0.75rem)] max-w-[300px]"
                       >
-                        <div className="flex items-start justify-between mb-4">
-                          <span className={`p-2 rounded-lg ${colors.bg} ${colors.text}`}>
-                            {cfg.icon}
-                          </span>
-                          {hasPrice ? (
-                            <span className="text-xs text-gray-500 text-right leading-tight pt-1">
-                              from<br /><span className="text-sm font-bold text-gray-900">₹{price}</span>{unit && unit !== '0' && <span className="text-gray-400">{unit}</span>}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-400 italic pt-1">On request</span>
-                          )}
-                        </div>
-                        <p className="font-semibold text-gray-900 text-sm leading-snug mb-4">
+                        <span className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colors.bg} ${colors.text} mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                          {cfg.icon}
+                        </span>
+                        <p className="font-bold text-gray-900 text-[15px] leading-snug mb-5">
                           {name}
                         </p>
-                        <div className="flex items-center justify-center gap-1.5 text-xs font-semibold rounded-lg py-2 border border-primary/25 text-primary group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-colors">
-                          Book now <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                        </div>
+                        <span className="mt-auto inline-flex items-center justify-center gap-1.5 w-full text-sm font-bold text-primary border-2 border-primary/20 rounded-xl py-2.5 group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-colors duration-300">
+                          Book Now <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                        </span>
                       </Link>
                     );
                   })}
