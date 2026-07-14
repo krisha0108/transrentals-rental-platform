@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     // --- STAFF LOGIN ---
     const staff = await prisma.vendor_staff.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: loginIdentifier.toLowerCase() },
       select: {
         id: true,
         did: true,
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
     // Same form & endpoint as vendor; we detect TA credentials here and return userType='travel_agent'
     // so the mobile app can route to the Travel Agent dashboard instead.
     const travelAgent = await prisma.travel_agents.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: loginIdentifier.toLowerCase() },
       select: {
         id: true,
         email: true,
@@ -284,7 +284,7 @@ export async function POST(request: NextRequest) {
     }
 
     // --- NO MATCH IN ANY TABLE ---
-    logger.logSecurityEvent('Mobile login failed - user not found', 'medium', { email: email.toLowerCase() });
+    logger.logSecurityEvent('Mobile login failed - user not found', 'medium', { email: loginIdentifier.toLowerCase() });
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
   } catch (error) {
     console.error('Vendor mobile login error:', error);
