@@ -136,6 +136,13 @@ interface VendorFleet {
   locations: string[];
 }
 
+interface ContactChangeRequest {
+  id: string;
+  newEmail: string | null;
+  newPhone: string | null;
+  requestedAt: string;
+}
+
 interface Vendor {
   id: string;
   vid: string | null;
@@ -162,6 +169,7 @@ interface Vendor {
   approvedLocations: ApprovedLocation[];
   fleets: VendorFleet[];
   _count: { fleets: number };
+  contactChangeRequest?: ContactChangeRequest | null;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -196,6 +204,7 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [contactReqLoading, setContactReqLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'services' | 'locations' | 'fleet'>('overview');
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -365,6 +374,21 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const handleContactChangeRequest = async (reqId: string, action: 'APPROVE' | 'REJECT') => {
+    setContactReqLoading(action);
+    try {
+      const res = await fetch(`/api/manager/contact-requests/${reqId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Action failed'); return; }
+      await fetchVendor();
+    } catch { alert('Network error'); }
+    finally { setContactReqLoading(null); }
   };
 
   const openPasswordModal = () => {
@@ -1204,6 +1228,54 @@ export default function VendorDetailPage({ params }: { params: { id: string } })
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Business Info */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Pending contact change request banner */}
+            {vendor.contactChangeRequest && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div>
+                    <p className="font-semibold text-amber-800 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" /> Pending Contact Change Request
+                    </p>
+                    <p className="text-sm text-amber-700 mt-1">
+                      Vendor requested on {new Date(vendor.contactChangeRequest.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-4 text-sm">
+                      {vendor.contactChangeRequest.newEmail && (
+                        <span className="flex items-center gap-1 text-amber-900">
+                          <Mail className="w-3.5 h-3.5" />
+                          New Email: <strong>{vendor.contactChangeRequest.newEmail}</strong>
+                        </span>
+                      )}
+                      {vendor.contactChangeRequest.newPhone && (
+                        <span className="flex items-center gap-1 text-amber-900">
+                          <Phone className="w-3.5 h-3.5" />
+                          New Phone: <strong>{vendor.contactChangeRequest.newPhone}</strong>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleContactChangeRequest(vendor.contactChangeRequest!.id, 'APPROVE')}
+                      disabled={!!contactReqLoading}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
+                    >
+                      {contactReqLoading === 'APPROVE' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleContactChangeRequest(vendor.contactChangeRequest!.id, 'REJECT')}
+                      disabled={!!contactReqLoading}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50 transition"
+                    >
+                      {contactReqLoading === 'REJECT' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white rounded-xl p-6 shadow-sm border">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Business Information</h3>
               <div className="grid grid-cols-2 gap-4">
