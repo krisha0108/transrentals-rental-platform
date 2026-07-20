@@ -152,7 +152,7 @@ export async function POST(
     });
 
     // Update vendor status if all required documents are uploaded
-    const requiredTypes = ['PAN_CARD', 'ADDRESS_PROOF'];
+    const requiredTypes = ['ADDRESS_PROOF'];
     const uploadedDocs = await prisma.vendor_documents.findMany({
       where: {
         vendorId,
@@ -287,7 +287,7 @@ export async function PUT(
       }).catch((err: any) => console.error('[DocApprove] Vendor notify failed:', err));
 
       // Check if all required documents are approved to update vendor status
-      const requiredTypes = ['PAN_CARD', 'ADDRESS_PROOF'];
+      const requiredTypes = ['ADDRESS_PROOF'];
       const approvedDocs = await prisma.vendor_documents.findMany({
         where: {
           vendorId,

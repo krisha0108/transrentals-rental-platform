@@ -5,6 +5,7 @@ import { createContext, useContext } from 'react';
 interface VendorVerificationContextType {
   isApproved: boolean;
   vendorStatus: string | null;
+  hasAddress: boolean;
   /** Opens the "Complete verification" modal from any page */
   openVerificationModal: () => void;
 }
@@ -12,6 +13,7 @@ interface VendorVerificationContextType {
 export const VendorVerificationContext = createContext<VendorVerificationContextType>({
   isApproved: false,
   vendorStatus: null,
+  hasAddress: true,
   openVerificationModal: () => {},
 });
 

@@ -18,6 +18,7 @@ import {
   CheckCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 
 interface Service {
   id: string;
@@ -41,6 +42,7 @@ export default function RequestServicePage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [message, setMessage] = useState('');
   const [experience, setExperience] = useState('');
+  const { hasAddress, openVerificationModal } = useVendorVerification();
 
   // Remove / Withdraw state
   const [removeModal, setRemoveModal] = useState<{
@@ -539,7 +541,7 @@ export default function RequestServicePage() {
                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                   <Button variant="outline" onClick={() => setShowConfirmModal(false)} className="rounded-xl">Cancel</Button>
                   <Button
-                    onClick={handleBulkRequest}
+                    onClick={hasAddress ? handleBulkRequest : openVerificationModal}
                     disabled={submitting}
                     className="bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200/50 active:scale-[0.98] transition-all rounded-xl relative overflow-hidden group"
                   >

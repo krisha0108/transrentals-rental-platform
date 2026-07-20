@@ -6,6 +6,7 @@ import {
   X, Loader2, Eye, Trash2, ShieldCheck, AlertTriangle, CloudUpload,
   FileCheck, FileClock, FileX, ChevronRight, Download, Info,
 } from 'lucide-react';
+import { useVendorVerification } from '@/contexts/VendorVerificationContext';
 
 interface Document {
   id: string;
@@ -111,6 +112,7 @@ export default function VendorDocumentsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { hasAddress, openVerificationModal } = useVendorVerification();
 
   const fetchDocuments = async () => {
     try {
@@ -498,7 +500,7 @@ export default function VendorDocumentsPage() {
                   Cancel
                 </button>
                 <button
-                  onClick={handleUpload}
+                  onClick={hasAddress ? handleUpload : openVerificationModal}
                   disabled={!selectedFile || uploading}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-colors shadow-sm"
                 >
