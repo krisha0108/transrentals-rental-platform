@@ -18,6 +18,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const search = searchParams.get('search');
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo = searchParams.get('dateTo');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
 
@@ -34,6 +36,13 @@ export async function GET(request: NextRequest) {
         { email: { contains: search } },
         { phone: { contains: search } },
       ];
+    }
+
+    // Filter by onboarding (registration) date — used for "joined today/this week" tracking
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+      if (dateTo) where.createdAt.lte = new Date(dateTo);
     }
 
     const [vendors, total] = await Promise.all([
